@@ -1,6 +1,7 @@
 using "ui/basic.style";
 using "ui/colors.palette";
 using "ui/widgets/widgets.style";
+using "info/info.style";
 
 iconPreviewStroke: activeButtonBg;
 
@@ -22,3 +23,33 @@ stickerPreviewTimeWidth: 36px;
 stickerPreviewTimeHeight: 18px;
 stickerSpacefillerHeight: 28px;
 stickerMargins: 12px;
+
+topBarAdmins: IconButton {
+	width: 40px;
+	height: topBarHeight;
+
+	icon: icon {{ "fa/top_bar_admins", menuIconFg }};
+	iconOver: icon {{ "fa/top_bar_admins", menuIconFgOver }};
+	iconPosition: point(4px, 11px);
+
+	rippleAreaPosition: point(0px, 7px);
+	rippleAreaSize: 40px;
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: windowBgOver;
+	}
+}
+
+topBarRecentActions: IconButton {
+	width: 40px;
+	height: topBarHeight;
+
+	icon: icon {{ "fa/top_bar_recent_actions", menuIconFg }};
+	iconOver: icon {{ "fa/top_bar_recent_actions", menuIconFgOver }};
+	iconPosition: point(4px, 11px);
+
+	rippleAreaPosition: point(0px, 7px);
+	rippleAreaSize: 40px;
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: windowBgOver;
+	}
+}

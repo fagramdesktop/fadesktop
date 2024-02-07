@@ -8,6 +8,9 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "history/view/history_view_top_bar_widget.h"
 
 #include "fa/settings/fa_settings.h"
+#include "boxes/peers/edit_participants_box.h" 
+#include "history/admin_log/history_admin_log_section.h"
+#include "styles/style_fa_styles.h"
 
 #include "history/history.h"
 #include "history/view/history_view_send_action.h"
@@ -129,6 +132,8 @@ TopBarWidget::TopBarWidget(
 , _search(this, st::topBarSearch)
 , _infoToggle(this, st::topBarInfo)
 , _menuToggle(this, st::topBarMenuToggle)
+, _recentActions(this, st::topBarRecentActions)
+, _admins(this, st::topBarAdmins)
 , _titlePeerText(st::windowMinWidth / 3)
 , _onlineUpdater([=] { updateOnlineDisplay(); }) {
 	setAttribute(Qt::WA_OpaquePaintEvent);
@@ -149,6 +154,21 @@ TopBarWidget::TopBarWidget(
 	_groupCall->setClickedCallback([=] { groupCall(); });
 	_menuToggle->setClickedCallback([=] { showPeerMenu(); });
 	_infoToggle->setClickedCallback([=] { toggleInfoSection(); });
+
+	_recentActions->setClickedCallback([=]
+	{
+		const auto channel = _activeChat.key.peer()->asChannel();
+		_controller->showSection(std::make_shared<AdminLog::SectionMemento>(channel));
+	});
+	_admins->setClickedCallback([=]
+	{
+		ParticipantsBoxController::Start(
+			controller,
+			_activeChat.key.peer(),
+			ParticipantsBoxController::Role::Admins
+		);
+	});
+
 	_back->setAcceptBoth();
 	_back->addClickHandler([=](Qt::MouseButton) {
 		InvokeQueued(_back.data(), [=] { backClicked(); });
@@ -1106,6 +1126,16 @@ void TopBarWidget::updateControlsGeometry() {
 		_groupCall->moveToRight(_rightTaken, otherButtonsTop);
 		_rightTaken += _call->width();
 	}
+
+	_recentActions->moveToRight(_rightTaken, otherButtonsTop);
+	if (!_recentActions->isHidden()) {
+		_rightTaken += _recentActions->width();
+	}
+	_admins->moveToRight(_rightTaken, otherButtonsTop);
+	if (!_admins->isHidden()) {
+		_rightTaken += _admins->width();
+	}
+
 	_search->moveToRight(_rightTaken, otherButtonsTop);
 	if (!_search->isHidden()) {
 		_rightTaken += _search->width() + st::topBarCallSkip;
@@ -1224,6 +1254,39 @@ void TopBarWidget::updateControlsVisibility() {
 		&& !isOneColumn
 		&& _controller->canShowThirdSection()
 		&& !_chooseForReportReason);
+
+	const auto showRecentActions = [&]
+	{
+		if (_activeChat.section == Section::ChatsList) {
+			return false;
+		}
+		if (const auto peer = _activeChat.key.peer()) {
+			if (peer->isMegagroup() || peer->isChannel()) {
+				const auto channel = peer->asChannel();
+				return channel->hasAdminRights() || channel->amCreator();
+			}
+		}
+		return false;
+	}();
+	_recentActions->setVisible(showRecentActions);
+	const auto showAdmins = [&]
+	{
+		if (_activeChat.section == Section::ChatsList) {
+			return false;
+		}
+		if (const auto peer = _activeChat.key.peer()) {
+			if (peer->isMegagroup()) {
+				return true;
+			}
+			if (peer->isChannel()) {
+				const auto channel = peer->asChannel();
+				return channel->hasAdminRights() || channel->amCreator();
+			}
+		}
+		return false;
+	}();
+	_admins->setVisible(showAdmins);
+
 	const auto callsEnabled = [&] {
 		if (const auto peer = _activeChat.key.peer()) {
 			if (const auto user = peer->asUser()) {
