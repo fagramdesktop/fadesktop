@@ -20,6 +20,7 @@ struct HistoryMessageReply;
 struct PreparedServiceText;
 
 namespace Data {
+class Thread;
 struct Reaction;
 struct ReactionId;
 } // namespace Data
@@ -36,6 +37,7 @@ class ChatStyle;
 struct ReactionFlyAnimationArgs;
 class ReactionFlyAnimation;
 class RippleAnimation;
+struct ColorCollectible;
 } // namespace Ui
 
 namespace HistoryView::Reactions {
@@ -265,8 +267,10 @@ struct DateBadge : RuntimeComponent<DateBadge, Element> {
 
 };
 
-struct MonoforumSenderBar : RuntimeComponent<MonoforumSenderBar, Element> {
-	void init(not_null<PeerData*> parentChat, not_null<PeerData*> peer);
+struct ForumThreadBar : RuntimeComponent<ForumThreadBar, Element> {
+	void init(
+		not_null<PeerData*> parentChat,
+		not_null<Data::Thread*> thread);
 
 	int height() const;
 	void paint(
@@ -276,7 +280,7 @@ struct MonoforumSenderBar : RuntimeComponent<MonoforumSenderBar, Element> {
 		int w,
 		bool chatWide,
 		bool skipPatternLine) const;
-	static void PaintFor(
+	static int PaintForGetWidth(
 		Painter &p,
 		not_null<const Ui::ChatStyle*> st,
 		not_null<Element*> itemView,
@@ -285,9 +289,8 @@ struct MonoforumSenderBar : RuntimeComponent<MonoforumSenderBar, Element> {
 		int w,
 		bool chatWide);
 
-	PeerData *sender = nullptr;
+	base::weak_ptr<Data::Thread> thread;
 	Ui::Text::String text;
-	ClickHandlerPtr link;
 	mutable Ui::PeerUserpicView view;
 	int width = 0;
 
@@ -295,7 +298,7 @@ private:
 	static void Paint(
 		Painter &p,
 		not_null<const Ui::ChatStyle*> st,
-		not_null<PeerData*> sender,
+		not_null<Data::Thread*> thread,
 		const Ui::Text::String &text,
 		int width,
 		Ui::PeerUserpicView &view,
@@ -345,6 +348,11 @@ struct FakeBotAboutTop : RuntimeComponent<FakeBotAboutTop, Element> {
 
 struct PurchasedTag : RuntimeComponent<PurchasedTag, Element> {
 	Ui::Text::String text;
+};
+
+struct ViewAddedMargins : RuntimeComponent<ViewAddedMargins, Element> {
+	int top = 0;
+	int bottom = 0;
 };
 
 struct TopicButton {
@@ -406,7 +414,14 @@ public:
 	void refreshDataId();
 
 	[[nodiscard]] uint8 colorIndex() const;
+	[[nodiscard]] auto colorCollectible() const
+		-> const std::shared_ptr<Ui::ColorCollectible> &;
+
 	[[nodiscard]] uint8 contentColorIndex() const;
+	[[nodiscard]] DocumentId contentBackgroundEmojiId() const;
+	[[nodiscard]] auto contentColorCollectible() const
+		-> const std::shared_ptr<Ui::ColorCollectible> &;
+
 	[[nodiscard]] QDateTime dateTime() const;
 
 	[[nodiscard]] int y() const;
@@ -414,6 +429,8 @@ public:
 
 	[[nodiscard]] virtual int marginTop() const = 0;
 	[[nodiscard]] virtual int marginBottom() const = 0;
+
+	void addVerticalMargins(int top, int bottom);
 
 	void setPendingResize();
 	[[nodiscard]] bool pendingResize() const;
@@ -475,7 +492,7 @@ public:
 	[[nodiscard]] bool displayDate() const;
 	[[nodiscard]] bool isInOneDayWithPrevious() const;
 
-	[[nodiscard]] bool displayMonoforumSender() const;
+	[[nodiscard]] bool displayForumThreadBar() const;
 	[[nodiscard]] bool isInOneBunchWithPrevious() const;
 
 	virtual void draw(Painter &p, const PaintContext &context) const = 0;
@@ -632,7 +649,6 @@ public:
 		Data::ReactionId,
 		std::unique_ptr<Ui::ReactionFlyAnimation>>;
 
-	virtual void animateEffect(Ui::ReactionFlyAnimationArgs &&args);
 	void animateUnreadEffect();
 	[[nodiscard]] virtual auto takeEffectAnimation()
 	-> std::unique_ptr<Ui::ReactionFlyAnimation>;
@@ -688,7 +704,7 @@ protected:
 	std::unique_ptr<Reactions::InlineList> _reactions;
 
 private:
-	void recountMonoforumSenderBarInBlocks();
+	void recountThreadBarInBlocks();
 
 	// This should be called only from previousInBlocksChanged()
 	// to add required bits to the Composer mask
@@ -754,5 +770,13 @@ private:
 
 [[nodiscard]] Window::SessionController *ExtractController(
 	const ClickContext &context);
+
+[[nodiscard]] TextSelection FindSearchQueryHighlight(
+	const QString &text,
+	const QString &query);
+
+[[nodiscard]] TextSelection FindSearchQueryHighlight(
+	const QString &text,
+	QStringView lower);
 
 } // namespace HistoryView

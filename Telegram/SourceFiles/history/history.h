@@ -23,6 +23,7 @@ class HistoryItem;
 struct HistoryItemCommonFields;
 struct HistoryMessageMarkupData;
 class HistoryMainElementDelegateMixin;
+class HistoryStreamedDrafts;
 struct LanguageId;
 
 namespace Data {
@@ -80,6 +81,8 @@ public:
 	void monoforumChanged(Data::SavedMessages *old);
 	[[nodiscard]] bool amMonoforumAdmin() const;
 	[[nodiscard]] bool suggestDraftAllowed() const;
+	[[nodiscard]] bool hasForumThreadBars() const;
+	void forumTabsChanged(bool forumTabs);
 
 	[[nodiscard]] not_null<History*> migrateToOrMe() const;
 	[[nodiscard]] History *migrateFrom() const;
@@ -88,6 +91,8 @@ public:
 	[[nodiscard]] Data::HistoryMessages &messages();
 	[[nodiscard]] const Data::HistoryMessages &messages() const;
 	[[nodiscard]] Data::HistoryMessages *maybeMessages();
+
+	[[nodiscard]] HistoryStreamedDrafts &streamedDrafts();
 
 	[[nodiscard]] HistoryItem *joinedMessageInstance() const;
 	void checkLocalMessages();
@@ -244,6 +249,7 @@ public:
 	[[nodiscard]] bool lastMessageKnown() const;
 	[[nodiscard]] bool lastServerMessageKnown() const;
 	void unknownMessageDeleted(MsgId messageId);
+	[[nodiscard]] bool isUnknownMessageDeleted(MsgId messageId) const;
 	void applyDialogTopMessage(MsgId topMessageId);
 	void applyDialog(Data::Folder *requestFolder, const MTPDdialog &data);
 	void applyPinnedUpdate(const MTPDupdateDialogPinned &data);
@@ -434,7 +440,10 @@ public:
 	void tryMarkMonoforumIntervalRead(
 		MsgId wasInboxReadBefore,
 		MsgId nowInboxReadBefore);
-	void validateMonoforumUnread(MsgId readTillId);
+	void tryMarkForumIntervalRead(
+		MsgId wasInboxReadBefore,
+		MsgId nowInboxReadBefore);
+	void validateMonoAndForumUnread(MsgId readTillId);
 
 	[[nodiscard]] bool isTopPromoted() const;
 
@@ -444,6 +453,8 @@ public:
 	[[nodiscard]] LanguageId translatedTo() const;
 
 	[[nodiscard]] HistoryTranslation *translation() const;
+
+	void refreshHiddenLinksItems();
 
 	const not_null<PeerData*> peer;
 
@@ -480,7 +491,7 @@ private:
 		FakeUnreadWhileOpened = (1 << 5),
 		HasPinnedMessages = (1 << 6),
 		ResolveChatListMessage = (1 << 7),
-		MonoforumUnreadInvalidatePending = (1 << 8),
+		MonoAndForumUnreadInvalidatePending = (1 << 8),
 	};
 	using Flags = base::flags<Flag>;
 	friend inline constexpr auto is_flag_type(Flag) {
@@ -634,6 +645,7 @@ private:
 	std::unordered_set<std::unique_ptr<HistoryItem>> _items;
 
 	std::unique_ptr<Data::HistoryMessages> _messages;
+	std::unique_ptr<HistoryStreamedDrafts> _streamedDrafts;
 
 	// This almost always is equal to _lastMessage. The only difference is
 	// for a group that migrated to a supergroup. Then _lastMessage can
@@ -656,6 +668,8 @@ private:
 	base::flat_map<Data::DraftKey, TimeId> _acceptCloudDraftsAfter;
 	base::flat_map<Data::DraftKey, int> _savingCloudDraftRequests;
 	base::flat_map<Data::DraftKey, Data::ForwardDraft> _forwardDrafts;
+
+	base::flat_map<MsgId, TimeId> _unknownDeletedMessages;
 
 	QString _topPromotedMessage;
 	QString _topPromotedType;

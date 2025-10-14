@@ -339,10 +339,13 @@ bool RoundVideoRecorder::Private::initVideo() {
 		return false;
 	}
 
-	const auto videoCodec = avcodec_find_encoder_by_name("libopenh264");
+	auto videoCodec = avcodec_find_encoder_by_name("libopenh264");
 	if (!videoCodec) {
-		LogError("avcodec_find_encoder_by_name", "libopenh264");
-		return false;
+		videoCodec = avcodec_find_encoder(AV_CODEC_ID_H264);
+		if (!videoCodec) {
+			LogError("avcodec_find_encoder", "AV_CODEC_ID_H264");
+			return false;
+		}
 	}
 
 	_videoStream = avformat_new_stream(_format.get(), videoCodec);
@@ -428,12 +431,7 @@ bool RoundVideoRecorder::Private::initAudio() {
 	_audioCodec->sample_fmt = AV_SAMPLE_FMT_FLTP;
 	_audioCodec->bit_rate = kAudioBitRate;
 	_audioCodec->sample_rate = kAudioFrequency;
-#if DA_FFMPEG_NEW_CHANNEL_LAYOUT
 	_audioCodec->ch_layout = AV_CHANNEL_LAYOUT_MONO;
-#else
-	_audioCodec->channel_layout = AV_CH_LAYOUT_MONO;
-	_audioCodec->channels = _audioChannels;
-#endif
 
 	auto error = AvErrorWrap(avcodec_open2(
 		_audioCodec.get(),
@@ -452,7 +450,6 @@ bool RoundVideoRecorder::Private::initAudio() {
 		return false;
 	}
 
-#if DA_FFMPEG_NEW_CHANNEL_LAYOUT
 	_swrContext = MakeSwresamplePointer(
 		&_audioCodec->ch_layout,
 		AV_SAMPLE_FMT_S16,
@@ -461,16 +458,6 @@ bool RoundVideoRecorder::Private::initAudio() {
 		_audioCodec->sample_fmt,
 		_audioCodec->sample_rate,
 		&_swrContext);
-#else // DA_FFMPEG_NEW_CHANNEL_LAYOUT
-	_swrContext = MakeSwresamplePointer(
-		_audioCodec->channel_layout,
-		AV_SAMPLE_FMT_S16,
-		_audioCodec->sample_rate,
-		_audioCodec->channel_layout,
-		_audioCodec->sample_fmt,
-		_audioCodec->sample_rate,
-		&_swrContext);
-#endif // DA_FFMPEG_NEW_CHANNEL_LAYOUT
 	if (!_swrContext) {
 		return false;
 	}
@@ -483,12 +470,7 @@ bool RoundVideoRecorder::Private::initAudio() {
 	_audioFrame->nb_samples = _audioCodec->frame_size;
 	_audioFrame->format = _audioCodec->sample_fmt;
 	_audioFrame->sample_rate = _audioCodec->sample_rate;
-#if DA_FFMPEG_NEW_CHANNEL_LAYOUT
 	av_channel_layout_copy(&_audioFrame->ch_layout, &_audioCodec->ch_layout);
-#else
-	_audioFrame->channel_layout = _audioCodec->channel_layout;
-	_audioFrame->channels = _audioCodec->channels;
-#endif
 
 	error = AvErrorWrap(av_frame_get_buffer(_audioFrame.get(), 0));
 	if (error) {

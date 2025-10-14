@@ -13,6 +13,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "base/unixtime.h"
 #include "base/qt/qt_key_modifiers.h"
+#include "boxes/choose_filter_box.h"
 #include "boxes/peer_list_box.h"
 #include "core/application.h"
 #include "core/ui_integration.h"
@@ -22,6 +23,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_changes.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
+#include "data/data_chat_filters.h"
 #include "data/data_download_manager.h"
 #include "data/data_folder.h"
 #include "data/data_peer_values.h"
@@ -70,6 +72,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "window/window_separate_id.h"
 #include "window/window_session_controller.h"
 #include "window/window_peer_menu.h"
+#include "styles/style_boxes.h"
 #include "styles/style_chat.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_layers.h"
@@ -181,6 +184,20 @@ void FillEntryMenu(
 		controller->showPeerHistory(peer);
 	}, channel ? &st::menuIconChannel : &st::menuIconChatBubble);
 
+	const auto history = peer->owner().historyLoaded(peer);
+	if (history
+		&& history->owner().chatsFilters().has()
+		&& history->inChatList()) {
+		add(Ui::Menu::MenuCallback::Args{
+			.text = tr::lng_filters_menu_add(tr::now),
+			.handler = nullptr,
+			.icon = &st::menuIconAddToFolder,
+			.fillSubmenu = [&](not_null<Ui::PopupMenu*> menu) {
+				FillChooseFilterMenu(controller, menu, history);
+			},
+			.submenuSt = &st::foldersMenu,
+		});
+	}
 	const auto viewProfileText = group
 		? tr::lng_context_view_group(tr::now)
 		: channel
@@ -1395,20 +1412,13 @@ void Suggestions::setupTabs() {
 		},
 	};
 
-	auto helper = Ui::Text::CustomEmojiHelper();
 	auto sections = std::vector<TextWithEntities>();
 	for (const auto key : _tabKeys) {
 		const auto i = labels.find(key);
 		Assert(i != end(labels));
-		auto text = TextWithEntities{ i->second };
-		if (key.tab == Tab::Posts) {
-			text.append(' ').append(helper.paletteDependent(
-				Ui::Text::CustomEmojiTextBadge(
-					tr::lng_premium_summary_new_badge(tr::now))));
-		}
-		sections.push_back(std::move(text));
+		sections.push_back({ i->second });
 	}
-	_tabs->setSections(sections, helper.context());
+	_tabs->setSections(sections);
 	_tabs->sectionActivated(
 	) | rpl::start_with_next([=](int section) {
 		Assert(section >= 0 && section < _tabKeys.size());
@@ -1854,6 +1864,7 @@ void Suggestions::setupPostsSearch() {
 				nullptr,
 				{ .posts = true, .start = true },
 				state.totalCount);
+			_postsScroll->scrollToY(0);
 			updatePostsSearchVisibleRange();
 		}
 	}, _postsWrap->lifetime());
@@ -1986,6 +1997,10 @@ void Suggestions::setupPostsIntro(const PostsSearchIntroState &intro) {
 				SmallBalanceForSearch{},
 				done);
 		}
+	}, _postsSearchIntro->lifetime());
+
+	_postsScroll->heightValue() | rpl::start_with_next([=](int height) {
+		_postsWrap->resize(_postsWrap->width(), height);
 	}, _postsSearchIntro->lifetime());
 
 	_postsSearchIntro->show();

@@ -652,6 +652,8 @@ bool Application::eventFilter(QObject *object, QEvent *e) {
 		if (base::Platform::GlobalShortcuts::IsToggleFullScreenKey(event)
 			&& toggleActiveWindowFullScreen()) {
 			return true;
+		} else if (Shortcuts::HandlePossibleChatSwitch(event)) {
+			return true;
 		}
 	} break;
 	case QEvent::MouseButtonPress:
@@ -660,8 +662,20 @@ bool Application::eventFilter(QObject *object, QEvent *e) {
 		updateNonIdle();
 	} break;
 
+	case QEvent::KeyRelease: {
+		const auto event = static_cast<QKeyEvent*>(e);
+		if (Shortcuts::HandlePossibleChatSwitch(event)) {
+			return true;
+		}
+	} break;
+
 	case QEvent::ShortcutOverride: {
-		// handle shortcuts ourselves
+		// Ctrl+Tab/Ctrl+Shift+Tab chat switch is a special shortcut case,
+		// because it not only does an action on the shortcut activation,
+		// but also keeps the UI visible until you release the Ctrl key.
+		Shortcuts::HandlePossibleChatSwitch(static_cast<QKeyEvent*>(e));
+
+		// Handle all the shortcut management manually.
 		return true;
 	} break;
 
@@ -1355,7 +1369,7 @@ Window::Controller *Application::windowForShowingHistory(
 
 Window::Controller *Application::windowForShowingForum(
 		not_null<Data::Forum*> forum) const {
-	const auto tabs = forum->channel()->useSubsectionTabs();
+	const auto tabs = forum->bot() || forum->peer()->useSubsectionTabs();
 	const auto id = Window::SeparateId(
 		tabs ? Window::SeparateType::Chat : Window::SeparateType::Forum,
 		forum->history());

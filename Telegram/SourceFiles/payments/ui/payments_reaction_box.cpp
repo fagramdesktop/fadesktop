@@ -293,7 +293,8 @@ void FillTopReactors(
 			container,
 			tr::lng_paid_react_top_title(),
 			[](QRect) { return st::creditsBg3->b; }),
-		st::boxRowPadding + st::paidReactTopTitleMargin);
+		st::boxRowPadding + st::paidReactTopTitleMargin,
+		style::al_top);
 
 	const auto height = st::paidReactTopNameSkip + st::normalFont->height;
 	const auto wrap = container->add(
@@ -481,7 +482,8 @@ void PaidReactionsBox(
 			box,
 			tr::lng_paid_react_title(),
 			st::boostCenteredTitle),
-		st::boxRowPadding + QMargins(0, st::paidReactTitleSkip, 0, 0));
+		st::boxRowPadding + QMargins(0, st::paidReactTitleSkip, 0, 0),
+		style::al_top);
 	const auto labelWrap = box->addRow(
 		object_ptr<RpWidget>(box),
 		(st::boxRowPadding
@@ -517,13 +519,13 @@ void PaidReactionsBox(
 			state->shownPeer = state->savedShownPeer = barePeerId;
 		});
 
-	const auto named = box->addRow(object_ptr<CenterWrap<Checkbox>>(
-		box,
+	const auto named = box->addRow(
 		object_ptr<Checkbox>(
 			box,
 			tr::lng_paid_react_show_in_top(tr::now),
-			state->shownPeer.current() != 0)));
-	named->entity()->checkedValue(
+			state->shownPeer.current() != 0),
+		style::al_top);
+	named->checkedValue(
 	) | rpl::start_with_next([=](bool show) {
 		state->shownPeer = show ? state->savedShownPeer : 0;
 	}, named->lifetime());

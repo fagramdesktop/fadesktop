@@ -1735,6 +1735,8 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 		const auto donePhraseArgs = CreateForwardedMessagePhraseArgs(
 			result,
 			msgIds);
+		const auto showRecentForwardsToSelf = result.size() == 1
+			&& result.front()->peer()->isSelf();
 		const auto requestType = Data::Histories::RequestType::Send;
 		for (const auto thread : result) {
 			if (!comment.text.isEmpty()) {
@@ -1792,13 +1794,22 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 						Api::SuggestToMTP(options.suggest)
 				)).done([=](const MTPUpdates &updates, mtpRequestId reqId) {
 					threadHistory->session().api().applyUpdates(updates);
+					if (showRecentForwardsToSelf) {
+						ApiWrap::ProcessRecentSelfForwards(
+							&threadHistory->session(),
+							updates,
+							peer->id,
+							history->peer->id);
+					}
 					state->requests.remove(reqId);
 					if (state->requests.empty()) {
 						if (show->valid()) {
 							auto phrase = rpl::variable<TextWithEntities>(
 								ChatHelpers::ForwardedMessagePhrase(
 									donePhraseArgs)).current();
-							show->showToast(std::move(phrase));
+							if (!phrase.empty()) {
+								show->showToast(std::move(phrase));
+							}
 							show->hideLayer();
 						}
 					}
@@ -1936,6 +1947,31 @@ void FastShareMessage(
 		},
 		.moneyRestrictionError = ShareMessageMoneyRestrictionError(),
 	}), Ui::LayerOption::CloseOther);
+}
+
+void FastShareMessageToSelf(
+		std::shared_ptr<Main::SessionShow> show,
+		not_null<HistoryItem*> item) {
+	const auto self = show->session().user();
+	const auto donePhraseArgs = ChatHelpers::ForwardedMessagePhraseArgs{
+		.toCount = 1,
+		.singleMessage = true,
+		.to1 = self,
+		.to2 = nullptr,
+	};
+	auto sendAction = Api::SendAction(self->owner().history(self));
+	sendAction.clearDraft = false;
+	show->session().api().forwardMessages(
+		Data::ResolvedForwardDraft{ .items = {item} },
+		std::move(sendAction),
+		[=] {
+			auto phrase = rpl::variable<TextWithEntities>(
+				ChatHelpers::ForwardedMessagePhrase(
+					donePhraseArgs)).current();
+			if (!phrase.empty()) {
+				show->showToast(std::move(phrase));
+			}
+		});
 }
 
 void FastShareMessage(

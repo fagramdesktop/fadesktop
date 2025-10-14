@@ -74,6 +74,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "main/main_session_settings.h"
 #include "info/info_controller.h"
 #include "info/info_memento.h"
+#include "info/profile/info_profile_values.h"
 #include "inline_bots/bot_attach_web_view.h"
 #include "history/history.h"
 #include "history/history_item.h"
@@ -648,7 +649,9 @@ bool ResolveUsernameOrPhone(
 	const auto threadId = topicId ? topicId : threadParam.toInt();
 	const auto gameParam = params.value(u"game"_q);
 	const auto videot = params.value(u"t"_q);
-
+	if (params.contains(u"direct"_q)) {
+		resolveType = ResolveType::ChannelDirect;
+	}
 	if (!gameParam.isEmpty() && validDomain(gameParam)) {
 		startToken = gameParam;
 		resolveType = ResolveType::ShareGame;
@@ -928,6 +931,58 @@ bool ShowEditBirthday(
 	} else if (controller->showFrozenError()) {
 		return true;
 	}
+
+	const auto captured = match->captured(1);
+	if (captured.startsWith(u":suggest:"_q)) {
+		const auto userIdStr = captured.mid(9); // Skip ":suggest:"
+		const auto userId = UserId(userIdStr.toULongLong());
+		if (!userId) {
+			return false;
+		}
+
+		const auto targetUser
+			= controller->session().data().userLoaded(userId);
+		if (!targetUser) {
+			return false;
+		}
+
+		const auto save = [=](Data::Birthday result) {
+			using BFlag = MTPDbirthday::Flag;
+			controller->session().api().request(MTPusers_SuggestBirthday(
+				targetUser->inputUser,
+				MTP_birthday(
+					MTP_flags(result.year() ? BFlag::f_year : BFlag()),
+					MTP_int(result.day()),
+					MTP_int(result.month()),
+					MTP_int(result.year()))
+			)).done(crl::guard(controller, [=] {
+				controller->showPeerHistory(targetUser);
+				controller->showToast(
+					tr::lng_settings_birthday_suggested(
+						tr::now,
+						lt_user,
+						targetUser->name()));
+			})).fail(crl::guard(controller, [=](const MTP::Error &error) {
+				const auto type = error.type();
+				controller->showToast(type.startsWith(u"FLOOD_WAIT_"_q)
+					? tr::lng_flood_error(tr::now)
+					: (u"Error: "_q + error.type()));
+			})).handleFloodErrors().send();
+		};
+
+		controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+			box->setTitle(tr::lng_suggest_birthday_box_title(
+				lt_user,
+				Info::Profile::NameValue(targetUser)));
+			Ui::EditBirthdayBox(
+				box,
+				Data::Birthday(),
+				save,
+				Ui::EditBirthdayType::Suggest);
+		}));
+		return true;
+	}
+
 	const auto user = controller->session().user();
 	const auto save = [=](Data::Birthday result) {
 		user->setBirthday(result);
@@ -950,8 +1005,20 @@ bool ShowEditBirthday(
 				: (u"Error: "_q + error.type()));
 		})).handleFloodErrors().send();
 	};
-	if (match->captured(1).isEmpty()) {
-		controller->show(Box(Ui::EditBirthdayBox, user->birthday(), save));
+	if (captured.startsWith(u":suggestion_"_q)) {
+		const auto suggested = Data::Birthday::FromSerialized(
+			captured.mid(u":suggestion_"_q.size()).toInt());
+		controller->show(Box(
+			Ui::EditBirthdayBox,
+			suggested,
+			save,
+			Ui::EditBirthdayType::ConfirmSuggestion));
+	} else if (captured.isEmpty()) {
+		controller->show(Box(
+			Ui::EditBirthdayBox,
+			user->birthday(),
+			save,
+			Ui::EditBirthdayType::Edit));
 	} else {
 		controller->show(Box([=](not_null<Ui::GenericBox*> box) {
 			Ui::EditBirthdayBox(box, user->birthday(), save);
@@ -1091,7 +1158,17 @@ bool ShowCollectibleUsername(
 	}
 	const auto username = match->captured(1);
 	const auto peerId = PeerId(match->captured(2).toULongLong());
-	controller->resolveCollectible(peerId, username);
+	const auto weak = base::make_weak(controller);
+	controller->resolveCollectible(peerId, username, [=](const QString &e) {
+		if (e == u"COLLECTIBLE_NOT_FOUND"_q) {
+			if (const auto strong = weak.get()) {
+				TextUtilities::SetClipboardText({
+					strong->session().createInternalLinkFull(username)
+				});
+				strong->showToast(tr::lng_username_copied(tr::now));
+			}
+		}
+	});
 	return true;
 }
 
@@ -1310,8 +1387,9 @@ bool ResolveTestChatTheme(
 		qthelp::UrlParamNameTransform::ToLower);
 	if (const auto history = controller->activeChatCurrent().history()) {
 		controller->clearCachedChatThemes();
-		const auto theme = history->owner().cloudThemes().updateThemeFromLink(
-			history->peer->themeEmoji(),
+		const auto owner = &history->owner();
+		const auto theme = owner->cloudThemes().updateThemeFromLink(
+			history->peer->themeToken(),
 			params);
 		if (theme) {
 			if (!params["export"].isEmpty()) {

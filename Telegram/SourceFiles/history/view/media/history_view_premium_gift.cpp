@@ -55,9 +55,7 @@ int PremiumGift::top() {
 }
 
 int PremiumGift::width() {
-	return _data.stargiftReleasedBy
-		? st::msgServiceStarGiftByWidth
-		: st::msgServiceStarGiftBoxWidth;
+	return st::msgServiceStarGiftBoxWidth;
 }
 
 QSize PremiumGift::size() {
@@ -388,7 +386,9 @@ QImage PremiumGift::cornerTag(const PaintContext &context) {
 	}
 	if (_badgeCache.isNull() || _badgeKey != badge) {
 		_badgeKey = badge;
-		_badgeCache = ValidateRotatedBadge(badge, 0);
+		_badgeCache = ValidateRotatedBadge(
+			badge,
+			st::msgServiceGiftBoxBadgePadding);
 	}
 	return _badgeCache;
 }
@@ -504,8 +504,8 @@ ClickHandlerPtr OpenStarGiftLink(not_null<HistoryItem*> item) {
 	}
 	const auto data = *gift;
 	const auto itemId = item->fullId();
-	const auto openInsteadId = data.upgradeMsgId
-		? Data::SavedStarGiftId::User(data.upgradeMsgId)
+	const auto openInsteadId = data.realGiftMsgId
+		? Data::SavedStarGiftId::User(data.realGiftMsgId)
 		: (data.channel && data.channelSavedId)
 		? Data::SavedStarGiftId::Chat(data.channel, data.channelSavedId)
 		: Data::SavedStarGiftId();
@@ -518,14 +518,7 @@ ClickHandlerPtr OpenStarGiftLink(not_null<HistoryItem*> item) {
 			return;
 		}
 		const auto quick = [=](not_null<Window::SessionController*> window) {
-			const auto item = window->session().data().message(itemId);
-			if (item) {
-				window->show(Box(
-					Settings::StarGiftViewBox,
-					window,
-					data,
-					item));
-			}
+			Settings::ShowStarGiftViewBox(window, data, itemId);
 		};
 		if (!openInsteadId) {
 			quick(controller);
@@ -551,12 +544,7 @@ ClickHandlerPtr OpenStarGiftLink(not_null<HistoryItem*> item) {
 				if (list.empty()) {
 					quick(window);
 				} else if (auto parsed = Api::FromTL(owner, list[0])) {
-					window->show(Box(
-						Settings::SavedStarGiftBox,
-						window,
-						owner,
-						*parsed,
-						nullptr));
+					Settings::ShowSavedStarGiftBox(window, owner, *parsed);
 				}
 			}
 		}).fail([=](const MTP::Error &error) {

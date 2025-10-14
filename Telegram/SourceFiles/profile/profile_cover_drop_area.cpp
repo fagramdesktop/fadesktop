@@ -12,7 +12,11 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 namespace Profile {
 
-CoverDropArea::CoverDropArea(QWidget *parent, const QString &title, const QString &subtitle) : TWidget(parent)
+CoverDropArea::CoverDropArea(
+	QWidget *parent,
+	const QString &title,
+	const QString &subtitle)
+: RpWidget(parent)
 , _title(title)
 , _subtitle(subtitle)
 , _titleWidth(st::profileDropAreaTitleFont->width(_title))

@@ -17,6 +17,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_document.h"
 #include "data/data_file_origin.h"
 #include "data/data_media_preload.h"
+#include "data/data_peer_values.h"
 #include "data/data_photo.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
@@ -57,6 +58,13 @@ template <typename Fields>
 SponsoredMessages::SponsoredMessages(not_null<Main::Session*> session)
 : _session(session)
 , _clearTimer([=] { clearOldRequests(); }) {
+	Data::AmPremiumValue(
+		_session
+	) | rpl::start_with_next([=](bool premium) {
+		if (premium) {
+			clear();
+		}
+	}, _lifetime);
 }
 
 SponsoredMessages::~SponsoredMessages() {
@@ -532,12 +540,8 @@ void SponsoredMessages::append(
 			: PhotoId(0),
 		.mediaPhotoId = (mediaPhoto ? mediaPhoto->id : 0),
 		.mediaDocumentId = (mediaDocument ? mediaDocument->id : 0),
-		.backgroundEmojiId = data.vcolor().has_value()
-			? data.vcolor()->data().vbackground_emoji_id().value_or_empty()
-			: uint64(0),
-		.colorIndex = uint8(data.vcolor().has_value()
-			? data.vcolor()->data().vcolor().value_or_empty()
-			: 0),
+		.backgroundEmojiId = BackgroundEmojiIdFromColor(data.vcolor()),
+		.colorIndex = ColorIndexFromColor(data.vcolor()),
 		.isLinkInternal = !UrlRequiresConfirmation(qs(data.vurl())),
 		.isRecommended = data.is_recommended(),
 		.canReport = data.is_can_report(),

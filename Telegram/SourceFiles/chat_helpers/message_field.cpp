@@ -576,6 +576,7 @@ void InitMessageFieldGeometry(not_null<Ui::InputField*> field) {
 		st::historySendSize.height() - 2 * st::historySendPadding);
 	field->setMaxHeight(st::historyComposeFieldMaxHeight);
 
+	// st::messageSendingAnimationTextFromOffset.
 	field->setDocumentMargin(4.);
 	field->setAdditionalMargin(style::ConvertScale(4) - 4);
 }
@@ -1467,7 +1468,8 @@ void FrozenInfoBox(
 			content,
 			tr::lng_frozen_title(),
 			st.title ? *st.title : st::uniqueGiftTitle),
-		st::settingsPremiumRowTitlePadding);
+		st::settingsPremiumRowTitlePadding,
+		style::al_top);
 
 	Ui::AddSkip(content, st::defaultVerticalListSkip * 3);
 

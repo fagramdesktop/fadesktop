@@ -10,13 +10,15 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "api/api_text_entities.h"
 #include "data/business/data_shortcut_messages.h"
 #include "data/components/scheduled_messages.h"
-#include "data/data_saved_sublist.h"
-#include "data/data_session.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
+#include "data/data_document.h"
 #include "data/data_folder.h"
 #include "data/data_forum.h"
 #include "data/data_forum_topic.h"
+#include "data/data_saved_music.h"
+#include "data/data_saved_sublist.h"
+#include "data/data_session.h"
 #include "data/data_user.h"
 #include "base/unixtime.h"
 #include "base/random.h"
@@ -546,6 +548,7 @@ void Histories::requestFakeChatListMessage(
 			_fakeChatListRequests.erase(history);
 			history->setFakeChatListMessageFrom(MTP_messages_messages(
 				MTP_vector<MTPMessage>(0),
+				MTP_vector<MTPForumTopic>(0),
 				MTP_vector<MTPChat>(0),
 				MTP_vector<MTPUser>(0)));
 			finish();
@@ -713,7 +716,7 @@ void Histories::sendReadRequest(not_null<History*> history, State &state) {
 			} else {
 				Assert(!state->sentReadTill || state->sentReadTill > tillId);
 			}
-			history->validateMonoforumUnread(tillId);
+			history->validateMonoAndForumUnread(tillId);
 			sendReadRequests();
 			finish();
 		};
@@ -885,10 +888,10 @@ void Histories::deleteMessagesByDates(
 }
 
 void Histories::deleteMessagesByDates(
-		not_null<History*> history,
-		TimeId minDate,
-		TimeId maxDate,
-		bool revoke) {
+	not_null<History*> history,
+	TimeId minDate,
+	TimeId maxDate,
+	bool revoke) {
 	sendRequest(history, RequestType::Delete, [=](Fn<void()> finish) {
 		const auto peer = history->peer;
 		using Flag = MTPmessages_DeleteHistory::Flag;
@@ -921,10 +924,14 @@ void Histories::deleteMessages(const MessageIdsList &ids, bool revoke) {
 	base::flat_map<not_null<History*>, QVector<MTPint>> idsByPeer;
 	base::flat_map<not_null<PeerData*>, QVector<MTPint>> scheduledIdsByPeer;
 	base::flat_map<BusinessShortcutId, QVector<MTPint>> quickIdsByShortcut;
+	base::flat_set<not_null<DocumentData*>> savedMusic;
 	for (const auto &itemId : ids) {
 		if (const auto item = _owner->message(itemId)) {
 			const auto history = item->history();
-			if (item->isScheduled()) {
+			if (item->isSavedMusicItem()) {
+				savedMusic.emplace(item->media()->document());
+				continue;
+			} else if (item->isScheduled()) {
 				const auto wasOnServer = !item->isSending()
 					&& !item->hasFailed();
 				auto &scheduled = _owner->session().scheduledMessages();
@@ -972,6 +979,9 @@ void Histories::deleteMessages(const MessageIdsList &ids, bool revoke) {
 		)).done([=](const MTPUpdates &result) {
 			api->applyUpdates(result);
 		}).send();
+	}
+	for (const auto &document : savedMusic) {
+		document->owner().savedMusic().remove(document);
 	}
 
 	for (const auto item : remove) {
@@ -1034,8 +1044,6 @@ int Histories::sendRequest(
 void Histories::sendCreateTopicRequest(
 		not_null<History*> history,
 		MsgId rootId) {
-	Expects(history->peer->isChannel());
-
 	const auto forum = history->asForum();
 	Assert(forum != nullptr);
 	const auto topic = forum->topicFor(rootId);
@@ -1045,11 +1053,12 @@ void Histories::sendCreateTopicRequest(
 		randomId,
 		{ history->peer->id, rootId });
 	const auto api = &session().api();
-	using Flag = MTPchannels_CreateForumTopic::Flag;
-	api->request(MTPchannels_CreateForumTopic(
+	using Flag = MTPmessages_CreateForumTopic::Flag;
+	api->request(MTPmessages_CreateForumTopic(
 		MTP_flags(Flag::f_icon_color
-			| (topic->iconId() ? Flag::f_icon_emoji_id : Flag(0))),
-		history->peer->asChannel()->inputChannel,
+			| (topic->iconId() ? Flag::f_icon_emoji_id : Flag())
+			| (history->peer->isBot() ? Flag::f_title_missing : Flag())),
+		history->peer->input,
 		MTP_string(topic->title()),
 		MTP_int(topic->colorId()),
 		MTP_long(topic->iconId()),

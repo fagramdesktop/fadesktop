@@ -37,9 +37,6 @@
 [submodule "Telegram/lib_storage"]
 	path = Telegram/lib_storage
 	url = https://github.com/desktop-app/lib_storage.git
-[submodule "cmake"]
-	path = cmake
-	url = https://github.com/fajox1/cmake_helpers.git
 [submodule "Telegram/ThirdParty/expected"]
 	path = Telegram/ThirdParty/expected
 	url = https://github.com/TartanLlama/expected
@@ -97,3 +94,6 @@
 [submodule "Telegram/ThirdParty/libtgvoip"]
 	path = Telegram/ThirdParty/libtgvoip
 	url = https://github.com/telegramdesktop/libtgvoip.git
+[submodule "cmake"]
+	path = cmake
+	url = https://github.com/FajoX1/cmake_helpers

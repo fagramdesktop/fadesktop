@@ -30,6 +30,7 @@ struct Filter {
 	bool sortByValue : 1 = false;
 	bool skipUnlimited : 1 = false;
 	bool skipLimited : 1 = false;
+	bool skipUpgradable : 1 = false;
 	bool skipUnique : 1 = false;
 	bool skipSaved : 1 = false;
 	bool skipUnsaved : 1 = false;
@@ -39,6 +40,7 @@ struct Filter {
 			|| skipUnlimited
 			|| skipSaved
 			|| skipUnsaved
+			|| skipUpgradable
 			|| skipUnique;
 	}
 
@@ -105,12 +107,13 @@ private:
 	std::shared_ptr<ContentMemento> doCreateMemento() override;
 
 	void setupNotifyCheckbox(int wasBottomHeight, bool enabled);
-	void setupBottomButton(int wasBottomHeight, rpl::producer<bool> hidden);
+	void setupBottomButton(int wasBottomHeight);
 	void refreshBottom();
 
 	InnerWidget *_inner = nullptr;
 	QPointer<Ui::SlideWrap<Ui::RpWidget>> _pinnedToBottom;
 	rpl::variable<bool> _hasPinnedToBottom;
+	rpl::variable<bool> _emptyCollectionShown;
 	rpl::variable<Descriptor> _descriptor;
 	std::optional<bool> _notifyEnabled;
 	bool _shown = false;

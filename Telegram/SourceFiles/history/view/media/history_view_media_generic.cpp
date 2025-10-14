@@ -14,7 +14,6 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "history/view/history_view_element.h"
 #include "history/view/history_view_cursor_state.h"
 #include "ui/chat/chat_style.h"
-#include "ui/widgets/tooltip.h"
 #include "ui/dynamic_image.h"
 #include "ui/dynamic_thumbnails.h"
 #include "ui/painter.h"
@@ -27,19 +26,6 @@ namespace HistoryView {
 namespace {
 
 constexpr auto kAdditionalPrizesWithLineOpacity = 0.6;
-
-[[nodiscard]] QSize CountOptimalTextSize(
-		const Ui::Text::String &text,
-		int minWidth,
-		int maxWidth) {
-	if (text.maxWidth() <= maxWidth) {
-		return { text.maxWidth(), text.minHeight() };
-	}
-	const auto height = text.countHeight(maxWidth);
-	return { Ui::FindNiceTooltipWidth(minWidth, maxWidth, [&](int width) {
-		return text.countHeight(width);
-	}), height };
-}
 
 } // namespace
 
@@ -113,10 +99,11 @@ QSize MediaGeneric::countCurrentSize(int newWidth) {
 	if (newWidth > maxWidth()) {
 		newWidth = maxWidth();
 	}
+	auto top = 0;
 	for (auto &entry : _entries) {
-		entry.object->resizeGetHeight(newWidth);
+		top += entry.object->resizeGetHeight(newWidth);
 	}
-	return { newWidth, minHeight() };
+	return { newWidth, top };
 }
 
 void MediaGeneric::draw(Painter &p, const PaintContext &context) const {
@@ -332,7 +319,7 @@ QSize MediaGenericTextPart::countOptimalSize() {
 QSize MediaGenericTextPart::countCurrentSize(int newWidth) {
 	auto skip = _margins.left() + _margins.right();
 	const auto size = (_align == style::al_top)
-		? CountOptimalTextSize(
+		? Ui::Text::CountOptimalTextSize(
 			_text,
 			st::msgMinWidth,
 			std::max(st::msgMinWidth, newWidth - skip))

@@ -9,8 +9,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 class StickerPremiumMark;
 
-namespace Overview {
-namespace Layout {
+namespace Overview::Layout {
 
 class ItemBase;
 
@@ -31,5 +30,4 @@ public:
 
 };
 
-} // namespace Layout
-} // namespace Overview
+} // namespace Overview::Layout

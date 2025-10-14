@@ -12,7 +12,6 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/effects/emoji_fly_animation.h"
 #include "ui/abstract_button.h"
 #include "ui/vertical_list.h"
-#include "data/data_channel.h"
 #include "data/data_document.h"
 #include "data/data_forum.h"
 #include "data/data_forum_icons.h"
@@ -77,7 +76,9 @@ DefaultIconEmoji::DefaultIconEmoji(
 	std::move(value) | rpl::start_with_next([=](DefaultIcon value) {
 		_icon = value;
 		_image = QImage();
-		repaint();
+		if (repaint) {
+			repaint();
+		}
 	}, _lifetime);
 }
 
@@ -409,9 +410,12 @@ void EditForumTopicBox(
 	const auto topic = (!creating && forum->peer->forum())
 		? forum->peer->forum()->topicFor(rootId)
 		: nullptr;
+	const auto bot = forum->peer->isBot();
 	const auto created = topic && !topic->creating();
 	box->setTitle(creating
 		? tr::lng_forum_topic_new()
+		: bot
+		? tr::lng_bot_thread_edit()
 		: tr::lng_forum_topic_edit());
 
 	box->setMaxHeight(st::editTopicMaxHeight);
@@ -439,7 +443,9 @@ void EditForumTopicBox(
 		object_ptr<Ui::InputField>(
 			box,
 			st::defaultInputField,
-			tr::lng_forum_topic_title(),
+			(bot
+				? tr::lng_bot_thread_title()
+				: tr::lng_forum_topic_title()),
 			topic ? topic->title() : QString()),
 		st::editTopicTitleMargin);
 	box->setFocusCallback([=] {
@@ -491,7 +497,9 @@ void EditForumTopicBox(
 	}, title->lifetime());
 
 	if (!topic || !topic->isGeneral()) {
-		Ui::AddDividerText(top, tr::lng_forum_choose_title_and_icon());
+		Ui::AddDividerText(top, bot
+			? tr::lng_bot_thread_choose_title_and_icon()
+			: tr::lng_forum_choose_title_and_icon());
 
 		box->setScrollStyle(st::reactPanelScroll);
 
@@ -513,8 +521,7 @@ void EditForumTopicBox(
 	}
 
 	const auto create = [=] {
-		const auto channel = forum->peer->asChannel();
-		if (!channel || !channel->isForum()) {
+		if (!forum->peer->isForum()) {
 			box->closeBox();
 			return;
 		} else if (title->getLastText().trimmed().isEmpty()) {
@@ -525,7 +532,7 @@ void EditForumTopicBox(
 		controller->showSection(
 			std::make_shared<ChatMemento>(ChatViewId{
 				.history = forum,
-				.repliesRootId = channel->forum()->reserveCreatingId(
+				.repliesRootId = forum->peer->forum()->reserveCreatingId(
 					title->getLastText().trimmed(),
 					state->defaultIcon.current().colorId,
 					state->iconId.current()),
@@ -552,13 +559,13 @@ void EditForumTopicBox(
 			topic->applyIconId(state->iconId.current());
 			box->closeBox();
 		} else {
-			using Flag = MTPchannels_EditForumTopic::Flag;
+			using Flag = MTPmessages_EditForumTopic::Flag;
 			const auto api = &forum->session().api();
 			const auto weak = base::make_weak(box);
-			state->requestId = api->request(MTPchannels_EditForumTopic(
+			state->requestId = api->request(MTPmessages_EditForumTopic(
 				MTP_flags(Flag::f_title
 					| (topic->isGeneral() ? Flag() : Flag::f_icon_emoji_id)),
-				topic->channel()->inputChannel,
+				topic->peer()->input,
 				MTP_int(rootId),
 				MTP_string(title->getLastText().trimmed()),
 				MTP_long(state->iconId.current()),

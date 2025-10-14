@@ -15,6 +15,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "history/history_location_manager.h"
 #include "history/view/history_view_element.h"
 #include "history/view/history_view_item_preview.h"
+#include "history/view/media/history_view_birthday_suggestion.h"
 #include "history/view/media/history_view_photo.h"
 #include "history/view/media/history_view_sticker.h"
 #include "history/view/media/history_view_gif.h"
@@ -666,6 +667,10 @@ FullStoryId Media::storyId() const {
 }
 
 bool Media::storyExpired(bool revalidate) {
+	return false;
+}
+
+bool Media::storyUnsupported() const {
 	return false;
 }
 
@@ -1992,6 +1997,10 @@ std::unique_ptr<HistoryView::Media> MediaWebPage::createView(
 		not_null<HistoryView::Element*> message,
 		not_null<HistoryItem*> realParent,
 		HistoryView::Element *replacing) {
+	if (realParent->hideLinks()) {
+		realParent->setHasHiddenLinks(true);
+		return nullptr;
+	}
 	return std::make_unique<HistoryView::WebPage>(message, _page, _flags);
 }
 
@@ -2366,7 +2375,7 @@ TodoListData *MediaTodoList::todolist() const {
 
 TextWithEntities MediaTodoList::notificationText() const {
 	return TextWithEntities()
-		.append(QChar(0x2611))
+		.append(QChar(0x2705))
 		.append(QChar(' '))
 		.append(Ui::Text::Colorized(_todolist->title));
 }
@@ -2585,14 +2594,28 @@ std::unique_ptr<HistoryView::Media> MediaGiftBox::createView(
 		not_null<HistoryView::Element*> message,
 		not_null<HistoryItem*> realParent,
 		HistoryView::Element *replacing) {
-	if (const auto &unique = _data.unique) {
+	if (_data.type == GiftType::BirthdaySuggest) {
+		return std::make_unique<HistoryView::MediaGeneric>(
+			message,
+			HistoryView::GenerateSuggetsBirthdayMedia(
+				message,
+				replacing,
+				Data::Birthday::FromSerialized(_data.count)),
+			HistoryView::MediaGenericDescriptor{
+				.maxWidth = st::birthdaySuggestStickerWidth,
+				.service = true,
+				.hideServiceText = true,
+			});
+	} else if (_data.type == GiftType::ChatTheme) {
+		return std::make_unique<HistoryView::ServiceBox>(
+			message,
+			std::make_unique<HistoryView::GiftThemeBox>(message, this));
+	} else if (const auto &unique = _data.unique) {
 		return std::make_unique<HistoryView::MediaGeneric>(
 			message,
 			HistoryView::GenerateUniqueGiftMedia(message, replacing, unique),
 			HistoryView::MediaGenericDescriptor{
-				.maxWidth = (_data.stargiftReleasedBy
-					? st::msgServiceStarGiftByWidth
-					: st::msgServiceGiftBoxSize.width()),
+				.maxWidth = st::msgServiceGiftBoxSize.width(),
 				.paintBg = HistoryView::UniqueGiftBg(message, unique),
 				.service = true,
 			});
@@ -2670,7 +2693,9 @@ MediaStory::MediaStory(
 	if (!maybeStory && maybeStory.error() == NoStory::Unknown) {
 		stories->resolve(storyId, crl::guard(this, [=] {
 			if (const auto maybeStory = stories->lookup(storyId)) {
-				if (!_mention && _viewMayExist) {
+				if ((*maybeStory)->unsupported()) {
+					_unsupported = true;
+				} else if (!_mention && _viewMayExist) {
 					parent->setText((*maybeStory)->caption());
 				}
 			} else {
@@ -2703,12 +2728,19 @@ bool MediaStory::storyExpired(bool revalidate) {
 	if (revalidate) {
 		const auto stories = &parent()->history()->owner().stories();
 		if (const auto maybeStory = stories->lookup(_storyId)) {
+			if ((*maybeStory)->unsupported()) {
+				_unsupported = true;
+			}
 			_expired = false;
 		} else if (maybeStory.error() == Data::NoStory::Deleted) {
 			_expired = true;
 		}
 	}
 	return _expired;
+}
+
+bool MediaStory::storyUnsupported() const {
+	return _unsupported;
 }
 
 bool MediaStory::storyMention() const {
@@ -2787,7 +2819,10 @@ std::unique_ptr<HistoryView::Media> MediaStory::createView(
 	_expired = false;
 	_viewMayExist = true;
 	const auto story = *maybeStory;
-	if (_mention) {
+	if (story->unsupported()) {
+		_unsupported = true;
+		return nullptr;
+	} else if (_mention) {
 		return std::make_unique<HistoryView::ServiceBox>(
 			message,
 			std::make_unique<HistoryView::StoryMention>(message, story));

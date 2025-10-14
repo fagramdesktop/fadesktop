@@ -91,7 +91,7 @@ FROM builder AS patches
 RUN git init patches \
 	&& cd patches \
 	&& git remote add origin https://github.com/desktop-app/patches.git \
-	&& git fetch --depth=1 origin e15b5d87c565e516aad5bcafdfe40315f84e5459 \
+	&& git fetch --depth=1 origin a25a212644a8e42d9a5b1c7ba6489e11e92df813 \
 	&& git reset --hard FETCH_HEAD \
 	&& rm -rf .git
 
@@ -267,6 +267,7 @@ RUN git clone -b v1.19.8 --depth=1 https://github.com/strukturag/libheif.git \
 	&& cd libheif \
 	&& cmake -B build . \
 		-DBUILD_SHARED_LIBS=OFF \
+		-DCMAKE_DISABLE_FIND_PACKAGE_Doxygen=ON \
 		-DBUILD_TESTING=OFF \
 		-DENABLE_PLUGIN_LOADING=OFF \
 		-DWITH_X265=OFF \
@@ -496,23 +497,6 @@ RUN git clone -b libXcomposite-0.4.6 --depth=1 https://github.com/gitlab-freedes
 	&& make DESTDIR=/usr/src/xcomposite-cache install \
 	&& cd .. \
 	&& rm -rf libxcomposite
-
-FROM builder AS wayland
-RUN git clone -b 1.19.0 --depth=1 https://github.com/gitlab-freedesktop-mirrors/wayland.git \
-	&& cd wayland \
-	&& sed -i "/subdir('tests')/d" meson.build \
-	&& meson build \
-		--buildtype=plain \
-		--default-library=static \
-		-Ddocumentation=false \
-		-Ddtd_validation=false \
-		-Dicon_directory=/usr/share/icons \
-	&& meson compile -C build src/wayland-scanner \
-	&& mkdir -p "/usr/src/wayland-cache/usr/local/bin" "/usr/src/wayland-cache/usr/local/lib64/pkgconfig" \
-	&& cp build/src/wayland-scanner "/usr/src/wayland-cache/usr/local/bin" \
-	&& sed 's@bindir=${prefix}/bin@bindir=${prefix}/local/bin@;s/1.21.0/1.19.0/' /usr/lib64/pkgconfig/wayland-scanner.pc > "/usr/src/wayland-cache/usr/local/lib64/pkgconfig/wayland-scanner.pc" \
-	&& cd .. \
-	&& rm -rf wayland
 
 FROM builder AS nv-codec-headers
 RUN git clone -b n12.1.14.0 --depth=1 https://github.com/FFmpeg/nv-codec-headers.git \
@@ -744,11 +728,10 @@ COPY --link --from=xcb-image /usr/src/xcb-image-cache /
 COPY --link --from=xcb-keysyms /usr/src/xcb-keysyms-cache /
 COPY --link --from=xcb-render-util /usr/src/xcb-render-util-cache /
 COPY --link --from=xcb-cursor /usr/src/xcb-cursor-cache /
-COPY --link --from=wayland /usr/src/wayland-cache /
 COPY --link --from=openssl /usr/src/openssl-cache /
 COPY --link --from=xkbcommon /usr/src/xkbcommon-cache /
 
-ENV QT=6.9.1
+ENV QT=6.9.2
 RUN git clone -b v$QT --depth=1 https://github.com/qt/qt5.git \
 	&& cd qt5 \
 	&& git submodule update --init --recursive --depth=1 qtbase qtdeclarative qtwayland qtimageformats qtsvg qtshadertools \
@@ -760,6 +743,9 @@ RUN git clone -b v$QT --depth=1 https://github.com/qt/qt5.git \
 	&& cmake -B build . \
 		-DCMAKE_INSTALL_PREFIX=/usr/local \
 		-DBUILD_SHARED_LIBS=OFF \
+{%- if ASAN %}
+		-DFEATURE_sanitize_address=ON \
+{%- endif %}
 		-DQT_QPA_PLATFORMS="wayland;xcb" \
 		-DINPUT_libpng=qt \
 		-DINPUT_harfbuzz=qt \
@@ -806,7 +792,7 @@ COPY --link --from=pipewire /usr/src/pipewire-cache /
 RUN git init tg_owt \
 	&& cd tg_owt \
 	&& git remote add origin https://github.com/desktop-app/tg_owt.git \
-	&& git fetch --depth=1 origin 62321fd7128ab2650b459d4195781af8185e46b5 \
+	&& git fetch --depth=1 origin 5c5c71258777d0196dbb3a09cc37d2f56ead28ab \
 	&& git reset --hard FETCH_HEAD \
 	&& git submodule update --init --recursive --depth=1 \
 	&& cmake -B build . -DTG_OWT_DLOPEN_PIPEWIRE=ON \
@@ -875,7 +861,6 @@ COPY --link --from=xrandr /usr/src/xrandr-cache /
 COPY --link --from=xrender /usr/src/xrender-cache /
 COPY --link --from=xdamage /usr/src/xdamage-cache /
 COPY --link --from=xcomposite /usr/src/xcomposite-cache /
-COPY --link --from=wayland /usr/src/wayland-cache /
 COPY --link --from=ffmpeg /usr/src/ffmpeg-cache /
 COPY --link --from=openal /usr/src/openal-cache /
 COPY --link --from=openssl /usr/src/openssl-cache /

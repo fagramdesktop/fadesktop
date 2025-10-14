@@ -9,6 +9,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #include "apiwrap.h"
 #include "core/application.h"
+#include "data/components/recent_peers.h"
 #include "data/data_changes.h"
 #include "data/data_channel.h"
 #include "data/data_histories.h"
@@ -174,6 +175,14 @@ void SavedMessages::requestSomeStale() {
 	const auto call = [=] {
 		for (const auto &peer : peers) {
 			finishSublistRequest(peer);
+		}
+		for (const auto &peer : peers) {
+			if (const auto sublist = sublistLoaded(peer)) {
+				if (!sublist->lastMessage()
+					&& !sublist->lastServerMessage()) {
+					applySublistDeleted(peer);
+				}
+			}
 		}
 	};
 	auto &histories = owner().histories();
@@ -452,6 +461,7 @@ void SavedMessages::applySublistDeleted(not_null<PeerData*> sublistPeer) {
 	}
 
 	_sublistDestroyed.fire(raw);
+	_owner->session().recentPeers().chatOpenRemove(raw);
 	session().changes().sublistUpdated(
 		raw,
 		Data::SublistUpdate::Flag::Destroyed);

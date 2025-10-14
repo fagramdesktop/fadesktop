@@ -25,6 +25,7 @@ enum class ChatRestriction;
 namespace Ui {
 class EmptyUserpic;
 struct BotVerifyDetails;
+struct ColorCollectible;
 } // namespace Ui
 
 namespace Main {
@@ -142,6 +143,9 @@ struct AllowedReactions {
 	not_null<Session*> owner,
 	const MTPInputUser &input);
 
+[[nodiscard]] Ui::ColorCollectible ParseColorCollectible(
+	const MTPDpeerColorCollectible &data);
+
 } // namespace Data
 
 class PeerClickHandler : public ClickHandler {
@@ -214,6 +218,12 @@ public:
 	[[nodiscard]] uint8 colorIndex() const {
 		return _colorIndex;
 	}
+	[[nodiscard]] auto colorCollectible() const
+	-> const std::shared_ptr<Ui::ColorCollectible> & {
+		return _colorCollectible;
+	}
+	bool changeColorCollectible(Ui::ColorCollectible data);
+	bool clearColorCollectible();
 	bool changeColorIndex(uint8 index);
 	bool clearColorIndex();
 	[[nodiscard]] DocumentId backgroundEmojiId() const;
@@ -270,6 +280,10 @@ public:
 	[[nodiscard]] Data::SavedMessages *monoforum() const;
 	[[nodiscard]] Data::SavedSublist *monoforumSublistFor(
 		PeerId sublistPeerId) const;
+
+	[[nodiscard]] bool useSubsectionTabs() const;
+	[[nodiscard]] bool viewForumAsMessages() const;
+	void processTopics(const MTPVector<MTPForumTopic> &topics);
 
 	[[nodiscard]] Data::PeerNotifySettings &notify() {
 		return _notify;
@@ -450,9 +464,7 @@ public:
 
 	void checkFolder(FolderId folderId);
 
-	void setBarSettings(PeerBarSettings which) {
-		_barSettings.set(which);
-	}
+	void setBarSettings(PeerBarSettings which);
 	[[nodiscard]] auto barSettings() const {
 		return (_barSettings.current() & PeerBarSetting::Unknown)
 			? std::nullopt
@@ -465,6 +477,7 @@ public:
 	}
 	[[nodiscard]] int paysPerMessage() const;
 	void clearPaysPerMessage();
+	[[nodiscard]] bool hideLinks() const;
 	[[nodiscard]] QString requestChatTitle() const;
 	[[nodiscard]] TimeId requestChatDate() const;
 	[[nodiscard]] UserData *businessBot() const;
@@ -486,9 +499,10 @@ public:
 	void saveTranslationDisabled(bool disabled);
 
 	void setBarSettings(const MTPPeerSettings &data);
-	bool changeColorIndex(const tl::conditional<MTPint> &cloudColorIndex);
 	bool changeBackgroundEmojiId(
 		const tl::conditional<MTPlong> &cloudBackgroundEmoji);
+	bool changeColorCollectible(
+		const tl::conditional<MTPPeerColor> &cloudColor);
 	bool changeColor(const tl::conditional<MTPPeerColor> &cloudColor);
 
 	enum class BlockStatus : char {
@@ -530,8 +544,8 @@ public:
 	[[nodiscard]] Data::GroupCall *groupCall() const;
 	[[nodiscard]] PeerId groupCallDefaultJoinAs() const;
 
-	void setThemeEmoji(const QString &emoticon);
-	[[nodiscard]] const QString &themeEmoji() const;
+	void setThemeToken(const QString &token);
+	[[nodiscard]] const QString &themeToken() const;
 
 	void setWallPaper(
 		std::optional<Data::WallPaper> paper,
@@ -606,6 +620,7 @@ private:
 
 	BarSettings _barSettings = PeerBarSettings(PeerBarSetting::Unknown);
 	std::unique_ptr<PeerBarDetails> _barDetails;
+	std::shared_ptr<Ui::ColorCollectible> _colorCollectible;
 
 	BlockStatus _blockStatus = BlockStatus::Unknown;
 	LoadedStatus _loadedStatus = LoadedStatus::Not;
@@ -615,7 +630,7 @@ private:
 	uint8 _userpicHasVideo : 1 = 0;
 
 	QString _about;
-	QString _themeEmoticon;
+	QString _themeToken;
 	std::unique_ptr<Data::WallPaper> _wallPaper;
 
 };
@@ -635,5 +650,8 @@ void SetTopPinnedMessageId(
 	MsgId topicRootId,
 	PeerId monoforumPeerId,
 	PeerData *migrated = nullptr);
+
+[[nodiscard]] uint64 BackgroundEmojiIdFromColor(const MTPPeerColor *color);
+[[nodiscard]] uint8 ColorIndexFromColor(const MTPPeerColor *color);
 
 } // namespace Data

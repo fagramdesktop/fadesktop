@@ -8,6 +8,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "history/view/history_view_message.h"
 
 #include "api/api_suggest_post.h"
+#include "base/qt/qt_key_modifiers.h"
 #include "base/unixtime.h"
 #include "core/click_handler_types.h" // ClickHandlerContext
 #include "core/ui_integration.h"
@@ -653,88 +654,6 @@ void Message::animateReaction(Ui::ReactionFlyAnimationArgs &&args) {
 	}
 }
 
-void Message::animateEffect(Ui::ReactionFlyAnimationArgs &&args) {
-	const auto item = data();
-	const auto media = this->media();
-
-	auto g = countGeometry();
-	if (g.width() < 1 || isHidden()) {
-		return;
-	}
-	const auto repainter = [=] { repaint(); };
-
-	const auto bubble = drawBubble();
-	const auto reactionsInBubble = _reactions && embedReactionsInBubble();
-	const auto mediaDisplayed = media && media->isDisplayed();
-	const auto keyboard = item->inlineReplyKeyboard();
-	auto keyboardHeight = 0;
-	if (keyboard) {
-		keyboardHeight = keyboard->naturalHeight();
-		g.setHeight(g.height() - st::msgBotKbButton.margin - keyboardHeight);
-	}
-
-	const auto animateInBottomInfo = [&](QPoint bottomRight) {
-		_bottomInfo.animateEffect(args.translated(-bottomRight), repainter);
-	};
-	if (bubble) {
-		const auto entry = logEntryOriginal();
-		const auto check = factcheckBlock();
-
-		// Entry page is always a bubble bottom.
-		auto mediaOnBottom = (mediaDisplayed && media->isBubbleBottom()) || check || (entry/* && entry->isBubbleBottom()*/);
-		auto mediaOnTop = (mediaDisplayed && media->isBubbleTop()) || (entry && entry->isBubbleTop());
-
-		auto inner = g;
-		if (_comments) {
-			inner.setHeight(inner.height() - st::historyCommentsButtonHeight);
-		}
-		auto trect = inner.marginsRemoved(st::msgPadding);
-		const auto reactionsTop = (reactionsInBubble && !_viewButton)
-			? st::mediaInBubbleSkip
-			: 0;
-		const auto reactionsHeight = reactionsInBubble
-			? (reactionsTop + _reactions->height())
-			: 0;
-		if (_viewButton) {
-			const auto belowInfo = _viewButton->belowMessageInfo();
-			const auto infoHeight = reactionsInBubble
-				? (reactionsHeight + 2 * st::mediaInBubbleSkip)
-				: _bottomInfo.height();
-			const auto heightMargins = QMargins(0, 0, 0, infoHeight);
-			if (belowInfo) {
-				inner -= heightMargins;
-			}
-			trect.setHeight(trect.height() - _viewButton->height());
-			if (reactionsInBubble) {
-				trect.setHeight(trect.height() - st::mediaInBubbleSkip + st::msgPadding.bottom());
-			} else if (mediaDisplayed) {
-				trect.setHeight(trect.height() - st::mediaInBubbleSkip);
-			}
-		}
-		if (mediaOnBottom) {
-			trect.setHeight(trect.height()
-				+ st::msgPadding.bottom()
-				- viewButtonHeight());
-		}
-		if (mediaOnTop) {
-			trect.setY(trect.y() - st::msgPadding.top());
-		}
-		if (mediaDisplayed && mediaOnBottom && media->customInfoLayout()) {
-			auto mediaHeight = media->height();
-			auto mediaLeft = trect.x() - st::msgPadding.left();
-			auto mediaTop = (trect.y() + trect.height() - mediaHeight);
-			animateInBottomInfo(QPoint(mediaLeft, mediaTop) + media->resolveCustomInfoRightBottom());
-		} else {
-			animateInBottomInfo({
-				inner.left() + inner.width() - (st::msgPadding.right() - st::msgDateDelta.x()),
-				inner.top() + inner.height() - (st::msgPadding.bottom() - st::msgDateDelta.y()),
-			});
-		}
-	} else if (mediaDisplayed) {
-		animateInBottomInfo(g.topLeft() + media->resolveCustomInfoRightBottom());
-	}
-}
-
 auto Message::takeEffectAnimation()
 -> std::unique_ptr<Ui::ReactionFlyAnimation> {
 	return _bottomInfo.takeEffectAnimation();
@@ -1092,10 +1011,13 @@ QSize Message::performCountOptimalSize() {
 
 void Message::refreshTopicButton() {
 	const auto item = data();
-	if (isAttachedToPrevious()
-		|| delegate()->elementHideTopicButton(this)) {
+	if (isAttachedToPrevious() || delegate()->elementHideTopicButton(this)) {
 		_topicButton = nullptr;
 	} else if (const auto topic = item->topic()) {
+		if (topic->peer()->useSubsectionTabs()) {
+			_topicButton = nullptr;
+			return;
+		}
 		if (!_topicButton) {
 			_topicButton = std::make_unique<TopicButton>();
 		}
@@ -1132,17 +1054,27 @@ int Message::marginTop() const {
 	if (const auto bar = Get<UnreadBar>()) {
 		result += bar->height();
 	}
-	if (const auto monoforumBar = Get<MonoforumSenderBar>()) {
-		result += monoforumBar->height();
+	if (const auto bar = Get<ForumThreadBar>()) {
+		result += bar->height();
 	}
 	if (const auto service = Get<ServicePreMessage>()) {
 		result += service->height;
+	}
+	if (const auto margins = Get<ViewAddedMargins>()) {
+		result += margins->top;
 	}
 	return result;
 }
 
 int Message::marginBottom() const {
-	return isHidden() ? 0 : st::msgMargin.bottom();
+	if (isHidden()) {
+		return 0;
+	}
+	auto result = st::msgMargin.bottom();
+	if (const auto margins = Get<ViewAddedMargins>()) {
+		result += margins->bottom;
+	}
+	return result;
 }
 
 void Message::draw(Painter &p, const PaintContext &context) const {
@@ -1181,8 +1113,8 @@ void Message::draw(Painter &p, const PaintContext &context) const {
 		if (const auto date = Get<DateBadge>()) {
 			aboveh += date->height();
 		}
-		if (const auto sender = Get<MonoforumSenderBar>()) {
-			aboveh += sender->height();
+		if (const auto bar = Get<ForumThreadBar>()) {
+			aboveh += bar->height();
 		}
 		if (context.clip.intersects(QRect(0, aboveh, width(), unreadbarh))) {
 			p.translate(0, aboveh);
@@ -1446,10 +1378,24 @@ void Message::draw(Painter &p, const PaintContext &context) const {
 			textSelection = media->skipSelection(textSelection);
 			highlightRange = media->skipSelection(highlightRange);
 		}
-		auto copy = context;
-		copy.selection = textSelection;
-		copy.highlight.range = highlightRange;
-		paintText(p, trect, copy);
+		const auto drawText = context.skipDrawingParts
+			!= PaintContext::SkipDrawingParts::Content;
+		const auto drawOnlyText = drawText
+			&& (context.skipDrawingParts
+				!= PaintContext::SkipDrawingParts::None);
+		if (drawOnlyText) {
+			p.save();
+			p.setClipping(false);
+		}
+		if (drawText) {
+			auto copy = context;
+			copy.selection = textSelection;
+			copy.highlight.range = highlightRange;
+			paintText(p, trect, copy);
+		}
+		if (drawOnlyText) {
+			p.restore();
+		}
 		if (mediaDisplayed && !_invertMedia) {
 			paintMedia(trect.y() + trect.height() - mediaHeight);
 			if (context.reactionInfo && !displayInfo && !_reactions) {
@@ -1863,9 +1809,10 @@ void Message::paintFromName(
 	const auto from = item->displayFrom();
 	const auto info = from ? nullptr : item->displayHiddenSenderInfo();
 	Assert(from || info);
-	const auto nameFg = !context.outbg
-		? FromNameFg(context, colorIndex())
-		: stm->msgServiceFg->c;
+	const auto nameFg = FromNameFg(
+		context,
+		colorIndex(),
+		colorCollectible());
 	const auto nameText = [&] {
 		if (from) {
 			validateFromNameText(from);
@@ -1952,9 +1899,10 @@ void Message::paintFromName(
 			const auto shift = QPoint(trect.width() - rightWidth, 0);
 			const auto pen = !_rightBadgeHasBoosts
 				? QPen()
-				: !context.outbg
-				? QPen(FromNameFg(context, colorIndex()))
-				: stm->msgServiceFg->p;
+				: QPen(FromNameFg(
+					context,
+					colorIndex(),
+					colorCollectible()));
 			auto colored = std::array<Ui::Text::SpecialColor, 1>{
 				{ { &pen, &pen } },
 			};
@@ -2154,7 +2102,9 @@ void Message::paintText(
 		.availableWidth = trect.width(),
 		.palette = &stm->textPalette,
 		.pre = stm->preCache.get(),
-		.blockquote = context.quoteCache(contentColorIndex()),
+		.blockquote = context.quoteCache(
+			contentColorCollectible(),
+			contentColorIndex()),
 		.colors = context.st->highlightColors(),
 		.spoiler = Ui::Text::DefaultSpoilerCache(),
 		.now = context.now,
@@ -3564,6 +3514,10 @@ void Message::validateInlineKeyboard(HistoryMessageReplyMarkup *markup) {
 		return;
 	}
 	const auto item = data();
+	//if (item->hideLinks()) {
+	//	item->setHasHiddenLinks(true);
+	//	return;
+	//}
 	markup->inlineKeyboard = std::make_unique<ReplyKeyboard>(
 		item,
 		std::make_unique<KeyboardStyle>(
@@ -4211,6 +4165,8 @@ ClickHandlerPtr Message::prepareRightActionLink() const {
 					savedFromPeer,
 					Window::SectionShow::Way::Forward,
 					savedFromMsgId);
+			} else if (base::IsCtrlPressed()) {
+				FastShareMessageToSelf(controller->uiShow(), item);
 			} else {
 				FastShareMessage(controller, item);
 			}
@@ -4763,7 +4719,7 @@ bool Message::hasVisibleText() const {
 		return false;
 	} else if (textItem->emptyText()) {
 		if (const auto media = textItem->media()) {
-			return media->storyExpired();
+			return media->storyExpired() || media->storyUnsupported();
 		}
 		return false;
 	}
@@ -4793,7 +4749,7 @@ void Message::refreshInfoSkipBlock(HistoryItem *textItem) {
 	const auto hasTextSkipBlock = [&] {
 		if (!textItem || textItem->_text.empty()) {
 			if (const auto media = data()->media()) {
-				return media->storyExpired();
+				return media->storyExpired() || media->storyUnsupported();
 			}
 			return false;
 		} else if (factcheckBlock()

@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_credits.h"
 #include "api/api_global_privacy.h"
 #include "api/api_premium.h"
+#include "api/api_text_entities.h"
 #include "base/event_filter.h"
 #include "base/qt_signal_producer.h"
 #include "base/random.h"
@@ -70,12 +71,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_credits_graphics.h"
 #include "settings/settings_premium.h"
 #include "ui/boxes/boost_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/chat/chat_style.h"
 #include "ui/chat/chat_theme.h"
+#include "ui/controls/button_labels.h"
 #include "ui/controls/emoji_button.h"
 #include "ui/controls/ton_common.h"
 #include "ui/controls/userpic_button.h"
 #include "ui/effects/path_shift_gradient.h"
+#include "ui/effects/premium_bubble.h"
 #include "ui/effects/premium_graphics.h"
 #include "ui/effects/premium_stars_colored.h"
 #include "ui/effects/ripple_animation.h"
@@ -97,6 +101,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/shadow.h"
 #include "ui/wrap/fade_wrap.h"
 #include "ui/wrap/slide_wrap.h"
+#include "ui/wrap/table_layout.h"
 #include "window/themes/window_theme.h"
 #include "window/section_widget.h"
 #include "window/window_controller.h"
@@ -105,6 +110,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_credits.h"
+#include "styles/style_giveaway.h"
 #include "styles/style_info.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
@@ -118,23 +124,26 @@ namespace Ui {
 namespace {
 
 constexpr auto kPriceTabAll = 0;
-constexpr auto kPriceTabInStock = -1;
-constexpr auto kPriceTabResale = -2;
-constexpr auto kPriceTabLimited = -3;
-constexpr auto kPriceTabMy = -4;
-constexpr auto kMyGiftsPerPage = 50;
+constexpr auto kPriceTabMy = -1;
+constexpr auto kPriceTabCollectibles = -2;
 constexpr auto kGiftMessageLimit = 255;
 constexpr auto kSentToastDuration = 3 * crl::time(1000);
 constexpr auto kSwitchUpgradeCoverInterval = 3 * crl::time(1000);
 constexpr auto kCrossfadeDuration = crl::time(400);
 constexpr auto kUpgradeDoneToastDuration = 4 * crl::time(1000);
 constexpr auto kGiftsPreloadTimeout = 3 * crl::time(1000);
-constexpr auto kResaleGiftsPerPage = 50;
 constexpr auto kFiltersCount = 4;
 constexpr auto kResellPriceCacheLifetime = 60 * crl::time(1000);
 
 using namespace HistoryView;
 using namespace Info::PeerGifts;
+
+using Data::GiftAttributeId;
+using Data::GiftAttributeIdType;
+using Data::ResaleGiftsSort;
+using Data::ResaleGiftsFilter;
+using Data::ResaleGiftsDescriptor;
+using Data::MyGiftsDescriptor;
 
 enum class PickType {
 	Activate,
@@ -143,72 +152,9 @@ enum class PickType {
 };
 using PickCallback = Fn<void(not_null<PeerData*>, PickType)>;
 
-enum class AttributeIdType {
-	Model,
-	Pattern,
-	Backdrop,
-};
-
-struct AttributeId {
-	uint64 value = 0;
-	AttributeIdType type = AttributeIdType::Model;
-
-	friend inline auto operator<=>(AttributeId, AttributeId) = default;
-	friend inline bool operator==(AttributeId, AttributeId) = default;
-};
-
 struct PremiumGiftsDescriptor {
 	std::vector<GiftTypePremium> list;
 	std::shared_ptr<Api::PremiumGiftCodeOptions> api;
-};
-
-struct MyGiftsDescriptor {
-	std::vector<Data::SavedStarGift> list;
-	QString offset;
-};
-
-struct ModelCount {
-	Data::UniqueGiftModel model;
-	int count = 0;
-};
-
-struct BackdropCount {
-	Data::UniqueGiftBackdrop backdrop;
-	int count = 0;
-};
-
-struct PatternCount {
-	Data::UniqueGiftPattern pattern;
-	int count = 0;
-};
-
-enum class ResaleSort {
-	Date,
-	Price,
-	Number,
-};
-
-struct ResaleGiftsDescriptor {
-	uint64 giftId = 0;
-	QString title;
-	QString offset;
-	std::vector<Data::StarGift> list;
-	std::vector<ModelCount> models;
-	std::vector<BackdropCount> backdrops;
-	std::vector<PatternCount> patterns;
-	uint64 attributesHash = 0;
-	int count = 0;
-	ResaleSort sort = ResaleSort::Date;
-};
-
-struct ResaleFilter {
-	uint64 attributesHash = 0;
-	base::flat_set<AttributeId> attributes;
-	ResaleSort sort = ResaleSort::Price;
-
-	friend inline bool operator==(
-		const ResaleFilter &,
-		const ResaleFilter &) = default;
 };
 
 struct GiftsDescriptor {
@@ -236,37 +182,6 @@ struct SessionResalePrices {
 	rpl::lifetime requestLifetime;
 	crl::time lastReceived = 0;
 };
-
-[[nodiscard]] CreditsAmount StarsFromTon(
-		not_null<Main::Session*> session,
-		CreditsAmount ton) {
-	const auto appConfig = &session->appConfig();
-	const auto starsRate = appConfig->starsWithdrawRate() / 100.;
-	const auto tonRate = appConfig->currencyWithdrawRate();
-	if (!starsRate) {
-		return {};
-	}
-	const auto count = (ton.value() * tonRate) / starsRate;
-	return CreditsAmount(int(base::SafeRound(count)));
-}
-
-[[nodiscard]] CreditsAmount TonFromStars(
-		not_null<Main::Session*> session,
-		CreditsAmount stars) {
-	const auto appConfig = &session->appConfig();
-	const auto starsRate = appConfig->starsWithdrawRate() / 100.;
-	const auto tonRate = appConfig->currencyWithdrawRate();
-	if (!tonRate) {
-		return {};
-	}
-	const auto count = (stars.value() * starsRate) / tonRate;
-	const auto whole = int(std::floor(count));
-	const auto cents = int(base::SafeRound((count - whole) * 100));
-	return CreditsAmount(
-		whole,
-		cents * (Ui::kNanosInOne / 100),
-		CreditsType::Ton);
-}
 
 [[nodiscard]] not_null<SessionResalePrices*> ResalePrices(
 		not_null<Main::Session*> session) {
@@ -461,53 +376,6 @@ int TextBubblePart::elisionLines() const {
 	return 1;
 }
 
-[[nodiscard]] AttributeId FromTL(const MTPStarGiftAttributeId &id) {
-	return id.match([&](const MTPDstarGiftAttributeIdBackdrop &data) {
-		return AttributeId{
-			.value = uint64(uint32(data.vbackdrop_id().v)),
-			.type = AttributeIdType::Backdrop,
-		};
-	}, [&](const MTPDstarGiftAttributeIdModel &data) {
-		return AttributeId{
-			.value = data.vdocument_id().v,
-			.type = AttributeIdType::Model,
-		};
-	}, [&](const MTPDstarGiftAttributeIdPattern &data) {
-		return AttributeId{
-			.value = data.vdocument_id().v,
-			.type = AttributeIdType::Pattern,
-		};
-	});
-}
-
-[[nodiscard]] MTPStarGiftAttributeId AttributeToTL(AttributeId id) {
-	switch (id.type) {
-	case AttributeIdType::Backdrop:
-		return MTP_starGiftAttributeIdBackdrop(
-			MTP_int(int32(uint32(id.value))));
-	case AttributeIdType::Model:
-		return MTP_starGiftAttributeIdModel(MTP_long(id.value));
-	case AttributeIdType::Pattern:
-		return MTP_starGiftAttributeIdPattern(MTP_long(id.value));
-	}
-	Unexpected("Invalid attribute id type");
-}
-
-[[nodiscard]] AttributeId IdFor(const Data::UniqueGiftBackdrop &value) {
-	return {
-		.value = uint64(uint32(value.id)),
-		.type = AttributeIdType::Backdrop,
-	};
-}
-
-[[nodiscard]] AttributeId IdFor(const Data::UniqueGiftModel &value) {
-	return { .value = value.document->id, .type = AttributeIdType::Model };
-}
-
-[[nodiscard]] AttributeId IdFor(const Data::UniqueGiftPattern &value) {
-	return { .value = value.document->id, .type = AttributeIdType::Pattern };
-}
-
 [[nodiscard]] bool SortForBirthday(not_null<PeerData*> peer) {
 	const auto user = peer->asUser();
 	if (!user) {
@@ -527,6 +395,24 @@ int TextBubblePart::elisionLines() const {
 
 [[nodiscard]] bool IsSoldOut(const Data::StarGift &info) {
 	return info.limitedCount && !info.limitedLeft;
+}
+
+struct UpgradePrice {
+	TimeId date = 0;
+	int stars = 0;
+};
+
+[[nodiscard]] std::vector<UpgradePrice> ParsePrices(
+		const MTPVector<MTPStarGiftUpgradePrice> &list) {
+	return ranges::views::all(
+		list.v
+	) | ranges::views::transform([](const MTPStarGiftUpgradePrice &price) {
+		const auto &data = price.data();
+		return UpgradePrice{
+			.date = data.vdate().v,
+			.stars = int(data.vupgrade_stars().v),
+		};
+	}) | ranges::to_vector;
 }
 
 PreviewDelegate::PreviewDelegate(
@@ -665,7 +551,7 @@ auto GenerateGiftMedia(
 						Ui::Text::Link('@' + by->username()),
 						Ui::Text::WithEntities),
 					st::giftBoxReleasedByMargin,
-					st::defaultTextStyle));
+					st::uniqueGiftReleasedBy.style));
 			}
 		}
 
@@ -709,30 +595,6 @@ auto GenerateGiftMedia(
 	const auto mask = Images::CornersMask(st::boxRadius);
 	return Images::Round(std::move(result), mask, RectPart::FullTop);
 }
-
-struct VisibleRange {
-	int top = 0;
-	int bottom = 0;
-
-	friend inline bool operator==(VisibleRange, VisibleRange) = default;
-};
-class WidgetWithRange final : public RpWidget {
-public:
-	using RpWidget::RpWidget;
-
-	[[nodiscard]] rpl::producer<VisibleRange> visibleRange() const {
-		return _visibleRange.value();
-	}
-private:
-	void visibleTopBottomUpdated(
-			int visibleTop,
-			int visibleBottom) override {
-		_visibleRange = VisibleRange{ visibleTop, visibleBottom };
-	}
-
-	rpl::variable<VisibleRange> _visibleRange;
-
-};
 
 void PrepareImage(
 		QImage &image,
@@ -1073,132 +935,7 @@ void PreviewWrap::paintEvent(QPaintEvent *e) {
 	};
 }
 
-[[nodiscard]] bool AllowedToSend(
-		const GiftTypeStars &gift,
-		not_null<PeerData*> peer) {
-	using Type = Api::DisallowedGiftType;
-	const auto user = peer->asUser();
-	if (!user || user->isSelf()) {
-		return true;
-	}
-	const auto disallowedTypes = user ? user->disallowedGiftTypes() : Type();
-	const auto allowLimited = !(disallowedTypes & Type::Limited);
-	const auto allowUnlimited = !(disallowedTypes & Type::Unlimited);
-	const auto allowUnique = !(disallowedTypes & Type::Unique);
-	if (gift.resale) {
-		return allowUnique;
-	} else if (!gift.info.limitedCount) {
-		return allowUnlimited;
-	}
-	return allowLimited || (gift.info.starsToUpgrade && allowUnique);
-}
-
-[[nodiscard]] rpl::producer<std::vector<GiftTypeStars>> GiftsStars(
-		not_null<Main::Session*> session,
-		not_null<PeerData*> peer) {
-	struct Session {
-		std::vector<GiftTypeStars> last;
-	};
-	static auto Map = base::flat_map<not_null<Main::Session*>, Session>();
-
-	const auto filtered = [=](std::vector<GiftTypeStars> list) {
-		list.erase(ranges::remove_if(list, [&](const GiftTypeStars &gift) {
-			return !AllowedToSend(gift, peer);
-		}), end(list));
-		return list;
-	};
-	return [=](auto consumer) {
-		auto lifetime = rpl::lifetime();
-
-		auto i = Map.find(session);
-		if (i == end(Map)) {
-			i = Map.emplace(session, Session()).first;
-			session->lifetime().add([=] { Map.remove(session); });
-		}
-		if (!i->second.last.empty()) {
-			consumer.put_next(filtered(i->second.last));
-		}
-
-		using namespace Api;
-		const auto api = lifetime.make_state<PremiumGiftCodeOptions>(peer);
-		api->requestStarGifts(
-		) | rpl::start_with_error_done([=](QString error) {
-			consumer.put_next({});
-		}, [=] {
-			auto list = std::vector<GiftTypeStars>();
-			const auto &gifts = api->starGifts();
-			list.reserve(gifts.size());
-			for (auto &gift : gifts) {
-				list.push_back({ .info = gift });
-				if (gift.resellCount > 0) {
-					list.push_back({ .info = gift, .resale = true });
-				}
-			}
-			ranges::stable_sort(list, [](const auto &a, const auto &b) {
-				const auto soldOut = [](const auto &gift) {
-					return gift.info.soldOut && !gift.resale;
-				};
-				return soldOut(a) < soldOut(b);
-			});
-
-			auto &map = Map[session];
-			if (map.last != list || list.empty()) {
-				map.last = list;
-				consumer.put_next(filtered(std::move(list)));
-			}
-		}, lifetime);
-
-		return lifetime;
-	};
-}
-
-[[nodiscard]] rpl::producer<MyGiftsDescriptor> UniqueGiftsSlice(
-		not_null<Main::Session*> session,
-		QString offset = QString()) {
-	return [=](auto consumer) {
-		using Flag = MTPpayments_GetSavedStarGifts::Flag;
-		const auto user = session->user();
-		const auto requestId = session->api().request(
-			MTPpayments_GetSavedStarGifts(
-			MTP_flags(Flag::f_exclude_limited | Flag::f_exclude_unlimited),
-			user->input,
-			MTP_int(0), // collection_id
-			MTP_string(offset),
-			MTP_int(kMyGiftsPerPage)
-		)).done([=](const MTPpayments_SavedStarGifts &result) {
-			auto gifts = MyGiftsDescriptor();
-			const auto &data = result.data();
-			if (const auto next = data.vnext_offset()) {
-				gifts.offset = qs(*next);
-			}
-
-			const auto owner = &session->data();
-			owner->processUsers(data.vusers());
-			owner->processChats(data.vchats());
-
-			gifts.list.reserve(data.vgifts().v.size());
-			for (const auto &gift : data.vgifts().v) {
-				if (auto parsed = Api::FromTL(user, gift)) {
-					gifts.list.push_back(std::move(*parsed));
-				}
-			}
-			consumer.put_next(std::move(gifts));
-			consumer.put_done();
-		}).fail([=] {
-			consumer.put_next({});
-			consumer.put_done();
-		}).send();
-
-		auto lifetime = rpl::lifetime();
-		lifetime.add([=] { session->api().request(requestId).cancel(); });
-		return lifetime;
-	};
-}
-
-[[nodiscard]] Text::String TabTextForPrice(
-		int price,
-		TextWithEntities creditsIcon,
-		Ui::Text::MarkedContext context) {
+[[nodiscard]] Text::String TabTextForPrice(int price) {
 	const auto simple = [](const QString &text) {
 		return Text::String(st::semiboldTextStyle, text);
 	};
@@ -1206,20 +943,10 @@ void PreviewWrap::paintEvent(QPaintEvent *e) {
 		return simple(tr::lng_gift_stars_tabs_all(tr::now));
 	} else if (price == kPriceTabMy) {
 		return simple(tr::lng_gift_stars_tabs_my(tr::now));
-	} else if (price == kPriceTabLimited) {
-		return simple(tr::lng_gift_stars_tabs_limited(tr::now));
-	} else if (price == kPriceTabInStock) {
-		return simple(tr::lng_gift_stars_tabs_in_stock(tr::now));
-	} else if (price == kPriceTabResale) {
-		return simple(tr::lng_gift_stars_tabs_resale(tr::now));
+	} else if (price == kPriceTabCollectibles) {
+		return simple(tr::lng_gift_stars_tabs_collectibles(tr::now));
 	}
-	auto result = Text::String();
-	result.setMarkedText(
-		st::semiboldTextStyle,
-		creditsIcon.append(QString::number(price)),
-		kMarkupTextOptions,
-		context);
-	return result;
+	return {};
 }
 
 [[nodiscard]] Text::String ResaleTabText(QString text) {
@@ -1231,12 +958,12 @@ void PreviewWrap::paintEvent(QPaintEvent *e) {
 	return result;
 }
 
-[[nodiscard]] Text::String SortModeText(ResaleSort mode) {
+[[nodiscard]] Text::String SortModeText(ResaleGiftsSort mode) {
 	auto text = [&] {
-		if (mode == ResaleSort::Number) {
+		if (mode == ResaleGiftsSort::Number) {
 			return Ui::Text::IconEmoji(&st::giftBoxResaleMiniNumber).append(
 				tr::lng_gift_resale_number(tr::now));
-		} else if (mode == ResaleSort::Price) {
+		} else if (mode == ResaleGiftsSort::Price) {
 			return Ui::Text::IconEmoji(&st::giftBoxResaleMiniPrice).append(
 				tr::lng_gift_resale_price(tr::now));
 		}
@@ -1252,14 +979,14 @@ void PreviewWrap::paintEvent(QPaintEvent *e) {
 }
 
 struct ResaleTabs {
-	rpl::producer<ResaleFilter> filter;
+	rpl::producer<ResaleGiftsFilter> filter;
 	object_ptr<RpWidget> widget;
 };
 [[nodiscard]] ResaleTabs MakeResaleTabs(
-		not_null<Window::SessionController*> window,
+		std::shared_ptr<ChatHelpers::Show> show,
 		not_null<PeerData*> peer,
 		const ResaleGiftsDescriptor &info,
-		rpl::producer<ResaleFilter> filter) {
+		rpl::producer<ResaleGiftsFilter> filter) {
 	auto widget = object_ptr<RpWidget>((QWidget*)nullptr);
 	const auto raw = widget.data();
 
@@ -1268,7 +995,7 @@ struct ResaleTabs {
 		Text::String text;
 	};
 	struct State {
-		rpl::variable<ResaleFilter> filter;
+		rpl::variable<ResaleGiftsFilter> filter;
 		rpl::variable<int> fullWidth;
 		std::vector<Button> buttons;
 		base::unique_qptr<Ui::PopupMenu> menu;
@@ -1295,10 +1022,10 @@ struct ResaleTabs {
 		Expects(index > 0 && index < 4);
 
 		return (index == 1)
-			? AttributeIdType::Model
+			? GiftAttributeIdType::Model
 			: (index == 2)
-			? AttributeIdType::Backdrop
-			: AttributeIdType::Pattern;
+			? GiftAttributeIdType::Backdrop
+			: GiftAttributeIdType::Pattern;
 	};
 
 	const auto setSelected = [=](int index) {
@@ -1317,7 +1044,7 @@ struct ResaleTabs {
 			raw,
 			st::giftBoxResaleFilter);
 		const auto menu = state->menu.get();
-		const auto modify = [=](Fn<void(ResaleFilter&)> modifier) {
+		const auto modify = [=](Fn<void(ResaleGiftsFilter&)> modifier) {
 			auto now = state->filter.current();
 			modifier(now);
 			state->filter = now;
@@ -1338,7 +1065,7 @@ struct ResaleTabs {
 			action->setClickedCallback(std::move(callback));
 			menu->addAction(std::move(action));
 		};
-		auto context = Core::TextContext({ .session = &window->session() });
+		auto context = Core::TextContext({ .session = &show->session() });
 		context.customEmojiFactory = [original = context.customEmojiFactory](
 				QStringView data,
 				const Ui::Text::MarkedContext &context) {
@@ -1385,30 +1112,33 @@ struct ResaleTabs {
 				checked);
 		};
 		if (!index) {
-			const auto sort = [=](ResaleSort value) {
-				modify([&](ResaleFilter &filter) {
+			const auto sort = [=](ResaleGiftsSort value) {
+				modify([&](ResaleGiftsFilter &filter) {
 					filter.sort = value;
 				});
 			};
-			const auto is = [&](ResaleSort value) {
+			const auto is = [&](ResaleGiftsSort value) {
 				return state->filter.current().sort == value;
 			};
 			actionWithIcon(tr::lng_gift_resale_sort_price(tr::now), [=] {
-				sort(ResaleSort::Price);
-			}, &st::menuIconOrderPrice, is(ResaleSort::Price));
+				sort(ResaleGiftsSort::Price);
+			}, &st::menuIconOrderPrice, is(ResaleGiftsSort::Price));
 			actionWithIcon(tr::lng_gift_resale_sort_date(tr::now), [=] {
-				sort(ResaleSort::Date);
-			}, &st::menuIconOrderDate, is(ResaleSort::Date));
+				sort(ResaleGiftsSort::Date);
+			}, &st::menuIconOrderDate, is(ResaleGiftsSort::Date));
 			actionWithIcon(tr::lng_gift_resale_sort_number(tr::now), [=] {
-				sort(ResaleSort::Number);
-			}, &st::menuIconOrderNumber, is(ResaleSort::Number));
+				sort(ResaleGiftsSort::Number);
+			}, &st::menuIconOrderNumber, is(ResaleGiftsSort::Number));
 		} else {
 			const auto now = state->filter.current().attributes;
 			const auto type = IndexToType(index);
-			const auto has = ranges::contains(now, type, &AttributeId::type);
+			const auto has = ranges::contains(
+				now,
+				type,
+				&GiftAttributeId::type);
 			if (has) {
 				actionWithIcon(tr::lng_gift_resale_filter_all(tr::now), [=] {
-					modify([&](ResaleFilter &filter) {
+					modify([&](ResaleGiftsFilter &filter) {
 						auto &list = filter.attributes;
 						for (auto i = begin(list); i != end(list);) {
 							if (i->type == type) {
@@ -1420,8 +1150,8 @@ struct ResaleTabs {
 					});
 				}, &st::menuIconSelect);
 			}
-			const auto toggle = [=](AttributeId id) {
-				modify([&](ResaleFilter &filter) {
+			const auto toggle = [=](GiftAttributeId id) {
+				modify([&](ResaleGiftsFilter &filter) {
 					auto &list = filter.attributes;
 					if (ranges::contains(list, id)) {
 						list.remove(id);
@@ -1430,10 +1160,10 @@ struct ResaleTabs {
 					}
 				});
 			};
-			const auto checked = [=](AttributeId id) {
+			const auto checked = [=](GiftAttributeId id) {
 				return !has || ranges::contains(now, id);
 			};
-			if (type == AttributeIdType::Model) {
+			if (type == GiftAttributeIdType::Model) {
 				for (auto &entry : state->lists.models) {
 					const auto id = IdFor(entry.model);
 					const auto text = TextWithEntities{
@@ -1445,7 +1175,7 @@ struct ResaleTabs {
 						toggle(id);
 					}, id.value, checked(id));
 				}
-			} else if (type == AttributeIdType::Backdrop) {
+			} else if (type == GiftAttributeIdType::Backdrop) {
 				for (auto &entry : state->lists.backdrops) {
 					const auto id = IdFor(entry.backdrop);
 					const auto text = TextWithEntities{
@@ -1457,7 +1187,7 @@ struct ResaleTabs {
 						toggle(id);
 					}, entry.backdrop.centerColor, checked(id));
 				}
-			} else if (type == AttributeIdType::Pattern) {
+			} else if (type == GiftAttributeIdType::Pattern) {
 				for (auto &entry : state->lists.patterns) {
 					const auto id = IdFor(entry.pattern);
 					const auto text = TextWithEntities{
@@ -1475,7 +1205,7 @@ struct ResaleTabs {
 	};
 
 	state->filter.value(
-	) | rpl::start_with_next([=](const ResaleFilter &fields) {
+	) | rpl::start_with_next([=](const ResaleGiftsFilter &fields) {
 		auto x = st::giftBoxResaleTabsMargin.left();
 		auto y = st::giftBoxResaleTabsMargin.top();
 
@@ -1484,7 +1214,10 @@ struct ResaleTabs {
 		const auto &list = fields.attributes;
 		const auto setForIndex = [&](int i, auto many, auto one) {
 			const auto type = IndexToType(i);
-			const auto count = ranges::count(list, type, &AttributeId::type);
+			const auto count = ranges::count(
+				list,
+				type,
+				&GiftAttributeId::type);
 			state->buttons[i].text = ResaleTabText((count > 0)
 				? many(tr::now, lt_count, count)
 				: one(tr::now));
@@ -1660,6 +1393,7 @@ struct GiftPriceTabs {
 		float64 dragscroll = 0.;
 		float64 scroll = 0.;
 		int scrollMax = 0;
+		int tabsShift = 0;
 		int selected = -1;
 		int pressed = -1;
 		int active = -1;
@@ -1673,7 +1407,8 @@ struct GiftPriceTabs {
 	}
 	const auto state = raw->lifetime().make_state<State>();
 	const auto scroll = [=] {
-		return QPoint(int(base::SafeRound(state->scroll)), 0);
+		return QPoint(int(base::SafeRound(state->scroll)), 0)
+			- QPoint(state->tabsShift, 0);
 	};
 
 	state->prices = std::move(
@@ -1681,45 +1416,22 @@ struct GiftPriceTabs {
 	) | rpl::map([=](const std::vector<GiftTypeStars> &gifts) {
 		auto result = std::vector<int>();
 		result.push_back(kPriceTabAll);
-		auto hasNonSoldOut = false;
-		auto hasSoldOut = false;
-		auto hasLimited = false;
-		auto hasNonLimited = false;
-		auto hasResale = false;
-		auto hasNonResale = false;
-		for (const auto &gift : gifts) {
-			if (IsSoldOut(gift.info)) {
-				hasSoldOut = true;
-			} else {
-				hasNonSoldOut = true;
-			}
-			if (gift.resale) {
-				hasResale = true;
-			} else {
-				hasNonResale = true;
-			}
-			if (gift.info.limitedCount) {
-				hasLimited = true;
-			} else {
-				hasNonLimited = true;
-			}
-			if (!ranges::contains(result, gift.info.stars)) {
-				result.push_back(gift.info.stars);
+		auto hasCollectibles = false;
+		if (!(disallowed & Api::DisallowedGiftType::Unique)) {
+			for (const auto &gift : gifts) {
+				if (gift.resale
+					|| (gift.info.limitedCount && gift.info.upgradable)) {
+					hasCollectibles = true;
+					break;
+				}
 			}
 		}
 		if (hasMyUnique && !gifts.empty()) {
 			result.push_back(kPriceTabMy);
 		}
-		if (hasSoldOut && hasNonSoldOut) {
-			result.push_back(kPriceTabInStock);
+		if (hasCollectibles) {
+			result.push_back(kPriceTabCollectibles);
 		}
-		if (hasLimited && hasNonLimited) {
-			result.push_back(kPriceTabLimited);
-		}
-		if (hasResale && hasNonResale) {
-			result.push_back(kPriceTabResale);
-		}
-		ranges::sort(begin(result) + 1, end(result));
 		return result;
 	});
 
@@ -1759,18 +1471,12 @@ struct GiftPriceTabs {
 			currentPrice = kPriceTabAll;
 		}
 		state->active = -1;
-		auto helper = Ui::Text::CustomEmojiHelper();
-		const auto creditsIcon = helper.paletteDependent(
-			Ui::Earn::IconCreditsEmoji());
 		for (auto i = 0, count = int(prices.size()); i != count; ++i) {
 			const auto price = prices[i];
 			auto &button = state->buttons[i];
 			if (button.text.isEmpty() || button.price != price) {
 				button.price = price;
-				button.text = TabTextForPrice(
-					price,
-					creditsIcon,
-					helper.context());
+				button.text = TabTextForPrice(price);
 			}
 			button.active = (price == currentPrice);
 			if (button.active) {
@@ -1799,6 +1505,7 @@ struct GiftPriceTabs {
 		state->fullWidth.value()
 	) | rpl::start_with_next([=](int outer, int inner) {
 		state->scrollMax = std::max(0, inner - outer);
+		state->tabsShift = (outer - inner) / 2;
 	}, raw->lifetime());
 
 	raw->setMouseTracking(true);
@@ -1808,7 +1515,7 @@ struct GiftPriceTabs {
 		case QEvent::Leave: setSelected(-1); break;
 		case QEvent::MouseMove: {
 			const auto me = static_cast<QMouseEvent*>(e.get());
-			const auto mousex = me->pos().x();
+			const auto mousex = me->pos().x() - state->tabsShift;
 			const auto drag = QApplication::startDragDistance();
 			if (state->dragx > 0) {
 				state->scroll = std::clamp(
@@ -1844,7 +1551,7 @@ struct GiftPriceTabs {
 				break;
 			}
 			state->pressed = state->selected;
-			state->pressx = me->pos().x();
+			state->pressx = me->pos().x() - state->tabsShift;
 		} break;
 		case QEvent::MouseButtonRelease: {
 			const auto me = static_cast<QMouseEvent*>(e.get());
@@ -1928,7 +1635,9 @@ struct GiftPriceTabs {
 			current),
 		st::giftBoxTextPadding);
 	field->setMaxLength(limit);
-	AddLengthLimitLabel(field, limit, std::nullopt, st::giftBoxLimitTop);
+	AddLengthLimitLabel(field, limit, {
+		.limitLabelTop = st::giftBoxLimitTop,
+	});
 
 	const auto toggle = CreateChild<EmojiButton>(
 		container,
@@ -2037,6 +1746,7 @@ void SendGift(
 			.message = details.text,
 			.recipient = peer,
 			.limitedCount = gift.info.limitedCount,
+			.perUserLimit = gift.info.perUserTotal,
 			.anonymous = details.anonymous,
 			.upgraded = details.upgraded,
 		}, done, processNonPanelPaymentFormFactory);
@@ -2079,6 +1789,23 @@ void ShowGiftUpgradedToast(
 				lt_name,
 				Text::Bold(Data::UniqueGiftName(*gift)),
 				Ui::Text::WithEntities),
+			.duration = kUpgradeDoneToastDuration,
+		});
+	}
+}
+
+void ShowUpgradeGiftedToast(
+		base::weak_ptr<Window::SessionController> weak,
+		not_null<PeerData*> peer) {
+	if (const auto strong = weak.get()) {
+		strong->showToast({
+			.title = tr::lng_gift_upgrade_gifted_title(tr::now),
+			.text = { (peer->isBroadcast()
+				? tr::lng_gift_upgrade_gifted_about_channel
+				: tr::lng_gift_upgrade_gifted_about)(
+					tr::now,
+					lt_name,
+					peer->shortName()) },
 			.duration = kUpgradeDoneToastDuration,
 		});
 	}
@@ -2128,9 +1855,17 @@ void UpgradeGift(
 	auto formDone = [=](
 			Payments::CheckoutResult result,
 			const MTPUpdates *updates) {
-		if (result == Payments::CheckoutResult::Paid && updates) {
+		if (result == Payments::CheckoutResult::Paid) {
 			if (const auto strong = weak.get()) {
-				ShowGiftUpgradedToast(strong, session, *updates);
+				const auto owner = savedId.isUser()
+					? strong->session().user().get()
+					: savedId.chat();
+				if (owner) {
+					owner->owner().nextForUpgradeGiftInvalidate(owner);
+				}
+			}
+			if (updates) {
+				ShowGiftUpgradedToast(weak, session, *updates);
 			}
 		}
 		done(result);
@@ -2157,6 +1892,29 @@ void UpgradeGift(
 		MTP_inputInvoiceStarGiftUpgrade(
 			MTP_flags(keepDetails ? Flag::f_keep_original_details : Flag()),
 			Api::InputSavedStarGiftId(savedId)),
+		std::move(formDone));
+}
+
+void GiftUpgrade(
+		not_null<Window::SessionController*> window,
+		not_null<PeerData*> peer,
+		QString giftPrepayUpgradeHash,
+		int stars,
+		Fn<void(Payments::CheckoutResult)> done) {
+	const auto weak = base::make_weak(window);
+	auto formDone = [=](
+			Payments::CheckoutResult result,
+			const MTPUpdates *updates) {
+		if (result == Payments::CheckoutResult::Paid) {
+			ShowUpgradeGiftedToast(weak, peer);
+		}
+		done(result);
+	};
+	RequestStarsFormAndSubmit(
+		window->uiShow(),
+		MTP_inputInvoiceStarGiftPrepaidUpgrade(
+			peer->input,
+			MTP_string(giftPrepayUpgradeHash)),
 		std::move(formDone));
 }
 
@@ -2312,6 +2070,27 @@ void AddSoldLeftSlider(
 			.availableWidth = right,
 		});
 	}, slider->lifetime());
+}
+
+void CheckMaybeGiftLocked(
+		not_null<Window::SessionController*> window,
+		uint64 giftId,
+		Fn<void()> send) {
+	const auto session = &window->session();
+	session->api().request(MTPpayments_CheckCanSendGift(
+		MTP_long(giftId)
+	)).done(crl::guard(window, [=](
+			const MTPpayments_CheckCanSendGiftResult &result) {
+		result.match([&](const MTPDpayments_checkCanSendGiftResultOk &) {
+			send();
+		}, [&](const MTPDpayments_checkCanSendGiftResultFail &data) {
+			window->show(Ui::MakeInformBox({
+				.text = Api::ParseTextWithEntities(session, data.vreason()),
+				.title = tr::lng_gift_locked_title(),
+			}));
+		});
+	})).fail(crl::guard(window, [=] {
+	})).send();
 }
 
 void SendGiftBox(
@@ -2600,107 +2379,17 @@ void SendGiftBox(
 		&st::giftBox.button.textFg);
 }
 
-[[nodiscard]] rpl::producer<ResaleGiftsDescriptor> ResaleGiftsSlice(
-		not_null<Main::Session*> session,
-		uint64 giftId,
-		ResaleFilter filter = {},
-		QString offset = QString()) {
-	return [=](auto consumer) {
-		using Flag = MTPpayments_GetResaleStarGifts::Flag;
-		const auto requestId = session->api().request(
-			MTPpayments_GetResaleStarGifts(
-				MTP_flags(Flag::f_attributes_hash
-					| ((filter.sort == ResaleSort::Price)
-						? Flag::f_sort_by_price
-						: (filter.sort == ResaleSort::Number)
-						? Flag::f_sort_by_num
-						: Flag())
-					| (filter.attributes.empty()
-						? Flag()
-						: Flag::f_attributes)),
-				MTP_long(filter.attributesHash),
-				MTP_long(giftId),
-				MTP_vector_from_range(filter.attributes
-					| ranges::views::transform(AttributeToTL)),
-				MTP_string(offset),
-				MTP_int(kResaleGiftsPerPage)
-			)).done([=](const MTPpayments_ResaleStarGifts &result) {
-			const auto &data = result.data();
-			session->data().processUsers(data.vusers());
-			session->data().processChats(data.vchats());
-
-			auto info = ResaleGiftsDescriptor{
-				.giftId = giftId,
-				.offset = qs(data.vnext_offset().value_or_empty()),
-				.count = data.vcount().v,
-			};
-			const auto &list = data.vgifts().v;
-			info.list.reserve(list.size());
-			for (const auto &entry : list) {
-				if (auto gift = Api::FromTL(session, entry)) {
-					info.list.push_back(std::move(*gift));
-				}
-			}
-			info.attributesHash = data.vattributes_hash().value_or_empty();
-			const auto &attributes = data.vattributes()
-				? data.vattributes()->v
-				: QVector<MTPStarGiftAttribute>();
-			const auto &counters = data.vcounters()
-				? data.vcounters()->v
-				: QVector<MTPStarGiftAttributeCounter>();
-			auto counts = base::flat_map<AttributeId, int>();
-			counts.reserve(counters.size());
-			for (const auto &counter : counters) {
-				const auto &data = counter.data();
-				counts.emplace(FromTL(data.vattribute()), data.vcount().v);
-			}
-			const auto count = [&](AttributeId id) {
-				const auto i = counts.find(id);
-				return i != end(counts) ? i->second : 0;
-			};
-			info.models.reserve(attributes.size());
-			info.patterns.reserve(attributes.size());
-			info.backdrops.reserve(attributes.size());
-			for (const auto &attribute : attributes) {
-				attribute.match([&](const MTPDstarGiftAttributeModel &data) {
-					const auto parsed = Api::FromTL(session, data);
-					info.models.push_back({ parsed, count(IdFor(parsed)) });
-				}, [&](const MTPDstarGiftAttributePattern &data) {
-					const auto parsed = Api::FromTL(session, data);
-					info.patterns.push_back({ parsed, count(IdFor(parsed)) });
-				}, [&](const MTPDstarGiftAttributeBackdrop &data) {
-					const auto parsed = Api::FromTL(data);
-					info.backdrops.push_back({ parsed, count(IdFor(parsed)) });
-				}, [](const MTPDstarGiftAttributeOriginalDetails &data) {
-				});
-			}
-			consumer.put_next(std::move(info));
-			consumer.put_done();
-		}).fail([=](const MTP::Error &error) {
-			consumer.put_next({});
-			consumer.put_done();
-		}).send();
-
-		auto lifetime = rpl::lifetime();
-		lifetime.add([=] { session->api().request(requestId).cancel(); });
-		return lifetime;
-	};
-}
-
-[[nodiscard]] rpl::lifetime ShowStarGiftResale(
-	not_null<Window::SessionController*> controller,
-	not_null<PeerData*> peer,
-	uint64 giftId,
-	QString title,
-	Fn<void()> finishRequesting);
-
 [[nodiscard]] object_ptr<RpWidget> MakeGiftsList(
 		not_null<Window::SessionController*> window,
 		not_null<PeerData*> peer,
 		rpl::producer<GiftsDescriptor> gifts,
 		Fn<void()> loadMore) {
-	auto result = object_ptr<WidgetWithRange>((QWidget*)nullptr);
+	auto result = object_ptr<VisibleRangeWidget>((QWidget*)nullptr);
 	const auto raw = result.data();
+
+	Data::AmPremiumValue(&window->session()) | rpl::start_with_next([=] {
+		raw->update();
+	}, raw->lifetime());
 
 	struct State {
 		Delegate delegate;
@@ -2780,25 +2469,43 @@ void SendGiftBox(
 				}
 			}
 			if (!button) {
-				button = std::make_unique<GiftButton>(
-					raw,
-					&state->delegate);
+				button = std::make_unique<GiftButton>(raw, &state->delegate);
 			}
+			const auto raw = button.get();
 			if (validated[index]) {
 				return;
 			}
-			button->show();
+			raw->show();
 			validated[index] = true;
 			const auto &descriptor = state->list[state->order[index]];
-			button->setDescriptor(descriptor, GiftButton::Mode::Full);
-			button->setClickedCallback([=] {
+			raw->setDescriptor(descriptor, GiftButton::Mode::Full);
+			raw->setClickedCallback([=] {
 				const auto star = std::get_if<GiftTypeStars>(&descriptor);
+				const auto send = crl::guard(raw, [=] {
+					window->show(Box(
+						SendGiftBox,
+						window,
+						peer,
+						state->api,
+						descriptor));
+				});
 				const auto unique = star ? star->info.unique : nullptr;
-				if (star
-					&& star->info.requirePremium
-					&& !peer->session().premium()) {
+				const auto premiumNeeded = star && star->info.requirePremium;
+				if (premiumNeeded && !peer->session().premium()) {
 					Settings::ShowPremiumGiftPremium(window, star->info);
-					return;
+				} else if (star
+					&& star->info.lockedUntilDate
+					&& star->info.lockedUntilDate > base::unixtime::now()) {
+					const auto ready = crl::guard(raw, [=] {
+						if (premiumNeeded && !peer->session().premium()) {
+							Settings::ShowPremiumGiftPremium(
+								window,
+								v::get<GiftTypeStars>(descriptor).info);
+						} else {
+							send();
+						}
+					});
+					CheckMaybeGiftLocked(window, star->info.id, ready);
 				} else if (unique && star->mine && !peer->isSelf()) {
 					if (ShowTransferGiftLater(window->uiShow(), unique)) {
 						return;
@@ -2842,7 +2549,7 @@ void SendGiftBox(
 							Api::InputSavedStarGiftId(savedId, unique),
 							peer->input),
 						formReady);
-				} else if (star && star->info.unique && star->resale) {
+				} else if (unique && star->resale) {
 					window->show(Box(
 						Settings::GlobalStarGiftBox,
 						window->uiShow(),
@@ -2866,16 +2573,21 @@ void SendGiftBox(
 						[=] { state->resaleRequestingId = 0; });
 				} else if (star && IsSoldOut(star->info)) {
 					window->show(Box(SoldOutBox, window, *star));
+				} else if (star
+						&& star->info.perUserTotal
+						&& !star->info.perUserRemains) {
+					window->showToast({
+						.text = tr::lng_gift_sent_finished(
+							tr::now,
+							lt_count,
+							star->info.perUserTotal,
+							Ui::Text::RichLangValue),
+					});
 				} else {
-					window->show(Box(
-						SendGiftBox,
-						window,
-						peer,
-						state->api,
-						descriptor));
+					send();
 				}
 			});
-			button->setGeometry(QRect(QPoint(x, y), single), extend);
+			raw->setGeometry(QRect(QPoint(x, y), single), extend);
 		};
 		y += rowFrom * singleh;
 		for (auto row = rowFrom; row != rowTill; ++row) {
@@ -2981,13 +2693,15 @@ void AddBlock(
 			content,
 			std::move(args.subtitle),
 			st::giftBoxSubtitle),
-		st::giftBoxSubtitleMargin);
+		st::giftBoxSubtitleMargin,
+		style::al_top);
 	const auto about = content->add(
 		object_ptr<FlatLabel>(
 			content,
 			std::move(args.about),
 			st::giftBoxAbout),
-		st::giftBoxAboutMargin);
+		st::giftBoxAboutMargin,
+		style::al_top);
 	about->setClickHandlerFilter(std::move(args.aboutFilter));
 	content->add(std::move(args.content));
 }
@@ -3016,7 +2730,8 @@ void AddBlock(
 [[nodiscard]] object_ptr<RpWidget> MakeStarsGifts(
 		not_null<Window::SessionController*> window,
 		not_null<PeerData*> peer,
-		MyGiftsDescriptor my) {
+		MyGiftsDescriptor my,
+		Fn<void(int)> tabSelected) {
 	auto result = object_ptr<VerticalLayout>((QWidget*)nullptr);
 
 	struct State {
@@ -3036,6 +2751,9 @@ void AddBlock(
 		state->gifts.value(),
 		!state->my.list.empty() && !peer->isSelf());
 	state->priceTab = std::move(tabs.priceTab);
+	state->priceTab.changes() | rpl::start_with_next([=](int tab) {
+		tabSelected(tab);
+	}, tabs.widget->lifetime());
 	result->add(std::move(tabs.widget));
 	result->add(MakeGiftsList(window, peer, rpl::combine(
 		state->gifts.value(),
@@ -3054,7 +2772,7 @@ void AddBlock(
 		} else {
 			// First, gather information about which gifts are available on resale
 			base::flat_set<uint64> resaleGiftIds;
-			if (price != kPriceTabResale) {
+			if (price != kPriceTabCollectibles) {
 				// Only need this info when not viewing the resale tab
 				for (const auto &gift : gifts) {
 					if (gift.resale) {
@@ -3066,20 +2784,17 @@ void AddBlock(
 			const auto pred = [&](const GiftTypeStars &gift) {
 				// Skip sold out gifts if they're available on resale
 				// (unless we're specifically viewing resale gifts)
-				if (price != kPriceTabResale &&
-					IsSoldOut(gift.info) &&
-					!gift.resale &&
-					resaleGiftIds.contains(gift.info.id)) {
+				if (price != kPriceTabCollectibles
+					&& IsSoldOut(gift.info)
+					&& !gift.resale
+					&& resaleGiftIds.contains(gift.info.id)) {
 					return true; // Remove this gift
+				} else if ((price != kPriceTabCollectibles) || gift.resale) {
+					return false;
 				}
-
-				return (price == kPriceTabLimited)
-					? (!gift.info.limitedCount)
-					: (price == kPriceTabResale)
-					? !gift.resale
-					: (price == kPriceTabInStock)
-					? IsSoldOut(gift.info)
-					: (price && gift.info.stars != price);
+				return !gift.info.limitedCount
+					|| !gift.info.upgradable
+					|| IsSoldOut(gift.info);
 			};
 			gifts.erase(ranges::remove_if(gifts, pred), end(gifts));
 		}
@@ -3090,8 +2805,9 @@ void AddBlock(
 		if (state->priceTab.current() == kPriceTabMy
 			&& !state->my.offset.isEmpty()
 			&& !state->myLoading) {
-			state->myLoading = UniqueGiftsSlice(
+			state->myLoading = Data::MyUniqueGiftsSlice(
 				&peer->session(),
+				Data::MyUniqueType::OnlyOwned,
 				state->my.offset
 			) | rpl::start_with_next([=](MyGiftsDescriptor &&descriptor) {
 				state->myLoading.destroy();
@@ -3149,10 +2865,9 @@ void GiftBox(
 		&& uniqueDisallowed;
 
 	content->add(
-		object_ptr<CenterWrap<UserpicButton>>(
-			content,
-			object_ptr<UserpicButton>(content, peer, stUser))
-	)->entity()->setClickedCallback([=] { window->showPeerInfo(peer); });
+		object_ptr<UserpicButton>(content, peer, stUser),
+		style::al_top
+	)->setClickedCallback([=] { window->showPeerInfo(peer); });
 	AddSkip(content);
 	AddSkip(content);
 
@@ -3190,6 +2905,12 @@ void GiftBox(
 
 	// Only add star gifts if at least one type is allowed
 	if (!allStarsDisallowed) {
+		const auto collectibles = content->lifetime().make_state<
+			rpl::variable<bool>
+		>();
+		auto tabSelected = [=](int tab) {
+			*collectibles = (tab == kPriceTabCollectibles);
+		};
 		AddBlock(content, window, {
 			.subtitle = (peer->isSelf()
 				? tr::lng_gift_self_title()
@@ -3203,14 +2924,24 @@ void GiftBox(
 					lt_name,
 					rpl::single(Text::Bold(peer->name())),
 					Text::WithEntities)
-				: tr::lng_gift_stars_about(
-					lt_name,
-					rpl::single(Text::Bold(peer->shortName())),
-					lt_link,
-					tr::lng_gift_stars_link() | Text::ToLink(),
-					Text::WithEntities)),
+				: rpl::conditional(
+					collectibles->value(),
+					tr::lng_gift_stars_about_collectibles(
+						lt_link,
+						tr::lng_gift_stars_link() | Text::ToLink(),
+						Text::WithEntities),
+					tr::lng_gift_stars_about(
+						lt_name,
+						rpl::single(Text::Bold(peer->shortName())),
+						lt_link,
+						tr::lng_gift_stars_link() | Text::ToLink(),
+						Text::WithEntities))),
 			.aboutFilter = starsClickHandlerFilter,
-			.content = MakeStarsGifts(window, peer, std::move(my)),
+			.content = MakeStarsGifts(
+				window,
+				peer,
+				std::move(my),
+				std::move(tabSelected)),
 		});
 	}
 }
@@ -3278,7 +3009,7 @@ void GiftResaleBox(
 	struct State {
 		rpl::event_stream<> updated;
 		ResaleGiftsDescriptor data;
-		rpl::variable<ResaleFilter> filter;
+		rpl::variable<ResaleGiftsFilter> filter;
 		rpl::variable<bool> ton;
 		rpl::lifetime loading;
 		int lastMinHeight = 0;
@@ -3293,13 +3024,10 @@ void GiftResaleBox(
 		state->ton = !state->ton.current();
 		state->updated.fire({});
 	});
-	currency->setText(tr::lng_gift_resale_switch_to(
-		lt_currency,
-		rpl::conditional(
-			state->ton.value(),
-			rpl::single(Ui::Text::IconEmoji(&st::starIconEmoji)),
-			rpl::single(Ui::Text::IconEmoji(&st::tonIconEmoji))),
-		Ui::Text::WithEntities));
+	currency->setText(rpl::conditional(
+		state->ton.value(),
+		tr::lng_gift_resale_switch_to_stars(),
+		tr::lng_gift_resale_switch_to_ton()));
 #endif
 
 	box->heightValue() | rpl::start_with_next([=](int height) {
@@ -3310,14 +3038,14 @@ void GiftResaleBox(
 	}, content->lifetime());
 
 	auto tabs = MakeResaleTabs(
-		window,
+		window->uiShow(),
 		peer,
 		state->data,
 		state->filter.value());
 	state->filter = std::move(tabs.filter);
 	content->add(std::move(tabs.widget));
 
-	state->filter.changes() | rpl::start_with_next([=](ResaleFilter value) {
+	state->filter.changes() | rpl::start_with_next([=](ResaleGiftsFilter value) {
 		state->data.offset = QString();
 		state->loading = ResaleGiftsSlice(
 			&peer->session(),
@@ -3394,30 +3122,6 @@ void GiftResaleBox(
 			});
 		}
 	}));
-}
-
-[[nodiscard]] rpl::lifetime ShowStarGiftResale(
-		not_null<Window::SessionController*> controller,
-		not_null<PeerData*> peer,
-		uint64 giftId,
-		QString title,
-		Fn<void()> finishRequesting) {
-	const auto weak = base::make_weak(controller);
-	const auto session = &controller->session();
-	return ResaleGiftsSlice(
-		session,
-		giftId
-	) | rpl::start_with_next([=](ResaleGiftsDescriptor &&info) {
-		if (const auto onstack = finishRequesting) {
-			onstack();
-		}
-		if (!info.giftId || !info.count) {
-			return;
-		}
-		info.title = title;
-		controller->show(
-			Box(GiftResaleBox, controller, peer, std::move(info)));
-	});
 }
 
 struct CustomList {
@@ -3927,8 +3631,9 @@ void ShowStarGiftBox(
 		checkReady();
 	}, i->second.lifetime);
 
-	UniqueGiftsSlice(
-		session
+	Data::MyUniqueGiftsSlice(
+		session,
+		Data::MyUniqueType::OnlyOwned
 	) | rpl::start_with_next([=](MyGiftsDescriptor &&gifts) {
 		auto &entry = Map[session];
 		entry.my = std::move(gifts);
@@ -4011,13 +3716,14 @@ void AddUniqueGiftCover(
 		Released() : white(QColor(255, 255, 255)) {
 		}
 
+		rpl::variable<TextWithEntities> subtitleText;
 		style::owned_color white;
 		style::FlatLabel st;
 		PeerData *by = nullptr;
 		QColor bg;
 	};
 	const auto released = cover->lifetime().make_state<Released>();
-	released->st = st::uniqueGiftSubtitle;
+	released->st = st::uniqueGiftReleasedBy;
 	released->st.palette.linkFg = released->white.color();
 
 	if (resalePrice) {
@@ -4040,7 +3746,7 @@ void AddUniqueGiftCover(
 		) | rpl::map([](const Data::UniqueGift &now) { return now.title; }),
 		st::uniqueGiftTitle);
 	title->setTextColorOverride(QColor(255, 255, 255));
-	auto subtitleText = subtitleOverride
+	released->subtitleText = subtitleOverride
 		? std::move(
 			subtitleOverride
 		) | Ui::Text::ToWithEntities() | rpl::type_erased()
@@ -4061,9 +3767,13 @@ void AddUniqueGiftCover(
 					TextWithEntities{ QString::number(gift.number) },
 					Ui::Text::WithEntities);
 		});
+	if (!released->by) {
+		released->st = st::uniqueGiftSubtitle;
+		released->st.palette.linkFg = released->white.color();
+	}
 	const auto subtitle = CreateChild<FlatLabel>(
 		cover,
-		std::move(subtitleText),
+		released->subtitleText.value(),
 		released->st);
 	if (released->by) {
 		const auto button = CreateChild<AbstractButton>(cover);
@@ -4381,13 +4091,15 @@ void ShowUniqueGiftWearBox(
 					lt_name,
 					rpl::single(UniqueGiftName(gift))),
 				st.title ? *st.title : st::uniqueGiftTitle),
-			st::settingsPremiumRowTitlePadding);
+			st::settingsPremiumRowTitlePadding,
+			style::al_top);
 		content->add(
 			object_ptr<Ui::FlatLabel>(
 				content,
 				tr::lng_gift_wear_about(),
 				st.subtitle ? *st.subtitle : st::uniqueGiftSubtitle),
-			st::settingsPremiumRowAboutPadding);
+			st::settingsPremiumRowAboutPadding,
+			style::al_top);
 		infoRow(
 			tr::lng_gift_wear_badge_title(),
 			(channel
@@ -4775,6 +4487,8 @@ struct UpgradeArgs : StarGiftUpgradeArgs {
 	std::vector<Data::UniqueGiftModel> models;
 	std::vector<Data::UniqueGiftPattern> patterns;
 	std::vector<Data::UniqueGiftBackdrop> backdrops;
+	std::vector<UpgradePrice> prices;
+	std::vector<UpgradePrice> nextPrices;
 };
 
 [[nodiscard]] rpl::producer<Data::UniqueGift> MakeUpgradeGiftStream(
@@ -4854,6 +4568,274 @@ void AddUpgradeGiftCover(
 					rpl::single(args.peer->shortName()))));
 }
 
+class UpgradePriceValue final {
+public:
+	UpgradePriceValue(
+		not_null<Main::Session*> session,
+		uint64 stargiftId,
+		int cost,
+		std::vector<UpgradePrice> all,
+		std::vector<UpgradePrice> next);
+
+	[[nodiscard]] int cost() const;
+	[[nodiscard]] rpl::producer<int> costValue() const;
+	[[nodiscard]] rpl::producer<TimeId> tillNextValue() const;
+
+private:
+	void update();
+	void refresh();
+
+	MTP::Sender _api;
+	uint64 _stargiftId = 0;
+	rpl::variable<int> _cost;
+	rpl::variable<TimeId> _tillNext;
+	std::vector<UpgradePrice> _all;
+	std::vector<UpgradePrice> _next;
+	base::Timer _timer;
+	bool _refreshing = false;
+	bool _finished = false;
+
+};
+
+UpgradePriceValue::UpgradePriceValue(
+	not_null<Main::Session*> session,
+	uint64 stargiftId,
+	int cost,
+	std::vector<UpgradePrice> all,
+	std::vector<UpgradePrice> next)
+: _api(&session->mtp())
+, _stargiftId(stargiftId)
+, _cost(cost)
+, _all(std::move(all))
+, _next(std::move(next))
+, _timer([=] { update(); })
+, _finished(_next.size() < 2) {
+	update();
+	_timer.callEach(1000);
+}
+
+int UpgradePriceValue::cost() const {
+	return _cost.current();
+}
+
+rpl::producer<int> UpgradePriceValue::costValue() const {
+	return _cost.value();
+}
+
+rpl::producer<TimeId> UpgradePriceValue::tillNextValue() const {
+	return _tillNext.value();
+}
+
+void UpgradePriceValue::update() {
+	if (_all.empty() || _next.empty()) {
+		_timer.cancel();
+		return;
+	}
+	const auto now = base::unixtime::now();
+	const auto i = ranges::upper_bound(
+		_all,
+		now,
+		ranges::less(),
+		&UpgradePrice::date);
+	const auto j = ranges::upper_bound(
+		_next,
+		now,
+		ranges::less(),
+		&UpgradePrice::date);
+	const auto full = (i == begin(_all)) ? i->stars : (i - 1)->stars;
+	const auto part = (j == begin(_next)) ? j->stars : (j - 1)->stars;
+	const auto fullDate = (i != end(_all)) ? i->date : TimeId();
+	const auto partDate = (j != end(_next)) ? j->date : TimeId();
+	_cost = std::min({ _cost.current(), part, full});
+	if (int(end(_next) - j) < 3) {
+		refresh();
+	}
+
+	const auto next = std::min({
+		partDate ? partDate : TimeId(INT_MAX),
+		fullDate ? fullDate : TimeId(INT_MAX),
+	});
+	if (next != TimeId(INT_MAX)) {
+		_tillNext = next - now;
+	} else {
+		_tillNext = 0;
+		_timer.cancel();
+	}
+}
+
+void UpgradePriceValue::refresh() {
+	if (_refreshing || _finished) {
+		return;
+	}
+	_api.request(MTPpayments_GetStarGiftUpgradePreview(
+		MTP_long(_stargiftId)
+	)).done([=](const MTPpayments_StarGiftUpgradePreview &result) {
+		const auto &data = result.data();
+		_all = ParsePrices(data.vprices());
+		_next = ParsePrices(data.vnext_prices());
+	}).fail([=] {
+		_finished = true;
+	}).send();
+}
+
+void PricesBox(
+		not_null<Ui::GenericBox*> box,
+		const std::vector<UpgradePrice> &list,
+		rpl::producer<int> cost) {
+	const auto top = box->setPinnedToTopContent(
+		object_ptr<Ui::VerticalLayout>(box));
+	box->setWidth(st::boxWideWidth);
+	box->setStyle(st::boostBox);
+
+	struct State {
+		rpl::variable<int> cost;
+	};
+	const auto state = box->lifetime().make_state<State>();
+	state->cost = std::move(cost);
+	const auto min = list.back().stars;
+	const auto max = std::max(min + 2, list.front().stars);
+	const auto from = 0;
+	const auto till = max - min;
+
+	const auto addSkip = [&](int skip) {
+		top->add(object_ptr<Ui::FixedHeightWidget>(top, skip));
+	};
+
+	const auto ratio = [=](int current) {
+		current = std::clamp(current, from, till);
+		const auto count = (till - from);
+		const auto index = (current - from);
+		if (count <= 2) {
+			return 0.5;
+		}
+		const auto available = st::boxWideWidth
+			- st::boxPadding.left()
+			- st::boxPadding.right();
+		const auto average = available / float64(count);
+		const auto levelWidth = [&](int stars) {
+			return st::normalFont->width(Lang::FormatCountDecimal(stars));
+		};
+		const auto paddings = 2 * st::premiumLineTextSkip;
+		const auto labelLeftWidth = paddings + levelWidth(min);
+		const auto labelRightWidth = paddings + levelWidth(max);
+		const auto first = std::max(average, labelLeftWidth * 1.);
+		const auto last = std::max(average, labelRightWidth * 1.);
+		const auto other = (available - first - last) / (count - 2);
+		return (first + (index - 1) * other) / available;
+	};
+
+	auto bubbleRowState = state->cost.value(
+	) | rpl::map([=](int value) {
+		return Premium::BubbleRowState{
+			.counter = max - value,
+			.ratio = ratio(max - value),
+			.dynamic = true,
+		};
+	});
+	Premium::AddBubbleRow(
+		top,
+		st::starRatingBubble,
+		box->showFinishes(),
+		rpl::duplicate(bubbleRowState),
+		Ui::Premium::BubbleType::StarRating,
+		[=](int value) {
+			return Premium::BubbleText{
+				.counter = Lang::FormatCountDecimal(max - value),
+			};
+		},
+		&st::paidReactBubbleIcon,
+		st::boxRowPadding);
+	addSkip(st::premiumLineTextSkip);
+
+	auto limitState = std::move(
+		bubbleRowState
+	) | rpl::map([=](const Premium::BubbleRowState &state) {
+		return Premium::LimitRowState{
+			.ratio = state.ratio,
+			.dynamic = state.dynamic
+		};
+	});
+	auto left = rpl::single(Lang::FormatCountDecimal(max));
+	auto right = rpl::single(Lang::FormatCountDecimal(min));
+	Premium::AddLimitRow(
+		top,
+		st::upgradePriceLimits,
+		Premium::LimitRowLabels{
+			.leftLabel = std::move(left),
+			.rightLabel = std::move(right),
+			.activeLineBg = [=] { return st::windowBgActive->b; },
+		},
+		std::move(limitState),
+		st::boxRowPadding);
+
+	top->add(
+		object_ptr<Ui::FlatLabel>(
+			top,
+			tr::lng_gift_upgrade_prices_title(),
+			st::infoStarsTitle),
+		st::boxRowPadding + QMargins(0, st::boostTitleSkip / 2, 0, 0),
+		style::al_top);
+	top->add(
+		object_ptr<Ui::FlatLabel>(
+			top,
+			tr::lng_gift_upgrade_prices_subtitle(),
+			st::boostText),
+		(st::boxRowPadding
+			+ QMargins(0, st::boostTextSkip, 0, st::boostBottomSkip)),
+		style::al_top
+	)->setTryMakeSimilarLines(true);
+
+	auto helper = Ui::Text::CustomEmojiHelper();
+	const auto creditsIcon = helper.paletteDependent(
+		Ui::Earn::IconCreditsEmoji());
+	const auto context = helper.context();
+	const auto table = box->addRow(
+		object_ptr<Ui::TableLayout>(box, st::defaultTable),
+		st::boxPadding);
+	for (const auto &price : list) {
+		const auto parsed = base::unixtime::parse(price.date);
+		const auto time = QLocale().toString(
+			parsed.time(),
+			QLocale::ShortFormat);
+		const auto date = tr::lng_month_day(
+			tr::now,
+			lt_month,
+			Lang::MonthSmall(parsed.date().month())(tr::now),
+			lt_day,
+			QString::number(parsed.date().day()));
+		table->addRow(
+			object_ptr<Ui::FlatLabel>(
+				table,
+				time + u", "_q + date,
+				st::defaultTable.defaultLabel),
+			object_ptr<Ui::FlatLabel>(
+				table,
+				rpl::single(
+					base::duplicate(creditsIcon).append(' ').append(
+						Lang::FormatCountDecimal(price.stars))),
+				st::defaultTable.defaultValue,
+				st::defaultPopupMenu,
+				context),
+			st::giveawayGiftCodeLabelMargin,
+			st::giveawayGiftCodeValueMargin);
+	}
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			tr::lng_gift_upgrade_prices_about(),
+			st::resalePriceAbout),
+		style::al_top);
+	box->addSkip(st::boxPadding.top());
+
+	box->setMaxHeight(st::boxWideWidth);
+
+	box->addButton(rpl::single(QString()), [=] {
+		box->closeBox();
+	})->setText(rpl::single(Ui::Text::IconEmoji(
+		&st::infoStarsUnderstood
+	).append(' ').append(tr::lng_stars_rating_understood(tr::now))));
+}
+
 void UpgradeBox(
 		not_null<GenericBox*> box,
 		not_null<Window::SessionController*> controller,
@@ -4891,51 +4873,87 @@ void UpgradeBox(
 
 	infoRow(
 		tr::lng_gift_upgrade_unique_title(),
-		tr::lng_gift_upgrade_unique_about(),
+		(args.savedId
+			? tr::lng_gift_upgrade_unique_about()
+			: (args.peer->isBroadcast()
+				? tr::lng_gift_upgrade_unique_about_channel
+				: tr::lng_gift_upgrade_unique_about_user)(
+					lt_name,
+					rpl::single(args.peer->shortName()))),
 		&st::menuIconUnique);
 	infoRow(
 		tr::lng_gift_upgrade_transferable_title(),
-		tr::lng_gift_upgrade_transferable_about(),
+		(args.savedId
+			? tr::lng_gift_upgrade_transferable_about()
+			: (args.peer->isBroadcast()
+				? tr::lng_gift_upgrade_transferable_about_channel
+				: tr::lng_gift_upgrade_transferable_about_user)(
+					lt_name,
+					rpl::single(args.peer->shortName()))),
 		&st::menuIconReplace);
 	infoRow(
 		tr::lng_gift_upgrade_tradable_title(),
-		tr::lng_gift_upgrade_tradable_about(),
+		(args.savedId
+			? tr::lng_gift_upgrade_tradable_about()
+			: (args.peer->isBroadcast()
+				? tr::lng_gift_upgrade_tradable_about_channel
+				: tr::lng_gift_upgrade_tradable_about_user)(
+					lt_name,
+					rpl::single(args.peer->shortName()))),
 		&st::menuIconTradable);
 
 	struct State {
-		bool sent = false;
+		base::Timer timer;
+		std::unique_ptr<UpgradePriceValue> cost;
 		bool preserveDetails = false;
+		bool sent = false;
 	};
 	const auto state = std::make_shared<State>();
-	const auto preview = !args.savedId;
-
-	if (!preview) {
+	const auto gifting = !args.savedId
+		&& !args.giftPrepayUpgradeHash.isEmpty();
+	const auto preview = !args.savedId && !gifting;
+	const auto showPrices = !preview
+		&& (args.prices.size() > 1)
+		&& (args.nextPrices.size() > 1);
+	auto prices = args.prices;
+	state->cost = std::make_unique<UpgradePriceValue>(
+		&controller->session(),
+		args.stargiftId,
+		args.cost,
+		std::move(args.prices),
+		std::move(args.nextPrices));
+	if (!preview && !gifting) {
 		const auto skip = st::defaultVerticalListSkip;
 		container->add(
 			object_ptr<PlainShadow>(container),
 			st::boxRowPadding + QMargins(0, skip, 0, skip));
 		const auto checkbox = container->add(
-			object_ptr<CenterWrap<Checkbox>>(
+			object_ptr<Checkbox>(
 				container,
-				object_ptr<Checkbox>(
-					container,
-					(args.canAddComment
-						? tr::lng_gift_upgrade_add_comment(tr::now)
-						: args.canAddSender
-						? tr::lng_gift_upgrade_add_sender(tr::now)
-						: args.canAddMyComment
-						? tr::lng_gift_upgrade_add_my_comment(tr::now)
-						: tr::lng_gift_upgrade_add_my(tr::now)),
-					args.addDetailsDefault)),
-			st::defaultCheckbox.margin)->entity();
+				(args.canAddComment
+					? tr::lng_gift_upgrade_add_comment(tr::now)
+					: args.canAddSender
+					? tr::lng_gift_upgrade_add_sender(tr::now)
+					: args.canAddMyComment
+					? tr::lng_gift_upgrade_add_my_comment(tr::now)
+					: tr::lng_gift_upgrade_add_my(tr::now)),
+				args.addDetailsDefault),
+			st::defaultCheckbox.margin,
+			style::al_top);
 		checkbox->checkedChanges() | rpl::start_with_next([=](bool checked) {
 			state->preserveDetails = checked;
 		}, checkbox->lifetime());
 	}
 
-	box->setStyle(preview ? st::giftBox : st::upgradeGiftBox);
+	box->setStyle(preview
+		? st::giftBox
+		: showPrices
+		? st::upgradeGiftWithPricesBox
+		: st::upgradeGiftBox);
+	if (gifting) {
+		box->setWidth(st::boxWideWidth);
+	}
 
-	const auto cost = args.cost;
 	auto buttonText = preview ? tr::lng_box_ok() : rpl::single(QString());
 	const auto button = box->addButton(std::move(buttonText), [=] {
 		if (preview) {
@@ -4945,6 +4963,7 @@ void UpgradeBox(
 			return;
 		}
 		state->sent = true;
+		const auto cost = state->cost->cost();
 		const auto keepDetails = state->preserveDetails;
 		const auto weak = base::make_weak(box);
 		const auto done = [=](Payments::CheckoutResult result) {
@@ -4957,24 +4976,85 @@ void UpgradeBox(
 				}
 			}
 		};
-		UpgradeGift(controller, args.savedId, keepDetails, cost, done);
+		if (gifting) {
+			GiftUpgrade(
+				controller,
+				args.peer,
+				args.giftPrepayUpgradeHash,
+				cost,
+				done);
+		} else {
+			UpgradeGift(controller, args.savedId, keepDetails, cost, done);
+		}
 	});
 	if (!preview) {
-		auto helper = Ui::Text::CustomEmojiHelper();
-		auto star = helper.paletteDependent(Ui::Earn::IconCreditsEmoji());
-		SetButtonMarkedLabel(
-			button,
-			(cost
-				? tr::lng_gift_upgrade_button(
+		auto costText = [=] {
+			return state->cost->costValue(
+			) | rpl::map([](int cost) {
+				if (!cost) {
+					return tr::lng_gift_upgrade_confirm(
+						Ui::Text::WithEntities);
+				}
+				return tr::lng_gift_upgrade_button(
 					lt_price,
-					rpl::single(star.append(
-						' ' + Lang::FormatCreditsAmountDecimal(
-							CreditsAmount{ cost }))),
-					Ui::Text::WithEntities)
-				: tr::lng_gift_upgrade_confirm(Ui::Text::WithEntities)),
-			helper.context(),
-			st::creditsBoxButtonLabel,
-			&st::giftBox.button.textFg);
+					rpl::single(Ui::Text::IconEmoji(
+						&st::starIconEmoji
+					).append(Lang::FormatCreditsAmountDecimal(
+						CreditsAmount{ cost }))),
+					Ui::Text::WithEntities);
+			}) | rpl::flatten_latest();
+		};
+		auto tillNext = state->cost->tillNextValue(
+		) | rpl::map([](TimeId left) {
+			const auto hours = left / 3600;
+			const auto minutes = (left % 3600) / 60;
+			const auto seconds = left % 60;
+			const auto padded = [](int value) {
+				return u"%1"_q.arg(value, 2, 10, QChar('0'));
+			};
+			return hours
+				? u"%1:%2:%3"_q
+				.arg(hours).arg(padded(minutes)).arg(padded(seconds))
+				: u"%2:%3"_q.arg(padded(minutes)).arg(padded(seconds));
+		}) | Ui::Text::ToWithEntities();
+		Ui::SetButtonTwoLabels(
+			button,
+			costText(),
+			tr::lng_gift_upgrade_decreases(
+				lt_time,
+				std::move(tillNext),
+				Ui::Text::WithEntities),
+			st::resaleButtonTitle,
+			st::resaleButtonSubtitle);
+		state->cost->tillNextValue() | rpl::filter([=](TimeId left) {
+			return !left;
+		}) | rpl::take(1) | rpl::start_with_next([=] {
+			while (!button->children().isEmpty()) {
+				delete button->children()[0];
+			}
+			button->setText(costText());
+		}, button->lifetime());
+	}
+	if (showPrices) {
+		const auto link = Ui::CreateChild<Ui::FlatLabel>(
+			button->parentWidget(),
+			tr::lng_gift_upgrade_see_table(
+				lt_arrow,
+				rpl::single(Ui::Text::IconEmoji(&st::textMoreIconEmoji)),
+				[](QString text) { return Ui::Text::Link(text); }),
+			st::resalePriceTableLink);
+		link->setTryMakeSimilarLines(true);
+		button->geometryValue() | rpl::start_with_next([=](QRect geometry) {
+			const auto outer = button->parentWidget()->height();
+			const auto top = geometry.y() + geometry.height();
+			const auto available = outer - top - st::boxRadius;
+			link->resizeToWidth(geometry.width());
+			link->move(geometry.x(), top + (available - link->height()) / 2);
+		}, button->lifetime());
+		link->setClickHandlerFilter([=, list = prices](const auto &...) {
+			controller->show(Box(PricesBox, list, state->cost->costValue()));
+			return false;
+		});
 	}
 
 	AddUniqueCloseButton(box, {});
@@ -5109,6 +5189,8 @@ void ShowStarGiftUpgradeBox(StarGiftUpgradeArgs &&args) {
 		}
 		const auto &data = result.data();
 		auto upgrade = UpgradeArgs{ args };
+		upgrade.prices = ParsePrices(data.vprices());
+		upgrade.nextPrices = ParsePrices(data.vnext_prices());
 		for (const auto &attribute : data.vsample_attributes().v) {
 			attribute.match([&](const MTPDstarGiftAttributeModel &data) {
 				upgrade.models.push_back(Api::FromTL(session, data));
@@ -5266,6 +5348,28 @@ void RequestOurForm(
 			} else {
 				fail(Payments::CheckoutResult::Failed);
 			}
+		}, [&](const MTPDpayments_paymentFormStars &data) {
+			show->session().data().processUsers(data.vusers());
+			const auto currency = qs(data.vinvoice().data().vcurrency());
+			const auto &prices = data.vinvoice().data().vprices().v;
+			if (!prices.empty()) {
+				const auto price = prices.front().data().vamount().v;
+				const auto amount = (currency == Ui::kCreditsCurrency)
+					? CreditsAmount(price)
+					: (currency == u"TON"_q)
+					? CreditsAmount(
+						price / Ui::kNanosInOne,
+						price % Ui::kNanosInOne,
+						CreditsType::Ton)
+					: std::optional<CreditsAmount>();
+				if (amount) {
+					done(data.vform_id().v, *amount, std::nullopt);
+				} else {
+					fail(Payments::CheckoutResult::Failed);
+				}
+			} else {
+				fail(Payments::CheckoutResult::Failed);
+			}
 		}, [&](const auto &) {
 			fail(Payments::CheckoutResult::Failed);
 		});
@@ -5336,4 +5440,61 @@ void ShowResaleGiftBoughtToast(
 		.duration = kUpgradeDoneToastDuration,
 	});
 }
+
+rpl::lifetime ShowStarGiftResale(
+		not_null<Window::SessionController*> controller,
+		not_null<PeerData*> peer,
+		uint64 giftId,
+		QString title,
+		Fn<void()> finishRequesting) {
+	const auto weak = base::make_weak(controller);
+	const auto session = &controller->session();
+	return Data::ResaleGiftsSlice(
+		session,
+		giftId
+	) | rpl::start_with_next([=](ResaleGiftsDescriptor &&info) {
+		if (const auto onstack = finishRequesting) {
+			onstack();
+		}
+		if (!info.giftId || !info.count) {
+			return;
+		}
+		info.title = title;
+		if (const auto strong = weak.get()) {
+			strong->show(Box(GiftResaleBox, strong, peer, std::move(info)));
+		}
+	});
+}
+
+CreditsAmount StarsFromTon(
+		not_null<Main::Session*> session,
+		CreditsAmount ton) {
+	const auto appConfig = &session->appConfig();
+	const auto starsRate = appConfig->starsWithdrawRate() / 100.;
+	const auto tonRate = appConfig->currencyWithdrawRate();
+	if (!starsRate) {
+		return {};
+	}
+	const auto count = (ton.value() * tonRate) / starsRate;
+	return CreditsAmount(int(base::SafeRound(count)));
+}
+
+CreditsAmount TonFromStars(
+		not_null<Main::Session*> session,
+		CreditsAmount stars) {
+	const auto appConfig = &session->appConfig();
+	const auto starsRate = appConfig->starsWithdrawRate() / 100.;
+	const auto tonRate = appConfig->currencyWithdrawRate();
+	if (!tonRate) {
+		return {};
+	}
+	const auto count = (stars.value() * starsRate) / tonRate;
+	const auto whole = int(std::floor(count));
+	const auto cents = int(base::SafeRound((count - whole) * 100));
+	return CreditsAmount(
+		whole,
+		cents * (Ui::kNanosInOne / 100),
+		CreditsType::Ton);
+}
+
 } // namespace Ui

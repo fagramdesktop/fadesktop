@@ -1,3 +1,7 @@
+1.1.11 (14.10.25)
+
+- Updated to tdesktop v6.2.3
+
 1.1.10 (29.08.25)
 
 - Updated to tdesktop v6.0.2

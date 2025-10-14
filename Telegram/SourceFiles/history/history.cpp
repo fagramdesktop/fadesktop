@@ -15,6 +15,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "history/history_item.h"
 #include "history/history_item_components.h"
 #include "history/history_item_helpers.h"
+#include "history/history_streamed_drafts.h"
 #include "history/history_translation.h"
 #include "history/history_unread_things.h"
 #include "core/ui_integration.h"
@@ -25,6 +26,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/components/top_peers.h"
 #include "data/notify/data_notify_settings.h"
 #include "data/stickers/data_stickers.h"
+#include "data/data_cloud_themes.h"
 #include "data/data_drafts.h"
 #include "data/data_saved_messages.h"
 #include "data/data_saved_sublist.h"
@@ -33,6 +35,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_channel_admins.h"
 #include "data/data_changes.h"
 #include "data/data_chat_filters.h"
+#include "data/data_replies_list.h"
 #include "data/data_send_action.h"
 #include "data/data_star_gift.h"
 #include "data/data_emoji_statuses.h"
@@ -1302,7 +1305,12 @@ void History::applyServiceChanges(
 			}
 		}
 	}, [&](const MTPDmessageActionSetChatTheme &data) {
-		peer->setThemeEmoji(qs(data.vemoticon()));
+		data.vtheme().match([&](const MTPDchatTheme &data) {
+			peer->setThemeToken(qs(data.vemoticon()));
+		}, [&](const MTPDchatThemeUniqueGift &data) {
+			peer->setThemeToken(
+				owner().cloudThemes().processGiftThemeGetToken(data));
+		});
 	}, [&](const MTPDmessageActionSetChatWallPaper &data) {
 		if (item->out() || data.is_for_both()) {
 			peer->setWallPaper(
@@ -1447,10 +1455,14 @@ void History::newItemAdded(not_null<HistoryItem*> item) {
 	if (const auto sublist = item->savedSublist()) {
 		sublist->applyItemAdded(item);
 	}
+	if (const auto streamed = _streamedDrafts.get()) {
+		streamed->applyItemAdded(item);
+	}
 	if (const auto media = item->media()) {
 		if (const auto gift = media->gift()) {
 			if (const auto unique = gift->unique.get()) {
-				if (unique->ownerId == session().userPeerId()) {
+				if (unique->ownerId == session().userPeerId()
+					|| unique->hostId == session().userPeerId()) {
 					owner().emojiStatuses().refreshCollectibles();
 				}
 			}
@@ -2964,9 +2976,17 @@ bool History::shouldBeInChatList() const {
 }
 
 void History::unknownMessageDeleted(MsgId messageId) {
+	LOG(("History::unknownMessageDeleted. Peer ID: %1, Message ID: %2.")
+		.arg(peer->id.value & PeerId::kChatTypeMask)
+		.arg(messageId.bare));
+	_unknownDeletedMessages[messageId] = base::unixtime::now();
 	if (_inboxReadBefore && messageId >= *_inboxReadBefore) {
 		owner().histories().requestDialogEntry(this);
 	}
+}
+
+bool History::isUnknownMessageDeleted(MsgId messageId) const {
+	return _unknownDeletedMessages.contains(messageId);
 }
 
 bool History::isServerSideUnread(not_null<const HistoryItem*> item) const {
@@ -3156,6 +3176,58 @@ void History::applyDialogTopMessage(MsgId topMessageId) {
 	}
 }
 
+void History::tryMarkForumIntervalRead(
+		MsgId wasInboxReadBefore,
+		MsgId nowInboxReadBefore) {
+	if (!isForum()
+		|| !peer->useSubsectionTabs()
+		|| (nowInboxReadBefore <= wasInboxReadBefore)) {
+		return;
+	} else if (loadedAtBottom() && nowInboxReadBefore >= minMsgId()) {
+		// Count for each sublist how many messages are still not read.
+		auto counts = base::flat_map<not_null<Data::ForumTopic*>, int>();
+		for (const auto &block : blocks) {
+			for (const auto &message : block->messages) {
+				const auto item = message->data();
+				if (!item->isRegular() || item->id < nowInboxReadBefore) {
+					continue;
+				}
+				if (const auto topic = item->topic()) {
+					++counts[topic];
+				}
+			}
+		}
+		if (const auto forum = peer->forum()) {
+			forum->updateUnreadCounts(nowInboxReadBefore - 1, counts);
+		}
+	} else if (minMsgId() <= wasInboxReadBefore
+		&& maxMsgId() >= nowInboxReadBefore) {
+		// Count for each sublist how many messages were read.
+		for (const auto &block : blocks) {
+			for (const auto &message : block->messages) {
+				const auto item = message->data();
+				if (!item->isRegular() || item->id < wasInboxReadBefore) {
+					continue;
+				} else if (item->id >= nowInboxReadBefore) {
+					break;
+				}
+				if (const auto topic = item->topic()) {
+					const auto replies = topic->replies();
+					const auto unread = replies->unreadCountCurrent();
+					if (unread > 0) {
+						replies->setInboxReadTill(item->id, unread - 1);
+					}
+				}
+			}
+		}
+	} else {
+		// We can't invalidate sublist unread counts here, because no read
+		// request was yet sent to the server (so it can't return correct
+		// values yet), we need to do that after we send read request.
+		_flags |= Flag::MonoAndForumUnreadInvalidatePending;
+	}
+}
+
 void History::tryMarkMonoforumIntervalRead(
 		MsgId wasInboxReadBefore,
 		MsgId nowInboxReadBefore) {
@@ -3201,24 +3273,29 @@ void History::tryMarkMonoforumIntervalRead(
 		// We can't invalidate sublist unread counts here, because no read
 		// request was yet sent to the server (so it can't return correct
 		// values yet), we need to do that after we send read request.
-		_flags |= Flag::MonoforumUnreadInvalidatePending;
+		_flags |= Flag::MonoAndForumUnreadInvalidatePending;
 	}
 }
 
-void History::validateMonoforumUnread(MsgId readTillId) {
-	if (!(_flags & Flag::MonoforumUnreadInvalidatePending)) {
+void History::validateMonoAndForumUnread(MsgId readTillId) {
+	if (!(_flags & Flag::MonoAndForumUnreadInvalidatePending)) {
 		return;
 	}
-	_flags &= ~Flag::MonoforumUnreadInvalidatePending;
-	if (!amMonoforumAdmin()) {
-		return;
-	} else if (const auto monoforum = peer->monoforum()) {
-		monoforum->markUnreadCountsUnknown(readTillId);
+	_flags &= ~Flag::MonoAndForumUnreadInvalidatePending;
+	if (isForum()) {
+		if (const auto forum = peer->forum()) {
+			forum->markUnreadCountsUnknown(readTillId);
+		}
+	} else if (amMonoforumAdmin()) {
+		if (const auto monoforum = peer->monoforum()) {
+			monoforum->markUnreadCountsUnknown(readTillId);
+		}
 	}
 }
 
 void History::setInboxReadTill(MsgId upTo) {
 	if (_inboxReadBefore) {
+		tryMarkForumIntervalRead(*_inboxReadBefore, upTo + 1);
 		tryMarkMonoforumIntervalRead(*_inboxReadBefore, upTo + 1);
 		accumulate_max(*_inboxReadBefore, upTo + 1);
 	} else {
@@ -3404,6 +3481,24 @@ bool History::amMonoforumAdmin() const {
 
 bool History::suggestDraftAllowed() const {
 	return peer->isMonoforum() && !peer->amMonoforumAdmin();
+}
+
+bool History::hasForumThreadBars() const {
+	if (amMonoforumAdmin()) {
+		return true;
+	}
+	return peer->useSubsectionTabs();
+}
+
+void History::forumTabsChanged(bool forumTabs) {
+	for (auto &block : blocks) {
+		for (auto &view : block->messages) {
+			view->setPendingResize();
+			if (forumTabs || view->Has<HistoryView::ForumThreadBar>()) {
+				view->previousInBlocksChanged();
+			}
+		}
+	}
 }
 
 not_null<History*> History::migrateToOrMe() const {
@@ -3665,6 +3760,13 @@ void History::checkLocalMessages() {
 	}
 }
 
+HistoryStreamedDrafts &History::streamedDrafts() {
+	if (!_streamedDrafts) {
+		_streamedDrafts = std::make_unique<HistoryStreamedDrafts>(this);
+	}
+	return *_streamedDrafts;
+}
+
 HistoryItem *History::joinedMessageInstance() const {
 	return _joinedMessage;
 }
@@ -3823,6 +3925,7 @@ void History::clear(ClearType type, bool markEmpty) {
 	_unreadBarView = nullptr;
 	_firstUnreadView = nullptr;
 	removeJoinedMessage();
+	base::take(_streamedDrafts);
 
 	forgetScrollState();
 	blocks.clear();
@@ -3993,6 +4096,22 @@ LanguageId History::translatedTo() const {
 
 HistoryTranslation *History::translation() const {
 	return _translation.get();
+}
+
+void History::refreshHiddenLinksItems() {
+	auto refresh = base::flat_set<FullMsgId>();
+	for (const auto &item : _items) {
+		if (item->hasHiddenLinks()) {
+			refresh.emplace(item->fullId());
+		}
+	}
+	const auto owner = &this->owner();
+	for (const auto &id : refresh) {
+		if (const auto item = owner->message(id)) {
+			item->setHasHiddenLinks(false);
+			owner->requestItemViewRefresh(item);
+		}
+	}
 }
 
 HistoryBlock::HistoryBlock(not_null<History*> history)

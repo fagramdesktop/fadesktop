@@ -66,6 +66,7 @@ class GroupCall;
 class NotifySettings;
 class CustomEmojiManager;
 class Stories;
+class SavedMusic;
 class SavedMessages;
 class Chatbots;
 class BusinessInfo;
@@ -118,6 +119,11 @@ struct SentToScheduled {
 struct SentFromScheduled {
 	not_null<HistoryItem*> item;
 	MsgId sentId = 0;
+};
+
+struct RecentSelfForwards {
+	PeerId fromPeerId = 0;
+	MessageIdsList ids;
 };
 
 class Session final {
@@ -183,6 +189,9 @@ public:
 	}
 	[[nodiscard]] Stories &stories() const {
 		return *_stories;
+	}
+	[[nodiscard]] SavedMusic &savedMusic() const {
+		return *_savedMusic;
 	}
 	[[nodiscard]] SavedMessages &savedMessages() const {
 		return *_savedMessages;
@@ -375,6 +384,11 @@ public:
 
 	void notifyPinnedDialogsOrderUpdated();
 	[[nodiscard]] rpl::producer<> pinnedDialogsOrderUpdated() const;
+
+	void nextForUpgradeGiftInvalidate(not_null<PeerData*> owner);
+	void nextForUpgradeGiftRequest(
+		not_null<PeerData*> owner,
+		Fn<void(std::optional<Data::SavedStarGift>)> done);
 
 	using CreditsSubsRebuilder = rpl::event_stream<CreditsStatusSlice>;
 	using CreditsSubsRebuilderPtr = std::shared_ptr<CreditsSubsRebuilder>;
@@ -571,7 +585,9 @@ public:
 		NewMessageType type);
 
 	[[nodiscard]] int unreadBadge() const;
+	[[nodiscard]] int unreadWithMentionsBadge() const;
 	[[nodiscard]] bool unreadBadgeMuted() const;
+	[[nodiscard]] bool unreadWithMentionsBadgeMuted() const;
 	[[nodiscard]] int unreadBadgeIgnoreOne(Dialogs::Key key) const;
 	[[nodiscard]] bool unreadBadgeMutedIgnoreOne(Dialogs::Key key) const;
 	[[nodiscard]] int unreadOnlyMutedBadge() const;
@@ -876,10 +892,20 @@ public:
 	void setPendingStarsRating(StarsRatingPending value);
 	[[nodiscard]] StarsRatingPending pendingStarsRating() const;
 
+	void addRecentSelfForwards(const RecentSelfForwards &data);
+	[[nodiscard]] rpl::producer<RecentSelfForwards> recentSelfForwards() const;
+
 	void clearLocalStorage();
 
 private:
 	using Messages = std::unordered_map<MsgId, not_null<HistoryItem*>>;
+
+	struct NextToUpgradeGift {
+		std::optional<Data::SavedStarGift> gift;
+		Fn<void(std::optional<Data::SavedStarGift>)> done;
+		crl::time received = 0;
+		mtpRequestId requestId = 0;
+	};
 
 	void suggestStartExport();
 
@@ -1223,6 +1249,7 @@ private:
 	const std::unique_ptr<NotifySettings> _notifySettings;
 	const std::unique_ptr<CustomEmojiManager> _customEmojiManager;
 	const std::unique_ptr<Stories> _stories;
+	const std::unique_ptr<SavedMusic> _savedMusic;
 	const std::unique_ptr<SavedMessages> _savedMessages;
 	const std::unique_ptr<Chatbots> _chatbots;
 	const std::unique_ptr<BusinessInfo> _businessInfo;
@@ -1231,6 +1258,12 @@ private:
 	MsgId _nonHistoryEntryId = ShortcutMaxMsgId;
 
 	std::unique_ptr<StarsRatingPending> _pendingStarsRating;
+
+	base::flat_map<
+		not_null<PeerData*>,
+		NextToUpgradeGift> _nextForUpgradeGifts;
+
+	rpl::event_stream<RecentSelfForwards> _recentSelfForwards;
 
 	rpl::lifetime _lifetime;
 

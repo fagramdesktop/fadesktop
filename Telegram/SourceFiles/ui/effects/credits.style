@@ -41,6 +41,10 @@ creditsPremiumCover: PremiumCover(defaultPremiumCover) {
 creditsLowBalancePremiumCover: PremiumCover(creditsPremiumCover) {
 	starSize: size(64px, 62px);
 	starTopSkip: 30px;
+	about: FlatLabel(userPremiumCoverAbout) {
+		textFg: boxTitleFg;
+		minWidth: 200px;
+	}
 }
 creditsLowBalancePremiumCoverHeight: 162px;
 creditsTopupButton: SettingsButton(settingsButton) {
@@ -88,7 +92,7 @@ starIconEmojiLarge: IconEmoji {
 
 tonIconEmoji: IconEmoji {
 	icon: icon{{ "chat/mini_ton_bold", currencyFg }};
-	padding: margins(1px, 3px, 1px, 0px);
+	padding: margins(1px, 2px, 1px, 0px);
 }
 tonIconEmojiLarge: IconEmoji {
 	icon: icon{{ "payments/ton_emoji-18x18", currencyFg }};
@@ -99,6 +103,7 @@ tonIconEmojiInSmall: IconEmoji(tonIconEmoji) {
 }
 
 creditsHistoryEntryTypeAds: icon {{ "folders/folders_channels", premiumButtonFg }};
+creditsHistorySearchPostsIcon: icon {{ "box_search", historyPeerUserpicFg }};
 
 creditsHistoryEntryGiftStickerSkip: -20px;
 creditsHistoryEntryGiftStickerSize: 150px;
@@ -195,7 +200,7 @@ giftBoxButtonBottomByStars: 18px;
 giftBoxButtonPadding: margins(8px, 4px, 8px, 4px);
 giftBoxPreviewStickerPadding: margins(10px, 12px, 10px, 16px);
 giftBoxPreviewTitlePadding: margins(12px, 4px, 12px, 4px);
-giftBoxReleasedByMargin: margins(12px, 2px, 12px, 2px);
+giftBoxReleasedByMargin: margins(6px, 1px, 6px, 2px);
 giftBoxPreviewTextPadding: margins(12px, 4px, 12px, 4px);
 giftBoxButtonMargin: margins(12px, 8px, 12px, 12px);
 giftBoxStickerTop: 0px;
@@ -241,6 +246,8 @@ giftBoxLock: IconEmoji {
 	padding: margins(-2px, 1px, 0px, 0px);
 }
 giftBoxPinIcon: icon {{ "dialogs/dialogs_pinned", premiumButtonFg }};
+giftBoxLockIcon: icon{{ "limits/mini_gift_lock-18x18", attentionButtonFg }};
+giftBoxLockIconPosition: point(4px, 4px);
 
 creditsHistoryEntriesList: PeerList(defaultPeerList) {
 	padding: margins(0px, 7px, 0px, 7px);
@@ -269,6 +276,11 @@ uniqueGiftSubtitle: FlatLabel(defaultFlatLabel) {
 	minWidth: 256px;
 	align: align(top);
 }
+uniqueGiftReleasedBy: FlatLabel(uniqueGiftSubtitle) {
+	style: TextStyle(defaultTextStyle) {
+		font: font(10px);
+	}
+}
 uniqueGiftSubtitleTop: 170px;
 uniqueGiftUserpicTop: 48px;
 uniqueGiftUserpicSize: 80px;
@@ -292,6 +304,9 @@ uniqueMenuButton: IconButton(uniqueCloseButton) {
 }
 upgradeGiftBox: Box(giftBox) {
 	buttonPadding: margins(22px, 3px, 22px, 22px);
+}
+upgradeGiftWithPricesBox: Box(giftBox) {
+	buttonPadding: margins(22px, 3px, 22px, 46px);
 }
 upgradeGiftSubtext: FlatLabel(boxDividerLabel) {
 	minWidth: 200px;
@@ -349,8 +364,34 @@ resaleButtonSubtitle: FlatLabel(defaultFlatLabel) {
 	textFg: activeButtonFg;
 	maxHeight: 20px;
 }
+resalePriceTableLink: FlatLabel(defaultFlatLabel) {
+	minWidth: 200px;
+	align: align(top);
+}
+resalePriceAbout: FlatLabel(boxLabel) {
+	textFg: windowSubTextFg;
+	align: align(top);
+}
 
 resaleConfirmTonOnly: FlatLabel(boxLabel) {
 	textFg: windowSubTextFg;
 }
 resaleConfirmTonOnlyMargin: margins(0px, 12px, 0px, 12px);
+
+uniqueGiftValuePrice: FlatLabel(defaultFlatLabel) {
+	style: TextStyle(defaultTextStyle) {
+		font: font(20px semibold);
+	}
+	margin: margins(12px, 6px, 12px, 6px);
+	textFg: windowFgActive;
+}
+uniqueGiftValueAbout: FlatLabel(defaultFlatLabel) {
+	minWidth: 128px;
+	align: align(top);
+}
+uniqueGiftValueAvailableLink: FlatLabel(boxLabel) {
+	style: TextStyle(defaultTextStyle) {
+		font: font(14px);
+	}
+}
+uniqueGiftValueAvailableMargin: margins(0px, 4px, 0px, 4px);

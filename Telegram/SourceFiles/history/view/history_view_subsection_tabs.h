@@ -29,6 +29,7 @@ class RpWidget;
 class PopupMenu;
 class ScrollArea;
 class SubsectionSlider;
+class SubsectionSliderReorder;
 } // namespace Ui
 
 namespace HistoryView {
@@ -49,6 +50,7 @@ public:
 
 	[[nodiscard]] static bool UsedFor(not_null<Data::Thread*> thread);
 
+	[[nodiscard]] bool dying() const;
 	[[nodiscard]] rpl::producer<> removeRequests() const;
 
 	void extractToParent(not_null<Ui::RpWidget*> parent);
@@ -95,7 +97,19 @@ private:
 		not_null<Ui::ScrollArea*> scroll,
 		not_null<Ui::SubsectionSlider*> slider,
 		bool vertical);
+	void startScrollChecking(
+		not_null<Ui::ScrollArea*> scroll,
+		not_null<Ui::SubsectionSlider*> slider,
+		bool vertical);
+	void startFillingSlider(
+		not_null<Ui::ScrollArea*> scroll,
+		not_null<Ui::SubsectionSlider*> slider,
+		bool vertical);
 	void showThreadContextMenu(not_null<Data::Thread*> thread);
+	void applyReorder(
+		not_null<Ui::RpWidget*> widget,
+		int oldPosition,
+		int newPosition);
 
 	const not_null<Window::SessionController*> _controller;
 	const not_null<History*> _history;
@@ -105,6 +119,8 @@ private:
 	Ui::RpWidget *_horizontal = nullptr;
 	Ui::RpWidget *_vertical = nullptr;
 	Ui::RpWidget *_shadow = nullptr;
+	std::unique_ptr<Ui::SubsectionSliderReorder> _reorder;
+	int _reordering = 0;
 
 	std::vector<Item> _slice;
 	std::vector<Item> _sectionsSlice;
