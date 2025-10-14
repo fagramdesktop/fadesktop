@@ -94,6 +94,3 @@
 [submodule "Telegram/ThirdParty/libtgvoip"]
 	path = Telegram/ThirdParty/libtgvoip
 	url = https://github.com/telegramdesktop/libtgvoip.git
-[submodule "cmake"]
-	path = cmake
-	url = https://github.com/FajoX1/cmake_helpers
