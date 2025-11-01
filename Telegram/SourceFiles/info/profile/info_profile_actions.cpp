@@ -1678,46 +1678,38 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 
 		bool show_peer_id = FASettings::JsonSettings::GetBool("show_peer_id");
 		bool show_dc_id = FASettings::JsonSettings::GetBool("show_dc_id");
-        if (show_peer_id) {
+		if (show_peer_id) {
 			const auto dataCenter = getPeerDC(_peer);
 			const auto idLabel = !show_dc_id ? QString("ID") : dataCenter;
-			
-            auto idDrawableText = IDValue(
-                    user
-            ) | rpl::map([](TextWithEntities &&text) {
-                return Ui::Text::Bold(text.text);
-            });
-            auto idInfo = addInfoOneLine(
-                    rpl::single(idLabel),
-                    std::move(idDrawableText),
-                    FAlang::Translate(QString("fa_copy_id"))
-            );
-            idInfo.text->setClickHandlerFilter([=](auto &&...) {
-                const auto idText = IDString(user);
-                if (!idText.isEmpty()) {
-                    QGuiApplication::clipboard()->setText(idText);
-                    controller->showToast(FAlang::Translate(QString("fa_id_copied")));
-                }
-                return false;
-            });
-        }
+
+			auto idDrawableText = IDValue(
+					user
+			) | rpl::map([](TextWithEntities &&text) {
+				return Ui::Text::Bold(text.text);
+			});
+			auto idInfo = addInfoOneLine(
+					rpl::single(idLabel),
+					std::move(idDrawableText),
+					FAlang::Translate(QString("fa_copy_id"))
+			);
+			idInfo.text->setClickHandlerFilter([=](auto &&...) {
+				const auto idText = IDString(user);
+				if (!idText.isEmpty()) {
+					QGuiApplication::clipboard()->setText(idText);
+					controller->showToast(FAlang::Translate(QString("fa_id_copied")));
+				}
+				return false;
+			});
+		}
 
 		bool show_registration_date = FASettings::JsonSettings::GetBool("show_registration_date");
 		if (show_registration_date) {
 			auto idInfo = addInfoOneLine(
-                    FAlang::RplTranslate(QString("fa_registration_date")),
-                    std::move(RegistrationValue(user)),
-                    FAlang::Translate(QString("fa_copy_registration_date"))
-            );
+					FAlang::RplTranslate(QString("fa_registration_date")),
+					std::move(RegistrationValue(user)),
+					FAlang::Translate(QString("fa_copy_registration_date"))
+			);
 		}
-
-		AddMainButton(
-			result,
-			tr::lng_info_add_as_contact(),
-			CanAddContactValue(user),
-			[=] { controller->window().show(Box(EditContactBox, controller, user)); },
-			tracker,
-			nullptr);
 	} else {
 		const auto topicRootId = _topic ? _topic->rootId() : 0;
 		const auto addToLink = topicRootId
@@ -1806,7 +1798,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
                     FAlang::Translate(QString("fa_copy_id"))
             );
             idInfo.text->setClickHandlerFilter([=](auto &&...) {
-                const auto idText = IDString(user);
+                const auto idText = IDString(_peer);
                 if (!idText.isEmpty()) {
                     QGuiApplication::clipboard()->setText(idText);
                     controller->showToast(FAlang::Translate(QString("fa_id_copied")));

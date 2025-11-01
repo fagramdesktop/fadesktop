@@ -338,8 +338,20 @@ Cover::Cover(
 			return controller->isGifPausedAtLeastFor(
 				Window::GifPauseReason::Layer);
 		}))
-, _verified(
+, _devBadge(
 	std::make_unique<Badge>(
+		this,
+		st::infoPeerBadge,
+		&peer->session(),
+		_badgeContent.value(),
+		_emojiStatusPanel.get(),
+		[=] {
+			return controller->isGifPausedAtLeastFor(
+				Window::GifPauseReason::Layer);
+		}))
+, _verified(role == Role::EditContact
+	? nullptr
+	: std::make_unique<Badge>(
 		this,
 		st::infoPeerBadge,
 		&peer->session(),
@@ -436,11 +448,12 @@ Cover::Cover(
 		refreshNameGeometry(width());
 	}, _name->lifetime());
 
-	if (isFAgramRelated(getBareID(_peer))) {
-		_devBadge->setContent(Info::Profile::Badge::Content{BadgeType::FAgram});
-	}
-	else {
-		_devBadge->setContent(Info::Profile::Badge::Content{BadgeType::None});
+	if (_devBadge) {
+		if (isFAgramRelated(getBareID(_peer))) {
+			_devBadge->setContent(Info::Profile::Badge::Content{BadgeType::FAgram});
+		} else {
+			_devBadge->setContent(Info::Profile::Badge::Content{BadgeType::None});
+		}
 	}
 
 	initViewers(std::move(title));
@@ -750,8 +763,10 @@ void Cover::refreshNameGeometry(int newWidth) {
 	if (verifiedWidget || badgeWidget) {
 		nameWidth -= st::infoVerifiedCheckPosition.x();
 	}
-	if (const auto widget = _devBadge->widget()) {
-		nameWidth -= st::infoVerifiedCheckPosition.x() + widget->width();
+	if (_devBadge) {
+		if (const auto widget = _devBadge->widget()) {
+			nameWidth -= st::infoVerifiedCheckPosition.x() + widget->width();
+		}
 	}
 	_name->resizeToNaturalWidth(nameWidth);
 	_name->moveToLeft(_st.nameLeft, _st.nameTop, newWidth);
@@ -772,11 +787,15 @@ void Cover::refreshNameGeometry(int newWidth) {
 	_name->resizeToNaturalWidth(nameWidth);
 	_name->moveToLeft(nameLeft, _st.nameTop, newWidth);
 	const auto badgeLeft = nameLeft + _name->width();
-	_badge->move(badgeLeft, badgeTop, badgeBottom);
-	_verified->move(
-		badgeLeft + (badgeWidget ? badgeWidget->width() : 0),
-		badgeTop,
-		badgeBottom);
+	if (_badge) {
+		_badge->move(badgeLeft, badgeTop, badgeBottom);
+	}
+	if (_verified) {
+		_verified->move(
+			badgeLeft + (badgeWidget ? badgeWidget->width() : 0),
+			badgeTop,
+			badgeBottom);
+	}
 }
 
 void Cover::refreshStatusGeometry(int newWidth) {
