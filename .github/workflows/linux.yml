@@ -70,6 +70,6 @@ jobs:
       - name: Trigger repository dispatch event
         uses: peter-evans/repository-dispatch@v3
         with:
-          token: ${{ secrets.BVPAT }}
+          token: ${{ secrets.PAT }}
           repository: burhancodes/fagram-rpm
           event-type: new-release
