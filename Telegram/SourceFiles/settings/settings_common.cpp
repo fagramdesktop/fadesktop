@@ -201,7 +201,7 @@ void AddDividerTextWithLottie(
 	const auto divider = Ui::CreateChild<Ui::BoxContentDivider>(
 		container.get(),
 		0,
-		st::boxDividerBg,
+		st::defaultDividerBar,
 		descriptor.parts);
 	const auto verticalLayout = container->add(
 		object_ptr<Ui::VerticalLayout>(container.get()));

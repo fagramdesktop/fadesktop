@@ -77,13 +77,16 @@ object_ptr<Ui::GenericBox> ScreenSharingPrivacyRequestBox() {
 #endif // Q_OS_MAC
 }
 
-object_ptr<Ui::RpWidget> MakeJoinCallLogo(not_null<QWidget*> parent) {
-	const auto logoSize = st::confcallJoinLogo.size();
-	const auto logoOuter = logoSize.grownBy(st::confcallJoinLogoPadding);
+object_ptr<Ui::RpWidget> MakeRoundActiveLogo(
+		not_null<QWidget*> parent,
+		const style::icon &icon,
+		const style::margins &padding) {
+	const auto logoSize = icon.size();
+	const auto logoOuter = logoSize.grownBy(padding);
 	auto result = object_ptr<Ui::RpWidget>(parent);
 	const auto logo = result.data();
 	logo->resize(logo->width(), logoOuter.height());
-	logo->paintRequest() | rpl::start_with_next([=] {
+	logo->paintRequest() | rpl::start_with_next([=, &icon] {
 		if (logo->width() < logoOuter.width()) {
 			return;
 		}
@@ -94,9 +97,16 @@ object_ptr<Ui::RpWidget> MakeJoinCallLogo(not_null<QWidget*> parent) {
 		p.setBrush(st::windowBgActive);
 		p.setPen(Qt::NoPen);
 		p.drawEllipse(outer);
-		st::confcallJoinLogo.paintInCenter(p, outer);
+		icon.paintInCenter(p, outer);
 	}, logo->lifetime());
 	return result;
+}
+
+object_ptr<Ui::RpWidget> MakeJoinCallLogo(not_null<QWidget*> parent) {
+	return MakeRoundActiveLogo(
+		parent,
+		st::confcallJoinLogo,
+		st::confcallJoinLogoPadding);
 }
 
 void ConferenceCallJoinConfirm(
@@ -282,7 +292,8 @@ void ShowConferenceCallLinkBox(
 						MTP_flags(Flag::f_reset_invite_hash),
 						call->input(),
 						MTPBool(), // join_muted
-						MTPBool()) // messages_enabled
+						MTPBool(), // messages_enabled
+						MTPlong()) // send_paid_messages_stars
 				).done([=](const MTPUpdates &result) {
 					call->session().api().applyUpdates(result);
 					ShowConferenceCallLinkBox(show, call, args);

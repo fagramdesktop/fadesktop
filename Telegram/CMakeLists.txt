@@ -333,8 +333,12 @@ PRIVATE
     boxes/send_files_box.h
     boxes/share_box.cpp
     boxes/share_box.h
+    boxes/star_gift_auction_box.cpp
+    boxes/star_gift_auction_box.h
     boxes/star_gift_box.cpp
     boxes/star_gift_box.h
+    boxes/star_gift_resale_box.cpp
+    boxes/star_gift_resale_box.h
     boxes/sticker_set_box.cpp
     boxes/sticker_set_box.h
     boxes/stickers_box.cpp
@@ -377,6 +381,8 @@ PRIVATE
     calls/group/calls_group_rtmp.h
     calls/group/calls_group_settings.cpp
     calls/group/calls_group_settings.h
+    calls/group/calls_group_stars_box.cpp
+    calls/group/calls_group_stars_box.h
     calls/group/calls_group_toasts.cpp
     calls/group/calls_group_toasts.h
     calls/group/calls_group_viewport.cpp
@@ -513,6 +519,8 @@ PRIVATE
     data/components/credits.h
     data/components/factchecks.cpp
     data/components/factchecks.h
+    data/components/gift_auctions.cpp
+    data/components/gift_auctions.h
     data/components/location_pickers.cpp
     data/components/location_pickers.h
     data/components/promo_suggestions.cpp
@@ -1072,6 +1080,8 @@ PRIVATE
     info/polls/info_polls_results_widget.h
     info/profile/info_profile_actions.cpp
     info/profile/info_profile_actions.h
+    info/profile/info_profile_badge_tooltip.cpp
+    info/profile/info_profile_badge_tooltip.h
     info/profile/info_profile_badge.cpp
     info/profile/info_profile_badge.h
     info/profile/info_profile_cover.cpp
@@ -1086,6 +1096,10 @@ PRIVATE
     info/profile/info_profile_members_controllers.h
     info/profile/info_profile_phone_menu.cpp
     info/profile/info_profile_phone_menu.h
+    info/profile/info_profile_status_label.cpp
+    info/profile/info_profile_status_label.h
+    info/profile/info_profile_top_bar.cpp
+    info/profile/info_profile_top_bar.h
     info/profile/info_profile_values.cpp
     info/profile/info_profile_values.h
     info/profile/info_profile_widget.cpp
@@ -1094,6 +1108,7 @@ PRIVATE
     info/reactions_list/info_reactions_list_widget.h
     info/requests_list/info_requests_list_widget.cpp
     info/requests_list/info_requests_list_widget.h
+    info/saved/info_saved_music_common.cpp
     info/saved/info_saved_music_common.h
     info/saved/info_saved_music_provider.cpp
     info/saved/info_saved_music_provider.h
@@ -1323,6 +1338,8 @@ PRIVATE
     media/view/media_view_playback_progress.h
     media/view/media_view_playback_sponsored.cpp
     media/view/media_view_playback_sponsored.h
+    media/view/media_view_video_stream.cpp
+    media/view/media_view_video_stream.h
     media/system_media_controls_manager.h
     media/system_media_controls_manager.cpp
     menu/menu_antispam_validator.cpp
@@ -1657,6 +1674,8 @@ PRIVATE
     ui/controls/location_picker.h
     ui/controls/silent_toggle.cpp
     ui/controls/silent_toggle.h
+    ui/controls/table_rows.cpp
+    ui/controls/table_rows.h
     ui/controls/userpic_button.cpp
     ui/controls/userpic_button.h
     ui/effects/credits_graphics.cpp
@@ -1695,8 +1714,12 @@ PRIVATE
     ui/item_text_options.cpp
     ui/item_text_options.h
     ui/resize_area.h
+    ui/top_background_gradient.cpp
+    ui/top_background_gradient.h
     ui/unread_badge.cpp
     ui/unread_badge.h
+    ui/peer/video_userpic_player.cpp
+    ui/peer/video_userpic_player.h
     window/main_window.cpp
     window/main_window.h
     window/notifications_manager.cpp
@@ -1738,6 +1761,8 @@ PRIVATE
     window/window_session_controller.cpp
     window/window_session_controller.h
     window/window_session_controller_link_info.h
+    window/window_setup_email.cpp
+    window/window_setup_email.h
     window/window_top_bar_wrap.h
     window/themes/window_theme.cpp
     window/themes/window_theme.h

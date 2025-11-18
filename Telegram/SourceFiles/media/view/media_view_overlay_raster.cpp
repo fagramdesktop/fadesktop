@@ -10,6 +10,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/painter.h"
 #include "media/stories/media_stories_view.h"
 #include "media/view/media_view_pip.h"
+#include "media/view/media_view_video_stream.h"
 #include "platform/platform_overlay_widget.h"
 #include "styles/style_media_view.h"
 
@@ -27,7 +28,7 @@ bool OverlayWidget::RendererSW::handleHideWorkaround() {
 }
 
 void OverlayWidget::RendererSW::paintFallback(
-		Painter &&p,
+		Painter &p,
 		const QRegion &clip,
 		Ui::GL::Backend backend) {
 	if (handleHideWorkaround()) {
@@ -63,6 +64,10 @@ void OverlayWidget::RendererSW::paintBackground() {
 		}
 	}
 	_p->setCompositionMode(m);
+}
+
+void OverlayWidget::RendererSW::paintVideoStream() {
+	_owner->_videoStream->borrowedPaint(*_p, *_clip);
 }
 
 QRect OverlayWidget::RendererSW::TransformRect(

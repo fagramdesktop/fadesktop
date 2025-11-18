@@ -31,10 +31,10 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_premium_subscription_option.h"
 #include "data/data_user.h"
 #include "data/stickers/data_custom_emoji.h"
-#include "info/channel_statistics/boosts/giveaway/boost_badge.h" // InfiniteRadialAnimationWidget.
+//#include "info/channel_statistics/boosts/giveaway/boost_badge.h" // InfiniteRadialAnimationWidget.
 #include "info/channel_statistics/earn/earn_icons.h"
-#include "info/profile/info_profile_badge.h"
-#include "info/profile/info_profile_values.h"
+//#include "info/profile/info_profile_badge.h"
+//#include "info/profile/info_profile_values.h"
 #include "lang/lang_keys.h"
 #include "main/main_app_config.h"
 #include "main/main_session.h"
@@ -47,6 +47,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/boxes/boost_box.h" // StartFireworks.
 #include "ui/boxes/confirm_box.h"
 #include "ui/controls/userpic_button.h"
+#include "ui/controls/table_rows.h"
 #include "ui/effects/credits_graphics.h"
 #include "ui/effects/premium_graphics.h"
 #include "ui/effects/premium_stars_colored.h"
@@ -81,79 +82,10 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 namespace {
 
 constexpr auto kTooltipDuration = 3 * crl::time(1000);
-constexpr auto kPriceTooltipDuration = 6 * crl::time(1000);
 constexpr auto kHorizontalBar = QChar(0x2015);
 
-struct InfoTooltipData {
-	not_null<Ui::RpWidget*> parent;
-	Ui::ImportantTooltip *raw = nullptr;
-};
-
-void ShowInfoTooltip(
-		std::shared_ptr<InfoTooltipData> data,
-		not_null<QWidget*> target,
-		rpl::producer<TextWithEntities> text,
-		int duration) {
-	if (data->raw) {
-		data->raw->toggleAnimated(false);
-	}
-	const auto parent = data->parent;
-	const auto tooltip = Ui::CreateChild<Ui::ImportantTooltip>(
-		parent,
-		Ui::MakeNiceTooltipLabel(
-			parent,
-			std::move(text),
-			st::boxWideWidth,
-			st::defaultImportantTooltipLabel),
-		st::defaultImportantTooltip);
-	tooltip->toggleFast(false);
-
-	base::install_event_filter(tooltip, qApp, [=](not_null<QEvent*> e) {
-		if (e->type() == QEvent::MouseButtonPress) {
-			tooltip->toggleAnimated(false);
-		}
-		return base::EventFilterResult::Continue;
-	});
-
-	const auto update = [=] {
-		const auto geometry = Ui::MapFrom(parent, target, target->rect());
-		const auto countPosition = [=](QSize size) {
-			const auto left = geometry.x()
-				+ (geometry.width() - size.width()) / 2;
-			const auto right = parent->width()
-				- st::normalFont->spacew;
-			return QPoint(
-				std::max(std::min(left, right - size.width()), 0),
-				geometry.y() - size.height() - st::normalFont->descent);
-		};
-		tooltip->pointAt(geometry, RectPart::Top, countPosition);
-	};
-	parent->widthValue(
-	) | rpl::start_with_next(update, tooltip->lifetime());
-
-	update();
-	tooltip->toggleAnimated(true);
-
-	data->raw = tooltip;
-	tooltip->shownValue() | rpl::filter(
-		!rpl::mappers::_1
-	) | rpl::start_with_next([=] {
-		crl::on_main(tooltip, [=] {
-			if (tooltip->isHidden()) {
-				if (data->raw == tooltip) {
-					data->raw = nullptr;
-				}
-				delete tooltip;
-			}
-		});
-	}, tooltip->lifetime());
-
-	base::timer_once(
-		duration
-	) | rpl::start_with_next([=] {
-		tooltip->toggleAnimated(false);
-	}, tooltip->lifetime());
-}
+using Ui::AddTableRow;
+using Ui::TableRowTooltipData;
 
 [[nodiscard]] QString CreateMessageLink(
 		not_null<Main::Session*> session,
@@ -236,8 +168,10 @@ void ShowInfoTooltip(
 	return result;
 }
 
-[[nodiscard]] tr::phrase<lngtag_count> GiftDurationPhrase(int months) {
-	return (months < 12)
+[[nodiscard]] tr::phrase<lngtag_count> GiftDurationPhrase(int days) {
+	return (days < 30)
+		? tr::lng_premium_gift_duration_days
+		: (days < 30 * 12)
 		? tr::lng_premium_gift_duration_months
 		: tr::lng_premium_gift_duration_years;
 }
@@ -258,230 +192,6 @@ void ShowInfoTooltip(
 			: st.tableValueMultiline
 			? *st.tableValueMultiline
 			: st::giveawayGiftCodeValueMultiline));
-}
-
-[[nodiscard]] object_ptr<Ui::RpWidget> MakeValueWithSmallButton(
-		not_null<Ui::TableLayout*> table,
-		not_null<Ui::RpWidget*> value,
-		rpl::producer<QString> buttonText,
-		Fn<void(not_null<Ui::RpWidget*> button)> handler = nullptr,
-		int topSkip = 0) {
-	class MarginedWidget final : public Ui::RpWidget {
-	public:
-		using RpWidget::RpWidget;
-		QMargins getMargins() const override {
-			return { 0, 0, 0, st::giveawayGiftCodePeerMargin.bottom() };
-		}
-	};
-	auto result = object_ptr<MarginedWidget>(table);
-	const auto raw = result.data();
-
-	value->setParent(raw);
-	value->show();
-
-	const auto button = Ui::CreateChild<Ui::RoundButton>(
-		raw,
-		std::move(buttonText),
-		table->st().smallButton);
-	button->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
-	if (handler) {
-		button->setClickedCallback([button, handler = std::move(handler)] {
-			handler(button);
-		});
-	} else {
-		button->setAttribute(Qt::WA_TransparentForMouseEvents);
-	}
-	rpl::combine(
-		raw->widthValue(),
-		button->widthValue(),
-		value->naturalWidthValue()
-	) | rpl::start_with_next([=](int width, int buttonWidth, int) {
-		const auto buttonSkip = st::normalFont->spacew + buttonWidth;
-		value->resizeToNaturalWidth(width - buttonSkip);
-		value->moveToLeft(0, 0, width);
-		button->moveToLeft(
-			rect::right(value) + st::normalFont->spacew,
-			(topSkip
-				+ (table->st().defaultValue.style.font->ascent
-					- table->st().smallButton.style.font->ascent)),
-			width);
-	}, value->lifetime());
-
-	value->heightValue() | rpl::start_with_next([=](int height) {
-		const auto bottom = st::giveawayGiftCodePeerMargin.bottom();
-		raw->resize(raw->width(), height + bottom);
-	}, raw->lifetime());
-
-	return result;
-}
-
-[[nodiscard]] object_ptr<Ui::RpWidget> MakePeerTableValue(
-		not_null<Ui::TableLayout*> table,
-		std::shared_ptr<ChatHelpers::Show> show,
-		PeerId id,
-		rpl::producer<QString> button = nullptr,
-		Fn<void()> handler = nullptr) {
-	auto result = object_ptr<Ui::AbstractButton>(table);
-	const auto raw = result.data();
-
-	const auto &st = st::giveawayGiftCodeUserpic;
-	raw->resize(raw->width(), st.photoSize);
-
-	const auto peer = show->session().data().peer(id);
-	const auto userpic = Ui::CreateChild<Ui::UserpicButton>(raw, peer, st);
-	const auto label = Ui::CreateChild<Ui::FlatLabel>(
-		raw,
-		(button && handler) ? peer->shortName() : peer->name(),
-		table->st().defaultValue);
-
-	raw->widthValue() | rpl::start_with_next([=](int width) {
-		const auto position = st::giveawayGiftCodeNamePosition;
-		label->resizeToNaturalWidth(width - position.x());
-		label->moveToLeft(position.x(), position.y(), width);
-		const auto top = (raw->height() - userpic->height()) / 2;
-		userpic->moveToLeft(0, top, width);
-	}, label->lifetime());
-
-	label->naturalWidthValue() | rpl::start_with_next([=](int width) {
-		raw->setNaturalWidth(st::giveawayGiftCodeNamePosition.x() + width);
-	}, label->lifetime());
-	userpic->setAttribute(Qt::WA_TransparentForMouseEvents);
-	label->setAttribute(Qt::WA_TransparentForMouseEvents);
-	label->setTextColorOverride(table->st().defaultValue.palette.linkFg->c);
-
-	raw->setClickedCallback([=] {
-		show->showBox(PrepareShortInfoBox(peer, show));
-	});
-
-	if (!button || !handler) {
-		return result;
-	}
-	return MakeValueWithSmallButton(
-		table,
-		result.release(),
-		std::move(button),
-		[=](not_null<Ui::RpWidget*> button) { handler(); },
-		st::giveawayGiftCodeNamePosition.y());
-}
-
-[[nodiscard]] object_ptr<Ui::RpWidget> MakePeerWithStatusValue(
-		not_null<Ui::TableLayout*> table,
-		std::shared_ptr<ChatHelpers::Show> show,
-		PeerId id,
-		Fn<void(not_null<Ui::RpWidget*>, EmojiStatusId)> pushStatusId) {
-	auto result = object_ptr<Ui::RpWidget>(table);
-	const auto raw = result.data();
-
-	const auto peerLabel = MakePeerTableValue(table, show, id).release();
-	peerLabel->setParent(raw);
-	peerLabel->show();
-
-	raw->resize(raw->width(), peerLabel->height());
-
-	using namespace Info::Profile;
-	struct State {
-		rpl::variable<Badge::Content> content;
-	};
-	const auto peer = show->session().data().peer(id);
-	const auto state = peerLabel->lifetime().make_state<State>();
-	state->content = EmojiStatusIdValue(
-		peer
-	) | rpl::map([=](EmojiStatusId emojiStatusId) {
-		if (!peer->session().premium()
-			|| (!peer->isSelf() && !emojiStatusId)) {
-			return Badge::Content();
-		}
-		return Badge::Content{
-			.badge = BadgeType::Premium,
-			.emojiStatusId = emojiStatusId,
-		};
-	});
-	const auto badge = peerLabel->lifetime().make_state<Badge>(
-		raw,
-		st::infoPeerBadge,
-		&peer->session(),
-		state->content.value(),
-		nullptr,
-		[=] { return show->paused(ChatHelpers::PauseReason::Layer); });
-	state->content.value(
-	) | rpl::start_with_next([=](const Badge::Content &content) {
-		if (const auto widget = badge->widget()) {
-			pushStatusId(widget, content.emojiStatusId);
-		}
-	}, raw->lifetime());
-
-	rpl::combine(
-		raw->widthValue(),
-		rpl::single(rpl::empty) | rpl::then(badge->updated())
-	) | rpl::start_with_next([=](int width, const auto &) {
-		const auto badgeWidget = badge->widget();
-		const auto badgeSkip = badgeWidget
-			? (st::normalFont->spacew + badgeWidget->width())
-			: 0;
-		peerLabel->resizeToNaturalWidth(width - badgeSkip);
-		peerLabel->moveToLeft(0, 0, width);
-		if (badgeWidget) {
-			badgeWidget->moveToLeft(
-				peerLabel->width() + st::normalFont->spacew,
-				st::giftBoxByStarsStarTop,
-				width);
-		}
-	}, raw->lifetime());
-
-	return result;
-}
-
-[[nodiscard]] object_ptr<Ui::RpWidget> MakeHiddenPeerTableValue(
-		not_null<Ui::TableLayout*> table) {
-	auto result = object_ptr<Ui::RpWidget>(table);
-	const auto raw = result.data();
-
-	const auto &st = st::giveawayGiftCodeUserpic;
-	raw->resize(raw->width(), st.photoSize);
-
-	const auto userpic = Ui::CreateChild<Ui::RpWidget>(raw);
-	const auto usize = st.photoSize;
-	userpic->resize(usize, usize);
-	userpic->paintRequest() | rpl::start_with_next([=] {
-		auto p = QPainter(userpic);
-		Ui::EmptyUserpic::PaintHiddenAuthor(p, 0, 0, usize, usize);
-	}, userpic->lifetime());
-
-	const auto label = Ui::CreateChild<Ui::FlatLabel>(
-		raw,
-		tr::lng_gift_from_hidden(),
-		table->st().defaultValue);
-	raw->widthValue(
-	) | rpl::start_with_next([=](int width) {
-		const auto position = st::giveawayGiftCodeNamePosition;
-		label->resizeToNaturalWidth(width - position.x());
-		label->moveToLeft(position.x(), position.y(), width);
-		const auto top = (raw->height() - userpic->height()) / 2;
-		userpic->moveToLeft(0, top, width);
-	}, label->lifetime());
-
-	userpic->setAttribute(Qt::WA_TransparentForMouseEvents);
-	label->setAttribute(Qt::WA_TransparentForMouseEvents);
-	label->setTextColorOverride(st::windowFg->c);
-
-	return result;
-}
-
-void AddTableRow(
-		not_null<Ui::TableLayout*> table,
-		rpl::producer<QString> label,
-		object_ptr<Ui::RpWidget> value,
-		style::margins valueMargins = st::giveawayGiftCodeValueMargin) {
-	table->addRow(
-		(label
-			? object_ptr<Ui::FlatLabel>(
-				table,
-				std::move(label),
-				table->st().defaultLabel)
-			: object_ptr<Ui::FlatLabel>(nullptr)),
-		std::move(value),
-		st::giveawayGiftCodeLabelMargin,
-		valueMargins);
 }
 
 [[nodiscard]] object_ptr<Ui::RpWidget> MakePriceWithChangePercentValue(
@@ -509,35 +219,13 @@ void AddTableRow(
 	return MakeValueWithSmallButton(table, label, std::move(text));
 }
 
-[[nodiscard]] object_ptr<Ui::RpWidget> MakePriceValueWithTooltip(
-		not_null<Ui::TableLayout*> table,
-		std::shared_ptr<InfoTooltipData> data,
-		TextWithEntities price,
-		TextWithEntities tooltip) {
-	const auto label = Ui::CreateChild<Ui::FlatLabel>(
-		table,
-		rpl::single(price),
-		table->st().defaultValue);
-	label->setAttribute(Qt::WA_TransparentForMouseEvents);
-
-	const auto handler = [=](not_null<Ui::RpWidget*> button) {
-		ShowInfoTooltip(
-			data,
-			button,
-			rpl::single(tooltip),
-			kPriceTooltipDuration);
-	};
-	auto text = rpl::single(u"?"_q);
-	return MakeValueWithSmallButton(table, label, std::move(text), handler);
-}
-
 [[nodiscard]] object_ptr<Ui::RpWidget> MakeMinimumPriceValue(
 		not_null<Ui::TableLayout*> table,
-		std::shared_ptr<InfoTooltipData> tooltip,
+		std::shared_ptr<TableRowTooltipData> tooltip,
 		const std::shared_ptr<Data::UniqueGift> &unique) {
 	const auto &value = unique->value;
 	const auto text = FormatValuePrice(value->minimumPrice, value->currency);
-	return MakePriceValueWithTooltip(
+	return Ui::MakeTableValueWithTooltip(
 		table,
 		std::move(tooltip),
 		text,
@@ -552,11 +240,11 @@ void AddTableRow(
 
 [[nodiscard]] object_ptr<Ui::RpWidget> MakeAveragePriceValue(
 		not_null<Ui::TableLayout*> table,
-		std::shared_ptr<InfoTooltipData> tooltip,
+		std::shared_ptr<TableRowTooltipData> tooltip,
 		const std::shared_ptr<Data::UniqueGift> &unique) {
 	const auto &value = unique->value;
 	const auto text = FormatValuePrice(value->averagePrice, value->currency);
-	return MakePriceValueWithTooltip(
+	return Ui::MakeTableValueWithTooltip(
 		table,
 		std::move(tooltip),
 		text,
@@ -592,13 +280,12 @@ void AddUniqueGiftPropertyRows(
 		not_null<Ui::RpWidget*> container,
 		not_null<Ui::TableLayout*> table,
 		not_null<Data::UniqueGift*> unique) {
-	const auto tooltip = std::make_shared<InfoTooltipData>(InfoTooltipData{
-		.parent = container,
-	});
+	const auto tooltip = std::make_shared<TableRowTooltipData>(
+		TableRowTooltipData{ .parent = container });
 	const auto showTooltip = [=](
 			not_null<Ui::RpWidget*> widget,
 			rpl::producer<TextWithEntities> text) {
-		ShowInfoTooltip(tooltip, widget, std::move(text), kTooltipDuration);
+		ShowTableRowTooltip(tooltip, widget, std::move(text), kTooltipDuration);
 	};
 	const auto showRarity = [=](
 			not_null<Ui::RpWidget*> widget,
@@ -712,37 +399,6 @@ void AddUniqueGiftPropertyRows(
 		handler);
 }
 
-not_null<Ui::FlatLabel*> AddTableRow(
-		not_null<Ui::TableLayout*> table,
-		rpl::producer<QString> label,
-		rpl::producer<TextWithEntities> value,
-		const Ui::Text::MarkedContext &context = {}) {
-	auto widget = object_ptr<Ui::FlatLabel>(
-		table,
-		std::move(value),
-		table->st().defaultValue,
-		st::defaultPopupMenu,
-		context);
-	const auto result = widget.data();
-	AddTableRow(table, std::move(label), std::move(widget));
-	return result;
-}
-
-void AddTableRow(
-		not_null<Ui::TableLayout*> table,
-		rpl::producer<QString> label,
-		std::shared_ptr<ChatHelpers::Show> show,
-		PeerId id) {
-	if (!id) {
-		return;
-	}
-	AddTableRow(
-		table,
-		std::move(label),
-		MakePeerTableValue(table, show, id),
-		st::giveawayGiftCodePeerMargin);
-}
-
 void AddTable(
 		not_null<Ui::VerticalLayout*> container,
 		std::shared_ptr<ChatHelpers::Show> show,
@@ -778,7 +434,7 @@ void AddTable(
 		tr::lng_gift_link_label_gift(),
 		tr::lng_gift_link_gift_premium(
 			lt_duration,
-			GiftDurationValue(current.months) | Ui::Text::ToWithEntities(),
+			GiftDurationValue(current.days) | Ui::Text::ToWithEntities(),
 			Ui::Text::WithEntities));
 	if (!skipReason && current.from) {
 		const auto reason = AddTableRow(
@@ -863,17 +519,22 @@ void ShowAlreadyPremiumToast(
 
 } // namespace
 
-rpl::producer<QString> GiftDurationValue(int months) {
-	return GiftDurationPhrase(months)(
+rpl::producer<QString> GiftDurationValue(int days) {
+	return GiftDurationPhrase(days)(
 		lt_count,
-		rpl::single(float64((months < 12) ? months : (months / 12))));
+		rpl::single(float64((days < 30)
+			? days
+			: (days < 30 * 12)
+			? (days / 30)
+			: (days / (30 * 12)))));
 }
 
-QString GiftDuration(int months) {
-	return GiftDurationPhrase(months)(
-		tr::now,
-		lt_count,
-		(months < 12) ? months : (months / 12));
+QString GiftDuration(int days) {
+	return GiftDurationPhrase(days)(tr::now, lt_count, (days < 30)
+		? days
+		: (days < 30 * 12)
+		? (days / 30)
+		: (days / (30 * 12)));
 }
 
 void GiftCodeBox(
@@ -1121,9 +782,9 @@ void ResolveGiftCode(
 			code.to = toId;
 			const auto self = (fromId == selfId);
 			const auto peer = session->data().peer(self ? toId : fromId);
-			const auto months = code.months;
+			const auto days = code.days;
 			const auto parent = controller->parentController();
-			Settings::ShowGiftPremium(parent, peer, months, self);
+			Settings::ShowGiftPremium(parent, peer, days, self);
 		} else {
 			controller->uiShow()->showBox(Box(GiftCodeBox, controller, slug));
 		}
@@ -1242,7 +903,7 @@ void GiveawayInfoBox(
 						lt_channel,
 						Ui::Text::Bold(first),
 						lt_duration,
-						TextWithEntities{ GiftDuration(months) },
+						TextWithEntities{ GiftDuration(months * 30) },
 						Ui::Text::RichLangValue),
 			Ui::Text::RichLangValue));
 	const auto many = start
@@ -1550,13 +1211,12 @@ void AddStarGiftTable(
 	const auto giftToChannel = entry.giftChannelSavedId
 		&& peerIsChannel(PeerId(entry.bareEntryOwnerId));
 
-	const auto tooltip = std::make_shared<InfoTooltipData>(InfoTooltipData{
-		.parent = container,
-	});
+	const auto tooltip = std::make_shared<TableRowTooltipData>(
+		TableRowTooltipData{ .parent = container });
 	const auto showTooltip = [=](
 			not_null<Ui::RpWidget*> widget,
 			rpl::producer<TextWithEntities> text) {
-		ShowInfoTooltip(tooltip, widget, std::move(text), kTooltipDuration);
+		ShowTableRowTooltip(tooltip, widget, std::move(text), kTooltipDuration);
 	};
 
 	if (unique && entry.bareGiftResaleRecipientId) {
@@ -2313,9 +1973,8 @@ void AddUniqueGiftValueTable(
 			MakePriceWithChangePercentValue(table, value));
 	}
 
-	const auto tooltip = std::make_shared<InfoTooltipData>(InfoTooltipData{
-		.parent = container,
-	});
+	const auto tooltip = std::make_shared<TableRowTooltipData>(
+		TableRowTooltipData{ .parent = container });
 	if (value->minimumPrice) {
 		AddTableRow(
 			table,

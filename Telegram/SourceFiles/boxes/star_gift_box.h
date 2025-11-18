@@ -9,6 +9,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "data/data_star_gift.h"
 
+namespace Api {
+class PremiumGiftCodeOptions;
+} // namespace Api
+
 namespace ChatHelpers {
 class Show;
 } // namespace ChatHelpers
@@ -18,7 +22,12 @@ struct UniqueGift;
 struct GiftCode;
 struct CreditsHistoryEntry;
 class SavedStarGiftId;
+struct GiftAuctionState;
 } // namespace Data
+
+namespace Info::PeerGifts {
+struct GiftDescriptor;
+} // namespace Info::PeerGifts
 
 namespace Main {
 class Session;
@@ -44,6 +53,7 @@ class CustomEmoji;
 
 namespace Ui {
 
+class RpWidget;
 class PopupMenu;
 class GenericBox;
 class VerticalLayout;
@@ -86,23 +96,6 @@ void ShowUniqueGiftSellBox(
 	Settings::GiftWearBoxStyleOverride st);
 
 void GiftReleasedByHandler(not_null<PeerData*> peer);
-
-struct PatternPoint {
-	QPointF position;
-	float64 scale = 1.;
-	float64 opacity = 1.;
-};
-[[nodiscard]] const std::vector<PatternPoint> &PatternPoints();
-[[nodiscard]] const std::vector<PatternPoint> &PatternPointsSmall();
-
-void PaintPoints(
-	QPainter &p,
-	const std::vector<PatternPoint> &points,
-	base::flat_map<float64, QImage> &cache,
-	not_null<Text::CustomEmoji*> emoji,
-	const Data::UniqueGift &gift,
-	const QRect &rect,
-	float64 shown = 1.);
 
 struct StarGiftUpgradeArgs {
 	not_null<Window::SessionController*> controller;
@@ -153,23 +146,29 @@ void ShowGiftTransferredToast(
 	not_null<PeerData*> to,
 	const Data::UniqueGift &gift);
 
-void ShowResaleGiftBoughtToast(
-	std::shared_ptr<Main::SessionShow> show,
-	not_null<PeerData*> to,
-	const Data::UniqueGift &gift);
-
-[[nodiscard]] rpl::lifetime ShowStarGiftResale(
-	not_null<Window::SessionController*> controller,
-	not_null<PeerData*> peer,
-	uint64 giftId,
-	QString title,
-	Fn<void()> finishRequesting);
-
 [[nodiscard]] CreditsAmount StarsFromTon(
 	not_null<Main::Session*> session,
 	CreditsAmount ton);
 [[nodiscard]] CreditsAmount TonFromStars(
 	not_null<Main::Session*> session,
 	CreditsAmount stars);
+
+struct GiftsDescriptor {
+	std::vector<Info::PeerGifts::GiftDescriptor> list;
+	std::shared_ptr<Api::PremiumGiftCodeOptions> api;
+};
+[[nodiscard]] object_ptr<RpWidget> MakeGiftsSendList(
+	not_null<Window::SessionController*> window,
+	not_null<PeerData*> peer,
+	rpl::producer<GiftsDescriptor> gifts,
+	Fn<void()> loadMore);
+
+void SendGiftBox(
+	not_null<GenericBox*> box,
+	not_null<Window::SessionController*> window,
+	not_null<PeerData*> peer,
+	std::shared_ptr<Api::PremiumGiftCodeOptions> api,
+	const Info::PeerGifts::GiftDescriptor &descriptor,
+	rpl::producer<Data::GiftAuctionState> auctionState);
 
 } // namespace Ui

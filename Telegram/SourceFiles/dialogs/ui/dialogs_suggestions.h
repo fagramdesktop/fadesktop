@@ -120,6 +120,9 @@ public:
 	-> rpl::producer<not_null<PeerData*>> {
 		return _openBotMainAppRequests.events();
 	}
+	[[nodiscard]] rpl::producer<> closeRequests() const {
+		return _closeRequests.events();
+	}
 
 	class ObjectListController
 		: public PeerListController
@@ -284,6 +287,7 @@ private:
 	const not_null<TopPeersStrip*> _topPeers;
 	rpl::event_stream<not_null<PeerData*>> _topPeerChosen;
 	rpl::event_stream<not_null<PeerData*>> _openBotMainAppRequests;
+	rpl::event_stream<> _closeRequests;
 
 	const std::unique_ptr<ObjectList> _recent;
 

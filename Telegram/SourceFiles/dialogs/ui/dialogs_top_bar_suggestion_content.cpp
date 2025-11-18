@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_authorization.h"
 #include "lang/lang_keys.h"
 #include "ui/rect.h"
+#include "ui/power_saving.h"
 #include "ui/text/format_values.h"
 #include "ui/text/text_custom_emoji.h"
 #include "ui/ui_rpl_filter.h"
@@ -236,6 +237,7 @@ void TopBarSuggestionContent::draw(QPainter &p) {
 				? availableWidth
 				: (availableWidth - titleRight),
 			.availableWidth = availableWidth,
+			.pausedEmoji = On(PowerSaving::kEmojiChat),
 			.elisionLines = hasSecondLineTitle ? 2 : 1,
 		});
 	}
@@ -276,6 +278,7 @@ void TopBarSuggestionContent::draw(QPainter &p) {
 			.geometry = Ui::Text::GeometryDescriptor{
 				.layout = std::move(lineLayout),
 			},
+			.pausedEmoji = On(PowerSaving::kEmojiChat),
 		});
 		_lastPaintedContentTop = top;
 		_lastPaintedContentLineAmount = lastContentLineAmount;

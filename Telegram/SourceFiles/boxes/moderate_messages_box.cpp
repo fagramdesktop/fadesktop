@@ -466,8 +466,7 @@ void CreateModerateMessagesBox(
 			inner->add(object_ptr<Ui::DividerLabel>(
 				inner,
 				std::move(label),
-				st::defaultBoxDividerLabelPadding,
-				RectPart::Top | RectPart::Bottom));
+				st::defaultBoxDividerLabelPadding));
 
 			using Flag = ChatRestriction;
 			using Flags = ChatRestrictions;

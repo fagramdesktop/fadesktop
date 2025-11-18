@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_saved_sublist.h"
 #include "data/data_thread.h"
 #include "info/profile/info_profile_cover.h"
+#include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/shadow.h"
@@ -141,7 +142,9 @@ void Button::setup(
 
 	const auto label = Ui::CreateChild<Ui::FlatLabel>(
 		this,
-		thread->chatListName(),
+		((thread->asHistory() && peer->isSelf())
+			? tr::lng_saved_messages(tr::now)
+			: thread->chatListName()),
 		st::chatSwitchNameLabel);
 	label->setBreakEverywhere(true);
 	label->show();

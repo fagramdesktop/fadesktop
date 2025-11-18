@@ -994,6 +994,8 @@ MediaCheckResult CheckMessageMedia(const MTPMessageMedia &media) {
 		return Result::Good;
 	}, [](const MTPDmessageMediaPaidMedia &) {
 		return Result::Good;
+	}, [](const MTPDmessageMediaVideoStream &) {
+		return Result::Good;
 	}, [](const MTPDmessageMediaUnsupported &) {
 		return Result::Unsupported;
 	});

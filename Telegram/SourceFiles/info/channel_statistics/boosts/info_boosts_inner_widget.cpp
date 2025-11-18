@@ -411,7 +411,7 @@ void InnerWidget::fill() {
 						.from = _peer->id,
 						.to = user->id,
 						.date = TimeId(boost.date.toSecsSinceEpoch()),
-						.months = boost.expiresAfterMonths,
+						.days = boost.expiresAfterMonths * 30,
 					};
 					_show->showBox(Box(GiftCodePendingBox, _controller, d));
 				} else {

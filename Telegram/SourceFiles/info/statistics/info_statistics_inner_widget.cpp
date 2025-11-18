@@ -579,7 +579,7 @@ void FillLoading(
 		: u"stats"_q;
 	auto icon = ::Settings::CreateLottieIcon(
 		content,
-		{ .name = iconName, .sizeOverride = Size(st::changePhoneIconSize) },
+		{ .name = iconName, .sizeOverride = st::normalBoxLottieSize },
 		st::settingsBlockedListIconPadding);
 
 	(

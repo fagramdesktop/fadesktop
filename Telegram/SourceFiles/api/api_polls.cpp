@@ -64,6 +64,9 @@ void Polls::create(
 	}
 	if (action.options.scheduled) {
 		sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_date;
+		if (action.options.scheduleRepeatPeriod) {
+			sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_repeat_period;
+		}
 	}
 	if (action.options.shortcutId) {
 		sendFlags |= MTPmessages_SendMedia::Flag::f_quick_reply_shortcut;
@@ -98,6 +101,7 @@ void Polls::create(
 			MTPReplyMarkup(),
 			MTPVector<MTPMessageEntity>(),
 			MTP_int(action.options.scheduled),
+			MTP_int(action.options.scheduleRepeatPeriod),
 			(sendAs ? sendAs->input : MTP_inputPeerEmpty()),
 			Data::ShortcutIdToMTP(_session, action.options.shortcutId),
 			MTP_long(action.options.effectId),
@@ -194,6 +198,7 @@ void Polls::close(not_null<HistoryItem*> item) {
 		MTPReplyMarkup(),
 		MTPVector<MTPMessageEntity>(),
 		MTP_int(0), // schedule_date
+		MTP_int(0), // schedule_repeat_period
 		MTPint() // quick_reply_shortcut_id
 	)).done([=](const MTPUpdates &result) {
 		_pollCloseRequestIds.erase(itemId);

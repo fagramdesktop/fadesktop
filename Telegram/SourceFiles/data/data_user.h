@@ -132,7 +132,8 @@ enum class UserDataFlag : uint32 {
 	MessageMoneyRestrictionsKnown = (1 << 24),
 	ReadDatesPrivate = (1 << 25),
 	StoriesCorrespondent = (1 << 26),
-	Forum = (1ULL << 27),
+	Forum = (1 << 27),
+	HasActiveVideoStream = (1 << 28),
 };
 inline constexpr bool is_flag_type(UserDataFlag) { return true; };
 using UserDataFlags = base::flags<UserDataFlag>;
@@ -273,6 +274,7 @@ public:
 
 	[[nodiscard]] bool hasActiveStories() const;
 	[[nodiscard]] bool hasUnreadStories() const;
+	[[nodiscard]] bool hasActiveVideoStream() const;
 	void setStoriesState(StoriesState state);
 
 	[[nodiscard]] const Data::BusinessDetails &businessDetails() const;

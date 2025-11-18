@@ -1426,10 +1426,7 @@ void FrozenInfoBox(
 		content,
 		{
 			.name = u"media_forbidden"_q,
-			.sizeOverride = {
-				st::changePhoneIconSize,
-				st::changePhoneIconSize,
-			},
+			.sizeOverride = st::normalBoxLottieSize,
 		},
 		st::settingLocalPasscodeIconPadding);
 	content->add(std::move(icon.widget));

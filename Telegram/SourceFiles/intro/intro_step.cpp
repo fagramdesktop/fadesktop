@@ -94,6 +94,7 @@ Step::Step(
 	_titleText.value(
 	) | rpl::start_with_next([=](const QString &text) {
 		_title->setText(text);
+		accessibilityNameChanged();
 		updateLabelsPosition();
 	}, lifetime());
 
@@ -106,6 +107,7 @@ Step::Step(
 			&EntityInText::type);
 		label->setMarkedText(text);
 		label->setAttribute(Qt::WA_TransparentForMouseEvents, hasSpoiler);
+		accessibilityDescriptionChanged();
 		updateLabelsPosition();
 	}, lifetime());
 }
@@ -129,6 +131,10 @@ rpl::producer<QString> Step::nextButtonText() const {
 
 rpl::producer<const style::RoundButton*> Step::nextButtonStyle() const {
 	return rpl::single((const style::RoundButton*)(nullptr));
+}
+
+rpl::producer<> Step::nextButtonFocusRequests() const {
+	return rpl::never();
 }
 
 void Step::goBack() {

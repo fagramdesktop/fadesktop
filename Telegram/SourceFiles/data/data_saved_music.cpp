@@ -157,6 +157,38 @@ void SavedMusic::remove(not_null<DocumentData*> document) {
 	_changed.fire_copy(peerId);
 }
 
+void SavedMusic::reorder(int oldPosition, int newPosition) {
+	const auto peerId = _owner->session().userPeerId();
+	auto &entry = _entries[peerId];
+	if (oldPosition < 0 || newPosition < 0
+		|| oldPosition >= entry.list.size()
+		|| newPosition >= entry.list.size()
+		|| oldPosition == newPosition) {
+		return;
+	}
+
+	const auto item = entry.list[oldPosition];
+	const auto document = ItemDocument(item);
+
+	base::reorder(entry.list, oldPosition, newPosition);
+
+	const auto afterDocument = (newPosition > 0)
+		? ItemDocument(entry.list[newPosition - 1]).get()
+		: nullptr;
+
+	_owner->session().api().request(MTPaccount_SaveMusic(
+		MTP_flags(afterDocument
+			? MTPaccount_SaveMusic::Flag::f_after_id
+			: MTPaccount_SaveMusic::Flags(0)),
+		document->mtpInput(),
+		afterDocument ? afterDocument->mtpInput() : MTPInputDocument()
+	)).done([=] {
+	}).fail([=](const MTP::Error &error) {
+	}).send();
+
+	_changed.fire_copy(peerId);
+}
+
 void SavedMusic::apply(not_null<UserData*> user, const MTPDocument *last) {
 	const auto peerId = user->id;
 	auto &entry = _entries[peerId];

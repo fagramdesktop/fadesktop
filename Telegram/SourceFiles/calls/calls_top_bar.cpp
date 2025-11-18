@@ -584,7 +584,7 @@ void TopBar::subscribeToMembersChanges(not_null<GroupCall*> call) {
 	const auto group = _groupCall.get();
 	const auto conference = group && group->conference();
 	auto realValue = conference
-		? (rpl::single(group->conferenceCall().get()) | rpl::type_erased())
+		? (rpl::single(group->sharedCall().get()) | rpl::type_erased())
 		: peer->session().changes().peerFlagsValue(
 			peer,
 			Data::PeerUpdate::Flag::GroupCall

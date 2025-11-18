@@ -9,6 +9,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #include "base/object_ptr.h"
 #include "lang/lang_keys.h"
+#include "lottie/lottie_icon.h"
+#include "settings/settings_common.h"
 #include "ui/effects/premium_graphics.h"
 #include "ui/layers/generic_box.h"
 #include "ui/text/text_utilities.h"
@@ -16,41 +18,17 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/widgets/gradient_round_button.h"
 #include "ui/widgets/labels.h"
 #include "ui/painter.h"
+#include "ui/rect.h"
+#include "ui/vertical_list.h"
 #include "styles/style_layers.h"
 #include "styles/style_premium.h"
+#include "styles/style_boxes.h"
+#include "styles/style_settings.h"
 
 namespace Ui {
 namespace {
 
 constexpr auto kShowOrLineOpacity = 0.3;
-
-[[nodiscard]] object_ptr<RpWidget> MakeShowOrPremiumIcon(
-		not_null<RpWidget*> parent,
-		not_null<const style::icon*> icon) {
-	const auto margin = st::showOrIconMargin;
-	const auto padding = st::showOrIconPadding;
-	const auto inner = padding.top() + icon->height() + padding.bottom();
-	const auto full = margin.top() + inner + margin.bottom();
-	auto result = object_ptr<FixedHeightWidget>(parent, full);
-	const auto raw = result.data();
-
-	raw->resize(st::boxWideWidth, full);
-	raw->paintRequest(
-	) | rpl::start_with_next([=] {
-		auto p = QPainter(raw);
-		auto hq = PainterHighQualityEnabler(p);
-		const auto width = raw->width();
-		const auto position = QPoint((width - inner) / 2, margin.top());
-		const auto rect = QRect(position, QSize(inner, inner));
-		const auto shift = QPoint(padding.left(), padding.top());
-		p.setPen(Qt::NoPen);
-		p.setBrush(st::showOrIconBg);
-		p.drawEllipse(rect);
-		icon->paint(p, position + shift, width);
-	}, raw->lifetime());
-
-	return result;
-}
 
 } // namespace
 
@@ -97,7 +75,7 @@ void ShowOrPremiumBox(
 		rpl::producer<TextWithEntities> premiumAbout;
 		rpl::producer<QString> premiumButton;
 		QString toast;
-		const style::icon *icon = nullptr;
+		QString lottie;
 	};
 	auto skin = (type == ShowOrPremium::LastSeen)
 		? Skin{
@@ -115,7 +93,7 @@ void ShowOrPremiumBox(
 				Text::RichLangValue),
 			tr::lng_lastseen_premium_button(),
 			tr::lng_lastseen_shown_toast(tr::now),
-			&st::showOrIconLastSeen,
+			u"show_or_premium_lastseen"_q,
 		}
 		: Skin{
 			tr::lng_readtime_show_title(),
@@ -132,7 +110,7 @@ void ShowOrPremiumBox(
 				Text::RichLangValue),
 			tr::lng_readtime_premium_button(),
 			tr::lng_readtime_shown_toast(tr::now),
-			&st::showOrIconReadTime,
+			u"show_or_premium_readtime"_q,
 		};
 
 	box->setStyle(st::showOrBox);
@@ -146,7 +124,40 @@ void ShowOrPremiumBox(
 		0,
 		st::showOrBox.buttonPadding.right(),
 		0);
-	box->addRow(MakeShowOrPremiumIcon(box, skin.icon));
+
+	auto icon = Settings::CreateLottieIcon(
+		box,
+		{
+			.name = skin.lottie,
+			.sizeOverride = st::normalBoxLottieSize
+				- Size(st::showOrTitleIconMargin * 2),
+		},
+		{ 0, st::showOrTitleIconMargin, 0, st::showOrTitleIconMargin });
+	{
+		const auto iconRow = box->addRow(
+			std::move(icon.widget),
+			st::settingsBlockedListIconPadding,
+			style::al_top);
+
+		const auto circle = Ui::CreateChild<Ui::RpWidget>(
+			iconRow->parentWidget());
+		circle->lower();
+		circle->paintRequest() | rpl::start_with_next([=] {
+			auto p = QPainter(circle);
+			auto hq = PainterHighQualityEnabler(p);
+			const auto size = st::normalBoxLottieSize;
+			const auto left = (circle->width() - size.width()) / 2;
+			const auto top = (circle->height() - size.height()) / 2;
+			p.setPen(Qt::NoPen);
+			p.setBrush(st::activeButtonBg);
+			p.drawEllipse(QRect(QPoint(left, top), size));
+		}, circle->lifetime());
+
+		iconRow->geometryValue() | rpl::start_with_next([=](const QRect &g) {
+			circle->setGeometry(g);
+		}, circle->lifetime());
+	}
+	Ui::AddSkip(box->verticalLayout());
 	box->addRow(
 		object_ptr<FlatLabel>(
 			box,
@@ -208,8 +219,9 @@ void ShowOrPremiumBox(
 			outer);
 	}, label->lifetime());
 
-	box->setShowFinishedCallback([=] {
+	box->setShowFinishedCallback([=, animate = std::move(icon.animate)] {
 		premium->startGlareAnimation();
+		animate(anim::repeat::once);
 	});
 
 	box->addButton(

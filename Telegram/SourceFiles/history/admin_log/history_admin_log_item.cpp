@@ -198,7 +198,8 @@ MTPMessage PrepareLogMessage(const MTPMessage &message, TimeId newDate) {
 			MTPFactCheck(),
 			MTPint(), // report_delivery_until_date
 			MTP_long(data.vpaid_message_stars().value_or_empty()),
-			MTPSuggestedPost());
+			MTPSuggestedPost(),
+			MTPint()); // schedule_repeat_period
 	});
 }
 

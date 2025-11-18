@@ -18,15 +18,14 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_document.h"
 #include "data/data_document_media.h"
 #include "data/data_changes.h"
-#include "data/data_saved_music.h"
 #include "data/data_session.h"
 #include "data/data_forum_topic.h"
 #include "data/stickers/data_custom_emoji.h"
 #include "info/profile/info_profile_badge.h"
+#include "info/profile/info_profile_badge_tooltip.h"
 #include "info/profile/info_profile_emoji_status_panel.h"
-#include "info/profile/info_profile_music_button.h"
+#include "info/profile/info_profile_status_label.h"
 #include "info/profile/info_profile_values.h"
-#include "info/saved/info_saved_music_widget.h"
 #include "info/info_controller.h"
 #include "info/info_memento.h"
 #include "boxes/peers/edit_forum_topic_box.h"
@@ -67,41 +66,6 @@ constexpr auto kGiftBadgeGlares = 3;
 constexpr auto kGlareDurationStep = crl::time(320);
 constexpr auto kGlareTimeout = crl::time(1000);
 
-[[nodiscard]] auto MembersStatusText(int count) {
-	return tr::lng_chat_status_members(tr::now, lt_count_decimal, count);
-};
-
-[[nodiscard]] auto OnlineStatusText(int count) {
-	return tr::lng_chat_status_online(tr::now, lt_count_decimal, count);
-};
-
-[[nodiscard]] auto ChatStatusText(
-		int fullCount,
-		int onlineCount,
-		bool isGroup) {
-	if (onlineCount > 1 && onlineCount <= fullCount) {
-		return tr::lng_chat_status_members_online(
-			tr::now,
-			lt_members_count,
-			MembersStatusText(fullCount),
-			lt_online_count,
-			OnlineStatusText(onlineCount));
-	} else if (fullCount > 0) {
-		return isGroup
-			? tr::lng_chat_status_members(
-				tr::now,
-				lt_count_decimal,
-				fullCount)
-			: tr::lng_chat_status_subscribers(
-				tr::now,
-				lt_count_decimal,
-				fullCount);
-	}
-	return isGroup
-		? tr::lng_group_status(tr::now)
-		: tr::lng_channel_status(tr::now);
-};
-
 [[nodiscard]] const style::InfoProfileCover &CoverStyle(
 		not_null<PeerData*> peer,
 		Data::ForumTopic *topic,
@@ -115,7 +79,9 @@ constexpr auto kGlareTimeout = crl::time(1000);
 		: st::infoProfileCover;
 }
 
-[[nodiscard]] QMargins LargeCustomEmojiMargins() {
+} // namespace
+
+QMargins LargeCustomEmojiMargins() {
 	const auto ratio = style::DevicePixelRatio();
 	const auto emoji = Ui::Emoji::GetSizeLarge() / ratio;
 	const auto size = Data::FrameSizeFromTag(Data::CustomEmojiSizeTag::Large)
@@ -123,258 +89,6 @@ constexpr auto kGlareTimeout = crl::time(1000);
 	const auto left = (size - emoji) / 2;
 	const auto right = size - emoji - left;
 	return { left, left, right, right };
-}
-
-[[nodiscard]] MusicButtonData DocumentMusicButtonData(
-		not_null<DocumentData*> document) {
-	if (const auto song = document->song()) {
-		if (!song->performer.isEmpty() || !song->title.isEmpty()) {
-			return {
-				.performer = song->performer,
-				.title = song->title,
-			};
-		}
-	}
-	const auto name = document->filename();
-	return {
-		.title = !name.isEmpty() ? name : tr::lng_all_music(tr::now),
-	};
-}
-
-} // namespace
-
-class Cover::BadgeTooltip final : public Ui::RpWidget {
-public:
-	BadgeTooltip(
-		not_null<QWidget*> parent,
-		std::shared_ptr<Data::EmojiStatusCollectible> collectible,
-		not_null<QWidget*> pointTo);
-
-	void fade(bool shown);
-	void finishAnimating();
-
-	[[nodiscard]] crl::time glarePeriod() const;
-
-private:
-	void paintEvent(QPaintEvent *e) override;
-
-	void setupGeometry(not_null<QWidget*> pointTo);
-	void prepareImage();
-	void showGlare();
-
-	const style::ImportantTooltip &_st;
-	std::shared_ptr<Data::EmojiStatusCollectible> _collectible;
-	QString _text;
-	const style::font &_font;
-	QSize _inner;
-	QSize _outer;
-	int _stroke = 0;
-	int _skip = 0;
-	QSize _full;
-	int _glareSize = 0;
-	int _glareRange = 0;
-	crl::time _glareDuration = 0;
-	base::Timer _glareTimer;
-
-	Ui::Animations::Simple _showAnimation;
-	Ui::Animations::Simple _glareAnimation;
-
-	QImage _image;
-	int _glareRight = 0;
-	int _imageGlareRight = 0;
-	int _arrowMiddle = 0;
-	int _imageArrowMiddle = 0;
-
-	bool _shown = false;
-
-};
-
-Cover::BadgeTooltip::BadgeTooltip(
-	not_null<QWidget*> parent,
-	std::shared_ptr<Data::EmojiStatusCollectible> collectible,
-	not_null<QWidget*> pointTo)
-: Ui::RpWidget(parent)
-, _st(st::infoGiftTooltip)
-, _collectible(std::move(collectible))
-, _text(_collectible->title)
-, _font(st::infoGiftTooltipFont)
-, _inner(_font->width(_text), _font->height)
-, _outer(_inner.grownBy(_st.padding))
-, _stroke(st::lineWidth)
-, _skip(2 * _stroke)
-, _full(_outer + QSize(2 * _skip, _st.arrow + 2 * _skip))
-, _glareSize(_outer.height() * 3)
-, _glareRange(_outer.width() + _glareSize)
-, _glareDuration(_glareRange * kGlareDurationStep / _glareSize)
-, _glareTimer([=] { showGlare(); }) {
-	resize(_full + QSize(0, _st.shift));
-	setupGeometry(pointTo);
-}
-
-void Cover::BadgeTooltip::fade(bool shown) {
-	if (_shown == shown) {
-		return;
-	}
-	show();
-	_shown = shown;
-	_showAnimation.start([=] {
-		update();
-		if (!_showAnimation.animating()) {
-			if (!_shown) {
-				hide();
-			} else {
-				showGlare();
-			}
-		}
-	}, _shown ? 0. : 1., _shown ? 1. : 0., _st.duration, anim::easeInCirc);
-}
-
-void Cover::BadgeTooltip::showGlare() {
-	_glareAnimation.start([=] {
-		update();
-		if (!_glareAnimation.animating()) {
-			_glareTimer.callOnce(kGlareTimeout);
-		}
-	}, 0., 1., _glareDuration);
-}
-
-void Cover::BadgeTooltip::finishAnimating() {
-	_showAnimation.stop();
-	if (!_shown) {
-		hide();
-	}
-}
-
-crl::time Cover::BadgeTooltip::glarePeriod() const {
-	return _glareDuration + kGlareTimeout;
-}
-
-void Cover::BadgeTooltip::paintEvent(QPaintEvent *e) {
-	const auto glare = _glareAnimation.value(0.);
-	_glareRight = anim::interpolate(0, _glareRange, glare);
-	prepareImage();
-
-	auto p = QPainter(this);
-	const auto shown = _showAnimation.value(_shown ? 1. : 0.);
-	p.setOpacity(shown);
-	const auto imageHeight = _image.height() / _image.devicePixelRatio();
-	const auto top = anim::interpolate(0, height() - imageHeight, shown);
-	p.drawImage(0, top, _image);
-}
-
-void Cover::BadgeTooltip::setupGeometry(not_null<QWidget*> pointTo) {
-	auto widget = pointTo.get();
-	const auto parent = parentWidget();
-
-	const auto refresh = [=] {
-		const auto rect = Ui::MapFrom(parent, pointTo, pointTo->rect());
-		const auto point = QPoint(rect.center().x(), rect.y());
-		const auto left = point.x() - (width() / 2);
-		const auto skip = _st.padding.left();
-		setGeometry(
-			std::min(std::max(left, skip), parent->width() - width() - skip),
-			std::max(point.y() - height() - _st.margin.bottom(), skip),
-			width(),
-			height());
-		const auto arrowMiddle = point.x() - x();
-		if (_arrowMiddle != arrowMiddle) {
-			_arrowMiddle = arrowMiddle;
-			update();
-		}
-	};
-	refresh();
-	while (widget && widget != parent) {
-		base::install_event_filter(this, widget, [=](not_null<QEvent*> e) {
-			if (e->type() == QEvent::Resize || e->type() == QEvent::Move || e->type() == QEvent::ZOrderChange) {
-				refresh();
-				raise();
-			}
-			return base::EventFilterResult::Continue;
-		});
-		widget = widget->parentWidget();
-	}
-}
-
-void Cover::BadgeTooltip::prepareImage() {
-	const auto ratio = style::DevicePixelRatio();
-	const auto arrow = _st.arrow;
-	const auto size = _full * ratio;
-	if (_image.size() != size) {
-		_image = QImage(size, QImage::Format_ARGB32_Premultiplied);
-		_image.setDevicePixelRatio(ratio);
-	} else if (_imageGlareRight == _glareRight
-		&& _imageArrowMiddle == _arrowMiddle) {
-		return;
-	}
-	_imageGlareRight = _glareRight;
-	_imageArrowMiddle = _arrowMiddle;
-	_image.fill(Qt::transparent);
-
-	const auto gfrom = _imageGlareRight - _glareSize;
-	const auto gtill = _imageGlareRight;
-
-	auto path = QPainterPath();
-	const auto width = _outer.width();
-	const auto height = _outer.height();
-	const auto radius = (height + 1) / 2;
-	const auto diameter = height;
-	path.moveTo(radius, 0);
-	path.lineTo(width - radius, 0);
-	path.arcTo(
-		QRect(QPoint(width - diameter, 0), QSize(diameter, diameter)),
-		90,
-		-180);
-	const auto xarrow = _arrowMiddle - _skip;
-	if (xarrow - arrow <= radius || xarrow + arrow >= width - radius) {
-		path.lineTo(radius, height);
-	} else {
-		path.lineTo(xarrow + arrow, height);
-		path.lineTo(xarrow, height + arrow);
-		path.lineTo(xarrow - arrow, height);
-		path.lineTo(radius, height);
-	}
-	path.arcTo(
-		QRect(QPoint(0, 0), QSize(diameter, diameter)),
-		-90,
-		-180);
-	path.closeSubpath();
-
-	auto p = QPainter(&_image);
-	auto hq = PainterHighQualityEnabler(p);
-	p.setPen(Qt::NoPen);
-	if (gtill > 0) {
-		auto gradient = QLinearGradient(gfrom, 0, gtill, 0);
-		gradient.setStops({
-			{ 0., _collectible->edgeColor },
-			{ 0.5, _collectible->centerColor },
-			{ 1., _collectible->edgeColor },
-		});
-		p.setBrush(gradient);
-	} else {
-		p.setBrush(_collectible->edgeColor);
-	}
-	p.translate(_skip, _skip);
-	p.drawPath(path);
-	p.setCompositionMode(QPainter::CompositionMode_Source);
-	p.setBrush(Qt::NoBrush);
-	auto copy = _collectible->textColor;
-	copy.setAlpha(0);
-	if (gtill > 0) {
-		auto gradient = QLinearGradient(gfrom, 0, gtill, 0);
-		gradient.setStops({
-			{ 0., copy },
-			{ 0.5, _collectible->textColor },
-			{ 1., copy },
-		});
-		p.setPen(QPen(gradient, _stroke));
-	} else {
-		p.setPen(QPen(copy, _stroke));
-	}
-	p.drawPath(path);
-	p.setCompositionMode(QPainter::CompositionMode_SourceOver);
-	p.setFont(_font);
-	p.setPen(QColor(255, 255, 255));
-	p.drawText(_st.padding.left(), _st.padding.top() + _font->ascent, _text);
 }
 
 TopicIconView::TopicIconView(
@@ -584,20 +298,6 @@ Cover::Cover(
 	nullptr) {
 }
 
-[[nodiscard]] rpl::producer<Badge::Content> BotVerifyBadgeForPeer(
-		not_null<PeerData*> peer) {
-	return peer->session().changes().peerFlagsValue(
-		peer,
-		Data::PeerUpdate::Flag::VerifyInfo
-	) | rpl::map([=] {
-		const auto info = peer->botVerifyDetails();
-		return Badge::Content{
-			.badge = info ? BadgeType::BotVerified : BadgeType::None,
-			.emojiStatusId = { info ? info->iconId : DocumentId() },
-		};
-	});
-}
-
 Cover::Cover(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller,
@@ -684,8 +384,8 @@ Cover::Cover(
 			: Fn<Data::StarsRatingPending()>()))
 	: nullptr)
 , _status(this, _st.status)
-, _showLastSeen(this, tr::lng_status_lastseen_when(), _st.showLastSeen)
-, _refreshStatusTimer([this] { refreshStatusText(); }) {
+, _statusLabel(std::make_unique<StatusLabel>(_status.data(), _peer))
+, _showLastSeen(this, tr::lng_status_lastseen_when(), _st.showLastSeen) {
 	_peer->updateFull();
 	if (const auto broadcast = _peer->monoforumBroadcast()) {
 		broadcast->updateFull();
@@ -746,9 +446,6 @@ Cover::Cover(
 	initViewers(std::move(title));
 	setupChildGeometry();
 	setupUniqueBadgeTooltip();
-	if (_role != Role::EditContact) {
-		setupSavedMusic();
-	}
 
 	if (_userpic) {
 	} else if (topic->canEdit()) {
@@ -851,45 +548,13 @@ void Cover::setupChildGeometry() {
 	}, lifetime());
 }
 
-void Cover::setupSavedMusic() {
-	if (!Data::SavedMusic::Supported(_peer->id)) {
-		return;
-	}
-	Data::SavedMusicList(
-		_peer,
-		nullptr,
-		1
-	) | rpl::map([=](const Data::SavedMusicSlice &data) {
-		return data.size() ? data[0].get() : nullptr;
-	}) | rpl::start_with_next([=](HistoryItem *item) {
-		const auto media = item ? item->media() : nullptr;
-		const auto document = media ? media->document() : nullptr;
-		if (!document) {
-			_musicButton = nullptr;
-			resize(width(), _st.height);
-		} else if (!_musicButton) {
-			using namespace Info::Saved;
-			_musicButton = std::make_unique<MusicButton>(
-				this,
-				DocumentMusicButtonData(document),
-				[=] { _controller->showSection(MakeMusic(_peer)); });
-			_musicButton->show();
-
-			widthValue(
-			) | rpl::start_with_next([=](int newWidth) {
-				_musicButton->resizeToWidth(newWidth);
-				const auto skip = st::infoMusicButtonBottom;
-				_musicButton->moveToLeft(0, _st.height - skip, newWidth);
-				resize(width(), _st.height + _musicButton->height());
-			}, _musicButton->lifetime());
-		} else {
-			_musicButton->updateData(DocumentMusicButtonData(document));
+Cover *Cover::setOnlineCount(rpl::producer<int> &&count) {
+	std::move(count) | rpl::start_with_next([=](int value) {
+		if (_statusLabel) {
+			_statusLabel->setOnlineCount(value);
+			refreshStatusGeometry(width());
 		}
 	}, lifetime());
-}
-
-Cover *Cover::setOnlineCount(rpl::producer<int> &&count) {
-	_onlineCount = std::move(count);
 	return this;
 }
 
@@ -906,13 +571,16 @@ void Cover::initViewers(rpl::producer<QString> title) {
 		refreshNameGeometry(width());
 	}, lifetime());
 
-	rpl::combine(
-		_peer->session().changes().peerFlagsValue(
-			_peer,
-			Flag::OnlineStatus | Flag::Members),
-		_onlineCount.value()
+	_statusLabel->setMembersLinkCallback([=] {
+		_showSection.fire(Section::Type::Members);
+	});
+
+	_peer->session().changes().peerFlagsValue(
+		_peer,
+		Flag::OnlineStatus | Flag::Members
 	) | rpl::start_with_next([=] {
-		refreshStatusText();
+		_statusLabel->refresh();
+		refreshStatusGeometry(width());
 	}, lifetime());
 
 	_peer->session().changes().peerFlagsValue(
@@ -1062,62 +730,7 @@ void Cover::setupChangePersonal() {
 	}, _changePersonal->lifetime());
 }
 
-void Cover::refreshStatusText() {
-	auto hasMembersLink = [&] {
-		if (auto megagroup = _peer->asMegagroup()) {
-			return megagroup->canViewMembers();
-		}
-		return false;
-	}();
-	auto statusText = [&]() -> TextWithEntities {
-		using namespace Ui::Text;
-		auto currentTime = base::unixtime::now();
-		if (auto user = _peer->asUser()) {
-			const auto result = Data::OnlineTextFull(user, currentTime);
-			const auto showOnline = Data::OnlineTextActive(user, currentTime);
-			const auto updateIn = Data::OnlineChangeTimeout(user, currentTime);
-			if (showOnline) {
-				_refreshStatusTimer.callOnce(updateIn);
-			}
-			return showOnline
-				? Ui::Text::Colorized(result)
-				: TextWithEntities{ .text = result };
-		} else if (auto chat = _peer->asChat()) {
-			if (!chat->amIn()) {
-				return tr::lng_chat_status_unaccessible({}, WithEntities);
-			}
-			const auto onlineCount = _onlineCount.current();
-			const auto fullCount = std::max(
-				chat->count,
-				int(chat->participants.size()));
-			return { .text = ChatStatusText(fullCount, onlineCount, true) };
-		} else if (auto broadcast = _peer->monoforumBroadcast()) {
-			auto result = ChatStatusText(
-				qMax(broadcast->membersCount(), 1),
-				0,
-				false);
-			return TextWithEntities{ .text = result };
-		} else if (auto channel = _peer->asChannel()) {
-			const auto onlineCount = _onlineCount.current();
-			const auto fullCount = qMax(channel->membersCount(), 1);
-			auto result = ChatStatusText(
-				fullCount,
-				onlineCount,
-				channel->isMegagroup());
-			return hasMembersLink
-				? Ui::Text::Link(result)
-				: TextWithEntities{ .text = result };
-		}
-		return tr::lng_chat_status_unaccessible(tr::now, WithEntities);
-	}();
-	_status->setMarkedText(statusText);
-	if (hasMembersLink) {
-		_status->setLink(1, std::make_shared<LambdaClickHandler>([=] {
-			_showSection.fire(Section::Type::Members);
-		}));
-	}
-	refreshStatusGeometry(width());
-}
+
 
 Cover::~Cover() {
 	base::take(_badgeTooltip);

@@ -247,14 +247,11 @@ void InnerWidget::fill() {
 					return _state.buyAdsUrl;
 				})
 			),
-			peer()->isSelf()
-				? rpl::duplicate(overallBalanceValue) | rpl::type_erased()
-				: rpl::duplicate(availableBalanceValue),
+			rpl::duplicate(availableBalanceValue),
 			rpl::duplicate(dateValue),
 			_state.isWithdrawalEnabled,
-			(peer()->isSelf()
-				? rpl::duplicate(overallBalanceValue) | rpl::type_erased()
-				: rpl::duplicate(availableBalanceValue)
+			rpl::duplicate(
+				availableBalanceValue
 			) | rpl::map([=](CreditsAmount v) {
 				return v ? ToUsd(v, multiplier, kMinorLength) : QString();
 			}));

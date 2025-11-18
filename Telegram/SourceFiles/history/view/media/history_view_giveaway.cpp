@@ -128,7 +128,7 @@ auto GenerateGiveawayStart(
 				lt_count,
 				quantity,
 				lt_duration,
-				Ui::Text::Bold(GiftDuration(months)),
+				Ui::Text::Bold(GiftDuration(months * 30)),
 				Ui::Text::RichLangValue),
 			st::chatGiveawayPrizesMargin);
 		pushText(

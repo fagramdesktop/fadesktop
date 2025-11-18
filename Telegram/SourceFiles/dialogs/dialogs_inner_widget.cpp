@@ -338,10 +338,9 @@ InnerWidget::InnerWidget(
 	) | rpl::start_with_next([=](
 			const Data::SendActionManager::AnimationUpdate &update) {
 		const auto updateRect = Ui::RowPainter::SendActionAnimationRect(
-			_st,
-			update.left,
-			update.width,
-			update.height,
+			update.thread,
+			_filterId,
+			update.rect,
 			width(),
 			update.textUpdated);
 		updateDialogRow(
@@ -376,9 +375,6 @@ InnerWidget::InnerWidget(
 	) | rpl::start_with_next([=](bool refreshHeight) {
 		if (refreshHeight) {
 			_chatsFilterTags.clear();
-		}
-		if (refreshHeight && _filterId) {
-			// Height of the main list will be refreshed in other way.
 			_shownList->updateHeights(_narrowRatio);
 		}
 		refreshWithCollapsedRows();
@@ -529,14 +525,25 @@ InnerWidget::InnerWidget(
 	) | rpl::start_with_next([=](
 			RowDescriptor previous,
 			RowDescriptor next) {
-		updateDialogRow(previous);
-		if (const auto sublist = previous.key.sublist()) {
-			updateDialogRow({ { sublist->owningHistory() }, {} });
-		}
-		updateDialogRow(next);
-		if (const auto sublist = next.key.sublist()) {
-			updateDialogRow({ { sublist->owningHistory() }, {} });
-		}
+		const auto update = [&](const RowDescriptor &descriptor) {
+			if (const auto topic = descriptor.key.topic()) {
+				if (_openedForum == topic->forum()) {
+					updateDialogRow(descriptor);
+				} else {
+					updateDialogRow({ { topic->owningHistory() }, {} });
+				}
+			} else if (const auto sublist = descriptor.key.sublist()) {
+				if (_savedSublists == sublist->parent()) {
+					updateDialogRow(descriptor);
+				} else {
+					updateDialogRow({ { sublist->owningHistory() }, {} });
+				}
+			} else {
+				updateDialogRow(descriptor);
+			}
+		};
+		update(previous);
+		update(next);
 	}, lifetime());
 
 	_controller->activeChatsFilter(
@@ -2128,6 +2135,7 @@ bool InnerWidget::addQuickActionRipple(
 	}
 
 	auto name = ResolveQuickDialogLottieIconName(type);
+	const auto rowHeight = row->height();
 	context->icon = Lottie::MakeIcon({
 		.name = std::move(name),
 		.sizeOverride = Size(st::dialogsQuickActionSize),
@@ -2136,16 +2144,12 @@ bool InnerWidget::addQuickActionRipple(
 	context->icon->jumpTo(context->icon->framesCount() - 1, [=] {
 		const auto size = QSize(
 			st::dialogsQuickActionRippleSize,
-			row->height());
-		const auto isRemovingFromList
-			= (action == Dialogs::Ui::QuickDialogAction::Archive);
+			rowHeight);
 		if (!context->ripple) {
 			context->ripple = std::make_unique<Ui::RippleAnimation>(
 				st::defaultRippleAnimation,
 				Ui::RippleAnimation::RectMask(size),
-				isRemovingFromList
-					? Fn<void()>([=] { update(); })
-					: updateCallback);
+				updateCallback);
 		}
 		if (!context->rippleFg) {
 			context->rippleFg = std::make_unique<Ui::RippleAnimation>(
@@ -2162,13 +2166,11 @@ bool InnerWidget::addQuickActionRipple(
 							Rect(size),
 							context->icon.get(),
 							ResolveQuickDialogLabel(
-								row->history(),
+								history,
 								action,
 								_filterId));
 					}),
-				isRemovingFromList
-					? Fn<void()>([=] { update(); })
-					: std::move(updateCallback));
+				std::move(updateCallback));
 		}
 		context->ripple->add(QPoint(size.width() / 2, size.height() / 2));
 		context->rippleFg->add(QPoint(size.width() / 2, size.height() / 2));
@@ -3288,6 +3290,18 @@ void InnerWidget::showSponsoredMenu(int peerSearchIndex, QPoint globalPos) {
 	const auto peer = entry->peer;
 	const auto remove = crl::guard(this, [=] {
 		_sponsoredRemoved.emplace(peer);
+		if (_pressedRightButtonData) {
+			for (const auto &result : _peerSearchResults) {
+				if (result->peer == peer
+					&& result->sponsored
+					&& _pressedRightButtonData
+						== &result->sponsored->button) {
+					_pressedRightButtonData = nullptr;
+					_pressedRightButton = false;
+					break;
+				}
+			}
+		}
 		_peerSearchResults.erase(
 			ranges::remove(
 				_peerSearchResults,
@@ -3616,12 +3630,17 @@ void InnerWidget::clearSearchResults(bool alsoPeerSearchResults) {
 }
 
 void InnerWidget::clearPeerSearchResults() {
-	_peerSearchResults.clear();
-	if (_pressedRightButtonSponsored) {
-		_pressedRightButtonData = nullptr;
-		_pressedRightButtonSponsored = false;
-		_pressedRightButton = false;
+	if (_pressedRightButtonData) {
+		for (const auto &result : _peerSearchResults) {
+			if (result->sponsored
+				&& _pressedRightButtonData == &result->sponsored->button) {
+				_pressedRightButtonData = nullptr;
+				_pressedRightButton = false;
+				break;
+			}
+		}
 	}
+	_peerSearchResults.clear();
 }
 
 void InnerWidget::clearPreviewResults() {
@@ -4184,7 +4203,7 @@ void InnerWidget::refreshEmpty() {
 			_emptyList,
 			{
 				.name = u"no_chats"_q,
-				.sizeOverride = Size(st::changePhoneIconSize),
+				.sizeOverride = st::normalBoxLottieSize,
 			});
 		_emptyList->add(std::move(icon.widget), style::al_top);
 		Ui::AddSkip(_emptyList);

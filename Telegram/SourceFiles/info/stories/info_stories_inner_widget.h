@@ -57,6 +57,8 @@ public:
 		int addingToAlbumId = 0);
 	~InnerWidget();
 
+	[[nodiscard]] rpl::producer<> backRequest() const;
+
 	bool showInternal(not_null<Memento*> memento);
 	void setIsStackBottom(bool isStackBottom) {
 		_isStackBottom = isStackBottom;
@@ -85,6 +87,15 @@ public:
 
 	[[nodiscard]] rpl::producer<int> albumIdChanges() const;
 	[[nodiscard]] rpl::producer<Data::StoryAlbumUpdate> changes() const;
+
+	bool hasFlexibleTopBar() const;
+	base::weak_qptr<Ui::RpWidget> createPinnedToTop(
+		not_null<Ui::RpWidget*> parent);
+	base::weak_qptr<Ui::RpWidget> createPinnedToBottom(
+		not_null<Ui::RpWidget*> parent);
+
+	void enableBackButton();
+	void showFinished();
 
 protected:
 	int resizeGetHeight(int newWidth) override;
@@ -121,6 +132,13 @@ private:
 	void reorderAlbumsLocally(const Ui::SubTabsReorderUpdate &update);
 	void flushAlbumReorder();
 
+	void reorderAlbumStories(
+		int albumId,
+		int oldPosition,
+		int newPosition,
+		Fn<void()> done,
+		Fn<void()> fail);
+
 	const not_null<Controller*> _controller;
 	const not_null<PeerData*> _peer;
 	const int _addingToAlbumId = 0;
@@ -136,6 +154,7 @@ private:
 	base::unique_qptr<Ui::PopupMenu> _menu;
 	std::unique_ptr<MTP::Sender> _api;
 	mtpRequestId _reorderRequestId = 0;
+	mtpRequestId _reorderStoriesRequestId = 0;
 
 	object_ptr<Ui::VerticalLayout> _top = { nullptr };
 	object_ptr<Media::ListWidget> _list = { nullptr };
@@ -151,6 +170,11 @@ private:
 	rpl::event_stream<rpl::producer<int>> _listTops;
 	rpl::variable<int> _topHeight;
 	rpl::variable<bool> _albumEmpty;
+
+	rpl::variable<bool> _backToggles;
+	rpl::event_stream<> _backClicks;
+	rpl::event_stream<> _showFinished;
+	rpl::variable<std::optional<QColor>> _topBarColor;
 
 };
 

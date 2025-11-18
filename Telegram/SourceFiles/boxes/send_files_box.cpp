@@ -747,7 +747,9 @@ void SendFilesBox::refreshButtons() {
 			_send,
 			_show,
 			_sendMenuDetails,
-			_sendMenuCallback);
+			_sendMenuCallback,
+			&_st.tabbed.menu,
+			&_st.tabbed.icons);
 	}
 	addButton(tr::lng_cancel(), [=] { closeBox(); });
 	_addFile = addLeftButton(

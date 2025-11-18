@@ -37,7 +37,7 @@ Viewport::RendererSW::RendererSW(not_null<Viewport*> owner)
 }
 
 void Viewport::RendererSW::paintFallback(
-		Painter &&p,
+		Painter &p,
 		const QRegion &clip,
 		Ui::GL::Backend backend) {
 	auto bg = clip;
@@ -53,7 +53,9 @@ void Viewport::RendererSW::paintFallback(
 		paintTile(p, tile.get(), bounding, bg);
 	}
 	const auto fullscreen = _owner->_fullscreen;
-	const auto color = fullscreen ? QColor(0, 0, 0) : st::groupCallBg->c;
+	const auto color = fullscreen
+		? QColor(0, 0, 0)
+		: st::groupCallBg->c;
 	for (const auto &rect : bg) {
 		p.fillRect(rect, color);
 	}
@@ -129,7 +131,8 @@ void Viewport::RendererSW::paintTile(
 	};
 
 	using namespace Media::View;
-	const auto geometry = tile->geometry();
+	const auto geometry = tile->geometry().translated(
+		_owner->borrowedOrigin());
 	const auto x = geometry.x();
 	const auto y = geometry.y();
 	const auto width = geometry.width();

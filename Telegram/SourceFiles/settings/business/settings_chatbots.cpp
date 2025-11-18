@@ -468,6 +468,7 @@ void Chatbots::setupContent() {
 		content,
 		tr::lng_chatbots_add_about(),
 		st::peerAppearanceDividerTextMargin,
+		st::defaultDividerLabel,
 		RectPart::Top);
 
 	_detailsWrap = content->add(object_ptr<Ui::VerticalLayout>(content));

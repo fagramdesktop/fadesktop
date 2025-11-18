@@ -132,27 +132,36 @@ QBrush PeerListStoriesGradient(const style::PeerList &st) {
 }
 
 std::vector<Ui::OutlineSegment> PeerListStoriesSegments(
-		int count,
-		int unread,
+		PeerListStoriesCounts counts,
 		const QBrush &unreadBrush) {
-	Expects(unread <= count);
-	Expects(count > 0);
+	Expects(counts.unread <= counts.count);
+	Expects(counts.count > 0);
 
 	auto result = std::vector<Ui::OutlineSegment>();
 	const auto add = [&](bool unread) {
 		result.push_back({
-			.brush = unread ? unreadBrush : st::dialogsUnreadBgMuted->b,
+			.brush = (counts.videoStream
+				? st::attentionButtonFg->b
+				: unread
+				? unreadBrush
+				: st::dialogsUnreadBgMuted->b),
 			.width = (unread
 				? st::dialogsStoriesFull.lineTwice / 2.
 				: st::dialogsStoriesFull.lineReadTwice / 2.),
 		});
 	};
-	result.reserve(count);
-	for (auto i = 0, till = count - unread; i != till; ++i) {
-		add(false);
-	}
-	for (auto i = 0; i != unread; ++i) {
+	if (counts.videoStream) {
 		add(true);
+	} else {
+		const auto count = counts.count;
+		const auto unread = counts.unread;
+		result.reserve(count);
+		for (auto i = 0, till = count - unread; i != till; ++i) {
+			add(false);
+		}
+		for (auto i = 0; i != unread; ++i) {
+			add(true);
+		}
 	}
 	return result;
 }
@@ -521,18 +530,15 @@ void PeerListStories::updateColors() {
 	for (auto i = begin(_counts); i != end(_counts); ++i) {
 		if (const auto row = _delegate->peerListFindRow(i->first)) {
 			if (i->second.count >= 0 && i->second.unread >= 0) {
-				applyForRow(row, i->second.count, i->second.unread, true);
+				applyForRow(row, i->second, true);
 			}
 		}
 	}
 }
 
-void PeerListStories::updateFor(
-		uint64 id,
-		int count,
-		int unread) {
+void PeerListStories::updateFor(uint64 id, Counts counts) {
 	if (const auto row = _delegate->peerListFindRow(id)) {
-		applyForRow(row, count, unread);
+		applyForRow(row, counts);
 		_delegate->peerListUpdateRow(row);
 	}
 }
@@ -550,11 +556,14 @@ void PeerListStories::process(not_null<PeerListRow*> row) {
 		? 1
 		: 0;
 	const auto unread = source
-		? source->info().unreadCount
+		? int(source->info().unreadCount)
 		: user->hasUnreadStories()
 		? 1
 		: 0;
-	applyForRow(row, count, unread, true);
+	const auto videoStream = source
+		? bool(source->info().hasVideoStream)
+		: user->hasActiveVideoStream();
+	applyForRow(row, { count, unread, videoStream }, true);
 }
 
 bool PeerListStories::handleClick(not_null<PeerData*> peer) {
@@ -597,25 +606,28 @@ void PeerListStories::prepare(not_null<PeerListDelegate*> delegate) {
 		const auto info = source
 			? source->info()
 			: Data::StoriesSourceInfo();
-		updateFor(id.value, info.count, info.unreadCount);
+		updateFor(id.value, {
+			int(info.count),
+			int(info.unreadCount),
+			bool(info.hasVideoStream),
+		});
 	}, _lifetime);
 }
 
 void PeerListStories::applyForRow(
 		not_null<PeerListRow*> row,
-		int count,
-		int unread,
+		Counts counts,
 		bool force) {
-	auto &counts = _counts[row->id()];
-	if (!force && counts.count == count && counts.unread == unread) {
+	auto &existing = _counts[row->id()];
+	if (!force && existing == counts) {
 		return;
 	}
-	counts.count = count;
-	counts.unread = unread;
-	_delegate->peerListSetRowChecked(row, count > 0);
-	if (count > 0) {
+	existing = counts;
+	_delegate->peerListSetRowChecked(row, counts.count > 0);
+	if (counts.count > 0) {
 		row->setCustomizedCheckSegments(
-			PeerListStoriesSegments(count, unread, _unreadBrush));
+			PeerListStoriesSegments(counts, _unreadBrush),
+			counts.videoStream);
 	}
 }
 

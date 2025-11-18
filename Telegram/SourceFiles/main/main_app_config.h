@@ -14,6 +14,11 @@ namespace Ui {
 struct ColorIndicesCompressed;
 } // namespace Ui
 
+namespace Calls::Group::Ui {
+using namespace ::Ui;
+struct StarsColoring;
+} // namespace Calls::Group::Ui
+
 namespace Main {
 
 class Account;
@@ -118,6 +123,9 @@ public:
 	[[nodiscard]] int groupCallMessageLengthLimit() const;
 	[[nodiscard]] TimeId groupCallMessageTTL() const;
 
+	using StarsColoring = Calls::Group::Ui::StarsColoring;
+	[[nodiscard]] std::vector<StarsColoring> groupCallColorings() const;
+
 	void refresh(bool force = false);
 
 private:
@@ -161,6 +169,8 @@ private:
 	rpl::event_stream<std::vector<QString>> _ignoreRestrictionChanges;
 
 	std::vector<QString> _startRefPrefixes;
+
+	mutable std::vector<StarsColoring> _groupCallColorings;
 
 	crl::time _lastFrozenRefresh = 0;
 	rpl::lifetime _frozenTrackLifetime;

@@ -211,7 +211,7 @@ void AddReportDetailsIconButton(not_null<GenericBox*> box) {
 		box->verticalLayout(),
 		{
 			.name = u"blocked_peers_empty"_q,
-			.sizeOverride = Size(st::changePhoneIconSize),
+			.sizeOverride = st::normalBoxLottieSize,
 		},
 		{});
 	box->setShowFinishedCallback([animate = std::move(icon.animate)] {

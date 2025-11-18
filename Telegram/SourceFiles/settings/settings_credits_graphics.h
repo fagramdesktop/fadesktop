@@ -76,14 +76,16 @@ void FillCreditOptions(
 	Fn<void()> paid,
 	rpl::producer<> showFinishes,
 	rpl::producer<QString> subtitle,
-	std::vector<Data::CreditTopupOption> preloadedTopupOptions);
+	std::vector<Data::CreditTopupOption> preloadedTopupOptions,
+	bool dark = false);
 
 [[nodiscard]] not_null<Ui::RpWidget*> AddBalanceWidget(
 	not_null<Ui::RpWidget*> parent,
 	not_null<Main::Session*> session,
 	rpl::producer<CreditsAmount> balanceValue,
 	bool rightAlign,
-	rpl::producer<float64> opacityValue = nullptr);
+	rpl::producer<float64> opacityValue = nullptr,
+	bool dark = false);
 
 void AddWithdrawalWidget(
 	not_null<Ui::VerticalLayout*> container,
@@ -232,6 +234,9 @@ struct SmallBalanceBot {
 struct SmallBalanceReaction {
 	ChannelId channelId = 0;
 };
+struct SmallBalanceVideoStream {
+	PeerId streamerId = 0;
+};
 struct SmallBalanceSubscription {
 	QString name;
 };
@@ -252,6 +257,7 @@ struct SmallBalanceForSearch {
 struct SmallBalanceSource : std::variant<
 	SmallBalanceBot,
 	SmallBalanceReaction,
+	SmallBalanceVideoStream,
 	SmallBalanceSubscription,
 	SmallBalanceDeepLink,
 	SmallBalanceStarGift,

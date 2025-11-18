@@ -862,9 +862,7 @@ ColorIndexValues ChatStyle::computeColorIndexValues(
 	}
 	const auto color = [&](int index) {
 		const auto v = colors[index];
-		return v
-			? QColor((v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF)
-			: QColor(0, 0, 0, 0);
+		return v ? Ui::ColorFromSerialized(v) : QColor(0, 0, 0, 0);
 	};
 	auto result = ColorIndexValues{
 		.outlines = { color(0), color(1), color(2) }

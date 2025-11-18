@@ -23,12 +23,14 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "mtproto/mtproto_dc_options.h"
 #include "data/business/data_shortcut_messages.h"
 #include "data/components/credits.h"
+#include "data/components/gift_auctions.h"
 #include "data/components/promo_suggestions.h"
 #include "data/components/scheduled_messages.h"
 #include "data/components/top_peers.h"
 #include "data/notify/data_notify_settings.h"
 #include "data/stickers/data_stickers.h"
 #include "data/data_saved_messages.h"
+#include "data/data_saved_sublist.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
 #include "data/data_chat.h"
@@ -42,6 +44,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_histories.h"
 #include "data/data_folder.h"
 #include "data/data_forum.h"
+#include "data/data_forum_topic.h"
 #include "data/data_send_action.h"
 #include "data/data_stories.h"
 #include "data/data_message_reactions.h"
@@ -1234,7 +1237,8 @@ void Updates::applyUpdatesNoPtsCheck(const MTPUpdates &updates) {
 				MTPFactCheck(),
 				MTPint(), // report_delivery_until_date
 				MTPlong(), // paid_message_stars
-				MTPSuggestedPost()),
+				MTPSuggestedPost(),
+				MTPint()), // schedule_repeat_period
 			MessageFlags(),
 			NewMessageType::Unread);
 	} break;
@@ -1274,7 +1278,8 @@ void Updates::applyUpdatesNoPtsCheck(const MTPUpdates &updates) {
 				MTPFactCheck(),
 				MTPint(), // report_delivery_until_date
 				MTPlong(), // paid_message_stars
-				MTPSuggestedPost()),
+				MTPSuggestedPost(),
+				MTPint()), // schedule_repeat_period
 			MessageFlags(),
 			NewMessageType::Unread);
 	} break;
@@ -1698,13 +1703,21 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 								local->history()->peer,
 								local->date());
 						}
-						local->setRealId(d.vid().v);
+						local->setRealId(newId);
+						if (const auto topic = local->topic()) {
+							topic->applyMaybeLast(local);
+						}
+						if (const auto sublist = local->savedSublist()) {
+							sublist->applyMaybeLast(local);
+						}
 					}
 				}
 			} else {
 				owner.histories().checkTopicCreated(id, newId);
 			}
 			session().data().unregisterMessageRandomId(randomId);
+		} else {
+			Core::App().calls().handleUpdate(&session(), update);
 		}
 		session().data().unregisterMessageSentData(randomId);
 	} break;
@@ -2141,7 +2154,8 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 	case mtpc_updateGroupCallConnection:
 	case mtpc_updateGroupCall:
 	case mtpc_updateGroupCallMessage:
-	case mtpc_updateGroupCallEncryptedMessage: {
+	case mtpc_updateGroupCallEncryptedMessage:
+	case mtpc_updateDeleteGroupCallMessages: {
 		Core::App().calls().handleUpdate(&session(), update);
 	} break;
 
@@ -2784,6 +2798,15 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 			Api::ParsePaidReactionShownPeer(_session, data.vprivate()));
 	} break;
 
+	case mtpc_updateStarGiftAuctionState: {
+		const auto &data = update.c_updateStarGiftAuctionState();
+		_session->giftAuctions().apply(data);
+	} break;
+
+	case mtpc_updateStarGiftAuctionUserState: {
+		const auto &data = update.c_updateStarGiftAuctionUserState();
+		_session->giftAuctions().apply(data);
+	} break;
 	}
 }
 

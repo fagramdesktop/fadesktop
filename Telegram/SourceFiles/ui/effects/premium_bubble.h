@@ -8,6 +8,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #pragma once
 
 #include "ui/effects/numbers_animation.h"
+#include "ui/effects/ministar_particles.h"
 #include "ui/rp_widget.h"
 
 enum lngtag_count : int;
@@ -56,11 +57,13 @@ public:
 	[[nodiscard]] int bubbleRadius() const;
 	[[nodiscard]] int countMaxWidth(int maxPossibleCounter) const;
 	[[nodiscard]] int countTargetWidth(int targetCounter) const;
+	[[nodiscard]] QRect bubbleGeometry(const QRect &r) const;
 
 	void setCounter(int value);
 	void setTailEdge(EdgeProgress edge);
 	void setFlipHorizontal(bool value);
 	void paintBubble(QPainter &p, const QRect &r, const QBrush &brush);
+	[[nodiscard]] QPainterPath bubblePath(const QRect &r) const;
 
 	[[nodiscard]] rpl::producer<> widthChanges() const;
 
@@ -115,10 +118,15 @@ public:
 		const style::icon *icon,
 		const style::margins &outerPadding);
 
+	void setBrushOverride(std::optional<QBrush> brushOverride);
+
 protected:
 	void paintEvent(QPaintEvent *e) override;
+	void resizeEvent(QResizeEvent *e) override;
 
 private:
+	void setupParticles(not_null<Ui::RpWidget*> parent);
+
 	struct GradientParams {
 		int left = 0;
 		int width = 0;
@@ -136,6 +144,7 @@ private:
 	float64 _animatingFromBubbleEdge = 0.;
 	rpl::variable<BubbleRowState> _state;
 	Bubble _bubble;
+	std::optional<QBrush> _brushOverride;
 	const BubbleType _type;
 	const style::margins _outerPadding;
 
@@ -151,9 +160,13 @@ private:
 	float64 _stepBeforeDeflection;
 	float64 _stepAfterDeflection;
 
+	RpWidget *_particlesWidget = nullptr;
+	std::optional<StarParticles> _particles;
+	Ui::Animations::Basic _particlesAnimation;
+
 };
 
-void AddBubbleRow(
+not_null<BubbleWidget*> AddBubbleRow(
 	not_null<Ui::VerticalLayout*> parent,
 	const style::PremiumBubble &st,
 	rpl::producer<> showFinishes,
@@ -164,7 +177,7 @@ void AddBubbleRow(
 	std::optional<tr::phrase<lngtag_count>> phrase,
 	const style::icon *icon);
 
-void AddBubbleRow(
+not_null<BubbleWidget*> AddBubbleRow(
 	not_null<Ui::VerticalLayout*> parent,
 	const style::PremiumBubble &st,
 	rpl::producer<> showFinishes,

@@ -7,10 +7,13 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_paid_reaction_toast.h"
 
+#include "calls/group/calls_group_call.h"
+#include "calls/group/calls_group_messages.h"
 #include "chat_helpers/stickers_lottie.h"
 #include "data/data_document.h"
 #include "data/data_document_media.h"
 #include "data/data_message_reactions.h"
+#include "data/data_peer.h"
 #include "data/data_session.h"
 #include "history/view/history_view_element.h"
 #include "history/history_item.h"
@@ -152,6 +155,22 @@ PaidReactionToast::PaidReactionToast(
 	}, _lifetime);
 }
 
+PaidReactionToast::PaidReactionToast(
+	not_null<Ui::RpWidget*> parent,
+	not_null<Data::Session*> owner,
+	rpl::producer<int> topOffset,
+	Fn<bool(not_null<Calls::GroupCall*> call)> mine)
+: _parent(parent)
+, _owner(owner)
+, _topOffset(std::move(topOffset)) {
+	_owner->callPaidReactionSent(
+	) | rpl::filter(
+		std::move(mine)
+	) | rpl::start_with_next([=](not_null<Calls::GroupCall*> call) {
+		maybeShowFor(call);
+	}, _lifetime);
+}
+
 PaidReactionToast::~PaidReactionToast() {
 	_hiding.push_back(_weak);
 	for (const auto &weak : base::take(_hiding)) {
@@ -159,6 +178,17 @@ PaidReactionToast::~PaidReactionToast() {
 			delete strong->widget();
 		}
 	}
+}
+
+rpl::producer<FullMsgId> PaidReactionToast::shownForId() const {
+	return _shownForId.value();
+}
+
+rpl::producer<Calls::GroupCall*> PaidReactionToast::shownForCall() const {
+	return shownForId() | rpl::map([=](FullMsgId id) {
+		const auto i = _idsForCalls.find(id);
+		return (i != end(_idsForCalls)) ? i->second.get() : nullptr;
+	});
 }
 
 bool PaidReactionToast::maybeShowFor(not_null<HistoryItem*> item) {
@@ -174,6 +204,22 @@ bool PaidReactionToast::maybeShowFor(not_null<HistoryItem*> item) {
 		return false;
 	}
 	showFor(item->fullId(), count, shownPeer, at - ignore, total);
+	return true;
+}
+
+bool PaidReactionToast::maybeShowFor(not_null<Calls::GroupCall*> call) {
+	const auto count = call->messages()->reactionsPaidScheduled();
+	const auto shownPeer = call->messagesFrom()->id;
+	const auto at = _owner->reactions().sendingScheduledPaidAt(call);
+	if (!count || !at) {
+		return false;
+	}
+	const auto total = Data::Reactions::ScheduledPaidDelay();
+	const auto ignore = total % 1000;
+	if (at <= crl::now() + ignore) {
+		return false;
+	}
+	showFor(idForCall(call), count, shownPeer, at - ignore, total);
 	return true;
 }
 
@@ -259,11 +305,16 @@ void PaidReactionToast::showFor(
 	if (!strong) {
 		return;
 	}
+
+	_shownForId = itemId;
 	const auto widget = strong->widget();
 	const auto hideToast = [=, weak = _weak] {
 		if (const auto strong = weak.get()) {
 			if (strong == _weak.get()) {
 				_stack.erase(ranges::remove(_stack, itemId), end(_stack));
+				if (_shownForId.current() == itemId) {
+					_shownForId = FullMsgId();
+				}
 
 				_hiding.push_back(base::take(_weak));
 				strong->hideAnimated();
@@ -274,6 +325,9 @@ void PaidReactionToast::showFor(
 							break;
 						}
 					}
+					if (_shownForId.current() == _stack.back()) {
+						_shownForId = FullMsgId();
+					}
 					_stack.pop_back();
 				}
 			}
@@ -281,7 +335,12 @@ void PaidReactionToast::showFor(
 	};
 
 	const auto undo = [=] {
-		if (const auto item = _owner->message(itemId)) {
+		const auto i = _idsForCalls.find(itemId);
+		if (i != end(_idsForCalls)) {
+			if (const auto strong = i->second.get()) {
+				_owner->reactions().undoScheduledPaid(strong);
+			}
+		} else if (const auto item = _owner->message(itemId)) {
 			_owner->reactions().undoScheduledPaid(item);
 		}
 		hideToast();
@@ -310,6 +369,24 @@ void PaidReactionToast::showFor(
 	preview->show();
 
 	setupLottiePreview(preview, size);
+}
+
+FullMsgId PaidReactionToast::idForCall(not_null<Calls::GroupCall*> call) {
+	for (auto i = begin(_idsForCalls); i != end(_idsForCalls);) {
+		const auto strong = i->second.get();
+		if (strong == call) {
+			return i->first;
+		} else if (!strong) {
+			i = _idsForCalls.erase(i);
+		} else {
+			++i;
+		}
+	}
+	const auto itemId = FullMsgId(
+		call->peer()->id,
+		call->peer()->owner().nextLocalMessageId());
+	_idsForCalls.emplace(itemId, call);
+	return itemId;
 }
 
 void PaidReactionToast::clearHiddenHiding() {

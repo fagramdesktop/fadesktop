@@ -46,7 +46,9 @@ struct MessagePosition;
 struct Draft;
 class DraftKey;
 class PhotoMedia;
+class GroupCall;
 struct WebPageDraft;
+struct MessageReactionsTopPaid;
 } // namespace Data
 
 namespace InlineBots {
@@ -59,6 +61,7 @@ struct ResultSelected;
 } // namespace InlineBots
 
 namespace Ui {
+class AbstractButton;
 class SendButton;
 class IconButton;
 class EmojiButton;
@@ -66,6 +69,7 @@ class SendAsButton;
 class SilentToggle;
 class DropdownMenu;
 struct PreparedList;
+struct SendStarButtonState;
 } // namespace Ui
 
 namespace Ui::Emoji {
@@ -74,6 +78,7 @@ class SuggestionsController;
 
 namespace Main {
 class Session;
+struct SendAsKey;
 } // namespace Main
 
 namespace Webrtc {
@@ -137,6 +142,7 @@ public:
 	using ReplyNextRequest = Controls::ReplyNextRequest;
 	using FieldHistoryAction = Ui::InputField::HistoryAction;
 	using Mode = ComposeControlsMode;
+	using ToggleCommentsState = Controls::ToggleCommentsState;
 
 	ComposeControls(
 		not_null<Ui::RpWidget*> parent,
@@ -145,6 +151,7 @@ public:
 
 	[[nodiscard]] Main::Session &session() const;
 	void setHistory(SetHistoryArgs &&args);
+	void updateFeatures(ChatHelpers::ComposeFeatures features);
 	void updateTopicRootId(MsgId topicRootId);
 	void updateShortcutId(BusinessShortcutId shortcutId);
 	void setCurrentDialogsEntryState(Dialogs::EntryState state);
@@ -157,6 +164,21 @@ public:
 	void setAutocompleteBoundingRect(QRect rect);
 	[[nodiscard]] rpl::producer<int> height() const;
 	[[nodiscard]] int heightCurrent() const;
+
+	void setupCommentsShownNewDot();
+	void setToggleCommentsButton(rpl::producer<ToggleCommentsState> state);
+	[[nodiscard]] rpl::producer<> commentsShownToggles() const;
+	void setStarsReactionCounter(
+		rpl::producer<Ui::SendStarButtonState> count);
+	using StarReactionTop = Data::MessageReactionsTopPaid;
+	void setStarsReactionTop(
+		rpl::producer<std::vector<StarReactionTop>> top);
+	struct StarReactionIncrement {
+		int count = 0;
+		bool fromBox = false;
+	};
+	[[nodiscard]] auto starsReactionIncrements() const
+		-> rpl::producer<StarReactionIncrement>;
 
 	bool focus();
 	[[nodiscard]] bool focused() const;
@@ -228,6 +250,9 @@ public:
 	void hidePanelsAnimated();
 	void clearListenState();
 
+	void clearChosenStarsForMessage();
+	[[nodiscard]] int chosenStarsForMessage() const;
+
 	void hide();
 	void show();
 
@@ -239,7 +264,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> recordingActiveValue() const;
 	[[nodiscard]] rpl::producer<bool> hasSendTextValue() const;
 	[[nodiscard]] rpl::producer<bool> fieldMenuShownValue() const;
-	[[nodiscard]] not_null<Ui::RpWidget*> likeAnimationTarget() const;
+	[[nodiscard]] Ui::RpWidget *likeAnimationTarget() const;
 	[[nodiscard]] int fieldCharacterCount() const;
 
 	[[nodiscard]] TextWithEntities prepareTextForEditMsg() const;
@@ -273,16 +298,21 @@ private:
 	void initFieldAutocomplete();
 	void initTabbedSelector();
 	void initSendButton();
-	void initSendAsButton(not_null<PeerData*> peer);
+	void initSendAsButton(
+		not_null<PeerData*> peer,
+		std::shared_ptr<Data::GroupCall> videoStream);
 	void initWebpageProcess();
 	void initForwardProcess();
 	void initWriteRestriction();
 	void initVoiceRecordBar();
 	void initKeyHandler();
+	void initLikeButton();
+	void initEditStarsButton();
+	void updateLikeParent();
 	void updateSubmitSettings();
 	void updateSendButtonType();
 	void updateMessagesTTLShown();
-	bool updateSendAsButton();
+	bool updateSendAsButton(std::shared_ptr<Data::GroupCall> videoStream);
 	void updateAttachBotsMenu();
 	void updateHeight();
 	void updateWrappingVisibility();
@@ -299,6 +329,7 @@ private:
 
 	[[nodiscard]] auto sendContentRequests(
 		SendRequestType requestType = SendRequestType::Text) const;
+	void editStarsFrom(int selected = 0);
 
 	void orderControls();
 	void updateFieldPlaceholder();
@@ -311,7 +342,9 @@ private:
 	void createTabbedPanel();
 	void setTabbedPanel(std::unique_ptr<ChatHelpers::TabbedPanel> panel);
 
-	bool showRecordButton() const;
+	[[nodiscard]] bool showRecordButton() const;
+	[[nodiscard]] bool showEditStarsButton() const;
+	[[nodiscard]] int shownStarsPerMessage() const;
 	bool updateBotCommandShown();
 	bool updateLikeShown();
 
@@ -354,7 +387,7 @@ private:
 	void checkCharsLimitation();
 
 	const style::ComposeControls &_st;
-	const ChatHelpers::ComposeFeatures _features;
+	ChatHelpers::ComposeFeatures _features;
 	const not_null<QWidget*> _parent;
 	const not_null<QWidget*> _panelsParent;
 	const std::shared_ptr<ChatHelpers::Show> _show;
@@ -385,8 +418,14 @@ private:
 	std::optional<Ui::RoundRect> _backgroundRect;
 
 	const std::shared_ptr<Ui::SendButton> _send;
-	Ui::IconButton * const _like = nullptr;
-	const not_null<Ui::IconButton*> _attachToggle;
+	Ui::IconButton *_editStars = nullptr;
+	Ui::IconButton *_like = nullptr;
+	rpl::variable<int> _minStarsCount;
+	std::optional<int> _chosenStarsCount;
+	Ui::IconButton *_commentsShown = nullptr;
+	Ui::RpWidget *_commentsShownNewDot = nullptr;
+	Ui::IconButton *_attachToggle = nullptr;
+	Ui::AbstractButton *_starsReaction = nullptr;
 	std::unique_ptr<Ui::IconButton> _replaceMedia;
 	const not_null<Ui::EmojiButton*> _tabbedSelectorToggle;
 	rpl::producer<QString> _fieldCustomPlaceholder;
@@ -425,6 +464,9 @@ private:
 	rpl::event_stream<ReplyNextRequest> _replyNextRequests;
 	rpl::event_stream<> _focusRequests;
 	rpl::event_stream<> _showScheduledRequests;
+	rpl::event_stream<> _commentsShownToggles;
+	rpl::event_stream<StarReactionIncrement> _starsReactionIncrements;
+	rpl::variable<std::vector<StarReactionTop>> _starsReactionTop;
 	rpl::variable<bool> _recording;
 	rpl::variable<bool> _hasSendText;
 

@@ -170,10 +170,7 @@ void Blocked::setupContent() {
 			content,
 			{
 				.name = u"blocked_peers_empty"_q,
-				.sizeOverride = {
-					st::changePhoneIconSize,
-					st::changePhoneIconSize,
-				},
+				.sizeOverride = st::normalBoxLottieSize,
 			},
 			st::settingsBlockedListIconPadding);
 		content->add(std::move(icon.widget));

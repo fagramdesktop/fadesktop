@@ -28,6 +28,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "styles/style_boxes.h"
 #include "styles/style_layers.h"
 #include "styles/style_calls.h"
+#include "styles/style_chat_helpers.h"
 
 namespace Calls::Group {
 namespace {
@@ -224,7 +225,7 @@ void ChooseJoinAsBox(
 			&st::groupCallMultiSelect);
 	} else {
 		controller->setStyleOverrides(
-			&st::peerListJoinAsList,
+			&st::defaultChooseSendAs.list,
 			nullptr);
 	}
 	const auto content = box->addRow(

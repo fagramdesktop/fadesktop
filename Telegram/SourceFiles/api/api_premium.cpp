@@ -36,7 +36,7 @@ namespace {
 		.giveawayId = data.vgiveaway_msg_id().value_or_empty(),
 		.date = data.vdate().v,
 		.used = data.vused_date().value_or_empty(),
-		.months = data.vmonths().v,
+		.days = data.vdays().v,
 		.giveaway = data.is_via_giveaway(),
 	};
 }
@@ -858,6 +858,8 @@ std::optional<Data::StarGift> FromTL(
 			.releasedBy = releasedBy,
 			.resellTitle = qs(data.vtitle().value_or_empty()),
 			.resellCount = int(data.vavailability_resale().value_or_empty()),
+			.auctionSlug = qs(data.vauction_slug().value_or_empty()),
+			.auctionGiftsPerRound = data.vgifts_per_round().value_or_empty(),
 			.limitedLeft = remaining.value_or_empty(),
 			.limitedCount = total.value_or_empty(),
 			.perUserTotal = data.vper_user_total().value_or_empty(),

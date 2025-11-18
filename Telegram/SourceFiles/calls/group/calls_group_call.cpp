@@ -582,7 +582,7 @@ GroupCall::GroupCall(
 	StartConferenceInfo info)
 : GroupCall(delegate, Group::JoinInfo{
 	.peer = info.call ? info.call->peer() : info.show->session().user(),
-	.joinAs = info.call ? info.call->peer() : info.show->session().user(),
+	.joinAs = info.show ? info.show->session().user() : info.call->peer(),
 }, info, info.call
 	? info.call->input()
 	: MTP_inputGroupCall(MTP_long(0), MTP_long(0))) {
@@ -591,10 +591,10 @@ GroupCall::GroupCall(
 GroupCall::GroupCall(
 	not_null<Delegate*> delegate,
 	Group::JoinInfo join,
-	StartConferenceInfo conference,
+	StartConferenceInfo startInfo,
 	const MTPInputGroupCall &inputCall)
 : _delegate(delegate)
-, _conferenceCall(std::move(conference.call))
+, _sharedCall(std::move(startInfo.call))
 , _peer(join.peer)
 , _history(_peer->owner().history(_peer))
 , _api(&_peer->session().mtp())
@@ -602,8 +602,8 @@ GroupCall::GroupCall(
 , _joinAs(join.joinAs)
 , _possibleJoinAs(std::move(join.possibleJoinAs))
 , _joinHash(join.joinHash)
-, _conferenceLinkSlug(conference.linkSlug)
-, _conferenceJoinMessageId(conference.joinMessageId)
+, _conferenceLinkSlug(startInfo.linkSlug)
+, _conferenceJoinMessageId(startInfo.joinMessageId)
 , _rtmpUrl(join.rtmpInfo.url)
 , _rtmpKey(join.rtmpInfo.key)
 , _canManage(Data::CanManageGroupCallValue(_peer))
@@ -630,7 +630,7 @@ GroupCall::GroupCall(
 , _connectingSoundTimer([=] { playConnectingSoundOnce(); })
 , _listenersHidden(join.rtmp)
 , _rtmp(join.rtmp)
-, _rtmpVolume(Group::kDefaultVolume) {
+, _singleSourceVolume(Group::kDefaultVolume) {
 	applyInputCall(inputCall);
 
 	_muted.value(
@@ -664,7 +664,7 @@ GroupCall::GroupCall(
 		if (!canManage() && real->joinMuted()) {
 			_muted = MuteState::ForceMuted;
 		}
-	} else if (!conference.migrating && !conference.show) {
+	} else if (!startInfo.migrating && !startInfo.show) {
 		_peer->session().changes().peerFlagsValue(
 			_peer,
 			Data::PeerUpdate::Flag::GroupCall
@@ -684,21 +684,21 @@ GroupCall::GroupCall(
 
 	setupMediaDevices();
 	setupOutgoingVideo();
-	if (_conferenceCall) {
+	if (_sharedCall && conference()) {
 		setupConferenceCall();
 		initConferenceE2E();
-	} else if (conference.migrating || conference.show) {
+	} else if (!_sharedCall && (startInfo.migrating || startInfo.show)) {
 		initConferenceE2E();
 	}
-	if (conference.migrating || (conference.show && !_conferenceCall)) {
-		if (!conference.muted) {
+	if (startInfo.migrating || (startInfo.show && !_sharedCall)) {
+		if (!startInfo.muted) {
 			setMuted(MuteState::Active);
 		}
 		_startConferenceInfo = std::make_shared<StartConferenceInfo>(
-			std::move(conference));
+			std::move(startInfo));
 	}
 
-	if (_id || (!_conferenceCall && _startConferenceInfo)) {
+	if (_id || (!_sharedCall && _startConferenceInfo)) {
 		initialJoin();
 	} else {
 		start(join.scheduleDate, join.rtmp);
@@ -750,6 +750,7 @@ GroupCall::~GroupCall() {
 	if (!_rtmp) {
 		Core::App().mediaDevices().setCaptureMuteTracker(this, false);
 	}
+	_messages->undoScheduledPaidOnDestroy();
 }
 
 void GroupCall::initConferenceE2E() {
@@ -788,16 +789,16 @@ void GroupCall::initConferenceE2E() {
 }
 
 void GroupCall::setupConferenceCall() {
-	Expects(_conferenceCall != nullptr);
+	Expects(_sharedCall != nullptr);
 
-	_conferenceCall->staleParticipantIds(
+	_sharedCall->staleParticipantIds(
 	) | rpl::start_with_next([=](const base::flat_set<UserId> &staleIds) {
 		removeConferenceParticipants(staleIds, true);
 	}, _lifetime);
 }
 
 void GroupCall::trackParticipantsWithAccess() {
-	if (!_conferenceCall || !_e2e) {
+	if (!_sharedCall || !_e2e) {
 		return;
 	}
 
@@ -808,7 +809,7 @@ void GroupCall::trackParticipantsWithAccess() {
 		for (const auto &id : set.list) {
 			users.emplace(UserId(id.v));
 		}
-		_conferenceCall->setParticipantsWithAccess(std::move(users));
+		_sharedCall->setParticipantsWithAccess(std::move(users));
 	}, _e2e->lifetime());
 }
 
@@ -959,7 +960,7 @@ void GroupCall::setScheduledDate(TimeId date) {
 }
 
 void GroupCall::setMessagesEnabled(bool enabled) {
-	_messagesEnabled = enabled && !_rtmp;
+	_messagesEnabled = enabled && (!_rtmp || videoStream());
 }
 
 void GroupCall::subscribeToReal(not_null<Data::GroupCall*> real) {
@@ -1198,8 +1199,18 @@ void GroupCall::playConnectingSoundOnce() {
 	_delegate->groupCallPlaySound(Delegate::GroupCallSound::Connecting);
 }
 
+not_null<PeerData*> GroupCall::messagesFrom() const {
+	if (!videoStream()) {
+		return joinAs();
+	} else if (const auto real = lookupReal()) {
+		return real->resolveSendAs();
+	}
+	return _peer->session().user();
+}
+
 bool GroupCall::showChooseJoinAs() const {
 	return !_rtmp
+		&& !videoStream()
 		&& ((_possibleJoinAs.size() > 1)
 			|| (_possibleJoinAs.size() == 1
 				&& !_possibleJoinAs.front()->isSelf()));
@@ -1217,7 +1228,28 @@ bool GroupCall::rtmp() const {
 }
 
 bool GroupCall::conference() const {
-	return _conferenceCall || _startConferenceInfo;
+	if (const auto raw = _sharedCall.get()) {
+		return (raw->origin() == Data::GroupCallOrigin::Conference);
+	} else if (_startConferenceInfo.get()) {
+		return true;
+	}
+	return false;
+}
+
+bool GroupCall::videoStream() const {
+	if (const auto raw = _sharedCall.get()) {
+		return (raw->origin() == Data::GroupCallOrigin::VideoStream);
+	}
+	return false;
+}
+
+Data::GroupCallOrigin GroupCall::origin() const {
+	if (const auto raw = _sharedCall.get()) {
+		return raw->origin();
+	} else if (_startConferenceInfo.get()) {
+		return Data::GroupCallOrigin::Conference;
+	}
+	return Data::GroupCallOrigin::Group;
 }
 
 bool GroupCall::listenersHidden() const {
@@ -1233,7 +1265,7 @@ rpl::producer<bool> GroupCall::emptyRtmpValue() const {
 }
 
 int GroupCall::rtmpVolume() const {
-	return _rtmpVolume;
+	return _singleSourceVolume;
 }
 
 Calls::Group::RtmpInfo GroupCall::rtmpInfo() const {
@@ -1246,15 +1278,15 @@ void GroupCall::setRtmpInfo(const Calls::Group::RtmpInfo &value) {
 }
 
 Data::GroupCall *GroupCall::lookupReal() const {
-	if (const auto conference = _conferenceCall.get()) {
-		return conference;
+	if (const auto shared = _sharedCall.get()) {
+		return shared;
 	}
 	const auto real = _peer->groupCall();
 	return (real && real->id() == _id) ? real : nullptr;
 }
 
-std::shared_ptr<Data::GroupCall> GroupCall::conferenceCall() const {
-	return _conferenceCall;
+std::shared_ptr<Data::GroupCall> GroupCall::sharedCall() const {
+	return _sharedCall;
 }
 
 rpl::producer<not_null<Data::GroupCall*>> GroupCall::real() const {
@@ -1324,13 +1356,16 @@ void GroupCall::initialJoinRequested() {
 				update.was->ssrc,
 				GetAdditionalAudioSsrc(update.was->videoParams),
 			});
+		} else if (videoStream()) {
+			const auto value = singleSourceVolumeValue();
+			_instance->setVolume(update.now->ssrc, value);
 		} else if (!_rtmp) {
 			updateInstanceVolume(update.was, *update.now);
 		}
 	}, _lifetime);
 
-	if (_conferenceCall) {
-		_canManage = _conferenceCall->canManage();
+	if (_sharedCall && conference()) {
+		_canManage = _sharedCall->canManage();
 		return;
 	}
 	_peer->session().updates().addActiveChat(
@@ -1519,7 +1554,7 @@ void GroupCall::startRejoin() {
 	for (const auto &[task, part] : _broadcastParts) {
 		_api.request(part.requestId).cancel();
 	}
-	if (_conferenceCall || _startConferenceInfo) {
+	if (conference()) {
 		initConferenceE2E();
 	}
 	setState(State::Joining);
@@ -1589,10 +1624,11 @@ void GroupCall::rejoin(not_null<PeerData*> as) {
 			};
 			LOG(("Call Info: Join payload received, joining with ssrc: %1."
 				).arg(_joinState.payload.ssrc));
-			if (!_conferenceCall && _startConferenceInfo) {
+			if (!_sharedCall && _startConferenceInfo) {
 				startConference();
-			} else if (_conferenceCall
-				&& !_conferenceCall->blockchainMayBeEmpty()
+			} else if (conference()
+				&& _sharedCall
+				&& !_sharedCall->blockchainMayBeEmpty()
 				&& !_e2e->hasLastBlock0()) {
 				refreshLastBlockAndJoin();
 			} else {
@@ -1715,13 +1751,13 @@ void GroupCall::startConference() {
 			const MTPUpdates &result,
 			const MTP::Response &response) {
 		_createRequestId = 0;
-		_conferenceCall = _peer->owner().sharedConferenceCallFind(result);
-		if (!_conferenceCall) {
+		_sharedCall = _peer->owner().sharedConferenceCallFind(result);
+		if (!_sharedCall) {
 			joinFail(u"Call not found!"_q);
 			return;
 		}
-		applyInputCall(_conferenceCall->input());
-		_realChanges.fire_copy(_conferenceCall.get());
+		applyInputCall(_sharedCall->input());
+		_realChanges.fire_copy(_sharedCall.get());
 
 		initialJoinRequested();
 		joinDone(
@@ -1764,16 +1800,18 @@ void GroupCall::joinDone(
 		_api.request(base::take(state.requestId)).cancel();
 		state.inShortPoll = true;
 	}
+	_messages->setApplyingInitial(true);
 	_peer->session().api().applyUpdates(result);
+	_messages->setApplyingInitial(false);
 	for (auto &state : _subchains) {
 		state.inShortPoll = false;
 	}
 
 	if (justCreated) {
-		subscribeToReal(_conferenceCall.get());
+		subscribeToReal(_sharedCall.get());
 		setupConferenceCall();
 		_conferenceLinkSlug = Group::ExtractConferenceSlug(
-			_conferenceCall->conferenceInviteLink());
+			_sharedCall->conferenceInviteLink());
 		Core::App().calls().startedConferenceReady(
 			this,
 			*_startConferenceInfo);
@@ -2068,7 +2106,8 @@ void GroupCall::applyMeInCallLocally() {
 					MTPstring(), // Don't update about text in local updates.
 					MTP_long(raisedHandRating),
 					MTPGroupCallParticipantVideo(),
-					MTPGroupCallParticipantVideo())),
+					MTPGroupCallParticipantVideo(),
+					MTPlong())),
 			MTP_int(0)).c_updateGroupCallParticipants());
 }
 
@@ -2115,7 +2154,8 @@ void GroupCall::applyParticipantLocally(
 					MTPstring(), // Don't update about text in local updates.
 					MTP_long(participant->raisedHandRating),
 					MTPGroupCallParticipantVideo(),
-					MTPGroupCallParticipantVideo())),
+					MTPGroupCallParticipantVideo(),
+					MTPlong())),
 			MTP_int(0)).c_updateGroupCallParticipants());
 }
 
@@ -2383,6 +2423,8 @@ void GroupCall::handlePossibleCreateOrJoinResponse(
 				setCameraEndpoint(endpoint ? endpoint->id : std::string());
 				_instance->setJoinResponsePayload(json.toStdString());
 			}
+			updateInstanceVolumes();
+			fillActiveVideoEndpoints();
 			updateRequestedVideoChannels();
 			checkMediaChannelDescriptions();
 		});
@@ -2413,6 +2455,26 @@ void GroupCall::handleIncomingMessage(
 		return;
 	}
 	_messages->received(data);
+}
+
+void GroupCall::handleDeleteMessages(
+		const MTPDupdateDeleteGroupCallMessages &data) {
+	const auto id = data.vcall().match([&](const MTPDinputGroupCall &data) {
+		return data.vid().v;
+	}, [](const auto &) -> CallId {
+		Unexpected("slug/msg in GroupCall::handleIncomingMessage");
+	});
+	if (id != _id || conference()) {
+		return;
+	}
+	_messages->deleted(data);
+}
+
+void GroupCall::handleMessageSent(const MTPDupdateMessageID &data) {
+	if (conference()) {
+		return;
+	}
+	_messages->sent(data);
 }
 
 void GroupCall::handlePossibleDiscarded(const MTPDgroupCallDiscarded &data) {
@@ -3504,6 +3566,10 @@ void GroupCall::updateInstanceMuteState() {
 		&& state != MuteState::PushToTalk);
 }
 
+float64 GroupCall::singleSourceVolumeValue() const {
+	return _singleSourceVolume / float64(Group::kDefaultVolume);
+}
+
 void GroupCall::updateInstanceVolumes() {
 	const auto real = lookupReal();
 	if (!real) {
@@ -3511,8 +3577,12 @@ void GroupCall::updateInstanceVolumes() {
 	}
 
 	if (_rtmp) {
-		const auto value = _rtmpVolume / float64(Group::kDefaultVolume);
-		_instance->setVolume(1, value);
+		_instance->setVolume(1, singleSourceVolumeValue());
+	} else if (videoStream()) {
+		const auto value = singleSourceVolumeValue();
+		for (const auto &participant : real->participants()) {
+			_instance->setVolume(participant.ssrc, value);
+		}
 	} else {
 		const auto &participants = real->participants();
 		for (const auto &participant : participants) {
@@ -3905,8 +3975,8 @@ void GroupCall::requestVideoQuality(
 }
 
 void GroupCall::toggleMute(const Group::MuteRequest &data) {
-	if (_rtmp) {
-		_rtmpVolume = data.mute ? 0 : Group::kDefaultVolume;
+	if (_rtmp || videoStream()) {
+		_singleSourceVolume = data.mute ? 0 : Group::kDefaultVolume;
 		updateInstanceVolumes();
 	} else if (data.locallyOnly) {
 		applyParticipantLocally(data.peer, data.mute, std::nullopt);
@@ -3916,8 +3986,8 @@ void GroupCall::toggleMute(const Group::MuteRequest &data) {
 }
 
 void GroupCall::changeVolume(const Group::VolumeRequest &data) {
-	if (_rtmp) {
-		_rtmpVolume = data.volume;
+	if (_rtmp || videoStream()) {
+		_singleSourceVolume = data.volume;
 		updateInstanceVolumes();
 	} else if (data.locallyOnly) {
 		applyParticipantLocally(data.peer, false, data.volume);
@@ -3971,7 +4041,7 @@ void GroupCall::inviteToConference(
 		inputCall(),
 		user->inputUser
 	)).done([=](const MTPUpdates &result) {
-		const auto call = _conferenceCall.get();
+		const auto call = _sharedCall.get();
 		user->owner().registerInvitedToCallUser(_id, call, user, true);
 		_peer->session().api().applyUpdates(result);
 		resultAddress()->invited.push_back(user);
@@ -4023,7 +4093,7 @@ void GroupCall::inviteUsers(
 		}
 	};
 
-	if (_conferenceCall.get()) {
+	if (_sharedCall.get()) {
 		for (const auto &request : requests) {
 			inviteToConference(request, [=] {
 				return &state->result;
@@ -4144,7 +4214,7 @@ std::function<std::vector<uint8_t>(
 }
 
 void GroupCall::sendMessage(TextWithTags message) {
-	_messages->send(std::move(message));
+	_messages->send(std::move(message), 0);
 }
 
 auto GroupCall::otherParticipantStateValue() const

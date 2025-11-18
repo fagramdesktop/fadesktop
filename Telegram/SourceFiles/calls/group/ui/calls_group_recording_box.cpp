@@ -213,7 +213,10 @@ Switcher::Switcher(
 	not_null<Ui::RpWidget*> parent,
 	rpl::producer<bool> &&toggled)
 : RpWidget(parent)
-, _background(this, st::groupCallRecordingInfoHeight, st::groupCallBg)
+, _background(
+	this,
+	st::groupCallRecordingInfoHeight,
+	st::groupCallDividerBar)
 , _audio(this)
 , _video(this) {
 	_audio->prepareAudio();

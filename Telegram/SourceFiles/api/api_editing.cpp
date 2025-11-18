@@ -154,6 +154,7 @@ mtpRequestId SuggestMedia(
 		MTPReplyMarkup(),
 		sentEntities,
 		MTPint(), // schedule_date
+		MTPint(), // schedule_repeat_period
 		MTPInputPeer(), // send_as
 		MTPInputQuickReplyShortcut(), // quick_reply_shortcut
 		MTPlong(), // effect
@@ -295,6 +296,9 @@ mtpRequestId EditMessage(
 		| (options.scheduled
 			? MTPmessages_EditMessage::Flag::f_schedule_date
 			: emptyFlag)
+		| ((options.scheduled && options.scheduleRepeatPeriod)
+			? MTPmessages_EditMessage::Flag::f_schedule_repeat_period
+			: emptyFlag)
 		| (item->isBusinessShortcut()
 			? MTPmessages_EditMessage::Flag::f_quick_reply_shortcut_id
 			: emptyFlag);
@@ -313,6 +317,7 @@ mtpRequestId EditMessage(
 		MTPReplyMarkup(),
 		sentEntities,
 		MTP_int(options.scheduled),
+		MTP_int(options.scheduleRepeatPeriod),
 		MTP_int(item->shortcutId())
 	)).done([=](
 			const MTPUpdates &result,

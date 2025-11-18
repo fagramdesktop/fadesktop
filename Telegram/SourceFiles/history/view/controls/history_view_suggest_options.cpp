@@ -801,7 +801,7 @@ void InsufficientTonBox(
 		box->verticalLayout(),
 		{
 			.name = u"diamond"_q,
-			.sizeOverride = Size(st::changePhoneIconSize),
+			.sizeOverride = st::normalBoxLottieSize,
 		},
 		{});
 	box->setShowFinishedCallback([animate = std::move(icon.animate)] {

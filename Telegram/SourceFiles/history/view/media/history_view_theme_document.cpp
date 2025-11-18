@@ -9,7 +9,6 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #include "apiwrap.h"
 #include "boxes/background_preview_box.h"
-#include "boxes/star_gift_box.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/view/history_view_element.h"
@@ -35,6 +34,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/chat/chat_theme.h"
 #include "ui/cached_round_corners.h"
 #include "ui/painter.h"
+#include "ui/top_background_gradient.h"
 #include "ui/ui_utility.h"
 #include "window/section_widget.h"
 #include "window/window_session_controller.h"
@@ -707,9 +707,9 @@ void GiftThemeBox::cacheUniqueBackground(int width, int height) {
 		auto p = QPainter(&_backgroundCache);
 		p.setClipRect(inner);
 		const auto skip = inner.width() / 3;
-		Ui::PaintPoints(
+		Ui::PaintBgPoints(
 			p,
-			Ui::PatternPointsSmall(),
+			Ui::PatternBgPointsSmall(),
 			_patternCache,
 			_patternEmoji.get(),
 			*_data.unique,

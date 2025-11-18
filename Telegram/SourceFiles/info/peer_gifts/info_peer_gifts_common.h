@@ -105,6 +105,15 @@ struct GiftDescriptor : std::variant<GiftTypePremium, GiftTypeStars> {
 		const GiftDescriptor&) = default;
 };
 
+struct GiftSendDetails {
+	GiftDescriptor descriptor;
+	TextWithEntities text;
+	uint64 randomId = 0;
+	bool anonymous = false;
+	bool upgraded = false;
+	bool byStars = false;
+};
+
 struct GiftBadge {
 	QString text;
 	QColor bg1;

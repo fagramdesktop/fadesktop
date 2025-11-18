@@ -8,9 +8,11 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #pragma once
 
 #include "base/object_ptr.h"
+#include "calls/group/ui/calls_group_stars_coloring.h"
 
 namespace style {
 struct RoundCheckbox;
+struct MediaSlider;
 } // namespace style
 
 namespace Main {
@@ -22,6 +24,7 @@ namespace Ui {
 class BoxContent;
 class GenericBox;
 class DynamicImage;
+class VerticalLayout;
 
 struct PaidReactionTop {
 	QString name;
@@ -33,16 +36,22 @@ struct PaidReactionTop {
 };
 
 struct PaidReactionBoxArgs {
+	int min = 0;
+	int explicitlyAllowed = 0;
 	int chosen = 0;
 	int max = 0;
 
 	std::vector<PaidReactionTop> top;
 
 	not_null<Main::Session*> session;
-	QString channel;
+	QString name;
 	Fn<rpl::producer<TextWithEntities>(rpl::producer<int> amount)> submit;
+	std::vector<Calls::Group::Ui::StarsColoring> colorings;
 	rpl::producer<CreditsAmount> balanceValue;
 	Fn<void(int, uint64)> send;
+	bool videoStreamChoosing = false;
+	bool videoStreamSending = false;
+	bool dark = false;
 };
 
 void PaidReactionsBox(
@@ -52,11 +61,52 @@ void PaidReactionsBox(
 [[nodiscard]] object_ptr<BoxContent> MakePaidReactionBox(
 	PaidReactionBoxArgs &&args);
 
+[[nodiscard]] int MaxTopPaidDonorsShown();
+
 [[nodiscard]] QImage GenerateSmallBadgeImage(
 	QString text,
 	const style::icon &icon,
 	QColor bg,
 	QColor fg,
 	const style::RoundCheckbox *borderSt = nullptr);
+
+struct StarSelectDiscreter {
+	Fn<int(float64)> ratioToValue;
+	Fn<float64(int)> valueToRatio;
+};
+
+[[nodiscard]] StarSelectDiscreter StarSelectDiscreterForMax(int max);
+
+void PaidReactionSlider(
+	not_null<VerticalLayout*> container,
+	const style::MediaSlider &st,
+	int min,
+	int explicitlyAllowed,
+	int current,
+	int max,
+	Fn<void(int)> changed,
+	Fn<QColor(int)> activeFgOverride = nullptr);
+
+void AddStarSelectBalance(
+	not_null<GenericBox*> box,
+	not_null<Main::Session*> session,
+	rpl::producer<CreditsAmount> balanceValue,
+	bool dark = false);
+
+void AddStarSelectBubble(
+	not_null<GenericBox*> box,
+	rpl::producer<int> value,
+	int max,
+	Fn<QColor(int)> activeFgOverride = nullptr);
+
+struct StarSelectInfoBlock {
+	rpl::producer<TextWithEntities> title;
+	rpl::producer<QString> subtext;
+};
+[[nodiscard]] object_ptr<RpWidget> MakeStarSelectInfoBlocks(
+	not_null<RpWidget*> parent,
+	std::vector<StarSelectInfoBlock> blocks,
+	Text::MarkedContext context,
+	bool dark = false);
 
 } // namespace Ui
