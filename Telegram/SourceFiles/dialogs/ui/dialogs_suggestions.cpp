@@ -565,6 +565,10 @@ rpl::producer<not_null<PeerData*>> Suggestions::ObjectListController::chosen() c
 	return _chosen.events();
 }
 
+void Suggestions::ObjectListController::setCloseCallback(Fn<void()> callback) {
+	_closeCallback = std::move(callback);
+}
+
 Main::Session &Suggestions::ObjectListController::session() const {
 	return _window->session();
 }
