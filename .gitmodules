@@ -94,3 +94,6 @@
 [submodule "Telegram/lib_ui"]
 	path = Telegram/lib_ui
 	url = https://github.com/burhancodes/lib_ui
+[submodule "cmake"]
+	path = cmake
+	url = https://github.com/burhancodes/cmake_helpers
