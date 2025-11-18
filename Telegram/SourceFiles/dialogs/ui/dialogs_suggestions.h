@@ -135,6 +135,8 @@ public:
 		[[nodiscard]] rpl::producer<int> count() const;
 		[[nodiscard]] rpl::producer<not_null<PeerData*>> chosen() const;
 
+		void setCloseCallback(Fn<void()> callback);
+
 		Main::Session &session() const override;
 
 		void rowClicked(not_null<PeerListRow*> row) override;
@@ -155,6 +157,8 @@ public:
 
 		void setupPlainDivider(rpl::producer<QString> title);
 		void setupExpandDivider(rpl::producer<QString> title);
+
+		Fn<void()> _closeCallback;
 
 	private:
 		const not_null<Window::SessionController*> _window;
