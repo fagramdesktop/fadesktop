@@ -8,10 +8,13 @@
 
 </div>
 
-> ***✏️ Note that source code is published under GPLv3 with OpenSSL exception, the license is available [here][license].***
+> ***✏️ Note: This is a maintained fork of FAgram Desktop. The original project by [FajoX1](https://github.com/FajoX1/fagramdesktop) has been discontinued. This fork exists to keep the project up-to-date with upstream Telegram Desktop changes.***
+
+> ***✏️ Source code is published under GPLv3 with OpenSSL exception, the license is available [here][license].***
 
 <a href="https://t.me/FAgramClient"><img alt="Telegram" src="https://img.shields.io/badge/Telegram_Channel-0a0a0a?style=for-the-badge&logo=telegram"></a>
 <a href="https://t.me/FAgram_Group"><img alt="Telegram" src="https://img.shields.io/badge/Telegram_Chat-0a0a0a?style=for-the-badge&logo=telegram"></a>
+<a href="https://github.com/FajoX1/fagramdesktop"><img alt="Original Repository" src="https://img.shields.io/badge/Original_Repo-0a0a0a?style=for-the-badge&logo=github"></a>
 
 <div align="center">
 
@@ -66,6 +69,7 @@ The latest version is available for
 
 ## ❤️ Credits
 
+* [FajoX1 (Original FAgram Developer)](https://github.com/FajoX1)
 * [Telegram Desktop](https://github.com/telegramdesktop/tdesktop)
 * [rabbitGram](https://github.com/rabbitGramDesktop)
 * [Ayugram](https://github.com/ayugram/AyugramDesktop)
