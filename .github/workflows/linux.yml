@@ -63,6 +63,17 @@ jobs:
           name: fagram-${{ env.TAGNAME }}
           path: out/install/fagram-${{ env.TAGNAME }}.tar.gz
 
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAGNAME }}
+          name: Release ${{ env.TAGNAME }}
+          draft: false
+          prerelease: false
+          files: out/install/fagram-${{ env.TAGNAME }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+
   trigger-rpm:
     runs-on: ubuntu-latest
     needs: build

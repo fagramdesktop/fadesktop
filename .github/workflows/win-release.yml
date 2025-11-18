@@ -2,6 +2,11 @@ name: Release Build for Windows
 
 on:
   workflow_dispatch:
+    inputs:
+      tagname:
+        description: 'tagname'
+        type: string
+        required: true
 
 jobs:
 
@@ -117,3 +122,27 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: artifact\
+
+      - name: Get tag name
+        if: env.UPLOAD_ARTIFACT == 'true'
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tagname }}" ]; then
+            echo "RELEASE_TAG=${{ github.event.inputs.tagname }}" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          else
+            echo "RELEASE_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
+      - name: Create Release
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Release ${{ env.RELEASE_TAG }}
+          draft: false
+          prerelease: false
+          files: artifact/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
