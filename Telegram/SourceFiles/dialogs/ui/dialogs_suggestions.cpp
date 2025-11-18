@@ -548,8 +548,6 @@ private:
 
 };
 
-} // namespace
-
 Suggestions::ObjectListController::ObjectListController(
 	not_null<Window::SessionController*> window)
 : _window(window) {
