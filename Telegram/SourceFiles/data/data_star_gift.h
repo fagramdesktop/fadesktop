@@ -111,6 +111,8 @@ struct StarGift {
 	PeerData *releasedBy = nullptr;
 	QString resellTitle;
 	int resellCount = 0;
+	QString auctionSlug;
+	int auctionGiftsPerRound = 0;
 	int limitedLeft = 0;
 	int limitedCount = 0;
 	int perUserTotal = 0;
@@ -124,6 +126,10 @@ struct StarGift {
 	bool upgradable : 1 = false;
 	bool birthday : 1 = false;
 	bool soldOut : 1 = false;
+
+	[[nodiscard]] bool auction() const {
+		return !auctionSlug.isEmpty();
+	}
 
 	friend inline bool operator==(
 		const StarGift &,

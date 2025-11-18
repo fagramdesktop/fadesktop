@@ -27,7 +27,12 @@ namespace anim {
 enum class activation : uchar;
 } // namespace anim
 
+namespace Calls {
+class GroupCall;
+} // namespace Calls
+
 namespace Data {
+class GroupCall;
 class PhotoMedia;
 class DocumentMedia;
 struct StoriesContext;
@@ -78,6 +83,7 @@ struct ContentLayout;
 
 namespace Media::View {
 
+class VideoStream;
 class PlaybackSponsored;
 class GroupThumbs;
 class Pip;
@@ -299,6 +305,7 @@ private:
 
 	void assignMediaPointer(DocumentData *document);
 	void assignMediaPointer(not_null<PhotoData*> photo);
+	void assignMediaPointer(std::shared_ptr<Data::GroupCall> call);
 
 	void updateOver(QPoint mpos);
 	void initFullScreen();
@@ -385,6 +392,9 @@ private:
 		anim::activation activation = anim::activation::normal,
 		const Data::CloudTheme &cloud = Data::CloudTheme(),
 		const StartStreaming &startStreaming = StartStreaming());
+	void displayVideoStream(
+		const std::shared_ptr<Data::GroupCall> &call,
+		anim::activation activation = anim::activation::normal);
 	void displayFinished(anim::activation activation);
 	void redisplayContent();
 	void findCurrent();
@@ -646,6 +656,10 @@ private:
 	Main::Session *_storiesSession = nullptr;
 	rpl::event_stream<ChatHelpers::FileChosen> _storiesStickerOrEmojiChosen;
 	std::unique_ptr<Ui::LayerManager> _layerBg;
+
+	std::unique_ptr<VideoStream> _videoStream;
+	QString _callLinkSlug;
+	MsgId _callJoinMessageId;
 
 	const style::icon *_docIcon = nullptr;
 	style::color _docIconColor;

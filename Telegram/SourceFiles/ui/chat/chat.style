@@ -322,8 +322,6 @@ historyPinOutIcon: icon {{ "history_pin", historyOutIconFg }};
 historyPinOutSelectedIcon: icon {{ "history_pin", historyOutIconFgSelected }};
 historyPinInvertedIcon: icon {{ "history_pin", historySendingInvertedIconFg }};
 
-historySendPadding: 9px;
-historySendRight: 2px;
 historyBotMenuSkip: 8px;
 historyBotMenuMaxWidth: 160px;
 historyBotMenuButton: RoundButton(defaultActiveButton) {
@@ -850,31 +848,6 @@ reactionsTabs: MultiSelect(defaultMultiSelect) {
 }
 reactionsTabIconSkip: 3px;
 
-SendAsButton {
-	width: pixels;
-	height: pixels;
-	size: pixels;
-	activeBg: color;
-	activeFg: color;
-	cross: CrossAnimation;
-	duration: int;
-}
-
-sendAsButton: SendAsButton {
-	width: 44px;
-	height: 46px;
-	size: 28px;
-	activeBg: activeButtonBg;
-	activeFg: activeButtonFg;
-	cross: CrossAnimation {
-		size: 28px;
-		skip: 10px;
-		stroke: 1.5;
-		minScale: 0.3;
-	}
-	duration: 150;
-}
-
 reactionInlinePadding: margins(5px, 2px, 7px, 2px);
 reactionInlineSize: 18px;
 reactionInlineImage: 32px;
@@ -885,6 +858,7 @@ reactionInlineTagRightRadius: 3px;
 reactionInlineTagArrow: 5px;
 reactionInlineTagDot: 5px;
 reactionInlineTagDotSkip: 2px;
+reactionInlineEmptySkip: 2px;
 reactionInlineTagFont: font(12px);
 reactionInlineTagNamePosition: point(26px, 2px);
 reactionInlineTagPromoPosition: point(20px, 2px);

@@ -85,6 +85,7 @@ enum class ChannelDataFlag : uint64 {
 	ForumTabs = (1ULL << 42),
 	HasStarsPerMessage = (1ULL << 43),
 	StarsPerMessageKnown = (1ULL << 44),
+	HasActiveVideoStream = (1ULL << 45),
 };
 inline constexpr bool is_flag_type(ChannelDataFlag) { return true; };
 using ChannelDataFlags = base::flags<ChannelDataFlag>;
@@ -536,6 +537,7 @@ public:
 
 	[[nodiscard]] bool hasActiveStories() const;
 	[[nodiscard]] bool hasUnreadStories() const;
+	[[nodiscard]] bool hasActiveVideoStream() const;
 	void setStoriesState(StoriesState state);
 
 	[[nodiscard]] Data::Forum *forum() const {

@@ -194,8 +194,7 @@ void PreparedPreviewBox(
 					container,
 					tr::lng_bot_share_prepared_about(lt_bot, rpl::single(name)),
 					st::boxDividerLabel),
-				st::defaultBoxDividerLabelPadding,
-				RectPart::Top | RectPart::Bottom)));
+				st::defaultBoxDividerLabelPadding)));
 	const auto row = container->add(object_ptr<Ui::VerticalLayout>(
 		container));
 

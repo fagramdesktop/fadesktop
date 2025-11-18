@@ -91,9 +91,6 @@
 [submodule "Telegram/ThirdParty/libtgvoip"]
 	path = Telegram/ThirdParty/libtgvoip
 	url = https://github.com/telegramdesktop/libtgvoip.git
-[submodule "cmake"]
-	path = cmake
-	url = https://github.com/burhancodes/cmake_helpers
 [submodule "Telegram/lib_ui"]
 	path = Telegram/lib_ui
 	url = https://github.com/burhancodes/lib_ui

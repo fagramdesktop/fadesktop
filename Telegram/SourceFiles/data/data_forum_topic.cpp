@@ -836,6 +836,16 @@ void ForumTopic::applyColorId(int32 colorId) {
 	}
 }
 
+void ForumTopic::applyMaybeLast(not_null<HistoryItem*> item) {
+	if (!_lastServerMessage.value_or(nullptr)
+		|| (*_lastServerMessage)->id < item->id) {
+		setLastServerMessage(item);
+		resolveChatListMessageGroup();
+	} else {
+		growLastKnownServerMessageId(item->id);
+	}
+}
+
 void ForumTopic::applyItemAdded(not_null<HistoryItem*> item) {
 	if (item->isRegular()) {
 		setLastServerMessage(item);

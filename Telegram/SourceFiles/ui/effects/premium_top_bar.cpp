@@ -290,9 +290,7 @@ void TopBar::paintEvent(QPaintEvent *e) {
 		_star.render(&p, _starRect);
 	}
 
-	const auto color = _light
-		? st::settingsPremiumUserTitle.textFg
-		: st::premiumButtonFg;
+	const auto color = _light ? st().titleFg : st::premiumButtonFg;
 	p.setPen(color);
 
 	const auto titlePathRect = _titlePath.boundingRect();

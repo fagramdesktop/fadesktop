@@ -147,8 +147,7 @@ void ShowReportMessageBox(
 							auto label = object_ptr<Ui::FlatLabel>(
 								container,
 								tr::lng_report_details_message_about(),
-								st::boxDividerLabel);
-							label->setTextColorOverride(st->dividerFg->c);
+								st->divider.label);
 							using namespace Ui;
 							const auto widget = container->add(
 								object_ptr<PaddingWrap<>>(
@@ -159,7 +158,7 @@ void ShowReportMessageBox(
 								= CreateChild<BoxContentDivider>(
 									widget,
 									st::boxDividerHeight,
-									st->dividerBg,
+									st->divider.bar,
 									RectPart::Top | RectPart::Bottom);
 							background->lower();
 							widget->sizeValue(

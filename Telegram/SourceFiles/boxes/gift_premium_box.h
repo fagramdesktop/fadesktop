@@ -44,8 +44,8 @@ namespace Window {
 class SessionNavigation;
 } // namespace Window
 
-[[nodiscard]] rpl::producer<QString> GiftDurationValue(int months);
-[[nodiscard]] QString GiftDuration(int months);
+[[nodiscard]] rpl::producer<QString> GiftDurationValue(int days);
+[[nodiscard]] QString GiftDuration(int days);
 
 void GiftCodeBox(
 	not_null<Ui::GenericBox*> box,

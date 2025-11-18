@@ -34,6 +34,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "window/notifications_manager.h"
 #include "storage/localimageloader.h"
 #include "data/data_document_resolver.h"
+#include "info/info_flexible_scroll.h"
 #include "styles/style_settings.h"
 #include "styles/style_layers.h"
 
@@ -166,6 +167,7 @@ void SetupExperimental(
 		addToggle(kOptionFastButtonsMode);
 	}
 	addToggle(Window::kOptionDisableTouchbar);
+	addToggle(Info::kAlternativeScrollProcessing);
 }
 
 } // namespace

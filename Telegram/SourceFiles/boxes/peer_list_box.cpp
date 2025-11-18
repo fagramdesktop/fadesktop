@@ -983,10 +983,11 @@ void PeerListRow::setCheckedInternal(bool checked, anim::type animated) {
 }
 
 void PeerListRow::setCustomizedCheckSegments(
-		std::vector<Ui::OutlineSegment> segments) {
+		std::vector<Ui::OutlineSegment> segments,
+		bool liveBadge) {
 	Expects(_checkbox != nullptr);
 
-	_checkbox->setCustomizedSegments(std::move(segments));
+	_checkbox->setCustomizedSegments(std::move(segments), liveBadge);
 }
 
 void PeerListRow::finishCheckedAnimation() {

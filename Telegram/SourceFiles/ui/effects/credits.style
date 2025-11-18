@@ -89,6 +89,9 @@ starIconEmojiLarge: IconEmoji {
 	icon: icon {{ "settings/premium/star", settingsIconFg }};
 	padding: margins(0px, -2px, 0px, 0px);
 }
+starIconEmojiInline: IconEmoji(starIconEmojiSmall) {
+	padding: margins(0px, 3px, 0px, 0px);
+}
 
 tonIconEmoji: IconEmoji {
 	icon: icon{{ "chat/mini_ton_bold", currencyFg }};
@@ -231,7 +234,7 @@ giftBoxTextField: InputField(defaultInputField) {
 	style: defaultTextStyle;
 }
 giftBoxTextPadding: margins(20px, 15px, 20px, 11px);
-giftBoxHiddenMark: icon{{ "menu/stealth", premiumButtonFg }};
+giftBoxHiddenMark: icon{{ "chat/mini_gift_hidden", premiumButtonFg, margins(4px, 4px, 4px, 4px) }};
 giftListAbout: FlatLabel(defaultFlatLabel) {
 	minWidth: 240px;
 	textFg: membersAboutLimitFg;
@@ -248,6 +251,11 @@ giftBoxLock: IconEmoji {
 giftBoxPinIcon: icon {{ "dialogs/dialogs_pinned", premiumButtonFg }};
 giftBoxLockIcon: icon{{ "limits/mini_gift_lock-18x18", attentionButtonFg }};
 giftBoxLockIconPosition: point(4px, 4px);
+
+giftBoxGiftEmptyLabel: FlatLabel(defaultFlatLabel) {
+	minWidth: 156px;
+	align: align(top);
+}
 
 creditsHistoryEntriesList: PeerList(defaultPeerList) {
 	padding: margins(0px, 7px, 0px, 7px);
@@ -273,7 +281,7 @@ uniqueGiftResalePadding: margins(4px, 4px, 8px, 4px);
 uniqueGiftResaleMargin: margins(10px, 10px, 10px, 10px);
 uniqueGiftTitleTop: 140px;
 uniqueGiftSubtitle: FlatLabel(defaultFlatLabel) {
-	minWidth: 256px;
+	minWidth: 64px;
 	align: align(top);
 }
 uniqueGiftReleasedBy: FlatLabel(uniqueGiftSubtitle) {
@@ -395,3 +403,63 @@ uniqueGiftValueAvailableLink: FlatLabel(boxLabel) {
 	}
 }
 uniqueGiftValueAvailableMargin: margins(0px, 4px, 0px, 4px);
+
+videoStreamTopupRipple: RippleAnimation(defaultRippleAnimation) {
+	color: groupCallMembersBgRipple;
+}
+videoStreamTopupButton: SettingsButton(creditsTopupButton) {
+	textFg: groupCallMemberNotJoinedStatus;
+	textFgOver: groupCallMemberNotJoinedStatus;
+	textBg: groupCallMembersBg;
+	textBgOver: groupCallMembersBgOver;
+	ripple: videoStreamTopupRipple;
+}
+videoStreamTopupPrice: FlatLabel(creditsTopupPrice) {
+	textFg: groupCallMemberNotJoinedStatus;
+}
+videoStreamShowMoreButton: SettingsButton(defaultSettingsButton) {
+	textFg: groupCallActiveFg;
+	textFgOver: groupCallActiveFg;
+	textBg: groupCallMembersBg;
+	textBgOver: groupCallMembersBgOver;
+
+	padding: margins(70px, 10px, 22px, 8px);
+
+	ripple: videoStreamTopupRipple;
+}
+videoStreamStarsCover: PremiumCover(creditsLowBalancePremiumCover) {
+	bg: groupCallMembersBg;
+	titleFg: groupCallMembersFg;
+	about: FlatLabel(defaultFlatLabel) {
+		style: premiumAboutTextStyle;
+		palette: TextPalette(defaultTextPalette) {
+			linkFg: groupCallMembersFg;
+		}
+		align: align(top);
+		textFg: groupCallMembersFg;
+		minWidth: 190px;
+	}
+}
+
+auctionInfoPreviewMargin: margins(0px, 24px, 0px, 8px);
+auctionInfoSubtitleSkip: 8px;
+auctionInfoTableMargin: margins(0px, 12px, 0px, 12px);
+auctionAboutLogo: icon {{ "settings/large_auctions", windowFgActive }};
+auctionAboutLogoPadding: margins(8px, 8px, 8px, 8px);
+
+auctionBidPlace: FlatLabel(defaultFlatLabel) {
+	style: semiboldTextStyle;
+	textFg: windowActiveTextFg;
+}
+auctionBidUserpic: UserpicButton(defaultUserpicButton) {
+	size: size(28px, 36px);
+	photoSize: 28px;
+	photoPosition: point(0px, 4px);
+}
+auctionBidName: FlatLabel(defaultFlatLabel) {
+	style: semiboldTextStyle;
+}
+auctionBidStars: FlatLabel(defaultFlatLabel) {
+	textFg: windowSubTextFg;
+}
+auctionBidSkip: 10px;

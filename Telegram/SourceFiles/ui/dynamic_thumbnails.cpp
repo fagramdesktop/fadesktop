@@ -127,6 +127,20 @@ private:
 
 };
 
+class CallThumbnail final : public DynamicImage {
+public:
+	CallThumbnail();
+
+	std::shared_ptr<DynamicImage> clone() override;
+
+	QImage image(int size) override;
+	void subscribeToUpdates(Fn<void()> callback) override;
+
+private:
+	QImage _prepared;
+
+};
+
 class EmptyThumbnail final : public DynamicImage {
 public:
 	std::shared_ptr<DynamicImage> clone() override;
@@ -430,6 +444,28 @@ void VideoThumbnail::clear() {
 	_media = nullptr;
 }
 
+CallThumbnail::CallThumbnail() = default;
+
+std::shared_ptr<DynamicImage> CallThumbnail::clone() {
+	return std::make_shared<CallThumbnail>();
+}
+
+QImage CallThumbnail::image(int size) {
+	const auto ratio = style::DevicePixelRatio();
+	const auto full = QSize(size, size) * ratio;
+	if (_prepared.size() != full) {
+		_prepared = QImage(full, QImage::Format_ARGB32_Premultiplied);
+		_prepared.fill(Qt::black);
+		_prepared.setDevicePixelRatio(ratio);
+
+		_prepared = Images::Circle(std::move(_prepared));
+	}
+	return _prepared;
+}
+
+void CallThumbnail::subscribeToUpdates(Fn<void()> callback) {
+}
+
 std::shared_ptr<DynamicImage> EmptyThumbnail::clone() {
 	return std::make_shared<EmptyThumbnail>();
 }
@@ -661,6 +697,8 @@ std::shared_ptr<DynamicImage> MakeStoryThumbnail(
 	const auto id = story->fullId();
 	return v::match(story->media().data, [](v::null_t) -> Result {
 		return std::make_shared<EmptyThumbnail>();
+	}, [](const std::shared_ptr<Data::GroupCall> &call) -> Result {
+		return std::make_shared<CallThumbnail>();
 	}, [&](not_null<PhotoData*> photo) -> Result {
 		return std::make_shared<PhotoThumbnail>(photo, id, true);
 	}, [&](not_null<DocumentData*> video) -> Result {

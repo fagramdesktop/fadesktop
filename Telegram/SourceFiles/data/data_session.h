@@ -22,6 +22,10 @@ struct WebPageStickerSet;
 enum class WebPageType : uint8;
 enum class NewMessageType;
 
+namespace Calls {
+class GroupCall;
+} // namespace Calls
+
 namespace HistoryView {
 struct Group;
 class Element;
@@ -124,6 +128,11 @@ struct SentFromScheduled {
 struct RecentSelfForwards {
 	PeerId fromPeerId = 0;
 	MessageIdsList ids;
+};
+
+struct RecentJoinChat {
+	PeerId fromPeerId = 0;
+	PeerId joinedPeerId = 0;
 };
 
 class Session final {
@@ -380,6 +389,8 @@ public:
 	[[nodiscard]] rpl::producer<not_null<History*>> historyChanged() const;
 	void notifyViewPaidReactionSent(not_null<const ViewElement*> view);
 	[[nodiscard]] rpl::producer<not_null<const ViewElement*>> viewPaidReactionSent() const;
+	void notifyCallPaidReactionSent(not_null<Calls::GroupCall*> call);
+	[[nodiscard]] rpl::producer<not_null<Calls::GroupCall*>> callPaidReactionSent() const;
 	void sendHistoryChangeNotifications();
 
 	void notifyPinnedDialogsOrderUpdated();
@@ -895,6 +906,9 @@ public:
 	void addRecentSelfForwards(const RecentSelfForwards &data);
 	[[nodiscard]] rpl::producer<RecentSelfForwards> recentSelfForwards() const;
 
+	void addRecentJoinChat(const RecentJoinChat &data);
+	[[nodiscard]] rpl::producer<RecentJoinChat> recentJoinChat() const;
+
 	void clearLocalStorage();
 
 private:
@@ -1071,6 +1085,7 @@ private:
 	rpl::event_stream<not_null<const HistoryItem*>> _itemRemoved;
 	rpl::event_stream<not_null<const ViewElement*>> _viewRemoved;
 	rpl::event_stream<not_null<const ViewElement*>> _viewPaidReactionSent;
+	rpl::event_stream<not_null<Calls::GroupCall*>> _callPaidReactionSent;
 	rpl::event_stream<not_null<const History*>> _historyUnloaded;
 	rpl::event_stream<not_null<const History*>> _historyCleared;
 	base::flat_set<not_null<History*>> _historiesChanged;
@@ -1264,6 +1279,7 @@ private:
 		NextToUpgradeGift> _nextForUpgradeGifts;
 
 	rpl::event_stream<RecentSelfForwards> _recentSelfForwards;
+	rpl::event_stream<RecentJoinChat> _recentJoinChat;
 
 	rpl::lifetime _lifetime;
 

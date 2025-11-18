@@ -581,8 +581,8 @@ QByteArray SerializeMessage(
 		if (!data.cost.isEmpty()) {
 			push("cost", data.cost);
 		}
-		if (data.months) {
-			push("months", data.months);
+		if (data.days) {
+			push("days", data.days);
 		}
 	}, [&](const ActionTopicCreate &data) {
 		pushActor();
@@ -617,7 +617,7 @@ QByteArray SerializeMessage(
 		if (data.boostPeerId) {
 			push("boost_peer_id", data.boostPeerId);
 		}
-		push("months", data.months);
+		push("days", data.days);
 		push("unclaimed", data.unclaimed);
 		push("via_giveaway", data.viaGiveaway);
 	}, [&](const ActionGiveawayLaunch &data) {

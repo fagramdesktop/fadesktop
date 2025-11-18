@@ -18,6 +18,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "settings/settings_premium.h"
+#include "ui/controls/feature_list.h"
 #include "ui/layers/generic_box.h"
 #include "ui/text/text_utilities.h"
 #include "ui/toast/toast.h"
@@ -38,12 +39,6 @@ struct State {
 	Data::StealthMode mode;
 	TimeId now = 0;
 	bool premium = false;
-};
-
-struct Feature {
-	const style::icon &icon;
-	QString title;
-	TextWithEntities about;
 };
 
 [[nodiscard]] Ui::Toast::Config ToastAlready(TimeId left) {
@@ -134,7 +129,7 @@ struct Feature {
 	}) | rpl::flatten_latest();
 }
 
-[[nodiscard]] Feature FeaturePast() {
+[[nodiscard]] Ui::FeatureListEntry FeaturePast() {
 	return {
 		.icon = st::storiesStealthFeaturePastIcon,
 		.title = tr::lng_stealth_mode_past_title(tr::now),
@@ -142,7 +137,7 @@ struct Feature {
 	};
 }
 
-[[nodiscard]] Feature FeatureNext() {
+[[nodiscard]] Ui::FeatureListEntry FeatureNext() {
 	return {
 		.icon = st::storiesStealthFeatureNextIcon,
 		.title = tr::lng_stealth_mode_next_title(tr::now),
@@ -200,45 +195,6 @@ struct Feature {
 			std::move(text),
 			st::storiesStealthAbout),
 		st::storiesStealthAboutMargin);
-}
-
-[[nodiscard]] object_ptr<Ui::RpWidget> MakeFeature(
-		QWidget *parent,
-		Feature feature) {
-	auto result = object_ptr<Ui::PaddingWrap<>>(
-		parent,
-		object_ptr<Ui::RpWidget>(parent),
-		st::storiesStealthFeatureMargin);
-	const auto widget = result->entity();
-	const auto icon = Ui::CreateChild<Info::Profile::FloatingIcon>(
-		widget,
-		feature.icon,
-		st::storiesStealthFeatureIconPosition);
-	const auto title = Ui::CreateChild<Ui::FlatLabel>(
-		widget,
-		feature.title,
-		st::storiesStealthFeatureTitle);
-	const auto about = Ui::CreateChild<Ui::FlatLabel>(
-		widget,
-		rpl::single(feature.about),
-		st::storiesStealthFeatureAbout);
-	icon->show();
-	title->show();
-	about->show();
-	widget->widthValue(
-	) | rpl::start_with_next([=](int width) {
-		const auto left = st::storiesStealthFeatureLabelLeft;
-		const auto available = width - left;
-		title->resizeToWidth(available);
-		about->resizeToWidth(available);
-		auto top = 0;
-		title->move(left, top);
-		top += title->height() + st::storiesStealthFeatureSkip;
-		about->move(left, top);
-		top += about->height();
-		widget->resize(width, top);
-	}, widget->lifetime());
-	return result;
 }
 
 [[nodiscard]] object_ptr<Ui::RoundButton> MakeButton(
@@ -329,9 +285,17 @@ struct Feature {
 		box->addRow(MakeLogo(box));
 		box->addRow(MakeTitle(box), style::al_top);
 		box->addRow(MakeAbout(box, data->state.value()), style::al_top);
-		box->addRow(MakeFeature(box, FeaturePast()));
+		const auto make = [&](const Ui::FeatureListEntry &entry) {
+			return Ui::MakeFeatureListEntry(
+				box, 
+				entry, 
+				{}, 
+				st::storiesStealthFeatureTitle, 
+				st::storiesStealthFeatureAbout);
+		};
+		box->addRow(make(FeaturePast()));
 		box->addRow(
-			MakeFeature(box, FeatureNext()),
+			make(FeatureNext()),
 			(st::boxRowPadding
 				+ QMargins(0, 0, 0, st::storiesStealthBoxBottom)));
 		box->setNoContentMargin(true);

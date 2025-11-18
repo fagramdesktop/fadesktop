@@ -18,6 +18,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/widgets/buttons.h"
 #include "ui/wrap/fade_wrap.h"
 #include "ui/painter.h"
+#include "ui/rect.h"
 #include "styles/style_giveaway.h"
 #include "styles/style_layers.h"
 #include "styles/style_premium.h"
@@ -143,6 +144,7 @@ void AddFeaturesList(
 	const auto proj = &Ui::Text::RichLangValue;
 	const auto lowMax = std::max({
 		features.linkLogoLevel,
+		features.profileIconLevel,
 		features.autotranslateLevel,
 		features.transcribeLevel,
 		features.emojiPackLevel,
@@ -155,24 +157,54 @@ void AddFeaturesList(
 		(features.linkStylesByLevel.empty()
 			? 0
 			: features.linkStylesByLevel.back().first),
+		(features.profileColorsByLevel.empty()
+			? 0
+			: features.profileColorsByLevel.back().first),
 	});
 	const auto highMax = std::max(lowMax, features.sponsoredLevel);
 	auto nameColors = 0;
 	auto linkStyles = 0;
+	auto profileColors = 0;
 	for (auto i = std::max(startFromLevel, 1); i <= highMax; ++i) {
 		if ((i > lowMax) && (i < highMax)) {
 			continue;
 		}
 		const auto unlocks = (i == startFromLevel);
-		container->add(
-			MakeFeaturesBadge(
-				container,
-				(unlocks
-					? tr::lng_boost_level_unlocks
-					: tr::lng_boost_level)(
-						lt_count,
-						rpl::single(float64(i)))),
-			st::boostLevelBadgePadding);
+		{
+			const auto badge = container->add(
+				MakeFeaturesBadge(
+					container,
+					(unlocks
+						? tr::lng_boost_level_unlocks
+						: tr::lng_boost_level)(
+							lt_count,
+							rpl::single(float64(i)))),
+				st::boostLevelBadgePadding,
+				style::al_top);
+			const auto padding = st::boxRowPadding;
+			const auto line = Ui::CreateChild<Ui::RpWidget>(container);
+			badge->geometryValue() | rpl::start_with_next([=](const QRect &r) {
+				line->setGeometry(
+					padding.left(),
+					r.y(),
+					container->width() - rect::m::sum::h(padding),
+					r.height());
+			}, line->lifetime());
+			const auto shift = st::lineWidth * 10;
+			line->paintRequest() | rpl::start_with_next([=] {
+				auto p = QPainter(line);
+				p.setPen(st::windowSubTextFg);
+				const auto y = line->height() / 2;
+				const auto left = badge->x() - shift - padding.left();
+				const auto right = left + badge->width() + shift * 2;
+				if (left > 0) {
+					p.drawLine(0, y, left, y);
+				}
+				if (right < line->width()) {
+					p.drawLine(right, y, line->width(), y);
+				}
+			}, line->lifetime());
+		}
 		if (i >= features.sponsoredLevel) {
 			add(tr::lng_channel_earn_off(proj), st::boostFeatureOffSponsored);
 		}
@@ -198,22 +230,27 @@ void AddFeaturesList(
 				tr::lng_feature_emoji_status(proj),
 				st::boostFeatureEmojiStatus);
 		}
-		if (group && i >= features.transcribeLevel) {
-			add(
-				tr::lng_feature_transcribe(proj),
-				st::boostFeatureTranscribe);
+		if (const auto j = features.profileColorsByLevel.find(i)
+			; j != end(features.profileColorsByLevel)) {
+			profileColors += j->second;
 		}
-		if (group && i >= features.emojiPackLevel) {
+		if (i >= features.profileIconLevel) {
 			add(
-				tr::lng_feature_custom_emoji_pack(proj),
-				st::boostFeatureCustomEmoji);
+				(group
+					? tr::lng_feature_profile_icon_group
+					: tr::lng_feature_profile_icon_channel)(proj),
+				st::boostFeatureProfileIcon);
+		}
+		if (profileColors > 0) {
+			add((group
+				? tr::lng_feature_profile_color_group
+				: tr::lng_feature_profile_color_channel)(
+					lt_count,
+					rpl::single(float64(profileColors)),
+					proj
+				), st::boostFeatureProfileColor);
 		}
 		if (!group) {
-			if (i >= features.autotranslateLevel) {
-				add(
-					tr::lng_feature_autotranslate(proj),
-					st::boostFeatureAutoTranslate);
-			}
 			if (const auto j = features.linkStylesByLevel.find(i)
 				; j != end(features.linkStylesByLevel)) {
 				linkStyles += j->second;
@@ -250,6 +287,21 @@ void AddFeaturesList(
 		add(
 			tr::lng_feature_stories(lt_count, rpl::single(float64(i)), proj),
 			st::boostFeatureStories);
+		if (!group && i >= features.autotranslateLevel) {
+			add(
+				tr::lng_feature_autotranslate(proj),
+				st::boostFeatureAutoTranslate);
+		}
+		if (group && i >= features.transcribeLevel) {
+			add(
+				tr::lng_feature_transcribe(proj),
+				st::boostFeatureTranscribe);
+		}
+		if (group && i >= features.emojiPackLevel) {
+			add(
+				tr::lng_feature_custom_emoji_pack(proj),
+				st::boostFeatureCustomEmoji);
+		}
 	}
 }
 

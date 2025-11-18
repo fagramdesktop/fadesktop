@@ -40,6 +40,36 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include <QtCore/QCoreApplication>
 
 namespace Info {
+namespace {
+
+class FlexibleFiller final : public Ui::RpWidget {
+public:
+	using RpWidget::RpWidget;
+
+	void setTargetWidget(base::unique_qptr<RpWidget> widget);
+
+private:
+	void visibleTopBottomUpdated(int visibleTop, int visibleBottom) override;
+
+	base::unique_qptr<RpWidget> _target;
+
+};
+
+void FlexibleFiller::setTargetWidget(base::unique_qptr<RpWidget> widget) {
+	Expects(!_target);
+
+	_target = std::move(widget);
+}
+
+void FlexibleFiller::visibleTopBottomUpdated(
+		int visibleTop,
+		int visibleBottom) {
+	if (const auto raw = _target.get()) {
+		raw->setVisibleTopBottom(visibleTop, visibleBottom);
+	}
+}
+
+} // namespace
 
 ContentWidget::ContentWidget(
 	QWidget *parent,
@@ -201,6 +231,36 @@ Ui::RpWidget *ContentWidget::doSetInnerWidget(
 	updateInnerPadding();
 
 	return _innerWrap->entity();
+}
+
+Ui::RpWidget *ContentWidget::doSetupFlexibleInnerWidget(
+		object_ptr<Ui::RpWidget> inner,
+		FlexibleScrollData &flexibleScroll,
+		Fn<void(Ui::RpWidget*)> customSetup) {
+	const auto filler = setInnerWidget(object_ptr<FlexibleFiller>(this));
+	filler->resize(1, 1);
+
+	flexibleScroll.contentHeightValue.events(
+	) | rpl::start_with_next([=](int h) {
+		filler->resize(filler->width(), h);
+	}, filler->lifetime());
+
+	filler->widthValue(
+	) | rpl::start_to_stream(
+		flexibleScroll.fillerWidthValue,
+		filler->lifetime());
+
+	if (customSetup) {
+		customSetup(filler);
+	}
+
+	// ScrollArea -> PaddingWrap -> RpWidget.
+	const auto result = inner.release();
+	result->setParent(filler->parentWidget()->parentWidget());
+	result->raise();
+	filler->setTargetWidget(base::unique_qptr<Ui::RpWidget>(result));
+
+	return result;
 }
 
 int ContentWidget::scrollTillBottom(int forHeight) const {
@@ -384,7 +444,7 @@ void ContentWidget::refreshSearchField(bool shown) {
 		view->show();
 		_searchField->setFocus();
 		setScrollTopSkip(view->heightNoMargins() - st::lineWidth);
-	} else {
+	} else if (_searchWrap) {
 		if (Ui::InFocusChain(this)) {
 			setFocus();
 		}

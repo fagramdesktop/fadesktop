@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peer_list_box.h"
 #include "boxes/peer_list_controllers.h"
 #include "boxes/star_gift_box.h"
+#include "boxes/star_gift_resale_box.h"
 #include "data/data_cloud_themes.h"
 #include "data/data_session.h"
 #include "data/data_star_gift.h"

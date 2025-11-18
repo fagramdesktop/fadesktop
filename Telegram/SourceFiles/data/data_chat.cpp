@@ -235,7 +235,7 @@ void ChatData::setGroupCall(
 			data.vaccess_hash().v,
 			scheduleDate,
 			rtmp,
-			false); // conference
+			Data::GroupCallOrigin::Group);
 		owner().registerGroupCall(_call.get());
 		session().changes().peerUpdated(this, UpdateFlag::GroupCall);
 		addFlags(Flag::CallActive);

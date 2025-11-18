@@ -16,6 +16,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_changes.h"
 #include "data/data_channel.h"
 #include "data/data_document.h"
+#include "data/data_group_call.h"
 #include "data/data_folder.h"
 #include "data/data_photo.h"
 #include "data/data_user.h"
@@ -51,12 +52,13 @@ constexpr auto kPollingViewsPerPage = Story::kRecentViewersMax;
 using UpdateFlag = StoryUpdate::Flag;
 
 [[nodiscard]] std::optional<StoryMedia> ParseMedia(
-		not_null<Session*> owner,
-		const MTPMessageMedia &media) {
+		not_null<PeerData*> peer,
+		const MTPMessageMedia &media,
+		const std::shared_ptr<GroupCall> &existingCall) {
 	return media.match([&](const MTPDmessageMediaPhoto &data)
 		-> std::optional<StoryMedia> {
 		if (const auto photo = data.vphoto()) {
-			const auto result = owner->processPhoto(*photo);
+			const auto result = peer->owner().processPhoto(*photo);
 			if (!result->isNull()) {
 				return StoryMedia{ result };
 			}
@@ -65,7 +67,7 @@ using UpdateFlag = StoryUpdate::Flag;
 	}, [&](const MTPDmessageMediaDocument &data)
 		-> std::optional<StoryMedia> {
 		if (const auto document = data.vdocument()) {
-			const auto result = owner->processDocument(
+			const auto result = peer->owner().processDocument(
 				*document,
 				data.valt_documents());
 			if (!result->isNull()
@@ -75,6 +77,25 @@ using UpdateFlag = StoryUpdate::Flag;
 			}
 		}
 		return {};
+	}, [&](const MTPDmessageMediaVideoStream &data) {
+		const auto rtmp = data.is_rtmp_stream();
+		return std::make_optional(data.vcall().match([&](
+				const MTPDinputGroupCall &data) {
+			auto call = (existingCall
+				&& existingCall->peer() == peer
+				&& existingCall->id() == data.vid().v)
+				? existingCall
+				: std::make_shared<Data::GroupCall>(
+					peer,
+					data.vid().v,
+					data.vaccess_hash().v,
+					TimeId(),
+					rtmp,
+					GroupCallOrigin::VideoStream);
+			return StoryMedia{ std::move(call) };
+		}, [](const auto &) {
+			return StoryMedia();
+		}));
 	}, [&](const MTPDmessageMediaUnsupported &data) {
 		return std::make_optional(StoryMedia{ v::null });
 	}, [](const auto &) { return std::optional<StoryMedia>(); });
@@ -147,6 +168,7 @@ StoriesSourceInfo StoriesSource::info() const {
 		.count = uint32(std::min(int(ids.size()), kMaxSegmentsCount)),
 		.unreadCount = uint32(std::min(unreadCount(), kMaxSegmentsCount)),
 		.premium = (peer->isUser() && peer->asUser()->isPremium()) ? 1U : 0,
+		.hasVideoStream = hasVideoStream ? 1U : 0,
 	};
 }
 
@@ -443,6 +465,13 @@ void Stories::parseAndApply(
 	for (const auto &story : list) {
 		if (const auto id = parseAndApply(result.peer, story, now)) {
 			result.ids.emplace(id);
+
+			if (story.type() == mtpc_storyItem) {
+				const auto &media = story.c_storyItem().vmedia();
+				if (media.type() == mtpc_messageMediaVideoStream) {
+					result.hasVideoStream = true;
+				}
+			}
 		}
 	}
 	if (result.ids.empty()) {
@@ -515,7 +544,14 @@ Story *Stories::parseAndApply(
 		not_null<PeerData*> peer,
 		const MTPDstoryItem &data,
 		TimeId now) {
-	const auto media = ParseMedia(_owner, data.vmedia());
+	const auto id = data.vid().v;
+	const auto fullId = FullStoryId{ peer->id, id };
+	auto &stories = _stories[peer->id];
+	const auto i = stories.find(id);
+	const auto &existingCall = (i != end(stories))
+		? i->second->call()
+		: nullptr;
+	const auto media = ParseMedia(peer, data.vmedia(), existingCall);
 	if (!media) {
 		return nullptr;
 	}
@@ -524,7 +560,6 @@ Story *Stories::parseAndApply(
 	if (expired && !data.is_pinned() && !hasArchive(peer)) {
 		return nullptr;
 	}
-	const auto id = data.vid().v;
 	auto albumInfo = (Albums*)nullptr;
 	auto list = std::optional<base::flat_set<int>>();
 	if (const auto albums = data.valbums()) {
@@ -538,9 +573,6 @@ Story *Stories::parseAndApply(
 			}
 		}
 	}
-	const auto fullId = FullStoryId{ peer->id, id };
-	auto &stories = _stories[peer->id];
-	const auto i = stories.find(id);
 	if (i != end(stories)) {
 		const auto result = i->second.get();
 		const auto mediaChanged = (result->media() != *media);
@@ -2275,18 +2307,25 @@ void Stories::setPreloadingInViewer(std::vector<FullStoryId> ids) {
 
 std::optional<Stories::PeerSourceState> Stories::peerSourceState(
 		not_null<PeerData*> peer,
-		StoryId storyMaxId) {
+		const MTPRecentStory &recent) {
+	const auto &data = recent.data();
+	const auto maxId = data.vmax_id().value_or_empty();
+	const auto live = data.is_live();
 	const auto i = _readTill.find(peer->id);
 	if (_readTillReceived || (i != end(_readTill))) {
 		return PeerSourceState{
-			.maxId = storyMaxId,
+			.maxId = maxId,
 			.readTill = std::min(
-				storyMaxId,
+				maxId,
 				(i != end(_readTill)) ? i->second : 0),
+			.hasVideoStream = live,
 		};
 	}
 	requestReadTills();
-	_pendingPeerStateMaxId[peer] = storyMaxId;
+	_pendingPeerRecentState[peer] = RecentState{
+		.maxId = maxId,
+		.hasVideoStream = live,
+	};
 	return std::nullopt;
 }
 
@@ -2299,8 +2338,8 @@ void Stories::requestReadTills() {
 	)).done([=](const MTPUpdates &result) {
 		_readTillReceived = true;
 		api->applyUpdates(result);
-		for (auto &[peer, maxId] : base::take(_pendingPeerStateMaxId)) {
-			updatePeerStoriesState(peer);
+		for (auto &[peer, recent] : base::take(_pendingPeerRecentState)) {
+			updatePeerStoriesState(peer, recent);
 		}
 		for (const auto &storyId : base::take(_pendingReadTillItems)) {
 			_owner->refreshStoryItemViews(storyId);
@@ -2424,20 +2463,32 @@ void Stories::sendPollingViewsRequests() {
 	_pollingViewsTimer.callOnce(kPollViewsInterval);
 }
 
-void Stories::updatePeerStoriesState(not_null<PeerData*> peer) {
+void Stories::updatePeerStoriesState(
+		not_null<PeerData*> peer,
+		std::optional<RecentState> cachedRecentState) {
 	const auto till = _readTill.find(peer->id);
 	const auto readTill = (till != end(_readTill)) ? till->second : 0;
-	const auto pendingMaxId = [&] {
-		const auto j = _pendingPeerStateMaxId.find(peer);
-		return (j != end(_pendingPeerStateMaxId)) ? j->second : 0;
+	const auto pendingRecentState = [&] {
+		if (cachedRecentState) {
+			return *cachedRecentState;
+		}
+		const auto j = _pendingPeerRecentState.find(peer);
+		return (j != end(_pendingPeerRecentState))
+			? j->second
+			: RecentState();
 	};
 	const auto i = _all.find(peer->id);
-	const auto max = (i != end(_all))
-		? (i->second.ids.empty() ? 0 : i->second.ids.back().id)
-		: pendingMaxId();
-	peer->setStoriesState(!max
+	const auto recent = (i != end(_all))
+		? RecentState{
+			(i->second.ids.empty() ? 0 : i->second.ids.back().id),
+			(!i->second.ids.empty() && i->second.ids.back().videoStream),
+		}
+		: pendingRecentState();
+	peer->setStoriesState(recent.hasVideoStream
+		? PeerData::StoriesState::HasVideoStream
+		: !recent.maxId
 		? PeerData::StoriesState::None
-		: (max <= readTill)
+		: (recent.maxId <= readTill)
 		? PeerData::StoriesState::HasRead
 		: PeerData::StoriesState::HasUnread);
 }

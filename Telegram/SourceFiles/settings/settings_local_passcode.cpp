@@ -114,10 +114,7 @@ void LocalPasscodeEnter::setupContent() {
 		content,
 		{
 			.name = u"local_passcode_enter"_q,
-			.sizeOverride = {
-				st::changePhoneIconSize,
-				st::changePhoneIconSize,
-			},
+			.sizeOverride = st::normalBoxLottieSize,
 		},
 		st::settingLocalPasscodeIconPadding);
 	content->add(std::move(icon.widget));

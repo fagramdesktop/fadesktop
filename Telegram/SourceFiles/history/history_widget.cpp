@@ -2144,7 +2144,10 @@ void HistoryWidget::setupShortcuts() {
 					std::make_shared<Scheduled>(_history));
 				return true;
 			});
-		if (showRecordButton() && _canSendMessages) {
+		if (showRecordButton()
+			&& _canSendMessages
+			&& _joinChannel->isHidden()
+			&& !_composeSearch) {
 			const auto isVoice = request->check(Command::RecordVoice, 1);
 			const auto isRound = !isVoice
 				&& request->check(Command::RecordRound, 1);
@@ -3292,8 +3295,9 @@ void HistoryWidget::refreshSuggestPostToggle() {
 
 void HistoryWidget::setupSendAsToggle() {
 	session().sendAsPeers().updated(
-	) | rpl::filter([=](not_null<PeerData*> peer) {
-		return (peer == _peer);
+	) | rpl::filter([=](Main::SendAsKey key) {
+		return (key.peer == _peer)
+			&& (key.type == Main::SendAsType::Message);
 	}) | rpl::start_with_next([=] {
 		refreshSendAsToggle();
 		updateControlsVisibility();
@@ -3305,22 +3309,24 @@ void HistoryWidget::setupSendAsToggle() {
 void HistoryWidget::refreshSendAsToggle() {
 	Expects(_peer != nullptr);
 
-	if (_editMsgId || !session().sendAsPeers().shouldChoose(_peer)) {
+	const auto key = Main::SendAsKey{ _peer, Main::SendAsType::Message };
+	if (_editMsgId || !session().sendAsPeers().shouldChoose(key)) {
 		_sendAs.destroy();
 		return;
 	} else if (_sendAs) {
 		return;
 	}
-	_sendAs.create(this, st::sendAsButton);
-	Ui::SetupSendAsButton(_sendAs.data(), controller());
+	const auto &st = st::defaultComposeControls.chooseSendAs;
+	_sendAs.create(this, st.button);
+	Ui::SetupSendAsButton(_sendAs.data(), st, controller());
 }
 
 bool HistoryWidget::contentOverlapped(const QRect &globalRect) {
-	return (_attachDragAreas.document->overlaps(globalRect)
-			|| _attachDragAreas.photo->overlaps(globalRect)
-			|| (_autocomplete && _autocomplete->overlaps(globalRect))
-			|| (_tabbedPanel && _tabbedPanel->overlaps(globalRect))
-			|| (_inlineResults && _inlineResults->overlaps(globalRect)));
+	return _attachDragAreas.document->overlaps(globalRect)
+		|| _attachDragAreas.photo->overlaps(globalRect)
+		|| (_autocomplete && _autocomplete->overlaps(globalRect))
+		|| (_tabbedPanel && _tabbedPanel->overlaps(globalRect))
+		|| (_inlineResults && _inlineResults->overlaps(globalRect));
 }
 
 bool HistoryWidget::canWriteMessage() const {
@@ -7696,7 +7702,8 @@ void HistoryWidget::keyPressEvent(QKeyEvent *e) {
 				: nullptr;
 			if (item) {
 				editMessage(item, {});
-				return;
+			} else {
+				_scroll->keyPressEvent(e);
 			}
 		}
 	} else if (e->key() == Qt::Key_Up

@@ -170,7 +170,7 @@ void Account::createSession(
 			MTPstring(), // lang_code
 			MTPEmojiStatus(),
 			MTPVector<MTPUsername>(),
-			MTPint(), // stories_max_id
+			MTPRecentStory(),
 			MTPPeerColor(), // color
 			MTPPeerColor(), // profile_color
 			MTPint(), // bot_active_users

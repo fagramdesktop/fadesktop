@@ -2353,20 +2353,31 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		: 0;
 	const auto session = &this->session();
 	_whoReactedMenuLifetime.destroy();
-	if (!clickedReaction.empty()
-		&& leaderOrSelf
-		&& Api::WhoReactedExists(leaderOrSelf, Api::WhoReactedList::One)) {
-		HistoryView::ShowWhoReactedMenu(
-			&_menu,
-			e->globalPos(),
-			this,
-			leaderOrSelf,
-			clickedReaction,
-			_controller,
-			_whoReactedMenuLifetime);
-		e->accept();
-		return;
-	} else if (!linkPhoneNumber.isEmpty()) {
+	if (!clickedReaction.empty() && leaderOrSelf) {
+		if (clickedReaction.paid()) {
+			Payments::ShowPaidReactionDetails(
+				_controller,
+				leaderOrSelf,
+				viewByItem(leaderOrSelf),
+				HistoryReactionSource::Selector);
+			e->accept();
+			return;
+		} else if (Api::WhoReactedExists(
+				leaderOrSelf,
+				Api::WhoReactedList::One)) {
+			HistoryView::ShowWhoReactedMenu(
+				&_menu,
+				e->globalPos(),
+				this,
+				leaderOrSelf,
+				clickedReaction,
+				_controller,
+				_whoReactedMenuLifetime);
+			e->accept();
+			return;
+		}
+	}
+	if (!linkPhoneNumber.isEmpty()) {
 		PhoneClickHandler(session, linkPhoneNumber).onClick(
 			prepareClickContext(
 				Qt::LeftButton,

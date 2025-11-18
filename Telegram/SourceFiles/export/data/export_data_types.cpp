@@ -1436,6 +1436,8 @@ Media ParseMedia(
 		result.content = ParseGiveaway(data);
 	}, [&](const MTPDmessageMediaPaidMedia &data) {
 		result.content = ParsePaidMedia(context, data, folder, date);
+	}, [](const MTPDmessageMediaVideoStream &data) {
+		// Live stories.
 	}, [](const MTPDmessageMediaEmpty &data) {});
 	return result;
 }
@@ -1648,7 +1650,7 @@ ServiceAction ParseServiceAction(
 		content.cost = Ui::FillAmountAndCurrency(
 			data.vamount().v,
 			qs(data.vcurrency())).toUtf8();
-		content.months = data.vmonths().v;
+		content.days = data.vdays().v;
 		result.content = content;
 	}, [&](const MTPDmessageActionTopicCreate &data) {
 		auto content = ActionTopicCreate();
@@ -1691,7 +1693,7 @@ ServiceAction ParseServiceAction(
 			: PeerId();
 		content.viaGiveaway = data.is_via_giveaway();
 		content.unclaimed = data.is_unclaimed();
-		content.months = data.vmonths().v;
+		content.days = data.vdays().v;
 		content.code = data.vslug().v;
 		result.content = content;
 	}, [&](const MTPDmessageActionGiveawayLaunch &data) {

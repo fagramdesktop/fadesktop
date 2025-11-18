@@ -229,6 +229,22 @@ public:
 	[[nodiscard]] DocumentId backgroundEmojiId() const;
 	bool changeBackgroundEmojiId(DocumentId id);
 
+	[[nodiscard]] std::optional<uint8> colorProfileIndex() const {
+		return _colorProfileIndex;
+	}
+	[[nodiscard]] auto colorProfileCollectible() const
+	-> const std::shared_ptr<Ui::ColorCollectible> & {
+		return _colorProfileCollectible;
+	}
+	bool changeColorProfileCollectible(Ui::ColorCollectible data);
+	bool changeColorProfileCollectible(
+		const tl::conditional<MTPPeerColor> &cloudColor);
+	bool clearColorProfileCollectible();
+	bool changeColorProfileIndex(uint8 index);
+	bool clearColorProfileIndex();
+	[[nodiscard]] DocumentId profileBackgroundEmojiId() const;
+	bool changeProfileBackgroundEmojiId(DocumentId id);
+
 	void setEmojiStatus(const MTPEmojiStatus &status);
 	void setEmojiStatus(EmojiStatusId emojiStatusId, TimeId until = 0);
 	[[nodiscard]] EmojiStatusId emojiStatusId() const;
@@ -504,6 +520,7 @@ public:
 	bool changeColorCollectible(
 		const tl::conditional<MTPPeerColor> &cloudColor);
 	bool changeColor(const tl::conditional<MTPPeerColor> &cloudColor);
+	bool changeColorProfile(const tl::conditional<MTPPeerColor> &cloudColor);
 
 	enum class BlockStatus : char {
 		Unknown,
@@ -558,9 +575,11 @@ public:
 		None,
 		HasRead,
 		HasUnread,
+		HasVideoStream,
 	};
 	[[nodiscard]] bool hasActiveStories() const;
 	[[nodiscard]] bool hasUnreadStories() const;
+	[[nodiscard]] bool hasActiveVideoStream() const;
 	void setStoriesState(StoriesState state);
 
 	[[nodiscard]] int peerGiftsCount() const;
@@ -608,6 +627,7 @@ private:
 
 	EmojiStatusId _emojiStatusId;
 	DocumentId _backgroundEmojiId = 0;
+	DocumentId _profileBackgroundEmojiId = 0;
 	crl::time _lastFullUpdate = 0;
 
 	QString _name;
@@ -621,12 +641,14 @@ private:
 	BarSettings _barSettings = PeerBarSettings(PeerBarSetting::Unknown);
 	std::unique_ptr<PeerBarDetails> _barDetails;
 	std::shared_ptr<Ui::ColorCollectible> _colorCollectible;
+	std::shared_ptr<Ui::ColorCollectible> _colorProfileCollectible;
 
 	BlockStatus _blockStatus = BlockStatus::Unknown;
 	LoadedStatus _loadedStatus = LoadedStatus::Not;
 	TranslationFlag _translationFlag = TranslationFlag::Unknown;
 	uint8 _colorIndex : 6 = 0;
 	uint8 _colorIndexCloud : 1 = 0;
+	std::optional<uint8> _colorProfileIndex;
 	uint8 _userpicHasVideo : 1 = 0;
 
 	QString _about;

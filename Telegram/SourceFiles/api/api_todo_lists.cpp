@@ -66,6 +66,9 @@ void TodoLists::create(
 	}
 	if (action.options.scheduled) {
 		sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_date;
+		if (action.options.scheduleRepeatPeriod) {
+			sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_repeat_period;
+		}
 	}
 	if (action.options.shortcutId) {
 		sendFlags |= MTPmessages_SendMedia::Flag::f_quick_reply_shortcut;
@@ -100,6 +103,7 @@ void TodoLists::create(
 			MTPReplyMarkup(),
 			MTPVector<MTPMessageEntity>(),
 			MTP_int(action.options.scheduled),
+			MTP_int(action.options.scheduleRepeatPeriod),
 			(sendAs ? sendAs->input : MTP_inputPeerEmpty()),
 			Data::ShortcutIdToMTP(_session, action.options.shortcutId),
 			MTP_long(action.options.effectId),

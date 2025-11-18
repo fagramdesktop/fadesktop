@@ -134,7 +134,7 @@ struct GiveawayResults {
 };
 
 enum class GiftType : uchar {
-	Premium, // count - months
+	Premium, // count - days
 	Credits, // count - credits
 	Ton, // count - nano tons
 	StarGift, // count - stars

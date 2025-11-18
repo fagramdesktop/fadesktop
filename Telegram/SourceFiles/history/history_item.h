@@ -81,6 +81,7 @@ struct HistoryItemCommonFields {
 	PeerId from = 0;
 	FullReplyTo replyTo;
 	TimeId date = 0;
+	TimeId scheduleRepeatPeriod = 0;
 	BusinessShortcutId shortcutId = 0;
 	int starsPaid = 0;
 	UserId viaBotId = 0;
@@ -193,6 +194,7 @@ public:
 	[[nodiscard]] bool isAdminLogEntry() const;
 	[[nodiscard]] bool isFromScheduled() const;
 	[[nodiscard]] bool isScheduled() const;
+	[[nodiscard]] TimeId scheduleRepeatPeriod() const;
 	[[nodiscard]] bool isSponsored() const;
 	[[nodiscard]] bool canLookupMessageAuthor() const;
 	[[nodiscard]] bool skipNotification() const;

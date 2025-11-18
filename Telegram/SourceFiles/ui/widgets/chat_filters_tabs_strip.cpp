@@ -228,6 +228,7 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 				: st::chatsFiltersTabs));
 	const auto state = wrap->lifetime().make_state<State>();
 	const auto reassignUnreadValue = [=] {
+		state->reorderLifetime.destroy();
 		const auto &list = session->data().chatsFilters().list();
 		auto includeMuted = Data::IncludeMutedCounterFoldersValue();
 		for (auto i = 0; i < list.size(); i++) {
@@ -290,7 +291,6 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 				});
 				if (data.state == Reorder::State::Applied) {
 					applyReorder(data.oldPosition, data.newPosition);
-					state->reorderLifetime.destroy();
 					reassignUnreadValue();
 				}
 			}

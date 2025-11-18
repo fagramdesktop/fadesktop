@@ -463,6 +463,12 @@ void MembersRow::paintMuteIcon(
 
 QString MembersRow::generateName() {
 	const auto result = peer()->name();
+	if (result.isEmpty()) {
+		DEBUG_LOG(("UnknownParticipant: %1, Loaded: %2, Name Version: %3"
+			).arg(peerToUser(peer()->id).bare
+			).arg(peer()->isLoaded() ? "TRUE" : "FALSE"
+			).arg(peer()->nameVersion()));
+	}
 	return result.isEmpty()
 		? u"User #%1"_q.arg(peerToUser(peer()->id).bare)
 		: result;

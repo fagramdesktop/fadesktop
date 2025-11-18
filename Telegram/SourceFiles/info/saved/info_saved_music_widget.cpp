@@ -111,6 +111,20 @@ void MusicInner::setupList() {
 	Expects(!_list);
 
 	_list = object_ptr<Media::ListWidget>(this, _controller);
+	if (_peer->isSelf()) {
+		_list->setReorderDescriptor({
+			.save = [=](
+					int oldPosition,
+					int newPosition,
+					Fn<void()> done,
+					Fn<void()> fail) {
+				_controller->session().data().savedMusic().reorder(
+					oldPosition,
+					newPosition);
+				done();
+			}
+		});
+	}
 	const auto raw = _list.data();
 
 	using namespace rpl::mappers;

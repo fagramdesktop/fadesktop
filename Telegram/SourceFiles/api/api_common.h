@@ -25,6 +25,7 @@ struct SendOptions {
 	uint64 price = 0;
 	PeerData *sendAs = nullptr;
 	TimeId scheduled = 0;
+	TimeId scheduleRepeatPeriod = 0;
 	BusinessShortcutId shortcutId = 0;
 	EffectId effectId = 0;
 	int starsApproved = 0;

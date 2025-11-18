@@ -137,8 +137,12 @@ constexpr auto kLoadViewsPages = 2;
 
 } // namespace
 
-RecentViewsType RecentViewsTypeFor(not_null<PeerData*> peer) {
-	return peer->isSelf()
+RecentViewsType RecentViewsTypeFor(
+		not_null<PeerData*> peer,
+		bool videoStream) {
+	return videoStream
+		? RecentViewsType::Other
+		: peer->isSelf()
 		? RecentViewsType::Self
 		: peer->isBroadcast()
 		? RecentViewsType::Channel

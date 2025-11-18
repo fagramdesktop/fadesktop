@@ -111,6 +111,10 @@ void ChatCreateDone(
 					show,
 					chat,
 					CollectForbiddenUsers(&chat->session(), result));
+				chat->owner().addRecentJoinChat({
+					.fromPeerId = chat->id,
+					.joinedPeerId = chat->id,
+				});
 			}
 		};
 	if (!success) {
@@ -454,10 +458,12 @@ void AddContactBox::save() {
 		MTP_vector<MTPInputContact>(
 			1,
 			MTP_inputPhoneContact(
+				MTP_flags(0),
 				MTP_long(_contactId),
 				MTP_string(phone),
 				MTP_string(firstName),
-				MTP_string(lastName)))
+				MTP_string(lastName),
+				MTPTextWithEntities())) // note
 	)).done(crl::guard(weak, [=](
 			const MTPcontacts_ImportedContacts &result) {
 		const auto &data = result.data();

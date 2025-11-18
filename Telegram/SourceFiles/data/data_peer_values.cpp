@@ -378,7 +378,9 @@ rpl::producer<bool> CanPinMessagesValue(not_null<PeerData*> peer) {
 
 rpl::producer<bool> CanManageGroupCallValue(not_null<PeerData*> peer) {
 	const auto flag = ChatAdminRight::ManageCall;
-	if (const auto chat = peer->asChat()) {
+	if (const auto user = peer->asUser()) {
+		return rpl::single(user->isSelf());
+	} else if (const auto chat = peer->asChat()) {
 		return chat->amCreator()
 			? (rpl::single(true) | rpl::type_erased())
 			: AdminRightValue(chat, flag);

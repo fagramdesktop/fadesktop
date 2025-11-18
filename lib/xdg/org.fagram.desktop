@@ -2,7 +2,7 @@
 Name=FAgram
 Comment=Telegram client based on Telegram Desktop
 TryExec=fagram
-Exec=fagram -- %u
+Exec=fagram -- %U
 Icon=fagram
 Terminal=false
 StartupWMClass=FAgram

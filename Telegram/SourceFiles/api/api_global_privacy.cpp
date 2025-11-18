@@ -262,6 +262,9 @@ void GlobalPrivacy::update(
 			: DisallowedFlag())
 		| ((disallowedGiftTypes & DisallowedGiftType::Unique)
 			? DisallowedFlag::f_disallow_unique_stargifts
+			: DisallowedFlag())
+		| ((disallowedGiftTypes & DisallowedGiftType::FromChannels)
+			? DisallowedFlag::f_disallow_stargifts_from_channels
 			: DisallowedFlag());
 	const auto typesWas = _disallowedGiftTypes.current();
 	const auto typesChanged = (typesWas != disallowedGiftTypes);
@@ -321,6 +324,9 @@ void GlobalPrivacy::apply(const MTPGlobalPrivacySettings &settings) {
 				: DisallowedGiftType())
 			| (disallow.is_disallow_premium_gifts()
 				? DisallowedGiftType::Premium
+				: DisallowedGiftType())
+			| (disallow.is_disallow_stargifts_from_channels()
+				? DisallowedGiftType::FromChannels
 				: DisallowedGiftType())
 			| (data.is_display_gifts_button()
 				? DisallowedGiftType::SendHide

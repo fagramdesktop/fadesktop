@@ -22,6 +22,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_menu_my_stories" = "My Stories";
 "lng_menu_my_groups" = "My Groups";
 "lng_menu_my_channels" = "My Channels";
+"lng_open_menu" = "Open navigation menu";
 
 "lng_disable_notifications_from_tray" = "Disable notifications";
 "lng_enable_notifications_from_tray" = "Enable notifications";
@@ -127,6 +128,10 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_cancel" = "Cancel";
 "lng_continue" = "Continue";
 "lng_close" = "Close";
+"lng_minimize_window" = "Minimize";
+"lng_maximize_window" = "Maximize";
+"lng_restore_window" = "Restore";
+"lng_go_back" = "Go back";
 "lng_connecting" = "Connecting...";
 "lng_reconnecting#one" = "Reconnect in {count} s...";
 "lng_reconnecting#other" = "Reconnect in {count} s...";
@@ -323,7 +328,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_proxy_box_password" = "Password";
 "lng_proxy_invalid" = "The proxy link is invalid.";
 "lng_proxy_unsupported" = "Your FAgram Desktop version doesn't support this proxy type or the proxy link is invalid. Please update FAgram Desktop to the latest version.";
-
+"lng_proxy_incorrect_secret" = "This proxy link uses invalid **secret** parameter. Please contact the proxy provider and ask him to update MTProxy source code and configure it with a correct **secret** value. Then let him provide a new link.";
 "lng_edit_deleted" = "This message was deleted";
 "lng_edit_limit_reached#one" = "You've reached the message text limit. Please make the text shorter by {count} character.";
 "lng_edit_limit_reached#other" = "You've reached the message text limit. Please make the text shorter by {count} characters.";
@@ -388,6 +393,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_country_ph" = "Search";
 "lng_country_none" = "Country not found";
 "lng_country_select" = "Select Country";
+"lng_phone_number" = "Phone number";
 
 "lng_code_ph" = "Code";
 "lng_code_desc" = "We've sent an activation code to your phone.\nPlease enter it below.";
@@ -736,6 +742,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 "lng_settings_language" = "Language";
 "lng_settings_default_scale" = "Default interface scale";
+"lng_settings_scale" = "Interface scale";
 "lng_settings_connection_type" = "Connection type";
 "lng_settings_downloading_update" = "Downloading update {progress}...";
 "lng_settings_privacy_title" = "Privacy";
@@ -752,6 +759,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_settings_bio_privacy" = "Bio";
 "lng_settings_gifts_privacy" = "Gifts";
 "lng_settings_birthday_privacy" = "Date of Birth";
+"lng_settings_saved_music_privacy" = "Saved Music";
 "lng_settings_privacy_premium" = "Only subscribers of {link} can restrict receiving voice messages.";
 "lng_settings_privacy_premium_link" = "Telegram Premium";
 "lng_settings_passcode_disable" = "Disable passcode";
@@ -922,6 +930,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_settings_cloud_login_email_code_title" = "Check Your New Email";
 "lng_settings_cloud_login_email_code_about" = "Please enter the code we have sent to your new email {email}";
 "lng_settings_cloud_login_email_success" = "Your email has been changed.";
+"lng_settings_cloud_login_email_set_success" = "Your login email has been set successfully.";
+"lng_settings_cloud_login_email_busy" = "Please set up login email in another window.";
 "lng_settings_error_email_not_alowed" = "Sorry, this email is not allowed";
 
 "lng_settings_ttl_title" = "Auto-Delete Messages";
@@ -970,6 +980,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_settings_font_family" = "Font family";
 
 "lng_settings_color_title" = "Color preview";
+"lng_settings_color_tab_profile" = "Profile";
+"lng_settings_color_tab_name" = "Name";
 "lng_settings_color_reply" = "Reply to your message";
 "lng_settings_color_reply_channel" = "Reply to your channel message";
 "lng_settings_color_text" = "Your name and replies to your messages will be shown in the selected color.";
@@ -984,10 +996,22 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_settings_color_emoji_off" = "Off";
 "lng_settings_color_emoji_about" = "Make replies to your messages stand out by adding custom patterns to them.";
 "lng_settings_color_emoji_about_channel" = "Select an icon to create a custom pattern for replies to your messages.";
-"lng_settings_color_subscribe" = "Subscribe to {link} to choose a custom color for your name.";
 "lng_settings_color_changed" = "Your name color has been updated!";
 "lng_settings_color_changed_channel" = "Your channel color has been updated!";
+"lng_settings_color_changed_profile" = "Your profile style has been updated!";
+"lng_settings_color_changed_profile_channel" = "Your channel profile style has been updated!";
 "lng_settings_color_apply" = "Apply Style";
+"lng_settings_color_wear" = "Wear Collectible";
+"lng_settings_color_profile_emoji" = "Add icons to Profile";
+"lng_settings_color_profile_emoji_channel" = "Profile Logo";
+"lng_settings_color_reset" = "Reset Profile Color";
+"lng_settings_color_profile_about" = "You can change the color of your name and customize replies to you. {link}";
+"lng_settings_color_profile_about_link" = "Change {emoji}";
+"lng_settings_color_choose_channel" = "Choose a color and a logo for your channel's profile";
+"lng_settings_color_choose_group" = "Choose a color and a logo for the group's profile";
+"lng_settings_color_group_boost_footer#one" = "The group has **{count}** boost. {link}";
+"lng_settings_color_group_boost_footer#other" = "The group has **{count}** boosts. {link}";
+"lng_settings_color_group_boost_footer_link" = "What are boosts?";
 
 "lng_suggest_hide_new_title" = "Hide new chats?";
 "lng_suggest_hide_new_about" = "You are receiving lots of new chats from users who are not in your Contact List.\n\nDo you want to have such chats **automatically muted** and **archived**?";
@@ -1386,6 +1410,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_edit_privacy_gifts_unlimited" = "Unlimited";
 "lng_edit_privacy_gifts_limited" = "Limited-Edition";
 "lng_edit_privacy_gifts_unique" = "Unique";
+"lng_edit_privacy_gifts_channels" = "From Channels";
 "lng_edit_privacy_gifts_types_about" = "Choose the types of gifts that you accept.";
 "lng_edit_privacy_gifts_show_icon" = "Show Gift Icon in Chats";
 "lng_edit_privacy_gifts_show_icon_about" = "Display the {emoji}Gift icon in the message input field for both participants in all chats.";
@@ -1444,6 +1469,14 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_edit_privacy_voices_exceptions" = "These users will or will not be able to send voice and video messages to you regardless of the settings above.";
 "lng_edit_privacy_voices_always_title" = "Always allow";
 "lng_edit_privacy_voices_never_title" = "Never Allow";
+
+"lng_edit_privacy_saved_music_title" = "Saved Music";
+"lng_edit_privacy_saved_music_header" = "Who can see my saved music in profile";
+"lng_edit_privacy_saved_music_always_empty" = "Always allow";
+"lng_edit_privacy_saved_music_never_empty" = "Never allow";
+"lng_edit_privacy_saved_music_exceptions" = "These users will or will not be able to see your saved music regardless of the settings above.";
+"lng_edit_privacy_saved_music_always_title" = "Always allow";
+"lng_edit_privacy_saved_music_never_title" = "Never allow";
 
 "lng_messages_privacy_title" = "Messages";
 "lng_messages_privacy_subtitle" = "Who can send me messages";
@@ -1612,6 +1645,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_delete_note" = "Delete Note";
 "lng_info_bio_label" = "Bio";
 "lng_info_link_label" = "Link";
+"lng_info_link_topic_label" = "This topic link will only work for group members";
 "lng_info_location_label" = "Location";
 "lng_info_about_label" = "Description";
 "lng_info_work_open" = "Open";
@@ -1640,6 +1674,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_profile_open_app_short" = "Open";
 "lng_profile_open_app_about" = "By launching this mini app, you agree to the {terms}.";
 "lng_profile_open_app_terms" = "Terms of Service for Mini Apps";
+"lng_profile_open_photo" = "Open Photo";
 "lng_profile_bot_permissions_title" = "Allow access to";
 "lng_profile_bot_emoji_status_access" = "Emoji Status";
 "lng_info_add_as_contact" = "Add to contacts";
@@ -1647,6 +1682,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_profile_suggest_photo" = "Suggest Profile Photo";
 "lng_profile_suggest_photo_from_clipboard" = "Suggest From Clipboard";
 "lng_profile_set_photo_for" = "Set Profile Photo";
+"lng_profile_set_photo_for_group" = "Set Group Photo";
+"lng_profile_set_photo_for_channel" = "Set Channel Photo";
 "lng_profile_set_photo_for_from_clipboard" = "Set From Clipboard";
 "lng_profile_set_photo_for_about" = "You can replace {user}'s photo with another photo that only you will see.";
 "lng_profile_photo_reset" = "Reset to Original";
@@ -1662,6 +1699,20 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_profile_changed_photo_title" = "Photo updated";
 "lng_profile_changed_photo_about" = "You can change it in {link}.";
 "lng_profile_changed_photo_link" = "Settings";
+
+"lng_profile_action_short_message" = "Message";
+"lng_profile_action_short_channel" = "Channel";
+"lng_profile_action_short_mute" = "Mute";
+"lng_profile_action_short_unmute" = "Unmute";
+"lng_profile_action_short_call" = "Call";
+"lng_profile_action_short_discuss" = "Discuss";
+"lng_profile_action_short_gift" = "Gift";
+"lng_profile_action_short_join" = "Join";
+"lng_profile_action_short_report" = "Report";
+"lng_profile_action_short_leave" = "Leave";
+"lng_profile_action_short_more" = "More";
+"lng_profile_action_short_manage" = "Manage";
+
 "lng_media_type_photos" = "Photos";
 "lng_media_type_gifs" = "GIFs";
 "lng_media_type_videos" = "Videos";
@@ -2240,6 +2291,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_action_gift_sent_channel" = "{user} sent a gift to {name} for {cost}";
 "lng_action_gift_sent_self_channel" = "You sent a gift to {name} for {cost}";
 "lng_action_gift_self_bought" = "You bought a gift for {cost}";
+"lng_action_gift_self_auction" = "You've successfully bought a gift in the auction for {cost}.";
+"lng_action_gift_auction" = "You've successfully bought a gift for {name} in the auction for {cost}.";
 "lng_action_gift_self_subtitle" = "Saved Gift";
 "lng_action_gift_self_about#one" = "Display this gift on your page or convert it to **{count}** Star.";
 "lng_action_gift_self_about#other" = "Display this gift on your page or convert it to **{count}** Stars.";
@@ -2395,6 +2448,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_peer_gifts_filter_saved" = "Displayed";
 "lng_peer_gifts_filter_unsaved" = "Hidden";
 
+"lng_premium_gift_duration_days#one" = "for {count} day";
+"lng_premium_gift_duration_days#other" = "for {count} days";
 "lng_premium_gift_duration_months#one" = "for {count} month";
 "lng_premium_gift_duration_months#other" = "for {count} months";
 "lng_premium_gift_duration_years#one" = "for {count} year";
@@ -2572,6 +2627,13 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_edited" = "edited";
 "lng_commented" = "commented";
 "lng_approximate" = "appx.";
+"lng_repeated_daily" = "daily";
+"lng_repeated_weekly" = "weekly";
+"lng_repeated_biweekly" = "biweekly";
+"lng_repeated_monthly" = "monthly";
+"lng_repeated_every_month#one" = "{count}-monthly";
+"lng_repeated_every_month#other" = "{count}-monthly";
+"lng_repeated_yearly" = "yearly";
 "lng_edited_date" = "Edited: {date}";
 "lng_sent_date" = "Sent: {date}";
 "lng_approximate_about" = "Estimated date of video publishing.";
@@ -2690,8 +2752,12 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_premium_summary_title_subscribed" = "You are all set!";
 "lng_premium_summary_subtitle_gift#one" = "{user} has gifted you a {count}-month subscription to Telegram Premium.";
 "lng_premium_summary_subtitle_gift#other" = "{user} has gifted you a {count}-months subscription to Telegram Premium.";
+"lng_premium_summary_subtitle_gift_days#one" = "{user} has gifted you a {count}-day subscription to Telegram Premium.";
+"lng_premium_summary_subtitle_gift_days#other" = "{user} has gifted you a {count}-days subscription to Telegram Premium.";
 "lng_premium_summary_subtitle_gift_me#one" = "You gifted {user} a {count}-month subscription to Telegram Premium.";
 "lng_premium_summary_subtitle_gift_me#other" = "You gifted {user} a {count}-months subscription to Telegram Premium.";
+"lng_premium_summary_subtitle_gift_days_me#one" = "You gifted {user} a {count}-month subscription to Telegram Premium.";
+"lng_premium_summary_subtitle_gift_days_me#other" = "You gifted {user} a {count}-months subscription to Telegram Premium.";
 "lng_premium_summary_subtitle_wallpapers" = "Wallpapers for Both Sides";
 "lng_premium_summary_about_wallpapers" = "Set custom wallpapers for you and your chat partner.";
 "lng_premium_summary_subtitle_stories" = "Stories";
@@ -2736,6 +2802,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_premium_summary_about_filter_tags" = "Display folder names for each chat in the chat list.";
 "lng_premium_summary_subtitle_todo_lists" = "Checklists";
 "lng_premium_summary_about_todo_lists" = "Plan, assign, and complete tasks - seamlessly and efficiently.";
+"lng_premium_summary_subtitle_peer_colors" = "Name and Profile Colors";
+"lng_premium_summary_about_peer_colors" = "Choose a color and logo for your profile and replies to your messages.";
 "lng_premium_summary_bottom_subtitle" = "About Telegram Premium";
 "lng_premium_summary_bottom_about" = "While the free version of Telegram already gives its users more than any other messaging application, **Telegram Premium** pushes its capabilities even further.\n\n**Telegram Premium** is a paid option, because most Premium Features require additional expenses from Telegram to third parties such as data center providers and server manufacturers. Contributions from **Telegram Premium** users allow us to cover such costs and also help Telegram stay free for everyone.";
 "lng_premium_summary_button" = "Subscribe for {cost} per month";
@@ -3017,6 +3085,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_credits_small_balance_title#other" = "{count} Stars Needed";
 "lng_credits_small_balance_about" = "Buy **Stars** and use them on **{bot}** and other miniapps.";
 "lng_credits_small_balance_reaction" = "Buy **Stars** and send them to {channel} to support their posts.";
+"lng_credits_small_balance_video_stream" = "Buy **Stars** to send them to {name} to support their stream.";
 "lng_credits_small_balance_subscribe" = "Buy **Stars** and subscribe to **{channel}** and other channels.";
 "lng_credits_small_balance_star_gift" = "Buy **Stars** to send gifts to {user} and other contacts.";
 "lng_credits_small_balance_for_message" = "Buy **Stars** to send messages to {user}.";
@@ -3345,6 +3414,12 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_feature_custom_emoji_pack" = "Custom Emoji Pack";
 "lng_feature_transcribe" = "Voice-to-Text Conversion";
 "lng_feature_autotranslate" = "Autotranslation of Messages";
+"lng_feature_profile_color_channel#one" = "**{count}** Color for Channel Cover";
+"lng_feature_profile_color_channel#other" = "**{count}** Colors for Channel Cover";
+"lng_feature_profile_color_group#one" = "**{count}** Color for Group Cover";
+"lng_feature_profile_color_group#other" = "**{count}** Colors for Group Cover";
+"lng_feature_profile_icon_channel" = "Custom Logo for Channel Cover";
+"lng_feature_profile_icon_group" = "Custom Logo for Group Cover";
 
 "lng_edit_topics_enable" = "Enable Topics";
 "lng_edit_topics_about" = "The group chat will be divided into topics created by admins or users.";
@@ -3610,11 +3685,15 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_gift_stars_resale" = "resale";
 "lng_gift_stars_on_sale" = "on sale";
 "lng_gift_stars_premium" = "premium";
+"lng_gift_stars_auction" = "auction";
+"lng_gift_stars_auction_join" = "Join";
 "lng_gift_stars_your_left#one" = "{count} left";
 "lng_gift_stars_your_left#other" = "{count} left";
 "lng_gift_stars_your_finished" = "none left";
 "lng_gift_stars_tabs_all" = "All Gifts";
 "lng_gift_stars_tabs_my" = "My Gifts";
+"lng_gift_stars_tabs_my_empty" = "You don't have any gifts you can use as a profile cover.";
+"lng_gift_stars_tabs_my_empty_next" = "Browse gifts available for purchase {emoji}";
 "lng_gift_stars_tabs_collectibles" = "Collectibles";
 "lng_gift_send_title" = "Send a Gift";
 "lng_gift_send_message" = "Enter Message";
@@ -3911,6 +3990,96 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_gift_collection_remove_from" = "Remove from Collection";
 "lng_gift_locked_title" = "Gift Locked";
 
+"lng_auction_about_title" = "Auction";
+"lng_auction_about_subtitle" = "Join the battle for exclusive gifts.";
+"lng_auction_about_top_title#one" = "Top {count} Bidder";
+"lng_auction_about_top_title#other" = "Top {count} Bidders";
+"lng_auction_about_top_rounds#one" = "{count} round";
+"lng_auction_about_top_rounds#other" = "{count} rounds";
+"lng_auction_about_top_bidders#one" = "top {count} bidder";
+"lng_auction_about_top_bidders#other" = "top {count} bidders";
+"lng_auction_about_top_about#one" = "{count} gift is dropped in {rounds} to the {bidders} by bid amount.";
+"lng_auction_about_top_about#other" = "{count} gifts are dropped in {rounds} to the {bidders} by bid amount.";
+"lng_auction_about_bid_title" = "Bid Carryover";
+"lng_auction_about_bid_about#one" = "If your bid leaves the top {count}, it will automatically join the next round.";
+"lng_auction_about_bid_about#other" = "If your bid leaves the top {count}, it will automatically join the next round.";
+"lng_auction_about_missed_title" = "Missed Bidders";
+"lng_auction_about_missed_about" = "If your bid doesn't win after the final round, your Stars will be fully refunded.";
+"lng_auction_about_understood" = "Understood";
+"lng_auction_text#one" = "Top **{count}** bidder will get {name} gifts this round. {link}";
+"lng_auction_text#other" = "Top **{count}** bidders will get {name} gifts this round. {link}";
+"lng_auction_text_link" = "Learn more {arrow}";
+"lng_auction_text_ended" = "Auction ended.";
+"lng_auction_start_label" = "Started";
+"lng_auction_end_label" = "Ends";
+"lng_auction_round_label" = "Current Round";
+"lng_auction_round_value" = "{n} of {amount}";
+"lng_auction_average_label" = "Average Price";
+"lng_auction_average_tooltip" = "{amount} is the average sale price for {gift} gifts.";
+"lng_auction_availability_label" = "Availability";
+"lng_auction_availability_value" = "{n} of {amount} left";
+"lng_auction_bought#one" = "{count} {emoji} item bought {arrow}";
+"lng_auction_bought#other" = "{count} {emoji} items bought {arrow}";
+"lng_auction_join_button" = "Join Auction";
+"lng_auction_join_bid" = "Place a Bid";
+"lng_auction_join_time_left" = "{time} left";
+"lng_auction_join_time_medium" = "{hours} h {minutes} m";
+"lng_auction_join_time_small" = "{minutes} m";
+"lng_auction_menu_about" = "About";
+"lng_auction_menu_copy_link" = "Copy Link";
+"lng_auction_menu_share" = "Share";
+"lng_auction_bid_title" = "Place a Bid";
+"lng_auction_bid_your" = "your bid";
+"lng_auction_bid_threshold#one" = "TOP {count}";
+"lng_auction_bid_threshold#other" = "TOP {count}";
+"lng_auction_bid_minimal#one" = "minimum bid";
+"lng_auction_bid_minimal#other" = "minimum bid";
+"lng_auction_bid_until" = "until next round";
+"lng_auction_bid_left#one" = "left";
+"lng_auction_bid_left#other" = "left";
+"lng_auction_bid_your_title" = "Your bid will be";
+"lng_auction_bid_your_outbid" = "You've been outbid";
+"lng_auction_bid_your_winning" = "You're winning";
+"lng_auction_bid_winners_title" = "Top winners";
+"lng_auction_bid_place" = "Place a {stars} Bid";
+"lng_auction_bid_increase" = "Add {stars} to Your Bid";
+"lng_auction_bid_placed_title" = "Your bid has been placed";
+"lng_auction_bid_increased_title" = "Your bid has been increased";
+"lng_auction_bid_done_text#one" = "If you fall below the **top {count}**, your bid will roll over to the next round.";
+"lng_auction_bid_done_text#other" = "If you fall below the **top {count}**, your bid will roll over to the next round.";
+"lng_auction_preview_left#one" = "{count} left";
+"lng_auction_preview_left#other" = "{count} left";
+"lng_auction_preview_join" = "Join";
+"lng_auctino_preview_finished" = "Finished";
+"lng_auction_preview_sold_out" = "Sold Out";
+"lng_auction_preview_view_results" = "View Results";
+"lng_auction_bar_active" = "Active Auction";
+"lng_auction_bar_active_many#one" = "{count} Active Auction";
+"lng_auction_bar_active_many#other" = "{count} Active Auctions";
+"lng_auction_bar_winning#one" = "You're winning ({count}st place).";
+"lng_auction_bar_winning#other" = "You're winning ({count}th place).";
+"lng_auction_bar_outbid" = "You've been outbid.";
+"lng_auction_bar_winning_all" = "You're winning in all of them.";
+"lng_auction_bar_outbid_some#one" = "You've been outbid in {count} of them.";
+"lng_auction_bar_outbid_some#other" = "You've been outbid in {count} of them.";
+"lng_auction_bar_outbid_all" = "You've been outbid in all of them.";
+"lng_auction_bar_view" = "View";
+"lng_auction_bar_round" = "Round {n} of {amount}";
+"lng_auction_bar_bid_ranked" = "Your bid **{stars}** is ranked **#{n}**";
+"lng_auction_bar_bid_outbid" = "Your bid **{stars}** is outbid";
+"lng_auction_bar_raise_bid" = "Raise Bid";
+"lng_auction_bought_title#one" = "{count} Item Bought";
+"lng_auction_bought_title#other" = "{count} Items Bought";
+"lng_auction_bought_date" = "Date";
+"lng_auction_bought_bid" = "Accepted Bid";
+"lng_auction_bought_round" = "Round #{n}";
+"lng_auction_change_title" = "Change Recipient";
+"lng_auction_change_button" = "Change";
+"lng_auction_change_already" = "You've already placed a bid on this gift for {name}.";
+"lng_auction_change_to" = "Do you want to raise your bid and change the recipient to {name}?";
+"lng_auction_change_already_me" = "You've already placed a bid on this gift for yourself.";
+"lng_auction_change_to_me" =  "Do you want to raise your bid and change the recipient to yourself?";
+
 "lng_accounts_limit_title" = "Limit Reached";
 "lng_accounts_limit1#one" = "You have reached the limit of **{count}** connected account.";
 "lng_accounts_limit1#other" = "You have reached the limit of **{count}** connected accounts.";
@@ -4091,6 +4260,17 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_reminder_message" = "Set a reminder";
 "lng_schedule_title" = "Send this message on...";
 "lng_remind_title" = "Remind me on...";
+"lng_schedule_repeat_label" = "Repeat:";
+"lng_schedule_repeat_never" = "Never";
+"lng_schedule_repeat_daily" = "Daily";
+"lng_schedule_repeat_weekly" = "Weekly";
+"lng_schedule_repeat_biweekly" = "Biweekly";
+"lng_schedule_repeat_monthly" = "Monthly";
+"lng_schedule_repeat_every_month#one" = "Every {count} month";
+"lng_schedule_repeat_every_month#other" = "Every {count} month";
+"lng_schedule_repeat_yearly" = "Yearly";
+"lng_schedule_repeat_promo" = "Subscribe to {link} to schedule repeating messages.";
+"lng_schedule_repeat_promo_link" = "Telegram Premium";
 "lng_schedule_at" = "at";
 "lng_message_ph" = "Write a message...";
 "lng_broadcast_ph" = "Broadcast a message...";
@@ -4098,6 +4278,16 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_send_anonymous_ph" = "Send anonymously...";
 "lng_story_reply_ph" = "Reply privately...";
 "lng_story_comment_ph" = "Comment story...";
+"lng_video_stream_comment_ph" = "Comment";
+"lng_video_stream_comment_paid_ph#one" = "Comment for {count} Star";
+"lng_video_stream_comment_paid_ph#other" = "Comment for {count} Stars";
+"lng_video_stream_comments_disabled" = "Comments disabled.";
+"lng_video_stream_stars" = "Add Stars to highlight your comment";
+"lng_video_stream_live" = "LIVE";
+"lng_video_stream_watched#one" = "{count} watching";
+"lng_video_stream_watched#other" = "{count} watching";
+"lng_video_stream_edit_stars" = "Edit Stars";
+"lng_video_stream_remove_stars" = "Remove Stars";
 "lng_message_stars_ph#one" = "Message for {count} Star";
 "lng_message_stars_ph#other" = "Message for {count} Stars";
 "lng_send_text_no" = "Text not allowed.";
@@ -4502,6 +4692,9 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_context_seen_reacted_none" = "Nobody Reacted";
 "lng_context_seen_reacted_all" = "Show All Reactions";
 "lng_context_sent_by" = "Sent by {user}";
+"lng_context_sent_today" = "Sent today at {time}";
+"lng_context_sent_yesterday" = "Sent yesterday at {time}";
+"lng_context_sent_date" = "Sent {date} at {time}";
 "lng_context_set_as_quick" = "Set As Quick";
 "lng_context_filter_by_tag" = "Filter by Tag";
 "lng_context_tag_add_name" = "Add Name";
@@ -4535,6 +4728,9 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_add_tag_selector#other" = "You can add a tag to the messages";
 "lng_message_tagged_with" = "Message tagged with {emoji}";
 "lng_tagged_view_saved" = "View";
+
+"lng_add_channel_to_filter_selector" = "You can add a channel to your folder";
+"lng_add_group_to_filter_selector" = "You can add a group to your folder";
 
 "lng_context_animated_emoji" = "This message contains emoji from **{name} pack**.";
 "lng_context_animated_emoji_many#one" = "This message contains emoji from **{count} pack**.";
@@ -4594,6 +4790,18 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_paid_react_undo" = "Undo";
 "lng_paid_react_show_in_top" = "Show me in Top Senders";
 "lng_paid_react_anonymous" = "Anonymous";
+
+"lng_paid_comment_title" = "Highlight and Pin";
+"lng_paid_comment_about" = "Highlight and pin your message by adding Stars for {name}.";
+"lng_paid_comment_button" = "Add {stars}";
+"lng_paid_comment_pin_about" = "pin in chat";
+"lng_paid_comment_limit_about#one" = "character";
+"lng_paid_comment_limit_about#other" = "characters";
+"lng_paid_comment_emoji_about#one" = "emoji";
+"lng_paid_comment_emoji_about#other" = "emoji";
+"lng_paid_reaction_title" = "React with Stars";
+"lng_paid_reaction_about" = "Highlight and pin your message by sending Stars to {name}.";
+"lng_paid_reaction_button" = "Send {stars}";
 
 "lng_sensitive_tag" = "18+";
 "lng_sensitive_title" = "18+";
@@ -6690,6 +6898,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_stealth_mode_already_about" = "The creators of stories you view in the next **{left}** won't see you in the viewers' lists.";
 
 "lng_stories_link_invalid" = "This link is broken or has expired.";
+"lng_stories_live_finished" = "The live story has ended.";
 
 "lng_stats_title" = "Statistics";
 "lng_stats_message_title" = "Message Statistic";

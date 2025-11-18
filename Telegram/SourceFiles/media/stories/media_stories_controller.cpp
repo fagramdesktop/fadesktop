@@ -13,6 +13,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "boxes/peers/prepare_short_info_box.h"
 #include "boxes/report_messages_box.h"
+#include "calls/group/calls_group_call.h"
+#include "calls/group/calls_group_messages.h"
 #include "chat_helpers/compose/compose_show.h"
 #include "core/application.h"
 #include "core/click_handler_types.h"
@@ -21,11 +23,14 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "core/update_checker.h"
 #include "data/data_changes.h"
 #include "data/data_document.h"
+#include "data/data_group_call.h"
 #include "data/data_file_origin.h"
 #include "data/data_peer.h"
 #include "data/data_session.h"
 #include "data/data_stories.h"
+#include "history/view/controls/compose_controls_common.h"
 #include "history/view/reactions/history_view_reactions_strip.h"
+#include "history/view/history_view_paid_reaction_toast.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "media/stories/media_stories_caption_full_view.h"
@@ -42,9 +47,11 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "media/stories/media_stories_view.h"
 #include "media/audio/media_audio.h"
 #include "info/stories/info_stories_common.h"
+#include "payments/payments_reaction_process.h"
 #include "settings/settings_credits_graphics.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/boxes/report_box_graphics.h"
+#include "ui/controls/send_button.h"
 #include "ui/text/text_utilities.h"
 #include "ui/toast/toast.h"
 #include "ui/widgets/buttons.h"
@@ -297,6 +304,13 @@ Controller::Controller(not_null<Delegate*> delegate)
 , _replyArea(std::make_unique<ReplyArea>(this))
 , _reactions(std::make_unique<Reactions>(this))
 , _recentViews(std::make_unique<RecentViews>(this))
+, _paidReactionToast(std::make_unique<PaidReactionToast>(
+	_wrap,
+	&delegate->storiesShow()->session().data(),
+	paidReactionToastTopValue(),
+	[=](not_null<Calls::GroupCall*> call) {
+		return _videoStreamCall.get() == call;
+	}))
 , _weatherInCelsius(ResolveWeatherInCelsius()){
 	initLayout();
 
@@ -451,7 +465,7 @@ void Controller::initLayout() {
 				QSize(contentWidth, headerHeight));
 		}
 		layout.controlsWidth = std::max(
-			layout.content.width(),
+			layout.content.width() + st::storiesControlsExtend * 2,
 			st::storiesControlsMinWidth);
 		layout.controlsBottomPosition = QPoint(
 			(size.width() - layout.controlsWidth) / 2,
@@ -609,7 +623,8 @@ TextWithEntities Controller::captionText() const {
 }
 
 bool Controller::skipCaption() const {
-	return (_captionFullView != nullptr)
+	return _videoStream
+		|| (_captionFullView != nullptr)
 		|| (_captionText.empty() && !repost());
 }
 
@@ -657,6 +672,18 @@ bool Controller::reactionChosen(ReactionsMode mode, ChosenReaction chosen) {
 	}
 	unfocusReply();
 	return result;
+}
+
+rpl::producer<int> Controller::paidReactionToastTopValue() const {
+	return _layout.value(
+	) | rpl::map([](const std::optional<Layout> &layout) {
+		const auto base = !layout
+			? 0
+			: (layout->headerLayout == HeaderLayout::Normal)
+			? (layout->header.y() + layout->header.height())
+			: layout->content.y();
+		return base + st::storiesHeaderMargin.bottom();
+	});
 }
 
 void Controller::showFullCaption() {
@@ -792,6 +819,7 @@ void Controller::rebuildFromContext(
 	_slider->show({
 		.index = _sliderCount ? _sliderIndex : _index,
 		.total = _sliderCount ? _sliderCount : shownCount(),
+		.videoStream = videoStream(),
 	});
 }
 
@@ -829,6 +857,10 @@ void Controller::show(
 	_context = context;
 	_waitingForId = {};
 	_waitingForDelta = 0;
+	_videoStream = story->call();
+	if (!_videoStream) {
+		clearVideoStreamCall();
+	}
 
 	rebuildFromContext(peer, storyId);
 	_contextLifetime.destroy();
@@ -890,16 +922,19 @@ void Controller::show(
 		.privacy = story->privacy(),
 		.edited = story->edited(),
 		.video = (document != nullptr),
+		.videoStream = videoStream(),
 		.silent = (document && document->isSilentVideo()),
-	});
+	}, _videoStream ? _videoStream->fullCountValue() : nullptr);
 	uiShow()->hideLayer(anim::type::instant);
 	if (!changeShown(story)) {
 		return;
 	}
 
+	clearVideoStreamCall();
 	_replyArea->show({
 		.peer = unsupported ? nullptr : peer.get(),
 		.id = story->id(),
+		.videoStream = _videoStream,
 	}, _reactions->likedValue());
 
 	const auto wasLikeButton = QPointer(_recentViews->likeButton());
@@ -909,8 +944,10 @@ void Controller::show(
 		.forwards = story->forwards(),
 		.views = story->views(),
 		.total = story->interactions(),
-		.type = RecentViewsTypeFor(peer),
-		.canViewReactions = CanViewReactionsFor(peer) && !peer->isMegagroup(),
+		.type = RecentViewsTypeFor(peer, videoStream()),
+		.canViewReactions = (!_videoStream
+			&& CanViewReactionsFor(peer)
+			&& !peer->isMegagroup()),
 	}, _reactions->likedValue());
 	if (const auto nowLikeButton = _recentViews->likeButton()) {
 		if (wasLikeButton != nowLikeButton) {
@@ -1016,8 +1053,10 @@ void Controller::subscribeToSession() {
 				.forwards = update.story->forwards(),
 				.views = update.story->views(),
 				.total = update.story->interactions(),
-				.type = RecentViewsTypeFor(peer),
-				.canViewReactions = CanViewReactionsFor(peer) && !peer->isMegagroup(),
+				.type = RecentViewsTypeFor(peer, videoStream()),
+				.canViewReactions = (!_videoStream
+					&& CanViewReactionsFor(peer)
+					&& !peer->isMegagroup()),
 			});
 			updateAreas(update.story);
 		}
@@ -1695,6 +1734,62 @@ void Controller::unfocusReply() {
 	_wrap->setFocus();
 }
 
+rpl::producer<CommentsState> Controller::commentsStateValue() const {
+	return _commentsState.value();
+}
+
+void Controller::setCommentsShownToggles(rpl::producer<> toggles) {
+	auto fromButton = std::move(
+		toggles
+	) | rpl::map([=] {
+		if (_commentsState.current() != CommentsState::Shown) {
+			_commentsLastReadId = _commentsLastId;
+			if (_commentsHas.current() == CommentsHas::WithUnread) {
+				_commentsHas = CommentsHas::AllRead;
+			}
+		}
+		return (_commentsState.current() == CommentsState::Shown)
+			? CommentsState::Hidden
+			: CommentsState::Shown;
+	});
+	auto fromUnread = _commentsHas.value(
+	) | rpl::map([=](CommentsHas value) {
+		const auto now = _commentsState.current();
+		return (value == CommentsHas::None)
+			? CommentsState::Empty
+			: (value == CommentsHas::WithUnread)
+			? CommentsState::WithNew
+			: (now == CommentsState::Shown || now == CommentsState::Empty)
+			? CommentsState::Shown
+			: CommentsState::Hidden;
+	});
+	_commentsState = rpl::merge(
+		std::move(fromButton),
+		std::move(fromUnread),
+		_commentsStateShowFromPinned.events());
+}
+
+auto Controller::starsReactionsValue() const
+-> rpl::producer<Ui::SendStarButtonState> {
+	return rpl::combine(
+		_starsReactions.value(),
+		_starsReactionHighlighted.value()
+	) | rpl::map([=](int stars, bool highlighted) {
+		return Ui::SendStarButtonState{ stars, highlighted };
+	});
+}
+
+void Controller::setStarsReactionIncrements(rpl::producer<int> increments) {
+	std::move(
+		increments
+	) | rpl::start_with_next([=](int count) {
+		if (const auto call = _videoStreamCall.get()) {
+			const auto show = _delegate->storiesShow();
+			Payments::TryAddingPaidReaction(call, count, std::nullopt, show);
+		}
+	}, _videoStreamLifetime);
+}
+
 void Controller::shareRequested() {
 	const auto show = _delegate->storiesShow();
 	if (auto box = PrepareShareBox(show, _shown, true)) {
@@ -1782,6 +1877,76 @@ auto Controller::attachReactionsToMenu(
 	QPoint desiredPosition)
 -> AttachStripResult {
 	return _reactions->attachToMenu(menu, desiredPosition);
+}
+
+void Controller::updateVideoStream(not_null<Calls::GroupCall*> videoStream) {
+	_videoStreamCall = videoStream;
+
+	using namespace Calls::Group;
+	videoStream->messages()->listValue(
+	) | rpl::start_with_next([=](const std::vector<Message> &messages) {
+		if (_commentsState.current() == CommentsState::Shown
+			|| _commentsState.current() == CommentsState::Empty) {
+			for (const auto &message : messages | ranges::views::reverse) {
+				if (message.id > 0) {
+					_commentsLastId = _commentsLastReadId = message.id;
+					break;
+				}
+			}
+			_commentsHas = messages.empty()
+				? CommentsHas::None
+				: CommentsHas::AllRead;
+			return;
+		}
+		auto has = false;
+		const auto from = videoStream->messagesFrom();
+		for (const auto &message : messages | ranges::views::reverse) {
+			if (message.peer != from) {
+				_commentsLastId = message.id;
+				if (message.id > _commentsLastReadId) {
+					has = true;
+				}
+				break;
+			}
+		}
+		_commentsHas = messages.empty()
+			? CommentsHas::None
+			: has
+			? CommentsHas::WithUnread
+			: CommentsHas::AllRead;
+	}, _videoStreamLifetime);
+
+	videoStream->messages()->hiddenShowRequested(
+	) | rpl::filter([=] {
+		return _commentsState.current() != CommentsState::Empty;
+	}) | rpl::map_to(
+		CommentsState::Shown
+	) | rpl::start_to_stream(
+		_commentsStateShowFromPinned,
+		_videoStreamLifetime);
+
+	_starsReactions = rpl::single(rpl::empty) | rpl::then(
+		videoStream->messages()->starsValueChanges()
+	) | rpl::map([=] {
+		return videoStream->messages()->starsLocalState().total;
+	});
+	_paidReactionToast->shownForCall(
+	) | rpl::start_with_next([=](Calls::GroupCall *call) {
+		_starsReactionHighlighted = (call == videoStream);
+	}, _videoStreamLifetime);
+
+	_replyArea->updateVideoStream(videoStream);
+}
+
+void Controller::clearVideoStreamCall() {
+	_videoStreamCall = nullptr;
+	_starsReactionHighlighted = false;
+	_starsReactions = 0;
+	_videoStreamLifetime.destroy();
+}
+
+bool Controller::videoStream() const {
+	return _videoStream != nullptr;
 }
 
 rpl::lifetime &Controller::lifetime() {

@@ -979,6 +979,7 @@ void Widget::chosenRow(const ChosenRow &row) {
 		params.highlight = Window::SearchHighlightId(_searchState.query);
 		if (row.newWindow) {
 			controller()->showInNewWindow(peer, showAtMsgId);
+			closeSuggestions();
 		} else {
 			controller()->showThread(history, showAtMsgId, params);
 			hideChildList();
@@ -1826,6 +1827,10 @@ void Widget::updateSuggestions(anim::type animated) {
 			controller()->showPeerInfo(peer);
 		}, _suggestions->lifetime());
 
+		_suggestions->closeRequests() | rpl::start_with_next([=] {
+			closeSuggestions();
+		}, _suggestions->lifetime());
+
 		updateControlsGeometry();
 
 		_suggestions->show(animated, [=] {
@@ -1835,6 +1840,15 @@ void Widget::updateSuggestions(anim::type animated) {
 	} else {
 		updateStoriesVisibility();
 	}
+}
+
+void Widget::closeSuggestions() {
+	_searchSuggestionsLocked = false;
+	_searchHasFocus = false;
+	setFocus();
+	updateForceDisplayWide();
+	updateCancelSearch();
+	updateSuggestions(anim::type::normal);
 }
 
 void Widget::openBotMainApp(not_null<UserData*> bot) {

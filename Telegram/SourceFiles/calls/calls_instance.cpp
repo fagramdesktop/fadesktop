@@ -295,7 +295,7 @@ void Instance::startedConferenceReady(
 		migrationInfo);
 	_currentGroupCall = std::move(_startingGroupCall);
 	_currentGroupCallChanges.fire_copy(call);
-	const auto real = call->conferenceCall().get();
+	const auto real = call->sharedCall().get();
 	const auto link = real->conferenceInviteLink();
 	const auto slug = Group::ExtractConferenceSlug(link);
 	finishConferenceInvitations(args);
@@ -600,6 +600,10 @@ void Instance::handleUpdate(
 		handleGroupCallUpdate(session, update);
 	}, [&](const MTPDupdateGroupCallEncryptedMessage &data) {
 		handleGroupCallUpdate(session, update);
+	}, [&](const MTPDupdateDeleteGroupCallMessages &data) {
+		handleGroupCallUpdate(session, update);
+	}, [&](const MTPDupdateMessageID &data) {
+		handleGroupCallUpdate(session, update);
 	}, [](const auto &) {
 		Unexpected("Update type in Calls::Instance::handleUpdate.");
 	});
@@ -635,6 +639,10 @@ FnMut<void()> Instance::addAsyncWaiter() {
 			}
 		});
 	};
+}
+
+void Instance::registerVideoStream(not_null<GroupCall*> call) {
+	_streams[&call->peer()->session()].push_back(call);
 }
 
 bool Instance::isSharingScreen() const {
@@ -707,6 +715,35 @@ void Instance::handleCallUpdate(
 void Instance::handleGroupCallUpdate(
 		not_null<Main::Session*> session,
 		const MTPUpdate &update) {
+	if (const auto i = _streams.find(session); i != end(_streams)) {
+		for (auto j = begin(i->second); j != end(i->second);) {
+			if (const auto strong = j->get()) {
+				update.match([&](const MTPDupdateGroupCall &data) {
+					strong->handlePossibleCreateOrJoinResponse(data);
+					strong->handleUpdate(update);
+				}, [&](const MTPDupdateGroupCallConnection &data) {
+					strong->handlePossibleCreateOrJoinResponse(data);
+				}, [&](const MTPDupdateGroupCallMessage &data) {
+					strong->handleIncomingMessage(data);
+				}, [&](const MTPDupdateGroupCallEncryptedMessage &data) {
+					strong->handleIncomingMessage(data);
+				}, [&](const MTPDupdateDeleteGroupCallMessages &data) {
+					strong->handleDeleteMessages(data);
+				}, [&](const MTPDupdateMessageID &data) {
+					strong->handleMessageSent(data);
+				}, [&](const MTPDupdateGroupCallParticipants &data) {
+					strong->handleUpdate(update);
+				}, [&](const MTPDupdateGroupCallChainBlocks &data) {
+					strong->handleUpdate(update);
+				}, [](const auto &) {
+				});
+				++j;
+			} else {
+				j = i->second.erase(j);
+			}
+		}
+	}
+
 	const auto groupCall = _currentGroupCall
 		? _currentGroupCall.get()
 		: _startingGroupCall.get();
@@ -719,13 +756,19 @@ void Instance::handleGroupCallUpdate(
 			groupCall->handleIncomingMessage(data);
 		}, [&](const MTPDupdateGroupCallEncryptedMessage &data) {
 			groupCall->handleIncomingMessage(data);
+		}, [&](const MTPDupdateDeleteGroupCallMessages &data) {
+			groupCall->handleDeleteMessages(data);
+		}, [&](const MTPDupdateMessageID &data) {
+			groupCall->handleMessageSent(data);
 		}, [](const auto &) {
 		});
 	}
 
 	if (update.type() == mtpc_updateGroupCallConnection
 		|| update.type() == mtpc_updateGroupCallMessage
-		|| update.type() == mtpc_updateGroupCallEncryptedMessage) {
+		|| update.type() == mtpc_updateGroupCallEncryptedMessage
+		|| update.type() == mtpc_updateDeleteGroupCallMessages
+		|| update.type() == mtpc_updateMessageID) {
 		return;
 	}
 	const auto callId = update.match([](const MTPDupdateGroupCall &data) {
@@ -1111,7 +1154,7 @@ void Instance::showConferenceInvite(
 		return;
 	} else if (inGroupCall()
 		&& _currentGroupCall->conference()
-		&& _currentGroupCall->conferenceCall()->id() == conferenceId) {
+		&& _currentGroupCall->sharedCall()->id() == conferenceId) {
 		return;
 	}
 

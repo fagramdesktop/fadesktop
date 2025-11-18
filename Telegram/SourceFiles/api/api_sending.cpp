@@ -101,6 +101,9 @@ void SendSimpleMedia(SendAction action, MTPInputMedia inputMedia) {
 	if (action.options.scheduled) {
 		flags |= MessageFlag::IsOrWasScheduled;
 		sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_date;
+		if (action.options.scheduleRepeatPeriod) {
+			sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_repeat_period;
+		}
 	}
 	if (action.options.shortcutId) {
 		flags |= MessageFlag::ShortcutMessage;
@@ -136,6 +139,7 @@ void SendSimpleMedia(SendAction action, MTPInputMedia inputMedia) {
 			MTPReplyMarkup(),
 			MTPvector<MTPMessageEntity>(),
 			MTP_int(action.options.scheduled),
+			MTP_int(action.options.scheduleRepeatPeriod),
 			(sendAs ? sendAs->input : MTP_inputPeerEmpty()),
 			Data::ShortcutIdToMTP(session, action.options.shortcutId),
 			MTP_long(action.options.effectId),
@@ -207,6 +211,9 @@ void SendExistingMedia(
 	if (action.options.scheduled) {
 		flags |= MessageFlag::IsOrWasScheduled;
 		sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_date;
+		if (action.options.scheduleRepeatPeriod) {
+			sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_repeat_period;
+		}
 	}
 	if (action.options.shortcutId) {
 		flags |= MessageFlag::ShortcutMessage;
@@ -260,6 +267,7 @@ void SendExistingMedia(
 				MTPReplyMarkup(),
 				sentEntities,
 				MTP_int(action.options.scheduled),
+				MTP_int(action.options.scheduleRepeatPeriod),
 				(sendAs ? sendAs->input : MTP_inputPeerEmpty()),
 				Data::ShortcutIdToMTP(session, action.options.shortcutId),
 				MTP_long(action.options.effectId),
@@ -392,6 +400,9 @@ bool SendDice(MessageToSend &message) {
 	if (action.options.scheduled) {
 		flags |= MessageFlag::IsOrWasScheduled;
 		sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_date;
+		if (action.options.scheduleRepeatPeriod) {
+			sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_repeat_period;
+		}
 	}
 	if (action.options.shortcutId) {
 		flags |= MessageFlag::ShortcutMessage;
@@ -445,6 +456,7 @@ bool SendDice(MessageToSend &message) {
 			MTPReplyMarkup(),
 			MTP_vector<MTPMessageEntity>(),
 			MTP_int(action.options.scheduled),
+			MTP_int(action.options.scheduleRepeatPeriod),
 			(sendAs ? sendAs->input : MTP_inputPeerEmpty()),
 			Data::ShortcutIdToMTP(session, action.options.shortcutId),
 			MTP_long(action.options.effectId),

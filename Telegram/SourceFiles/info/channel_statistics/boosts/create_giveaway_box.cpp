@@ -213,7 +213,7 @@ void AddPremiumTopBarWithDefaultTitleBar(
 				- st::boxTitleHeight
 				+ st::boxDividerHeight
 				+ st::defaultVerticalListSkip,
-			st::boxDividerBg,
+			st::defaultDividerBar,
 			RectPart::Bottom),
 		style::margins());
 	bar->setPaused(true);

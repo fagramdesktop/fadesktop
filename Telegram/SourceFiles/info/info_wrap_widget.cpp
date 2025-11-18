@@ -10,6 +10,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "info/profile/info_profile_widget.h"
 #include "info/profile/info_profile_values.h"
 #include "info/media/info_media_widget.h"
+#include "info/stories/info_stories_widget.h"
 #include "info/info_content_widget.h"
 #include "info/info_controller.h"
 #include "info/info_memento.h"
@@ -65,8 +66,13 @@ const style::InfoTopBar &TopBarStyle(Wrap wrap) {
 [[nodiscard]] bool HasCustomTopBar(not_null<const Controller*> controller) {
 	const auto section = controller->section();
 	return (section.type() == Section::Type::BotStarRef)
+		|| (section.type() == Section::Type::Profile)
 		|| ((section.type() == Section::Type::Settings)
-			&& section.settingsType()->hasCustomTopBar());
+			&& section.settingsType()->hasCustomTopBar())
+		|| (section.type() == Section::Type::Stories
+			&& controller->key().storiesAlbumId() != Stories::ArchiveId()
+			&& controller->key().storiesPeer()
+			&& controller->key().storiesPeer()->isSelf());
 }
 
 [[nodiscard]] Fn<Ui::StringWithNumbers(int)> SelectedTitleForMedia(

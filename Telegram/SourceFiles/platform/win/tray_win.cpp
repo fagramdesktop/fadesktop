@@ -79,8 +79,7 @@ bool DarkTasbarValueValid/* = false*/;
 
 	static const auto Content = [&] {
 		auto f = QFile(u":/gui/icons/tray/monochrome.svg"_q);
-		f.open(QIODevice::ReadOnly);
-		return f.readAll();
+		return f.open(QIODevice::ReadOnly) ? f.readAll() : QByteArray();
 	}();
 	static auto Mask = QImage();
 	static auto Size = 0;

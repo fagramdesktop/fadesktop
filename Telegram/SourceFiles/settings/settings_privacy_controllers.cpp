@@ -205,7 +205,8 @@ AdminLog::OwnedItem GenerateForwardedItem(
 		MTPFactCheck(),
 		MTPint(), // report_delivery_until_date
 		MTPlong(), // paid_message_stars
-		MTPSuggestedPost()
+		MTPSuggestedPost(),
+		MTPint() // schedule_repeat_period
 	).match([&](const MTPDmessage &data) {
 		return history->makeMessage(
 			history->nextNonHistoryEntryId(),
@@ -1738,6 +1739,7 @@ object_ptr<Ui::RpWidget> GiftsAutoSavePrivacyController::setupBelowWidget(
 		{ Type::Limited, tr::lng_edit_privacy_gifts_limited() },
 		{ Type::Unlimited, tr::lng_edit_privacy_gifts_unlimited() },
 		{ Type::Unique, tr::lng_edit_privacy_gifts_unique() },
+		{ Type::FromChannels, tr::lng_edit_privacy_gifts_channels() },
 		{ Type::Premium, tr::lng_edit_privacy_gifts_premium() },
 	};
 	for (const auto &[type, title] : types) {
@@ -1773,6 +1775,45 @@ void GiftsAutoSavePrivacyController::saveAdditional() {
 	if (const auto onstack = _state->save) {
 		onstack();
 	}
+}
+
+UserPrivacy::Key SavedMusicPrivacyController::key() const {
+	return Key::SavedMusic;
+}
+
+rpl::producer<QString> SavedMusicPrivacyController::title() const {
+	return tr::lng_edit_privacy_saved_music_title();
+}
+
+rpl::producer<QString> SavedMusicPrivacyController::optionsTitleKey() const {
+	return tr::lng_edit_privacy_saved_music_header();
+}
+
+rpl::producer<QString> SavedMusicPrivacyController::exceptionButtonTextKey(
+		Exception exception) const {
+	switch (exception) {
+	case Exception::Always:
+		return tr::lng_edit_privacy_saved_music_always_empty();
+	case Exception::Never:
+		return tr::lng_edit_privacy_saved_music_never_empty();
+	}
+	Unexpected("Invalid exception value.");
+}
+
+rpl::producer<QString> SavedMusicPrivacyController::exceptionBoxTitle(
+		Exception exception) const {
+	switch (exception) {
+	case Exception::Always:
+		return tr::lng_edit_privacy_saved_music_always_title();
+	case Exception::Never:
+		return tr::lng_edit_privacy_saved_music_never_title();
+	}
+	Unexpected("Invalid exception value.");
+}
+
+auto SavedMusicPrivacyController::exceptionsDescription() const
+-> rpl::producer<QString> {
+	return tr::lng_edit_privacy_saved_music_exceptions();
 }
 
 } // namespace Settings

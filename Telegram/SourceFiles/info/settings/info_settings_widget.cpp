@@ -43,46 +43,22 @@ Widget::Widget(
 : ContentWidget(parent, controller)
 , _self(controller->key().settingsSelf())
 , _type(controller->section().settingsType())
-, _inner([&] {
-	auto inner = _type->create(
-		this,
-		controller->parentController(),
-		scroll(),
-		controller->wrapValue(
-		) | rpl::map([](Wrap wrap) { return (wrap == Wrap::Layer)
-			? ::Settings::Container::Layer
-			: ::Settings::Container::Section; }));
-	if (inner->hasFlexibleTopBar()) {
-		auto filler = setInnerWidget(object_ptr<Ui::RpWidget>(this));
-		filler->resize(1, 1);
-
-		_flexibleScroll.contentHeightValue.events(
-		) | rpl::start_with_next([=](int h) {
-			filler->resize(filler->width(), h);
-		}, filler->lifetime());
-
-		filler->widthValue(
-		) | rpl::start_to_stream(
-			_flexibleScroll.fillerWidthValue,
-			lifetime());
-
-		controller->stepDataReference() = SectionCustomTopBarData{
-			.backButtonEnables = _flexibleScroll.backButtonEnables.events(),
-			.wrapValue = controller->wrapValue(),
-		};
-
-		// ScrollArea -> PaddingWrap -> RpWidget.
-		inner->setParent(filler->parentWidget()->parentWidget());
-		inner->raise();
-
-		using InnerPtr = base::unique_qptr<::Settings::AbstractSection>;
-		auto owner = filler->lifetime().make_state<InnerPtr>(
-			std::move(inner.release()));
-		return owner->get();
-	} else {
-		return setInnerWidget(std::move(inner));
-	}
-}())
+, _inner(setupFlexibleInnerWidget(
+		_type->create(
+			this,
+			controller->parentController(),
+			scroll(),
+			controller->wrapValue(
+			) | rpl::map([](Wrap wrap) { return (wrap == Wrap::Layer)
+				? ::Settings::Container::Layer
+				: ::Settings::Container::Section; })),
+		_flexibleScroll,
+		[=](Ui::RpWidget*) {
+			controller->stepDataReference() = SectionCustomTopBarData{
+				.backButtonEnables = _flexibleScroll.backButtonEnables.events(),
+				.wrapValue = controller->wrapValue(),
+			};
+		}))
 , _pinnedToTop(_inner->createPinnedToTop(this))
 , _pinnedToBottom(_inner->createPinnedToBottom(this)) {
 	_inner->sectionShowOther(

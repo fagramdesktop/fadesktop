@@ -96,7 +96,8 @@ constexpr auto kRequestTimeLimit = 60 * crl::time(1000);
 			MTP_long(data.vpaid_message_stars().value_or_empty()),
 			(data.vsuggested_post()
 				? *data.vsuggested_post()
-				: MTPSuggestedPost()));
+				: MTPSuggestedPost()),
+			MTP_int(data.vschedule_repeat_period().value_or_empty()));
 	});
 }
 

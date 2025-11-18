@@ -358,7 +358,7 @@ void InnerWidget::fill() {
 			container,
 			Dialogs::SearchEmptyIcon::NoResults,
 			tr::lng_search_tab_no_results(Ui::Text::Bold)));
-		empty->setMinimalHeight(st::changePhoneIconSize);
+		empty->setMinimalHeight(st::normalBoxLottieSize.height());
 		empty->animate();
 		return;
 	}
@@ -607,8 +607,7 @@ void InnerWidget::fill() {
 		container->add(object_ptr<Ui::DividerLabel>(
 			container,
 			std::move(label),
-			st::defaultBoxDividerLabelPadding,
-			RectPart::Top | RectPart::Bottom));
+			st::defaultBoxDividerLabelPadding));
 	};
 	if (canViewCurrencyEarn) {
 		addAboutWithLearn(bot

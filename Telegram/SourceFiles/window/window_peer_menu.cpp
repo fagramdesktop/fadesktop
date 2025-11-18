@@ -158,7 +158,8 @@ void ShareBotGame(
 			MTP_long(randomId),
 			MTPReplyMarkup(),
 			MTPVector<MTPMessageEntity>(),
-			MTP_int(0), // schedule_date
+			MTPint(), // schedule_date
+			MTPint(), // schedule_repeat_period
 			MTPInputPeer(), // send_as
 			MTPInputQuickReplyShortcut(),
 			MTPlong(),
@@ -1103,18 +1104,16 @@ void Filler::addTopicLink() {
 	if (!channel) {
 		return;
 	}
-	const auto id = _topic->rootId();
 	const auto controller = _controller;
+	const auto weak = base::make_weak(_topic);
 	_addAction(tr::lng_context_copy_topic_link(tr::now), [=] {
-		const auto base = channel->hasUsername()
-			? channel->username()
-			: "c/" + QString::number(peerToChannel(channel->id).bare);
-		const auto query = base + '/' + QString::number(id.bare);
-		const auto link = channel->session().createInternalLinkFull(query);
-		QGuiApplication::clipboard()->setText(link);
-		controller->showToast(channel->hasUsername()
-			? tr::lng_channel_public_link_copied(tr::now)
-			: tr::lng_context_about_private_link(tr::now));
+		if (const auto strong = weak.get()) {
+			const auto link = Info::Profile::TopicLink(strong, true);
+			QGuiApplication::clipboard()->setText(link);
+			controller->showToast(channel->hasUsername()
+				? tr::lng_channel_public_link_copied(tr::now)
+				: tr::lng_context_about_private_link(tr::now));
+		}
 	}, &st::menuIconCopy);
 }
 

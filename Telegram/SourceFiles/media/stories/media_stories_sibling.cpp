@@ -275,6 +275,8 @@ void Sibling::checkStory() {
 		_loader = std::make_unique<LoaderVideo>(document, origin, [=] {
 			check();
 		});
+	}, [&](const std::shared_ptr<Data::GroupCall> &call) {
+		_loader = nullptr;
 	}, [&](v::null_t) {
 		_loader = nullptr;
 	});
