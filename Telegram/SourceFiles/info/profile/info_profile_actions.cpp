@@ -1716,7 +1716,8 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			tr::lng_info_add_as_contact(),
 			CanAddContactValue(user),
 			[=] { controller->window().show(Box(EditContactBox, controller, user)); },
-			tracker);
+			tracker,
+			nullptr);
 	} else {
 		const auto topicRootId = _topic ? _topic->rootId() : 0;
 		const auto addToLink = topicRootId

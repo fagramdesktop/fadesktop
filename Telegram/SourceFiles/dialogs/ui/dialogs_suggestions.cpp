@@ -548,8 +548,6 @@ private:
 
 };
 
-} // namespace
-
 Suggestions::ObjectListController::ObjectListController(
 	not_null<Window::SessionController*> window)
 : _window(window) {
@@ -565,6 +563,10 @@ rpl::producer<int> Suggestions::ObjectListController::count() const {
 
 rpl::producer<not_null<PeerData*>> Suggestions::ObjectListController::chosen() const {
 	return _chosen.events();
+}
+
+void Suggestions::ObjectListController::setCloseCallback(Fn<void()> callback) {
+	_closeCallback = std::move(callback);
 }
 
 Main::Session &Suggestions::ObjectListController::session() const {
