@@ -53,11 +53,11 @@ rpl::producer<TextWithEntities> Text2() {
 		lt_gpl_link,
 		rpl::single(Ui::Text::Link(
 			"GNU GPL",
-			"https://github.com/fajox1/fagramdesktop/blob/master/LICENSE")),
+			"https://github.com/burhancodes/fagramdesktop/blob/master/LICENSE")),
 		lt_github_link,
 		rpl::single(Ui::Text::Link(
 			"GitHub",
-			"https://github.com/fajox1/fagramdesktop")),
+			"https://github.com/burhancodes/fagramdesktop")),
 		Ui::Text::WithEntities);
 }
 
