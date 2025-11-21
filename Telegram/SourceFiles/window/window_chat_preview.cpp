@@ -21,7 +21,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 namespace Window {
 namespace {
 
-constexpr auto kChatPreviewDelay = crl::time(1000);
+constexpr auto kChatPreviewDelay = crl::time(250);
 
 } // namespace
 
