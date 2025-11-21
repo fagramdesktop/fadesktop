@@ -27,6 +27,7 @@ namespace Ui {
 
 class BoxContent;
 class RoundButton;
+class GenericBox;
 
 [[nodiscard]] rpl::lifetime ShowStarGiftAuction(
 	not_null<Window::SessionController*> controller,
@@ -52,5 +53,11 @@ void SetAuctionButtonCountdownText(
 	not_null<RoundButton*> button,
 	AuctionButtonCountdownType type,
 	rpl::producer<Data::GiftAuctionState> value);
+
+void AuctionAboutBox(
+	not_null<GenericBox*> box,
+	int rounds,
+	int giftsPerRound,
+	Fn<void(Fn<void()> close)> understood);
 
 } // namespace Ui

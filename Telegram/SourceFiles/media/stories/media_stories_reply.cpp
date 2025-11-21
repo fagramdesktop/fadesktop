@@ -127,7 +127,7 @@ namespace {
 		.autocompleteMentions = false,
 		.autocompleteCommands = false,
 		.recordMediaMessage = !videoStream,
-		.editMessageStars = videoStream && !videoStreamManager,
+		.editMessageStars = videoStream,
 		.emojiOnlyPanel = videoStream,
 	};
 }

@@ -279,7 +279,7 @@ void ShowConferenceCallLinkBox(
 		if (!args.initial && call->canManage()) {
 			const auto toggle = Ui::CreateChild<Ui::IconButton>(
 				close->parentWidget(),
-				st.menuToggle ? *st.menuToggle : st::confcallLinkMenu);
+				st.menuToggle ? *st.menuToggle : st::boxTitleMenu);
 			const auto handler = [=] {
 				if (state->resetting) {
 					return;

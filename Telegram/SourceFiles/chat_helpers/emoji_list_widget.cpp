@@ -47,6 +47,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "emoji_suggestions_helper.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
+#include "mainwidget.h"
 #include "core/core_settings.h"
 #include "core/application.h"
 #include "settings/settings_premium.h"
@@ -710,12 +711,22 @@ void EmojiListWidget::ensureMediaPreview() {
 		? controller->sessionController()
 		: nullptr;
 	if (sessionController) {
-		_mediaPreview.create(_mediaPreviewParent, sessionController);
-		_mediaPreview->setCustomPadding(st::emojiPanReactionsPreviewPadding);
-		_mediaPreview->setBackgroundMargins(_mediaPreviewMargins);
-		_mediaPreview->setCornersSkip(st::emojiPanRadius - st::lineWidth);
+		const auto tooSmall = _mediaPreviewParent->height()
+			< st::emojiPanEmojiPreviewMinHeight;
+		const auto parent = tooSmall
+			? sessionController->content()
+			: _mediaPreviewParent;
+		_mediaPreview = base::make_unique_q<Window::MediaPreviewWidget>(
+			parent,
+			sessionController);
+		if (!tooSmall) {
+			_mediaPreview->setCustomPadding(
+				st::emojiPanReactionsPreviewPadding);
+			_mediaPreview->setBackgroundMargins(_mediaPreviewMargins);
+			_mediaPreview->setCustomRadius(st::emojiPanEmojiPreviewRadius);
+		}
 		_mediaPreview->show();
-		_mediaPreview->setGeometry(_mediaPreviewParent->geometry());
+		_mediaPreview->setGeometry(parent->geometry());
 		_mediaPreview->raise();
 	}
 }

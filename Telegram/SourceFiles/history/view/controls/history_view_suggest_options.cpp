@@ -73,6 +73,19 @@ namespace {
 	}));
 }
 
+[[nodiscard]] not_null<Ui::RpWidget*> AddMoneyInputIcon(
+		not_null<QWidget*> parent,
+		Ui::Text::PaletteDependentEmoji emoji) {
+	auto helper = Ui::Text::CustomEmojiHelper();
+	auto text = helper.paletteDependent(std::move(emoji));
+	return Ui::CreateChild<Ui::FlatLabel>(
+		parent,
+		rpl::single(std::move(text)),
+		st::defaultFlatLabel,
+		st::defaultPopupMenu,
+		helper.context());
+}
+
 } // namespace
 
 void ChooseSuggestTimeBox(
@@ -138,6 +151,60 @@ void AddApproximateUsd(
 	usd->widthValue() | rpl::start_with_next(move, usd->lifetime());
 }
 
+not_null<Ui::NumberInput*> AddStarsInputField(
+		not_null<Ui::VerticalLayout*> container,
+		StarsInputFieldArgs &&args) {
+	const auto wrap = container->add(
+		object_ptr<Ui::FixedHeightWidget>(
+			container,
+			st::editTagField.heightMin),
+		st::boxRowPadding);
+	const auto result = Ui::CreateChild<Ui::NumberInput>(
+		wrap,
+		st::editTagField,
+		rpl::single(u"0"_q),
+		args.value ? QString::number(*args.value) : QString(),
+		args.max ? args.max : std::numeric_limits<int>::max());
+	const auto icon = AddMoneyInputIcon(
+		result,
+		Ui::Earn::IconCreditsEmoji());
+
+	wrap->widthValue() | rpl::start_with_next([=](int width) {
+		icon->move(st::starsFieldIconPosition);
+		result->move(0, 0);
+		result->resize(width, result->height());
+		wrap->resize(width, result->height());
+	}, wrap->lifetime());
+
+	return result;
+}
+
+not_null<Ui::InputField*> AddTonInputField(
+		not_null<Ui::VerticalLayout*> container,
+		TonInputFieldArgs &&args) {
+	const auto wrap = container->add(
+		object_ptr<Ui::FixedHeightWidget>(
+			container,
+			st::editTagField.heightMin),
+		st::boxRowPadding);
+	const auto result = Ui::CreateTonAmountInput(
+		wrap,
+		rpl::single('0' + Ui::TonAmountSeparator() + '0'),
+		args.value);
+	const auto icon = AddMoneyInputIcon(
+		result,
+		Ui::Earn::IconCurrencyEmoji());
+
+	wrap->widthValue() | rpl::start_with_next([=](int width) {
+		icon->move(st::tonFieldIconPosition);
+		result->move(0, 0);
+		result->resize(width, result->height());
+		wrap->resize(width, result->height());
+	}, wrap->lifetime());
+
+	return result;
+}
+
 StarsTonPriceInput AddStarsTonPriceInput(
 		not_null<Ui::VerticalLayout*> container,
 		StarsTonPriceArgs &&args) {
@@ -153,18 +220,6 @@ StarsTonPriceInput AddStarsTonPriceInput(
 
 	const auto session = args.session;
 	const auto added = st::boxRowPadding - st::defaultSubsectionTitlePadding;
-	auto helper = Ui::Text::CustomEmojiHelper();
-	const auto makeIcon = [&](
-			not_null<QWidget*> parent,
-			Ui::Text::PaletteDependentEmoji emoji) {
-		auto text = helper.paletteDependent(std::move(emoji));
-		return Ui::CreateChild<Ui::FlatLabel>(
-			parent,
-			rpl::single(std::move(text)),
-			st::defaultFlatLabel,
-			st::defaultPopupMenu,
-			helper.context());
-	};
 
 	const auto starsWrap = container->add(
 		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
@@ -181,30 +236,11 @@ StarsTonPriceInput AddStarsTonPriceInput(
 			added.right(),
 			-st::defaultSubsectionTitlePadding.bottom()));
 
-	const auto starsFieldWrap = starsInner->add(
-		object_ptr<Ui::FixedHeightWidget>(
-			starsInner,
-			st::editTagField.heightMin),
-		st::boxRowPadding);
-	auto ownedStarsField = object_ptr<Ui::NumberInput>(
-		starsFieldWrap,
-		st::editTagField,
-		rpl::single(u"0"_q),
-		((args.price && args.price.stars())
-			? QString::number(args.price.whole())
-			: QString()),
-		args.starsMax);
-	const auto starsField = ownedStarsField.data();
-	const auto starsIcon = makeIcon(
-		starsField,
-		Ui::Earn::IconCreditsEmoji());
-
-	starsFieldWrap->widthValue() | rpl::start_with_next([=](int width) {
-		starsIcon->move(st::starsFieldIconPosition);
-		starsField->move(0, 0);
-		starsField->resize(width, starsField->height());
-		starsFieldWrap->resize(width, starsField->height());
-	}, starsFieldWrap->lifetime());
+	const auto starsField = AddStarsInputField(starsInner, {
+		.value = ((args.price && args.price.stars())
+			? args.price.whole()
+			: std::optional<int64>()),
+	});
 
 	AddApproximateUsd(
 		starsField,
@@ -232,27 +268,11 @@ StarsTonPriceInput AddStarsTonPriceInput(
 			added.right(),
 			-st::defaultSubsectionTitlePadding.bottom()));
 
-	const auto tonFieldWrap = tonInner->add(
-		object_ptr<Ui::FixedHeightWidget>(
-			tonInner,
-			st::editTagField.heightMin),
-		st::boxRowPadding);
-	auto ownedTonField = object_ptr<Ui::InputField>::fromRaw(
-		Ui::CreateTonAmountInput(
-			tonFieldWrap,
-			rpl::single('0' + Ui::TonAmountSeparator() + '0'),
-			((args.price && args.price.ton())
-				? (args.price.whole() * Ui::kNanosInOne + args.price.nano())
-				: 0)));
-	const auto tonField = ownedTonField.data();
-	const auto tonIcon = makeIcon(tonField, Ui::Earn::IconCurrencyEmoji());
-
-	tonFieldWrap->widthValue() | rpl::start_with_next([=](int width) {
-		tonIcon->move(st::tonFieldIconPosition);
-		tonField->move(0, 0);
-		tonField->resize(width, tonField->height());
-		tonFieldWrap->resize(width, tonField->height());
-	}, tonFieldWrap->lifetime());
+	const auto tonField = AddTonInputField(tonInner, {
+		.value = (args.price && args.price.ton())
+			? (args.price.whole() * Ui::kNanosInOne + args.price.nano())
+			: 0,
+	});
 
 	AddApproximateUsd(
 		tonField,

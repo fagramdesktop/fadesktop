@@ -2027,6 +2027,58 @@ void Stories::albumDelete(not_null<PeerData*> peer, int id) {
 	}
 }
 
+void Stories::albumReorderStories(
+		not_null<PeerData*> peer,
+		int albumId,
+		int oldPosition,
+		int newPosition,
+		Fn<void()> done,
+		Fn<void()> fail) {
+	const auto ids = albumIds(peer->id, albumId);
+	const auto list = RespectingPinned(ids);
+
+	if (oldPosition < 0 || newPosition < 0
+		|| oldPosition >= list.size() || newPosition >= list.size()) {
+		fail();
+		return;
+	}
+
+	if (_reorderStoriesRequestId) {
+		_owner->session().api().request(
+			base::take(_reorderStoriesRequestId)).cancel();
+	}
+
+	auto reorderedList = list;
+	base::reorder(reorderedList, oldPosition, newPosition);
+
+	auto order = QVector<MTPint>();
+	order.reserve(reorderedList.size());
+	for (const auto id : reorderedList) {
+		order.push_back(MTP_int(id));
+	}
+
+	_reorderStoriesRequestId = _owner->session().api().request(
+		MTPstories_UpdateAlbum(
+			MTP_flags(MTPstories_UpdateAlbum::Flag::f_order),
+			peer->input,
+			MTP_int(albumId),
+			MTPstring(),
+			MTPVector<MTPint>(),
+			MTPVector<MTPint>(),
+			MTP_vector<MTPint>(order)
+	)).done([=](const MTPStoryAlbum &result) {
+		_reorderStoriesRequestId = 0;
+		if (const auto set = albumIdsSet(peer->id, albumId)) {
+			set->ids.list = reorderedList;
+			_albumIdsChanged.fire({ peer->id, albumId });
+		}
+		done();
+	}).fail([=] {
+		_reorderStoriesRequestId = 0;
+		fail();
+	}).send();
+}
+
 void Stories::notifyAlbumUpdate(StoryAlbumUpdate &&update) {
 	const auto peerId = update.peer->id;
 	const auto i = _albums.find(peerId);

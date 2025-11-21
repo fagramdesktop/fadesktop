@@ -35,6 +35,8 @@ private:
 	void setupScrollAnimation();
 	void setupScrollHandling();
 	void setupScrollHandlingWithFilter();
+	void scrollToY(int value);
+	void applyScrollToPinnedLayout(int scrollCurrent);
 
 	const not_null<Ui::ScrollArea*> _scroll;
 	const not_null<Ui::RpWidget*> _inner;

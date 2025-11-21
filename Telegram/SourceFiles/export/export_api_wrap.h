@@ -21,6 +21,8 @@ struct UserpicsInfo;
 struct UserpicsSlice;
 struct StoriesInfo;
 struct StoriesSlice;
+struct ProfileMusicInfo;
+struct ProfileMusicSlice;
 struct ContactsList;
 struct SessionsList;
 struct DialogsInfo;
@@ -50,6 +52,7 @@ public:
 	struct StartInfo {
 		int userpicsCount = 0;
 		int storiesCount = 0;
+		int profileMusicCount = 0;
 		int dialogsCount = 0;
 	};
 	void startExport(
@@ -86,6 +89,12 @@ public:
 		Fn<bool(Data::StoriesSlice&&)> slice,
 		FnMut<void()> finish);
 
+	void requestProfileMusic(
+		FnMut<bool(Data::ProfileMusicInfo&&)> start,
+		Fn<bool(DownloadProgress)> progress,
+		Fn<bool(Data::ProfileMusicSlice&&)> slice,
+		FnMut<void()> finish);
+
 	void requestContacts(FnMut<void(Data::ContactsList&&)> done);
 
 	void requestSessions(FnMut<void(Data::SessionsList&&)> done);
@@ -109,6 +118,7 @@ private:
 	struct ContactsProcess;
 	struct UserpicsProcess;
 	struct StoriesProcess;
+	struct ProfileMusicProcess;
 	struct OtherDataProcess;
 	struct FileProcess;
 	struct FileProgress;
@@ -121,6 +131,7 @@ private:
 	void sendNextStartRequest();
 	void requestUserpicsCount();
 	void requestStoriesCount();
+	void requestProfileMusicCount();
 	void requestSplitRanges();
 	void requestDialogsCount();
 	void requestLeftChannelsCount();
@@ -145,6 +156,16 @@ private:
 	void loadStoryThumbDone(const QString &relativePath);
 	void finishStoriesSlice();
 	void finishStories();
+
+	void handleProfileMusicSlice(const MTPusers_SavedMusic &result);
+	void loadProfileMusicFiles(Data::ProfileMusicSlice &&slice);
+	void loadNextProfileMusic();
+	bool loadProfileMusicProgress(FileProgress value);
+	void loadProfileMusicDone(const QString &relativePath);
+	bool loadProfileMusicThumbProgress(FileProgress value);
+	void loadProfileMusicThumbDone(const QString &relativePath);
+	void finishProfileMusicSlice();
+	void finishProfileMusic();
 
 	void otherDataDone(const QString &relativePath);
 
@@ -258,6 +279,7 @@ private:
 	std::unique_ptr<ContactsProcess> _contactsProcess;
 	std::unique_ptr<UserpicsProcess> _userpicsProcess;
 	std::unique_ptr<StoriesProcess> _storiesProcess;
+	std::unique_ptr<ProfileMusicProcess> _profileMusicProcess;
 	std::unique_ptr<OtherDataProcess> _otherDataProcess;
 	std::unique_ptr<FileProcess> _fileProcess;
 	std::unique_ptr<LeftChannelsProcess> _leftChannelsProcess;

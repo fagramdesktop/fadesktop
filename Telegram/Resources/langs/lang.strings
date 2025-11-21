@@ -1591,6 +1591,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_profile_administrators#one" = "{count} administrator";
 "lng_profile_administrators#other" = "{count} administrators";
 "lng_profile_manage" = "Channel settings";
+"lng_profile_topic_toast" = "This topic contains {name}";
 
 "lng_invite_upgrade_title" = "Upgrade to Premium";
 "lng_invite_upgrade_group_invite#one" = "{users} only accepts invitations to groups from Contacts and **Premium** users.";
@@ -1687,6 +1688,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_profile_set_photo_for_from_clipboard" = "Set From Clipboard";
 "lng_profile_set_photo_for_about" = "You can replace {user}'s photo with another photo that only you will see.";
 "lng_profile_photo_reset" = "Reset to Original";
+"lng_profile_photo_reset_button" = "Reset";
 "lng_profile_photo_reset_sure" = "Are you sure you want to reset {user}'s photo to the original?";
 "lng_profile_photo_from_clipboard" = "From clipboard";
 "lng_profile_suggest_sure" = "You can suggest {user} to set this photo for their Telegram profile.";
@@ -2292,7 +2294,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_action_gift_sent_self_channel" = "You sent a gift to {name} for {cost}";
 "lng_action_gift_self_bought" = "You bought a gift for {cost}";
 "lng_action_gift_self_auction" = "You've successfully bought a gift in the auction for {cost}.";
-"lng_action_gift_auction" = "You've successfully bought a gift for {name} in the auction for {cost}.";
+"lng_action_gift_auction_won" = "You won the auction with a bid of {cost}.";
 "lng_action_gift_self_subtitle" = "Saved Gift";
 "lng_action_gift_self_about#one" = "Display this gift on your page or convert it to **{count}** Star.";
 "lng_action_gift_self_about#other" = "Display this gift on your page or convert it to **{count}** Stars.";
@@ -4000,6 +4002,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_auction_about_top_bidders#other" = "top {count} bidders";
 "lng_auction_about_top_about#one" = "{count} gift is dropped in {rounds} to the {bidders} by bid amount.";
 "lng_auction_about_top_about#other" = "{count} gifts are dropped in {rounds} to the {bidders} by bid amount.";
+"lng_auction_about_top_short#one" = "{count} gift is dropped to the {bidders} by bid amount. {link}";
+"lng_auction_about_top_short#other" = "{count} gifts are dropped to the {bidders} by bid amount. {link}";
 "lng_auction_about_bid_title" = "Bid Carryover";
 "lng_auction_about_bid_about#one" = "If your bid leaves the top {count}, it will automatically join the next round.";
 "lng_auction_about_bid_about#other" = "If your bid leaves the top {count}, it will automatically join the next round.";
@@ -4029,7 +4033,10 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_auction_menu_copy_link" = "Copy Link";
 "lng_auction_menu_share" = "Share";
 "lng_auction_bid_title" = "Place a Bid";
+"lng_auction_bid_subtitle#one" = "Top {count} bidder will win";
+"lng_auction_bid_subtitle#other" = "Top {count} bidders will win";
 "lng_auction_bid_your" = "your bid";
+"lng_auction_bid_custom" = "click to bid more";
 "lng_auction_bid_threshold#one" = "TOP {count}";
 "lng_auction_bid_threshold#other" = "TOP {count}";
 "lng_auction_bid_minimal#one" = "minimum bid";
@@ -4047,6 +4054,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_auction_bid_increased_title" = "Your bid has been increased";
 "lng_auction_bid_done_text#one" = "If you fall below the **top {count}**, your bid will roll over to the next round.";
 "lng_auction_bid_done_text#other" = "If you fall below the **top {count}**, your bid will roll over to the next round.";
+"lng_auction_bid_custom_title" = "Custom Amount";
 "lng_auction_preview_left#one" = "{count} left";
 "lng_auction_preview_left#other" = "{count} left";
 "lng_auction_preview_join" = "Join";
@@ -6295,6 +6303,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_export_option_contacts_about" = "If you allow access, contacts are continuously synced with Telegram. You can adjust this in Settings > Privacy & Security on mobile devices.";
 "lng_export_option_stories" = "Story archive";
 "lng_export_option_stories_about" = "All stories you posted from Telegram mobile apps.";
+"lng_export_option_profile_music" = "Music on Profiles";
+"lng_export_option_profile_music_about" = "All tracks you saved to your playlist.";
 "lng_export_option_sessions" = "Active sessions";
 "lng_export_option_sessions_about" = "We may store this to display your connected devices in Settings > Privacy & Security > Show all sessions.";
 "lng_export_header_other" = "Other";

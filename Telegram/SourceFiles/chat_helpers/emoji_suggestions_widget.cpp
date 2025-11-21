@@ -22,6 +22,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "platform/platform_specific.h"
 #include "core/application.h"
 #include "base/event_filter.h"
+#include "base/integration.h"
 #include "main/main_session.h"
 #include "data/data_session.h"
 #include "data/data_document.h"
@@ -750,11 +751,11 @@ SuggestionsController::SuggestionsController(
 	};
 	_outerFilter.reset(base::install_event_filter(outer, outerCallback));
 
-	QObject::connect(
-		_field,
-		&QTextEdit::textChanged,
-		_container,
-		[=] { handleTextChange(); });
+	QObject::connect(_field, &QTextEdit::textChanged, _container, [=] {
+		base::Integration::Instance().enterFromEventLoop([&] {
+			handleTextChange();
+		});
+	});
 	QObject::connect(
 		_field,
 		&QTextEdit::cursorPositionChanged,

@@ -45,6 +45,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/vertical_list.h"
+#include "ui/ui_utility.h"
 #include "styles/style_credits.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_info.h"
@@ -577,6 +578,7 @@ void InnerWidget::createAboutArchive() {
 void InnerWidget::visibleTopBottomUpdated(
 		int visibleTop,
 		int visibleBottom) {
+	_visibleRange = { visibleTop, visibleBottom };
 	setChildVisibleTopBottom(_list, visibleTop, visibleBottom);
 }
 
@@ -609,7 +611,8 @@ void InnerWidget::setupList() {
 					int newPosition,
 					Fn<void()> done,
 					Fn<void()> fail) {
-				reorderAlbumStories(
+				_peer->owner().stories().albumReorderStories(
+					_peer,
 					albumId,
 					oldPosition,
 					newPosition,
@@ -631,6 +634,10 @@ void InnerWidget::setupList() {
 	_listTops.fire(raw->topValue());
 
 	raw->show();
+
+	Ui::PostponeCall(crl::guard(this, [=] {
+		visibleTopBottomUpdated(_visibleRange.top, _visibleRange.bottom);
+	}));
 }
 
 void InnerWidget::setupEmpty() {
@@ -1120,54 +1127,6 @@ void InnerWidget::flushAlbumReorder() {
 	}).send();
 
 	_pendingAlbumReorder = false;
-}
-
-void InnerWidget::reorderAlbumStories(
-		int albumId,
-		int oldPosition,
-		int newPosition,
-		Fn<void()> done,
-		Fn<void()> fail) {
-	const auto &stories = _controller->session().data().stories();
-	const auto ids = stories.albumIds(_peer->id, albumId);
-	const auto list = Data::RespectingPinned(ids);
-
-	if (oldPosition < 0 || newPosition < 0
-		|| oldPosition >= list.size() || newPosition >= list.size()) {
-		fail();
-		return;
-	}
-
-	if (_reorderStoriesRequestId) {
-		_controller->session().api().request(
-			base::take(_reorderStoriesRequestId)).cancel();
-	}
-
-	auto reorderedList = list;
-	base::reorder(reorderedList, oldPosition, newPosition);
-
-	auto order = QVector<MTPint>();
-	order.reserve(reorderedList.size());
-	for (const auto id : reorderedList) {
-		order.push_back(MTP_int(id));
-	}
-
-	_reorderStoriesRequestId = _controller->session().api().request(
-		MTPstories_UpdateAlbum(
-			MTP_flags(MTPstories_UpdateAlbum::Flag::f_order),
-			_peer->input,
-			MTP_int(albumId),
-			MTPstring(),
-			MTPVector<MTPint>(),
-			MTPVector<MTPint>(),
-			MTP_vector<MTPint>(order)
-	)).done([=](const MTPStoryAlbum &result) {
-		_reorderStoriesRequestId = 0;
-		done();
-	}).fail([=] {
-		_reorderStoriesRequestId = 0;
-		fail();
-	}).send();
 }
 
 } // namespace Info::Stories

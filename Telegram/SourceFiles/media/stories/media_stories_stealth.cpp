@@ -287,10 +287,10 @@ struct State {
 		box->addRow(MakeAbout(box, data->state.value()), style::al_top);
 		const auto make = [&](const Ui::FeatureListEntry &entry) {
 			return Ui::MakeFeatureListEntry(
-				box, 
-				entry, 
-				{}, 
-				st::storiesStealthFeatureTitle, 
+				box,
+				entry,
+				{},
+				st::storiesStealthFeatureTitle,
 				st::storiesStealthFeatureAbout);
 		};
 		box->addRow(make(FeaturePast()));

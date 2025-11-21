@@ -237,10 +237,7 @@ VideoStream::VideoStream(
 		TopDonorPlaces(_call.get()),
 		_call->messages()->idUpdates(),
 		_call->canManageValue(),
-		rpl::combine(
-			_call->messagesEnabledValue(),
-			_commentsShown.value(),
-			rpl::mappers::_1 && rpl::mappers::_2))) {
+		_commentsShown.value())) {
 	Core::App().calls().registerVideoStream(_call.get());
 	setupMembers();
 	setupVideo();

@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/timer.h"
 #include "base/unixtime.h"
 #include "boxes/peers/edit_peer_info_box.h" // EditPeerInfoBox::Available.
+#include "boxes/peers/edit_forum_topic_box.h"
 #include "boxes/moderate_messages_box.h"
 #include "boxes/report_messages_box.h"
 #include "boxes/star_gift_box.h"
@@ -89,6 +90,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_theme.h"
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
+#include "ui/text/text_utilities.h"
+#include "ui/toast/toast.h"
+#include "boxes/sticker_set_box.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_chat.h"
@@ -497,9 +501,12 @@ void TopBar::adjustColors(const std::optional<QColor> &edgeColor) {
 		return edgeColor
 			&& (kMinContrast > Ui::CountContrast(color->c, *edgeColor));
 	};
+	const auto collectible = effectiveCollectible();
 	const auto shouldOverrideTitle = shouldOverride(_title->st().textFg);
 	const auto shouldOverrideStatus = shouldOverrideTitle; // shouldOverride(_status->st().textFg);
-	_title->setTextColorOverride(shouldOverrideTitle
+	_title->setTextColorOverride(collectible
+		? collectible->textColor
+		: shouldOverrideTitle
 		? std::optional<QColor>(st::groupCallMembersFg->c)
 		: std::nullopt);
 	if (!_showLastSeen->isHidden()) {
@@ -539,7 +546,9 @@ void TopBar::adjustColors(const std::optional<QColor> &edgeColor) {
 		}, _status->lifetime());
 		_statusLabel = std::make_unique<StatusLabel>(_status.data(), _peer);
 		_statusLabel->setMembersLinkCallback(membersLinkCallback);
-		_status->setTextColorOverride(shouldOverrideStatus
+		_status->setTextColorOverride(collectible
+			? collectible->textColor
+			: shouldOverrideStatus
 			? std::optional<QColor>(st::groupCallVideoSubTextFg->c)
 			: std::nullopt);
 		_statusLabel->setColorized(!shouldOverrideStatus);
@@ -578,6 +587,9 @@ void TopBar::adjustColors(const std::optional<QColor> &edgeColor) {
 }
 
 void TopBar::updateCollectibleStatus() {
+	if (width() <= 0) {
+		return;
+	}
 	const auto collectible = effectiveCollectible();
 	const auto colorProfile = effectiveColorProfile();
 	_hasGradientBg = (collectible != nullptr)
@@ -867,13 +879,21 @@ void TopBar::setupActions(not_null<Window::SessionController*> controller) {
 	if (chechMax()) {
 		return;
 	}
-	if (EditPeerInfoBox::Available(peer)) {
+	if ((topic && topic->canEdit()) || EditPeerInfoBox::Available(peer)) {
 		const auto manage = Ui::CreateChild<TopBarActionButton>(
 			this,
 			tr::lng_profile_action_short_manage(tr::now),
 			st::infoProfileTopBarActionManage);
 		manage->setClickedCallback([=, window = controller] {
-			window->showEditPeerBox(peer);
+			if (topic) {
+				window->show(Box(
+					EditForumTopicBox,
+					window,
+					peer->owner().history(peer),
+					topic->rootId()));
+			} else {
+				window->showEditPeerBox(peer);
+			}
 		});
 		buttons.push_back(manage);
 		_actions->add(manage);
@@ -981,6 +1001,9 @@ void TopBar::setupUserpicButton(
 	};
 
 	const auto canChangePhoto = [=, peer = _peer] {
+		if (_topicIconView) {
+			return false;
+		}
 		if (const auto user = peer->asUser()) {
 			return user->isContact()
 				&& !user->isSelf()
@@ -1224,10 +1247,43 @@ void TopBar::setupUserpicButton(
 						false);
 				}
 			}
-
-			(*menu)->popup(QCursor::pos());
+			if (!(*menu)->empty()) {
+				(*menu)->popup(QCursor::pos());
+			}
 		} else if (button == Qt::LeftButton) {
-			if (_hasStories) {
+			if (_topicIconView && _topic && _topic->iconId()) {
+				const auto document = _peer->owner().document(
+					_topic->iconId());
+				if (const auto sticker = document->sticker()) {
+					const auto packName
+						= _peer->owner().customEmojiManager().lookupSetName(
+							sticker->set.id);
+					if (!packName.isEmpty()) {
+						const auto text = tr::lng_profile_topic_toast(
+							tr::now,
+							lt_name,
+							Ui::Text::Link(packName, u"internal:"_q),
+							Ui::Text::WithEntities);
+						const auto weak = base::make_weak(controller);
+						controller->showToast(Ui::Toast::Config{
+							.text = text,
+							.filter = [=, set = sticker->set](
+									const ClickHandlerPtr &handler,
+									Qt::MouseButton) {
+								if (const auto strong = weak.get()) {
+									strong->show(
+										Box<StickerSetBox>(
+											strong->uiShow(),
+											set,
+											Data::StickersType::Emoji));
+								}
+								return false;
+							},
+							.duration = crl::time(3000),
+						});
+					}
+				}
+			} else if (_hasStories) {
 				controller->openPeerStories(_peer->id);
 			} else {
 				openPhoto();
@@ -1396,7 +1452,21 @@ int TopBar::statusMostLeft() const {
 		: _st.subtitlePosition.x();
 }
 
+int TopBar::calculateRightButtonsWidth() const {
+	auto width = 0;
+	if (_close) {
+		width += _close->width();
+	}
+	if (_topBarButton) {
+		width += _topBarButton->width();
+	}
+	return width;
+}
+
 void TopBar::updateLabelsPosition() {
+	if (width() <= 0) {
+		return;
+	}
 	_progress = [&] {
 		const auto max = QWidget::maximumHeight();
 		const auto min = _minForProgress;
@@ -1407,13 +1477,7 @@ void TopBar::updateLabelsPosition() {
 	}();
 	const auto progressCurrent = _progress.current();
 
-	auto rightButtonsWidth = 0;
-	if (_close) {
-		rightButtonsWidth += _close->width();
-	}
-	if (_topBarButton) {
-		rightButtonsWidth += _topBarButton->width();
-	}
+	const auto rightButtonsWidth = calculateRightButtonsWidth();
 
 	const auto reservedRight = anim::interpolate(
 		0,
@@ -1515,13 +1579,29 @@ void TopBar::updateLabelsPosition() {
 }
 
 void TopBar::updateStatusPosition(float64 progressCurrent) {
+	if (width() <= 0) {
+		return;
+	}
 	if (_forumButton) {
 		const auto buttonTop = anim::interpolate(
 			_st.subtitlePosition.y(),
 			st::infoProfileTopBarStatusTop,
 			progressCurrent);
+		const auto mostLeft = statusMostLeft();
+		const auto buttonMostLeft = anim::interpolate(
+			mostLeft,
+			st::infoProfileTopBarActionButtonsPadding.left(),
+			progressCurrent);
+		const auto buttonMostRight = anim::interpolate(
+			calculateRightButtonsWidth(),
+			st::infoProfileTopBarActionButtonsPadding.right(),
+			progressCurrent);
+		const auto maxWidth = width() - buttonMostLeft - buttonMostRight;
+		if (_forumButton->contentWidth() > maxWidth) {
+			_forumButton->setFullWidth(maxWidth);
+		}
 		const auto buttonLeft = anim::interpolate(
-			statusMostLeft(),
+			mostLeft,
 			(width() - _forumButton->width()) / 2,
 			progressCurrent);
 		_forumButton->moveToLeft(buttonLeft, buttonTop);
@@ -1600,6 +1680,9 @@ QRect TopBar::userpicGeometry() const {
 void TopBar::updateGiftButtonsGeometry(
 		float64 progressCurrent,
 		const QRect &userpicRect) {
+	if (width() <= 0) {
+		return;
+	}
 	const auto sz = st::infoProfileTopBarGiftSize;
 	const auto halfSz = sz / 2.;
 	for (const auto &gift : _pinnedToTopGifts) {
@@ -1896,6 +1979,9 @@ void TopBar::fillTopBarMenu(
 }
 
 void TopBar::updateVideoUserpic() {
+	if (width() <= 0) {
+		return;
+	}
 	const auto id = _peer->userpicPhotoId();
 	if (!id) {
 		_videoUserpicPlayer = nullptr;
@@ -2465,6 +2551,9 @@ void TopBar::setupStoryOutline(const QRect &geometry) {
 }
 
 void TopBar::updateStoryOutline(std::optional<QColor> edgeColor) {
+	if (width() <= 0) {
+		return;
+	}
 	const auto user = _peer->asUser();
 	const auto channel = _peer->asChannel();
 	if (!user && !channel) {

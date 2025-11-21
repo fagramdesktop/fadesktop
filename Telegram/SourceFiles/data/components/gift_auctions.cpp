@@ -51,12 +51,14 @@ rpl::producer<GiftAuctionState> GiftAuctions::state(const QString &slug) {
 void GiftAuctions::apply(const MTPDupdateStarGiftAuctionState &data) {
 	if (const auto entry = find(data.vgift_id().v)) {
 		apply(entry, data.vstate());
+		entry->changes.fire({});
 	}
 }
 
 void GiftAuctions::apply(const MTPDupdateStarGiftAuctionUserState &data) {
 	if (const auto entry = find(data.vgift_id().v)) {
 		apply(entry, data.vuser_state());
+		entry->changes.fire({});
 	}
 }
 

@@ -242,6 +242,13 @@ public:
 		Fn<void(StoryAlbum)> done,
 		Fn<void(QString)> fail);
 	void albumDelete(not_null<PeerData*> peer, int id);
+	void albumReorderStories(
+		not_null<PeerData*> peer,
+		int albumId,
+		int oldPosition,
+		int newPosition,
+		Fn<void()> done,
+		Fn<void()> fail);
 	void notifyAlbumUpdate(StoryAlbumUpdate &&update);
 	[[nodiscard]] rpl::producer<StoryAlbumUpdate> albumUpdates() const;
 
@@ -476,6 +483,8 @@ private:
 	base::flat_set<not_null<Story*>> _pollingViews;
 	base::Timer _pollingTimer;
 	base::Timer _pollingViewsTimer;
+
+	mtpRequestId _reorderStoriesRequestId = 0;
 
 	rpl::variable<StealthMode> _stealthMode;
 

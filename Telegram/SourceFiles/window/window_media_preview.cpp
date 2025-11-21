@@ -20,6 +20,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "ui/emoji_config.h"
 #include "ui/image/image.h"
+#include "ui/painter.h"
 #include "ui/rect.h"
 #include "ui/ui_utility.h"
 #include "window/window_session_controller.h"
@@ -78,19 +79,12 @@ QRect MediaPreviewWidget::updateArea() const {
 void MediaPreviewWidget::paintEvent(QPaintEvent *e) {
 	auto p = QPainter(this);
 
-	if (_cornersSkip > 0) {
+	if (_customRadius > 0) {
+		auto hq = PainterHighQualityEnabler(p);
 		const auto r = rect() - _backgroundMargins;
-		auto clipRegion = QRegion(r);
-		const auto skip = _cornersSkip;
-		clipRegion -= QRect(r.x(), r.y(), skip, skip);
-		clipRegion -= QRect(r.x() + r.width() - skip, r.y(), skip, skip);
-		clipRegion -= QRect(r.x(), r.y() + r.height() - skip, skip, skip);
-		clipRegion -= QRect(
-			r.x() + r.width() - skip,
-			r.y() + r.height() - skip,
-			skip,
-			skip);
-		p.setClipRegion(clipRegion);
+		auto path = QPainterPath();
+		path.addRoundedRect(r, _customRadius, _customRadius);
+		p.setClipPath(path);
 	}
 
 	const auto r = e->rect();
@@ -310,8 +304,8 @@ void MediaPreviewWidget::setBackgroundMargins(const QMargins &margins) {
 	update();
 }
 
-void MediaPreviewWidget::setCornersSkip(int pixels) {
-	_cornersSkip = pixels;
+void MediaPreviewWidget::setCustomRadius(int radius) {
+	_customRadius = radius;
 	update();
 }
 
@@ -362,6 +356,10 @@ QSize MediaPreviewWidget::currentDimensions() const {
 	} else {
 		result = result.scaled(box, Qt::KeepAspectRatio);
 	}
+
+	result = QSize(
+		std::max(result.width(), 1),
+		std::max(result.height(), 1));
 
 	if (_photo) {
 		_cachedSize = result;

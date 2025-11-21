@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/info_flexible_scroll.h"
 
+#include "ui/effects/animation_value.h"
 #include "ui/widgets/scroll_area.h"
 #include "base/event_filter.h"
 #include "base/options.h"
@@ -65,7 +66,7 @@ void FlexibleScrollHelper::setupScrollAnimation() {
 			_scrollTopFrom,
 			_scrollTopTo,
 			std::clamp(eased, 0., 1.));
-		_scroll->scrollToY(scrollCurrent);
+		scrollToY(scrollCurrent);
 		_lastScrollApplied = scrollCurrent;
 		if (progress >= 1) {
 			clearScrollState();
@@ -121,7 +122,7 @@ void FlexibleScrollHelper::setupScrollHandling() {
 					: -1);
 			{
 				_applyingFakeScrollState = true;
-				_scroll->scrollToY(previousValue);
+				scrollToY(previousValue);
 				_applyingFakeScrollState = false;
 			}
 			if (_scrollAnimation.animating()
@@ -209,16 +210,21 @@ void FlexibleScrollHelper::setupScrollHandling() {
 }
 
 void FlexibleScrollHelper::setupScrollHandlingWithFilter() {
-	const auto heightDiff = [=] {
-		return _pinnedToTop->maximumHeight()
-			- _pinnedToTop->minimumHeight();
-	};
-
 	rpl::combine(
 		_pinnedToTop->heightValue(),
 		_inner->heightValue()
 	) | rpl::start_with_next([=](int, int h) {
-		_data.contentHeightValue.fire(h + heightDiff());
+		const auto max = _pinnedToTop->maximumHeight();
+		const auto min = _pinnedToTop->minimumHeight();
+		const auto diff = max - min;
+		const auto progress = (diff > 0)
+			? std::clamp(
+				(_pinnedToTop->height() - min) / float64(diff),
+				0.,
+				1.)
+			: 1.;
+		_data.contentHeightValue.fire(h
+			+ anim::interpolate(diff, 0, progress));
 	}, _pinnedToTop->lifetime());
 
 	const auto singleStep = _scroll->verticalScrollBar()->singleStep()
@@ -237,7 +243,8 @@ void FlexibleScrollHelper::setupScrollHandlingWithFilter() {
 		const auto wheel = static_cast<QWheelEvent*>(e.get());
 		const auto delta = wheel->angleDelta().y();
 		if (std::abs(delta) != 120) {
-			return base::EventFilterResult::Continue;
+			scrollToY(_scroll->scrollTop() - delta);
+			return base::EventFilterResult::Cancel;
 		}
 		const auto actualTop = _scroll->scrollTop();
 		const auto animationActive = _scrollAnimation.animating()
@@ -318,13 +325,8 @@ void FlexibleScrollHelper::setupScrollHandlingWithFilter() {
 		return base::EventFilterResult::Cancel;
 	}, _filterLifetime);
 
-	_scroll->scrollTopValue(
-	) | rpl::start_with_next([=](int top) {
-		const auto current = heightDiff() - top;
-		_inner->moveToLeft(0, std::min(0, current));
-		_pinnedToTop->resize(
-			_pinnedToTop->width(),
-			std::max(current + _pinnedToTop->minimumHeight(), 0));
+	_scroll->scrollTopValue() | rpl::start_with_next([=](int top) {
+		applyScrollToPinnedLayout(top);
 	}, _inner->lifetime());
 
 	_data.fillerWidthValue.events(
@@ -337,6 +339,23 @@ void FlexibleScrollHelper::setupScrollHandlingWithFilter() {
 	) | rpl::filter([](not_null<QEvent*> e) {
 		return e->type() == QEvent::Wheel;
 	}));
+}
+
+void FlexibleScrollHelper::scrollToY(int scrollCurrent) {
+	applyScrollToPinnedLayout(scrollCurrent);
+	_scroll->scrollToY(scrollCurrent);
+}
+
+void FlexibleScrollHelper::applyScrollToPinnedLayout(int scrollCurrent) {
+	const auto top = std::min(scrollCurrent, _scroll->scrollTopMax());
+	const auto minimumHeight = _pinnedToTop->minimumHeight();
+	const auto current = _pinnedToTop->maximumHeight()
+		- minimumHeight
+		- top;
+	_inner->moveToLeft(0, std::min(0, current));
+	_pinnedToTop->resize(
+		_pinnedToTop->width(),
+		std::max(current + minimumHeight, 0));
 }
 
 } // namespace Info

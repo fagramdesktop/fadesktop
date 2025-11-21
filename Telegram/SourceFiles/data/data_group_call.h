@@ -84,6 +84,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> loadedValue() const;
 	[[nodiscard]] bool rtmp() const;
 	[[nodiscard]] GroupCallOrigin origin() const;
+	[[nodiscard]] bool creator() const;
 	[[nodiscard]] bool canManage() const;
 	[[nodiscard]] bool listenersHidden() const;
 	[[nodiscard]] bool blockchainMayBeEmpty() const;

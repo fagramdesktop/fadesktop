@@ -308,7 +308,7 @@ private:
 	void initKeyHandler();
 	void initLikeButton();
 	void initEditStarsButton();
-	void updateLikeParent();
+	void updateControlsParents();
 	void updateSubmitSettings();
 	void updateSendButtonType();
 	void updateMessagesTTLShown();
@@ -352,7 +352,8 @@ private:
 	void clearInlineBot();
 	void inlineBotChanged();
 
-	bool hasSilentBroadcastToggle() const;
+	[[nodiscard]] bool hasSilentBroadcastToggle() const;
+	[[nodiscard]] bool editStarsButtonShown() const;
 
 	// Look in the _field for the inline bot and query string.
 	void updateInlineBotQuery();
@@ -423,6 +424,7 @@ private:
 	rpl::variable<int> _minStarsCount;
 	std::optional<int> _chosenStarsCount;
 	Ui::IconButton *_commentsShown = nullptr;
+	rpl::variable<bool> _commentsShownHidden;
 	Ui::RpWidget *_commentsShownNewDot = nullptr;
 	Ui::IconButton *_attachToggle = nullptr;
 	Ui::AbstractButton *_starsReaction = nullptr;
@@ -432,6 +434,7 @@ private:
 	const not_null<Ui::InputField*> _field;
 	Ui::IconButton * const _botCommandStart = nullptr;
 	std::unique_ptr<Ui::SendAsButton> _sendAs;
+	rpl::variable<bool> _videoStreamAdmin;
 	std::unique_ptr<Ui::SilentToggle> _silent;
 	std::unique_ptr<Controls::TTLButton> _ttlInfo;
 	base::unique_qptr<Controls::CharactersLimitLabel> _charsLimitation;

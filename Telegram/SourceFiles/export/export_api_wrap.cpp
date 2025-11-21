@@ -32,6 +32,7 @@ constexpr auto kFileMaxSize = 4000 * int64(1024 * 1024);
 constexpr auto kLocationCacheSize = 100'000;
 constexpr auto kMaxEmojiPerRequest = 100;
 constexpr auto kStoriesSliceLimit = 100;
+constexpr auto kProfileMusicSliceLimit = 100;
 
 struct LocationKey {
 	uint64 type;
@@ -112,6 +113,7 @@ struct ApiWrap::StartProcess {
 	enum class Step {
 		UserpicsCount,
 		StoriesCount,
+		ProfileMusicCount,
 		SplitRanges,
 		DialogsCount,
 		LeftChannelsCount,
@@ -150,6 +152,19 @@ struct ApiWrap::StoriesProcess {
 
 	int processed = 0;
 	std::optional<Data::StoriesSlice> slice;
+	int offsetId = 0;
+	bool lastSlice = false;
+	int fileIndex = 0;
+};
+
+struct ApiWrap::ProfileMusicProcess {
+	FnMut<bool(Data::ProfileMusicInfo&&)> start;
+	Fn<bool(DownloadProgress)> fileProgress;
+	Fn<bool(Data::ProfileMusicSlice&&)> handleSlice;
+	FnMut<void()> finish;
+
+	int processed = 0;
+	std::optional<Data::ProfileMusicSlice> slice;
 	int offsetId = 0;
 	bool lastSlice = false;
 	int fileIndex = 0;
@@ -438,6 +453,9 @@ void ApiWrap::startExport(
 	if (_settings->types & Settings::Type::Stories) {
 		_startProcess->steps.push_back(Step::StoriesCount);
 	}
+	if (_settings->types & Settings::Type::ProfileMusic) {
+		_startProcess->steps.push_back(Step::ProfileMusicCount);
+	}
 	if (_settings->types & Settings::Type::AnyChatsMask) {
 		_startProcess->steps.push_back(Step::SplitRanges);
 		_startProcess->steps.push_back(Step::DialogsCount);
@@ -468,6 +486,8 @@ void ApiWrap::sendNextStartRequest() {
 		return requestUserpicsCount();
 	case Step::StoriesCount:
 		return requestStoriesCount();
+	case Step::ProfileMusicCount:
+		return requestProfileMusicCount();
 	case Step::SplitRanges:
 		return requestSplitRanges();
 	case Step::DialogsCount:
@@ -513,6 +533,34 @@ void ApiWrap::requestStoriesCount() {
 		Expects(_startProcess != nullptr);
 
 		_startProcess->info.storiesCount = result.data().vcount().v;
+
+		sendNextStartRequest();
+	}).send();
+}
+
+void ApiWrap::requestProfileMusicCount() {
+	Expects(_startProcess != nullptr);
+
+	mainRequest(MTPusers_GetSavedMusic(
+		_user,
+		MTP_int(0), // offset
+		MTP_int(0), // limit
+		MTP_long(0) // hash
+	)).done([=](const MTPusers_SavedMusic &result) {
+		Expects(_settings != nullptr);
+		Expects(_startProcess != nullptr);
+
+		const auto count = result.match(
+		[](const MTPDusers_savedMusic &data) {
+			return data.vcount().v;
+		}, [](const MTPDusers_savedMusicNotModified &data) {
+			return -1;
+		});
+		if (count < 0) {
+			error("Unexpected messagesNotModified received.");
+			return;
+		}
+		_startProcess->info.profileMusicCount = count;
 
 		sendNextStartRequest();
 	}).send();
@@ -1060,6 +1108,215 @@ void ApiWrap::finishStories() {
 	Expects(_storiesProcess != nullptr);
 
 	base::take(_storiesProcess)->finish();
+}
+
+void ApiWrap::requestProfileMusic(
+		FnMut<bool(Data::ProfileMusicInfo&&)> start,
+		Fn<bool(DownloadProgress)> progress,
+		Fn<bool(Data::ProfileMusicSlice&&)> slice,
+		FnMut<void()> finish) {
+	Expects(_profileMusicProcess == nullptr);
+
+	_profileMusicProcess = std::make_unique<ProfileMusicProcess>();
+	_profileMusicProcess->start = std::move(start);
+	_profileMusicProcess->fileProgress = std::move(progress);
+	_profileMusicProcess->handleSlice = std::move(slice);
+	_profileMusicProcess->finish = std::move(finish);
+
+	mainRequest(MTPusers_GetSavedMusic(
+		_user,
+		MTP_int(0), // offset
+		MTP_int(kProfileMusicSliceLimit), // limit
+		MTP_long(0) // hash
+	)).done([=](const MTPusers_SavedMusic &result) mutable {
+		Expects(_profileMusicProcess != nullptr);
+
+		auto startInfo = result.match(
+		[](const MTPDusers_savedMusic &data) {
+			return Data::ProfileMusicInfo{ data.vcount().v };
+		}, [](const MTPDusers_savedMusicNotModified &data) {
+			return Data::ProfileMusicInfo{ 0 };
+		});
+		if (!_profileMusicProcess->start(std::move(startInfo))) {
+			return;
+		}
+
+		handleProfileMusicSlice(result);
+	}).send();
+}
+
+void ApiWrap::handleProfileMusicSlice(const MTPusers_SavedMusic &result) {
+	Expects(_profileMusicProcess != nullptr);
+	Expects(_selfId.has_value());
+
+	auto context = Data::ParseMediaContext();
+	context.selfPeerId = peerFromUser(*_selfId);
+
+	auto slice = result.match([&](const MTPDusers_savedMusic &data) {
+		if (data.vdocuments().v.size() < kProfileMusicSliceLimit) {
+			_profileMusicProcess->lastSlice = true;
+		}
+		auto result = Data::MessagesSlice();
+		for (const auto &doc : data.vdocuments().v) {
+			auto message = Data::Message();
+			message.id = ++_profileMusicProcess->processed;
+			message.date = 0;
+			message.media.content = Data::ParseDocument(
+				context,
+				doc,
+				"profile_music/",
+				0);
+			result.list.push_back(std::move(message));
+		}
+		return result;
+	}, [&](const MTPDusers_savedMusicNotModified &) {
+		_profileMusicProcess->lastSlice = true;
+		return Data::MessagesSlice();
+	});
+
+	auto profileSlice = Data::ProfileMusicSlice();
+	profileSlice.list.reserve(slice.list.size());
+	for (auto &message : slice.list) {
+		if (v::is<Data::Document>(message.media.content)) {
+			const auto &doc = v::get<Data::Document>(message.media.content);
+			if (doc.isAudioFile) {
+				profileSlice.list.push_back(std::move(message));
+			}
+		}
+	}
+
+	loadProfileMusicFiles(std::move(profileSlice));
+}
+
+void ApiWrap::loadProfileMusicFiles(Data::ProfileMusicSlice &&slice) {
+	Expects(_profileMusicProcess != nullptr);
+	Expects(!_profileMusicProcess->slice.has_value());
+
+	if (slice.list.empty()) {
+		_profileMusicProcess->lastSlice = true;
+	}
+	_profileMusicProcess->slice = std::move(slice);
+	_profileMusicProcess->fileIndex = 0;
+	loadNextProfileMusic();
+}
+
+void ApiWrap::loadNextProfileMusic() {
+	Expects(_profileMusicProcess != nullptr);
+	Expects(_profileMusicProcess->slice.has_value());
+
+	for (auto &list = _profileMusicProcess->slice->list
+		; _profileMusicProcess->fileIndex < list.size()
+		; ++_profileMusicProcess->fileIndex) {
+		auto &message = list[_profileMusicProcess->fileIndex];
+		const auto origin = Data::FileOrigin{ .messageId = message.id };
+		const auto ready = processFileLoad(
+			message.file(),
+			origin,
+			[=](FileProgress value) { return loadProfileMusicProgress(value); },
+			[=](const QString &path) { loadProfileMusicDone(path); },
+			&message);
+		if (!ready) {
+			return;
+		}
+		const auto thumbProgress = [=](FileProgress value) {
+			return loadProfileMusicThumbProgress(value);
+		};
+		const auto thumbReady = processFileLoad(
+			message.thumb().file,
+			origin,
+			thumbProgress,
+			[=](const QString &path) { loadProfileMusicThumbDone(path); },
+			&message);
+		if (!thumbReady) {
+			return;
+		}
+	}
+	finishProfileMusicSlice();
+}
+
+void ApiWrap::finishProfileMusicSlice() {
+	Expects(_profileMusicProcess != nullptr);
+	Expects(_profileMusicProcess->slice.has_value());
+
+	auto slice = *base::take(_profileMusicProcess->slice);
+	if (!slice.list.empty()) {
+		_profileMusicProcess->processed += slice.list.size();
+		_profileMusicProcess->offsetId = slice.list.back().id;
+		if (!_profileMusicProcess->handleSlice(std::move(slice))) {
+			return;
+		}
+	}
+	if (_profileMusicProcess->lastSlice) {
+		finishProfileMusic();
+		return;
+	}
+
+	mainRequest(MTPusers_GetSavedMusic(
+		_user,
+		MTP_int(_profileMusicProcess->offsetId),
+		MTP_int(kProfileMusicSliceLimit),
+		MTP_long(0)
+	)).done([=](const MTPusers_SavedMusic &result) {
+		handleProfileMusicSlice(result);
+	}).send();
+}
+
+bool ApiWrap::loadProfileMusicProgress(FileProgress progress) {
+	Expects(_fileProcess != nullptr);
+	Expects(_profileMusicProcess != nullptr);
+	Expects(_profileMusicProcess->slice.has_value());
+	Expects((_profileMusicProcess->fileIndex >= 0)
+		&& (_profileMusicProcess->fileIndex
+			< _profileMusicProcess->slice->list.size()));
+
+	return _profileMusicProcess->fileProgress(DownloadProgress{
+		_fileProcess->randomId,
+		_fileProcess->relativePath,
+		_profileMusicProcess->fileIndex,
+		progress.ready,
+		progress.total });
+}
+
+void ApiWrap::loadProfileMusicDone(const QString &relativePath) {
+	Expects(_profileMusicProcess != nullptr);
+	Expects(_profileMusicProcess->slice.has_value());
+	Expects((_profileMusicProcess->fileIndex >= 0)
+		&& (_profileMusicProcess->fileIndex
+			< _profileMusicProcess->slice->list.size()));
+
+	const auto index = _profileMusicProcess->fileIndex;
+	auto &file = _profileMusicProcess->slice->list[index].file();
+	file.relativePath = relativePath;
+	if (relativePath.isEmpty()) {
+		file.skipReason = Data::File::SkipReason::Unavailable;
+	}
+	loadNextProfileMusic();
+}
+
+bool ApiWrap::loadProfileMusicThumbProgress(FileProgress progress) {
+	return loadProfileMusicProgress(progress);
+}
+
+void ApiWrap::loadProfileMusicThumbDone(const QString &relativePath) {
+	Expects(_profileMusicProcess != nullptr);
+	Expects(_profileMusicProcess->slice.has_value());
+	Expects((_profileMusicProcess->fileIndex >= 0)
+		&& (_profileMusicProcess->fileIndex
+			< _profileMusicProcess->slice->list.size()));
+
+	const auto index = _profileMusicProcess->fileIndex;
+	auto &file = _profileMusicProcess->slice->list[index].thumb().file;
+	file.relativePath = relativePath;
+	if (relativePath.isEmpty()) {
+		file.skipReason = Data::File::SkipReason::Unavailable;
+	}
+	loadNextProfileMusic();
+}
+
+void ApiWrap::finishProfileMusic() {
+	Expects(_profileMusicProcess != nullptr);
+
+	base::take(_profileMusicProcess)->finish();
 }
 
 void ApiWrap::requestContacts(FnMut<void(Data::ContactsList&&)> done) {

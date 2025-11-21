@@ -1,3 +1,10 @@
+2.0.0 (21.11.25)
+
+- Updated to tdesktop v6.3.2
+- Increased voice message bitrate from 32 to 256
+- Set skip duration to zero for immediate audio processing in voice messages
+- reduce chat preview delay from 1000ms to 250ms
+
 1.1.11 (18.11.25)
 
 - Updated to tdesktop v6.3.1

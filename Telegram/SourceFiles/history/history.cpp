@@ -1373,6 +1373,13 @@ void History::applyServiceChanges(
 				}
 			}
 		}
+	}, [&](const MTPDmessageActionStarGift &data) {
+		if (data.is_auction_acquired() && data.vto_id()) {
+			const auto to = peer->owner().peer(peerFromMTP(*data.vto_id()));
+			data.vgift().match([&](const MTPDstarGift &data) {
+				peer->owner().notifyGiftAuctionGot({ data.vid().v, to });
+			}, [](const auto &) {});
+		}
 	}, [](const auto &) {
 	});
 }

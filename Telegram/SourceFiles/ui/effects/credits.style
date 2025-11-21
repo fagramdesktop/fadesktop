@@ -446,6 +446,13 @@ auctionInfoSubtitleSkip: 8px;
 auctionInfoTableMargin: margins(0px, 12px, 0px, 12px);
 auctionAboutLogo: icon {{ "settings/large_auctions", windowFgActive }};
 auctionAboutLogoPadding: margins(8px, 8px, 8px, 8px);
+auctionCenteredSubtitle: FlatLabel(defaultFlatLabel) {
+	textFg: windowSubTextFg;
+	style: TextStyle(defaultTextStyle) {
+		font: font(10px);
+	}
+}
+auctionChangeRecipientPadding: margins(0px, 0px, 0px, 10px);
 
 auctionBidPlace: FlatLabel(defaultFlatLabel) {
 	style: semiboldTextStyle;

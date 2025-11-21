@@ -613,6 +613,10 @@ webPageSponsoredHintFont: font(10px);
 webPageDescriptionFont: normalFont;
 webPageDescriptionStyle: defaultTextStyle;
 webPagePhotoDelta: 8px;
+webPageAuctionTimerPadding: margins(8px, 4px, 8px, 4px);
+webPageAuctionTimeFont: font(11px);
+webPageAuctionSubtextFont: font(12px);
+webPageAuctionPreviewPadding: margins(10px, 30px, 10px, 5px);
 
 historyPollQuestionFont: semiboldFont;
 historyPollQuestionStyle: TextStyle(defaultTextStyle) {

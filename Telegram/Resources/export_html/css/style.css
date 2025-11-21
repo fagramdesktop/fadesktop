@@ -440,6 +440,9 @@ div.toast_shown {
 .section.stories {
     background-image: url(../images/section_stories.png);
 }
+.section.music {
+    background-image: url(../images/section_music.png);
+}
 .section.web {
     background-image: url(../images/section_web.png);
 }
@@ -481,6 +484,16 @@ div.toast_shown {
 .media_video .fill {
     background-image: url(../images/media_video.png)
 }
+.audio_icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: #4f9cd9;
+    background-image: url(../images/media_music.png);
+    background-repeat: no-repeat;
+    background-position: 12px 12px;
+    background-size: 24px 24px;
+}
 
 @media only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min-device-pixel-ratio: 2) {
 .section.calls {
@@ -503,6 +516,9 @@ div.toast_shown {
 }
 .section.stories {
     background-image: url(../images/section_stories@2x.png);
+}
+.section.music {
+    background-image: url(../images/section_music@2x.png);
 }
 .section.web {
     background-image: url(../images/section_web@2x.png);
@@ -544,6 +560,9 @@ div.toast_shown {
 }
 .media_video .fill {
     background-image: url(../images/media_video@2x.png)
+}
+.audio_icon {
+    background-image: url(../images/media_music@2x.png);
 }
 }
 

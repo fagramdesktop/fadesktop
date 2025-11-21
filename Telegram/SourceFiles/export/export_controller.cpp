@@ -76,6 +76,7 @@ private:
 	void exportPersonalInfo();
 	void exportUserpics();
 	void exportStories();
+	void exportProfileMusic();
 	void exportContacts();
 	void exportSessions();
 	void exportOtherData();
@@ -91,6 +92,7 @@ private:
 	ProcessingState statePersonalInfo() const;
 	ProcessingState stateUserpics(const DownloadProgress &progress) const;
 	ProcessingState stateStories(const DownloadProgress &progress) const;
+	ProcessingState stateProfileMusic(const DownloadProgress &progress) const;
 	ProcessingState stateContacts() const;
 	ProcessingState stateSessions() const;
 	ProcessingState stateOtherData() const;
@@ -118,6 +120,9 @@ private:
 
 	int _storiesWritten = 0;
 	int _storiesCount = 0;
+
+	int _profileMusicWritten = 0;
+	int _profileMusicCount = 0;
 
 	// rpl::variable<State> fails to compile in MSVC :(
 	State _state;
@@ -281,6 +286,9 @@ void ControllerObject::fillExportSteps() {
 	if (_settings.types & Type::Stories) {
 		_steps.push_back(Step::Stories);
 	}
+	if (_settings.types & Type::ProfileMusic) {
+		_steps.push_back(Step::ProfileMusic);
+	}
 	if (_settings.types & Type::Contacts) {
 		_steps.push_back(Step::Contacts);
 	}
@@ -316,6 +324,9 @@ void ControllerObject::fillSubstepsInSteps(const ApiWrap::StartInfo &info) {
 	}
 	if (_settings.types & Settings::Type::Stories) {
 		push(Step::Stories, 1);
+	}
+	if (_settings.types & Settings::Type::ProfileMusic) {
+		push(Step::ProfileMusic, 1);
 	}
 	if (_settings.types & Settings::Type::Contacts) {
 		push(Step::Contacts, 1);
@@ -356,6 +367,7 @@ void ControllerObject::exportNext() {
 	case Step::PersonalInfo: return exportPersonalInfo();
 	case Step::Userpics: return exportUserpics();
 	case Step::Stories: return exportStories();
+	case Step::ProfileMusic: return exportProfileMusic();
 	case Step::Contacts: return exportContacts();
 	case Step::Sessions: return exportSessions();
 	case Step::OtherData: return exportOtherData();
@@ -448,6 +460,32 @@ void ControllerObject::exportStories() {
 		return true;
 	}, [=] {
 		if (ioCatchError(_writer->writeStoriesEnd())) {
+			return;
+		}
+		exportNext();
+	});
+}
+
+void ControllerObject::exportProfileMusic() {
+	_api.requestProfileMusic([=](Data::ProfileMusicInfo &&start) {
+		if (ioCatchError(_writer->writeProfileMusicStart(start))) {
+			return false;
+		}
+		_profileMusicWritten = 0;
+		_profileMusicCount = start.count;
+		return true;
+	}, [=](DownloadProgress progress) {
+		setState(stateProfileMusic(progress));
+		return true;
+	}, [=](Data::ProfileMusicSlice &&slice) {
+		if (ioCatchError(_writer->writeProfileMusicSlice(slice))) {
+			return false;
+		}
+		_profileMusicWritten += slice.list.size();
+		setState(stateProfileMusic(DownloadProgress()));
+		return true;
+	}, [=] {
+		if (ioCatchError(_writer->writeProfileMusicEnd())) {
 			return;
 		}
 		exportNext();
@@ -586,6 +624,21 @@ ProcessingState ControllerObject::stateStories(
 	return prepareState(Step::Stories, [&](ProcessingState &result) {
 		result.entityIndex = _storiesWritten + progress.itemIndex;
 		result.entityCount = std::max(_storiesCount, result.entityIndex);
+		result.bytesRandomId = progress.randomId;
+		if (!progress.path.isEmpty()) {
+			const auto last = progress.path.lastIndexOf('/');
+			result.bytesName = progress.path.mid(last + 1);
+		}
+		result.bytesLoaded = progress.ready;
+		result.bytesCount = progress.total;
+	});
+}
+
+ProcessingState ControllerObject::stateProfileMusic(
+		const DownloadProgress &progress) const {
+	return prepareState(Step::ProfileMusic, [&](ProcessingState &result) {
+		result.entityIndex = _profileMusicWritten + progress.itemIndex;
+		result.entityCount = std::max(_profileMusicCount, result.entityIndex);
 		result.bytesRandomId = progress.randomId;
 		if (!progress.path.isEmpty()) {
 			const auto last = progress.path.lastIndexOf('/');

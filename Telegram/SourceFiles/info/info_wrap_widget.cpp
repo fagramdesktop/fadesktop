@@ -946,7 +946,11 @@ void WrapWidget::showNewContent(
 void WrapWidget::showNewContent(not_null<ContentMemento*> memento) {
 	// Validates contentGeometry().
 	setupTop();
-	showContent(createContent(memento, _controller.get()));
+	auto newContent = createContent(memento, _controller.get());
+	if (!_topBar && hasBackButton()) {
+		newContent->enableBackButton();
+	}
+	showContent(std::move(newContent));
 }
 
 void WrapWidget::resizeEvent(QResizeEvent *e) {

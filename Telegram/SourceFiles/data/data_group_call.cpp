@@ -147,6 +147,10 @@ GroupCallOrigin GroupCall::origin() const {
 		: GroupCallOrigin::Group;
 }
 
+bool GroupCall::creator() const {
+	return _creator;
+}
+
 bool GroupCall::canManage() const {
 	return _conference ? _creator : _peer->canManageGroupCall();
 }

@@ -183,6 +183,7 @@ private:
 	void updateStoryOutline(std::optional<QColor> edgeColor);
 	void paintStoryOutline(QPainter &p, const QRect &geometry);
 	void updateStatusPosition(float64 progressCurrent);
+	[[nodiscard]] int calculateRightButtonsWidth() const;
 	[[nodiscard]] const style::FlatLabel &statusStyle() const;
 	void setupStatusWithRating();
 	[[nodiscard]] TopBarActionButtonStyle mapActionStyle(

@@ -1318,6 +1318,34 @@ Result JsonWriter::writeStoriesEnd() {
 	return _output->writeBlock(popNesting());
 }
 
+Result JsonWriter::writeProfileMusicStart(const Data::ProfileMusicInfo &data) {
+	Expects(_output != nullptr);
+
+	auto block = prepareObjectItemStart("profile_music");
+	return _output->writeBlock(block + pushNesting(Context::kArray));
+}
+
+Result JsonWriter::writeProfileMusicSlice(const Data::ProfileMusicSlice &data) {
+	Expects(_output != nullptr);
+
+	if (data.list.empty()) {
+		return Result::Success();
+	}
+
+	auto block = QByteArray();
+	for (const auto &message : data.list) {
+		block.append(prepareArrayItemStart());
+		block.append(SerializeMessage(_context, message, {}, QString()));
+	}
+	return _output->writeBlock(block);
+}
+
+Result JsonWriter::writeProfileMusicEnd() {
+	Expects(_output != nullptr);
+
+	return _output->writeBlock(popNesting());
+}
+
 Result JsonWriter::writeContactsList(const Data::ContactsList &data) {
 	Expects(_output != nullptr);
 

@@ -658,7 +658,7 @@ void Controller::setupPhotoButtons() {
 				_window->session().api().peerPhoto().clearPersonal(_user);
 				close();
 			},
-			.confirmText = tr::lng_profile_photo_reset(tr::now),
+			.confirmText = tr::lng_profile_photo_reset_button(tr::now),
 		}));
 	});
 

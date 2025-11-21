@@ -183,6 +183,11 @@ void SettingsWidget::setupFullExportOptions(
 		tr::lng_export_option_stories(tr::now),
 		Type::Stories,
 		tr::lng_export_option_stories_about(tr::now));
+	addOptionWithAbout(
+		container,
+		tr::lng_export_option_profile_music(tr::now),
+		Type::ProfileMusic,
+		tr::lng_export_option_profile_music_about(tr::now));
 	addHeader(container, tr::lng_export_header_chats(tr::now));
 	addOption(
 		container,
@@ -233,7 +238,8 @@ void SettingsWidget::setupMediaOptions(
 			| Type::PrivateGroups
 			| Type::PrivateChannels
 			| Type::PublicGroups
-			| Type::PublicChannels)) != 0, anim::type::normal);
+			| Type::PublicChannels
+			| Type::ProfileMusic)) != 0, anim::type::normal);
 	}, mediaWrap->lifetime());
 
 	widthValue(

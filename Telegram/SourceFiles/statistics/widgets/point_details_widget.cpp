@@ -7,6 +7,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 */
 #include "statistics/widgets/point_details_widget.h"
 
+#include "base/debug_log.h"
 #include "info/channel_statistics/earn/earn_format.h"
 #include "lang/lang_keys.h"
 #include "statistics/statistics_common.h"
@@ -303,7 +304,12 @@ void PointDetailsWidget::setXIndex(int xIndex) {
 	if (xIndex < 0) {
 		return;
 	}
-	Assert(xIndex < _chartData.x.size());
+	if (xIndex >= _chartData.x.size()) {
+		LOG((u"xIndex out of bounds: %1, max: %2"_q)
+			.arg(xIndex)
+			.arg(_chartData.x.size() - 1));
+		xIndex = _chartData.x.size() - 1;
+	}
 	{
 		constexpr auto kOneDay = 3600 * 24 * 1000;
 		const auto timestamp = _chartData.x[xIndex];

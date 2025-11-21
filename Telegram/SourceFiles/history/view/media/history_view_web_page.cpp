@@ -7,6 +7,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_web_page.h"
 
+#include "base/unixtime.h"
 #include "core/application.h"
 #include "countries/countries_instance.h"
 #include "base/qt/qt_key_modifiers.h"
@@ -236,6 +237,11 @@ constexpr auto kSponsoredUserpicLines = 2;
 		? tr::lng_view_button_storyalbum(tr::now)
 		: (type == WebPageType::GiftCollection)
 		? tr::lng_view_button_collection(tr::now)
+		: (type == WebPageType::Auction)
+		? (page->auction && page->auction->endDate
+			&& page->auction->endDate <= base::unixtime::now())
+			? tr::lng_auction_preview_view_results(tr::now)
+			: tr::lng_auction_preview_join(tr::now)
 		: QString());
 	if (page->iv) {
 		return Ui::Text::IconEmoji(&st::historyIvIcon).append(text);
@@ -271,7 +277,8 @@ constexpr auto kSponsoredUserpicLines = 2;
 			&& webpage->document->isWallPaper())
 		|| (type == WebPageType::StickerSet)
 		|| (type == WebPageType::StoryAlbum)
-		|| (type == WebPageType::GiftCollection);
+		|| (type == WebPageType::GiftCollection)
+		|| (type == WebPageType::Auction);
 }
 
 } // namespace
@@ -517,8 +524,36 @@ QSize WebPage::countOptimalSize() {
 				_data->uniqueGift),
 				MediaGenericDescriptor{
 					.maxWidth = st::msgServiceGiftPreview,
-					.paintBg = UniqueGiftBg(_parent, _data->uniqueGift),
+					.paintBgFactory = [=] {
+						return UniqueGiftBg(_parent, _data->uniqueGift);
+					},
 				});
+	} else if (!_attach && _data->auction) {
+		const auto &gift = _data->auction->auctionGift;
+		const auto backdrop = Data::UniqueGiftBackdrop{
+			.centerColor = _data->auction->centerColor,
+			.edgeColor = _data->auction->edgeColor,
+			.patternColor = _data->auction->edgeColor,
+			.textColor = _data->auction->textColor,
+		};
+		_attach = std::make_unique<MediaGeneric>(
+			_parent,
+			GenerateAuctionPreview(
+				_parent,
+				nullptr,
+				gift,
+				backdrop,
+				_data->auction->endDate),
+			MediaGenericDescriptor{
+				.maxWidth = st::msgServiceGiftPreview,
+				.paintBgFactory = [=] {
+					return AuctionBg(
+						_parent,
+						backdrop,
+						gift,
+						_data->auction->endDate);
+				},
+			});
 	} else if (!_attach && !_asArticle) {
 		_attach = CreateAttach(
 			_parent,
@@ -533,7 +568,8 @@ QSize WebPage::countOptimalSize() {
 	// init strings
 	if (_description.isEmpty()
 		&& !_data->description.text.isEmpty()
-		&& !_data->uniqueGift) {
+		&& !_data->uniqueGift
+		&& !_data->auction) {
 		const auto &text = _data->description;
 		using Type = Core::TextContextDetails::HashtagMentionType;
 		auto context = Core::TextContext({

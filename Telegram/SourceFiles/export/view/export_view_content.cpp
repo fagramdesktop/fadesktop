@@ -96,6 +96,13 @@ Content ContentFromState(
 			state.bytesName,
 			state.bytesRandomId);
 		break;
+	case Step::ProfileMusic:
+		pushMain(tr::lng_export_option_profile_music(tr::now));
+		pushBytes(
+			"music" + QString::number(state.entityIndex),
+			state.bytesName,
+			state.bytesRandomId);
+		break;
 	case Step::Sessions:
 		pushMain(tr::lng_export_option_sessions(tr::now));
 		break;

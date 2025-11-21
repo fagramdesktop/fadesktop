@@ -396,9 +396,10 @@ void FillTopReactors(
 		not_null<RpWidget*> parent,
 		rpl::producer<TextWithEntities> title,
 		rpl::producer<QString> subtext,
+		Fn<void()> click,
 		Text::MarkedContext context,
 		bool dark) {
-	const auto result = CreateChild<RpWidget>(parent);
+	const auto result = CreateChild<AbstractButton>(parent);
 
 	const auto titleHeight = st::starSelectInfoTitle.style.font->height;
 	const auto subtextHeight = st::starSelectInfoSubtext.style.font->height;
@@ -427,6 +428,14 @@ void FillTopReactors(
 		result,
 		std::move(subtext),
 		dark ? st::videoStreamInfoSubtext : st::starSelectInfoSubtext);
+
+	if (click) {
+		result->setClickedCallback(std::move(click));
+		titleLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+		subtextLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+	} else {
+		result->setAttribute(Qt::WA_TransparentForMouseEvents);
+	}
 
 	rpl::combine(
 		result->widthValue(),
@@ -506,7 +515,8 @@ void PaidReactionsBox(
 		return Ui::ColorFromSerialized(coloring.bgLight);
 	};
 	AddStarSelectBubble(
-		box,
+		content,
+		BoxShowFinishes(box),
 		state->chosen.value(),
 		args.max,
 		videoStream ? activeFgOverride : Fn<QColor(int)>());
@@ -520,7 +530,7 @@ void PaidReactionsBox(
 		(dark ? st::darkEditStarsSlider : st::paidReactSlider),
 		args.min,
 		args.explicitlyAllowed,
-		args.chosen,
+		rpl::single(args.chosen),
 		args.max,
 		changed,
 		videoStream ? activeFgOverride : Fn<QColor(int)>());
@@ -787,11 +797,10 @@ void PaidReactionSlider(
 		const style::MediaSlider &st,
 		int min,
 		int explicitlyAllowed,
-		int current,
+		rpl::producer<int> current,
 		int max,
 		Fn<void(int)> changed,
 		Fn<QColor(int)> activeFgOverride) {
-	Expects(current >= 1 && current <= max);
 	Expects(explicitlyAllowed <= max);
 
 	if (!explicitlyAllowed) {
@@ -818,13 +827,22 @@ void PaidReactionSlider(
 	const auto discreter = StarSelectDiscreterForMax(max);
 	slider->setAlwaysDisplayMarker(true);
 	slider->setDirection(ContinuousSlider::Direction::Horizontal);
-	slider->setValue(discreter.valueToRatio(current));
+
 	const auto ratioToValue = [=](float64 ratio) {
 		const auto value = discreter.ratioToValue(ratio);
 		return (value <= explicitlyAllowed && explicitlyAllowed < min)
 			? explicitlyAllowed
 			: std::max(value, min);
 	};
+
+	std::move(current) | rpl::start_with_next([=](int value) {
+		value = std::clamp(value, 1, max);
+		if (discreter.ratioToValue(slider->value()) != value) {
+			slider->setValue(discreter.valueToRatio(value));
+			update(value);
+		}
+	}, slider->lifetime());
+
 	slider->setAdjustCallback([=](float64 ratio) {
 		return discreter.valueToRatio(ratioToValue(ratio));
 	});
@@ -835,7 +853,8 @@ void PaidReactionSlider(
 	};
 	slider->setChangeProgressCallback(callback);
 	slider->setChangeFinishedCallback(callback);
-	update(current);
+
+
 
 	struct State {
 		StarParticles particles = StarParticles(
@@ -919,8 +938,9 @@ void AddStarSelectBalance(
 	}, balance->lifetime());
 }
 
-void AddStarSelectBubble(
-		not_null<GenericBox*> box,
+not_null<Premium::BubbleWidget*> AddStarSelectBubble(
+		not_null<VerticalLayout*> container,
+		rpl::producer<> showFinishes,
 		rpl::producer<int> value,
 		int max,
 		Fn<QColor(int)> activeFgOverride) {
@@ -940,19 +960,21 @@ void AddStarSelectBubble(
 	});
 
 	const auto bubble = Premium::AddBubbleRow(
-		box->verticalLayout(),
+		container,
 		st::boostBubble,
-		BoxShowFinishes(box),
+		std::move(showFinishes),
 		std::move(bubbleRowState),
 		Premium::BubbleType::Credits,
 		nullptr,
 		&st::paidReactBubbleIcon,
 		st::boxRowPadding);
+	bubble->show();
 	if (activeFgOverride) {
 		std::move(value) | rpl::start_with_next([=](int count) {
 			bubble->setBrushOverride(activeFgOverride(count));
 		}, bubble->lifetime());
 	}
+	return bubble;
 }
 
 object_ptr<RpWidget> MakeStarSelectInfoBlocks(
@@ -975,6 +997,7 @@ object_ptr<RpWidget> MakeStarSelectInfoBlocks(
 			raw,
 			std::move(info.title),
 			std::move(info.subtext),
+			std::move(info.click),
 			context,
 			dark));
 	}

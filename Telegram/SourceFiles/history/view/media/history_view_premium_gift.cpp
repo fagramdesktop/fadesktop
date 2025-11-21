@@ -69,111 +69,114 @@ QSize PremiumGift::size() {
 }
 
 TextWithEntities PremiumGift::title() {
-	using namespace Ui::Text;
 	if (tonGift()) {
 		return tr::lng_gift_ton_amount(
 			tr::now,
 			lt_count_decimal,
 			CreditsAmount(0, _data.count, CreditsType::Ton).value(),
-			Ui::Text::WithEntities);
+			tr::marked);
 	} else if (starGift()) {
 		const auto peer = _parent->history()->peer;
+		const auto to = _data.auctionTo ? _data.auctionTo : peer.get();
 		return peer->isSelf()
-			? tr::lng_action_gift_self_subtitle(tr::now, WithEntities)
+			? tr::lng_action_gift_self_subtitle(tr::now, tr::marked)
 			: (peer->isServiceUser() && _data.channelFrom)
 			? tr::lng_action_gift_got_subtitle(
 				tr::now,
 				lt_user,
-				WithEntities({})
-					.append(SingleCustomEmoji(
+				tr::marked()
+					.append(Ui::Text::SingleCustomEmoji(
 						peer->owner().customEmojiManager(
-							).peerUserpicEmojiData(_data.channelFrom)))
+						).peerUserpicEmojiData(_data.channelFrom)))
 					.append(' ')
 					.append(_data.channelFrom->shortName()),
-				WithEntities)
-			: peer->isServiceUser()
-			? tr::lng_gift_link_label_gift(tr::now, WithEntities)
+				tr::marked)
+			: (!_data.auctionTo && peer->isServiceUser())
+			? tr::lng_gift_link_label_gift(tr::now, tr::marked)
 			: (outgoingGift()
 				? tr::lng_action_gift_sent_subtitle
 				: tr::lng_action_gift_got_subtitle)(
 					tr::now,
 					lt_user,
-					WithEntities({})
-						.append(SingleCustomEmoji(
-							peer->owner().customEmojiManager(
-								).peerUserpicEmojiData(peer)))
+					tr::marked()
+						.append(Ui::Text::SingleCustomEmoji(
+							to->owner().customEmojiManager(
+							).peerUserpicEmojiData(to)))
 						.append(' ')
-						.append(peer->shortName()),
-					WithEntities);
+						.append(to->shortName()),
+					tr::marked);
 	} else if (creditsPrize()) {
-		return tr::lng_prize_title(tr::now, WithEntities);
-	} else if (const auto c = credits()) {
-		return tr::lng_gift_stars_title(tr::now, lt_count, c, WithEntities);
+		return tr::lng_prize_title(tr::now, tr::marked);
+	} else if (const auto stars = credits()) {
+		return tr::lng_gift_stars_title(tr::now, lt_count_decimal, stars, tr::marked);
 	}
 	return gift()
 		? tr::lng_action_gift_premium_months(
 			tr::now,
 			lt_count,
 			premiumMonths(),
-			WithEntities)
+			tr::marked)
 		: _data.unclaimed
-		? tr::lng_prize_unclaimed_title(tr::now, WithEntities)
-		: tr::lng_prize_title(tr::now, WithEntities);
+		? tr::lng_prize_unclaimed_title(tr::now, tr::marked)
+		: tr::lng_prize_title(tr::now, tr::marked);
 }
 
 TextWithEntities PremiumGift::author() {
-	using namespace Ui::Text;
 	if (!_data.stargiftReleasedBy) {
 		return {};
 	}
 	return tr::lng_gift_released_by(
 		tr::now,
 		lt_name,
-		Ui::Text::Link('@' + _data.stargiftReleasedBy->username()),
-		Ui::Text::WithEntities);
+		tr::link('@' + _data.stargiftReleasedBy->username()),
+		tr::marked);
 }
 
 TextWithEntities PremiumGift::subtitle() {
 	if (tonGift()) {
-		return tr::lng_action_gift_got_ton(tr::now, Ui::Text::WithEntities);
+		return tr::lng_action_gift_got_ton(tr::now, tr::marked);
 	} else if (starGift()) {
 		const auto toChannel = _data.channel
 			&& _parent->history()->peer->isServiceUser();
 		return !_data.message.empty()
 			? _data.message
 			: _data.refunded
-			? tr::lng_action_gift_refunded(tr::now, Ui::Text::RichLangValue)
+			? tr::lng_action_gift_refunded(tr::now, tr::rich)
 			: outgoingGift()
-			? (_data.starsUpgradedBySender
+			? (_data.auctionTo
+				? tr::lng_action_gift_self_auction(
+					tr::now,
+					lt_cost,
+					tr::lng_action_gift_for_stars(
+						tr::now,
+						lt_count_decimal,
+						_data.starsBid,
+						tr::marked),
+					tr::rich)
+				: _data.starsUpgradedBySender
 				? tr::lng_action_gift_sent_upgradable(
 					tr::now,
 					lt_user,
-					Ui::Text::Bold(_parent->history()->peer->shortName()),
-					Ui::Text::RichLangValue)
+					tr::bold(_parent->history()->peer->shortName()),
+					tr::rich)
 				: tr::lng_action_gift_sent_text(
 					tr::now,
-					lt_count,
+					lt_count_decimal,
 					_data.starsConverted,
 					lt_user,
-					Ui::Text::Bold(_parent->history()->peer->shortName()),
-					Ui::Text::RichLangValue))
+					tr::bold(_parent->history()->peer->shortName()),
+					tr::rich))
 			: _data.starsUpgradedBySender
-			? tr::lng_action_gift_got_upgradable_text(
-				tr::now,
-				Ui::Text::RichLangValue)
+			? tr::lng_action_gift_got_upgradable_text(tr::now, tr::rich)
 			: (_data.starsToUpgrade
 				&& !_data.converted
 				&& _parent->history()->peer->isSelf())
-			? tr::lng_action_gift_self_about_unique(
-				tr::now,
-				Ui::Text::RichLangValue)
+			? tr::lng_action_gift_self_about_unique(tr::now, tr::rich)
 			: (_data.starsToUpgrade
 				&& !_data.converted
 				&& _parent->history()->peer->isServiceUser()
 				&& _data.channel)
-			? tr::lng_action_gift_channel_about_unique(
-				tr::now,
-				Ui::Text::RichLangValue)
+			? tr::lng_action_gift_channel_about_unique(tr::now, tr::rich)
 			: (!_data.converted && !_data.starsConverted)
 			? (_data.saved
 				? (toChannel
@@ -181,9 +184,7 @@ TextWithEntities PremiumGift::subtitle() {
 					: tr::lng_action_gift_can_remove_text)
 				: (toChannel
 					? tr::lng_action_gift_got_gift_channel
-					: tr::lng_action_gift_got_gift_text))(
-						tr::now,
-						Ui::Text::RichLangValue)
+					: tr::lng_action_gift_got_gift_text))(tr::now, tr::rich)
 			: (_data.converted
 				? (toChannel
 					? tr::lng_gift_channel_got
@@ -196,7 +197,7 @@ TextWithEntities PremiumGift::subtitle() {
 					tr::now,
 					lt_count,
 					_data.starsConverted,
-					Ui::Text::RichLangValue);
+					tr::rich);
 	}
 	const auto isCreditsPrize = creditsPrize();
 	if (const auto count = credits(); count && !isCreditsPrize) {
@@ -204,15 +205,13 @@ TextWithEntities PremiumGift::subtitle() {
 			? tr::lng_gift_stars_outgoing(
 				tr::now,
 				lt_user,
-				Ui::Text::Bold(_parent->history()->peer->shortName()),
-				Ui::Text::RichLangValue)
-			: tr::lng_gift_stars_incoming(tr::now, Ui::Text::WithEntities);
+				tr::bold(_parent->history()->peer->shortName()),
+				tr::rich)
+			: tr::lng_gift_stars_incoming(tr::now, tr::marked);
 	} else if (gift()) {
 		return !_data.message.empty()
 			? _data.message
-			: tr::lng_action_gift_premium_about(
-				tr::now,
-				Ui::Text::RichLangValue);
+			: tr::lng_action_gift_premium_about(tr::now, tr::rich);
 	}
 	const auto name = _data.channel ? _data.channel->name() : "channel";
 	auto result = (_data.unclaimed
@@ -222,8 +221,8 @@ TextWithEntities PremiumGift::subtitle() {
 		: tr::lng_prize_gift_about)(
 			tr::now,
 			lt_channel,
-			Ui::Text::Bold(name),
-			Ui::Text::RichLangValue);
+			tr::bold(name),
+			tr::rich);
 	result.append("\n\n");
 	result.append(isCreditsPrize
 		? tr::lng_prize_credits(
@@ -231,10 +230,10 @@ TextWithEntities PremiumGift::subtitle() {
 			lt_amount,
 			tr::lng_prize_credits_amount(
 				tr::now,
-				lt_count,
+				lt_count_decimal,
 				credits(),
-				Ui::Text::RichLangValue),
-			Ui::Text::RichLangValue)
+				tr::marked),
+			tr::rich)
 		: (_data.unclaimed
 			? tr::lng_prize_unclaimed_duration
 			: _data.viaGiveaway
@@ -242,8 +241,8 @@ TextWithEntities PremiumGift::subtitle() {
 			: tr::lng_prize_gift_duration)(
 				tr::now,
 				lt_duration,
-				Ui::Text::Bold(GiftDuration(premiumDays())),
-				Ui::Text::RichLangValue));
+				tr::bold(GiftDuration(premiumDays())),
+				tr::rich));
 	return result;
 }
 
@@ -423,12 +422,12 @@ void PremiumGift::unloadHeavyPart() {
 
 bool PremiumGift::incomingGift() const {
 	const auto out = _parent->data()->out();
-	return gift() && (starGiftUpgrade() ? out : !out);
+	return gift() && !_data.auctionTo && (starGiftUpgrade() ? out : !out);
 }
 
 bool PremiumGift::outgoingGift() const {
 	const auto out = _parent->data()->out();
-	return gift() && (starGiftUpgrade() ? !out : out);
+	return gift() && (_data.auctionTo || (starGiftUpgrade() ? !out : out));
 }
 
 bool PremiumGift::gift() const {

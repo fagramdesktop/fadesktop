@@ -316,8 +316,17 @@ void AddUniqueGiftPropertyRows(
 		const Data::CreditsHistoryEntry &entry,
 		Fn<void()> convertToStars) {
 	auto helper = Ui::Text::CustomEmojiHelper();
+	const auto addUpgradeToValue = !entry.credits.ton()
+		&& !entry.giftUpgradeGifted
+		&& !entry.giftUpgradeSeparate
+		&& entry.starsUpgradedBySender;
+	const auto amount = addUpgradeToValue
+		? CreditsAmount(
+			entry.credits.whole() + entry.starsUpgradedBySender,
+			entry.credits.nano())
+		: entry.credits;
 	const auto price = helper.paletteDependent(Ui::Earn::IconCreditsEmoji(
-	)).append(' ').append(Lang::FormatCreditsAmountDecimal(entry.credits));
+	)).append(' ').append(Lang::FormatCreditsAmountDecimal(amount));
 	auto label = object_ptr<Ui::FlatLabel>(
 		table,
 		rpl::single(price),
@@ -1328,6 +1337,15 @@ void AddStarGiftTable(
 					PeerId(entry.bareEntryOwnerId)),
 				st::giveawayGiftCodePeerMargin);
 		}
+	} else if (entry.auction && entry.bareGiftOwnerId) {
+		AddTableRow(
+			table,
+			tr::lng_credits_box_history_entry_peer(),
+			MakePeerTableValue(
+				table,
+				show,
+				PeerId(entry.bareGiftOwnerId)),
+			st::giveawayGiftCodePeerMargin);
 	} else if (peerId && !giftToSelf) {
 		const auto user = session->data().peer(peerId)->asUser();
 		const auto withSendButton = entry.in && user && !user->isBot();

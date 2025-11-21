@@ -2616,7 +2616,9 @@ std::unique_ptr<HistoryView::Media> MediaGiftBox::createView(
 			HistoryView::GenerateUniqueGiftMedia(message, replacing, unique),
 			HistoryView::MediaGenericDescriptor{
 				.maxWidth = st::msgServiceGiftBoxSize.width(),
-				.paintBg = HistoryView::UniqueGiftBg(message, unique),
+				.paintBgFactory = [=] {
+					return HistoryView::UniqueGiftBg(message, unique);
+				},
 				.service = true,
 			});
 	}

@@ -577,6 +577,7 @@ object_ptr<Ui::RpWidget> CreateUserpicsTransfer(
 		rpl::producer<std::vector<not_null<PeerData*>>> from,
 		not_null<PeerData*> to,
 		UserpicsTransferType type) {
+	using Type = UserpicsTransferType;
 	struct State {
 		std::vector<not_null<PeerData*>> from;
 		std::vector<std::unique_ptr<Ui::UserpicButton>> buttons;
@@ -676,27 +677,28 @@ object_ptr<Ui::RpWidget> CreateUserpicsTransfer(
 			button->render(&q, position, QRegion(), QWidget::DrawChildren);
 		}
 		state->painting = false;
-		const auto boosting = (type == UserpicsTransferType::BoostReplace);
 		const auto last = state->buttons.back().get();
-		const auto back = boosting ? last : right;
-		const auto add = st::boostReplaceIconAdd;
-		const auto &icon = boosting
-			? st::boostReplaceIcon
-			: st::starrefJoinIcon;
-		const auto skip = boosting ? st::boostReplaceIconSkip : 0;
-		const auto w = icon.width() + 2 * skip;
-		const auto h = icon.height() + 2 * skip;
-		const auto x = back->x() + back->width() - w + add.x();
-		const auto y = back->y() + back->height() - h + add.y();
+		if (type != Type::AuctionRecipient) {
+			const auto boosting = (type == Type::BoostReplace);
+			const auto back = boosting ? last : right;
+			const auto add = st::boostReplaceIconAdd;
+			const auto &icon = boosting
+				? st::boostReplaceIcon
+				: st::starrefJoinIcon;
+			const auto skip = boosting ? st::boostReplaceIconSkip : 0;
+			const auto w = icon.width() + 2 * skip;
+			const auto h = icon.height() + 2 * skip;
+			const auto x = back->x() + back->width() - w + add.x();
+			const auto y = back->y() + back->height() - h + add.y();
 
-		auto brush = QLinearGradient(QPointF(x + w, y + h), QPointF(x, y));
-		brush.setStops(Ui::Premium::ButtonGradientStops());
-		q.setBrush(brush);
-		pen.setWidthF(stroke);
-		q.setPen(pen);
-		q.drawEllipse(x - half, y - half, w + stroke, h + stroke);
-		icon.paint(q, x + skip, y + skip, outerw);
-
+			auto brush = QLinearGradient(QPointF(x + w, y + h), QPointF(x, y));
+			brush.setStops(Ui::Premium::ButtonGradientStops());
+			q.setBrush(brush);
+			pen.setWidthF(stroke);
+			q.setPen(pen);
+			q.drawEllipse(x - half, y - half, w + stroke, h + stroke);
+			icon.paint(q, x + skip, y + skip, outerw);
+		}
 		const auto size = st::boostReplaceArrow.size();
 		st::boostReplaceArrow.paint(
 			q,
@@ -705,7 +707,6 @@ object_ptr<Ui::RpWidget> CreateUserpicsTransfer(
 				+ (st::boostReplaceUserpicsSkip - size.width()) / 2),
 			(last->height() - size.height()) / 2,
 			outerw);
-
 		q.end();
 
 		auto p = QPainter(overlay);

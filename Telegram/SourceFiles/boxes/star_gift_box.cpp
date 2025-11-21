@@ -1519,11 +1519,12 @@ void AddUpgradeButton(
 }
 
 void AddSoldLeftSlider(
-		not_null<RoundButton*> button,
-		const GiftTypeStars &gift) {
+		not_null<RpWidget*> above,
+		const GiftTypeStars &gift,
+		QMargins added = {}) {
 	const auto still = gift.info.limitedLeft;
 	const auto total = gift.info.limitedCount;
-	const auto slider = CreateChild<RpWidget>(button->parentWidget());
+	const auto slider = CreateChild<RpWidget>(above->parentWidget());
 	struct State {
 		Text::String still;
 		Text::String sold;
@@ -1540,13 +1541,13 @@ void AddSoldLeftSlider(
 	state->height = st::giftLimitedPadding.top()
 		+ st::semiboldFont->height
 		+ st::giftLimitedPadding.bottom();
-	button->geometryValue() | rpl::start_with_next([=](QRect geometry) {
+	above->geometryValue() | rpl::start_with_next([=](QRect geometry) {
 		const auto space = st::giftLimitedBox.buttonPadding.top();
 		const auto skip = (space - state->height) / 2;
 		slider->setGeometry(
-			geometry.x(),
+			geometry.x() + added.left(),
 			geometry.y() - skip - state->height,
-			geometry.width(),
+			geometry.width() - added.left() - added.right(),
 			state->height);
 	}, slider->lifetime());
 	slider->paintRequest() | rpl::start_with_next([=] {
@@ -4455,6 +4456,7 @@ void SendGiftBox(
 		const GiftDescriptor &descriptor,
 		rpl::producer<Data::GiftAuctionState> auctionState) {
 	const auto stars = std::get_if<GiftTypeStars>(&descriptor);
+	const auto auction = !!auctionState;
 	const auto limited = stars
 		&& (stars->info.limitedCount > stars->info.limitedLeft)
 		&& (stars->info.limitedLeft > 0);
@@ -4465,7 +4467,7 @@ void SendGiftBox(
 		: Api::DisallowedGiftTypes();
 	const auto disallowLimited = !peer->isSelf()
 		&& (disallowed & Api::DisallowedGiftType::Limited);
-	box->setStyle(limited ? st::giftLimitedBox : st::giftBox);
+	box->setStyle((limited && !auction) ? st::giftLimitedBox : st::giftBox);
 	box->setWidth(st::boxWideWidth);
 	box->setTitle(tr::lng_gift_send_title());
 	box->addTopButton(st::boxTitleClose, [=] {
@@ -4737,7 +4739,47 @@ void SendGiftBox(
 		SendGift(window, peer, api, details, done);
 	});
 	if (limited) {
-		AddSoldLeftSlider(button, *stars);
+		if (auction) {
+			const auto &now = state->auction.current();
+			const auto rounds = now.totalRounds;
+			const auto perRound = now.gift->auctionGiftsPerRound;
+			auto owned = object_ptr<Ui::FlatLabel>(
+				container,
+				rpl::single(tr::lng_auction_about_top_short(
+					tr::now,
+					lt_count,
+					perRound,
+					lt_bidders,
+					tr::lng_auction_about_top_bidders(
+						tr::now,
+						lt_count,
+						perRound,
+						tr::rich),
+					lt_link,
+					tr::lng_auction_text_link(
+						tr::now,
+						lt_arrow,
+						Text::IconEmoji(&st::textMoreIconEmoji),
+						tr::link),
+					tr::rich)),
+				st::defaultDividerLabel.label);
+			const auto label = owned.data();
+			const auto about = container->add(
+				object_ptr<Ui::DividerLabel>(
+					container,
+					std::move(owned),
+					st::defaultBoxDividerLabelPadding),
+				{ 0, st::giftLimitedBox.buttonPadding.top(), 0, 0 });
+			AddSoldLeftSlider(about, *stars, st::boxRowPadding);
+
+			const auto show = window->uiShow();
+			label->setClickHandlerFilter([=](const auto &...) {
+				show->show(Box(AuctionAboutBox, rounds, perRound, nullptr));
+				return false;
+			});
+		} else {
+			AddSoldLeftSlider(button, *stars);
+		}
 	}
 	if (stars && stars->info.auction()) {
 		SetAuctionButtonCountdownText(

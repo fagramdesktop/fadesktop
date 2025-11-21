@@ -1727,11 +1727,7 @@ groupCallTopReactorBadge: RoundCheckbox(defaultRoundCheckbox) {
 	border: groupCallMembersBg;
 }
 
-confcallLinkMenu: IconButton(boxTitleClose) {
-	icon: icon {{ "title_menu_dots", boxTitleCloseFg }};
-	iconOver: icon {{ "title_menu_dots", boxTitleCloseFgOver }};
-}
-groupCallLinkMenu: IconButton(confcallLinkMenu) {
+groupCallLinkMenu: IconButton(boxTitleMenu) {
 	icon: icon {{ "title_menu_dots", groupCallMemberInactiveIcon }};
 	iconOver: icon {{ "title_menu_dots", groupCallMemberInactiveIcon }};
 	ripple: RippleAnimation(defaultRippleAnimation) {

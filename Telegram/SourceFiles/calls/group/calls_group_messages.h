@@ -145,6 +145,7 @@ private:
 		const MTPTextWithEntities &message,
 		TimeId date,
 		int stars,
+		bool fromAdmin,
 		bool checkCustomEmoji = false);
 	void sent(uint64 randomId, const MTP::Response &response);
 	void sent(uint64 randomId, MsgId realId);

@@ -132,13 +132,6 @@ private:
 	void reorderAlbumsLocally(const Ui::SubTabsReorderUpdate &update);
 	void flushAlbumReorder();
 
-	void reorderAlbumStories(
-		int albumId,
-		int oldPosition,
-		int newPosition,
-		Fn<void()> done,
-		Fn<void()> fail);
-
 	const not_null<Controller*> _controller;
 	const not_null<PeerData*> _peer;
 	const int _addingToAlbumId = 0;
@@ -154,7 +147,6 @@ private:
 	base::unique_qptr<Ui::PopupMenu> _menu;
 	std::unique_ptr<MTP::Sender> _api;
 	mtpRequestId _reorderRequestId = 0;
-	mtpRequestId _reorderStoriesRequestId = 0;
 
 	object_ptr<Ui::VerticalLayout> _top = { nullptr };
 	object_ptr<Media::ListWidget> _list = { nullptr };
@@ -175,6 +167,8 @@ private:
 	rpl::event_stream<> _backClicks;
 	rpl::event_stream<> _showFinished;
 	rpl::variable<std::optional<QColor>> _topBarColor;
+
+	Ui::VisibleRange _visibleRange;
 
 };
 

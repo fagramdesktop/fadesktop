@@ -27,6 +27,8 @@ PremiumBubble {
 	font: font;
 	additionalStyle: TextStyle;
 	additionalSkip: pixels;
+	subtextStyle: TextStyle;
+	subtextPadding: margins;
 }
 PremiumCover {
 	bg: color;
@@ -263,6 +265,10 @@ boostBubble: PremiumBubble(defaultPremiumBubble) {
 		font: font(14px semibold);
 	}
 	additionalSkip: 2px;
+	subtextStyle: TextStyle(defaultTextStyle) {
+		font: font(10px);
+	}
+	subtextPadding: margins(11px, -5px, 11px, 0px);
 }
 starRatingBubble: PremiumBubble(boostBubble) {
 	font: font(16px semibold);
