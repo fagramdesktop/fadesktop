@@ -7,6 +7,14 @@ on:
         description: 'tagname'
         type: string
         required: true
+      build_type:
+        description: 'Build type'
+        type: choice
+        required: true
+        default: 'ci'
+        options:
+          - ci
+          - rel
 
 jobs:
 
@@ -123,7 +131,7 @@ jobs:
           path: artifact/
 
       - name: Create Release
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && github.event.inputs.build_type == 'rel'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
