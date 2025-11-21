@@ -397,7 +397,7 @@ bool Instance::Inner::initializeFFmpeg() {
 	av_opt_set_int(d->codecContext, "refcounted_frames", 1, 0);
 
 	d->codecContext->sample_fmt = AV_SAMPLE_FMT_FLTP;
-	d->codecContext->bit_rate = 32000;
+	d->codecContext->bit_rate = 256000;
 	d->codecContext->ch_layout = AV_CHANNEL_LAYOUT_MONO;
 	d->channels = d->codecContext->ch_layout.nb_channels;
 	d->codecContext->sample_rate = kCaptureFrequency;
