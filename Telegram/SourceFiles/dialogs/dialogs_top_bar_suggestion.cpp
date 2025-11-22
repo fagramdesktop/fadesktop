@@ -14,9 +14,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "base/call_delayed.h"
 #include "boxes/star_gift_box.h" // ShowStarGiftBox.
+#include "boxes/star_gift_auction_box.h"
 #include "core/application.h"
 #include "core/click_handler_types.h"
 #include "core/ui_integration.h"
+#include "data/components/gift_auctions.h"
 #include "data/components/promo_suggestions.h"
 #include "data/data_birthday.h"
 #include "data/data_changes.h"
@@ -184,6 +186,7 @@ rpl::producer<Ui::SlideWrap<Ui::RpWidget>*> TopBarSuggestionValue(
 			rpl::lifetime userpicLifetime;
 			rpl::lifetime giftsLifetime;
 			rpl::lifetime creditsLifetime;
+			rpl::lifetime auctionsLifetime;
 			std::unique_ptr<Api::CreditsHistory> creditsHistory;
 		};
 
@@ -193,8 +196,11 @@ rpl::producer<Ui::SlideWrap<Ui::RpWidget>*> TopBarSuggestionValue(
 			rpl::single(st::dialogsTopBarLeftPadding));
 		const auto ensureContent = [=] {
 			if (!state->content) {
+				const auto window = FindSessionController(parent);
 				state->content = Ui::CreateChild<TopBarSuggestionContent>(
-					parent);
+					parent,
+					[=] { return window->isGifPausedAtLeastFor(
+						Window::GifPauseReason::Layer); });
 				rpl::combine(
 					parent->widthValue(),
 					state->content->desiredHeightValue()
@@ -229,6 +235,7 @@ rpl::producer<Ui::SlideWrap<Ui::RpWidget>*> TopBarSuggestionValue(
 			state->userpicLifetime.destroy();
 			state->giftsLifetime.destroy();
 			state->creditsLifetime.destroy();
+			state->auctionsLifetime.destroy();
 
 			if (!session->api().authorizations().unreviewed().empty()) {
 				state->content = nullptr;
@@ -273,7 +280,50 @@ rpl::producer<Ui::SlideWrap<Ui::RpWidget>*> TopBarSuggestionValue(
 			const auto wrap = state->wrap.get();
 			using RightIcon = TopBarSuggestionContent::RightIcon;
 			const auto promo = &session->promoSuggestions();
-			if (const auto custom = promo->custom()) {
+			const auto auctions = &session->giftAuctions();
+			if (auctions->hasActive()) {
+				using namespace Data;
+				struct Button {
+					rpl::variable<TextWithEntities> text;
+					Fn<void()> callback;
+					base::has_weak_ptr guard;
+				};
+				auto &lifetime = state->auctionsLifetime;
+				const auto button = lifetime.template make_state<Button>();
+				const auto window = FindSessionController(parent);
+				auctions->active(
+				) | rpl::start_with_next([=](ActiveAuctions &&active) {
+					const auto empty = active.list.empty();
+					state->desiredWrapToggle.force_assign(
+						Toggle{ !empty, anim::type::normal });
+					if (empty) {
+						return;
+					}
+
+					auto text = Ui::ActiveAuctionsState(active);
+					const auto textColorOverride = text.someOutbid
+						? st::attentionButtonFg->c
+						: std::optional<QColor>();
+					content->setContent(
+						Ui::ActiveAuctionsTitle(active),
+						std::move(text.text),
+						Core::TextContext({ .session = session }),
+						textColorOverride);
+					button->text = Ui::ActiveAuctionsButton(active);
+					button->callback = Ui::ActiveAuctionsCallback(
+						window,
+						active);
+				}, state->auctionsLifetime);
+				const auto callback = crl::guard(&button->guard, [=] {
+					button->callback();
+				});
+				content->setRightButton(button->text.value(), callback);
+				content->setClickedCallback(callback);
+				content->setLeftPadding(state->leftPadding.value());
+				state->desiredWrapToggle.force_assign(
+					Toggle{ true, anim::type::normal });
+				return;
+			} else if (const auto custom = promo->custom()) {
 				content->setRightIcon(RightIcon::Close);
 				content->setLeftPadding(state->leftPadding.value());
 				content->setClickedCallback([=] {
@@ -733,12 +783,14 @@ rpl::producer<Ui::SlideWrap<Ui::RpWidget>*> TopBarSuggestionValue(
 		rpl::merge(
 			session->promoSuggestions().value(),
 			session->api().authorizations().unreviewedChanges(),
-			Data::AmPremiumValue(session) | rpl::skip(1) | rpl::to_empty
+			Data::AmPremiumValue(session) | rpl::skip(1) | rpl::to_empty,
+			session->giftAuctions().hasActiveChanges() | rpl::to_empty
 		) | rpl::start_with_next([=] {
 			const auto was = state->wrap.get();
+			const auto weak = base::make_weak(was);
 			processCurrentSuggestion(processCurrentSuggestion);
-			if (was != state->wrap) {
-				consumer.put_next_copy(state->wrap);
+			if (was != state->wrap || (was && !weak)) {
+				consumer.put_next_copy(state->wrap.get());
 			}
 		}, lifetime);
 

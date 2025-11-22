@@ -444,6 +444,15 @@ videoStreamStarsCover: PremiumCover(creditsLowBalancePremiumCover) {
 auctionInfoPreviewMargin: margins(0px, 24px, 0px, 8px);
 auctionInfoSubtitleSkip: 8px;
 auctionInfoTableMargin: margins(0px, 12px, 0px, 12px);
+auctionBidEmoji: IconEmoji {
+	icon: icon {{ "settings/button_auction", windowFg }};
+	padding: margins(-4px, -2px, -4px, 0px);
+}
+auctionBidToast: Toast(defaultToast) {
+	padding: margins(54px, 13px, 19px, 12px);
+	icon: icon {{ "settings/toast_auction", toastFg }};
+	iconPosition: point(18px, 18px);
+}
 auctionAboutLogo: icon {{ "settings/large_auctions", windowFgActive }};
 auctionAboutLogoPadding: margins(8px, 8px, 8px, 8px);
 auctionCenteredSubtitle: FlatLabel(defaultFlatLabel) {
@@ -470,3 +479,19 @@ auctionBidStars: FlatLabel(defaultFlatLabel) {
 	textFg: windowSubTextFg;
 }
 auctionBidSkip: 10px;
+
+auctionListEntrySkip: 12px;
+auctionListTitle: FlatLabel(defaultFlatLabel) {
+	style: TextStyle(defaultTextStyle) {
+		font: font(15px semibold);
+	}
+	textFg: windowBoldFg;
+}
+auctionListTitlePadding: margins(50px, 0px, 0px, 0px);
+auctionListText: FlatLabel(defaultFlatLabel) {
+}
+auctionListTextPadding: margins(50px, 4px, 0px, 0px);
+auctionListRaise: RoundButton(defaultActiveButton) {
+	width: 0px;
+}
+auctionListRaisePadding: margins(0px, 8px, 0px, 0px);

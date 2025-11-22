@@ -8,7 +8,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #pragma once
 
-constexpr auto AppFAVersion = 2000001;
-constexpr auto AppFAVersionStr = "2.0.1";
-constexpr auto AppTGDVersion = "6.3.2";
+constexpr auto AppFAVersion = 2000002;
+constexpr auto AppFAVersionStr = "2.0.2";
+constexpr auto AppTGDVersion = "6.3.3";
 constexpr auto AppFABetaVersion = false;

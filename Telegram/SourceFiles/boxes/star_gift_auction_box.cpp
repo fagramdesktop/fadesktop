@@ -8,16 +8,20 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/star_gift_auction_box.h"
 
 #include "api/api_text_entities.h"
+#include "base/timer_rpl.h"
 #include "base/unixtime.h"
 #include "boxes/peers/replace_boost_box.h"
 #include "boxes/send_credits_box.h" // CreditsEmojiSmall
 #include "boxes/share_box.h"
 #include "boxes/star_gift_box.h"
 #include "calls/group/calls_group_common.h"
+#include "core/application.h"
 #include "core/credits_amount.h"
 #include "core/ui_integration.h"
 #include "data/components/credits.h"
 #include "data/components/gift_auctions.h"
+#include "data/stickers/data_custom_emoji.h"
+#include "data/data_document.h"
 #include "data/data_message_reactions.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
@@ -178,6 +182,17 @@ struct BidSliderValues {
 
 		return lifetime;
 	};
+}
+
+[[nodiscard]] QString NiceCountdownText(int seconds) {
+	const auto minutes = seconds / 60;
+	const auto hours = minutes / 60;
+	return hours
+		? u"%1:%2:%3"_q
+		.arg(hours)
+		.arg((minutes % 60), 2, 10, QChar('0'))
+		.arg((seconds % 60), 2, 10, QChar('0'))
+		: u"%1:%2"_q.arg(minutes).arg((seconds % 60), 2, 10, QChar('0'));
 }
 
 [[nodiscard]] object_ptr<RpWidget> MakeBidRow(
@@ -380,17 +395,11 @@ object_ptr<RpWidget> MakeAuctionInfoBlocks(
 	auto untilTitle = rpl::duplicate(
 		stateValue
 	) | rpl::map([=](const Data::GiftAuctionState &state) {
-		return SecondsLeftTillValue(state.nextRoundAt);
-	}) | rpl::flatten_latest() | rpl::map([=](int seconds) {
-		const auto minutes = seconds / 60;
-		const auto hours = minutes / 60;
-		return hours
-			? u"%1:%2:%3"_q
-			.arg(hours)
-			.arg((minutes % 60), 2, 10, QChar('0'))
-			.arg((seconds % 60), 2, 10, QChar('0'))
-			: u"%1:%2"_q.arg(minutes).arg((seconds % 60), 2, 10, QChar('0'));
-	}) | Text::ToWithEntities();
+		return SecondsLeftTillValue(state.nextRoundAt
+			? state.nextRoundAt
+			: state.endDate);
+	}) | rpl::flatten_latest(
+	) | rpl::map(NiceCountdownText) | rpl::map(tr::marked);
 	auto leftTitle = rpl::duplicate(
 		stateValue
 	) | rpl::map([=](const Data::GiftAuctionState &state) {
@@ -653,7 +662,10 @@ void AuctionBidBox(not_null<GenericBox*> box, AuctionBidBoxArgs &&args) {
 			box->closeBox();
 
 			if (const auto window = show->resolveWindow()) {
-				window->showPeer(update.to, ShowAtTheEndMsgId);
+				window->showPeerHistory(
+					update.to,
+					Window::SectionShow::Way::ClearStack,
+					ShowAtTheEndMsgId);
 			}
 		}
 	}, box->lifetime());
@@ -801,6 +813,8 @@ void AuctionBidBox(not_null<GenericBox*> box, AuctionBidBoxArgs &&args) {
 						lt_count,
 						perRound,
 						tr::rich),
+					.st = &st::auctionBidToast,
+					.attach = RectPart::Top,
 					.duration = kBidPlacedToastDuration,
 				});
 			}
@@ -1559,6 +1573,283 @@ void AuctionAboutBox(
 	)->setText(rpl::single(Text::IconEmoji(
 		&st::infoStarsUnderstood
 	).append(' ').append(tr::lng_auction_about_understood(tr::now))));
+}
+
+TextWithEntities ActiveAuctionsTitle(const Data::ActiveAuctions &auctions) {
+	const auto &list = auctions.list;
+	if (list.size() == 1) {
+		const auto auction = list.front();
+		return Data::SingleCustomEmoji(
+			auction->gift->document
+		).append(' ').append(tr::lng_auction_bar_active(tr::now));
+	}
+	auto result = tr::marked();
+	for (const auto auction : list | ranges::views::take(3)) {
+		result.append(Data::SingleCustomEmoji(auction->gift->document));
+	}
+	return result.append(' ').append(
+		tr::lng_auction_bar_active_many(tr::now, lt_count, list.size()));
+}
+
+ManyAuctionsState ActiveAuctionsState(const Data::ActiveAuctions &auctions) {
+	const auto &list = auctions.list;
+	const auto winning = [](not_null<Data::GiftAuctionState*> auction) {
+		const auto position = MyAuctionPosition(*auction);
+		return (position <= auction->gift->auctionGiftsPerRound)
+			? position
+			: 0;
+	};
+	if (list.size() == 1) {
+		const auto auction = list.front();
+		const auto position = winning(auction);
+		auto text = position
+			? tr::lng_auction_bar_winning(
+				tr::now,
+				lt_count,
+				position,
+				tr::marked)
+			: tr::lng_auction_bar_outbid(tr::now, tr::marked);
+		return { std::move(text), !position };
+	}
+	auto outbid = 0;
+	for (const auto auction : list) {
+		if (!winning(auction)) {
+			++outbid;
+		}
+	}
+	auto text = (outbid == list.size())
+		? tr::lng_auction_bar_outbid_all(tr::now, tr::marked)
+		: outbid
+		? tr::lng_auction_bar_outbid_some(
+			tr::now,
+			lt_count,
+			outbid,
+			tr::marked)
+		: tr::lng_auction_bar_winning_all(tr::now, tr::marked);
+	return { std::move(text), outbid != 0 };
+}
+
+rpl::producer<TextWithEntities> ActiveAuctionsButton(
+		const Data::ActiveAuctions &auctions) {
+	const auto &list = auctions.list;
+	const auto withIcon = [](const QString &text) {
+		using namespace Ui::Text;
+		return IconEmoji(&st::auctionBidEmoji).append(' ').append(text);
+	};
+	if (list.size() == 1) {
+		const auto auction = auctions.list.front();
+		const auto end = auction->nextRoundAt
+			? auction->nextRoundAt
+			: auction->endDate;
+		return SecondsLeftTillValue(end)
+			| rpl::map(NiceCountdownText)
+			| rpl::map(withIcon);
+	}
+	return tr::lng_auction_bar_view() | rpl::map(withIcon);
+}
+
+struct Single {
+	QString slug;
+	not_null<DocumentData*> document;
+	int round = 0;
+	int total = 0;
+	int bid = 0;
+	int position = 0;
+	int winning = 0;
+	TimeId ends = 0;
+};
+
+object_ptr<Ui::RpWidget> MakeActiveAuctionRow(
+		not_null<QWidget*> parent,
+		not_null<Window::SessionController*> window,
+		not_null<DocumentData*> document,
+		const QString &slug,
+		rpl::producer<Single> value) {
+	auto result = object_ptr<Ui::VerticalLayout>(parent);
+	const auto raw = result.data();
+
+	raw->add(object_ptr<Ui::RpWidget>(raw));
+
+	auto title = rpl::duplicate(value) | rpl::map([=](const Single &fields) {
+		return tr::lng_auction_bar_round(
+			tr::now,
+			lt_n,
+			QString::number(fields.round + 1),
+			lt_amount,
+			QString::number(fields.total));
+	});
+	raw->add(
+		object_ptr<Ui::FlatLabel>(
+			raw,
+			std::move(title),
+			st::auctionListTitle),
+		st::auctionListTitlePadding);
+
+	const auto tag = Data::CustomEmojiSizeTag::Isolated;
+	const auto sticker = std::shared_ptr<Ui::Text::CustomEmoji>(
+		document->owner().customEmojiManager().create(
+			document,
+			[=] { raw->update(); },
+			tag));
+
+	raw->paintRequest(
+	) | rpl::start_with_next([=] {
+		auto q = QPainter(raw);
+		sticker->paint(q, {
+			.textColor = st::windowFg->c,
+			.now = crl::now(),
+			.position = QPoint(),
+		});
+	}, raw->lifetime());
+
+	auto helper = Ui::Text::CustomEmojiHelper();
+	const auto star = helper.paletteDependent(Ui::Earn::IconCreditsEmoji());
+	auto text = rpl::duplicate(value) | rpl::map([=](const Single &fields) {
+		const auto stars = tr::marked(star).append(' ').append(
+			Lang::FormatCountDecimal(fields.bid));
+		const auto outbid = (fields.position > fields.winning);
+		return outbid
+			? tr::lng_auction_bar_bid_outbid(
+				tr::now,
+				lt_stars,
+				stars,
+				tr::rich)
+			: tr::lng_auction_bar_bid_ranked(
+				tr::now,
+				lt_stars,
+				stars,
+				lt_n,
+				tr::marked(QString::number(fields.position)),
+				tr::rich);
+	});
+	const auto subtitle = raw->add(
+		object_ptr<Ui::FlatLabel>(
+			raw,
+			std::move(text),
+			st::auctionListText,
+			st::defaultPopupMenu,
+			helper.context()),
+		st::auctionListTextPadding);
+	rpl::duplicate(value) | rpl::start_with_next([=](const Single &fields) {
+		const auto outbid = (fields.position > fields.winning);
+		subtitle->setTextColorOverride(outbid
+			? st::attentionButtonFg->c
+			: std::optional<QColor>());
+	}, subtitle->lifetime());
+
+	const auto button = raw->add(
+		object_ptr<Ui::RoundButton>(
+			raw,
+			rpl::single(QString()),
+			st::auctionListRaise),
+		st::auctionListRaisePadding);
+	button->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
+
+	auto secondsLeft = rpl::duplicate(
+		value
+	) | rpl::map([=](const Single &fields) {
+		return SecondsLeftTillValue(fields.ends);
+	}) | rpl::flatten_latest();
+	button->setText(rpl::combine(
+		std::move(secondsLeft),
+		tr::lng_auction_bar_raise_bid()
+	) | rpl::map([=](int seconds, const QString &text) {
+		return Ui::Text::IconEmoji(
+			&st::auctionBidEmoji
+		).append(' ').append(text).append(' ').append(
+			Ui::Text::Colorized(NiceCountdownText(seconds)));
+	}));
+	button->setClickedCallback([=] {
+		window->showStarGiftAuction(slug);
+	});
+	button->setFullRadius(true);
+	raw->widthValue() | rpl::start_with_next([=](int width) {
+		button->setFullWidth(width);
+	}, button->lifetime());
+
+	return result;
+}
+
+Fn<void()> ActiveAuctionsCallback(
+		not_null<Window::SessionController*> window,
+		const Data::ActiveAuctions &auctions) {
+	const auto &list = auctions.list;
+	const auto count = int(list.size());
+	if (count == 1) {
+		const auto slug = list.front()->gift->auctionSlug;
+		return [=] {
+			window->showStarGiftAuction(slug);
+		};
+	}
+	struct Auctions {
+		std::vector<rpl::variable<Single>> list;
+	};
+	const auto state = std::make_shared<Auctions>();
+	const auto singleFrom = [](const Data::GiftAuctionState &state) {
+		return Single{
+			.slug = state.gift->auctionSlug,
+			.document = state.gift->document,
+			.round = state.currentRound,
+			.total = state.totalRounds,
+			.bid = int(state.my.bid),
+			.position = MyAuctionPosition(state),
+			.winning = state.gift->auctionGiftsPerRound,
+			.ends = state.nextRoundAt ? state.nextRoundAt : state.endDate,
+		};
+	};
+	for (const auto auction : list) {
+		state->list.push_back(singleFrom(*auction));
+	}
+	return [=] {
+		window->show(Box([=](not_null<Ui::GenericBox*> box) {
+			const auto rows = box->lifetime().make_state<
+				rpl::variable<int>
+			>(count);
+
+			box->setWidth(st::boxWideWidth);
+			box->setTitle(tr::lng_auction_bar_active_many(
+				lt_count,
+				rows->value() | tr::to_count()));
+
+			const auto auctions = &window->session().giftAuctions();
+			for (auto &entry : state->list) {
+				using Data::GiftAuctionState;
+
+				const auto &now = entry.current();
+				entry = auctions->state(
+					now.slug
+				) | rpl::filter([=](const GiftAuctionState &state) {
+					return state.my.bid != 0;
+				}) | rpl::map(singleFrom);
+
+				const auto skip = st::auctionListEntrySkip;
+				const auto row = box->addRow(
+					MakeActiveAuctionRow(
+						box,
+						window,
+						now.document,
+						now.slug,
+						entry.value()),
+					st::boxRowPadding + QMargins(0, skip, 0, skip));
+
+				auctions->state(
+					now.slug
+				) | rpl::start_with_next([=](const GiftAuctionState &state) {
+					if (!state.my.bid) {
+						delete row;
+						if (const auto now = rows->current(); now > 1) {
+							*rows = (now - 1);
+						} else {
+							box->closeBox();
+						}
+					}
+				}, row->lifetime());
+			}
+
+			box->addTopButton(st::boxTitleClose, [=] { box->closeBox(); });
+			box->addButton(tr::lng_box_ok(), [=] { box->closeBox(); });
+		}));
+	};
 }
 
 } // namespace Ui
