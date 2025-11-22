@@ -47,6 +47,8 @@ jobs:
           cd fagram-scoop
           sed -i "s/\"version\": \".*\"/\"version\": \"$RELEASE_TAG\"/" fagram.json
           sed -i "s/\"hash\": \".*\"/\"hash\": \"$HASH\"/" fagram.json
+          sed -i "s|releases/download/[0-9.]\+/|releases/download/$RELEASE_TAG/|g" fagram.json
+          sed -i "s/FAgram_x64_[0-9.]\+_portable\.zip/FAgram_x64_${RELEASE_TAG}_portable.zip/g" fagram.json
           
           echo "Updated fagram.json:"
           cat fagram.json
