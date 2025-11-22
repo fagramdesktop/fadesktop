@@ -142,3 +142,12 @@ jobs:
           files: artifact/FAgram_x64_${{ env.RELEASE_TAG }}_portable.zip
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
+
+  update-scoop:
+    name: Update Scoop Manifest
+    needs: windows
+    if: github.event.inputs.build_type == 'rel'
+    uses: ./.github/workflows/scoop-manifest.yml
+    with:
+      release_tag: ${{ github.event.inputs.tagname }}
+    secrets: inherit
