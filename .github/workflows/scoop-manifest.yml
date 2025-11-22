@@ -1,0 +1,58 @@
+name: Update Scoop Manifest
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to update manifest for'
+        type: string
+        required: true
+
+jobs:
+  update-manifest:
+    name: Update Scoop Manifest
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT }}
+          
+      - name: Get release tag
+        id: get_tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "RELEASE_TAG=${{ github.event.inputs.release_tag }}" >> $GITHUB_ENV
+          else
+            echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          fi
+          
+      - name: Download release asset
+        run: |
+          ASSET_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/FAgram_x64_${RELEASE_TAG}_portable.zip"
+          echo "Downloading from: $ASSET_URL"
+          curl -L -o FAgram_x64_${RELEASE_TAG}_portable.zip "$ASSET_URL"
+          
+      - name: Calculate hash and update manifest
+        run: |
+          HASH=$(sha256sum FAgram_x64_${RELEASE_TAG}_portable.zip | awk '{print $1}')
+          echo "Hash: $HASH"
+          echo "Version: $RELEASE_TAG"
+          
+          sed -i "s/\"version\": \".*\"/\"version\": \"$RELEASE_TAG\"/" fagram.json
+          sed -i "s/\"hash\": \".*\"/\"hash\": \"$HASH\"/" fagram.json
+          sed -i "s|releases/download/[^/]*/|releases/download/$RELEASE_TAG/|g" fagram.json
+          
+          echo "Updated fagram.json:"
+          cat fagram.json
+          
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add fagram.json
+          git commit -m "Update scoop manifest to $RELEASE_TAG"
+          git push origin HEAD:${{ github.ref_name }}

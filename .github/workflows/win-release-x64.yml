@@ -142,21 +142,3 @@ jobs:
           files: artifact/FAgram_x64_${{ env.RELEASE_TAG }}_portable.zip
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
-
-      - name: Update Scoop Manifest
-        if: env.UPLOAD_ARTIFACT == 'true' && github.event.inputs.build_type == 'rel'
-        shell: bash
-        run: |
-          cd $TBUILD/$REPO_NAME
-          HASH=$(sha256sum artifact/FAgram_x64_${RELEASE_TAG}_portable.zip | awk '{print $1}')
-          sed -i "s/\"version\": \".*\"/\"version\": \"$RELEASE_TAG\"/" fagram.json
-          sed -i "s/\"hash\": \".*\"/\"hash\": \"$HASH\"/" fagram.json
-          sed -i "s|releases/download/[^/]*/|releases/download/$RELEASE_TAG/|g" fagram.json
-          
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add fagram.json
-          git commit -m "Update scoop manifest to $RELEASE_TAG"
-          git push origin HEAD:${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
