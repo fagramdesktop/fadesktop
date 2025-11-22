@@ -120,8 +120,9 @@ jobs:
           set OUT=%TBUILD%\%REPO_NAME%\out\Release
           mkdir artifact
           move %OUT%\*.exe artifact\
+          copy %TBUILD%\%REPO_NAME%\Telegram\Resources\art\icon.ico artifact\
           cd artifact
-          7z a -tzip FAgram_x64_%RELEASE_TAG%_portable.zip *.exe
+          7z a -tzip FAgram_x64_%RELEASE_TAG%_portable.zip *.exe icon.ico
 
       - uses: actions/upload-artifact@v4
         name: Upload Release Artifacts
@@ -139,5 +140,23 @@ jobs:
           draft: false
           prerelease: false
           files: artifact/FAgram_x64_${{ env.RELEASE_TAG }}_portable.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+
+      - name: Update Scoop Manifest
+        if: env.UPLOAD_ARTIFACT == 'true' && github.event.inputs.build_type == 'rel'
+        shell: bash
+        run: |
+          cd $TBUILD/$REPO_NAME
+          HASH=$(sha256sum artifact/FAgram_x64_${RELEASE_TAG}_portable.zip | awk '{print $1}')
+          sed -i "s/\"version\": \".*\"/\"version\": \"$RELEASE_TAG\"/" fagram.json
+          sed -i "s/\"hash\": \".*\"/\"hash\": \"$HASH\"/" fagram.json
+          sed -i "s|releases/download/[^/]*/|releases/download/$RELEASE_TAG/|g" fagram.json
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add fagram.json
+          git commit -m "Update scoop manifest to $RELEASE_TAG"
+          git push origin HEAD:${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}

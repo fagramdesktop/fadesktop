@@ -1,0 +1,36 @@
+{
+    "version": "2.0.1",
+    "description": "FAgram Desktop is a custom Telegram client.",
+    "homepage": "https://github.com/burhancodes/fagramdesktop",
+    "license": {
+        "identifier": "Freeware",
+        "url": "https://github.com/burhancodes/fagramdesktop/blob/dev/LICENSE"
+    },
+    "icon": "https://raw.githubusercontent.com/burhancodes/fagramdesktop/dev/Telegram/Resources/art/icon.ico",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/burhancodes/fagramdesktop/releases/download/2.0.1/FAgram_x64_2.0.1_portable.zip",
+            "hash": "b2a85ee0b4a429fbe1a878b9151484423151405a661953ef938589144b0586ff"
+        }
+    },
+    "shortcuts": [
+        [
+            "fagram.exe",
+            "FAgram",
+            "",
+            "icon.ico"
+        ]
+    ],
+    "persist": "tdata",
+    "checkver": {
+        "url": "https://github.com/burhancodes/fagramdesktop",
+        "regex": "/releases/tag/([\\d.]+)"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/burhancodes/fagramdesktop/releases/download/$version/FAgram_x64_${version}_portable.zip"
+            }
+        }
+    }
+}

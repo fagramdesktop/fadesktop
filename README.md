@@ -26,8 +26,20 @@
 
 The latest version is available for
 
-* [Windows](https://t.me/FAgramWindows)
-* [Linux](https://t.me/FAgramLinux)
+- Windows (x64)
+    - [Portable/ZIP](https://github.com/burhancodes/fagramdesktop/releases)
+    - Via [Scoop](https://scoop.sh/) (powershell)
+        ```powershell
+        scoop bucket add fagram https://github.com/burhancodes/fagramdesktop
+        scoop install fagram
+        ```
+
+- Linux
+    - [Arch/AUR](https://aur.archlinux.org/packages/fagram-bin)
+    - [Fedora/RPM](https://copr.fedorainfracloud.org/coprs/burhanverse/fagram/)
+    - [Ubuntu/DEB](https://github.com/burhancodes/fagram-deb)
+
+For detailed insturctions on how to install on linux [Click Here](https://burhanverse.eu.org/?article=fagram-desktop)
 
 ## <h2 border="none"><img src="https://github.com/hikariatama/assets/raw/master/981-consultation-flat.webp" height="54" align="middle">Translation</h2>
 
@@ -82,7 +94,7 @@ The latest version is available for
 [//]: # (LINKS)
 [fagram]: https://t.me/FAgramClient
 [fagram_desktop]: https://t.me/FAgramClient
-[telegram_desktop]: https://github.com/fajox1/fagramdesktop
+[telegram_desktop]: https://github.com/telegramdesktop/tdesktop
 [telegram_api]: https://core.telegram.org
 [telegram_proto]: https://core.telegram.org/mtproto
 [license]: LICENSE
