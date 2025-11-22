@@ -20,10 +20,12 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout repository
+      - name: Clone scoop manifest repository
         uses: actions/checkout@v4
         with:
+          repository: burhancodes/fagram-scoop
           token: ${{ secrets.PAT }}
+          path: fagram-scoop
           
       - name: Get release tag
         id: get_tag
@@ -34,25 +36,26 @@ jobs:
         run: |
           ASSET_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/FAgram_x64_${RELEASE_TAG}_portable.zip"
           echo "Downloading from: $ASSET_URL"
-          curl -L -o FAgram_x64_${RELEASE_TAG}_portable.zip "$ASSET_URL"
+          curl -L -o FAgram_portable.zip "$ASSET_URL"
           
       - name: Calculate hash and update manifest
         run: |
-          HASH=$(sha256sum FAgram_x64_${RELEASE_TAG}_portable.zip | awk '{print $1}')
+          HASH=$(sha256sum FAgram_portable.zip | awk '{print $1}')
           echo "Hash: $HASH"
           echo "Version: $RELEASE_TAG"
           
+          cd fagram-scoop
           sed -i "s/\"version\": \".*\"/\"version\": \"$RELEASE_TAG\"/" fagram.json
           sed -i "s/\"hash\": \".*\"/\"hash\": \"$HASH\"/" fagram.json
-          sed -i "s|releases/download/[^/]*/|releases/download/$RELEASE_TAG/|g" fagram.json
           
           echo "Updated fagram.json:"
           cat fagram.json
           
       - name: Commit and push changes
         run: |
+          cd fagram-scoop
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add fagram.json
           git commit -m "Update scoop manifest to $RELEASE_TAG"
-          git push origin HEAD:${{ github.ref_name }}
+          git push
