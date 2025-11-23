@@ -411,6 +411,7 @@ void EditCaptionBox::prepare() {
 			: _mediaEditManager.invertCaption()
 			? SendMenu::CaptionState::Above
 			: SendMenu::CaptionState::Below;
+		result.translationAllowed = false;
 		return result;
 	});
 	const auto callback = [=](SendMenu::Action action, const auto &) {

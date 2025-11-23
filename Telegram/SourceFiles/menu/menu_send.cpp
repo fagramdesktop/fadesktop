@@ -759,7 +759,12 @@ FillMenuResult FillSendMenu(
 				details); },
 			&icons.menuWhenOnline);
 	}
-
+	if (sending && details.translationAllowed) {
+		menu->addAction(
+			tr::lng_context_translate(tr::now),
+			[=] { action({ .type = ActionType::Translate }, details); },
+			&st::menuIconTranslate);
+	}
 	if ((type != Type::Disabled)
 		&& ((details.spoiler != SpoilerState::None)
 			|| (details.caption != CaptionState::None)

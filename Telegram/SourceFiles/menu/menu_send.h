@@ -60,6 +60,7 @@ struct Details {
 	std::optional<uint64> price;
 	std::optional<uint64> commentPriceMin;
 	bool effectAllowed = false;
+	bool translationAllowed = false;
 };
 
 enum class FillMenuResult : uchar {
@@ -76,6 +77,7 @@ enum class ActionType : uchar {
 	CaptionUp,
 	CaptionDown,
 	ChangePrice,
+	Translate,
 };
 struct Action {
 	using Type = ActionType;
