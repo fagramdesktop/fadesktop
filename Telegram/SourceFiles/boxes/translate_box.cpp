@@ -229,12 +229,13 @@ void TranslateBox(
 		translated->hide(anim::type::instant);
 
 		crl::async([=] {
-			const auto toTC = GetEnhancedBool("translate_to_tc"); // Override translate setting :)
 			const auto result = GoogleAppTranslator::instance()->translate(
-				  text.text, "auto", toTC ? "zh-Hant" : to.twoLetterCode());
-		  crl::on_main([=] {
-			showText(TextWithEntities{.text = result.translation});
-		  });
+				text.text,
+				"auto",
+				to.twoLetterCode());
+			crl::on_main([=] {
+				showText(TextWithEntities{ .text = result.translation });
+			});
 		});
 
 		//state->api.request(MTPmessages_TranslateText(
@@ -251,7 +252,7 @@ void TranslateBox(
 		//				&peer->session(),
 		//				text.entities,
 		//				Api::ConvertOption::SkipLocal)))),
-		//	MTP_string(toTC ? "zh-Hant" : to.twoLetterCode())
+		//	MTP_string(to.twoLetterCode())
 		//)).done([=](const MTPmessages_TranslatedText &result) {
 		//	const auto &data = result.data();
 		//	const auto &list = data.vresult().v;
