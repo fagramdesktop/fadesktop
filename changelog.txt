@@ -1,3 +1,10 @@
+2.0.3 (23.11.25)
+
+- Use our own API_ID & API_HASH
+- Updated tray icons
+- Fixed icon reference in desktop entry
+- Added translate option in send menu
+
 2.0.2 (22.11.25)
 
 - Updated to tdesktop v6.3.3
