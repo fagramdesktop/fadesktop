@@ -496,20 +496,18 @@ void InstallLauncher() {
 	const auto symbolicIcons = icons + u"/hicolor/symbolic/apps/"_q;
 	if (!QDir().exists(symbolicIcons)) QDir().mkpath(symbolicIcons);
 
-	const auto monochromeIcons = {
-		QString(),
-		u"attention"_q,
-		u"mute"_q,
-	};
+	const auto monochromeIcons = { QString(), u"attention"_q, u"mute"_q };
 
 	for (const auto &icon : monochromeIcons) {
+		const auto destination = symbolicIcons
+			+ ApplicationIconName()
+			+ (!icon.isEmpty() ? u"-"_q + icon : QString())
+			+ u"-symbolic.svg"_q;
+		QFile::remove(destination);
 		QFile::copy(
 			u":/gui/icons/tray/monochrome%1.svg"_q.arg(
 				!icon.isEmpty() ? u"_"_q + icon : QString()),
-			symbolicIcons
-				+ ApplicationIconName()
-				+ (!icon.isEmpty() ? u"-"_q + icon : QString())
-				+ u"-symbolic.svg"_q);
+			destination);
 	}
 
 	QProcess::execute("update-desktop-database", {
