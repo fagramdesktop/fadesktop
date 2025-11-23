@@ -1,6 +1,6 @@
 {
     "name": "CentOS",
-    "image": "tdesktop:centos_env",
+    "image": "fagram:centos_env",
     "customizations": {
         "vscode": {
             "settings": {
