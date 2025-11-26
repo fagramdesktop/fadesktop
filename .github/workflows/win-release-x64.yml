@@ -77,7 +77,7 @@ jobs:
         shell: bash
         run: |
           echo "TDESKTOP_BUILD_ARCH=x64" >> $GITHUB_ENV
-          echo "ARTIFACT_NAME=FAgram_x64" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=FAgram_Win-x64" >> $GITHUB_ENV
           
           API="-D TDESKTOP_API_ID=${{ secrets.API_ID_CONFIG }} -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }}"
           echo "TDESKTOP_BUILD_API=$API" >> $GITHUB_ENV

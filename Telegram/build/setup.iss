@@ -3,7 +3,7 @@
 #define MyAppPublisher "Telegram FZ-LLC"
 #define MyAppURL "https://t.me/FAgramClient"
 #define MyAppExeName "fagram.exe"
-#define MyAppId "53F49750-6209-4FBF-9CA8-7A333C87D1ED"
+#define MyAppId "8F00A2B2-F423-454D-9748-64789C56203A"
 #define CurrentYear GetDateTimeString('yyyy','','')
 
 [Setup]
@@ -34,7 +34,6 @@ CloseApplications=force
 DisableDirPage=no
 DisableProgramGroupPage=no
 WizardStyle=modern
-SignTool=sha256
 
 #if MyBuildTarget == "winarm"
   ArchitecturesAllowed="arm64"
