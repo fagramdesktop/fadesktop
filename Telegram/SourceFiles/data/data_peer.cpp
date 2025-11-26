@@ -451,7 +451,7 @@ QImage *PeerData::userpicCloudImage(Ui::PeerUserpicView &view) const {
 }
 
 void PeerData::paintUserpic(
-		Painter &p,
+		QPainter &p,
 		Ui::PeerUserpicView &view,
 		PaintUserpicContext context) const {
 	if (const auto broadcast = monoforumBroadcast()) {

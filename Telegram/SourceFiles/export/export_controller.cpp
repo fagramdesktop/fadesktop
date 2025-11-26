@@ -37,6 +37,13 @@ public:
 		crl::weak_on_queue<ControllerObject> weak,
 		QPointer<MTP::Instance> mtproto,
 		const MTPInputPeer &peer);
+	ControllerObject(
+		crl::weak_on_queue<ControllerObject> weak,
+		QPointer<MTP::Instance> mtproto,
+		const MTPInputPeer &peer,
+		int32 topicRootId,
+		uint64 peerId,
+		const QString &topicTitle);
 
 	rpl::producer<State> state() const;
 
@@ -82,6 +89,7 @@ private:
 	void exportOtherData();
 	void exportDialogs();
 	void exportNextDialog();
+	void exportTopic();
 
 	template <typename Callback = const decltype(kNullStateCallback) &>
 	ProcessingState prepareState(
@@ -97,6 +105,7 @@ private:
 	ProcessingState stateSessions() const;
 	ProcessingState stateOtherData() const;
 	ProcessingState stateDialogs(const DownloadProgress &progress) const;
+	ProcessingState stateTopic(const DownloadProgress &progress) const;
 	void fillMessagesState(
 		ProcessingState &result,
 		const Data::DialogsInfo &info,
@@ -139,6 +148,10 @@ private:
 	std::vector<Step> _steps;
 	int _stepIndex = -1;
 
+	int32 _topicRootId = 0;
+	uint64 _topicPeerId = 0;
+	QString _topicTitle;
+
 	rpl::lifetime _lifetime;
 
 };
@@ -149,6 +162,36 @@ ControllerObject::ControllerObject(
 	const MTPInputPeer &peer)
 : _api(mtproto, weak.runner())
 , _state(PasswordCheckState{}) {
+	_api.errors(
+	) | rpl::start_with_next([=](const MTP::Error &error) {
+		setState(ApiErrorState{ error });
+	}, _lifetime);
+
+	_api.ioErrors(
+	) | rpl::start_with_next([=](const Output::Result &result) {
+		ioCatchError(result);
+	}, _lifetime);
+
+	//requestPasswordState();
+	auto state = PasswordCheckState();
+	state.checked = false;
+	state.requesting = false;
+	state.singlePeer = peer;
+	setState(std::move(state));
+}
+
+ControllerObject::ControllerObject(
+	crl::weak_on_queue<ControllerObject> weak,
+	QPointer<MTP::Instance> mtproto,
+	const MTPInputPeer &peer,
+	int32 topicRootId,
+	uint64 peerId,
+	const QString &topicTitle)
+: _api(mtproto, weak.runner())
+, _state(PasswordCheckState{})
+, _topicRootId(topicRootId)
+, _topicPeerId(peerId)
+, _topicTitle(topicTitle) {
 	_api.errors(
 	) | rpl::start_with_next([=](const MTP::Error &error) {
 		setState(ApiErrorState{ error });
@@ -257,6 +300,8 @@ void ControllerObject::startExport(
 	}
 	_settings = NormalizeSettings(settings);
 	_environment = environment;
+	_settings.singleTopicRootId = _topicRootId;
+	_settings.singleTopicPeerId = _topicPeerId;
 
 	_settings.path = Output::NormalizePath(_settings);
 	_writer = Output::CreateWriter(_settings.format);
@@ -274,6 +319,10 @@ void ControllerObject::skipFile(uint64 randomId) {
 void ControllerObject::fillExportSteps() {
 	using Type = Settings::Type;
 	_steps.push_back(Step::Initializing);
+	if (_settings.onlySingleTopic()) {
+		_steps.push_back(Step::Topic);
+		return;
+	}
 	if (_settings.types & Type::AnyChatsMask) {
 		_steps.push_back(Step::DialogsList);
 	}
@@ -340,6 +389,9 @@ void ControllerObject::fillSubstepsInSteps(const ApiWrap::StartInfo &info) {
 	if (_settings.types & Settings::Type::AnyChatsMask) {
 		push(Step::Dialogs, info.dialogsCount);
 	}
+	if (_settings.onlySingleTopic()) {
+		push(Step::Topic, 1);
+	}
 	_substepsInStep = std::move(result);
 	_substepsTotal = ranges::accumulate(_substepsInStep, 0);
 }
@@ -372,6 +424,7 @@ void ControllerObject::exportNext() {
 	case Step::Sessions: return exportSessions();
 	case Step::OtherData: return exportOtherData();
 	case Step::Dialogs: return exportDialogs();
+	case Step::Topic: return exportTopic();
 	}
 	Unexpected("Step in ControllerObject::exportNext.");
 }
@@ -708,6 +761,71 @@ int ControllerObject::substepsInStep(Step step) const {
 	return _substepsInStep[static_cast<int>(step)];
 }
 
+void ControllerObject::exportTopic() {
+	auto topicInfo = Data::DialogInfo();
+	topicInfo.type = Data::DialogInfo::Type::PublicSupergroup;
+	topicInfo.name = _topicTitle.toUtf8();
+	topicInfo.peerId = PeerId(_topicPeerId);
+	topicInfo.relativePath = QString();
+
+	if (ioCatchError(_writer->writeDialogStart(topicInfo))) {
+		return;
+	}
+
+	_api.requestTopicMessages(
+		PeerId(_topicPeerId),
+		_settings.singlePeer,
+		_topicRootId,
+		[=](int count) {
+			_messagesWritten = 0;
+			_messagesCount = count;
+			setState(stateTopic(DownloadProgress()));
+			return true;
+		},
+		[=](DownloadProgress progress) {
+			setState(stateTopic(progress));
+			return true;
+		},
+		[=](Data::MessagesSlice &&slice) {
+			if (ioCatchError(_writer->writeDialogSlice(slice))) {
+				return false;
+			}
+			_messagesWritten += slice.list.size();
+			setState(stateTopic(DownloadProgress()));
+			return true;
+		},
+		[=] {
+			if (ioCatchError(_writer->writeDialogEnd())) {
+				return;
+			}
+			if (ioCatchError(_writer->finish())) {
+				return;
+			}
+			_api.finishExport([=] {
+				setFinishedState();
+			});
+		});
+}
+
+ProcessingState ControllerObject::stateTopic(
+		const DownloadProgress &progress) const {
+	return prepareState(Step::Topic, [&](ProcessingState &result) {
+		result.entityType = ProcessingState::EntityType::Topic;
+		result.entityName = _topicTitle;
+		result.entityIndex = 0;
+		result.entityCount = 1;
+		result.itemIndex = _messagesWritten + progress.itemIndex;
+		result.itemCount = std::max(_messagesCount, result.itemIndex);
+		result.bytesRandomId = progress.randomId;
+		if (!progress.path.isEmpty()) {
+			const auto last = progress.path.lastIndexOf('/');
+			result.bytesName = progress.path.mid(last + 1);
+		}
+		result.bytesLoaded = progress.ready;
+		result.bytesCount = progress.total;
+	});
+}
+
 void ControllerObject::setFinishedState() {
 	setState(FinishedState{
 		_writer->mainFilePath(),
@@ -719,6 +837,20 @@ Controller::Controller(
 	QPointer<MTP::Instance> mtproto,
 	const MTPInputPeer &peer)
 : _wrapped(std::move(mtproto), peer) {
+}
+
+Controller::Controller(
+	QPointer<MTP::Instance> mtproto,
+	const MTPInputPeer &peer,
+	int32 topicRootId,
+	uint64 peerId,
+	const QString &topicTitle)
+: _wrapped(
+	std::move(mtproto),
+	peer,
+	static_cast<int32>(topicRootId),
+	static_cast<uint64>(peerId),
+	topicTitle) {
 }
 
 rpl::producer<State> Controller::state() const {

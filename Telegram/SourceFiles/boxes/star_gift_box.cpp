@@ -1732,6 +1732,49 @@ void CheckMaybeGiftLocked(
 							.forceTon = star->forceTon,
 						},
 						Settings::CreditsEntryBoxStyleOverrides()));
+				} else if (unique && star->mine && !peer->isSelf()) {
+					if (ShowTransferGiftLater(window->uiShow(), unique)) {
+						return;
+					}
+					const auto done = [=] {
+						window->session().credits().load(true);
+						window->showPeerHistory(peer);
+					};
+					if (state->transferRequested == unique) {
+						return;
+					}
+					state->transferRequested = unique;
+					const auto savedId = star->transferId;
+					using Payments::CheckoutResult;
+					const auto formReady = [=](
+							uint64 formId,
+							CreditsAmount price,
+							std::optional<CheckoutResult> failure) {
+						state->transferRequested = nullptr;
+						if (!failure && !price.stars()) {
+							LOG(("API Error: "
+								"Bad transfer invoice currenct."));
+						} else if (!failure
+							|| *failure == CheckoutResult::Free) {
+							unique->starsForTransfer = failure
+								? 0
+								: price.whole();
+							ShowTransferToBox(
+								window,
+								peer,
+								unique,
+								savedId,
+								done);
+						} else if (*failure == CheckoutResult::Cancelled) {
+							done();
+						}
+					};
+					RequestOurForm(
+						window->uiShow(),
+						MTP_inputInvoiceStarGiftTransfer(
+							Api::InputSavedStarGiftId(savedId, unique),
+							peer->input),
+						formReady);
 				} else if (star && star->resale) {
 					const auto id = star->info.id;
 					if (state->resaleRequestingId == id) {
@@ -1781,49 +1824,6 @@ void CheckMaybeGiftLocked(
 						}
 					});
 					CheckMaybeGiftLocked(window, star->info.id, ready);
-				} else if (unique && star->mine && !peer->isSelf()) {
-					if (ShowTransferGiftLater(window->uiShow(), unique)) {
-						return;
-					}
-					const auto done = [=] {
-						window->session().credits().load(true);
-						window->showPeerHistory(peer);
-					};
-					if (state->transferRequested == unique) {
-						return;
-					}
-					state->transferRequested = unique;
-					const auto savedId = star->transferId;
-					using Payments::CheckoutResult;
-					const auto formReady = [=](
-							uint64 formId,
-							CreditsAmount price,
-							std::optional<CheckoutResult> failure) {
-						state->transferRequested = nullptr;
-						if (!failure && !price.stars()) {
-							LOG(("API Error: "
-								"Bad transfer invoice currenct."));
-						} else if (!failure
-							|| *failure == CheckoutResult::Free) {
-							unique->starsForTransfer = failure
-								? 0
-								: price.whole();
-							ShowTransferToBox(
-								window,
-								peer,
-								unique,
-								savedId,
-								done);
-						} else if (*failure == CheckoutResult::Cancelled) {
-							done();
-						}
-					};
-					RequestOurForm(
-						window->uiShow(),
-						MTP_inputInvoiceStarGiftTransfer(
-							Api::InputSavedStarGiftId(savedId, unique),
-							peer->input),
-						formReady);
 				} else if (star
 						&& star->info.perUserTotal
 						&& !star->info.perUserRemains) {

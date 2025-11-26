@@ -650,18 +650,31 @@ void EditFilterBox(
 			}),
 			anim::type::instant);
 
+		const auto &padding = st::defaultSubsectionTitlePadding;
 		const auto isPremium = session->premium();
-		const auto title = Ui::AddSubsectionTitle(
-			colors,
-			tr::lng_filters_tag_color_subtitle());
-		const auto preview = Ui::CreateChild<Ui::RpWidget>(colors);
-		title->geometryValue(
-		) | rpl::start_with_next([=](const QRect &r) {
+		const auto titleWrap = colors->add(
+			object_ptr<Ui::FixedHeightWidget>(
+				colors,
+				rect::m::sum::v(padding)
+					+ st::defaultSubsectionTitle.style.font->height));
+		const auto title = Ui::CreateChild<Ui::FlatLabel>(
+			titleWrap,
+			tr::lng_filters_tag_color_subtitle(),
+			st::defaultSubsectionTitle);
+		title->move(rect::m::pos::tl(padding));
+		const auto preview = Ui::CreateChild<Ui::RpWidget>(titleWrap);
+		rpl::combine(
+			title->sizeValue(),
+			titleWrap->widthValue()
+		) | rpl::start_with_next([=](const QSize &s, int w) {
 			const auto h = st::normalFont->height;
+			const auto left = padding.left()
+				+ s.width()
+				+ st::settingsFilterTagPreviewSkip;
 			preview->setGeometry(
-				rect::right(colors) - st::settingsFilterTagPreviewSkip,
-				r.y() + (r.height() - h) / 2 + st::lineWidth,
-				colors->width(),
+				left,
+				padding.top() + (s.height() - h) / 2,
+				w - left,
 				h);
 		}, preview->lifetime());
 
@@ -673,12 +686,16 @@ void EditFilterBox(
 		};
 		const auto tag = preview->lifetime().make_state<TagState>();
 		tag->context.textContext = Core::TextContext({ .session = session });
+		const auto shift = st::settingsFilterTagPreviewSkip / 2;
 		preview->paintRequest() | rpl::start_with_next([=] {
 			auto p = QPainter(preview);
 			p.setOpacity(tag->alpha);
 			const auto size = tag->frame.size() / style::DevicePixelRatio();
 			const auto rect = QRect(
-				preview->width() - size.width() - st::boxRowPadding.right(),
+				preview->width()
+					- size.width()
+					- st::boxRowPadding.right()
+					- shift,
 				(st::normalFont->height - size.height()) / 2,
 				size.width(),
 				size.height());
@@ -688,7 +705,7 @@ void EditFilterBox(
 				p.setFont(st::normalFont);
 				p.setPen(st::windowSubTextFg);
 				p.drawText(
-					preview->rect() - st::boxRowPadding,
+					preview->rect().translated(-shift, 0) - st::boxRowPadding,
 					tr::lng_filters_tag_color_no(tr::now),
 					style::al_right);
 			}

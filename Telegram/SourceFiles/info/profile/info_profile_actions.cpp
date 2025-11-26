@@ -160,6 +160,16 @@ base::options::toggle ShowChannelJoinedBelowAbout({
 	});
 }
 
+[[nodiscard]] rpl::producer<TextWithEntities> TopicSubtext(
+		not_null<PeerData*> peer) {
+	return rpl::conditional(
+		UsernamesValue(peer) | rpl::map([](std::vector<TextWithEntities> v) {
+			return !v.empty();
+		}),
+		tr::lng_filters_link_subtitle(Ui::Text::WithEntities),
+		tr::lng_info_link_topic_label(Ui::Text::WithEntities));
+}
+
 [[nodiscard]] Fn<void(QString)> UsernamesLinkCallback(
 		not_null<PeerData*> peer,
 		not_null<Window::SessionController*> controller,
@@ -1509,13 +1519,20 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		rpl::combine(
 			container->widthValue(),
 			label->geometryValue(),
-			button->sizeValue()
-		) | rpl::start_with_next([=](int width, QRect, QSize buttonSize) {
+			button->sizeValue(),
+			button->shownValue()
+		) | rpl::start_with_next([=](
+				int width,
+				QRect,
+				QSize buttonSize,
+				bool buttonShown) {
 			button->moveToRight(
 				rightSkip,
 				(parent->height() - buttonSize.height()) / 2);
 			const auto x = Ui::MapFrom(container, label, QPoint(0, 0)).x();
-			const auto s = Ui::MapFrom(container, button, QPoint(0, 0)).x();
+			const auto s = buttonShown
+				? Ui::MapFrom(container, button, QPoint(0, 0)).x()
+				: width;
 			label->resizeToWidth(s - x);
 		}, button->lifetime());
 	};
@@ -1635,12 +1652,14 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		const auto qrButton = Ui::CreateChild<Ui::IconButton>(
 			usernameLine.text->parentWidget(),
 			st::infoProfileLabeledButtonQr);
+		UsernamesValue(_peer) | rpl::start_with_next([=](const auto &u) {
+			qrButton->setVisible(!u.empty());
+		}, qrButton->lifetime());
 		const auto rightSkip = st::infoProfileLabeledButtonQrRightSkip;
 		fitLabelToButton(qrButton, usernameLine.text, rightSkip);
 		fitLabelToButton(qrButton, usernameLine.subtext, rightSkip);
-		qrButton->setClickedCallback([=] {
-			controller->show(
-				Box(Ui::FillPeerQrBox, user, std::nullopt, nullptr));
+		qrButton->setClickedCallback([=, show = controller->uiShow()] {
+			Ui::DefaultShowFillPeerQrBoxCallback(show, user);
 			return false;
 		});
 
@@ -1731,7 +1750,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		});
 		const auto linkLine = addInfoOneLine(
 			(topicRootId
-				? tr::lng_info_link_topic_label(Ui::Text::WithEntities)
+				? TopicSubtext(_peer)
 				: UsernamesSubtext(_peer, tr::lng_info_link_label())),
 			std::move(linkText),
 			QString());
@@ -1748,12 +1767,15 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			const auto qr = Ui::CreateChild<Ui::IconButton>(
 				linkLine.text->parentWidget(),
 				st::infoProfileLabeledButtonQr);
+			UsernamesValue(_peer) | rpl::start_with_next([=](const auto &u) {
+				qr->setVisible(!u.empty());
+			}, qr->lifetime());
 			const auto rightSkip = st::infoProfileLabeledButtonQrRightSkip;
 			fitLabelToButton(qr, linkLine.text, rightSkip);
 			fitLabelToButton(qr, linkLine.subtext, rightSkip);
-			qr->setClickedCallback([=, peer = _peer] {
-				controller->show(
-					Box(Ui::FillPeerQrBox, peer, std::nullopt, nullptr));
+			const auto peer = _peer;
+			qr->setClickedCallback([=, show = controller->uiShow()] {
+				Ui::DefaultShowFillPeerQrBoxCallback(show, peer);
 				return false;
 			});
 		}

@@ -124,7 +124,6 @@ void TryAddingPaidReaction(
 void TryAddingPaidReaction(
 		not_null<Calls::GroupCall*> call,
 		int count,
-		std::optional<PeerId> shownPeer,
 		std::shared_ptr<Main::SessionShow> show,
 		Fn<void(bool)> finished) {
 	const auto checkCall = [weak = base::make_weak(call), finished] {
@@ -141,7 +140,7 @@ void TryAddingPaidReaction(
 		if (result == Settings::SmallBalanceResult::Success
 			|| result == Settings::SmallBalanceResult::Already) {
 			if (const auto call = checkCall()) {
-				call->messages()->reactionsPaidAdd(count, shownPeer);
+				call->messages()->reactionsPaidAdd(count);
 				call->peer()->owner().notifyCallPaidReactionSent(call);
 				if (const auto onstack = finished) {
 					onstack(true);

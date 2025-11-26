@@ -35,6 +35,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "boxes/add_contact_box.h"
 #include "boxes/premium_limits_box.h"
 #include "boxes/username_box.h"
+#include "boxes/peers/edit_peer_color_box.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
 #include "data/data_peer_values.h"
@@ -443,6 +444,12 @@ void SetupPersonalChannel(
 		tr::lng_mediaview_copy(tr::now),
 		edit,
 		{ &st::menuIconChannel });
+
+	AddPeerColorButton(
+		container,
+		controller->uiShow(),
+		self,
+		st::settingsColorButton);
 
 	Ui::AddSkip(container);
 	Ui::AddDivider(container);

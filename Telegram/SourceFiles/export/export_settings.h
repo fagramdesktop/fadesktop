@@ -88,10 +88,18 @@ struct Settings {
 	TimeId singlePeerFrom = 0;
 	TimeId singlePeerTill = 0;
 
+	int32 singleTopicRootId = 0;
+	uint64 singleTopicPeerId = 0;
+	QString singleTopicTitle;
+
 	TimeId availableAt = 0;
 
 	bool onlySinglePeer() const {
 		return singlePeer.type() != mtpc_inputPeerEmpty;
+	}
+
+	bool onlySingleTopic() const {
+		return onlySinglePeer() && singleTopicRootId != 0;
 	}
 
 	static inline Types DefaultTypes() {

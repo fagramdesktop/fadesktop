@@ -653,3 +653,100 @@ div.toast_shown {
     margin-right: 8px;
     line-height: 20px;
 }
+
+@media (prefers-color-scheme: dark) {
+html, body {
+    background-color: #1a2026; /* groupCallBg */
+    margin: 0;
+    padding: 0;
+}
+.page_wrap {
+    background-color: #1a2026; /* groupCallBg */
+    color: #ffffff; /* groupCallMembersFg */
+    min-height: 100vh;
+}
+.page_wrap a {
+    color: #4db8ff; /* groupCallActiveFg */
+}
+.page_header {
+    background-color: #1a2026; /* groupCallBg */
+    border-bottom: 1px solid #2c333d; /* groupCallMembersBg */
+}
+.bold {
+    color: #ffffff; /* groupCallMembersFg */
+}
+.details {
+    color: #91979e; /* groupCallMemberNotJoinedStatus */
+}
+.page_body {
+    background-color: #1a2026; /* groupCallBg */
+}
+code {
+    color: #ff8aac; /* historyPeer6UserpicBg */
+    background-color: #2c333d; /* groupCallMembersBg */
+}
+pre {
+    color: #ffffff; /* groupCallMembersFg */
+    background-color: #2c333d; /* groupCallMembersBg */
+    border: 1px solid #323a45; /* groupCallMembersBgOver */
+}
+.with_divider {
+    border-top: 1px solid #2c333d; /* groupCallMembersBg */
+}
+a.block_link:hover {
+    background-color: #323a45; /* groupCallMembersBgOver */
+}
+.list_page .entry {
+    color: #ffffff; /* groupCallMembersFg */
+}
+.message {
+    color: #ffffff; /* groupCallMembersFg */
+}
+div.selected {
+    background-color: #323a45; /* groupCallMembersBgOver */
+}
+.default .from_name {
+    color: #4db8ff; /* groupCallActiveFg */
+}
+.default .media .description {
+    color: #ffffff; /* groupCallMembersFg */
+}
+msgInBg,
+.historyComposeAreaBg {
+    background-color: #2c333d; /* groupCallMembersBg */
+}
+msgOutBg {
+    background-color: #323a45; /* groupCallMembersBgOver */
+}
+msgInBgSelected {
+    background-color: #39424f; /* groupCallMembersBgRipple */
+}
+msgOutBgSelected {
+    background-color: #39424f; /* groupCallMembersBgRipple */
+}
+.spoiler {
+    background: #323a45; /* groupCallMembersBgOver */
+}
+.spoiler.hidden {
+    background: #61c0ff; /* groupCallMemberInactiveStatus */
+}
+.bot_button {
+    background-color: #4db8ff40; /* groupCallActiveFg with opacity */
+}
+.reactions .reaction {
+    background-color: #2c333d; /* groupCallMembersBg */
+    color: #4db8ff; /* groupCallActiveFg */
+}
+.reactions .reaction.active {
+    background-color: #4db8ff; /* groupCallActiveFg */
+    color: #1a2026; /* groupCallBg */
+}
+.reactions .reaction.paid {
+    background-color: #323a45; /* groupCallMembersBgOver */
+    color: #febb5b; /* historyPeer8UserpicBg */
+}
+.reactions .reaction.active.paid {
+    background-color: #febb5b; /* historyPeer8UserpicBg */
+    color: #1a2026; /* groupCallBg */
+}
+}

@@ -1734,6 +1734,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_profile_block_user" = "Block user";
 "lng_profile_unblock_user" = "Unblock user";
 "lng_profile_export_chat" = "Export chat history";
+"lng_profile_export_topic" = "Export topic history";
 "lng_profile_gift_premium" = "Gift Premium";
 "lng_media_selected_photo#one" = "{count} Photo";
 "lng_media_selected_photo#other" = "{count} Photos";
@@ -2956,6 +2957,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_credits_summary_history_entry_inner_in" = "In-App Purchase";
 "lng_credits_summary_balance" = "Balance";
 "lng_credits_commission" = "{amount} commission";
+"lng_credits_paid_messages_fee_live_reaction" = "Fee for Live Story Reaction";
 "lng_credits_paid_messages_fee#one" = "Fee for {count} Message";
 "lng_credits_paid_messages_fee#other" = "Fee for {count} Messages";
 "lng_credits_paid_messages_fee_about" = "You receive {percent} of the price that you charge for each incoming message. {link}";
@@ -4789,6 +4791,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_paid_react_send" = "Send {price}";
 "lng_paid_react_agree" = "By sending stars, you agree to the {link}.";
 "lng_paid_react_agree_link" = "Terms of Service";
+"lng_paid_react_admin_cant" = "You can't send Stars to your own Live Story.";
 "lng_paid_react_toast#one" = "Star Sent!";
 "lng_paid_react_toast#other" = "Stars Sent!";
 "lng_paid_react_toast_anonymous#one" = "Star sent anonymously!";
@@ -4810,6 +4813,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_paid_reaction_title" = "React with Stars";
 "lng_paid_reaction_about" = "Highlight and pin your message by sending Stars to {name}.";
 "lng_paid_reaction_button" = "Send {stars}";
+"lng_paid_admin_title" = "Receive Stars from Viewers";
+"lng_paid_admin_about" = "Viewers can send you Star Reactions.";
 
 "lng_sensitive_tag" = "18+";
 "lng_sensitive_title" = "18+";
@@ -6311,6 +6316,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_export_option_other" = "Miscellaneous data";
 "lng_export_option_other_about" = "Other types of data not mentioned above (beta).";
 "lng_export_header_chats" = "Chat export settings";
+"lng_export_header_topic" = "Topic export settings";
 "lng_export_option_personal_chats" = "Personal chats";
 "lng_export_option_bot_chats" = "Bot chats";
 "lng_export_option_private_groups" = "Private groups";
@@ -6805,6 +6811,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_stories_my_name" = "My Story";
 "lng_stories_archive" = "Hide Stories";
 "lng_stories_unarchive" = "Unhide Stories";
+"lng_stories_view_anonymously" = "View Anonymously";
 "lng_stories_row_count#one" = "{count} Story";
 "lng_stories_row_count#other" = "{count} Stories";
 "lng_stories_views#one" = "{count} view";
@@ -6899,6 +6906,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_stealth_mode_next_about" = "Hide my views for the next 25 minutes.";
 "lng_stealth_mode_unlock" = "Unlock Stealth Mode";
 "lng_stealth_mode_enable" = "Enable Stealth Mode";
+"lng_stealth_mode_enable_and_open" = "Enable and open the story";
 "lng_stealth_mode_cooldown_in" = "Available in {left}";
 "lng_stealth_mode_cooldown_tip" = "Please wait until **Stealth Mode** is ready to use again.";
 "lng_stealth_mode_enabled_tip_title" = "Stealth Mode On";

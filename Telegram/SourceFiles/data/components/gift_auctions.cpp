@@ -407,7 +407,7 @@ int MyAuctionPosition(const GiftAuctionState &state) {
 	const auto &levels = state.bidLevels;
 	for (auto i = begin(levels), e = end(levels); i != e; ++i) {
 		if (i->amount < state.my.bid
-			|| (i->amount == state.my.bid && i->date > state.my.date)) {
+			|| (i->amount == state.my.bid && i->date >= state.my.date)) {
 			return i->position;
 		}
 	}

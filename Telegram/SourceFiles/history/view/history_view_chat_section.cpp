@@ -326,6 +326,9 @@ ChatWidget::ChatWidget(
 	) | rpl::start_with_next([=] {
 		searchRequested();
 	}, _topBar->lifetime());
+	if (_sublist) {
+		_topBar->setCustomTitle(tr::lng_contacts_loading(tr::now));
+	}
 
 	controller->adaptive().value(
 	) | rpl::start_with_next([=] {
@@ -3014,12 +3017,14 @@ rpl::producer<Data::MessagesSlice> ChatWidget::sublistSource(
 		limitAfter
 	) | rpl::before_next([=](const Data::MessagesSlice &result) {
 		 // after_next makes a copy of value.
-		_topBar->setCustomTitle(result.fullCount
-			? tr::lng_forum_messages(
-				tr::now,
-				lt_count_decimal,
-				*result.fullCount)
-			: tr::lng_contacts_loading(tr::now));
+		_topBar->setCustomTitle(!result.fullCount
+			? tr::lng_contacts_loading(tr::now)
+			: (_sublist->parentChat()
+				? tr::lng_forum_messages
+				: tr::lng_profile_saved_messages)(
+					tr::now,
+					lt_count_decimal,
+					*result.fullCount));
 		markLoaded();
 	});
 }

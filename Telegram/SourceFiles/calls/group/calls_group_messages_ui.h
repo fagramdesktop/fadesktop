@@ -80,6 +80,7 @@ private:
 		Ui::RoundRect pinnedLight;
 		Ui::RoundRect pinnedDark;
 		Ui::RoundRect messageLight;
+		Ui::RoundRect priceDark;
 		Ui::RoundRect badgeDark;
 	};
 

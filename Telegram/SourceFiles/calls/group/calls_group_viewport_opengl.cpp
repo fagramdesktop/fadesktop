@@ -460,7 +460,7 @@ void Viewport::RendererGL::validateUserpicFrame(
 	}
 	const auto size = tile->trackOrUserpicSize();
 	tileData.userpicFrame = PeerData::GenerateUserpicImage(
-		tile->row()->peer(),
+		tile->peer(),
 		tile->row()->ensureUserpicView(),
 		size.width(),
 		0);
@@ -1239,7 +1239,7 @@ void Viewport::RendererGL::validateDatas() {
 			j->stale = false;
 			const auto index = (j - begin(_tileData));
 			_tileDataIndices[i] = index;
-			const auto peer = tiles[i]->row()->peer();
+			const auto peer = tiles[i]->peer();
 			if ((j->peer != peer)
 				|| (j->nameVersion != peer->nameVersion())
 				|| (j->nameRect.width() != width)) {
@@ -1263,7 +1263,7 @@ void Viewport::RendererGL::validateDatas() {
 			continue;
 		}
 		const auto id = quintptr(tiles[i]->track().get());
-		const auto peer = tiles[i]->row()->peer();
+		const auto peer = tiles[i]->peer();
 		const auto paused = (tiles[i]->track()->state()
 			== Webrtc::VideoState::Paused);
 		auto index = int(_tileData.size());

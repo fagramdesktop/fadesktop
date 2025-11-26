@@ -261,7 +261,7 @@ not_null<Ui::RpWidget*> PrepareQrWidget(
 		state->backgroundColors = backgroundColors;
 		state->text = username.toUpper();
 		state->textWidth = state->font->width(state->text);
-		{
+		if (!link.isEmpty()) {
 			const auto remainder = qrMaxSize % st::introQrPixel;
 			const auto downTo = remainder
 				? qrMaxSize - remainder
@@ -274,6 +274,13 @@ not_null<Ui::RpWidget*> PrepareQrWidget(
 					Size(qrMaxSize * style::DevicePixelRatio()),
 					Qt::IgnoreAspectRatio,
 					Qt::SmoothTransformation);
+		} else {
+			auto image = QImage(
+				Size(qrMaxSize * style::DevicePixelRatio()),
+				QImage::Format_ARGB32_Premultiplied);
+			image.fill(Qt::white);
+			image.setDevicePixelRatio(style::DevicePixelRatio());
+			state->qrImage = std::move(image);
 		}
 		const auto resultWidth = qrMaxSize
 			+ rect::m::sum::h(state->backgroundMargins);
@@ -469,11 +476,21 @@ void FillPeerQrBox(
 	const auto userpicMedia = Ui::MakeUserpicThumbnail(peer
 		? peer
 		: controller->session().user().get());
-	userpicMedia->subscribeToUpdates([=] { userpic->update(); });
+	userpicMedia->subscribeToUpdates(
+		crl::guard(userpic, [=] { userpic->update(); }));
 	userpic->paintRequest() | rpl::start_with_next([=] {
 		auto p = QPainter(userpic);
 		p.drawImage(0, 0, userpicMedia->image(userpicSize));
 	}, userpic->lifetime());
+
+	linkValue() | rpl::start_with_next([=](const QString &link) {
+		if (link.isEmpty()) {
+			box->showFinishes() | rpl::start_with_next([=] {
+				box->closeBox();
+			}, box->lifetime());
+			box->closeBox();
+		}
+	}, box->lifetime());
 
 	userpic->setVisible(peer != nullptr);
 	PrepareQrWidget(
@@ -967,6 +984,14 @@ void FillPeerQrBox(
 	}
 
 	box->addTopButton(st::boxTitleClose, [=] { box->closeBox(); });
+}
+
+void DefaultShowFillPeerQrBoxCallback(
+		std::shared_ptr<Ui::Show> show,
+		PeerData *peer) {
+	if (peer && !peer->username().isEmpty()) {
+		show->show(Box(Ui::FillPeerQrBox, peer, std::nullopt, nullptr));
+	}
 }
 
 } // namespace Ui

@@ -632,6 +632,8 @@ void EmojiThumbnail::subscribeToUpdates(Fn<void()> callback) {
 		_data,
 		std::move(callback),
 		Data::CustomEmojiSizeTag::Large);
+
+	Ensures(_emoji != nullptr);
 }
 
 std::shared_ptr<DynamicImage> EmojiThumbnail::clone() {

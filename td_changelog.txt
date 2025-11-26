@@ -1,3 +1,12 @@
+6.3.4 (26.11.25)
+
+- Show active auctions above chats list.
+- Add star sending effects in live stories.
+- Fix back button in group member profile view.
+- Export separate topics message history.
+- Export audio files saved to profile.
+- Many different crash fixes.
+
 6.3.3 (21.11.25)
 
 - Some more improvements for gift auctions.

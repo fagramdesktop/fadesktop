@@ -551,7 +551,9 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			p.drawTextLeft(nameleft, statustop, width(), _customTitleText);
 		}
 	} else if (folder
-		|| (peer && (peer->sharedMediaInfo() || peer->isVerifyCodes()))
+		|| (peer
+			&& (peer->sharedMediaInfo() || peer->isVerifyCodes())
+			&& _activeChat.section != Section::SavedSublist)
 		|| (_activeChat.section == Section::Scheduled)
 		|| (_activeChat.section == Section::Pinned)) {
 		auto text = (_activeChat.section == Section::Scheduled)

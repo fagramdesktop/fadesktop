@@ -617,9 +617,16 @@ void SetupFingerprintTooltip(not_null<Ui::RpWidget*> widget) {
 	widget->events() | rpl::start_with_next([=](not_null<QEvent*> e) {
 		const auto type = e->type();
 		if (type == QEvent::Enter) {
-			state->toggleTooltip(true);
+			// Enter events may come from widget destructors,
+			// in that case sync-showing tooltip (calling Grab)
+			// crashes the whole thing.
+			crl::on_main(widget, [=] {
+				state->toggleTooltip(true);
+			});
 		} else if (type == QEvent::Leave) {
-			state->toggleTooltip(false);
+			crl::on_main(widget, [=] {
+				state->toggleTooltip(false);
+			});
 		}
 	}, widget->lifetime());
 }

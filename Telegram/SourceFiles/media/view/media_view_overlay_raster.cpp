@@ -36,6 +36,9 @@ void OverlayWidget::RendererSW::paintFallback(
 		p.fillRect(clip.boundingRect(), Qt::transparent);
 		return;
 	}
+	if (const auto stream = _owner->_videoStream.get()) {
+		stream->ensureBorrowedRenderer();
+	}
 	_p = &p;
 	_clip = &clip;
 	_clipOuter = clip.boundingRect();

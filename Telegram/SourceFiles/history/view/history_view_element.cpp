@@ -1914,11 +1914,12 @@ auto Element::verticalRepaintRange() const -> VerticalRepaintRange {
 }
 
 bool Element::hasHeavyPart() const {
-	return (_flags & Flag::HeavyCustomEmoji);
+	return (_flags & Flag::HeavyCustomEmoji)
+		|| (_media && _media->hasHeavyPart());
 }
 
 void Element::checkHeavyPart() {
-	if (!hasHeavyPart() && (!_media || !_media->hasHeavyPart())) {
+	if (!hasHeavyPart()) {
 		history()->owner().unregisterHeavyViewPart(this);
 	}
 }

@@ -202,6 +202,8 @@ struct BidSliderValues {
 	auto result = object_ptr<RpWidget>(parent.get());
 	const auto raw = result.data();
 
+	raw->setAttribute(Qt::WA_TransparentForMouseEvents);
+
 	struct State {
 		std::unique_ptr<FlatLabel> place;
 		std::unique_ptr<UserpicButton> userpic;
@@ -497,7 +499,7 @@ void AddBidPlaces(
 			if (i->amount < chosen
 				|| (!setting
 					&& i->amount == chosen
-					&& i->date > value.my.date)) {
+					&& i->date >= value.my.date)) {
 				top.push_back({ show->session().user(), chosen });
 				for (auto j = i; j != e; ++j) {
 					if (!pushTop(j)) {
@@ -579,7 +581,7 @@ void EditCustomBid(
 		starsField->setFocusFast();
 	});
 
-	box->addButton(tr::lng_settings_save(), [=] {
+	const auto submit = [=] {
 		const auto value = starsField->getLastText().toLongLong();
 		if (value <= min->current() || value > 1'000'000'000) {
 			starsField->showError();
@@ -587,7 +589,10 @@ void EditCustomBid(
 		}
 		save(value);
 		box->closeBox();
-	});
+	};
+	QObject::connect(starsField, &Ui::NumberInput::submitted, submit);
+
+	box->addButton(tr::lng_settings_save(), submit);
 	box->addButton(tr::lng_cancel(), [=] {
 		box->closeBox();
 	});
@@ -702,14 +707,7 @@ void AuctionBidBox(not_null<GenericBox*> box, AuctionBidBoxArgs &&args) {
 			}
 		}
 
-		const auto bubble = AddStarSelectBubble(
-			sliderWrap,
-			initial ? BoxShowFinishes(box) : nullptr,
-			state->chosen.value(),
-			values.max,
-			activeFgOverride);
-		bubble->setAttribute(Qt::WA_TransparentForMouseEvents, false);
-		bubble->setClickedCallback([=] {
+		const auto setCustom = [=] {
 			auto min = state->value.value(
 			) | rpl::map([=](const Data::GiftAuctionState &state) {
 				return std::max(1, int(state.my.minBidAmount
@@ -719,7 +717,16 @@ void AuctionBidBox(not_null<GenericBox*> box, AuctionBidBoxArgs &&args) {
 			show->show(Box(EditCustomBid, show, crl::guard(box, [=](int v) {
 				state->chosen = v;
 			}), std::move(min), state->chosen.current()));
-		});
+		};
+
+		const auto bubble = AddStarSelectBubble(
+			sliderWrap,
+			initial ? BoxShowFinishes(box) : nullptr,
+			state->chosen.value(),
+			values.max,
+			activeFgOverride);
+		bubble->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+		bubble->setClickedCallback(setCustom);
 		state->subtext.value() | rpl::start_with_next([=](QString &&text) {
 			bubble->setSubtext(std::move(text));
 		}, bubble->lifetime());
@@ -735,6 +742,29 @@ void AuctionBidBox(not_null<GenericBox*> box, AuctionBidBoxArgs &&args) {
 			activeFgOverride);
 
 		sliderWrap->resizeToWidth(st::boxWideWidth);
+
+		const auto custom = CreateChild<AbstractButton>(sliderWrap);
+		state->chosen.changes() | rpl::start_with_next([=] {
+			custom->update();
+		}, custom->lifetime());
+		custom->show();
+		custom->setClickedCallback(setCustom);
+		custom->resize(st::paidReactSlider.width, st::paidReactSlider.width);
+		custom->paintOn([=](QPainter &p) {
+			const auto rem = st::paidReactSlider.borderWidth * 2;
+			const auto inner = custom->width() - 2 * rem;
+			const auto sub = (inner - 1) / 2;
+			const auto stroke = inner - (2 * sub);
+			const auto color = activeFgOverride(state->chosen.current());
+			p.fillRect(rem + sub, rem, stroke, sub, color);
+			p.fillRect(rem, rem + sub, inner, stroke, color);
+			p.fillRect(rem + sub, rem + inner - sub, stroke, sub, color);
+		});
+		sliderWrap->sizeValue() | rpl::start_with_next([=](QSize size) {
+			custom->move(
+				size.width() - st::boxRowPadding.right() - custom->width(),
+				size.height() - custom->height());
+		}, custom->lifetime());
 	}, sliderWrap->lifetime());
 
 	box->addTopButton(
@@ -1507,14 +1537,14 @@ void AuctionAboutBox(
 			box,
 			tr::lng_auction_about_title(),
 			st::boxTitle),
-		st::boxRowPadding + st::confcallLinkTitlePadding,
+		st::boxRowPadding,
 		style::al_top);
 	box->addRow(
 		object_ptr<FlatLabel>(
 			box,
 			tr::lng_auction_about_subtitle(tr::rich),
 			st::confcallLinkCenteredText),
-		st::boxRowPadding,
+		st::boxRowPadding + st::auctionAboutTextPadding,
 		style::al_top
 	)->setTryMakeSimilarLines(true);
 

@@ -25,6 +25,23 @@ void Manager::start(not_null<PeerData*> peer) {
 	start(&peer->session(), peer->input);
 }
 
+void Manager::startTopic(
+		not_null<PeerData*> peer,
+		MsgId topicRootId,
+		const QString &topicTitle) {
+	if (_panel) {
+		_panel->activatePanel();
+		return;
+	}
+	_controller = std::make_unique<Controller>(
+		&peer->session().mtp(),
+		peer->input,
+		int32(topicRootId.bare),
+		uint64(peer->id.value),
+		topicTitle);
+	setupPanel(&peer->session());
+}
+
 void Manager::start(
 		not_null<Main::Session*> session,
 		const MTPInputPeer &singlePeer) {
@@ -35,6 +52,10 @@ void Manager::start(
 	_controller = std::make_unique<Controller>(
 		&session->mtp(),
 		singlePeer);
+	setupPanel(session);
+}
+
+void Manager::setupPanel(not_null<Main::Session*> session) {
 	_panel = std::make_unique<View::PanelController>(
 		session,
 		_controller.get());

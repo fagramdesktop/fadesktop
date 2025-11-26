@@ -43,18 +43,21 @@ void VideoStreamStarsBox(
 		VideoStreamStarsBoxArgs &&args) {
 	args.show->session().credits().load();
 
+	const auto admin = args.admin;
 	const auto sending = args.sending;
 	auto submitText = [=](rpl::producer<int> amount) {
 		auto nice = std::move(amount) | rpl::map([=](int count) {
 			return Ui::CreditsEmojiSmall().append(
 				Lang::FormatCountDecimal(count));
 		});
-		return (sending
-			? tr::lng_paid_reaction_button
-			: tr::lng_paid_comment_button)(
-				lt_stars,
-				std::move(nice),
-				Ui::Text::RichLangValue);
+		return admin
+			? tr::lng_box_ok(tr::marked)
+			: (sending
+				? tr::lng_paid_reaction_button
+				: tr::lng_paid_comment_button)(
+					lt_stars,
+					std::move(nice),
+					tr::rich);
 	};
 	const auto &show = args.show;
 	const auto session = &show->session();
@@ -121,14 +124,17 @@ void VideoStreamStarsBox(
 		.submit = std::move(submitText),
 		.colorings = show->session().appConfig().groupCallColorings(),
 		.balanceValue = session->credits().balanceValue(),
-		.send = [weak, save = args.save](int count, uint64 barePeerId) {
-			save(count);
+		.send = [=, save = args.save](int count, uint64 barePeerId) {
+			if (!admin) {
+				save(count);
+			}
 			if (const auto strong = weak.get()) {
 				strong->closeBox();
 			}
 		},
 		.videoStreamChoosing = !sending,
 		.videoStreamSending = sending,
+		.videoStreamAdmin = admin,
 		.dark = true,
 	});
 }

@@ -27,6 +27,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "styles/style_media_view.h"
+#include "styles/style_media_stories.h"
 #include "styles/style_layers.h"
 
 namespace Media::Stories {
@@ -39,6 +40,7 @@ struct State {
 	Data::StealthMode mode;
 	TimeId now = 0;
 	bool premium = false;
+	bool hasCallback = false;
 };
 
 [[nodiscard]] Ui::Toast::Config ToastAlready(TimeId left) {
@@ -79,11 +81,12 @@ struct State {
 }
 
 [[nodiscard]] rpl::producer<State> StateValue(
-		not_null<Main::Session*> session) {
+		not_null<Main::Session*> session,
+		bool hasCallback = false) {
 	return rpl::combine(
 		session->data().stories().stealthModeValue(),
 		Data::AmPremiumValue(session)
-	) | rpl::map([](Data::StealthMode mode, bool premium) {
+	) | rpl::map([=](Data::StealthMode mode, bool premium) {
 		return rpl::make_producer<State>([=](auto consumer) {
 			struct Info {
 				base::Timer timer;
@@ -116,7 +119,8 @@ struct State {
 					info->timer.callOnce(left * crl::time(1000));
 				}
 				if (send) {
-					consumer.put_next(State{ mode, now, premium });
+					consumer.put_next(
+						State{ mode, now, premium, hasCallback });
 				}
 				if (left <= 0) {
 					consumer.put_done();
@@ -129,25 +133,29 @@ struct State {
 	}) | rpl::flatten_latest();
 }
 
-[[nodiscard]] Ui::FeatureListEntry FeaturePast() {
+[[nodiscard]] Ui::FeatureListEntry FeaturePast(
+		const style::StealthBoxStyle &st) {
 	return {
-		.icon = st::storiesStealthFeaturePastIcon,
+		.icon = st.featurePastIcon,
 		.title = tr::lng_stealth_mode_past_title(tr::now),
 		.about = { tr::lng_stealth_mode_past_about(tr::now) },
 	};
 }
 
-[[nodiscard]] Ui::FeatureListEntry FeatureNext() {
+[[nodiscard]] Ui::FeatureListEntry FeatureNext(
+		const style::StealthBoxStyle &st) {
 	return {
-		.icon = st::storiesStealthFeatureNextIcon,
+		.icon = st.featureNextIcon,
 		.title = tr::lng_stealth_mode_next_title(tr::now),
 		.about = { tr::lng_stealth_mode_next_about(tr::now) },
 	};
 }
 
-[[nodiscard]] object_ptr<Ui::RpWidget> MakeLogo(QWidget *parent) {
+[[nodiscard]] object_ptr<Ui::RpWidget> MakeLogo(
+		QWidget *parent,
+		const style::StealthBoxStyle &st) {
 	const auto add = st::storiesStealthLogoAdd;
-	const auto icon = &st::storiesStealthLogoIcon;
+	const auto icon = &st.logoIcon;
 	const auto size = QSize(2 * add, 2 * add) + icon->size();
 	auto result = object_ptr<Ui::PaddingWrap<Ui::RpWidget>>(
 		parent,
@@ -156,10 +164,10 @@ struct State {
 	const auto inner = result->entity();
 	inner->resize(size);
 	inner->paintRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::start_with_next([=, &st] {
 		auto p = QPainter(inner);
 		auto hq = PainterHighQualityEnabler(p);
-		p.setBrush(st::storiesComposeBlue);
+		p.setBrush(st.logoBg);
 		p.setPen(Qt::NoPen);
 		const auto left = (inner->width() - size.width()) / 2;
 		const auto top = (inner->height() - size.height()) / 2;
@@ -170,19 +178,22 @@ struct State {
 	return result;
 }
 
-[[nodiscard]] object_ptr<Ui::RpWidget> MakeTitle(QWidget *parent) {
+[[nodiscard]] object_ptr<Ui::RpWidget> MakeTitle(
+		QWidget *parent,
+		const style::StealthBoxStyle &st) {
 	return object_ptr<Ui::PaddingWrap<Ui::FlatLabel>>(
 		parent,
 		object_ptr<Ui::FlatLabel>(
 			parent,
 			tr::lng_stealth_mode_title(tr::now),
-			st::storiesStealthBox.title),
+			st.box.title),
 		st::storiesStealthTitleMargin);
 }
 
 [[nodiscard]] object_ptr<Ui::RpWidget> MakeAbout(
 		QWidget *parent,
-		rpl::producer<State> state) {
+		rpl::producer<State> state,
+		const style::StealthBoxStyle &st) {
 	auto text = std::move(state) | rpl::map([](const State &state) {
 		return state.premium
 			? tr::lng_stealth_mode_about(tr::now)
@@ -193,18 +204,21 @@ struct State {
 		object_ptr<Ui::FlatLabel>(
 			parent,
 			std::move(text),
-			st::storiesStealthAbout),
+			st.about),
 		st::storiesStealthAboutMargin);
 }
 
 [[nodiscard]] object_ptr<Ui::RoundButton> MakeButton(
 		QWidget *parent,
-		rpl::producer<State> state) {
+		rpl::producer<State> state,
+		const style::StealthBoxStyle &st) {
 	auto text = rpl::duplicate(state) | rpl::map([](const State &state) {
 		if (!state.premium) {
 			return tr::lng_stealth_mode_unlock();
 		} else if (state.mode.cooldownTill <= state.now) {
-			return tr::lng_stealth_mode_enable();
+			return state.hasCallback
+				? tr::lng_stealth_mode_enable_and_open()
+				: tr::lng_stealth_mode_enable();
 		}
 		return rpl::single(
 			rpl::empty
@@ -223,32 +237,32 @@ struct State {
 	auto result = object_ptr<Ui::RoundButton>(
 		parent,
 		rpl::single(QString()),
-		st::storiesStealthBox.button);
+		st.box.button);
 	const auto raw = result.data();
 
 	const auto label = Ui::CreateChild<Ui::FlatLabel>(
 		raw,
 		std::move(text),
-		st::storiesStealthButtonLabel);
+		st.buttonLabel);
 	label->setAttribute(Qt::WA_TransparentForMouseEvents);
 	label->show();
 
 	const auto lock = Ui::CreateChild<Ui::RpWidget>(raw);
 	lock->setAttribute(Qt::WA_TransparentForMouseEvents);
-	lock->resize(st::storiesStealthLockIcon.size());
+	lock->resize(st.lockIcon.size());
 	lock->paintRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::start_with_next([=, &st] {
 		auto p = QPainter(lock);
-		st::storiesStealthLockIcon.paintInCenter(p, lock->rect());
+		st.lockIcon.paintInCenter(p, lock->rect());
 	}, lock->lifetime());
 
-	const auto lockLeft = -st::storiesStealthButtonLabel.style.font->height;
-	const auto updateLabelLockGeometry = [=] {
+	const auto lockLeft = -st.buttonLabel.style.font->height;
+	const auto updateLabelLockGeometry = [=, &st] {
 		const auto outer = raw->width();
-		const auto added = -st::storiesStealthBox.button.width;
+		const auto added = -st.box.button.width;
 		const auto skip = lock->isHidden() ? 0 : (lockLeft + lock->width());
 		const auto width = outer - added - skip;
-		const auto top = st::storiesStealthBox.button.textTop;
+		const auto top = st.box.button.textTop;
 		label->resizeToWidth(width);
 		label->move(added / 2, top);
 		const auto inner = std::min(label->textMaxWidth(), width);
@@ -272,41 +286,43 @@ struct State {
 }
 
 [[nodiscard]] object_ptr<Ui::BoxContent> StealthModeBox(
-		std::shared_ptr<ChatHelpers::Show> show) {
+		std::shared_ptr<ChatHelpers::Show> show,
+		Fn<void()> onActivated,
+		const style::StealthBoxStyle &st) {
 	return Box([=](not_null<Ui::GenericBox*> box) {
 		struct Data {
 			rpl::variable<State> state;
 			bool requested = false;
 		};
 		const auto data = box->lifetime().make_state<Data>();
-		data->state = StateValue(&show->session());
+		data->state = StateValue(&show->session(), onActivated != nullptr);
 		box->setWidth(st::boxWideWidth);
-		box->setStyle(st::storiesStealthBox);
-		box->addRow(MakeLogo(box));
-		box->addRow(MakeTitle(box), style::al_top);
-		box->addRow(MakeAbout(box, data->state.value()), style::al_top);
+		box->setStyle(st.box);
+		box->addRow(MakeLogo(box, st));
+		box->addRow(MakeTitle(box, st), style::al_top);
+		box->addRow(MakeAbout(box, data->state.value(), st), style::al_top);
 		const auto make = [&](const Ui::FeatureListEntry &entry) {
 			return Ui::MakeFeatureListEntry(
 				box,
 				entry,
 				{},
-				st::storiesStealthFeatureTitle,
-				st::storiesStealthFeatureAbout);
+				st.featureTitle,
+				st.featureAbout);
 		};
-		box->addRow(make(FeaturePast()));
+		box->addRow(make(FeaturePast(st)));
 		box->addRow(
-			make(FeatureNext()),
+			make(FeatureNext(st)),
 			(st::boxRowPadding
 				+ QMargins(0, 0, 0, st::storiesStealthBoxBottom)));
 		box->setNoContentMargin(true);
-		box->addTopButton(st::storiesStealthBoxClose, [=] {
+		box->addTopButton(st.boxClose, [=] {
 			box->closeBox();
 		});
 		const auto button = box->addButton(
-			MakeButton(box, data->state.value()));
+			MakeButton(box, data->state.value(), st));
 		button->resizeToWidth(st::boxWideWidth
-			- st::storiesStealthBox.buttonPadding.left()
-			- st::storiesStealthBox.buttonPadding.right());
+			- st.box.buttonPadding.left()
+			- st.box.buttonPadding.right());
 		button->setClickedCallback([=] {
 			const auto now = data->state.current();
 			if (now.mode.enabledTill > now.now) {
@@ -332,19 +348,30 @@ struct State {
 		}) | rpl::start_with_next([=] {
 			box->closeBox();
 			show->showToast(ToastActivated());
+			if (onActivated) {
+				onActivated();
+			}
 		}, box->lifetime());
 	});
 }
 
 } // namespace
 
-void SetupStealthMode(std::shared_ptr<ChatHelpers::Show> show) {
+void SetupStealthMode(
+		std::shared_ptr<ChatHelpers::Show> show,
+		StealthModeDescriptor descriptor) {
+	const auto onActivated = descriptor.onActivated;
+	const auto st = descriptor.st;
 	const auto now = base::unixtime::now();
 	const auto mode = show->session().data().stories().stealthMode();
 	if (const auto left = mode.enabledTill - now; left > 0) {
 		show->showToast(ToastAlready(left));
+		if (onActivated) {
+			onActivated();
+		}
 	} else {
-		show->show(StealthModeBox(show));
+		const auto &style = st ? *st : st::storiesStealthStyle;
+		show->show(StealthModeBox(show, onActivated, style));
 	}
 }
 

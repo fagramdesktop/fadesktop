@@ -107,6 +107,12 @@ void LoginEmail::setupContent() {
 				newInput->setFocus();
 				newInput->showError();
 				newInput->selectAll();
+			} else if (type == u"EMAIL_NOT_SETUP"_q) {
+				error->show();
+				error->setText(Lang::Hard::ServerError());
+				newInput->setFocus();
+				newInput->showError();
+				newInput->selectAll();
 			}
 		};
 

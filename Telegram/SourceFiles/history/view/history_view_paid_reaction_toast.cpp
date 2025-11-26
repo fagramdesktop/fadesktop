@@ -298,6 +298,7 @@ void PaidReactionToast::showFor(
 		.padding = rpl::single(QMargins(leftSkip, 0, rightSkip, 0)),
 		.st = &st,
 		.attach = RectPart::Top,
+		.addToAttachSide = _topOffset.value(),
 		.acceptinput = true,
 		.infinite = true,
 	});

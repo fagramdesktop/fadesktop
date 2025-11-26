@@ -315,7 +315,7 @@ HistoryWidget::HistoryWidget(
 , _paidReactionToast(std::make_unique<HistoryView::PaidReactionToast>(
 	this,
 	&session().data(),
-	rpl::single(st::topBarHeight),
+	rpl::single(0),
 	[=](not_null<const HistoryView::Element*> view) {
 		return _list && _list->itemTop(view) >= 0;
 	}))
@@ -5145,7 +5145,9 @@ void HistoryWidget::doneShow() {
 
 void HistoryWidget::cornerButtonsShowAtPosition(
 		Data::MessagePosition position) {
-	if (position == Data::UnreadMessagePosition) {
+	if (!_peer) {
+		return;
+	} else if (position == Data::UnreadMessagePosition) {
 		DEBUG_LOG(("JumpToEnd(%1, %2, %3): Show at unread requested."
 			).arg(_history->peer->name()
 			).arg(_history->inboxReadTillId().bare

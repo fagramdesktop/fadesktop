@@ -63,8 +63,9 @@ public:
 	void toggleCommentsOn(rpl::producer<bool> shown);
 
 	void ensureBorrowedRenderer(QOpenGLFunctions &f);
-	void ensureBorrowedCleared(QOpenGLFunctions *f);
 	void borrowedPaint(QOpenGLFunctions &f);
+
+	void ensureBorrowedRenderer();
 	void borrowedPaint(Painter &p, const QRegion &clip);
 
 	[[nodiscard]] rpl::lifetime &lifetime();

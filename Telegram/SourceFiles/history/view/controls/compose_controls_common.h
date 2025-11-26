@@ -99,4 +99,9 @@ enum class ToggleCommentsState {
 	WithNew,
 };
 
+struct SendStarButtonEffect {
+	not_null<PeerData*> from;
+	int stars = 0;
+};
+
 } // namespace HistoryView::Controls

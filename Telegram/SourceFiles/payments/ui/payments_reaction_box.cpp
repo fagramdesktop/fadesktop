@@ -493,6 +493,7 @@ void PaidReactionsBox(
 	const auto colorings = args.colorings;
 	const auto videoStreamChoosing = args.videoStreamChoosing;
 	const auto videoStreamSending = args.videoStreamSending;
+	const auto videoStreamAdmin = args.videoStreamAdmin;
 	const auto videoStream = videoStreamChoosing || videoStreamSending;
 	const auto initialShownPeer = ranges::find(
 		args.top,
@@ -544,8 +545,12 @@ void PaidReactionsBox(
 			content,
 			std::move(args.top),
 			colorings,
-			state->chosen.value(),
-			state->shownPeer.value(),
+			(videoStreamAdmin
+				? rpl::single(state->chosen.current())
+				: state->chosen.value() | rpl::type_erased()),
+			(videoStreamAdmin
+				? rpl::single(state->shownPeer.current())
+				: state->shownPeer.value() | rpl::type_erased()),
 			[=](uint64 barePeerId) {
 				state->shownPeer = state->savedShownPeer = barePeerId;
 			},
@@ -564,7 +569,9 @@ void PaidReactionsBox(
 	box->addRow(
 		object_ptr<FlatLabel>(
 			box,
-			(videoStreamChoosing
+			(videoStreamAdmin
+				? tr::lng_paid_admin_title()
+				: videoStreamChoosing
 				? tr::lng_paid_comment_title()
 				: videoStreamSending
 				? tr::lng_paid_reaction_title()
@@ -579,22 +586,24 @@ void PaidReactionsBox(
 			+ QMargins(0, st::lineWidth, 0, st::boostBottomSkip)));
 	const auto label = CreateChild<FlatLabel>(
 		labelWrap,
-		(videoStream
+		(videoStreamAdmin
+			? tr::lng_paid_admin_about(tr::marked)
+			: videoStream
 			? (videoStreamChoosing
 				? tr::lng_paid_comment_about
 				: tr::lng_paid_reaction_about)(
 					lt_name,
-					rpl::single(Text::Bold(args.name)),
-					Text::RichLangValue)
+					rpl::single(tr::bold(args.name)),
+					tr::rich)
 			: already
 			? tr::lng_paid_react_already(
 				lt_count,
 				rpl::single(already) | tr::to_count(),
-				Text::RichLangValue)
+				tr::rich)
 			: tr::lng_paid_react_about(
 				lt_channel,
-				rpl::single(Text::Bold(args.name)),
-				Text::RichLangValue)),
+				rpl::single(tr::bold(args.name)),
+				tr::rich)),
 		dark ? st::darkEditStarsText : st::boostText);
 	label->setTryMakeSimilarLines(true);
 	labelWrap->widthValue() | rpl::start_with_next([=](int width) {
@@ -630,15 +639,17 @@ void PaidReactionsBox(
 
 	AddDividerText(
 		content,
-		tr::lng_paid_react_agree(
-			lt_link,
-			rpl::combine(
-				tr::lng_paid_react_agree_link(),
-				tr::lng_group_invite_subscription_about_url()
-			) | rpl::map([](const QString &text, const QString &url) {
-				return Ui::Text::Link(text, url);
-			}),
-			Ui::Text::RichLangValue),
+		(videoStreamAdmin
+			? tr::lng_paid_react_admin_cant(tr::marked)
+			: tr::lng_paid_react_agree(
+				lt_link,
+				rpl::combine(
+					tr::lng_paid_react_agree_link(),
+					tr::lng_group_invite_subscription_about_url()
+				) | rpl::map([](const QString &text, const QString &url) {
+					return tr::link(text, url);
+				}),
+				tr::rich)),
 		st::defaultBoxDividerLabelPadding,
 		dark ? st::groupCallDividerLabel : st::defaultDividerLabel);
 

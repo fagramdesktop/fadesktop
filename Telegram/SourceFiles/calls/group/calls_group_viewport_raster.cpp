@@ -52,12 +52,14 @@ void Viewport::RendererSW::paintFallback(
 		}
 		paintTile(p, tile.get(), bounding, bg);
 	}
-	const auto fullscreen = _owner->_fullscreen;
-	const auto color = fullscreen
-		? QColor(0, 0, 0)
-		: st::groupCallBg->c;
-	for (const auto &rect : bg) {
-		p.fillRect(rect, color);
+	if (_owner->borrowedOrigin().isNull()) {
+		const auto fullscreen = _owner->_fullscreen;
+		const auto color = fullscreen
+			? QColor(0, 0, 0)
+			: st::groupCallBg->c;
+		for (const auto &rect : bg) {
+			p.fillRect(rect, color);
+		}
 	}
 	for (auto i = _tileData.begin(); i != _tileData.end();) {
 		if (i->second.stale) {
@@ -80,7 +82,7 @@ void Viewport::RendererSW::validateUserpicFrame(
 	const auto size = tile->trackOrUserpicSize();
 	data.userpicFrame = Images::BlurLargeImage(
 		PeerData::GenerateUserpicImage(
-			tile->row()->peer(),
+			tile->peer(),
 			tile->row()->ensureUserpicView(),
 			size.width(),
 			0),

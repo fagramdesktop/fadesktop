@@ -455,6 +455,7 @@ auctionBidToast: Toast(defaultToast) {
 }
 auctionAboutLogo: icon {{ "settings/large_auctions", windowFgActive }};
 auctionAboutLogoPadding: margins(8px, 8px, 8px, 8px);
+auctionAboutTextPadding: margins(0px, 6px, 0px, 8px);
 auctionCenteredSubtitle: FlatLabel(defaultFlatLabel) {
 	textFg: windowSubTextFg;
 	style: TextStyle(defaultTextStyle) {

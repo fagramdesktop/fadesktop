@@ -168,10 +168,13 @@ void PanelController::activatePanel() {
 
 void PanelController::createPanel() {
 	const auto singlePeer = _settings->onlySinglePeer();
+	const auto singleTopic = _settings->onlySingleTopic();
 	_panel = base::make_unique_q<Ui::SeparatePanel>(Ui::SeparatePanelArgs{
 		.onAllSpaces = true,
 	});
-	_panel->setTitle((singlePeer
+	_panel->setTitle((singleTopic
+		? tr::lng_export_header_topic
+		: singlePeer
 		? tr::lng_export_header_chats
 		: tr::lng_export_title)());
 	_panel->setInnerSize(st::exportPanelSize);

@@ -752,6 +752,7 @@ QByteArray SerializeMessage(
 			pushBare(
 				"forwarded_from",
 				wrapPeerName(message.forwardedFromId));
+			push("forwarded_from_id", message.forwardedFromId);
 		} else if (!message.forwardedFromName.isEmpty()) {
 			pushBare(
 				"forwarded_from",

@@ -722,6 +722,19 @@ void FillCreditOptions(
 	}, content->lifetime());
 }
 
+[[nodiscard]] object_ptr<Ui::FlatLabel> CreateCreditsTermsLabel(
+		not_null<Ui::GenericBox*> box) {
+	return object_ptr<Ui::FlatLabel>(
+		box,
+		tr::lng_credits_box_out_about(
+			lt_link,
+			tr::lng_payments_terms_link(
+			) | Ui::Text::ToLink(
+				tr::lng_credits_box_out_about_link(tr::now)),
+			Ui::Text::WithEntities),
+		st::creditsBoxAboutDivider);
+}
+
 not_null<Ui::RpWidget*> AddBalanceWidget(
 		not_null<Ui::RpWidget*> parent,
 		not_null<Main::Session*> session,
@@ -887,17 +900,7 @@ void BoostCreditsBox(
 	AddCreditsBoostTable(controller->uiShow(), content, {}, b);
 	Ui::AddSkip(content);
 
-	box->addRow(
-		object_ptr<Ui::FlatLabel>(
-			box,
-			tr::lng_credits_box_out_about(
-				lt_link,
-				tr::lng_payments_terms_link(
-				) | Ui::Text::ToLink(
-					tr::lng_credits_box_out_about_link(tr::now)),
-				Ui::Text::WithEntities),
-			st::creditsBoxAboutDivider),
-		style::al_top);
+	box->addRow(CreateCreditsTermsLabel(box), style::al_top);
 	Ui::AddSkip(content);
 
 	box->addButton(tr::lng_box_ok(), [=] {
@@ -1475,6 +1478,8 @@ void GenericCreditsEntryBox(
 					? tr::lng_credits_box_history_entry_giveaway_name(tr::now)
 					: (!e.subscriptionUntil.isNull() && e.title.isEmpty())
 					? tr::lng_credits_box_history_entry_subscription(tr::now)
+					: e.isLiveStoryReaction()
+					? tr::lng_credits_paid_messages_fee_live_reaction(tr::now)
 					: e.paidMessagesCount
 					? tr::lng_credits_paid_messages_fee(
 						tr::now,
@@ -2002,17 +2007,7 @@ void GenericCreditsEntryBox(
 
 	const auto showNextToUpgrade = e.nextToUpgradeShow;
 	if (!isStarGift && e.credits.stars()) {
-		box->addRow(
-			object_ptr<Ui::FlatLabel>(
-				box,
-				tr::lng_credits_box_out_about(
-					lt_link,
-					tr::lng_payments_terms_link(
-					) | Ui::Text::ToLink(
-						tr::lng_credits_box_out_about_link(tr::now)),
-					Ui::Text::WithEntities),
-				st::creditsBoxAboutDivider),
-			style::al_top);
+		box->addRow(CreateCreditsTermsLabel(box), style::al_top);
 	} else if (starGiftCanManage) {
 		const auto hiddenPhrase = giftToChannelCanManage
 			? tr::lng_gift_hidden_hint_channel
@@ -2071,6 +2066,8 @@ void GenericCreditsEntryBox(
 			toggleVisibility(!e.savedToProfile);
 			return false;
 		});
+	} else if (e.credits.stars()) {
+		box->addRow(CreateCreditsTermsLabel(box), style::al_top);
 	} else {
 		addGiftLinkTON();
 	}

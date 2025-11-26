@@ -78,6 +78,9 @@ EmailWidget::EmailWidget(
 	newInput->changes() | rpl::start_with_next([=] {
 		error->hide();
 	}, newInput->lifetime());
+	newInput->submits() | rpl::start_with_next([=] {
+		submit();
+	}, newInput->lifetime());
 	newInput->setText(getData()->email);
 	if (newInput->hasText()) {
 		newInput->selectAll();
@@ -93,7 +96,7 @@ EmailWidget::EmailWidget(
 			const auto done = [=](int length, const QString &pattern) {
 				_sentRequest = 0;
 				getData()->codeLength = length;
-				getData()->emailPattern = pattern;
+				getData()->emailPatternSetup = pattern;
 				goNext<CodeWidget>();
 			};
 			const auto fail = [=](const QString &type) {

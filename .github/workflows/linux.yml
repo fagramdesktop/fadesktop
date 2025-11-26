@@ -39,7 +39,7 @@ jobs:
           echo "tagname=$TAGNAME" >> $GITHUB_OUTPUT
 
       - name: Clone.
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 

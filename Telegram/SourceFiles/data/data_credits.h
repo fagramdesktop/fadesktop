@@ -40,6 +40,10 @@ struct CreditsHistoryEntry final {
 		return !id.isEmpty();
 	}
 
+	[[nodiscard]] bool isLiveStoryReaction() const {
+		return paidMessagesCount && reaction && !bareMsgId;
+	}
+
 	using PhotoId = uint64;
 	enum class PeerType {
 		Peer,

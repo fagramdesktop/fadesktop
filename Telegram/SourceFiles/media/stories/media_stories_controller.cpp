@@ -1779,13 +1779,18 @@ auto Controller::starsReactionsValue() const
 	});
 }
 
+auto Controller::starsReactionsEffects() const
+-> rpl::producer<SendStarButtonEffect> {
+	return _starsReactionEffects.events();
+}
+
 void Controller::setStarsReactionIncrements(rpl::producer<int> increments) {
 	std::move(
 		increments
 	) | rpl::start_with_next([=](int count) {
 		if (const auto call = _videoStreamCall.get()) {
 			const auto show = _delegate->storiesShow();
-			Payments::TryAddingPaidReaction(call, count, std::nullopt, show);
+			Payments::TryAddingPaidReaction(call, count, show);
 		}
 	}, _videoStreamLifetime);
 }
@@ -1925,9 +1930,15 @@ void Controller::updateVideoStream(not_null<Calls::GroupCall*> videoStream) {
 		_commentsStateShowFromPinned,
 		_videoStreamLifetime);
 
-	_starsReactions = rpl::single(rpl::empty) | rpl::then(
+	_starsReactions = rpl::single(Calls::Group::StarsDonor()) | rpl::then(
 		videoStream->messages()->starsValueChanges()
-	) | rpl::map([=] {
+	) | rpl::map([=](const Calls::Group::StarsDonor &donor) {
+		if (const auto peer = donor.peer) {
+			_starsReactionEffects.fire({
+				.from = peer,
+				.stars = donor.stars,
+			});
+		}
 		return videoStream->messages()->starsLocalState().total;
 	});
 	_paidReactionToast->shownForCall(

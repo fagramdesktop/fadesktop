@@ -227,6 +227,7 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 				? st::dialogsSearchTabs
 				: st::chatsFiltersTabs));
 	const auto state = wrap->lifetime().make_state<State>();
+	state->lastFilterId = controller->activeChatsFilterCurrent();
 	const auto reassignUnreadValue = [=] {
 		state->reorderLifetime.destroy();
 		const auto &list = session->data().chatsFilters().list();

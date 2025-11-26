@@ -113,7 +113,6 @@ public:
 		const TextState &reactionState) const override;
 	int reactionsOptimalWidth() const override;
 
-	bool hasHeavyPart() const override;
 	void unloadHeavyPart() override;
 
 	// hasFromPhoto() returns true even if we don't display the photo
@@ -165,13 +164,13 @@ public:
 	QRect innerGeometry() const override;
 	[[nodiscard]] BottomRippleMask bottomRippleMask(int buttonHeight) const;
 
-protected:
-	void refreshDataIdHook() override;
-
 private:
 	struct CommentsButton;
 	struct FromNameStatus;
 	struct RightAction;
+
+	void refreshDataIdHook() override;
+	bool hasHeavyPart() const override;
 
 	bool updateBottomInfo();
 

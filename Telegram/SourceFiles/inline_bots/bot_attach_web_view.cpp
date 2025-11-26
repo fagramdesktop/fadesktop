@@ -413,6 +413,9 @@ void FillBotUsepic(
 		rpl::single(bot->name()),
 		box->getDelegate()->style().title);
 	const auto icon = bot->isVerified() ? &st::infoVerifiedStar : nullptr;
+	const auto iconCheck = icon
+		? &st::infoPeerBadge.verifiedCheck
+		: nullptr;
 	title->resize(
 		titleLabel->width() + (icon ? icon->width() : 0),
 		titleLabel->height());
@@ -422,17 +425,16 @@ void FillBotUsepic(
 			- (icon ? icon->width() + st::lineWidth : 0));
 	}, title->lifetime());
 	if (icon) {
-		title->paintRequest(
-		) | rpl::start_with_next([=] {
+		title->paintRequest() | rpl::start_with_next([=] {
 			auto p = Painter(title);
 			p.fillRect(title->rect(), Qt::transparent);
-			icon->paint(
-				p,
-				std::min(
-					titleLabel->textMaxWidth() + st::lineWidth,
-					title->width() - st::lineWidth - icon->width()),
-				(title->height() - icon->height()) / 2,
-				title->width());
+			const auto x = std::min(
+				titleLabel->textMaxWidth() + st::lineWidth,
+				title->width() - st::lineWidth - icon->width());
+			const auto y = (title->height() - icon->height()) / 2;
+			const auto w = title->width();
+			icon->paint(p, x, y, w);
+			iconCheck->paint(p, x, y, w);
 		}, title->lifetime());
 	}
 

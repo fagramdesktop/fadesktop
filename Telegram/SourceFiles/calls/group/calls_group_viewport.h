@@ -103,7 +103,11 @@ public:
 	void ensureBorrowedRenderer(QOpenGLFunctions &f);
 	void ensureBorrowedCleared(QOpenGLFunctions *f);
 	void borrowedPaint(QOpenGLFunctions &f);
+
+	void ensureBorrowedRenderer();
+	void ensureBorrowedCleared();
 	void borrowedPaint(Painter &p, const QRegion &clip);
+
 	[[nodiscard]] QPoint borrowedOrigin() const;
 
 	[[nodiscard]] rpl::lifetime &lifetime();

@@ -70,6 +70,7 @@ class SilentToggle;
 class DropdownMenu;
 struct PreparedList;
 struct SendStarButtonState;
+class ReactionFlyAnimation;
 } // namespace Ui
 
 namespace Ui::Emoji {
@@ -143,6 +144,7 @@ public:
 	using FieldHistoryAction = Ui::InputField::HistoryAction;
 	using Mode = ComposeControlsMode;
 	using ToggleCommentsState = Controls::ToggleCommentsState;
+	using SendStarButtonEffect = Controls::SendStarButtonEffect;
 
 	ComposeControls(
 		not_null<Ui::RpWidget*> parent,
@@ -169,7 +171,8 @@ public:
 	void setToggleCommentsButton(rpl::producer<ToggleCommentsState> state);
 	[[nodiscard]] rpl::producer<> commentsShownToggles() const;
 	void setStarsReactionCounter(
-		rpl::producer<Ui::SendStarButtonState> count);
+		rpl::producer<Ui::SendStarButtonState> count,
+		rpl::producer<SendStarButtonEffect> effects);
 	using StarReactionTop = Data::MessageReactionsTopPaid;
 	void setStarsReactionTop(
 		rpl::producer<std::vector<StarReactionTop>> top);
@@ -278,6 +281,7 @@ public:
 	[[nodiscard]] Ui::InputField *fieldForMention() const;
 
 private:
+	struct StarEffect;
 	enum class TextUpdateEvent {
 		SaveDraft = (1 << 0),
 		SendTyping = (1 << 1),
@@ -354,6 +358,10 @@ private:
 
 	[[nodiscard]] bool hasSilentBroadcastToggle() const;
 	[[nodiscard]] bool editStarsButtonShown() const;
+	void startStarsSendEffect();
+	void setupStarsSendEffectsCanvas();
+	void startStarsEffect(SendStarButtonEffect event);
+	void setupStarsEffectsCanvas();
 
 	// Look in the _field for the inline bot and query string.
 	void updateInlineBotQuery();
@@ -389,7 +397,7 @@ private:
 
 	const style::ComposeControls &_st;
 	ChatHelpers::ComposeFeatures _features;
-	const not_null<QWidget*> _parent;
+	const not_null<Ui::RpWidget*> _parent;
 	const not_null<QWidget*> _panelsParent;
 	const std::shared_ptr<ChatHelpers::Show> _show;
 	const not_null<Main::Session*> _session;
@@ -428,6 +436,10 @@ private:
 	Ui::RpWidget *_commentsShownNewDot = nullptr;
 	Ui::IconButton *_attachToggle = nullptr;
 	Ui::AbstractButton *_starsReaction = nullptr;
+	std::vector<std::unique_ptr<Ui::ReactionFlyAnimation>> _starSendEffects;
+	std::unique_ptr<Ui::RpWidget> _starSendEffectsCanvas;
+	std::vector<std::unique_ptr<StarEffect>> _starEffects;
+	std::unique_ptr<Ui::RpWidget> _starEffectsCanvas;
 	std::unique_ptr<Ui::IconButton> _replaceMedia;
 	const not_null<Ui::EmojiButton*> _tabbedSelectorToggle;
 	rpl::producer<QString> _fieldCustomPlaceholder;

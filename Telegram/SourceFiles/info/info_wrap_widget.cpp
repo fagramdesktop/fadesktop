@@ -421,8 +421,7 @@ void WrapWidget::setupTopBarMenuToggle() {
 				const auto button = _topBar->addButton(
 					base::make_unique_q<Ui::IconButton>(_topBar, st));
 				button->addClickHandler([show, self] {
-					show->show(
-						Box(Ui::FillPeerQrBox, self, std::nullopt, nullptr));
+					Ui::DefaultShowFillPeerQrBoxCallback(show, self);
 				});
 			}
 		}

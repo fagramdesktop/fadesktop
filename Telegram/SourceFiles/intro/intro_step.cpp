@@ -374,8 +374,9 @@ void Step::fillSentCodeData(const MTPDauth_sentCode &data) {
 		bad("MissedCall");
 	}, [&](const MTPDauth_sentCodeTypeFirebaseSms &) {
 		bad("FirebaseSms");
-	}, [&](const MTPDauth_sentCodeTypeEmailCode &) {
-		bad("EmailCode");
+	}, [&](const MTPDauth_sentCodeTypeEmailCode &data) {
+		getData()->emailPatternLogin = qs(data.vemail_pattern());
+		getData()->codeLength = data.vlength().v;
 	}, [&](const MTPDauth_sentCodeTypeSmsWord &) {
 		bad("SmsWord");
 	}, [&](const MTPDauth_sentCodeTypeSmsPhrase &) {

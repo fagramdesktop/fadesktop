@@ -1,3 +1,10 @@
+2.0.4 (26.11.25)
+
+- Updated to tdesktop v6.3.4
+- Overwrite cached Linux tray icons when installing monochrome SVGs
+- Use Google Translate API for chat translate feature
+- Fix crashes caused by Add to Contact button on profile.
+
 2.0.3 (23.11.25)
 
 - Use our own API_ID & API_HASH

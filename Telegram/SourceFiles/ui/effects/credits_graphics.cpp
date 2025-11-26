@@ -569,6 +569,10 @@ TextWithEntities GenerateEntryName(const Data::CreditsHistoryEntry &entry) {
 				Info::BotStarRef::FormatCommission(entry.starrefCommission)
 			},
 			TextWithEntities::Simple)
+		: entry.isLiveStoryReaction()
+		? tr::lng_credits_paid_messages_fee_live_reaction(
+			tr::now,
+			TextWithEntities::Simple)
 		: entry.paidMessagesCount
 		? tr::lng_credits_paid_messages_fee(
 			tr::now,

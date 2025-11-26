@@ -258,6 +258,11 @@ struct StatusFields {
 [[nodiscard]] rpl::producer<Info::Profile::Badge::Content> ContentForPeer(
 		not_null<PeerData*> peer) {
 	using namespace Info::Profile;
+	if (peer->isSelf()
+		|| peer->isRepliesChat()
+		|| peer->isSavedHiddenAuthor()) {
+		return rpl::single(Badge::Content{});
+	}
 	return rpl::combine(
 		BadgeContentForPeer(peer),
 		VerifiedContentForPeer(peer)

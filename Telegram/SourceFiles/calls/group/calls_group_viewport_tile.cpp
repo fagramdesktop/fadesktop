@@ -7,6 +7,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 */
 #include "calls/group/calls_group_viewport_tile.h"
 
+#include "calls/group/calls_group_members_row.h"
 #include "webrtc/webrtc_video_track.h"
 #include "lang/lang_keys.h"
 #include "ui/round_rect.h"
@@ -33,11 +34,11 @@ Viewport::VideoTile::VideoTile(
 : _endpoint(endpoint)
 , _update(std::move(update))
 , _track(std::move(track))
+, _peer(_track.row->peer())
 , _trackSize(std::move(trackSize))
 , _rtmp(endpoint.rtmp())
 , _self(self) {
 	Expects(_track.track != nullptr);
-	Expects(_track.row != nullptr);
 
 	using namespace rpl::mappers;
 	_track.track->stateValue(
