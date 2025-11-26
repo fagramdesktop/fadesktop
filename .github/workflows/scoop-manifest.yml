@@ -34,7 +34,7 @@ jobs:
           
       - name: Download release asset
         run: |
-          ASSET_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/FAgram_x64_${RELEASE_TAG}_portable.zip"
+          ASSET_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/FAgram_Win-x64_${RELEASE_TAG}_portable.zip"
           echo "Downloading from: $ASSET_URL"
           curl -L -o FAgram_portable.zip "$ASSET_URL"
           
@@ -48,7 +48,7 @@ jobs:
           sed -i "s/\"version\": \".*\"/\"version\": \"$RELEASE_TAG\"/" fagram.json
           sed -i "s/\"hash\": \".*\"/\"hash\": \"$HASH\"/" fagram.json
           sed -i "s|releases/download/[0-9.]\+/|releases/download/$RELEASE_TAG/|g" fagram.json
-          sed -i "s/FAgram_x64_[0-9.]\+_portable\.zip/FAgram_x64_${RELEASE_TAG}_portable.zip/g" fagram.json
+          sed -i "s/FAgram_Win-x64_[0-9.]\+_portable\.zip/FAgram_Win-x64_${RELEASE_TAG}_portable.zip/g" fagram.json
           
           echo "Updated fagram.json:"
           cat fagram.json
