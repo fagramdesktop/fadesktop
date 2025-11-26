@@ -77,7 +77,7 @@ jobs:
         shell: bash
         run: |
           echo "TDESKTOP_BUILD_ARCH=x64" >> $GITHUB_ENV
-          echo "ARTIFACT_NAME=Telegram_x64" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=FAgram_x64" >> $GITHUB_ENV
           
           API="-D TDESKTOP_API_ID=${{ secrets.API_ID_CONFIG }} -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }}"
           echo "TDESKTOP_BUILD_API=$API" >> $GITHUB_ENV
@@ -114,6 +114,17 @@ jobs:
             echo "RELEASE_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
           fi
 
+      - name: Read version info
+        if: env.UPLOAD_ARTIFACT == 'true'
+        shell: bash
+        run: |
+          VERSION_FILE="$TBUILD/$REPO_NAME/Telegram/build/version"
+          APP_VERSION_STR=$(grep 'AppVersionStr ' "$VERSION_FILE" | awk '{print $2}')
+          APP_VERSION_STR_SMALL=$(grep 'AppVersionStrSmall' "$VERSION_FILE" | awk '{print $2}')
+          echo "APP_VERSION_STR=$APP_VERSION_STR" >> $GITHUB_ENV
+          echo "APP_VERSION_STR_SMALL=$APP_VERSION_STR_SMALL" >> $GITHUB_ENV
+          echo "APP_VERSION_STR_FULL=${APP_VERSION_STR}.0" >> $GITHUB_ENV
+
       - name: Prepare artifacts
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
@@ -122,7 +133,18 @@ jobs:
           move %OUT%\*.exe artifact\
           copy %TBUILD%\%REPO_NAME%\Telegram\Resources\art\icon.ico artifact\
           cd artifact
-          7z a -tzip FAgram_x64_%RELEASE_TAG%_portable.zip *.exe icon.ico
+          7z a -tzip FAgram_Win-x64_%RELEASE_TAG%_portable.zip *.exe icon.ico
+
+      - name: Install Inno Setup
+        if: env.UPLOAD_ARTIFACT == 'true'
+        run: |
+          choco install innosetup -y
+
+      - name: Build installer
+        if: env.UPLOAD_ARTIFACT == 'true'
+        run: |
+          cd %TBUILD%\%REPO_NAME%\Telegram\build
+          iscc /dMyAppVersion=%APP_VERSION_STR_SMALL% /dMyAppVersionZero=%APP_VERSION_STR% /dMyAppVersionFull=%APP_VERSION_STR_FULL% "/dReleasePath=%TBUILD%\%REPO_NAME%\artifact" "/dMyBuildTarget=win64" setup.iss
 
       - uses: actions/upload-artifact@v4
         name: Upload Release Artifacts
@@ -139,7 +161,9 @@ jobs:
           name: FAgram ${{ env.RELEASE_TAG }}
           draft: false
           prerelease: false
-          files: artifact/FAgram_x64_${{ env.RELEASE_TAG }}_portable.zip
+          files: |
+            artifact/FAgram_Win-x64_${{ env.RELEASE_TAG }}_portable.zip
+            artifact/fagram-setup_Win-x64.${{ env.APP_VERSION_STR_FULL }}.exe
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
