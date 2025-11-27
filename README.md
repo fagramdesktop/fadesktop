@@ -27,7 +27,7 @@
 The latest version is available for
 
 - Windows (x64)
-    - [Portable/ZIP](https://github.com/burhancodes/fagramdesktop/releases)
+    - [Portable/Installer](https://github.com/burhancodes/fagramdesktop/releases) 
     - Via [Scoop](https://scoop.sh/) (powershell)
         ```powershell
         scoop bucket add fagram-scoop https://github.com/burhancodes/fagram-scoop
