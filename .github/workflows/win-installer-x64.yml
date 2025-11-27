@@ -1,0 +1,141 @@
+name: Build Windows x64 Installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_name:
+        description: 'Name of the artifact containing the built binaries'
+        type: string
+        required: true
+        default: 'FAgram_Win-x64'
+      release_tag:
+        description: 'Release tag'
+        type: string
+        required: true
+      build_type:
+        description: 'Build type'
+        type: choice
+        required: true
+        default: 'ci'
+        options:
+          - ci
+          - rel
+      run_id:
+        description: 'Run ID to download artifacts from (leave empty to use artifacts from this repo)'
+        type: string
+        required: false
+  workflow_call:
+    inputs:
+      artifact_name:
+        description: 'Name of the artifact containing the built binaries'
+        type: string
+        required: true
+      release_tag:
+        description: 'Release tag'
+        type: string
+        required: true
+      build_type:
+        description: 'Build type (ci or rel)'
+        type: string
+        required: false
+        default: 'ci'
+      run_id:
+        description: 'Run ID to download artifacts from'
+        type: string
+        required: true
+
+jobs:
+  build-installer:
+    name: Build Windows x64 Installer
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Telegram/build/setup.iss
+            Telegram/build/version
+            Telegram/Resources/art/icon.ico
+
+      - name: Read version info
+        id: version
+        shell: bash
+        run: |
+          VERSION_FILE="Telegram/build/version"
+          APP_VERSION_STR=$(grep 'AppVersionStr ' "$VERSION_FILE" | awk '{print $2}')
+          APP_VERSION_STR_SMALL=$(grep 'AppVersionStrSmall' "$VERSION_FILE" | awk '{print $2}')
+          echo "app_version_str=$APP_VERSION_STR" >> $GITHUB_OUTPUT
+          echo "app_version_str_small=$APP_VERSION_STR_SMALL" >> $GITHUB_OUTPUT
+          echo "app_version_str_full=${APP_VERSION_STR}.0" >> $GITHUB_OUTPUT
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: artifact
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.run_id || github.run_id }}
+
+      - name: Download d3dcompiler_47.dll
+        shell: powershell
+        run: |
+          $modulesDir = "artifact\modules\x64\d3d"
+          New-Item -ItemType Directory -Force -Path $modulesDir
+          
+          # Download from NuGet package (official Microsoft source)
+          $nugetUrl = "https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.614.1"
+          $tempZip = "$env:TEMP\d3d12.zip"
+          $tempExtract = "$env:TEMP\d3d12"
+          
+          Invoke-WebRequest -Uri $nugetUrl -OutFile $tempZip
+          Expand-Archive -Path $tempZip -DestinationPath $tempExtract -Force
+          
+          # Find and copy the x64 d3dcompiler_47.dll
+          $dllPath = Get-ChildItem -Path $tempExtract -Recurse -Filter "d3dcompiler_47.dll" | Where-Object { $_.DirectoryName -like "*x64*" } | Select-Object -First 1
+          
+          if ($dllPath) {
+            Copy-Item $dllPath.FullName -Destination "$modulesDir\d3dcompiler_47.dll"
+            Write-Host "Successfully copied d3dcompiler_47.dll"
+          } else {
+            # Fallback: Copy from Windows SDK if available
+            $sdkPath = "C:\Program Files (x86)\Windows Kits\10\Redist\D3D\x64\d3dcompiler_47.dll"
+            if (Test-Path $sdkPath) {
+              Copy-Item $sdkPath -Destination "$modulesDir\d3dcompiler_47.dll"
+              Write-Host "Copied d3dcompiler_47.dll from Windows SDK"
+            } else {
+              Write-Host "Warning: Could not find d3dcompiler_47.dll"
+            }
+          }
+
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup -y
+
+      - name: Build installer
+        run: |
+          cd Telegram\build
+          iscc /dMyAppVersion=${{ steps.version.outputs.app_version_str_small }} /dMyAppVersionZero=${{ steps.version.outputs.app_version_str }} /dMyAppVersionFull=${{ steps.version.outputs.app_version_str_full }} "/dReleasePath=%GITHUB_WORKSPACE%\artifact" "/dMyBuildTarget=win64" setup.iss
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}_installer
+          path: artifact/fagram-setup_Win-x64.${{ steps.version.outputs.app_version_str_full }}.exe
+
+      - name: Create Release
+        if: inputs.build_type == 'rel'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: FAgram ${{ inputs.release_tag }}
+          draft: false
+          prerelease: false
+          files: |
+            artifact/fagram-setup_Win-x64.${{ steps.version.outputs.app_version_str_full }}.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}

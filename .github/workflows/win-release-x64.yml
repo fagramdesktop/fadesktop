@@ -22,6 +22,11 @@ jobs:
     name: Windows x64 Release Build
     runs-on: windows-latest
 
+    outputs:
+      app_version_str: ${{ steps.version.outputs.app_version_str }}
+      app_version_str_small: ${{ steps.version.outputs.app_version_str_small }}
+      app_version_str_full: ${{ steps.version.outputs.app_version_str_full }}
+
     env:
       UPLOAD_ARTIFACT: "true"
       ONLY_CACHE: "false"
@@ -115,6 +120,7 @@ jobs:
           fi
 
       - name: Read version info
+        id: version
         if: env.UPLOAD_ARTIFACT == 'true'
         shell: bash
         run: |
@@ -124,36 +130,29 @@ jobs:
           echo "APP_VERSION_STR=$APP_VERSION_STR" >> $GITHUB_ENV
           echo "APP_VERSION_STR_SMALL=$APP_VERSION_STR_SMALL" >> $GITHUB_ENV
           echo "APP_VERSION_STR_FULL=${APP_VERSION_STR}.0" >> $GITHUB_ENV
+          echo "app_version_str=$APP_VERSION_STR" >> $GITHUB_OUTPUT
+          echo "app_version_str_small=$APP_VERSION_STR_SMALL" >> $GITHUB_OUTPUT
+          echo "app_version_str_full=${APP_VERSION_STR}.0" >> $GITHUB_OUTPUT
 
       - name: Prepare artifacts
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
+          cd %TBUILD%\%REPO_NAME%
           set OUT=%TBUILD%\%REPO_NAME%\out\Release
-          mkdir artifact
+          if not exist artifact mkdir artifact
           move %OUT%\*.exe artifact\
-          copy %TBUILD%\%REPO_NAME%\Telegram\Resources\art\icon.ico artifact\
+          copy Telegram\Resources\art\icon.ico artifact\
           cd artifact
           7z a -tzip FAgram_Win-x64_%RELEASE_TAG%_portable.zip *.exe icon.ico
-
-      - name: Install Inno Setup
-        if: env.UPLOAD_ARTIFACT == 'true'
-        run: |
-          choco install innosetup -y
-
-      - name: Build installer
-        if: env.UPLOAD_ARTIFACT == 'true'
-        run: |
-          cd %TBUILD%\%REPO_NAME%\Telegram\build
-          iscc /dMyAppVersion=%APP_VERSION_STR_SMALL% /dMyAppVersionZero=%APP_VERSION_STR% /dMyAppVersionFull=%APP_VERSION_STR_FULL% "/dReleasePath=%TBUILD%\%REPO_NAME%\artifact" "/dMyBuildTarget=win64" setup.iss
 
       - uses: actions/upload-artifact@v4
         name: Upload Release Artifacts
         if: env.UPLOAD_ARTIFACT == 'true'
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: artifact/
+          path: ${{ env.TBUILD }}/${{ env.REPO_NAME }}/artifact/
 
-      - name: Create Release
+      - name: Upload portable release
         if: env.UPLOAD_ARTIFACT == 'true' && github.event.inputs.build_type == 'rel'
         uses: softprops/action-gh-release@v2
         with:
@@ -162,10 +161,21 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            artifact/FAgram_Win-x64_${{ env.RELEASE_TAG }}_portable.zip
-            artifact/fagram-setup_Win-x64.${{ env.APP_VERSION_STR_FULL }}.exe
+            ${{ env.TBUILD }}/${{ env.REPO_NAME }}/artifact/FAgram_Win-x64_${{ env.RELEASE_TAG }}_portable.zip
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
+
+  build-installer:
+    name: Build Windows x64 Installer
+    needs: windows
+    if: always() && needs.windows.result == 'success'
+    uses: ./.github/workflows/win-installer-x64.yml
+    with:
+      artifact_name: FAgram_Win-x64
+      release_tag: ${{ github.event.inputs.tagname }}
+      build_type: ${{ github.event.inputs.build_type }}
+      run_id: ${{ github.run_id }}
+    secrets: inherit
 
   update-scoop:
     name: Update Scoop Manifest
