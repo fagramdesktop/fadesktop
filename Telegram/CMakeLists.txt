@@ -782,8 +782,6 @@ PRIVATE
     fa/settings_menu/sections/fa_chats.h
     fa/settings_menu/sections/fa_appearance.cpp
     fa/settings_menu/sections/fa_appearance.h
-    fa/settings_menu/sections/fa_donate.cpp
-    fa/settings_menu/sections/fa_donate.h
     fa/settings_menu/sections/fa_logs.cpp
     fa/settings_menu/sections/fa_logs.h
     fa/url_handlers/fa_url_handlers.cpp

@@ -45,7 +45,7 @@ For detailed insturctions on how to install on linux [Click Here](https://burhan
 
 > You can help to translate FAgram.
 
-* <h3><b><a href="https://crowdin.com/project/fagram">Crowdin</a></b></h3>
+* <h3><b><a href="https://crowdin.com/project/fagramdesktop">Crowdin</a></b></h3>
 
 ## <h2><img src="https://github.com/hikariatama/assets/raw/master/1312-micro-sd-card-flat.webp" height="50" align="middle"> Third-party</h2>
 

@@ -14,7 +14,6 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "fa/settings_menu/sections/fa_general.h"
 #include "fa/settings_menu/sections/fa_chats.h"
 #include "fa/settings_menu/sections/fa_appearance.h"
-#include "fa/settings_menu/sections/fa_donate.h"
 #include "fa/settings_menu/sections/fa_logs.h"
 
 #include "fa/lang/fa_lang.h"
@@ -109,38 +108,7 @@ namespace Settings {
 			{ &st::menuIconClear });
     }
 
-    void FA::SetupOther(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
-    	AddSubsectionTitle(container, FAlang::RplTranslate(QString("fa_other")));
 
-		const auto addSection = [&](
-				rpl::producer<QString> label,
-				Type type,
-				IconDescriptor &&descriptor) {
-			AddButtonWithIcon(
-				container,
-				std::move(label),
-				st::settingsButton,
-				std::move(descriptor)
-			)->addClickHandler([=] {
-				showOther(type);
-			});
-		};
-
-    	AddButtonWithLabel(
-			container,
-			FAlang::RplTranslate(QString("fa_dc_status")),
-			rpl::single(QString("")),
-			st::settingsButton,
-			{ &st::menuIconStats }
-		)->setClickedCallback([=] {
-			Core::App().openLocalUrl("tg://resolve?domain=tgDC_status", {});
-		});
-
-    	addSection(
-			FAlang::RplTranslate(QString("fa_donate")),
-			FADonate::Id(),
-			{ &st::paymentsIconPaymentMethod });
-    }
 
 	void FA::SetupLinks(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller)
     {
@@ -183,7 +151,7 @@ namespace Settings {
 			st::settingsButton,
 			{ &st::menuIconChatBubble }
 		)->setClickedCallback([=] {
-			UrlClickHandler::Open("https://crowdin.com/project/fagram");
+			UrlClickHandler::Open("https://crowdin.com/project/fagramdesktop");
 		});
 
     	AddButtonWithLabel(
@@ -193,7 +161,7 @@ namespace Settings {
 			st::settingsButton,
 			{ &st::menuIconDelete }
 		)->setClickedCallback([=] {
-			UrlClickHandler::Open("https://github.com/fajox1/fagramdesktop");
+			UrlClickHandler::Open("https://github.com/burhancodes/fagramdesktop");
 		});
     }
 
@@ -241,11 +209,6 @@ namespace Settings {
 
     	Ui::AddSkip(content);
         SetupFASettings(content, controller);
-
-    	Ui::AddSkip(content);
-    	Ui::AddDivider(content);
-    	Ui::AddSkip(content);
-    	SetupOther(content, controller);
 
 		Ui::AddSkip(content);
     	Ui::AddDivider(content);
