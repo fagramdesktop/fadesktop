@@ -7,6 +7,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 */
 #include "history/history_inner_widget.h"
 
+#include "fa/settings/fa_settings.h"
 #include "fa/utils/telegram_helpers.h"
 
 #include "chat_helpers/stickers_emoji_pack.h"
@@ -1464,7 +1465,9 @@ HistoryInner::VideoUserpic *HistoryInner::validateVideoUserpic(
 		not_null<PeerData*> peer) {
 	if (!peer->isPremium()
 		|| peer->userpicPhotoUnknown()
-		|| !peer->userpicHasVideo()) {
+		|| !peer->userpicHasVideo()
+		|| FASettings::JsonSettings::GetBool("disable_premium_animation")
+		|| FASettings::JsonSettings::GetBool("screenshot_mode")) {
 		_videoUserpics.remove(peer);
 		return nullptr;
 	}

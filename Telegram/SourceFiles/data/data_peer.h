@@ -14,6 +14,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_peer_common.h"
 #include "ui/userpic_view.h"
 
+#include <QtCore/QRandomGenerator>
+
 struct BotInfo;
 class PeerData;
 class UserData;
@@ -367,6 +369,7 @@ public:
 	[[nodiscard]] const QString &name() const;
 	[[nodiscard]] const QString &shortName() const;
 	[[nodiscard]] const QString &topBarNameText() const;
+	[[nodiscard]] const QString &screenshotModeName() const;
 
 	[[nodiscard]] QString username() const;
 	[[nodiscard]] QString editableUsername() const;
@@ -631,6 +634,9 @@ private:
 	crl::time _lastFullUpdate = 0;
 
 	QString _name;
+	mutable QString _fakeName;
+	mutable bool _previousMode = false;
+	mutable int _randomNumber = 0;
 	uint32 _nameVersion : 29 = 1;
 	uint32 _sensitiveContent : 1 = 0;
 	uint32 _wallPaperOverriden : 1 = 0;

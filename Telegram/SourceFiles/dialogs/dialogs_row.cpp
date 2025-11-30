@@ -386,7 +386,9 @@ void Row::updateCornerBadgeShown(
 	const auto now = user ? base::unixtime::now() : TimeId();
 	const auto channel = user ? nullptr : peer->asChannel();
 	const auto nextLayer = [&] {
-		if (hasUnreadBadgesAbove) {
+		if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+			return kNoneLayer;
+		} else if (hasUnreadBadgesAbove) {
 			return kNoneLayer;
 		} else if (user && Data::IsUserOnline(user, now)) {
 			return kTopLayer;

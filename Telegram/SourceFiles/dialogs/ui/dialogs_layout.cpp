@@ -7,6 +7,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 */
 #include "dialogs/ui/dialogs_layout.h"
 
+#include "fa/settings/fa_settings.h"
+
 #include "base/unixtime.h"
 #include "core/ui_integration.h"
 #include "data/data_channel.h"
@@ -490,6 +492,7 @@ void PaintRow(
 		}
 	}
 	auto texttop = context.st->textTop;
+	const auto screenshotModeOn = FASettings::JsonSettings::GetBool("screenshot_mode");
 	if (const auto folder = entry->asFolder()) {
 		const auto availableWidth = PaintWideCounter(
 			p,
@@ -498,35 +501,39 @@ void PaintRow(
 			texttop,
 			namewidth,
 			false);
-		const auto rect = QRect(
-			nameleft,
-			texttop,
-			availableWidth,
-			st::dialogsTextFont->height);
-		PaintFolderEntryText(p, folder, context, rect);
-	} else if (promoted && !history->topPromotionMessage().isEmpty()) {
-		auto availableWidth = namewidth;
-		p.setFont(st::dialogsTextFont);
-		if (history->cloudDraftTextCache().isEmpty()) {
-			history->cloudDraftTextCache().setText(
-				st::dialogsTextStyle,
-				history->topPromotionMessage(),
-				DialogTextOptions());
+		if (!screenshotModeOn) {
+			const auto rect = QRect(
+				nameleft,
+				texttop,
+				availableWidth,
+				st::dialogsTextFont->height);
+			PaintFolderEntryText(p, folder, context, rect);
 		}
-		p.setPen(context.active
-			? st::dialogsTextFgActive
-			: context.selected
-			? st::dialogsTextFgOver
-			: st::dialogsTextFg);
-		history->cloudDraftTextCache().draw(p, {
-			.position = { nameleft, texttop },
-			.availableWidth = availableWidth,
-			.spoiler = Text::DefaultSpoilerCache(),
-			.now = context.now,
-			.pausedEmoji = context.paused || On(PowerSaving::kEmojiChat),
-			.pausedSpoiler = context.paused || On(PowerSaving::kChatSpoiler),
-			.elisionLines = 1,
-		});
+	} else if (promoted && !history->topPromotionMessage().isEmpty()) {
+		if (!screenshotModeOn) {
+			auto availableWidth = namewidth;
+			p.setFont(st::dialogsTextFont);
+			if (history->cloudDraftTextCache().isEmpty()) {
+				history->cloudDraftTextCache().setText(
+					st::dialogsTextStyle,
+					history->topPromotionMessage(),
+					DialogTextOptions());
+			}
+			p.setPen(context.active
+				? st::dialogsTextFgActive
+				: context.selected
+				? st::dialogsTextFgOver
+				: st::dialogsTextFg);
+			history->cloudDraftTextCache().draw(p, {
+				.position = { nameleft, texttop },
+				.availableWidth = availableWidth,
+				.spoiler = Text::DefaultSpoilerCache(),
+				.now = context.now,
+				.pausedEmoji = context.paused || On(PowerSaving::kEmojiChat),
+				.pausedSpoiler = context.paused || On(PowerSaving::kChatSpoiler),
+				.elisionLines = 1,
+			});
+		}
 	} else if (draft
 		|| (supportMode
 			&& entry->session().supportHelper().isOccupiedBySomeone(history))) {
@@ -535,131 +542,135 @@ void PaintRow(
 			PaintRowTopRight(p, dateString, rectForName, context);
 		}
 
-		auto availableWidth = namewidth;
-		if (const auto used = PaintRightButton(p, context)) {
-			availableWidth -= used;
-		} else if (entry->isPinnedDialog(context.filter)
-			&& (context.filter || !entry->fixedOnTopIndex())) {
-			auto &icon = ThreeStateIcon(
-				st::dialogsPinnedIcon,
-				context.active,
-				context.selected);
-			icon.paint(
-				p,
-				context.width - context.st->padding.right() - icon.width(),
-				texttop,
-				context.width);
-			availableWidth -= icon.width() + st::dialogsUnreadPadding;
-		}
-
-		p.setFont(st::dialogsTextFont);
-		auto &color = context.active
-			? st::dialogsTextFgServiceActive
-			: context.selected
-			? st::dialogsTextFgServiceOver
-			: st::dialogsTextFgService;
-		if (!ShowSendActionInDialogs(thread)
-			|| !thread->sendActionPainter()->paint(
-				p,
-				nameleft,
-				texttop,
-				availableWidth,
-				context.width,
-				color,
-				context.paused)) {
-			auto &cache = thread->cloudDraftTextCache();
-			if (cache.isEmpty()) {
-				using namespace TextUtilities;
-				auto draftWrapped = Text::Colorized(
-					tr::lng_dialogs_text_from_wrapped(
-						tr::now,
-						lt_from,
-						tr::lng_from_draft(tr::now)));
-				auto draftText = supportMode
-					? Text::Colorized(
-						Support::ChatOccupiedString(history))
-					: tr::lng_dialogs_text_with_from(
-						tr::now,
-						lt_from_part,
-						std::move(draftWrapped),
-						lt_message,
-						DialogsPreviewText({
-							.text = draft->textWithTags.text,
-							.entities = ConvertTextTagsToEntities(
-								draft->textWithTags.tags),
-						}),
-						Text::WithEntities);
-				if (draft && draft->reply) {
-					draftText = Ui::Text::Colorized(
-						Ui::Text::IconEmoji(&st::dialogsMiniReplyIcon)
-					).append(std::move(draftText));
-				}
-				const auto context = Core::TextContext({
-					.session = &thread->session(),
-					.repaint = customEmojiRepaint,
-				});
-				cache.setMarkedText(
-					st::dialogsTextStyle,
-					std::move(draftText),
-					DialogTextOptions(),
-					context);
+		if (!screenshotModeOn) {
+			auto availableWidth = namewidth;
+			if (const auto used = PaintRightButton(p, context)) {
+				availableWidth -= used;
+			} else if (entry->isPinnedDialog(context.filter)
+				&& (context.filter || !entry->fixedOnTopIndex())) {
+				auto &icon = ThreeStateIcon(
+					st::dialogsPinnedIcon,
+					context.active,
+					context.selected);
+				icon.paint(
+					p,
+					context.width - context.st->padding.right() - icon.width(),
+					texttop,
+					context.width);
+				availableWidth -= icon.width() + st::dialogsUnreadPadding;
 			}
-			p.setPen(context.active
-				? st::dialogsTextFgActive
+
+			p.setFont(st::dialogsTextFont);
+			auto &color = context.active
+				? st::dialogsTextFgServiceActive
 				: context.selected
-				? st::dialogsTextFgOver
-				: st::dialogsTextFg);
-			cache.draw(p, {
-				.position = { nameleft, texttop },
-				.availableWidth = availableWidth,
-				.palette = &(supportMode
-					? (context.active
-						? st::dialogsTextPaletteTakenActive
-						: context.selected
-						? st::dialogsTextPaletteTakenOver
-						: st::dialogsTextPaletteTaken)
-					: (context.active
-						? st::dialogsTextPaletteDraftActive
-						: context.selected
-						? st::dialogsTextPaletteDraftOver
-						: st::dialogsTextPaletteDraft)),
-				.spoiler = Text::DefaultSpoilerCache(),
-				.now = context.now,
-				.pausedEmoji = context.paused || On(PowerSaving::kEmojiChat),
-				.pausedSpoiler = context.paused || On(PowerSaving::kChatSpoiler),
-				.elisionLines = 1,
-			});
+				? st::dialogsTextFgServiceOver
+				: st::dialogsTextFgService;
+			if (!ShowSendActionInDialogs(thread)
+				|| !thread->sendActionPainter()->paint(
+					p,
+					nameleft,
+					texttop,
+					availableWidth,
+					context.width,
+					color,
+					context.paused)) {
+				auto &cache = thread->cloudDraftTextCache();
+				if (cache.isEmpty()) {
+					using namespace TextUtilities;
+					auto draftWrapped = Text::Colorized(
+						tr::lng_dialogs_text_from_wrapped(
+							tr::now,
+							lt_from,
+							tr::lng_from_draft(tr::now)));
+					auto draftText = supportMode
+						? Text::Colorized(
+							Support::ChatOccupiedString(history))
+						: tr::lng_dialogs_text_with_from(
+							tr::now,
+							lt_from_part,
+							std::move(draftWrapped),
+							lt_message,
+							DialogsPreviewText({
+								.text = draft->textWithTags.text,
+								.entities = ConvertTextTagsToEntities(
+									draft->textWithTags.tags),
+							}),
+							Text::WithEntities);
+					if (draft && draft->reply) {
+						draftText = Ui::Text::Colorized(
+							Ui::Text::IconEmoji(&st::dialogsMiniReplyIcon)
+						).append(std::move(draftText));
+					}
+					const auto context = Core::TextContext({
+						.session = &thread->session(),
+						.repaint = customEmojiRepaint,
+					});
+					cache.setMarkedText(
+						st::dialogsTextStyle,
+						std::move(draftText),
+						DialogTextOptions(),
+						context);
+				}
+				p.setPen(context.active
+					? st::dialogsTextFgActive
+					: context.selected
+					? st::dialogsTextFgOver
+					: st::dialogsTextFg);
+				cache.draw(p, {
+					.position = { nameleft, texttop },
+					.availableWidth = availableWidth,
+					.palette = &(supportMode
+						? (context.active
+							? st::dialogsTextPaletteTakenActive
+							: context.selected
+							? st::dialogsTextPaletteTakenOver
+							: st::dialogsTextPaletteTaken)
+						: (context.active
+							? st::dialogsTextPaletteDraftActive
+							: context.selected
+							? st::dialogsTextPaletteDraftOver
+							: st::dialogsTextPaletteDraft)),
+					.spoiler = Text::DefaultSpoilerCache(),
+					.now = context.now,
+					.pausedEmoji = context.paused || On(PowerSaving::kEmojiChat),
+					.pausedSpoiler = context.paused || On(PowerSaving::kChatSpoiler),
+					.elisionLines = 1,
+				});
+			}
 		}
 	} else if (!item) {
-		auto availableWidth = namewidth;
-		if (const auto used = PaintRightButton(p, context)) {
-			availableWidth -= used;
-		} else if (entry->isPinnedDialog(context.filter)
-			&& (context.filter || !entry->fixedOnTopIndex())) {
-			auto &icon = ThreeStateIcon(
-				st::dialogsPinnedIcon,
-				context.active,
-				context.selected);
-			icon.paint(p, context.width - context.st->padding.right() - icon.width(), texttop, context.width);
-			availableWidth -= icon.width() + st::dialogsUnreadPadding;
-		}
+		if (!screenshotModeOn) {
+			auto availableWidth = namewidth;
+			if (const auto used = PaintRightButton(p, context)) {
+				availableWidth -= used;
+			} else if (entry->isPinnedDialog(context.filter)
+				&& (context.filter || !entry->fixedOnTopIndex())) {
+				auto &icon = ThreeStateIcon(
+					st::dialogsPinnedIcon,
+					context.active,
+					context.selected);
+				icon.paint(p, context.width - context.st->padding.right() - icon.width(), texttop, context.width);
+				availableWidth -= icon.width() + st::dialogsUnreadPadding;
+			}
 
-		auto &color = context.active
-			? st::dialogsTextFgServiceActive
-			: context.selected
-			? st::dialogsTextFgServiceOver
-			: st::dialogsTextFgService;
-		p.setFont(st::dialogsTextFont);
-		if (!ShowSendActionInDialogs(thread)
-			|| !thread->sendActionPainter()->paint(
-				p,
-				nameleft,
-				texttop,
-				availableWidth,
-				context.width,
-				color,
-				context.now)) {
-			// Empty history
+			auto &color = context.active
+				? st::dialogsTextFgServiceActive
+				: context.selected
+				? st::dialogsTextFgServiceOver
+				: st::dialogsTextFgService;
+			p.setFont(st::dialogsTextFont);
+			if (!ShowSendActionInDialogs(thread)
+				|| !thread->sendActionPainter()->paint(
+					p,
+					nameleft,
+					texttop,
+					availableWidth,
+					context.width,
+					color,
+					context.now)) {
+				// Empty history
+			}
 		}
 	} else if (!item->isEmpty()) {
 		if ((thread || sublist) && !promoted) {
@@ -1013,6 +1024,10 @@ void RowPainter::Paint(
 			: Flag(0))
 		| (row->topicJumpRipple() ? Flag::TopicJumpRipple : Flag(0));
 	const auto paintItemCallback = [&](int nameleft, int namewidth) {
+		// Skip painting message preview in screenshot mode
+		if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+			return;
+		}
 		const auto texttop = context.st->textTop;
 		const auto availableWidth = PaintWideCounter(
 			p,
@@ -1141,6 +1156,10 @@ void RowPainter::Paint(
 	const auto displayPinnedIcon = false;
 
 	const auto paintItemCallback = [&](int nameleft, int namewidth) {
+		// Skip painting message preview in screenshot mode
+		if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+			return;
+		}
 		const auto texttop = context.st->textTop;
 		const auto availableWidth = PaintWideCounter(
 			p,

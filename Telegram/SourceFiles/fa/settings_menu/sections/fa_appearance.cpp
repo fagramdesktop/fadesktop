@@ -126,6 +126,7 @@ namespace Settings {
     	updateUserpicRoundnessLabel(::FASettings::JsonSettings::GetInt("roundness"));
         Ui::AddDivider(container);
 		RestartSettingsMenuJsonSwitch(fa_use_default_rounding, use_default_rounding);
+		SettingsMenuJsonSwitch(fa_screenshot_mode, screenshot_mode);
 		SettingsMenuJsonSwitch(fa_force_snow, force_snow);
     }
 

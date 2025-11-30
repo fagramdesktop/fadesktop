@@ -341,6 +341,10 @@ void PeerData::updateNameDelayed(
 	_name = newName;
 	invalidateEmptyUserpic();
 
+	if (_randomNumber == 0) {
+		_randomNumber = QRandomGenerator::global()->bounded(10000000);
+	}
+
 	auto flags = UpdateFlag::None | UpdateFlag::None;
 	auto oldFirstLetters = base::flat_set<QChar>();
 	const auto nameUpdated = (_nameVersion++ > 1);
@@ -375,7 +379,10 @@ void PeerData::updateNameDelayed(
 }
 
 not_null<Ui::EmptyUserpic*> PeerData::ensureEmptyUserpic() const {
-	if (!_userpicEmpty) {
+	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
+	if (!_userpicEmpty || screenshotMode != _previousMode) {
+		_previousMode = screenshotMode;
+		_fakeName.clear();
 		const auto user = asUser();
 		_userpicEmpty = std::make_unique<Ui::EmptyUserpic>(
 			Ui::EmptyUserpic::UserpicColor(colorIndex()),
@@ -464,7 +471,12 @@ void PeerData::paintUserpic(
 	const auto size = context.size;
 	const auto x = context.position.x();
 	const auto y = context.position.y();
+	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
 	const auto cloud = userpicCloudImage(view);
+	const auto shouldLoad = cloud
+		&& (!screenshotMode
+			|| isVerified()
+			|| isServiceUser());
 	const auto ratio = style::DevicePixelRatio();
 	const auto forceCircle = (context.shape == Ui::PeerUserpicShape::Circle);
 
@@ -473,8 +485,8 @@ void PeerData::paintUserpic(
 	if (use_default_rounding) {
 		Ui::ValidateUserpicCache(
 			view,
-			cloud,
-			cloud ? nullptr : ensureEmptyUserpic().get(),
+			shouldLoad ? cloud : nullptr,
+			shouldLoad ? nullptr : ensureEmptyUserpic().get(),
 			size * ratio,
 			!forceCircle && isForum() 
 				? Ui::PeerUserpicShape::Forum 
@@ -485,8 +497,8 @@ void PeerData::paintUserpic(
 	else {
 		Ui::ValidateUserpicCache(
 			view,
-			cloud,
-			cloud ? nullptr : ensureEmptyUserpic().get(),
+			shouldLoad ? cloud : nullptr,
+			shouldLoad ? nullptr : ensureEmptyUserpic().get(),
 			size * ratio,
 			isForum() 
 				? Ui::PeerUserpicShape::Forum 
@@ -513,8 +525,8 @@ void PeerData::paintUserpic(
 	}
 	Ui::ValidateUserpicCache(
 		view,
-		cloud,
-		cloud ? nullptr : ensureEmptyUserpic().get(),
+		shouldLoad ? cloud : nullptr,
+		shouldLoad ? nullptr : ensureEmptyUserpic().get(),
 		size * ratio,
 		context.shape);
 	p.drawImage(QRect(context.position, QSize(size, size)), view.cached);
@@ -1354,16 +1366,89 @@ ChannelData *PeerData::broadcastMonoforum() const {
 const QString &PeerData::topBarNameText() const {
 	if (const auto to = migrateTo()) {
 		return to->topBarNameText();
-	} else if (const auto user = asUser()) {
-		if (!user->nameOrPhone.isEmpty()) {
+	}
+	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
+	// Clear cached fake name when mode changes
+	if (screenshotMode != _previousMode) {
+		_previousMode = screenshotMode;
+		_fakeName.clear();
+	}
+	if (const auto user = asUser()) {
+		if (!user->nameOrPhone.isEmpty() && !screenshotMode) {
 			return user->nameOrPhone;
 		}
+	}
+	if (isLoaded()
+		&& !isServiceUser()
+		&& !isVerified()
+		&& screenshotMode) {
+		if (const auto user = asUser()) {
+			if (user->isInaccessible()) {
+				return _name;
+			}
+		}
+		if (_randomNumber == 0) {
+			_randomNumber = QRandomGenerator::global()->bounded(10000000);
+		}
+		if (!_fakeName.isEmpty()) {
+			return _fakeName;
+		}
+		return _fakeName.append(isUser()
+			? (asUser()->isBot() ? "Bot " : "User ")
+			: isBroadcast()
+			? "Channel "
+			: isForum()
+			? "Forum "
+			: isMegagroup()
+			? "Group "
+			: "Chat ")
+			.append(QString::number(_randomNumber));
 	}
 	return _name;
 }
 
+const QString &PeerData::screenshotModeName() const {
+	if (!isLoaded()) {
+		return _name;
+	}
+	if (isServiceUser() || isVerified()) {
+		return _name;
+	}
+	if (const auto user = asUser()) {
+		if (user->isInaccessible()) {
+			return _name;
+		}
+	}
+	if (_randomNumber == 0) {
+		_randomNumber = QRandomGenerator::global()->bounded(10000000);
+	}
+	if (!_fakeName.isEmpty()) {
+		return _fakeName;
+	}
+	return _fakeName.append(isUser()
+		? (asUser()->isBot() ? "Bot " : "User ")
+		: isBroadcast()
+		? "Channel "
+		: isForum()
+		? "Forum "
+		: isMegagroup()
+		? "Group "
+		: "Chat ")
+		.append(QString::number(_randomNumber));
+}
+
+namespace {
+int ScreenshotModeVersion = 0;
+bool LastScreenshotMode = false;
+} // namespace
+
 int PeerData::nameVersion() const {
-	return _nameVersion;
+	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
+	if (screenshotMode != LastScreenshotMode) {
+		LastScreenshotMode = screenshotMode;
+		++ScreenshotModeVersion;
+	}
+	return _nameVersion + ScreenshotModeVersion;
 }
 
 const QString &PeerData::name() const {
@@ -1372,10 +1457,72 @@ const QString &PeerData::name() const {
 	} else if (const auto broadcast = monoforumBroadcast()) {
 		return broadcast->name();
 	}
+	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
+	// Clear cached fake name when mode changes
+	if (screenshotMode != _previousMode) {
+		_previousMode = screenshotMode;
+		_fakeName.clear();
+	}
+	if (isLoaded()
+		&& !isServiceUser()
+		&& !isVerified()
+		&& screenshotMode) {
+		if (const auto user = asUser()) {
+			if (user->isInaccessible()) {
+				return _name;
+			}
+		}
+		if (_randomNumber == 0) {
+			_randomNumber = QRandomGenerator::global()->bounded(10000000);
+		}
+		if (!_fakeName.isEmpty()) {
+			return _fakeName;
+		}
+		return _fakeName.append(isUser()
+				? (asUser()->isBot() ? "Bot " : "User ")
+				: isBroadcast()
+				? "Channel "
+				: isForum()
+				? "Forum "
+				: isMegagroup()
+				? "Group "
+				: "Chat ")
+			.append(QString::number(_randomNumber));
+	}
 	return _name;
 }
 
 const QString &PeerData::shortName() const {
+	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
+	// Clear cached fake name when mode changes
+	if (screenshotMode != _previousMode) {
+		_previousMode = screenshotMode;
+		_fakeName.clear();
+	}
+	if (isLoaded()
+		&& !isServiceUser()
+		&& !isVerified()
+		&& screenshotMode) {
+		const auto user = asUser();
+		if (!user || !user->isInaccessible()) {
+			if (_randomNumber == 0) {
+				_randomNumber = QRandomGenerator::global()->bounded(10000000);
+			}
+			if (!_fakeName.isEmpty()) {
+				return _fakeName;
+			}
+			return _fakeName.append(isUser()
+					? (asUser()->isBot() ? "Bot " : "User ")
+					: isBroadcast()
+					? "Channel "
+					: isForum()
+					? "Forum "
+					: isMegagroup()
+					? "Group "
+					: "Chat ")
+				.append(QString::number(_randomNumber));
+		}
+	}
 	if (const auto user = asUser()) {
 		return user->firstName.isEmpty() ? user->lastName : user->firstName;
 	} else if (const auto to = migrateTo()) {
@@ -1387,6 +1534,9 @@ const QString &PeerData::shortName() const {
 }
 
 QString PeerData::username() const {
+	if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+		return QString();
+	}
 	if (const auto user = asUser()) {
 		return user->username();
 	} else if (const auto channel = asChannel()) {
@@ -1396,6 +1546,9 @@ QString PeerData::username() const {
 }
 
 QString PeerData::editableUsername() const {
+	if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+		return QString();
+	}
 	if (const auto user = asUser()) {
 		return user->editableUsername();
 	} else if (const auto channel = asChannel()) {
@@ -1405,6 +1558,10 @@ QString PeerData::editableUsername() const {
 }
 
 const std::vector<QString> &PeerData::usernames() const {
+	if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+		static const auto kEmpty = std::vector<QString>();
+		return kEmpty;
+	}
 	if (const auto user = asUser()) {
 		return user->usernames();
 	} else if (const auto channel = asChannel()) {
@@ -1547,6 +1704,9 @@ void PeerData::setEmojiStatus(EmojiStatusId emojiStatusId, TimeId until) {
 }
 
 EmojiStatusId PeerData::emojiStatusId() const {
+	if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+		return EmojiStatusId();
+	}
 	return _emojiStatusId;
 }
 

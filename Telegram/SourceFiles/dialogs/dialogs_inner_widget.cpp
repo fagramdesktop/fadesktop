@@ -1444,7 +1444,9 @@ Ui::VideoUserpic *InnerWidget::validateVideoUserpic(
 	const auto peer = history->peer;
 	if (!peer->isPremium()
 		|| peer->userpicPhotoUnknown()
-		|| !peer->userpicHasVideo()) {
+		|| !peer->userpicHasVideo()
+		|| FASettings::JsonSettings::GetBool("disable_premium_animation")
+		|| FASettings::JsonSettings::GetBool("screenshot_mode")) {
 		_videoUserpics.remove(peer);
 		return nullptr;
 	}
