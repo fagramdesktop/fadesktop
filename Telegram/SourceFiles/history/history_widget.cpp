@@ -1115,9 +1115,11 @@ void HistoryWidget::refreshGiftToChannelShown() {
 		return;
 	}
 	const auto channel = _peer->asChannel();
-	_giftToChannel->setVisible(channel
+	const auto visible = channel
 		&& channel->isBroadcast()
-		&& channel->stargiftsAvailable());
+		&& channel->stargiftsAvailable();
+	_giftToChannel->setVisible(visible);
+	updateControlsGeometry();
 }
 
 void HistoryWidget::refreshDirectMessageShown() {
@@ -1128,6 +1130,7 @@ void HistoryWidget::refreshDirectMessageShown() {
 	const auto monoforum = channel ? channel->broadcastMonoforum() : nullptr;
 	const auto visible = monoforum && !monoforum->monoforumDisabled();
 	_directMessage->setVisible(visible);
+	updateControlsGeometry();
 	if (visible) {
 		using Flags = Data::Flags<ChannelDataFlags>;
 		_directMessageLifetime = monoforum->flagsValue(
@@ -2192,38 +2195,18 @@ void HistoryWidget::setupShortcuts() {
 
 void HistoryWidget::setupGiftToChannelButton() {
 	_giftToChannel = Ui::CreateChild<Ui::IconButton>(
-		_muteUnmute.data(),
+		this,
 		st::historyGiftToChannel);
-	widthValue() | rpl::start_with_next([=](int width) {
-		_giftToChannel->moveToRight(0, 0, width);
-	}, _giftToChannel->lifetime());
 	_giftToChannel->setClickedCallback([=] {
 		Ui::ShowStarGiftBox(controller(), _peer);
 	});
-	rpl::combine(
-		_muteUnmute->shownValue(),
-		_joinChannel->shownValue()
-	) | rpl::start_with_next([=](bool muteUnmute, bool joinChannel) {
-		const auto newParent = (muteUnmute && !joinChannel)
-			? _muteUnmute.data()
-			: (joinChannel && !muteUnmute)
-			? _joinChannel.data()
-			: nullptr;
-		if (newParent) {
-			_giftToChannel->setParent(newParent);
-			_giftToChannel->moveToRight(0, 0);
-			refreshGiftToChannelShown();
-		}
-	}, _giftToChannel->lifetime());
+	_giftToChannel->hide();
 }
 
 void HistoryWidget::setupDirectMessageButton() {
 	_directMessage = Ui::CreateChild<Ui::IconButton>(
-		_muteUnmute.data(),
+		this,
 		st::historyDirectMessage);
-	widthValue() | rpl::start_with_next([=](int width) {
-		_directMessage->moveToLeft(0, 0, width);
-	}, _directMessage->lifetime());
 	_directMessage->setClickedCallback([=] {
 		if (const auto channel = _peer ? _peer->asChannel() : nullptr) {
 			if (channel->invitePeekExpires()) {
@@ -2236,21 +2219,7 @@ void HistoryWidget::setupDirectMessageButton() {
 			}
 		}
 	});
-	rpl::combine(
-		_muteUnmute->shownValue(),
-		_joinChannel->shownValue()
-	) | rpl::start_with_next([=](bool muteUnmute, bool joinChannel) {
-		const auto newParent = (muteUnmute && !joinChannel)
-			? _muteUnmute.data()
-			: (joinChannel && !muteUnmute)
-			? _joinChannel.data()
-			: nullptr;
-		if (newParent) {
-			_directMessage->setParent(newParent);
-			_directMessage->moveToLeft(0, 0);
-			refreshDirectMessageShown();
-		}
-	}, _directMessage->lifetime());
+	_directMessage->hide();
 }
 
 void HistoryWidget::pushReplyReturn(not_null<HistoryItem*> item) {
@@ -3454,6 +3423,9 @@ void HistoryWidget::updateControlsVisibility() {
 			} else {
 				_discuss->hide();
 			}
+			// Refresh icon buttons visibility
+			refreshGiftToChannelShown();
+			refreshDirectMessageShown();
 			toggle(_muteUnmute);
 		} else if (isBotStart()) {
 			toggle(_botStart);
@@ -6160,21 +6132,70 @@ void HistoryWidget::moveFieldControls() {
 	_botStart->setGeometry(fullWidthButtonRect);
 	_unblock->setGeometry(fullWidthButtonRect);
 	if (hasDiscussionGroup() && discuss_button) {
+		// Calculate icon buttons width
+		const auto giftVisible = _giftToChannel && !_giftToChannel->isHidden();
+		const auto dmVisible = _directMessage && !_directMessage->isHidden();
+		const auto giftWidth = giftVisible ? st::historyGiftToChannel.width : 0;
+		const auto dmWidth = dmVisible ? st::historyDirectMessage.width : 0;
+		const auto iconButtonsWidth = giftWidth + dmWidth;
+		
+		// Layout: [DM icon] [DISCUSS] [MUTE/UNMUTE] [Gift icon]
+		// Both text buttons get equal width
+		const auto textButtonsWidth = width() - iconButtonsWidth;
+		const auto halfWidth = textButtonsWidth / 2;
+		
+		// Position DM icon button on the left
+		if (dmVisible) {
+			_directMessage->setGeometry(myrtlrect(
+				0,
+				fullWidthButtonRect.y(),
+				dmWidth,
+				fullWidthButtonRect.height()));
+		}
+		
 		_discuss->setGeometry(myrtlrect(
-			0,
+			dmWidth,
 			fullWidthButtonRect.y(),
-			width() / 2,
+			halfWidth,
 			fullWidthButtonRect.height()));
 		_muteUnmute->setGeometry(myrtlrect(
-			width() / 2,
+			dmWidth + halfWidth,
 			fullWidthButtonRect.y(),
-			width() - (width() / 2),
+			textButtonsWidth - halfWidth,
 			fullWidthButtonRect.height()));
+		_muteUnmute->setTextMargins(QMargins());
+		
+		// Position gift icon button on the right
+		if (giftVisible) {
+			_giftToChannel->setGeometry(myrtlrect(
+				width() - giftWidth,
+				fullWidthButtonRect.y(),
+				giftWidth,
+				fullWidthButtonRect.height()));
+		}
+		
 		_joinChannel->setGeometry(fullWidthButtonRect);
 	} else {
 		_muteUnmute->setGeometry(fullWidthButtonRect);
+		_muteUnmute->setTextMargins(QMargins());
 		_joinChannel->setGeometry(fullWidthButtonRect);
 		_reportMessages->setGeometry(fullWidthButtonRect);
+		
+		// Position icon buttons for full-width mute button
+		if (_giftToChannel && !_giftToChannel->isHidden()) {
+			_giftToChannel->setGeometry(myrtlrect(
+				width() - st::historyGiftToChannel.width,
+				fullWidthButtonRect.y(),
+				st::historyGiftToChannel.width,
+				fullWidthButtonRect.height()));
+		}
+		if (_directMessage && !_directMessage->isHidden()) {
+			_directMessage->setGeometry(myrtlrect(
+				0,
+				fullWidthButtonRect.y(),
+				st::historyDirectMessage.width,
+				fullWidthButtonRect.height()));
+		}
 	}
 	if (_sendRestriction) {
 		_sendRestriction->setGeometry(fullWidthButtonRect);

@@ -939,7 +939,9 @@ historyGiftToChannel: IconButton(defaultIconButton) {
 
 	rippleAreaPosition: point(3px, 3px);
 	rippleAreaSize: 40px;
-	ripple: universalRippleAnimation;
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: historyComposeButtonBgRipple;
+	}
 }
 historyDirectMessage: IconButton(historyGiftToChannel) {
 	icon: icon{{ "menu/chat_discuss", windowActiveTextFg }};
