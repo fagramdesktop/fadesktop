@@ -56,7 +56,6 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "styles/style_info.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_menu_icons.h"
-#include "fa/utils/telegram_helpers.h"
 
 namespace Info::Profile {
 namespace {
@@ -338,17 +337,6 @@ Cover::Cover(
 			return controller->isGifPausedAtLeastFor(
 				Window::GifPauseReason::Layer);
 		}))
-, _devBadge(
-	std::make_unique<Badge>(
-		this,
-		st::infoPeerBadge,
-		&peer->session(),
-		_badgeContent.value(),
-		_emojiStatusPanel.get(),
-		[=] {
-			return controller->isGifPausedAtLeastFor(
-				Window::GifPauseReason::Layer);
-		}))
 , _verified(role == Role::EditContact
 	? nullptr
 	: std::make_unique<Badge>(
@@ -447,14 +435,6 @@ Cover::Cover(
 	std::move(badgeUpdates) | rpl::start_with_next([=] {
 		refreshNameGeometry(width());
 	}, _name->lifetime());
-
-	if (_devBadge) {
-		if (isFAgramRelated(getBareID(_peer))) {
-			_devBadge->setContent(Info::Profile::Badge::Content{BadgeType::FAgram});
-		} else {
-			_devBadge->setContent(Info::Profile::Badge::Content{BadgeType::None});
-		}
-	}
 
 	initViewers(std::move(title));
 	setupChildGeometry();
@@ -762,11 +742,6 @@ void Cover::refreshNameGeometry(int newWidth) {
 	}
 	if (verifiedWidget || badgeWidget) {
 		nameWidth -= st::infoVerifiedCheckPosition.x();
-	}
-	if (_devBadge) {
-		if (const auto widget = _devBadge->widget()) {
-			nameWidth -= st::infoVerifiedCheckPosition.x() + widget->width();
-		}
 	}
 	_name->resizeToNaturalWidth(nameWidth);
 	_name->moveToLeft(_st.nameLeft, _st.nameTop, newWidth);

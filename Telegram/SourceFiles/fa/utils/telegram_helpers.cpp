@@ -20,43 +20,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QDebug>
 
-std::unordered_set<ID> fagram_channels;
-std::unordered_set<ID> fagram_devs;
-
 std::unordered_map<ID, bool> state;
-
-void fetchAndParseData(const QUrl &url, std::unordered_set<ID> &targetSet) {
-    QNetworkAccessManager manager;
-    QNetworkRequest request(url);
-
-    QEventLoop loop;
-    QNetworkReply *reply = manager.get(request);
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
-
-    if (reply->error() == QNetworkReply::NoError) {
-        QByteArray response = reply->readAll();
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(response);
-        if (jsonResponse.isArray()) {
-            QJsonArray jsonArray = jsonResponse.array();
-            for (const QJsonValue &value : jsonArray) {
-                if (value.isDouble()) {
-                    targetSet.insert(static_cast<ID>(value.toDouble()));
-                }
-            }
-        }
-    }
-
-    reply->deleteLater();
-}
-
-void initialize_fagram_data() {
-    QUrl channelsUrl("https://api.fagram.app/channels");
-    fetchAndParseData(channelsUrl, fagram_channels);
-
-    QUrl devsUrl("https://api.fagram.app/devs");
-    fetchAndParseData(devsUrl, fagram_devs);
-}
 
 void markAsOnline(not_null<Main::Session*> session) {
 	state[session->userId().bare] = true;
@@ -155,23 +119,6 @@ void readReactions(base::weak_ptr<Data::Thread> weakThread) {
 			peer->owner().history(peer)->clearUnreadReactionsFor(rootId, sublist);
 		}
 	}).send();
-}
-
-ID getBareID(not_null<PeerData*> peer) {
-    return peerIsUser(peer->id)
-               ? peerToUser(peer->id).bare
-               : peerIsChat(peer->id)
-                     ? peerToChat(peer->id).bare
-                     : peerIsChannel(peer->id)
-                           ? peerToChannel(peer->id).bare
-                           : peer->id.value;
-}
-
-bool isFAgramRelated(ID peerId) {
-    if (fagram_channels.empty() || fagram_devs.empty()) {
-        initialize_fagram_data();
-    }
-    return fagram_devs.contains(peerId) || fagram_channels.contains(peerId);
 }
 
 QString getLocationDC(int dc_id) {

@@ -57,19 +57,11 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 using Callback = Fn<void(const QString &, UserData *)>;
 
-extern std::unordered_set<ID> fagram_channels;
-extern std::unordered_set<ID> fagram_devs;
-
-void initialize_fagram_data();
-
 void markAsOnline(not_null<Main::Session*> session);
 
 int getMediaSizeBytes(not_null<HistoryItem*> message);
 void readMentions(base::weak_ptr<Data::Thread> weakThread);
 void readReactions(base::weak_ptr<Data::Thread> weakThread);
-
-ID getBareID(not_null<PeerData*> peer);
-bool isFAgramRelated(ID peerId);
 
 QString getLocationDC(int dc_id);
 QString getPeerDC(not_null<PeerData*> peer);
