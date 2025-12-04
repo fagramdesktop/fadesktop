@@ -12,6 +12,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "fa/settings/fa_settings.h"
 
 #include "core/application.h"
+#include "data/data_peer.h"
+#include "ui/text/text_entity.h"
 
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonArray>
@@ -863,4 +865,47 @@ void searchById(ID userId, Main::Session *session, const Callback &callback) {
 					   callback(QString(), nullptr);
 				   }
 			   });
+}
+
+bool shouldHideBlockedUserMessage(PeerData *from) {
+	if (!from) {
+		return false;
+	}
+	if (!FASettings::JsonSettings::GetBool("hide_blocked_user_messages")) {
+		return false;
+	}
+	return from->isBlocked();
+}
+
+TextWithEntities applyBlockedUserSpoiler(TextWithEntities text) {
+	const auto blockedPrefix = QString("[Blocked User Message]\n");
+	const auto originalLength = text.text.length();
+	
+	// Shift existing entities to account for prefix
+	for (auto &entity : text.entities) {
+		entity = EntityInText(
+			entity.type(),
+			entity.offset() + blockedPrefix.length(),
+			entity.length(),
+			entity.data());
+	}
+	
+	// Add bold for the prefix (without the newline)
+	text.entities.insert(
+		text.entities.begin(),
+		EntityInText(EntityType::Bold, 0, blockedPrefix.length() - 1));
+	
+	// Add spoiler for the original text
+	text.entities.insert(
+		text.entities.begin() + 1,
+		EntityInText(EntityType::Spoiler, blockedPrefix.length(), originalLength));
+	
+	// Add collapsed blockquote for the original text (using "1" for collapsed)
+	text.entities.insert(
+		text.entities.begin() + 2,
+		EntityInText(EntityType::Blockquote, blockedPrefix.length(), originalLength, u"1"_q));
+	
+	text.text = blockedPrefix + text.text;
+	
+	return text;
 }

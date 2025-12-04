@@ -58,6 +58,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_document_media.h"
 #include "data/data_web_page.h"
 #include "storage/storage_account.h"
+#include "fa/utils/telegram_helpers.h"
 #include "styles/style_chat.h"
 
 #include <QSvgRenderer>
@@ -416,6 +417,10 @@ bool Gif::underCursor() const {
 bool Gif::autoplayEnabled() const {
 	if (_realParent->isSponsored()) {
 		return true;
+	}
+	// FAgram: Don't autoplay media from blocked users
+	if (shouldHideBlockedUserMessage(_parent->data()->from())) {
+		return false;
 	}
 	return Data::AutoDownload::ShouldAutoPlay(
 		_data->session().settings().autoDownload(),

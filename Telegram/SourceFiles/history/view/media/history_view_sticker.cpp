@@ -36,6 +36,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_menu_icons.h"
+#include "fa/utils/telegram_helpers.h"
 
 namespace HistoryView {
 namespace {
@@ -162,6 +163,11 @@ void Sticker::initSize(int customSize) {
 		_size = Size(_data);
 	}
 	_size = DownscaledSize(_size, Size());
+	
+	// FAgram: Downsize stickers from blocked users
+	if (shouldHideBlockedUserMessage(_parent->data()->from())) {
+		_size = DownscaledSize(_data->dimensions, {128, kMaxSizeFixed});
+	}
 }
 
 QSize Sticker::countOptimalSize() {

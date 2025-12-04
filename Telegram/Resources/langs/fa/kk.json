@@ -67,5 +67,8 @@
     "fa_message_details_filename": "Файл атауы",
     "fa_message_details_resolution": "Ажыратымдылық",
     "fa_message_details_datacenter": "Деректер орталығы",
-    "fa_pack_owner": "Пакеттің иесі"
+    "fa_pack_owner": "Пакет иесі",
+    "fa_hide_blocked_user_messages": "Бұғатталған пайдаланушылардың хабарларын жасыру",
+    "fa_hide_blocked_user_messages_desc": "Бұғатталған пайдаланушылардың хабарлары спойлер ретінде жасырылады және медиа автоматты түрде жүктелмейді.",
+    "fa_restarting_in_seconds": "3 секундтан кейін қайта іске қосылады..."
 }

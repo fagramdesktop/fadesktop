@@ -67,5 +67,8 @@
     "fa_message_details_filename": "Dateiname",
     "fa_message_details_resolution": "Auflösung",
     "fa_message_details_datacenter": "Rechenzentrum",
-    "fa_pack_owner": "Besitzer des Rudels"
+    "fa_pack_owner": "Besitzer des Rudels",
+    "fa_hide_blocked_user_messages": "Nachrichten von blockierten Benutzern ausblenden",
+    "fa_hide_blocked_user_messages_desc": "Nachrichten von blockierten Benutzern werden als Spoiler angezeigt und Medien werden nicht automatisch heruntergeladen.",
+    "fa_restarting_in_seconds": "Neustart in 3 Sekunden..."
 }

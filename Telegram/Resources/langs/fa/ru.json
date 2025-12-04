@@ -67,5 +67,8 @@
     "fa_message_details_filename": "Имя файла",
     "fa_message_details_resolution": "Разрешение",
     "fa_message_details_datacenter": "Датацентер",
-    "fa_pack_owner": "Владелец пака"
+    "fa_pack_owner": "Владелец пака",
+    "fa_hide_blocked_user_messages": "Скрыть сообщения от заблокированных",
+    "fa_hide_blocked_user_messages_desc": "Сообщения от заблокированных пользователей будут скрыты как спойлеры, а медиа не будет автоматически загружаться.",
+    "fa_restarting_in_seconds": "Перезапуск через 3 секунды..."
 }

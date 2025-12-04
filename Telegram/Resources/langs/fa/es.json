@@ -67,5 +67,8 @@
     "fa_message_details_filename": "Nombre del archivo",
     "fa_message_details_resolution": "Resolución",
     "fa_message_details_datacenter": "Centro de datos",
-    "fa_pack_owner": "Propietario del pack"
+    "fa_pack_owner": "Propietario del pack",
+    "fa_hide_blocked_user_messages": "Ocultar mensajes de usuarios bloqueados",
+    "fa_hide_blocked_user_messages_desc": "Los mensajes de usuarios bloqueados se ocultarán como spoilers y los medios no se descargarán automáticamente.",
+    "fa_restarting_in_seconds": "Reiniciando en 3 segundos..."
 }

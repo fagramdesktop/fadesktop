@@ -70,6 +70,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "payments/payments_non_panel_process.h" // ProcessNonPanelPaymentFormFactory.
 #include "platform/platform_notifications_manager.h"
 #include "spellcheck/spellcheck_highlight_syntax.h"
+#include "fa/utils/telegram_helpers.h"
+#include "fa/settings/fa_settings.h"
 
 namespace {
 
@@ -317,7 +319,13 @@ std::unique_ptr<Data::Media> HistoryItem::CreateMedia(
 		}, [](const MTPDdocumentEmpty &) -> Result {
 			return nullptr;
 		});
-	}, [&](const MTPDmessageMediaWebPage &media) {
+	}, [&](const MTPDmessageMediaWebPage &media) -> Result {
+		// FAgram: Block web preview from blocked users
+		if (FASettings::JsonSettings::GetBool("hide_blocked_user_messages") && item->author()) {
+			if (item->author()->isBlocked()) {
+				return nullptr;
+			}
+		}
 		using Flag = MediaWebPageFlag;
 		const auto flags = Flag()
 			| (media.is_force_large_media()
@@ -444,12 +452,30 @@ HistoryItem::HistoryItem(
 		if (const auto media = data.vmedia()) {
 			setMedia(*media);
 		}
-		auto textWithEntities = TextWithEntities{
+		
+		// FAgram: Store both original and blocked message variants
+		// Always generate both versions - the blocked state is checked dynamically at render time
+		const auto fromPeerId = data.vfrom_id() ? peerFromMTP(*data.vfrom_id()) : PeerId(0);
+		const auto fromPeer = history->owner().peerLoaded(fromPeerId);
+		const auto isBlocked = shouldHideBlockedUserMessage(fromPeer);
+		
+		_originalMsg = TextWithEntities{
 			qs(data.vmessage()),
 			Api::EntitiesFromMTP(
 				&history->session(),
 				data.ventities().value_or_empty())
 		};
+		
+		// Always generate blocked version so it's ready when needed
+		_blockMsg = applyBlockedUserSpoiler(TextWithEntities{
+			qs(data.vmessage()),
+			Api::EntitiesFromMTP(
+				&history->session(),
+				data.ventities().value_or_empty())
+		});
+		
+		auto textWithEntities = isBlocked ? _blockMsg : _originalMsg;
+		
 		setText(_media ? textWithEntities : EnsureNonEmpty(textWithEntities));
 		if (const auto groupedId = data.vgrouped_id()) {
 			setGroupId(

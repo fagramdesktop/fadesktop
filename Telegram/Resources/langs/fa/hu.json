@@ -67,5 +67,8 @@
     "fa_message_details_filename": "Fájl név",
     "fa_message_details_resolution": "Felbontás",
     "fa_message_details_datacenter": "Adatcenter",
-    "fa_pack_owner": "Csomagtualj"
+    "fa_pack_owner": "Csomagtualj",
+    "fa_hide_blocked_user_messages": "Blokkolt felhasználók üzeneteinek elrejtése",
+    "fa_hide_blocked_user_messages_desc": "A blokkolt felhasználóktól érkező üzenetek spoilerként lesznek elrejtve, és a média nem töltődik le automatikusan.",
+    "fa_restarting_in_seconds": "Újraindítás 3 másodperc múlva..."
 }

@@ -67,5 +67,8 @@
     "fa_message_details_filename": "Nom du fichier",
     "fa_message_details_resolution": "Résolution",
     "fa_message_details_datacenter": "Centre de données",
-    "fa_pack_owner": "Propriétaire de la meute"
+    "fa_pack_owner": "Propriétaire du pack",
+    "fa_hide_blocked_user_messages": "Masquer les messages des utilisateurs bloqués",
+    "fa_hide_blocked_user_messages_desc": "Les messages des utilisateurs bloqués seront masqués en spoilers et les médias ne seront pas téléchargés automatiquement.",
+    "fa_restarting_in_seconds": "Redémarrage dans 3 secondes..."
 }

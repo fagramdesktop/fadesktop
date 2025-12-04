@@ -21,6 +21,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "styles/style_menu_icons.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/text/format_values.h"
+#include "ui/text/text_entity.h"
 #include "export/data/export_data_types.h"
 #include "ui/widgets/menu/menu_add_action_callback_factory.h"
 #include "window/window_peer_menu.h"
@@ -29,6 +30,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_channel.h"
 #include "data/data_user.h"
 #include "data/data_chat.h"
+#include "data/data_peer.h"
 #include "data/data_photo.h"
 #include "data/data_document.h"
 #include "data/data_histories.h"
@@ -81,3 +83,7 @@ QString getLocalizedAt();
 
 void searchById(ID userId, Main::Session *session, bool retry, const Callback &callback);
 void searchById(ID userId, Main::Session *session, const Callback &callback);
+
+// Blocked user message hiding feature
+[[nodiscard]] bool shouldHideBlockedUserMessage(PeerData *from);
+[[nodiscard]] TextWithEntities applyBlockedUserSpoiler(TextWithEntities text);

@@ -193,6 +193,12 @@ void BlockedPeers::reload() {
 	request(0, [=](Slice &&slice) {
 		if (!_slice || *_slice != slice) {
 			_slice = slice;
+			// FAgram: Mark all peers in the slice as blocked
+			for (const auto &item : slice.list) {
+				if (const auto peer = _session->data().peerLoaded(item.id)) {
+					peer->setIsBlocked(true);
+				}
+			}
 			_changes.fire(std::move(slice));
 		}
 	});

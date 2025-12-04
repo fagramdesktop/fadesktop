@@ -67,5 +67,8 @@
     "fa_message_details_filename": "Nome file",
     "fa_message_details_resolution": "Risoluzione",
     "fa_message_details_datacenter": "Data center",
-    "fa_pack_owner": "Proprietario del branco"
+    "fa_pack_owner": "Proprietario del pacchetto",
+    "fa_hide_blocked_user_messages": "Nascondi messaggi dagli utenti bloccati",
+    "fa_hide_blocked_user_messages_desc": "I messaggi degli utenti bloccati saranno nascosti come spoiler e i media non verranno scaricati automaticamente.",
+    "fa_restarting_in_seconds": "Riavvio tra 3 secondi..."
 }

@@ -10,6 +10,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "fa/settings/fa_settings.h"
 
 #include "apiwrap.h"
+#include "api/api_blocked_peers.h"
 #include "api/api_peer_colors.h"
 #include "api/api_updates.h"
 #include "api/api_user_privacy.h"
@@ -23,6 +24,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "chat_helpers/stickers_dice_pack.h"
 #include "chat_helpers/stickers_gift_box_pack.h"
 #include "history/view/reactions/history_view_reactions_strip.h"
+#include "history/view/history_view_element.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "inline_bots/bot_attach_web_view.h"
@@ -234,6 +236,32 @@ Session::Session(
 	_api->requestNotifySettings(MTP_inputNotifyUsers());
 	_api->requestNotifySettings(MTP_inputNotifyChats());
 	_api->requestNotifySettings(MTP_inputNotifyBroadcasts());
+	
+	// FAgram: Load blocked peers list on startup if hide setting is enabled
+	// This ensures blocked status is available when messages are loaded
+	if (FASettings::JsonSettings::GetBool("hide_blocked_user_messages")) {
+		_api->blockedPeers().reload();
+		
+		// Listen for blocked state changes and refresh messages from that peer
+		changes().peerUpdates(
+			Data::PeerUpdate::Flag::IsBlocked
+		) | rpl::start_with_next([=](const Data::PeerUpdate &update) {
+			// When a peer's blocked state changes to blocked, update their messages
+			if (update.peer->isBlocked()) {
+				// Get the history for this peer and refresh all their messages
+				if (const auto history = data().historyLoaded(update.peer)) {
+					for (const auto &block : history->blocks) {
+						for (const auto &element : block->messages) {
+							const auto item = element->data();
+							if (item->from() == update.peer) {
+								history->hideMessage(item);
+							}
+						}
+					}
+				}
+			}
+		}, _lifetime);
+	}
 
 	Core::App().downloadManager().trackSession(this);
 

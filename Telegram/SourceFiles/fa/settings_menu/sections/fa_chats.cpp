@@ -37,6 +37,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "api/api_blocked_peers.h"
 #include "ui/widgets/continuous_sliders.h"
+#include "base/call_delayed.h"
 
 #define SettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
 	container, \
@@ -124,6 +125,31 @@ namespace Settings {
 		SettingsMenuJsonSwitch(fa_show_discuss_button, show_discuss_button);
 		SettingsMenuJsonSwitch(fa_show_message_details, show_message_details);
 		RestartSettingsMenuJsonSwitch(fa_hide_all_chats_folder, hide_all_chats_folder);
+		
+		// FAgram: Red toggle for blocked user message hiding with auto-restart
+		const auto hideBlockedBtn = container->add(object_ptr<Button>(
+			container,
+			FAlang::RplTranslate(QString("fa_hide_blocked_user_messages")),
+			st::settingsButtonNoIcon
+		));
+		hideBlockedBtn->setColorOverride(QColor(255, 0, 0));
+		hideBlockedBtn->toggleOn(
+			rpl::single(::FASettings::JsonSettings::GetBool("hide_blocked_user_messages"))
+		)->toggledValue(
+		) | rpl::filter([](bool enabled) {
+			return (enabled != ::FASettings::JsonSettings::GetBool("hide_blocked_user_messages"));
+		}) | rpl::start_with_next([=](bool enabled) {
+			::FASettings::JsonSettings::Set("hide_blocked_user_messages", enabled);
+			::FASettings::JsonSettings::Write();
+			
+			// Show toast and restart after 3 seconds
+			controller->showToast(FAlang::Translate(QString("fa_restarting_in_seconds")));
+			base::call_delayed(crl::time(3000), container, [] {
+				::Core::Restart();
+			});
+		}, container->lifetime());
+		
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_blocked_user_messages_desc")));
     }
 
     void FAChats::SetupFAChats(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

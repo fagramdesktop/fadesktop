@@ -295,6 +295,10 @@ public:
 		MsgId topicRootId,
 		Data::SavedSublist *sublist);
 
+	// FAgram: Toggle visibility of blocked user messages
+	void hideMessage(not_null<HistoryItem*> item);
+	void unhideMessage(not_null<HistoryItem*> item);
+
 	Data::Draft *draft(Data::DraftKey key) const;
 	void setDraft(Data::DraftKey key, std::unique_ptr<Data::Draft> &&draft);
 	void clearDraft(Data::DraftKey key);

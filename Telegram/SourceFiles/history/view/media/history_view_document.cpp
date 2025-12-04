@@ -39,6 +39,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_file_click_handler.h"
 #include "api/api_transcribes.h"
 #include "apiwrap.h"
+#include "fa/utils/telegram_helpers.h"
 #include "styles/style_chat.h"
 #include "styles/style_dialogs.h"
 
@@ -640,7 +641,10 @@ void Document::draw(
 	const auto cornerDownload = downloadInCorner();
 
 	if (!_dataMedia->canBePlayed(_realParent)) {
-		_dataMedia->automaticLoad(_realParent->fullId(), _realParent);
+		// FAgram: Don't auto-download media from blocked users
+		if (!shouldHideBlockedUserMessage(_parent->data()->from())) {
+			_dataMedia->automaticLoad(_realParent->fullId(), _realParent);
+		}
 	}
 	bool loaded = dataLoaded(), displayLoading = _data->displayLoading();
 	const auto sti = context.imageStyle();

@@ -42,6 +42,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_web_page.h"
 #include "core/application.h"
 #include "core/ui_integration.h"
+#include "fa/utils/telegram_helpers.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 
@@ -286,7 +287,10 @@ void Photo::draw(Painter &p, const PaintContext &context) const {
 	}
 
 	ensureDataMediaCreated();
-	_dataMedia->automaticLoad(_realParent->fullId(), _parent->data());
+	// FAgram: Don't auto-download media from blocked users
+	if (!shouldHideBlockedUserMessage(_parent->data()->from())) {
+		_dataMedia->automaticLoad(_realParent->fullId(), _parent->data());
+	}
 	const auto st = context.st;
 	const auto sti = context.imageStyle();
 	const auto preview = _data->extendedMediaPreview();
@@ -728,7 +732,10 @@ void Photo::drawGrouped(
 		not_null<uint64*> cacheKey,
 		not_null<QPixmap*> cache) const {
 	ensureDataMediaCreated();
-	_dataMedia->automaticLoad(_realParent->fullId(), _parent->data());
+	// FAgram: Don't auto-download media from blocked users
+	if (!shouldHideBlockedUserMessage(_parent->data()->from())) {
+		_dataMedia->automaticLoad(_realParent->fullId(), _parent->data());
+	}
 
 	const auto st = context.st;
 	const auto sti = context.imageStyle();

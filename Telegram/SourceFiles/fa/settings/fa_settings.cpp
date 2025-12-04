@@ -214,6 +214,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "show_message_details", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},
+	{ "hide_blocked_user_messages", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;

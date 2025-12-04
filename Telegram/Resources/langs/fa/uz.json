@@ -67,5 +67,8 @@
     "fa_message_details_filename": "Fayl nomi",
     "fa_message_details_resolution": "Ruxsat",
     "fa_message_details_datacenter": "Ma'lumot markazi",
-    "fa_pack_owner": "Paket egasi"
+    "fa_pack_owner": "Paket egasi",
+    "fa_hide_blocked_user_messages": "Bloklangan foydalanuvchilardan xabarlarni yashirish",
+    "fa_hide_blocked_user_messages_desc": "Bloklangan foydalanuvchilardan kelgan xabarlar spoiler sifatida yashiriladi va media avtomatik yuklanmaydi.",
+    "fa_restarting_in_seconds": "3 soniyadan keyin qayta ishga tushadi..."
 }

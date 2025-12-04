@@ -67,5 +67,8 @@
     "fa_message_details_filename": "Nazwa pliku",
     "fa_message_details_resolution": "Rozdzielczość",
     "fa_message_details_datacenter": "Centrum danych",
-    "fa_pack_owner": "Właściciel pakietu"
+    "fa_pack_owner": "Właściciel pakietu",
+    "fa_hide_blocked_user_messages": "Ukryj wiadomości od zablokowanych użytkowników",
+    "fa_hide_blocked_user_messages_desc": "Wiadomości od zablokowanych użytkowników będą ukryte jako spoilery, a multimedia nie będą automatycznie pobierane.",
+    "fa_restarting_in_seconds": "Ponowne uruchomienie za 3 sekundy..."
 }

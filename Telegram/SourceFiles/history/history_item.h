@@ -592,6 +592,14 @@ public:
 		return _boostsApplied;
 	}
 
+	// FAgram: Blocked user message toggle
+	[[nodiscard]] TextWithEntities getOriginalMessage() const {
+		return _originalMsg;
+	}
+	[[nodiscard]] TextWithEntities getBlockedMessage() const {
+		return _blockMsg;
+	}
+
 	MsgId id;
 
 private:
@@ -717,6 +725,10 @@ private:
 	std::unique_ptr<Data::Media> _media;
 	std::unique_ptr<Data::MessageReactions> _reactions;
 	crl::time _reactionsLastRefreshed = 0;
+
+	// FAgram: Store blocked and original message text for toggle
+	TextWithEntities _blockMsg;
+	TextWithEntities _originalMsg;
 
 	TimeId _date = 0;
 	TimeId _ttlDestroyAt = 0;

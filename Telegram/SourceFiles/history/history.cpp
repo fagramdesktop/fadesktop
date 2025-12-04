@@ -912,6 +912,35 @@ void History::clearUnreadReactionsFor(
 	}
 }
 
+// FAgram: Toggle visibility of blocked user messages
+void History::hideMessage(not_null<HistoryItem*> item) {
+	const auto blockedMsg = item->getBlockedMessage();
+	if (blockedMsg.text.isEmpty()) {
+		return;
+	}
+	
+	item->setText(blockedMsg);
+	if (item->media()) {
+		owner().requestItemTextRefresh(item);
+	} else {
+		session().data().requestItemViewRefresh(item);
+	}
+}
+
+void History::unhideMessage(not_null<HistoryItem*> item) {
+	const auto originalMsg = item->getOriginalMessage();
+	if (originalMsg.text.isEmpty()) {
+		return;
+	}
+	
+	item->setText(originalMsg);
+	if (item->media()) {
+		owner().requestItemTextRefresh(item);
+	} else {
+		session().data().requestItemViewRefresh(item);
+	}
+}
+
 not_null<HistoryItem*> History::addNewToBack(
 		not_null<HistoryItem*> item,
 		bool unread) {

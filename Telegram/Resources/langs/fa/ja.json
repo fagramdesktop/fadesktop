@@ -67,5 +67,8 @@
     "fa_message_details_filename": "ファイル名",
     "fa_message_details_resolution": "解像度",
     "fa_message_details_datacenter": "データセンター",
-    "fa_pack_owner": "パックの所有者"
+    "fa_pack_owner": "パック所有者",
+    "fa_hide_blocked_user_messages": "ブロックしたユーザーのメッセージを非表示",
+    "fa_hide_blocked_user_messages_desc": "ブロックしたユーザーのメッセージはスポイラーとして非表示になり、メディアは自動ダウンロードされません。",
+    "fa_restarting_in_seconds": "3秒後に再起動します..."
 }

@@ -67,5 +67,8 @@
     "fa_message_details_filename": "File name",
     "fa_message_details_resolution": "Resolution",
     "fa_message_details_datacenter": "Datacenter",
-    "fa_pack_owner": "Pack owner"
+    "fa_pack_owner": "Pack owner",
+    "fa_hide_blocked_user_messages": "Hide messages from blocked users",
+    "fa_hide_blocked_user_messages_desc": "Messages from blocked users will be hidden as spoilers and media won't auto-download.",
+    "fa_restarting_in_seconds": "Restarting in 3 seconds..."
 }
