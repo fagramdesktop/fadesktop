@@ -1,8 +1,8 @@
 <div align="center">
 
-<img alt="Telegram" width="150x" src="https://github.com/FajoX1/fagramdesktop/blob/dev/Telegram/Resources/art/icon512@2x.png?raw=true">
+<img alt="Telegram" width="150x" src="https://github.com/burhancodes/fagramdesktop/blob/dev/Telegram/Resources/art/icon512@2x.png?raw=true">
 
-<h1><a href='https://fagram.app'>FAgram Desktop</a></h1>
+<h1>FAgram Desktop</h1>
 
 #### This is the complete source code of FAgram Desktop.
 
@@ -22,13 +22,68 @@
 
 </div>
 
+## Features
+
+<details>
+<summary><b>Click to expand features list</b></summary>
+
+- Button for moving to the first message of the chat
+- Seconds in time of message
+- Change recent stickers up to 100 in FAgram Preferences
+- Show start token in start of bot
+- Disable ads
+- Copy your phone number on tap in profile settings
+- Choose type of showing peer id
+- Showing peer id and dc id
+- Hide stories
+- Show registration date of the user
+- Solar icons (thx design480)
+- Show sticker and emoji pack owner
+- Hide your phone number in settings
+- Add hide All chats folder
+- Added button Copy Callback to copy callback data of button
+- Created answer "Not found." to links tg://... that not found
+- Some special links like tg://fa tg://nya tg://ayu now show random text
+- Multi language for FAgram preferences
+- Added support German, French, Italian, Uzbek, Kazakh languages
+- Hide custom background in chat (beta)
+- Debug logs management (toggle on/off, clean logs via tg://fa/switch_debug_logs)
+- Limit accounts set to 999 (premium too)
+- Links tg://fa/restart tg://fa/quit tg://fa/update
+- FAgram Preferences menu with restart, quit and update buttons
+- Easy choose server while adding account
+- Choose rounding for avatars, reactions, stories etc.
+- Hide open webapp button in chatlist
+- Read after action (Beta)
+- Force snow setting
+- About text with tgd version
+- Changed changelog link
+- Local tg premium
+- Restart confirmation while toggling settings that need client restart
+- Support tg://user links
+- Channel's discuss button
+- Message's details
+- Reduced chat preview delay from 1000ms to 250ms
+- Skip duration to zero for immediate audio processing in voice messages
+- Increased voice message bitrate from 32 to 256
+- Admins & recent actions on the topbar for quicker access
+- Support for scoop on windows
+- Translate option in send menu
+- Use our own API_ID & API_HASH
+- Use Google Translate API for chat translate feature
+- Screenshot mode
+- Material You accent themes & folder background
+- Hide blocked user messages
+
+</details>
+
 ## <h2><img src="https://github.com/hikariatama/assets/raw/master/680-it-developer-flat.webp" height="50" align="middle"> Supported systems</h2>
 
 The latest version is available for
 
 - Windows (x64)
     - [Portable/Installer](https://github.com/burhancodes/fagramdesktop/releases) 
-    - Via [Scoop](https://scoop.sh/) (powershell)
+    - [Scoop package](https://scoop.sh/) (powershell)
         ```powershell
         scoop bucket add fagram-scoop https://github.com/burhancodes/fagram-scoop
         scoop install fagram
@@ -104,4 +159,5 @@ For detailed insturctions on how to install on linux [Click Here](https://burhan
 [win64_build]: docs/building-win64.md
 [mac_build]: docs/building-mac.md
 [linux_build]: docs/building-linux.md
-[preview_image]: https://raw.githubusercontent.com/fajox1/fagramdesktop/dev/docs/assets/preview.png "Preview of FAgram Deskop"
+[features]: docs/features.md
+[preview_image]: docs/assets/preview.png "Preview of FAgram Deskop"
