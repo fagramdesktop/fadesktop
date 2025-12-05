@@ -23,12 +23,15 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/text/text_utilities.h"
 #include "ui/toast/toast.h"
 #include "ui/widgets/buttons.h"
+#include "ui/widgets/popup_menu.h"
+#include "ui/widgets/menu/menu_add_action_callback.h"
 #include "ui/painter.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "styles/style_media_view.h"
 #include "styles/style_media_stories.h"
 #include "styles/style_layers.h"
+#include "styles/style_menu_icons.h"
 
 namespace Media::Stories {
 namespace {
@@ -373,6 +376,30 @@ void SetupStealthMode(
 		const auto &style = st ? *st : st::storiesStealthStyle;
 		show->show(StealthModeBox(show, onActivated, style));
 	}
+}
+
+void AddStealthModeMenu(
+		const Ui::Menu::MenuCallback &add,
+		not_null<PeerData*> peer,
+		not_null<Window::SessionController*> controller) {
+	if (!peer->session().premiumPossible() || !peer->isUser()) {
+		return;
+	}
+	const auto now = base::unixtime::now();
+	const auto stealth = peer->owner().stories().stealthMode();
+	add(
+		tr::lng_stories_view_anonymously(tr::now),
+		[=] {
+			SetupStealthMode(
+				controller->uiShow(),
+				StealthModeDescriptor{
+					[=] { controller->openPeerStories(peer->id); },
+					&st::storiesStealthStyleDefault,
+				});
+		},
+		((peer->session().premium() || (stealth.enabledTill > now))
+			? &st::menuIconStealth
+			: &st::menuIconStealthLocked));
 }
 
 QString TimeLeftText(int left) {

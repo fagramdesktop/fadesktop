@@ -724,6 +724,11 @@ settingsCreditsButton: SettingsButton(settingsButton) {
 settingsButtonIconGift: icon {{ "settings/gift", menuIconColor }};
 settingsButtonIconEarn: icon {{ "settings/earn", menuIconColor }};
 
+settingsIconPasskeys: icon {{ "menu/permissions", windowBgActive }};
+settingsIconPasskeysAboutIcon1: icon {{ "menu/permissions", boxTextFg }};
+settingsIconPasskeysAboutIcon2: icon {{ "menu/passcode_winhello", boxTextFg }};
+settingsIconPasskeysAboutIcon3: icon {{ "menu/lock", boxTextFg }};
+
 settingsAgeVerifyBox: Box(filterInviteBox) {
 	buttonPadding: margins(24px, 24px, 24px, 24px);
 }

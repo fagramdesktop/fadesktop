@@ -554,6 +554,7 @@ void SetupFingerprintTooltip(not_null<Ui::RpWidget*> widget) {
 		std::unique_ptr<Ui::ImportantTooltip> tooltip;
 		Fn<void()> updateGeometry;
 		Fn<void(bool)> toggleTooltip;
+		bool tooltipShown = false;
 	};
 	const auto state = widget->lifetime().make_state<State>();
 	state->updateGeometry = [=] {
@@ -620,12 +621,18 @@ void SetupFingerprintTooltip(not_null<Ui::RpWidget*> widget) {
 			// Enter events may come from widget destructors,
 			// in that case sync-showing tooltip (calling Grab)
 			// crashes the whole thing.
+			state->tooltipShown = true;
 			crl::on_main(widget, [=] {
-				state->toggleTooltip(true);
+				if (state->tooltipShown) {
+					state->toggleTooltip(true);
+				}
 			});
 		} else if (type == QEvent::Leave) {
+			state->tooltipShown = false;
 			crl::on_main(widget, [=] {
-				state->toggleTooltip(false);
+				if (!state->tooltipShown) {
+					state->toggleTooltip(false);
+				}
 			});
 		}
 	}, widget->lifetime());

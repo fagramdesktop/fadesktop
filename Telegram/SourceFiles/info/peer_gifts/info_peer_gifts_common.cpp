@@ -205,6 +205,11 @@ void GiftButton::setDescriptor(const GiftDescriptor &descriptor, Mode mode) {
 			: Lang::FormatCountDecimal(number);
 	};
 
+	const auto auctionStartDate = v::is<GiftTypeStars>(descriptor)
+		? v::get<GiftTypeStars>(descriptor).info.auctionStartDate
+		: TimeId();
+	const auto upcomingAuction = (auctionStartDate > base::unixtime::now());
+
 	_descriptor = descriptor;
 	_resalePrice = resalePrice;
 	const auto resale = (_resalePrice > 0);
@@ -232,7 +237,7 @@ void GiftButton::setDescriptor(const GiftDescriptor &descriptor, Mode mode) {
 					tr::now,
 					lt_amount,
 					_delegate->ministar().append(' ' + starsText),
-					Ui::Text::WithEntities),
+					tr::marked),
 				kMarkupTextOptions,
 				_delegate->textContext());
 		}
@@ -274,13 +279,11 @@ void GiftButton::setDescriptor(const GiftDescriptor &descriptor, Mode mode) {
 				: (small() && unique && unique->starsForResale)
 				? Data::FormatGiftResaleAsked(*unique)
 				: unique
-				? tr::lng_gift_transfer_button(
-					tr::now,
-					Ui::Text::WithEntities)
-				: (data.info.auction() && !data.info.soldOut)
-				? tr::lng_gift_stars_auction_join(
-					tr::now,
-					Ui::Text::WithEntities)
+				? tr::lng_gift_transfer_button(tr::now, tr::marked)
+				: data.info.auction()
+				? ((data.info.soldOut || upcomingAuction)
+					? tr::lng_gift_stars_auction_view
+					: tr::lng_gift_stars_auction_join)(tr::now, tr::marked)
 				: _delegate->star().append(' ' + format(data.info.stars))),
 			kMarkupTextOptions,
 			_delegate->textContext());
@@ -378,7 +381,7 @@ void GiftButton::setDocument(not_null<DocumentData*> document) {
 	const auto destroyed = base::take(_player);
 	_playerDocument = nullptr;
 	_mediaLifetime = rpl::single() | rpl::then(
-		document->owner().session().downloaderTaskFinished()
+		document->session().downloaderTaskFinished()
 	) | rpl::filter([=] {
 		return media->loaded();
 	}) | rpl::start_with_next([=] {
@@ -791,6 +794,9 @@ void GiftButton::paintEvent(QPaintEvent *e) {
 	}, [&](const GiftTypeStars &data) {
 		const auto count = data.info.limitedCount;
 		const auto pinned = data.pinned || data.pinnedSelection;
+		const auto now = base::unixtime::now();
+		const auto upcomingAuction = (data.info.auctionStartDate > 0)
+			&& (data.info.auctionStartDate > now);
 		if (count || pinned) {
 			const auto yourLeft = data.info.perUserTotal
 				? (data.info.perUserRemains
@@ -807,10 +813,12 @@ void GiftButton::paintEvent(QPaintEvent *e) {
 					? ('#' + QString::number(unique->number))
 					: data.resale
 					? tr::lng_gift_stars_resale(tr::now)
-					: (!unique && data.info.auction())
-					? tr::lng_gift_stars_auction(tr::now)
 					: soldOut
 					? tr::lng_gift_stars_sold_out(tr::now)
+					: (!unique && data.info.auction())
+					? (upcomingAuction
+						? tr::lng_gift_stars_auction_soon
+						: tr::lng_gift_stars_auction)(tr::now)
 					: (!data.userpic
 						&& !data.info.unique
 						&& data.info.requirePremium)
@@ -1358,7 +1366,7 @@ void SelectGiftToUnpin(
 		});
 		const auto label = Ui::SetButtonMarkedLabel(
 			button,
-			tr::lng_context_unpin_from_top(Ui::Text::WithEntities),
+			tr::lng_context_unpin_from_top(tr::marked),
 			&show->session(),
 			st::creditsBoxButtonLabel,
 			&st::giftTooManyPinnedBox.button.textFg);

@@ -341,7 +341,7 @@ PaintRoundImageCallback GenerateCreditsPaintEntryCallback(
 	photo->load(Data::PhotoSize::Large, {});
 
 	rpl::single(rpl::empty_value()) | rpl::then(
-		photo->owner().session().downloaderTaskFinished()
+		photo->session().downloaderTaskFinished()
 	) | rpl::start_with_next([=] {
 		using Size = Data::PhotoSize;
 		if (const auto large = state->view->image(Size::Large)) {
@@ -391,7 +391,7 @@ PaintRoundImageCallback GenerateCreditsPaintEntryCallback(
 	video->loadThumbnail({});
 
 	rpl::single(rpl::empty_value()) | rpl::then(
-		video->owner().session().downloaderTaskFinished()
+		video->session().downloaderTaskFinished()
 	) | rpl::start_with_next([=] {
 		if (const auto thumbnail = state->view->thumbnail()) {
 			state->imagePtr = thumbnail;

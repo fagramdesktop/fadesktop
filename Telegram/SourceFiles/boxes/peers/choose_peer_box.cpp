@@ -97,6 +97,7 @@ using RightsMap = std::vector<std::pair<ChatAdminRight, tr::phrase<>>>;
 		{ Flag::ManageCall, tr::lng_request_channel_manage_livestreams },
 		{ Flag::ManageDirect, tr::lng_request_channel_manage_direct },
 		{ Flag::AddAdmins, tr::lng_request_channel_add_admins },
+		{ Flag::BanUsers, tr::lng_request_group_ban_users },
 	};
 }
 

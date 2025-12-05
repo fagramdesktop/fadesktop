@@ -1907,7 +1907,7 @@ void InnerWidget::flushCollectionReorder() {
 }
 
 void InnerWidget::mousePressEvent(QMouseEvent *e) {
-	if (e->button() != Qt::LeftButton || _addingToCollectionId) {
+	if (e->button() != Qt::LeftButton) {
 		return;
 	}
 	const auto index = giftFromGlobalPos(e->globalPos());
@@ -1916,7 +1916,8 @@ void InnerWidget::mousePressEvent(QMouseEvent *e) {
 	}
 	_pressedIndex = index;
 	const auto collectionId = _descriptor.current().collectionId;
-	const auto canDrag = _peer->canManageGifts()
+	const auto canDrag = !_addingToCollectionId
+		&& _peer->canManageGifts()
 		&& _list->size() > 1
 		&& (collectionId
 			|| (!collectionId

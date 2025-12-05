@@ -690,6 +690,13 @@ struct ActionStarGift {
 	std::vector<TextPart> text;
 	bool anonymous = false;
 	bool limited = false;
+
+	CreditsAmount offerPrice;
+	TimeId offerExpireAt = 0;
+	bool offer = false;
+	bool offerAccepted = false;
+	bool offerDeclined = false;
+	bool offerExpired = false;
 };
 
 struct ActionPaidMessagesRefunded {

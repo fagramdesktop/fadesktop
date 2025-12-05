@@ -2109,6 +2109,7 @@ void Panel::trackControl(Ui::RpWidget *widget, rpl::lifetime &lifetime) {
 	if (!widget) {
 		return;
 	}
+	const auto over = std::make_shared<bool>();
 	widget->events(
 	) | rpl::start_with_next([=](not_null<QEvent*> e) {
 		const auto type = e->type();
@@ -2116,12 +2117,18 @@ void Panel::trackControl(Ui::RpWidget *widget, rpl::lifetime &lifetime) {
 			// Enter events may come from widget destructors,
 			// in that case sync-showing tooltip (calling Grab)
 			// crashes the whole thing.
+			*over = true;
 			crl::on_main(widget, [=] {
-				trackControlOver(widget, true);
+				if (*over) {
+					trackControlOver(widget, true);
+				}
 			});
 		} else if (type == QEvent::Leave) {
+			*over = false;
 			crl::on_main(widget, [=] {
-				trackControlOver(widget, false);
+				if (!*over) {
+					trackControlOver(widget, false);
+				}
 			});
 		}
 	}, lifetime);

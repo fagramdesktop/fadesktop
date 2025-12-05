@@ -42,6 +42,7 @@ class Factchecks;
 class LocationPickers;
 class Credits;
 class PromoSuggestions;
+class Passkeys;
 } // namespace Data
 
 namespace HistoryView::Reactions {
@@ -201,6 +202,9 @@ public:
 	[[nodiscard]] Data::PromoSuggestions &promoSuggestions() const {
 		return *_promoSuggestions;
 	}
+	[[nodiscard]] Data::Passkeys &passkeys() const {
+		return *_passkeys;
+	}
 	[[nodiscard]] auto cachedReactionIconFactory() const
 	-> HistoryView::Reactions::CachedIconFactory & {
 		return *_cachedReactionIconFactory;
@@ -305,6 +309,7 @@ private:
 	const std::unique_ptr<Data::LocationPickers> _locationPickers;
 	const std::unique_ptr<Data::Credits> _credits;
 	const std::unique_ptr<Data::PromoSuggestions> _promoSuggestions;
+	const std::unique_ptr<Data::Passkeys> _passkeys;
 
 	using ReactionIconFactory = HistoryView::Reactions::CachedIconFactory;
 	const std::unique_ptr<ReactionIconFactory> _cachedReactionIconFactory;

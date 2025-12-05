@@ -22,7 +22,7 @@ struct HistoryMessageMarkupData;
 struct HistoryMessageReplyMarkup;
 struct HistoryMessageTranslation;
 struct HistoryMessageForwarded;
-struct HistoryMessageSuggestedPost;
+struct HistoryMessageSuggestion;
 struct HistoryServiceDependentData;
 struct HistoryServiceTodoCompletions;
 enum class HistorySelfDestructType;
@@ -577,10 +577,11 @@ public:
 
 	[[nodiscard]] SuggestionActions computeSuggestionActions() const;
 	[[nodiscard]] SuggestionActions computeSuggestionActions(
-		const HistoryMessageSuggestedPost *suggest) const;
+		const HistoryMessageSuggestion *suggest) const;
 	[[nodiscard]] SuggestionActions computeSuggestionActions(
 		bool accepted,
-		bool rejected) const;
+		bool rejected,
+		TimeId giftOfferExpiresAt) const;
 
 	[[nodiscard]] bool needsUpdateForVideoQualities(const MTPMessage &data);
 
@@ -628,7 +629,7 @@ private:
 	void setReplyMarkup(
 		HistoryMessageMarkupData &&markup,
 		bool ignoreSuggestButtons = false);
-	void updateSuggestControls(const HistoryMessageSuggestedPost *suggest);
+	void updateSuggestControls(const HistoryMessageSuggestion *suggest);
 
 	void changeReplyToTopCounter(
 		not_null<HistoryMessageReply*> reply,

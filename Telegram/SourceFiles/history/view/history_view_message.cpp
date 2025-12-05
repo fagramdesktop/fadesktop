@@ -26,13 +26,12 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "boxes/premium_preview_box.h"
 #include "boxes/share_box.h"
-#include "ui/effects/glare.h"
 #include "ui/effects/reaction_fly_animation.h"
 #include "ui/text/text_utilities.h"
 #include "ui/text/text_extended_data.h"
 #include "ui/power_saving.h"
 #include "ui/rect.h"
-#include "ui/round_rect.h"
+//#include "ui/round_rect.h"
 #include "data/components/factchecks.h"
 #include "data/components/sponsored_messages.h"
 #include "data/data_session.h"
@@ -58,286 +57,6 @@ namespace {
 
 constexpr auto kPlayStatusLimit = 2;
 const auto kPsaTooltipPrefix = "cloud_lng_tooltip_psa_";
-
-class KeyboardStyle : public ReplyKeyboard::Style {
-public:
-	KeyboardStyle(const style::BotKeyboardButton &st, Fn<void()> repaint);
-
-	Images::CornersMaskRef buttonRounding(
-		Ui::BubbleRounding outer,
-		RectParts sides) const override;
-
-	void startPaint(
-		QPainter &p,
-		const Ui::ChatStyle *st) const override;
-	const style::TextStyle &textStyle() const override;
-	void repaint(not_null<const HistoryItem*> item) const override;
-
-protected:
-	void paintButtonBg(
-		QPainter &p,
-		const Ui::ChatStyle *st,
-		const QRect &rect,
-		Ui::BubbleRounding rounding,
-		float64 howMuchOver) const override;
-	void paintButtonIcon(
-		QPainter &p,
-		const Ui::ChatStyle *st,
-		const QRect &rect,
-		int outerWidth,
-		HistoryMessageMarkupButton::Type type) const override;
-	void paintButtonLoading(
-		QPainter &p,
-		const Ui::ChatStyle *st,
-		const QRect &rect,
-		int outerWidth,
-		Ui::BubbleRounding rounding) const override;
-	int minButtonWidth(HistoryMessageMarkupButton::Type type) const override;
-
-private:
-	using BubbleRoundingKey = uchar;
-	mutable base::flat_map<BubbleRoundingKey, QImage> _cachedBg;
-	mutable base::flat_map<BubbleRoundingKey, QPainterPath> _cachedOutline;
-	mutable std::unique_ptr<Ui::GlareEffect> _glare;
-	Fn<void()> _repaint;
-	rpl::lifetime _lifetime;
-
-};
-
-KeyboardStyle::KeyboardStyle(
-	const style::BotKeyboardButton &st,
-	Fn<void()> repaint)
-: ReplyKeyboard::Style(st)
-, _repaint(std::move(repaint)) {
-	style::PaletteChanged(
-	) | rpl::start_with_next([=] {
-		_cachedBg = {};
-		_cachedOutline = {};
-	}, _lifetime);
-}
-
-void KeyboardStyle::startPaint(
-		QPainter &p,
-		const Ui::ChatStyle *st) const {
-	Expects(st != nullptr);
-
-	p.setPen(st->msgServiceFg());
-}
-
-const style::TextStyle &KeyboardStyle::textStyle() const {
-	return st::serviceTextStyle;
-}
-
-void KeyboardStyle::repaint(not_null<const HistoryItem*> item) const {
-	item->history()->owner().requestItemRepaint(item);
-}
-
-Images::CornersMaskRef KeyboardStyle::buttonRounding(
-		Ui::BubbleRounding outer,
-		RectParts sides) const {
-	using namespace Images;
-	using namespace Ui;
-	using Radius = CachedCornerRadius;
-	using Corner = BubbleCornerRounding;
-	auto result = CornersMaskRef(CachedCornersMasks(Radius::BubbleSmall));
-	if (sides & RectPart::Bottom) {
-		const auto &large = CachedCornersMasks(Radius::BubbleLarge);
-		auto round = [&](RectPart side, int index) {
-			if ((sides & side) && (outer[index] == Corner::Large)) {
-				result.p[index] = &large[index];
-			}
-		};
-		round(RectPart::Left, kBottomLeft);
-		round(RectPart::Right, kBottomRight);
-	}
-	return result;
-}
-
-void KeyboardStyle::paintButtonBg(
-		QPainter &p,
-		const Ui::ChatStyle *st,
-		const QRect &rect,
-		Ui::BubbleRounding rounding,
-		float64 howMuchOver) const {
-	Expects(st != nullptr);
-
-	using Corner = Ui::BubbleCornerRounding;
-	auto &cachedBg = _cachedBg[rounding.key()];
-
-	if (cachedBg.isNull()
-		|| cachedBg.width() != (rect.width() * style::DevicePixelRatio())) {
-		cachedBg = QImage(
-			rect.size() * style::DevicePixelRatio(),
-			QImage::Format_ARGB32_Premultiplied);
-		cachedBg.setDevicePixelRatio(style::DevicePixelRatio());
-		cachedBg.fill(Qt::transparent);
-		{
-			auto painter = QPainter(&cachedBg);
-
-			const auto sti = &st->imageStyle(false);
-			const auto &small = sti->msgServiceBgCornersSmall;
-			const auto &large = sti->msgServiceBgCornersLarge;
-			auto corners = Ui::CornersPixmaps();
-			int radiuses[4];
-			for (auto i = 0; i != 4; ++i) {
-				const auto isLarge = (rounding[i] == Corner::Large);
-				corners.p[i] = (isLarge ? large : small).p[i];
-				radiuses[i] = Ui::CachedCornerRadiusValue(isLarge
-					? Ui::CachedCornerRadius::BubbleLarge
-					: Ui::CachedCornerRadius::BubbleSmall);
-			}
-			const auto r = Rect(rect.size());
-			_cachedOutline[rounding.key()] = Ui::ComplexRoundedRectPath(
-				r - Margins(st::lineWidth),
-				radiuses[0],
-				radiuses[1],
-				radiuses[2],
-				radiuses[3]);
-			Ui::FillRoundRect(painter, r, sti->msgServiceBg, corners);
-		}
-	}
-	p.drawImage(rect.topLeft(), cachedBg);
-	if (howMuchOver > 0) {
-		auto o = p.opacity();
-		p.setOpacity(o * howMuchOver);
-		const auto &small = st->msgBotKbOverBgAddCornersSmall();
-		const auto &large = st->msgBotKbOverBgAddCornersLarge();
-		auto over = Ui::CornersPixmaps();
-		for (auto i = 0; i != 4; ++i) {
-			over.p[i] = (rounding[i] == Corner::Large ? large : small).p[i];
-		}
-		Ui::FillRoundRect(p, rect, st->msgBotKbOverBgAdd(), over);
-		p.setOpacity(o);
-	}
-}
-
-void KeyboardStyle::paintButtonIcon(
-		QPainter &p,
-		const Ui::ChatStyle *st,
-		const QRect &rect,
-		int outerWidth,
-		HistoryMessageMarkupButton::Type type) const {
-	Expects(st != nullptr);
-
-	using Type = HistoryMessageMarkupButton::Type;
-	const auto icon = [&]() -> const style::icon* {
-		switch (type) {
-		case Type::Url:
-		case Type::Auth: return &st->msgBotKbUrlIcon();
-		case Type::Buy: return &st->msgBotKbPaymentIcon();
-		case Type::SwitchInlineSame:
-		case Type::SwitchInline: return &st->msgBotKbSwitchPmIcon();
-		case Type::WebView:
-		case Type::SimpleWebView: return &st->msgBotKbWebviewIcon();
-		case Type::CopyText: return &st->msgBotKbCopyIcon();
-		}
-		return nullptr;
-	}();
-	if (icon) {
-		icon->paint(p, rect.x() + rect.width() - icon->width() - st::msgBotKbIconPadding, rect.y() + st::msgBotKbIconPadding, outerWidth);
-	}
-}
-
-void KeyboardStyle::paintButtonLoading(
-		QPainter &p,
-		const Ui::ChatStyle *st,
-		const QRect &rect,
-		int outerWidth,
-		Ui::BubbleRounding rounding) const {
-	Expects(st != nullptr);
-
-	if (anim::Disabled()) {
-		const auto &icon = st->historySendingInvertedIcon();
-		icon.paint(
-			p,
-			rect::right(rect) - icon.width() - st::msgBotKbIconPadding,
-			rect::bottom(rect) - icon.height() - st::msgBotKbIconPadding,
-			rect.x() * 2 + rect.width());
-		return;
-	}
-
-	const auto cacheKey = rounding.key();
-	auto &cachedBg = _cachedBg[cacheKey];
-	if (!cachedBg.isNull()) {
-		if (_glare && _glare->glare.birthTime) {
-			const auto progress = _glare->progress(crl::now());
-			const auto w = _glare->width;
-			const auto h = rect.height();
-			const auto x = (-w) + (w * 2) * progress;
-
-			auto frame = cachedBg;
-			frame.fill(Qt::transparent);
-			{
-				auto painter = QPainter(&frame);
-				auto hq = PainterHighQualityEnabler(painter);
-				painter.setPen(Qt::NoPen);
-				painter.drawTiledPixmap(x, 0, w, h, _glare->pixmap, 0, 0);
-
-				auto path = QPainterPath();
-				path.addRect(Rect(rect.size()));
-				path -= _cachedOutline[cacheKey];
-
-				constexpr auto kBgOutlineAlpha = 0.5;
-				constexpr auto kFgOutlineAlpha = 0.8;
-				const auto &c = st::premiumButtonFg->c;
-				painter.setPen(Qt::NoPen);
-				painter.setBrush(c);
-				painter.setOpacity(kBgOutlineAlpha);
-				painter.drawPath(path);
-				auto gradient = QLinearGradient(-w, 0, w * 2, 0);
-				{
-					constexpr auto kShiftLeft = 0.01;
-					constexpr auto kShiftRight = 0.99;
-					auto stops = _glare->computeGradient(c).stops();
-					stops[1] = {
-						std::clamp(progress, kShiftLeft, kShiftRight),
-						QColor(c.red(), c.green(), c.blue(), kFgOutlineAlpha),
-					};
-					gradient.setStops(std::move(stops));
-				}
-				painter.setBrush(QBrush(gradient));
-				painter.setOpacity(1);
-				painter.drawPath(path);
-
-				painter.setCompositionMode(
-					QPainter::CompositionMode_DestinationIn);
-				painter.drawImage(0, 0, cachedBg);
-			}
-			p.drawImage(rect.x(), rect.y(), frame);
-		} else {
-			_glare = std::make_unique<Ui::GlareEffect>();
-			_glare->width = outerWidth;
-
-			constexpr auto kTimeout = crl::time(0);
-			constexpr auto kDuration = crl::time(1100);
-			const auto color = st::premiumButtonFg->c;
-			_glare->validate(color, _repaint, kTimeout, kDuration);
-		}
-	}
-}
-
-int KeyboardStyle::minButtonWidth(
-		HistoryMessageMarkupButton::Type type) const {
-	using Type = HistoryMessageMarkupButton::Type;
-	int result = 2 * buttonPadding(), iconWidth = 0;
-	switch (type) {
-	case Type::Url:
-	case Type::Auth: iconWidth = st::msgBotKbUrlIcon.width(); break;
-	case Type::Buy: iconWidth = st::msgBotKbPaymentIcon.width(); break;
-	case Type::SwitchInlineSame:
-	case Type::SwitchInline: iconWidth = st::msgBotKbSwitchPmIcon.width(); break;
-	case Type::Callback:
-	case Type::CallbackWithPassword:
-	case Type::Game: iconWidth = st::historySendingInvertedIcon.width(); break;
-	case Type::WebView:
-	case Type::SimpleWebView: iconWidth = st::msgBotKbWebviewIcon.width(); break;
-	case Type::CopyText: return st::msgBotKbCopyIcon.width(); break;
-	}
-	if (iconWidth > 0) {
-		result = std::max(result, 2 * iconWidth + 4 * int(st::msgBotKbIconPadding));
-	}
-	return result;
-}
 
 QString FastForwardText() {
 	return u"Forward"_q;
@@ -422,7 +141,7 @@ Message::Message(
 , _bottomInfo(
 		&data->history()->owner().reactions(),
 		BottomInfoDataFromMessage(this)) {
-	if (data->Get<HistoryMessageSuggestedPost>()) {
+	if (data->Get<HistoryMessageSuggestion>()) {
 		_hideReply = 1;
 	} else if (const auto media = data->media()) {
 		if (media->giveawayResults()) {
@@ -460,7 +179,7 @@ Message::~Message() {
 
 void Message::refreshSuggestedInfo(
 		not_null<HistoryItem*> item,
-		not_null<const HistoryMessageSuggestedPost*> suggest,
+		not_null<const HistoryMessageSuggestion*> suggest,
 		const HistoryMessageReply *replyData) {
 	const auto link = (replyData && replyData->resolvedMessage)
 		? JumpToMessageClickHandler(
@@ -481,7 +200,7 @@ void Message::refreshSuggestedInfo(
 void Message::initPaidInformation() {
 	const auto item = data();
 	if (item->history()->peer->isMonoforum()) {
-		if (const auto suggest = item->Get<HistoryMessageSuggestedPost>()) {
+		if (const auto suggest = item->Get<HistoryMessageSuggestion>()) {
 			const auto replyData = item->Get<HistoryMessageReply>();
 			refreshSuggestedInfo(item, suggest, replyData);
 		}
@@ -753,7 +472,7 @@ QSize Message::performCountOptimalSize() {
 	}
 
 	if (item->history()->peer->isMonoforum()) {
-		if (const auto suggest = item->Get<HistoryMessageSuggestedPost>()) {
+		if (const auto suggest = item->Get<HistoryMessageSuggestion>()) {
 			if (const auto service = Get<ServicePreMessage>()) {
 				// Ok, we didn't have the message, but now we have.
 				// That means this is not a plain post suggestion,
@@ -3505,24 +3224,6 @@ bool Message::isSignedAuthorElided() const {
 
 bool Message::embedReactionsInBubble() const {
 	return needInfoDisplay();
-}
-
-void Message::validateInlineKeyboard(HistoryMessageReplyMarkup *markup) {
-	if (!markup
-		|| markup->inlineKeyboard
-		|| markup->hiddenBy(data()->media())) {
-		return;
-	}
-	const auto item = data();
-	//if (item->hideLinks()) {
-	//	item->setHasHiddenLinks(true);
-	//	return;
-	//}
-	markup->inlineKeyboard = std::make_unique<ReplyKeyboard>(
-		item,
-		std::make_unique<KeyboardStyle>(
-			st::msgBotKbButton,
-			[=] { item->history()->owner().requestItemRepaint(item); }));
 }
 
 void Message::validateFromNameText(PeerData *from) const {

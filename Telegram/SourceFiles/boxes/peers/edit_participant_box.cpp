@@ -246,7 +246,8 @@ ChatAdminRightsInfo EditAdminBox::defaultRights() const {
 			| Flag::DeleteStories
 			| Flag::InviteByLinkOrAdd
 			| Flag::ManageCall
-			| Flag::ManageDirect) };
+			| Flag::ManageDirect
+			| Flag::BanUsers) };
 }
 
 void EditAdminBox::prepare() {

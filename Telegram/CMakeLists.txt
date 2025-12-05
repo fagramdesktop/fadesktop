@@ -337,6 +337,8 @@ PRIVATE
     boxes/star_gift_auction_box.h
     boxes/star_gift_box.cpp
     boxes/star_gift_box.h
+    boxes/star_gift_preview_box.cpp
+    boxes/star_gift_preview_box.h
     boxes/star_gift_resale_box.cpp
     boxes/star_gift_resale_box.h
     boxes/sticker_set_box.cpp
@@ -526,6 +528,8 @@ PRIVATE
     data/components/gift_auctions.h
     data/components/location_pickers.cpp
     data/components/location_pickers.h
+    data/components/passkeys.cpp
+    data/components/passkeys.h
     data/components/promo_suggestions.cpp
     data/components/promo_suggestions.h
     data/components/recent_peers.cpp
@@ -1430,6 +1434,7 @@ PRIVATE
     platform/linux/specific_linux.h
     platform/linux/tray_linux.cpp
     platform/linux/tray_linux.h
+    platform/linux/webauthn_linux.cpp
     platform/mac/file_utilities_mac.mm
     platform/mac/file_utilities_mac.h
     platform/mac/launcher_mac.mm
@@ -1449,6 +1454,7 @@ PRIVATE
     platform/mac/specific_mac_p.h
     platform/mac/tray_mac.mm
     platform/mac/tray_mac.h
+    platform/mac/webauthn_mac.mm
     platform/mac/window_title_mac.mm
     platform/mac/touchbar/items/mac_formatter_item.h
     platform/mac/touchbar/items/mac_formatter_item.mm
@@ -1483,6 +1489,7 @@ PRIVATE
     platform/win/specific_win.h
     platform/win/tray_win.cpp
     platform/win/tray_win.h
+    platform/win/webauthn_win.cpp
     platform/win/windows_app_user_model_id.cpp
     platform/win/windows_app_user_model_id.h
     platform/win/windows_dlls.cpp
@@ -1501,6 +1508,7 @@ PRIVATE
     platform/platform_overlay_widget.h
     platform/platform_specific.h
     platform/platform_tray.h
+    platform/platform_webauthn.h
     platform/platform_window_title.h
     profile/profile_back_button.cpp
     profile/profile_back_button.h
@@ -1586,6 +1594,8 @@ PRIVATE
     settings/settings_notifications.h
     settings/settings_notifications_type.cpp
     settings/settings_notifications_type.h
+    settings/settings_passkeys.cpp
+    settings/settings_passkeys.h
     settings/settings_power_saving.cpp
     settings/settings_power_saving.h
     settings/settings_premium.cpp

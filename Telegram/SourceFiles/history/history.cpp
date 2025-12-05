@@ -244,7 +244,7 @@ void History::createLocalDraftFromCloud(
 	draft->reply.topicRootId = topicRootId;
 	draft->reply.monoforumPeerId = monoforumPeerId;
 	if (!suggestDraftAllowed()) {
-		draft->suggest = SuggestPostOptions();
+		draft->suggest = SuggestOptions();
 	}
 	auto existing = localDraft(topicRootId, monoforumPeerId);
 	if (Data::DraftIsNull(existing)
@@ -334,7 +334,7 @@ Data::Draft *History::createCloudDraft(
 				.topicRootId = topicRootId,
 				.monoforumPeerId = monoforumPeerId,
 			},
-			SuggestPostOptions(),
+			SuggestOptions(),
 			MessageCursor(),
 			Data::WebPageDraft()));
 		cloudDraft(topicRootId, monoforumPeerId)->date = TimeId(0);
@@ -362,7 +362,7 @@ Data::Draft *History::createCloudDraft(
 		existing->reply.topicRootId = topicRootId;
 		existing->reply.monoforumPeerId = monoforumPeerId;
 		if (!suggestDraftAllowed()) {
-			existing->suggest = SuggestPostOptions();
+			existing->suggest = SuggestOptions();
 		}
 	}
 

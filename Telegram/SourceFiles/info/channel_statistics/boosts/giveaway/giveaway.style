@@ -235,6 +235,7 @@ darkGiftHide: icon {{ "menu/stealth", groupCallMembersFg }};
 darkGiftShow: icon {{ "menu/show_in_chat", groupCallMembersFg }};
 darkGiftPin: icon {{ "menu/pin", groupCallMembersFg }};
 darkGiftUnpin: icon {{ "menu/unpin", groupCallMembersFg }};
+darkGiftOffer: icon {{ "menu/earn", groupCallMembersFg }};
 darkGiftPalette: TextPalette(defaultTextPalette) {
 	linkFg: mediaviewTextLinkFg;
 	monoFg: groupCallMembersFg;

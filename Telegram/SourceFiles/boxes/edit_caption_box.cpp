@@ -232,7 +232,7 @@ EditCaptionBox::EditCaptionBox(
 	not_null<Window::SessionController*> controller,
 	not_null<HistoryItem*> item,
 	TextWithTags &&text,
-	SuggestPostOptions suggest,
+	SuggestOptions suggest,
 	bool spoilered,
 	bool invertCaption,
 	Ui::PreparedList &&list,
@@ -273,7 +273,7 @@ void EditCaptionBox::StartMediaReplace(
 		not_null<Window::SessionController*> controller,
 		FullMsgId itemId,
 		TextWithTags text,
-		SuggestPostOptions suggest,
+		SuggestOptions suggest,
 		bool spoilered,
 		bool invertCaption,
 		Fn<void()> saved) {
@@ -304,7 +304,7 @@ void EditCaptionBox::StartMediaReplace(
 		FullMsgId itemId,
 		Ui::PreparedList &&list,
 		TextWithTags text,
-		SuggestPostOptions suggest,
+		SuggestOptions suggest,
 		bool spoilered,
 		bool invertCaption,
 		Fn<void()> saved) {
@@ -353,7 +353,7 @@ void EditCaptionBox::StartPhotoEdit(
 		std::shared_ptr<Data::PhotoMedia> media,
 		FullMsgId itemId,
 		TextWithTags text,
-		SuggestPostOptions suggest,
+		SuggestOptions suggest,
 		bool spoilered,
 		bool invertCaption,
 		Fn<void()> saved) {

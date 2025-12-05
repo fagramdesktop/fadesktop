@@ -7,6 +7,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 */
 #include "settings/settings_experimental.h"
 
+#include "data/components/passkeys.h"
+#include "main/main_session.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/wrap/slide_wrap.h"
@@ -168,6 +170,10 @@ void SetupExperimental(
 	}
 	addToggle(Window::kOptionDisableTouchbar);
 	addToggle(Info::kAlternativeScrollProcessing);
+
+#ifdef Q_OS_MAC
+	addToggle("text-recognition-mac");
+#endif // Q_OS_MAC
 }
 
 } // namespace

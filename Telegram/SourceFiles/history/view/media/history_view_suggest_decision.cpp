@@ -66,9 +66,9 @@ struct Changes {
 		not_null<HistoryItem*> changed,
 		HistoryItem *original) {
 	const auto wasSuggest = original
-		? original->Get<HistoryMessageSuggestedPost>()
+		? original->Get<HistoryMessageSuggestion>()
 		: nullptr;
-	const auto nowSuggest = changed->Get<HistoryMessageSuggestedPost>();
+	const auto nowSuggest = changed->Get<HistoryMessageSuggestion>();
 	if (!wasSuggest || !nowSuggest) {
 		return {};
 	}
@@ -266,7 +266,7 @@ auto GenerateSuggestDecisionMedia(
 
 auto GenerateSuggestRequestMedia(
 	not_null<Element*> parent,
-	not_null<const HistoryMessageSuggestedPost*> suggest)
+	not_null<const HistoryMessageSuggestion*> suggest)
 	-> Fn<void(
 		not_null<MediaGeneric*>,
 		Fn<void(std::unique_ptr<MediaGenericPart>)>)> {

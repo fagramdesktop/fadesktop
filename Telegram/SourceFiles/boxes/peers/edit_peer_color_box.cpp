@@ -117,13 +117,7 @@ base::unique_qptr<Ui::RpWidget> CreateEmptyPlaceholder(
 			tr::lng_gift_stars_tabs_my_empty_next(
 				lt_emoji,
 				rpl::single(Ui::Text::IconEmoji(&st::textMoreIconEmoji)),
-				TextWithEntities::Simple
-			) | rpl::map([](TextWithEntities t) {
-				return Ui::Text::Wrapped(
-					std::move(t),
-					EntityType::Url,
-					u"internal:"_q);
-			}),
+				tr::link),
 			st::giftBoxGiftEmptyLabel)
 		: nullptr;
 	if (emptyNextLabel) {

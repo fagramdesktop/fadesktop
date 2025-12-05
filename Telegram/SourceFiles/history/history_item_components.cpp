@@ -1229,7 +1229,8 @@ bool HistoryMessageReplyMarkup::hiddenBy(Data::Media *media) const {
 
 void HistoryMessageReplyMarkup::updateSuggestControls(
 		SuggestionActions actions) {
-	if (actions == SuggestionActions::AcceptAndDecline) {
+	if (actions == SuggestionActions::AcceptAndDecline
+		|| actions == SuggestionActions::GiftOfferActions) {
 		data.flags |= ReplyMarkupFlag::SuggestionAccept;
 	} else {
 		data.flags &= ~ReplyMarkupFlag::SuggestionAccept;
@@ -1248,7 +1249,21 @@ void HistoryMessageReplyMarkup::updateSuggestControls(
 				type,
 				&HistoryMessageMarkupButton::type);
 	};
-	if (actions == SuggestionActions::AcceptAndDecline) {
+	if (actions == SuggestionActions::GiftOfferActions) {
+		if (has(Type::SuggestAccept)) {
+			// Nothing changed.
+		}
+		data.rows.push_back({
+			{
+				Type::SuggestDecline,
+				tr::lng_action_gift_offer_decline(tr::now),
+			},
+			{
+				Type::SuggestAccept,
+				tr::lng_action_gift_offer_accept(tr::now),
+			},
+		});
+	} else if (actions == SuggestionActions::AcceptAndDecline) {
 		//     ... rows ...
 		// [decline] | [accept]
 		//   [suggestchanges]

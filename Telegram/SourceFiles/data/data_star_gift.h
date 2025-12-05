@@ -20,14 +20,26 @@ namespace Data {
 struct UniqueGiftAttribute {
 	QString name;
 	int rarityPermille = 0;
+
+	friend inline bool operator==(
+		const UniqueGiftAttribute &,
+		const UniqueGiftAttribute &) = default;
 };
 
 struct UniqueGiftModel : UniqueGiftAttribute {
 	not_null<DocumentData*> document;
+
+	friend inline bool operator==(
+		const UniqueGiftModel &,
+		const UniqueGiftModel &) = default;
 };
 
 struct UniqueGiftPattern : UniqueGiftAttribute {
 	not_null<DocumentData*> document;
+
+	friend inline bool operator==(
+		const UniqueGiftPattern &,
+		const UniqueGiftPattern &) = default;
 };
 
 struct UniqueGiftBackdrop : UniqueGiftAttribute {
@@ -36,6 +48,16 @@ struct UniqueGiftBackdrop : UniqueGiftAttribute {
 	QColor patternColor;
 	QColor textColor;
 	int id = 0;
+
+	friend inline bool operator==(
+		const UniqueGiftBackdrop &,
+		const UniqueGiftBackdrop &) = default;
+};
+
+struct UniqueGiftAttributes {
+	std::vector<UniqueGiftModel> models;
+	std::vector<UniqueGiftBackdrop> backdrops;
+	std::vector<UniqueGiftPattern> patterns;
 };
 
 struct UniqueGiftOriginalDetails {
@@ -48,6 +70,7 @@ struct UniqueGiftOriginalDetails {
 struct UniqueGiftValue {
 	QString currency;
 	int64 valuePrice = 0;
+	int64 valuePriceUsd = 0;
 	CreditsAmount initialPriceStars;
 	int64 initialSalePrice = 0;
 	TimeId initialSaleDate = 0;
@@ -76,6 +99,7 @@ struct UniqueGift {
 	int64 nanoTonForResale = -1;
 	int starsForResale = -1;
 	int starsForTransfer = -1;
+	int starsMinOffer = -1;
 	int number = 0;
 	bool onlyAcceptTon = false;
 	bool canBeTheme = false;
@@ -91,6 +115,7 @@ struct UniqueGift {
 };
 
 [[nodiscard]] QString UniqueGiftName(const UniqueGift &gift);
+[[nodiscard]] QString UniqueGiftName(const QString &title, int number);
 
 [[nodiscard]] CreditsAmount UniqueGiftResaleStars(const UniqueGift &gift);
 [[nodiscard]] CreditsAmount UniqueGiftResaleTon(const UniqueGift &gift);
@@ -100,9 +125,25 @@ struct UniqueGift {
 [[nodiscard]] TextWithEntities FormatGiftResaleTon(const UniqueGift &gift);
 [[nodiscard]] TextWithEntities FormatGiftResaleAsked(const UniqueGift &gift);
 
+struct StarGiftBackground {
+	QColor center;
+	QColor edge;
+	QColor text;
+
+	[[nodiscard]] UniqueGiftBackdrop backdrop() const {
+		return {
+			.centerColor = center,
+			.edgeColor = edge,
+			.patternColor = edge,
+			.textColor = text,
+		};
+	}
+};
+
 struct StarGift {
 	uint64 id = 0;
 	std::shared_ptr<UniqueGift> unique;
+	std::shared_ptr<StarGiftBackground> background;
 	int64 stars = 0;
 	int64 starsConverted = 0;
 	int64 starsToUpgrade = 0;
@@ -113,10 +154,12 @@ struct StarGift {
 	int resellCount = 0;
 	QString auctionSlug;
 	int auctionGiftsPerRound = 0;
+	TimeId auctionStartDate = 0;
 	int limitedLeft = 0;
 	int limitedCount = 0;
 	int perUserTotal = 0;
 	int perUserRemains = 0;
+	int upgradeVariants = 0;
 	TimeId firstSaleDate = 0;
 	TimeId lastSaleDate = 0;
 	TimeId lockedUntilDate = 0;
@@ -197,6 +240,7 @@ struct SavedStarGift {
 	QString giftPrepayUpgradeHash;
 	PeerId fromId = 0;
 	TimeId date = 0;
+	int giftNum = 0;
 	bool upgradeSeparate = false;
 	bool upgradable = false;
 	bool anonymous = false;

@@ -8,9 +8,11 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "history/view/media/history_view_theme_document.h"
 
 #include "apiwrap.h"
+#include "base/unixtime.h"
 #include "boxes/background_preview_box.h"
 #include "history/history.h"
 #include "history/history_item.h"
+#include "history/history_item_components.h"
 #include "history/view/history_view_element.h"
 #include "history/view/history_view_cursor_state.h"
 #include "history/view/media/history_view_sticker_player_abstract.h"
@@ -609,69 +611,186 @@ void ThemeDocumentBox::unloadHeavyPart() {
 	}
 }
 
-GiftThemeBox::GiftThemeBox(
+GiftServiceBox::GiftServiceBox(
 	not_null<Element*> parent,
 	not_null<Data::MediaGiftBox*> gift)
 : _parent(parent)
 , _data(*gift->gift()) {
 }
 
-GiftThemeBox::~GiftThemeBox() = default;
+GiftServiceBox::~GiftServiceBox() = default;
 
-int GiftThemeBox::top() {
+int GiftServiceBox::top() {
 	return st::msgServiceStarGiftStickerTop;
 }
 
-int GiftThemeBox::width() {
+int GiftServiceBox::width() {
 	return st::msgServiceStarGiftBoxWidth;
 }
 
-QSize GiftThemeBox::size() {
+QSize GiftServiceBox::size() {
 	return QSize(
 		st::msgServiceGiftThemeStickerSize,
 		st::msgServiceGiftThemeStickerSize).grownBy(
 			st::msgServiceGiftThemeStickerPadding);
 }
 
-TextWithEntities GiftThemeBox::title() {
+TextWithEntities GiftServiceBox::title() {
 	return {};
 }
 
-TextWithEntities GiftThemeBox::subtitle() {
-	const auto giftName = Ui::Text::Bold(
-		Data::UniqueGiftName(*_data.unique));
-	if (_parent->data()->out()) {
+TextWithEntities GiftServiceBox::subtitle() {
+	const auto giftName = tr::bold(Data::UniqueGiftName(*_data.unique));
+	if (_data.type == Data::GiftType::GiftOffer) {
+		const auto item = _parent->data();
+		if (const auto suggestion = item->Get<HistoryMessageSuggestion>()) {
+			const auto amount = suggestion->price;
+			const auto cost = tr::bold(PrepareCreditsAmountText(amount));
+			auto text = tr::marked();
+			if (_parent->data()->out()) {
+				text.append(tr::lng_action_gift_offer_you(
+					tr::now,
+					lt_cost,
+					cost,
+					lt_name,
+					giftName,
+					tr::marked));
+			} else {
+				text.append(tr::lng_action_gift_offer(
+					tr::now,
+					lt_user,
+					tr::bold(_parent->data()->from()->shortName()),
+					lt_cost,
+					cost,
+					lt_name,
+					giftName,
+					tr::marked));
+			}
+			text.append(u"\n\n"_q);
+
+			const auto ends = suggestion->date;
+			const auto now = base::unixtime::now();
+			const auto expired = (now >= ends);
+
+			checkKeyboardRemoval(suggestion, expired);
+
+			if (suggestion->accepted) {
+				text.append(
+					tr::lng_action_gift_offer_state_accepted(tr::now));
+			} else if (suggestion->rejected) {
+				text.append(
+					tr::lng_action_gift_offer_state_rejected(tr::now));
+			} else {
+				if (expired) {
+					text.append(
+						tr::lng_action_gift_offer_state_expired(tr::now));
+				} else {
+					auto time = QString();
+					const auto left = (ends - now) + 59;
+					if (left >= 3600) {
+						const auto hours = left / 3600;
+						const auto minutes = (left % 3600) / 60;
+						time = minutes
+							? tr::lng_action_gift_offer_time_medium(
+								tr::now,
+								lt_hours,
+								QString::number(hours),
+								lt_minutes,
+								QString::number(minutes))
+							: tr::lng_action_gift_offer_time_large(
+								tr::now,
+								lt_hours,
+								QString::number(hours));
+					} else {
+						const auto minutes = left / 60;
+						time = tr::lng_action_gift_offer_time_small(
+							tr::now,
+							lt_minutes,
+							QString::number(minutes));
+					}
+					text.append(tr::lng_action_gift_offer_state_expires(
+						tr::now,
+						lt_time,
+						tr::bold(time),
+						tr::marked));
+
+					const auto tillNext = left % 60;
+					_changeTimer.setCallback([=] { _changes.fire({}); });
+					_changeTimer.callOnce((tillNext ? tillNext : 60)
+						* crl::time(1000));
+				}
+			}
+			return text;
+		}
+	} else if (_parent->data()->out()) {
 		return tr::lng_action_you_gift_theme_changed(
 			tr::now,
 			lt_name,
 			giftName,
-			Ui::Text::WithEntities);
+			tr::marked);
 	} else {
 		return tr::lng_action_gift_theme_changed(
 			tr::now,
 			lt_from,
-			Ui::Text::Bold(_parent->data()->from()->shortName()),
+			tr::bold(_parent->data()->from()->shortName()),
 			lt_name,
 			giftName,
-			Ui::Text::WithEntities);
+			tr::marked);
 	}
 	return _parent->data()->originalText();
 }
 
-rpl::producer<QString> GiftThemeBox::button() {
+void GiftServiceBox::checkKeyboardRemoval(
+		not_null<const HistoryMessageSuggestion*> suggestion,
+		bool expired) {
+	Expects(_data.type == Data::GiftType::GiftOffer);
+
+	const auto item = _parent->data();
+	if (const auto markup = item->Get<HistoryMessageReplyMarkup>()) {
+		if (!markup->data.isTrivial()) {
+			if (suggestion->accepted || suggestion->rejected || expired) {
+				crl::on_main(this, [=] {
+					clearKeyboard();
+				});
+			}
+		}
+	}
+}
+
+void GiftServiceBox::clearKeyboard() {
+	Expects(_data.type == Data::GiftType::GiftOffer);
+
+	const auto item = _parent->data();
+	if (const auto markup = item->Get<HistoryMessageReplyMarkup>()) {
+		markup->updateSuggestControls(SuggestionActions::None);
+		item->history()->owner().requestItemResize(item);
+	}
+}
+
+rpl::producer<> GiftServiceBox::changes() {
+	if (_data.type != Data::GiftType::GiftOffer) {
+		return nullptr;
+	}
+	return _changes.events();
+}
+
+rpl::producer<QString> GiftServiceBox::button() {
+	if (_data.type == Data::GiftType::GiftOffer) {
+		return nullptr;
+	}
 	return tr::lng_sticker_premium_view();
 }
 
-ClickHandlerPtr GiftThemeBox::createViewLink() {
+ClickHandlerPtr GiftServiceBox::createViewLink() {
 	return std::make_shared<UrlClickHandler>(
 		u"tg://nft?slug="_q + _data.unique->slug);
 }
 
-int GiftThemeBox::buttonSkip() {
+int GiftServiceBox::buttonSkip() {
 	return st::msgServiceGiftBoxButtonMargins.top();
 }
 
-void GiftThemeBox::cacheUniqueBackground(int width, int height) {
+void GiftServiceBox::cacheUniqueBackground(int width, int height) {
 	if (!_patternEmoji) {
 		const auto session = &_parent->data()->history()->session();
 		_patternEmoji = session->data().customEmojiManager().create(
@@ -717,7 +836,7 @@ void GiftThemeBox::cacheUniqueBackground(int width, int height) {
 	}
 }
 
-void GiftThemeBox::draw(
+void GiftServiceBox::draw(
 		Painter &p,
 		const PaintContext &context,
 		const QRect &geometry) {
@@ -734,17 +853,17 @@ void GiftThemeBox::draw(
 	}
 }
 
-bool GiftThemeBox::hideServiceText() {
+bool GiftServiceBox::hideServiceText() {
 	return true;
 }
 
-void GiftThemeBox::stickerClearLoopPlayed() {
+void GiftServiceBox::stickerClearLoopPlayed() {
 	if (_sticker) {
 		_sticker->stickerClearLoopPlayed();
 	}
 }
 
-std::unique_ptr<StickerPlayer> GiftThemeBox::stickerTakePlayer(
+std::unique_ptr<StickerPlayer> GiftServiceBox::stickerTakePlayer(
 		not_null<DocumentData*> data,
 		const Lottie::ColorReplacements *replacements) {
 	return _sticker
@@ -752,17 +871,17 @@ std::unique_ptr<StickerPlayer> GiftThemeBox::stickerTakePlayer(
 		: nullptr;
 }
 
-bool GiftThemeBox::hasHeavyPart() {
+bool GiftServiceBox::hasHeavyPart() {
 	return (_sticker ? _sticker->hasHeavyPart() : false);
 }
 
-void GiftThemeBox::unloadHeavyPart() {
+void GiftServiceBox::unloadHeavyPart() {
 	if (_sticker) {
 		_sticker->unloadHeavyPart();
 	}
 }
 
-void GiftThemeBox::ensureStickerCreated() const {
+void GiftServiceBox::ensureStickerCreated() const {
 	if (_sticker) {
 		return;
 	}

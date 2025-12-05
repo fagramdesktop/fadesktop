@@ -168,7 +168,7 @@ void TopicIconView::setupPlayer(not_null<Data::ForumTopic*> topic) {
 		media->goodThumbnailWanted();
 
 		return rpl::single() | rpl::then(
-			document->owner().session().downloaderTaskFinished()
+			document->session().downloaderTaskFinished()
 		) | rpl::filter([=] {
 			return media->loaded();
 		}) | rpl::take(1) | rpl::map([=] {

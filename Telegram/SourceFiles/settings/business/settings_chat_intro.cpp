@@ -175,7 +175,7 @@ rpl::producer<std::shared_ptr<StickerPlayer>> IconPlayerValue(
 	media->goodThumbnailWanted();
 
 	return rpl::single() | rpl::then(
-		sticker->owner().session().downloaderTaskFinished()
+		sticker->session().downloaderTaskFinished()
 	) | rpl::filter([=] {
 		return media->loaded();
 	}) | rpl::take(1) | rpl::map([=] {

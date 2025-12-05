@@ -77,6 +77,8 @@ public:
 	[[nodiscard]] int starsWithdrawMax() const;
 	[[nodiscard]] float64 starsWithdrawRate() const;
 	[[nodiscard]] float64 currencyWithdrawRate() const;
+	[[nodiscard]] float64 starsSellRate() const;
+	[[nodiscard]] float64 currencySellRate() const;
 	[[nodiscard]] bool paidMessagesAvailable() const;
 	[[nodiscard]] int paidMessageStarsMax() const;
 	[[nodiscard]] int paidMessageCommission() const;
@@ -122,6 +124,9 @@ public:
 
 	[[nodiscard]] int groupCallMessageLengthLimit() const;
 	[[nodiscard]] TimeId groupCallMessageTTL() const;
+
+	[[nodiscard]] int passkeysAccountPasskeysMax() const;
+	[[nodiscard]] bool settingsDisplayPasskeys() const;
 
 	using StarsColoring = Calls::Group::Ui::StarsColoring;
 	[[nodiscard]] std::vector<StarsColoring> groupCallColorings() const;

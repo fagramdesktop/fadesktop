@@ -200,6 +200,15 @@ void SetText(Ui::Text::String &text, const QString &content) {
 	text.setText(st::serviceTextStyle, content, EmptyLineOptions);
 }
 
+[[nodiscard]] Ui::BubbleRounding KeyboardRounding() {
+	return Ui::BubbleRounding{
+		.topLeft = Ui::BubbleCornerRounding::Large,
+		.topRight = Ui::BubbleCornerRounding::Large,
+		.bottomLeft = Ui::BubbleCornerRounding::Large,
+		.bottomRight = Ui::BubbleCornerRounding::Large,
+	};
+}
+
 } // namespace
 
 int WideChatWidth() {
@@ -411,6 +420,20 @@ Service::Service(
 	setupReactions(replacing);
 }
 
+void Service::clickHandlerPressedChanged(
+		const ClickHandlerPtr &handler,
+		bool pressed) {
+	if (const auto markup = data()->Get<HistoryMessageReplyMarkup>()) {
+		if (const auto keyboard = markup->inlineKeyboard.get()) {
+			keyboard->clickHandlerPressedChanged(
+				handler,
+				pressed,
+				KeyboardRounding());
+		}
+	}
+	Element::clickHandlerPressedChanged(handler, pressed);
+}
+
 QRect Service::innerGeometry() const {
 	return countGeometry();
 }
@@ -438,6 +461,14 @@ void Service::animateReaction(Ui::ReactionFlyAnimationArgs &&args) {
 		return;
 	}
 	const auto repainter = [=] { repaint(); };
+
+	const auto item = data();
+	const auto keyboard = item->inlineReplyKeyboard();
+	auto keyboardHeight = 0;
+	if (keyboard) {
+		keyboardHeight = keyboard->naturalHeight();
+		g.setHeight(g.height() - st::msgBotKbButton.margin - keyboardHeight);
+	}
 
 	if (_reactions) {
 		const auto reactionsHeight = st::mediaInBubbleSkip + _reactions->height();
@@ -496,11 +527,21 @@ QSize Service::performCountCurrentSize(int newWidth) {
 		}
 	}
 
+	const auto item = data();
+	if (const auto keyboard = item->inlineReplyKeyboard()) {
+		const auto keyboardWidth = mediaDisplayed ? media->width() : contentWidth;
+		const auto keyboardHeight = st::msgBotKbButton.margin + keyboard->naturalHeight();
+		newHeight += keyboardHeight;
+		keyboard->resize(keyboardWidth, keyboardHeight - st::msgBotKbButton.margin);
+	}
+
 	return { newWidth, newHeight };
 }
 
 QSize Service::performCountOptimalSize() {
+	const auto markup = data()->inlineReplyMarkup();
 	validateText();
+	validateInlineKeyboard(markup);
 
 	if (_reactions) {
 		_reactions->initDimensions();
@@ -591,6 +632,30 @@ void Service::draw(Painter &p, const PaintContext &context) const {
 	const auto mediaDisplayed = media && media->isDisplayed();
 	const auto onlyMedia = (mediaDisplayed && media->hideServiceText());
 
+	const auto item = data();
+	const auto keyboard = item->inlineReplyKeyboard();
+	if (keyboard) {
+		// We need to count geometry without keyboard for bubble selection
+		// intervals counting below.
+		const auto keyboardHeight = st::msgBotKbButton.margin + keyboard->naturalHeight();
+		g.setHeight(g.height() - keyboardHeight);
+	}
+
+	if (keyboard) {
+		const auto keyboardWidth = mediaDisplayed ? media->width() : g.width();
+		const auto keyboardPosition = QPoint(
+			g.left() + (g.width() - keyboardWidth) / 2,
+			g.top() + g.height() + st::msgBotKbButton.margin);
+		p.translate(keyboardPosition);
+		keyboard->paint(
+			p,
+			context.st,
+			KeyboardRounding(),
+			keyboardWidth,
+			context.clip.translated(-keyboardPosition));
+		p.translate(-keyboardPosition);
+	}
+
 	if (_reactions) {
 		const auto reactionsHeight = st::mediaInBubbleSkip + _reactions->height();
 		const auto reactionsLeft = 0;
@@ -680,6 +745,26 @@ TextState Service::textState(QPoint point, StateRequest request) const {
 		return result;
 	}
 
+	auto keyboard = item->inlineReplyKeyboard();
+	auto keyboardHeight = 0;
+	if (keyboard) {
+		keyboardHeight = keyboard->naturalHeight();
+		g.setHeight(g.height() - st::msgBotKbButton.margin - keyboardHeight);
+
+		if (item->isHistoryEntry()) {
+			const auto keyboardWidth = mediaDisplayed ? media->width() : g.width();
+			const auto keyboardPosition = QPoint(
+				g.left() + (g.width() - keyboardWidth) / 2,
+				g.top() + g.height() + st::msgBotKbButton.margin);
+			if (QRect(keyboardPosition, QSize(keyboardWidth, keyboardHeight)).contains(point)) {
+				result.link = keyboard->getLink(point - keyboardPosition);
+				if (result.link) {
+					return result;
+				}
+			}
+		}
+	}
+
 	if (const auto service = Get<ServicePreMessage>()) {
 		result.link = service->textState(point, request, g);
 		if (result.link) {
@@ -697,7 +782,6 @@ TextState Service::textState(QPoint point, StateRequest request) const {
 			return result;
 		}
 	}
-
 
 	if (onlyMedia) {
 		return media->textState(point - QPoint(st::msgServiceMargin.left() + (g.width() - media->width()) / 2, g.top()), request);

@@ -37,6 +37,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/components/factchecks.h"
 #include "data/components/gift_auctions.h"
 #include "data/components/location_pickers.h"
+#include "data/components/passkeys.h"
 #include "data/components/promo_suggestions.h"
 #include "data/components/recent_peers.h"
 #include "data/components/recent_shared_media_gifts.h"
@@ -159,6 +160,7 @@ Session::Session(
 		}
 	}
 }))
+, _passkeys(std::make_unique<Data::Passkeys>(this))
 , _cachedReactionIconFactory(std::make_unique<ReactionIconFactory>())
 , _supportHelper(Support::Helper::Create(this))
 , _fastButtonsBots(std::make_unique<Support::FastButtonsBots>(this))

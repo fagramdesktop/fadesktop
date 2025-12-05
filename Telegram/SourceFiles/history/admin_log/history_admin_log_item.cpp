@@ -296,12 +296,6 @@ TextWithEntities GenerateAdminChangeText(
 	phraseMap[Flag::InviteByLinkOrAdd] = invitePhrase;
 	phraseMap[Flag::ManageCall] = callPhrase;
 
-	if (!channel->isMegagroup()) {
-		// Don't display "Ban users" changes in channels.
-		newRights.flags &= ~Flag::BanUsers;
-		prevRights.flags &= ~Flag::BanUsers;
-	}
-
 	const auto changes = CollectChanges(
 		phraseMap,
 		newRights.flags,

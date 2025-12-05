@@ -16,6 +16,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_streaming.h"
 #include "data/data_peer_values.h"
 #include "data/data_premium_limits.h"
+#include "info/profile/info_profile_icon.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "main/main_domain.h" // kMaxAccounts
@@ -43,7 +44,10 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "api/api_premium.h"
 #include "apiwrap.h"
+#include "styles/style_credits.h" // upgradeGiftSubtext
+#include "styles/style_info.h" // infoStarsUnderstood
 #include "styles/style_layers.h"
+#include "styles/style_menu_icons.h"
 #include "styles/style_premium.h"
 #include "styles/style_settings.h"
 
@@ -137,6 +141,8 @@ void PreloadSticker(const std::shared_ptr<Data::DocumentMedia> &media) {
 		return tr::lng_premium_summary_subtitle_todo_lists();
 	case PremiumFeature::PeerColors:
 		return tr::lng_premium_summary_subtitle_peer_colors();
+	case PremiumFeature::Gifts:
+		return tr::lng_premium_summary_subtitle_gifts();
 
 	case PremiumFeature::BusinessLocation:
 		return tr::lng_business_subtitle_location();
@@ -206,6 +212,8 @@ void PreloadSticker(const std::shared_ptr<Data::DocumentMedia> &media) {
 		return tr::lng_premium_summary_about_todo_lists();
 	case PremiumFeature::PeerColors:
 		return tr::lng_premium_summary_about_peer_colors();
+	case PremiumFeature::Gifts:
+		return tr::lng_premium_summary_about_gifts();
 
 	case PremiumFeature::BusinessLocation:
 		return tr::lng_business_about_location();
@@ -548,6 +556,7 @@ struct VideoPreviewDocument {
 		case PremiumFeature::Effects: return "effects";
 		case PremiumFeature::TodoLists: return "todo";
 		case PremiumFeature::PeerColors: return "peer_colors";
+		case PremiumFeature::Gifts: return "gifts";
 
 		case PremiumFeature::BusinessLocation: return "business_location";
 		case PremiumFeature::BusinessHours: return "business_hours";
@@ -894,6 +903,45 @@ struct VideoPreviewDocument {
 	return result;
 }
 
+void AddGiftsInfoRows(not_null<Ui::VerticalLayout*> container) {
+	const auto infoRow = [&](
+			rpl::producer<QString> title,
+			rpl::producer<QString> text,
+			not_null<const style::icon*> icon) {
+		auto raw = container->add(
+			object_ptr<Ui::VerticalLayout>(container));
+		raw->add(
+			object_ptr<Ui::FlatLabel>(
+				raw,
+				std::move(title) | Ui::Text::ToBold(),
+				st::defaultFlatLabel),
+			st::settingsPremiumRowTitlePadding);
+		raw->add(
+			object_ptr<Ui::FlatLabel>(
+				raw,
+				std::move(text),
+				st::upgradeGiftSubtext),
+			st::settingsPremiumRowAboutPadding);
+		object_ptr<Info::Profile::FloatingIcon>(
+			raw,
+			*icon,
+			st::starrefInfoIconPosition);
+	};
+
+	infoRow(
+		tr::lng_gift_upgrade_unique_title(),
+		tr::lng_gift_upgrade_unique_about(),
+		&st::menuIconUnique);
+	infoRow(
+		tr::lng_gift_upgrade_tradable_title(),
+		tr::lng_gift_upgrade_tradable_about(),
+		&st::menuIconTradable);
+	infoRow(
+		tr::lng_gift_upgrade_wearable_title(),
+		tr::lng_gift_upgrade_wearable_about(),
+		&st::menuIconNftWear);
+}
+
 void PreviewBox(
 		not_null<Ui::GenericBox*> box,
 		std::shared_ptr<ChatHelpers::Show> show,
@@ -956,22 +1004,32 @@ void PreviewBox(
 		st::settingsPremiumTopBarClose);
 	close->setClickedCallback([=] { box->closeBox(); });
 
-	const auto left = Ui::CreateChild<Ui::IconButton>(
+	const auto gifts = (state->selected.current() == PremiumFeature::Gifts);
+
+	const auto left = gifts ? nullptr : Ui::CreateChild<Ui::IconButton>(
 		buttonsParent,
 		st::settingsPremiumMoveLeft);
-	left->setClickedCallback([=] { move(-1); });
+	if (left) {
+		left->setClickedCallback([=] { move(-1); });
+	}
 
-	const auto right = Ui::CreateChild<Ui::IconButton>(
+	const auto right = gifts ? nullptr : Ui::CreateChild<Ui::IconButton>(
 		buttonsParent,
 		st::settingsPremiumMoveRight);
-	right->setClickedCallback([=] { move(1); });
+	if (right) {
+		right->setClickedCallback([=] { move(1); });
+	}
 
 	buttonsParent->widthValue(
 	) | rpl::start_with_next([=](int width) {
 		const auto outerHeight = st::premiumPreviewHeight;
 		close->moveToRight(0, 0, width);
-		left->moveToLeft(0, (outerHeight - left->height()) / 2, width);
-		right->moveToRight(0, (outerHeight - right->height()) / 2, width);
+		if (left) {
+			left->moveToLeft(0, (outerHeight - left->height()) / 2, width);
+		}
+		if (right) {
+			right->moveToRight(0, (outerHeight - right->height()) / 2, width);
+		}
 	}, close->lifetime());
 
 	state->preload = [=] {
@@ -1099,16 +1157,30 @@ void PreviewBox(
 		st::premiumPreviewAboutPadding,
 		style::al_top
 	)->setTryMakeSimilarLines(true);
-	box->addRow(
-		CreateSwitch(box->verticalLayout(), &state->selected, state->order),
-		st::premiumDotsMargin);
+
+	if (gifts) {
+		box->setStyle(st::giftBox);
+		AddGiftsInfoRows(box->verticalLayout());
+	} else {
+		box->addRow(
+			CreateSwitch(box->verticalLayout(), &state->selected, state->order),
+			st::premiumDotsMargin);
+	}
 	const auto showFinished = [=] {
 		state->showFinished = true;
 		if (base::take(state->preloadScheduled)) {
 			state->preload();
 		}
 	};
-	if ((descriptor.fromSettings && show->session().premium())
+	if (gifts) {
+		box->setShowFinishedCallback(showFinished);
+		box->addButton(
+			rpl::single(QString()),
+			[=] { box->closeBox(); }
+		)->setText(rpl::single(Ui::Text::IconEmoji(
+			&st::infoStarsUnderstood
+		).append(' ').append(tr::lng_auction_about_understood(tr::now))));
+	} else if ((descriptor.fromSettings && show->session().premium())
 		|| descriptor.hideSubscriptionButton) {
 		box->setShowFinishedCallback(showFinished);
 		box->addButton(tr::lng_close(), [=] { box->closeBox(); });

@@ -1808,6 +1808,8 @@ std::vector<PremiumFeature> PremiumFeaturesOrder(
 			return PremiumFeature::TodoLists;
 		} else if (s == u"peer_colors"_q) {
 			return PremiumFeature::PeerColors;
+		} else if (s == u"gifts"_q) {
+			return PremiumFeature::Gifts;
 		}
 		return PremiumFeature::kCount;
 	}) | ranges::views::filter([](PremiumFeature type) {

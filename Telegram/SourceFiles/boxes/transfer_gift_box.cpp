@@ -24,13 +24,18 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_star_gift.h"
 #include "data/data_thread.h"
 #include "data/data_user.h"
+#include "history/history.h"
+#include "history/history_item.h"
+#include "history/history_item_components.h"
 #include "lang/lang_keys.h"
+#include "main/main_app_config.h"
 #include "main/main_session.h"
 #include "payments/payments_checkout_process.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/controls/sub_tabs.h"
 #include "ui/controls/ton_common.h"
 #include "ui/layers/generic_box.h"
+#include "ui/text/format_values.h"
 #include "ui/text/text_utilities.h"
 #include "ui/toast/toast.h"
 #include "ui/basic_click_handlers.h"
@@ -492,6 +497,26 @@ void TransferGift(
 	}
 }
 
+void ResolveGiftSaleOffer(
+		not_null<Window::SessionController*> window,
+		MsgId id,
+		bool accept,
+		Fn<void(bool)> done) {
+	using Flag = MTPpayments_ResolveStarGiftOffer::Flag;
+	const auto session = &window->session();
+	const auto show = window->uiShow();
+	session->api().request(MTPpayments_ResolveStarGiftOffer(
+		MTP_flags(accept ? Flag() : Flag::f_decline),
+		MTP_int(id.bare)
+	)).done([=](const MTPUpdates &result) {
+		session->api().applyUpdates(result);
+		done(true);
+	}).fail([=](const MTP::Error &error) {
+		show->showToast(error.type());
+		done(false);
+	}).send();
+}
+
 void BuyResaleGift(
 		std::shared_ptr<ChatHelpers::Show> show,
 		not_null<PeerData*> to,
@@ -685,6 +710,164 @@ void ShowTransferGiftBox(
 	window->show(
 		Box<PeerListBox>(std::move(controller), std::move(initBox)),
 		Ui::LayerOption::KeepOther);
+}
+
+void ShowGiftSaleAcceptBox(
+		not_null<Window::SessionController*> controller,
+		not_null<HistoryItem*> item,
+		not_null<HistoryMessageSuggestion*> suggestion) {
+	const auto id = item->id;
+	const auto peer = item->history()->peer;
+	const auto gift = suggestion->gift;
+	const auto price = suggestion->price;
+
+	const auto &appConfig = controller->session().appConfig();
+	const auto starsThousandths = appConfig.giftResaleStarsThousandths();
+	const auto nanoTonThousandths = appConfig.giftResaleNanoTonThousandths();
+
+	controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+		struct State {
+			bool sent = false;
+		};
+		const auto state = std::make_shared<State>();
+		auto callback = [=] {
+			if (state->sent) {
+				return;
+			}
+			state->sent = true;
+			const auto weak = base::make_weak(controller);
+			const auto weakBox = base::make_weak(box);
+			ResolveGiftSaleOffer(controller, id, true, [=](bool ok) {
+				state->sent = false;
+				if (ok) {
+					if (const auto strong = weak.get()) {
+						strong->showPeerHistory(peer->id);
+					}
+					if (const auto strong = weakBox.get()) {
+						strong->closeBox();
+					}
+				}
+			});
+		};
+
+		const auto receive = price.ton()
+			? ((price.value() * nanoTonThousandths) / 1000.)
+			: ((int64(price.value()) * starsThousandths) / 1000);
+
+		auto button = tr::lng_gift_offer_sell_for(
+			lt_price,
+			rpl::single(Ui::Text::IconEmoji(price.ton()
+				? &st::buttonTonIconEmoji
+				: &st::buttonStarIconEmoji
+			).append(Lang::FormatExactCountDecimal(receive))),
+			tr::marked);
+
+		box->addRow(
+			CreateGiftTransfer(box->verticalLayout(), gift, peer),
+			QMargins(0, st::boxPadding.top(), 0, 0));
+
+		Ui::ConfirmBox(box, {
+			.text = tr::lng_gift_offer_confirm_accept(
+				tr::now,
+				lt_name,
+				tr::bold(UniqueGiftName(*gift)),
+				lt_user,
+				tr::bold(peer->shortName()),
+				lt_cost,
+				tr::bold(PrepareCreditsAmountText(price)),
+				tr::marked
+			).append(u"\n\n"_q).append(tr::lng_gift_offer_you_get(
+				tr::now,
+				lt_cost,
+				tr::bold(price.stars()
+					? tr::lng_action_gift_for_stars(
+						tr::now,
+						lt_count_decimal,
+						receive)
+					: tr::lng_action_gift_for_ton(
+						tr::now,
+						lt_count_decimal,
+						receive)),
+				tr::marked)),
+			.confirmed = std::move(callback),
+			.confirmText = std::move(button),
+		});
+
+		const auto show = controller->uiShow();
+		auto taken = base::take(gift->value);
+		AddTransferGiftTable(show, box->verticalLayout(), gift);
+		gift->value = std::move(taken);
+
+		if (gift->value.get()) {
+			const auto appConfig = &show->session().appConfig();
+			const auto rule = Ui::LookupCurrencyRule(u"USD"_q);
+			const auto value = (gift->value->valuePriceUsd > 0 ? 1 : -1)
+				* std::abs(gift->value->valuePriceUsd)
+				/ std::pow(10., rule.exponent);
+			if (std::abs(value) >= 0.01) {
+				const auto rate = price.ton()
+					? appConfig->currencySellRate()
+					: (appConfig->starsSellRate() / 100.);
+				const auto offered = receive * rate;
+				const auto diff = offered - value;
+				const auto percent = std::abs(diff / value * 100.);
+				if (percent >= 1) {
+					const auto higher = (diff > 0.);
+					const auto good = higher || (percent < 10);
+					const auto number = int(base::SafeRound(percent));
+					const auto percentText = QString::number(number) + '%';
+					box->addRow(
+						object_ptr<Ui::FlatLabel>(
+							box,
+							(higher
+								? tr::lng_gift_offer_higher
+								: tr::lng_gift_offer_lower)(
+									lt_percent,
+									rpl::single(tr::bold(percentText)),
+									lt_name,
+									rpl::single(tr::marked(gift->title)),
+									tr::marked),
+							(good ? st::offerValueGood : st::offerValueBad)),
+						st::boxRowPadding + st::offerValuePadding
+					)->setTryMakeSimilarLines(true);
+				}
+			}
+		}
+	}));
+}
+
+void ShowGiftSaleRejectBox(
+		not_null<Window::SessionController*> controller,
+		not_null<HistoryItem*> item,
+		not_null<HistoryMessageSuggestion*> suggestion) {
+	struct State {
+		bool sent = false;
+	};
+	const auto id = item->id;
+	const auto state = std::make_shared<State>();
+	auto callback = [=](Fn<void()> close) {
+		if (state->sent) {
+			return;
+		}
+		state->sent = true;
+		const auto weak = base::make_weak(controller);
+		ResolveGiftSaleOffer(controller, id, false, [=](bool ok) {
+			state->sent = false;
+			if (ok) {
+				close();
+			}
+		});
+	};
+	controller->show(Ui::MakeConfirmBox({
+		.text = tr::lng_gift_offer_confirm_reject(
+			lt_user,
+			rpl::single(tr::bold(item->history()->peer->shortName())),
+			tr::marked),
+		.confirmed = std::move(callback),
+		.confirmText = tr::lng_action_gift_offer_decline(),
+		.confirmStyle = &st::attentionBoxButton,
+		.title = tr::lng_gift_offer_reject_title(),
+	}));
 }
 
 void SetThemeFromUniqueGift(

@@ -14,6 +14,7 @@ class Show;
 namespace Data {
 struct GiftAuctionState;
 struct ActiveAuctions;
+struct StarGift;
 } // namespace Data
 
 namespace Info::PeerGifts {
@@ -49,6 +50,7 @@ struct AuctionBidBoxArgs {
 enum class AuctionButtonCountdownType {
 	Join,
 	Place,
+	Preview,
 };
 void SetAuctionButtonCountdownText(
 	not_null<RoundButton*> button,

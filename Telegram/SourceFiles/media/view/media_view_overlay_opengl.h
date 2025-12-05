@@ -76,6 +76,11 @@ private:
 		QRect rect,
 		float64 opacity = 1.) override;
 
+	void paintRecognitionOverlay(
+		const QImage &image,
+		ContentGeometry geometry,
+		float64 opacity);
+
 	//void invalidate();
 
 	void paintUsingRaster(
@@ -146,7 +151,7 @@ private:
 	static constexpr auto kStoriesSiblingPartsCount = 4;
 	Ui::GL::Image _storiesSiblingParts[kStoriesSiblingPartsCount];
 
-	static constexpr auto kControlsCount = 6;
+	static constexpr auto kControlsCount = 7;
 	[[nodiscard]] Control controlMeta(Over control) const;
 
 	// Last one is for the over circle image.

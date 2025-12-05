@@ -62,6 +62,7 @@ enum class SuggestionActions : uchar {
 	None,
 	Decline,
 	AcceptAndDecline,
+	GiftOfferActions,
 };
 
 struct HistoryMessageVia : RuntimeComponent<HistoryMessageVia, HistoryItem> {
@@ -622,8 +623,9 @@ struct HistoryMessageFactcheck
 	bool requested = false;
 };
 
-struct HistoryMessageSuggestedPost
-: RuntimeComponent<HistoryMessageSuggestedPost, HistoryItem> {
+struct HistoryMessageSuggestion
+: RuntimeComponent<HistoryMessageSuggestion, HistoryItem> {
+	std::shared_ptr<Data::UniqueGift> gift;
 	CreditsAmount price;
 	TimeId date = 0;
 	mtpRequestId requestId = 0;
@@ -713,12 +715,13 @@ enum class SuggestRefundType {
 	None,
 	User,
 	Admin,
+	Expired,
 };
 
 struct HistoryServiceSuggestFinish
 : RuntimeComponent<HistoryServiceSuggestFinish, HistoryItem>
 , HistoryServiceDependentData {
-	CreditsAmount successPrice;
+	CreditsAmount price;
 	SuggestRefundType refundType = SuggestRefundType::None;
 };
 

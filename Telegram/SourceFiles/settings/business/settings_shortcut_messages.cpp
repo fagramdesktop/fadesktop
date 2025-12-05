@@ -632,7 +632,7 @@ void ShortcutMessages::setupComposeControls() {
 		.key = Dialogs::Key{ _history },
 		.section = Dialogs::EntryState::Section::ShortcutMessages,
 		.currentReplyTo = replyTo(),
-		.currentSuggest = SuggestPostOptions(),
+		.currentSuggest = SuggestOptions(),
 	};
 	_composeControls->setCurrentDialogsEntryState(state);
 

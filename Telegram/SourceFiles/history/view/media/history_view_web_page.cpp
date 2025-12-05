@@ -238,10 +238,16 @@ constexpr auto kSponsoredUserpicLines = 2;
 		: (type == WebPageType::GiftCollection)
 		? tr::lng_view_button_collection(tr::now)
 		: (type == WebPageType::Auction)
-		? (page->auction && page->auction->endDate
+		? ((page->auction
+			&& page->auction->endDate
 			&& page->auction->endDate <= base::unixtime::now())
 			? tr::lng_auction_preview_view_results(tr::now)
-			: tr::lng_auction_preview_join(tr::now)
+			: (page->auction
+				&& page->auction->auctionGift->auctionStartDate
+				&& (page->auction->auctionGift->auctionStartDate
+				> base::unixtime::now()))
+			? tr::lng_auction_bar_view(tr::now)
+			: tr::lng_auction_preview_join(tr::now))
 		: QString());
 	if (page->iv) {
 		return Ui::Text::IconEmoji(&st::historyIvIcon).append(text);
@@ -530,20 +536,16 @@ QSize WebPage::countOptimalSize() {
 				});
 	} else if (!_attach && _data->auction) {
 		const auto &gift = _data->auction->auctionGift;
-		const auto backdrop = Data::UniqueGiftBackdrop{
-			.centerColor = _data->auction->centerColor,
-			.edgeColor = _data->auction->edgeColor,
-			.patternColor = _data->auction->edgeColor,
-			.textColor = _data->auction->textColor,
-		};
+		const auto backdrop = gift->background
+			? gift->background->backdrop()
+			: Data::UniqueGiftBackdrop();
 		_attach = std::make_unique<MediaGeneric>(
 			_parent,
 			GenerateAuctionPreview(
 				_parent,
 				nullptr,
 				gift,
-				backdrop,
-				_data->auction->endDate),
+				backdrop),
 			MediaGenericDescriptor{
 				.maxWidth = st::msgServiceGiftPreview,
 				.paintBgFactory = [=] {
@@ -551,6 +553,7 @@ QSize WebPage::countOptimalSize() {
 						_parent,
 						backdrop,
 						gift,
+						_data->auction->auctionGift->auctionStartDate,
 						_data->auction->endDate);
 				},
 			});

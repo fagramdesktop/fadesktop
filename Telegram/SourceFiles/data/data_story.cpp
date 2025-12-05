@@ -727,7 +727,7 @@ void Story::applyFields(
 	auto caption = TextWithEntities{
 		data.vcaption().value_or_empty(),
 		Api::EntitiesFromMTP(
-			&owner().session(),
+			&session(),
 			data.ventities().value_or_empty()),
 	};
 	if (const auto user = _peer->asUser()) {

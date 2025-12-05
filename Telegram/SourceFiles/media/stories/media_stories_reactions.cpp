@@ -656,7 +656,7 @@ void WeatherView::setStickerFrom(not_null<DocumentData*> document) {
 	media->goodThumbnailWanted();
 
 	rpl::single() | rpl::then(
-		document->owner().session().downloaderTaskFinished()
+		document->session().downloaderTaskFinished()
 	) | rpl::filter([=] {
 		return media->loaded();
 	}) | rpl::take(1) | rpl::start_with_next([=] {

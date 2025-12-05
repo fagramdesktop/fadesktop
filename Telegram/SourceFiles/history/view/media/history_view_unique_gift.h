@@ -57,8 +57,7 @@ class MediaGenericPart;
 	not_null<Element*> parent,
 	Element *replacing,
 	std::shared_ptr<Data::StarGift> gift,
-	Data::UniqueGiftBackdrop backdrop,
-	TimeId endDate)
+	Data::UniqueGiftBackdrop backdrop)
 -> Fn<void(
 	not_null<MediaGeneric*>,
 	Fn<void(std::unique_ptr<MediaGenericPart>)>)>;
@@ -67,6 +66,7 @@ class MediaGenericPart;
 	not_null<Element*> view,
 	Data::UniqueGiftBackdrop backdrop,
 	std::shared_ptr<Data::StarGift> gift,
+	TimeId startDate,
 	TimeId endDate)
 -> Fn<void(
 	Painter&,

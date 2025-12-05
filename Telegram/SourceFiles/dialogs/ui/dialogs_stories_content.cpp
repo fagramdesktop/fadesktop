@@ -247,22 +247,8 @@ void FillSourceMenu(
 		add(viewProfileText, [=] {
 			controller->showPeerInfo(peer);
 		}, channel ? &st::menuIconInfo : &st::menuIconProfile);
-		if (peer->session().premiumPossible()
-			&& peer->isUser()
-			&& !peer->hasActiveVideoStream()
-			&& peer->hasUnreadStories()) {
-			const auto now = base::unixtime::now();
-			const auto stealth = owner->stories().stealthMode();
-			add(tr::lng_stories_view_anonymously(tr::now), [=] {
-				Media::Stories::SetupStealthMode(
-					controller->uiShow(),
-					Media::Stories::StealthModeDescriptor{
-						[=] { controller->openPeerStories(peer->id); },
-						&st::storiesStealthStyleDefault,
-					});
-			}, ((peer->session().premium() || (stealth.enabledTill > now))
-				? &st::menuIconStealth
-				: &st::menuIconStealthLocked));
+		if (!peer->hasActiveVideoStream() && peer->hasUnreadStories()) {
+			Media::Stories::AddStealthModeMenu(add, peer, controller);
 		}
 		const auto in = [&](Data::StorySourcesList list) {
 			return ranges::contains(

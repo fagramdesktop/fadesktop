@@ -118,6 +118,7 @@ mediaviewSaveLocked: icon {{ "mediaview/download_locked", mediaviewControlFg }};
 mediaviewShare: icon {{ "mediaview/viewer_share", mediaviewControlFg }};
 mediaviewRotate: icon {{ "mediaview/rotate", mediaviewControlFg }};
 mediaviewMore: icon {{ "title_menu_dots", mediaviewControlFg }};
+mediaviewRecognize: icon {{ "mediaview/recognize", mediaviewControlFg }};
 
 mediaviewFileRed: icon {
 	{ size(25px, 25px), mediaviewFileBg },

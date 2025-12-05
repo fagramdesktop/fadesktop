@@ -174,6 +174,7 @@ constexpr auto kDefaultChargeStars = 10;
 		{ Flag::ManageCall, tr::lng_rights_channel_manage_calls(tr::now) },
 		{ Flag::ManageDirect, tr::lng_rights_channel_manage_direct(tr::now) },
 		{ Flag::AddAdmins, tr::lng_rights_add_admins(tr::now) },
+		{ Flag::BanUsers, tr::lng_rights_group_ban(tr::now) },
 	};
 	return {
 		{ std::nullopt, std::move(first) },

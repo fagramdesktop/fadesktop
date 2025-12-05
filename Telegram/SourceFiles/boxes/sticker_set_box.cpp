@@ -1571,7 +1571,7 @@ void StickerSetBox::Inner::fillDeleteStickerBox(
 		const auto buttonWidth = state->saveButton
 			? state->saveButton->width()
 			: 0;
-		state->requestId = document->owner().session().api().request(
+		state->requestId = document->session().api().request(
 			MTPstickers_RemoveStickerFromSet(document->mtpInput()
 		)).done([=](const TLStickerSet &result) {
 			result.match([&](const MTPDmessages_stickerSet &d) {
@@ -1613,7 +1613,7 @@ void StickerSetBox::Inner::fillDeleteStickerBox(
 			state->requestId.value() | rpl::map(rpl::mappers::_1 > 0));
 	}
 	box->addButton(tr::lng_close(), [=] {
-		document->owner().session().api().request(
+		document->session().api().request(
 			state->requestId.current()).cancel();
 		box->closeBox();
 	});

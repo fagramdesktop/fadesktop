@@ -400,7 +400,7 @@ void ActivateBotCommand(ClickHandlerContext context, int row, int column) {
 			}
 		}
 		const auto replyTo = FullReplyTo();
-		const auto suggest = SuggestPostOptions();
+		const auto suggest = SuggestOptions();
 		Window::PeerMenuCreatePoll(
 			controller,
 			item->history()->peer,

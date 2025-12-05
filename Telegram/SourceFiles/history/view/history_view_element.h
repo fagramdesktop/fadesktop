@@ -18,6 +18,7 @@ class HistoryBlock;
 class HistoryItem;
 struct HistoryMessageReply;
 struct PreparedServiceText;
+struct HistoryMessageReplyMarkup;
 
 namespace Data {
 class Thread;
@@ -693,6 +694,7 @@ protected:
 	[[nodiscard]] int textHeightFor(int textWidth);
 	void validateText();
 	void validateTextSkipBlock(bool has, int width, int height);
+	void validateInlineKeyboard(HistoryMessageReplyMarkup *markup);
 
 	void clearSpecialOnlyEmoji();
 	void checkSpecialOnlyEmoji();

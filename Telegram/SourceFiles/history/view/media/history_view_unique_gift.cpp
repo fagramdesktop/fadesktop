@@ -543,8 +543,7 @@ auto GenerateAuctionPreview(
 	not_null<Element*> parent,
 	Element *replacing,
 	std::shared_ptr<Data::StarGift> gift,
-	Data::UniqueGiftBackdrop backdrop,
-	TimeId endDate)
+	Data::UniqueGiftBackdrop backdrop)
 -> Fn<void(
 		not_null<MediaGeneric*>,
 		Fn<void(std::unique_ptr<MediaGenericPart>)>)> {
@@ -578,9 +577,9 @@ auto GenerateAuctionPreview(
 			push(std::make_unique<TextPartColored>(
 				tr::lng_boosts_list_tab_gifts(
 					tr::now,
-					lt_count,
+					lt_count_decimal,
 					all,
-					Ui::Text::WithEntities),
+					tr::marked),
 				QMargins(0, 0, 0, st::webPageAuctionPreviewPadding.top()),
 				[c = backdrop.textColor](const auto&) { return c; },
 				st::chatUniqueTextStyle));
@@ -592,6 +591,7 @@ auto AuctionBg(
 	not_null<Element*> view,
 	Data::UniqueGiftBackdrop backdrop,
 	std::shared_ptr<Data::StarGift> gift,
+	TimeId startDate,
 	TimeId endDate)
 -> Fn<void(
 		Painter&,
@@ -677,22 +677,31 @@ auto AuctionBg(
 		}
 
 		const auto now = base::unixtime::now();
+		const auto startsIn = std::max(startDate - now, 0);
 		const auto left = std::max(endDate - now, 0);
-		if (left > 0) {
+		if (startsIn > 0 || left > 0) {
 			if (!state->timer) {
 				state->timer = std::make_unique<base::Timer>([=] {
 					view->repaint();
 				});
 			}
 			state->timer->callOnce(1000);
-		} else if (left <= 0 && state->timer) {
+		} else if (state->timer) {
 			state->timer = nullptr;
 		}
-		const auto text = left > 0
-			? QString("%1:%2:%3")
-				.arg(left / 3600, 2, 10, QChar('0'))
-				.arg((left % 3600) / 60, 2, 10, QChar('0'))
-				.arg(left % 60, 2, 10, QChar('0'))
+		const auto still = (startsIn > 0) ? startsIn : left;
+		const auto time = (still >= 3600)
+			? u"%1:%2:%3"_q
+			.arg(still / 3600)
+			.arg((still % 3600) / 60, 2, 10, QChar('0'))
+			.arg(still % 60, 2, 10, QChar('0'))
+			: u"%1:%2"_q
+			.arg(still / 60)
+			.arg(still % 60, 2, 10, QChar('0'));
+		const auto text = (startsIn > 0)
+			? tr::lng_auction_join_starts_in(tr::now, lt_time, time)
+			: (left > 0)
+			? time
 			: tr::lng_auctino_preview_finished(tr::now);
 
 		const auto &font = st::webPageAuctionTimeFont;

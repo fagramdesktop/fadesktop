@@ -132,7 +132,7 @@ namespace Media::Stories {
 			return;
 		}
 
-		const auto api = &story->owner().session().api();
+		const auto api = &story->session().api();
 		auto &histories = story->owner().histories();
 		for (const auto thread : result) {
 			const auto action = Api::SendAction(thread, options);

@@ -1744,7 +1744,7 @@ void StickersListWidget::showStickerSetBox(
 			}
 			lifetime->destroy();
 		}, *lifetime);
-		document->owner().session().api().requestSpecialStickersForce(
+		document->session().api().requestSpecialStickersForce(
 			setId == Data::Stickers::FavedSetId,
 			setId == Data::Stickers::RecentSetId,
 			false);

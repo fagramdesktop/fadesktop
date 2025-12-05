@@ -102,6 +102,14 @@ float64 AppConfig::currencyWithdrawRate() const {
 	return get<float64>(u"ton_usd_rate"_q, 1);
 }
 
+float64 AppConfig::starsSellRate() const {
+	return get<float64>(u"stars_usd_sell_rate_x1000"_q, 1410) / 1000.;
+}
+
+float64 AppConfig::currencySellRate() const {
+	return get<float64>(u"ton_usd_rate"_q, 1);
+}
+
 bool AppConfig::paidMessagesAvailable() const {
 	return get<bool>(u"stars_paid_messages_available"_q, false);
 }
@@ -261,6 +269,14 @@ int AppConfig::groupCallMessageLengthLimit() const {
 
 TimeId AppConfig::groupCallMessageTTL() const {
 	return get<int>(u"group_call_message_ttl"_q, 10);
+}
+
+int AppConfig::passkeysAccountPasskeysMax() const {
+	return get<int>(u"passkeys_account_passkeys_max"_q, 10);
+}
+
+bool AppConfig::settingsDisplayPasskeys() const {
+	return get<bool>(u"settings_display_passkeys"_q, false);
 }
 
 void AppConfig::refresh(bool force) {

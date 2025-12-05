@@ -84,7 +84,7 @@ ItemSticker::ItemSticker(
 		return true;
 	};
 	if (!updateThumbnail()) {
-		_document->owner().session().downloaderTaskFinished(
+		_document->session().downloaderTaskFinished(
 		) | rpl::start_with_next([=] {
 			if (updateThumbnail()) {
 				_loadingLifetime.destroy();

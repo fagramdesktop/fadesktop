@@ -964,6 +964,21 @@ void ProcessReceivedSubscriptions(
 	// (owner->isChannel() && owner->asChannel()->canTransferGifts());
 }
 
+[[nodiscard]] bool ShowOfferBuyButton(
+		not_null<Main::Session*> session,
+		const Data::CreditsHistoryEntry &e) {
+	const auto unique = e.uniqueGift.get();
+	const auto owner = (unique && unique->ownerId)
+		? session->data().peer(unique->ownerId).get()
+		: nullptr;
+	return owner
+		&& owner->isUser()
+		&& !owner->isSelf()
+		&& (unique->starsMinOffer >= 0);
+	// Currently we're not making offers for channel gifts.
+	// (owner->isChannel() && !owner->asChannel()->canTransferGifts());
+}
+
 void FillUniqueGiftMenu(
 		std::shared_ptr<ChatHelpers::Show> show,
 		not_null<Ui::PopupMenu*> menu,
@@ -1158,6 +1173,10 @@ void FillUniqueGiftMenu(
 				}));
 			}, st.unlist ? st.unlist : &st::menuIconTagRemove);
 		}
+	} else if (ShowOfferBuyButton(&show->session(), e)) {
+		menu->addAction(tr::lng_gift_offer_button(tr::now), [=] {
+			ShowOfferBuyBox(show, unique);
+		}, st.offer ? st.offer : &st::menuIconEarn);
 	}
 }
 
@@ -1168,6 +1187,7 @@ GiftWearBoxStyleOverride DarkGiftWearBoxStyle() {
 		.title = &st::darkUpgradeGiftTitle,
 		.subtitle = &st::darkUpgradeGiftSubtitle,
 		.radiantIcon = &st::darkUpgradeGiftRadiant,
+		.profileIcon = &st::darkUpgradeGiftProfile,
 		.proofIcon = &st::darkUpgradeGiftProof,
 		.infoTitle = &st::darkUpgradeGiftInfoTitle,
 		.infoAbout = &st::darkUpgradeGiftInfoAbout,
@@ -1193,6 +1213,7 @@ CreditsEntryBoxStyleOverrides DarkCreditsEntryBoxStyle() {
 		.hide = &st::darkGiftHide,
 		.pin = &st::darkGiftPin,
 		.unpin = &st::darkGiftUnpin,
+		.offer = &st::darkGiftOffer,
 		.shareBox = std::make_shared<ShareBoxStyleOverrides>(
 			DarkShareBoxStyle()),
 		.giftWearBox = std::make_shared<GiftWearBoxStyleOverride>(
@@ -1321,12 +1342,11 @@ void GenericCreditsEntryBox(
 				style);
 		};
 		const auto canResell = CanResellGift(session, e);
-		AddUniqueGiftCover(
-			content,
-			rpl::single(*uniqueGift),
-			{},
-			std::move(price),
-			canResell ? std::move(change) : Fn<void()>());
+		const auto cover = Ui::UniqueGiftCover{ *uniqueGift };
+		AddUniqueGiftCover(content, rpl::single(cover), {
+			.resalePrice = std::move(price),
+			.resaleClick = canResell ? std::move(change) : Fn<void()>(),
+		});
 
 		AddSkip(content, st::defaultVerticalListSkip * 2);
 
@@ -1502,6 +1522,8 @@ void GenericCreditsEntryBox(
 					? tr::lng_credits_box_history_entry_gift_sent(tr::now)
 					: e.converted
 					? tr::lng_credits_box_history_entry_gift_converted(tr::now)
+					: (e.giftNumber && !e.giftTitle.isEmpty())
+					? Data::UniqueGiftName(e.giftTitle, e.giftNumber)
 					: (isStarGift && !starGiftCanManage)
 					? tr::lng_gift_link_label_gift(tr::now)
 					: giftToSelf
@@ -2593,6 +2615,7 @@ Data::CreditsHistoryEntry SavedStarGiftEntry(
 		.giftChannelSavedId = data.manageId.chatSavedId(),
 		.stargiftId = data.info.id,
 		.giftPrepayUpgradeHash = data.giftPrepayUpgradeHash,
+		.giftTitle = data.info.resellTitle,
 		.uniqueGift = data.info.unique,
 		.peerType = Data::CreditsHistoryEntry::PeerType::Peer,
 		.limitedCount = data.info.limitedCount,
@@ -2601,6 +2624,7 @@ Data::CreditsHistoryEntry SavedStarGiftEntry(
 		.starsToUpgrade = int(data.info.starsToUpgrade),
 		.starsUpgradedBySender = int(data.starsUpgradedBySender),
 		.starsForDetailsRemove = int(data.starsForDetailsRemove),
+		.giftNumber = data.giftNum,
 		.converted = false,
 		.anonymous = data.anonymous,
 		.stargift = true,
@@ -2702,6 +2726,7 @@ void ShowStarGiftViewBox(
 		.giftChannelSavedId = data.channelSavedId,
 		.stargiftId = data.stargiftId,
 		.giftPrepayUpgradeHash = data.giftPrepayUpgradeHash,
+		.giftTitle = data.giftTitle,
 		.uniqueGift = data.unique,
 		.nextToUpgradeStickerId = nextToUpgradeStickerId,
 		.nextToUpgradeShow = std::move(nextToUpgradeShow),
@@ -2712,6 +2737,7 @@ void ShowStarGiftViewBox(
 		.starsToUpgrade = data.starsToUpgrade,
 		.starsUpgradedBySender = data.starsUpgradedBySender,
 		.starsForDetailsRemove = data.starsForDetailsRemove,
+		.giftNumber = data.giftNum,
 		.converted = data.converted,
 		.anonymous = data.anonymous,
 		.stargift = true,
@@ -2914,6 +2940,8 @@ void SmallBalanceBox(
 		return value.recipientId
 			? owner->peer(value.recipientId)->shortName()
 			: QString();
+	}, [](SmallBalanceForOffer) {
+		return QString();
 	}, [](SmallBalanceForSearch) {
 		return QString();
 	});
@@ -2974,6 +3002,8 @@ void SmallBalanceBox(
 						lt_channel,
 						rpl::single(Ui::Text::Bold(name)),
 						Ui::Text::RichLangValue)
+					: v::is<SmallBalanceForOffer>(source)
+					? tr::lng_credits_small_balance_for_offer(tr::rich)
 					: v::is<SmallBalanceForSearch>(source)
 					? tr::lng_credits_small_balance_for_search(
 						Ui::Text::RichLangValue)

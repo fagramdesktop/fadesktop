@@ -15,7 +15,7 @@ class HistoryItem;
 struct HistoryMessageEdited;
 struct HistoryMessageForwarded;
 struct HistoryMessageReplyMarkup;
-struct HistoryMessageSuggestedPost;
+struct HistoryMessageSuggestion;
 struct HistoryMessageReply;
 
 namespace Data {
@@ -177,7 +177,7 @@ private:
 	void initPaidInformation();
 	void refreshSuggestedInfo(
 		not_null<HistoryItem*> item,
-		not_null<const HistoryMessageSuggestedPost*> suggest,
+		not_null<const HistoryMessageSuggestion*> suggest,
 		const HistoryMessageReply *reply);
 	void initLogEntryOriginal();
 	void initPsa();
@@ -292,7 +292,6 @@ private:
 	void refreshInfoSkipBlock(HistoryItem *textItem);
 	[[nodiscard]] int monospaceMaxWidth() const;
 
-	void validateInlineKeyboard(HistoryMessageReplyMarkup *markup);
 	void updateViewButtonExistence();
 	[[nodiscard]] int viewButtonHeight() const;
 

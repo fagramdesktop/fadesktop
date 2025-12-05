@@ -50,6 +50,7 @@
     <file alias="rtmp.tgs">../../animations/rtmp.tgs</file>
     <file alias="show_or_premium_lastseen.tgs">../../animations/show_or_premium_lastseen.tgs</file>
     <file alias="show_or_premium_readtime.tgs">../../animations/show_or_premium_readtime.tgs</file>
+    <file alias="passkeys.tgs">../../animations/passkeys.tgs</file>
 
     <file alias="profile_muting.tgs">../../animations/profile/profile_muting.tgs</file>
     <file alias="profile_unmuting.tgs">../../animations/profile/profile_unmuting.tgs</file>

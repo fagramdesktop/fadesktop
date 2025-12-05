@@ -92,6 +92,9 @@ starIconEmojiLarge: IconEmoji {
 starIconEmojiInline: IconEmoji(starIconEmojiSmall) {
 	padding: margins(0px, 3px, 0px, 0px);
 }
+buttonStarIconEmoji: IconEmoji(starIconEmoji) {
+	padding: margins(4px, 2px, 4px, 0px);
+}
 
 tonIconEmoji: IconEmoji {
 	icon: icon{{ "chat/mini_ton_bold", currencyFg }};
@@ -103,6 +106,9 @@ tonIconEmojiLarge: IconEmoji {
 }
 tonIconEmojiInSmall: IconEmoji(tonIconEmoji) {
 	padding: margins(0px, 2px, 0px, 0px);
+}
+buttonTonIconEmoji: IconEmoji(tonIconEmoji) {
+	padding: margins(1px, 3px, 1px, 0px);
 }
 
 creditsHistoryEntryTypeAds: icon {{ "folders/folders_channels", premiumButtonFg }};
@@ -271,6 +277,10 @@ creditsHistoryEntriesList: PeerList(defaultPeerList) {
 subscriptionCreditsBadgePadding: margins(10px, 1px, 8px, 3px);
 
 uniqueGiftModelTop: 20px;
+uniqueGiftPretitle: FlatLabel(defaultFlatLabel) {
+	style: semiboldTextStyle;
+	margin: margins(12px, 4px, 12px, 4px);
+}
 uniqueGiftTitle: FlatLabel(boxTitle) {
 	align: align(top);
 }
@@ -310,6 +320,50 @@ uniqueMenuButton: IconButton(uniqueCloseButton) {
 		color: shadowFg;
 	}
 }
+uniqueAttributeTop: 10px;
+uniqueAttributeSkip: 8px;
+uniqueAttributePadding: margins(6px, 8px, 6px, 8px);
+uniqueAttributeName: TextStyle(semiboldTextStyle) {
+	font: font(12px semibold);
+}
+uniqueAttributeType: TextStyle(defaultTextStyle) {
+	font: font(12px);
+}
+uniqueAttributePercent: uniqueAttributeType;
+uniqueAttributePercentPadding: margins(4px, 0px, 4px, 0px);
+uniqueAttributeModel: RoundButton(defaultLightButton) {
+	textFg: windowBoldFg;
+	textFgOver: windowBoldFg;
+	textBg: windowBgOver;
+	textBgOver: windowBgOver;
+	ripple: defaultRippleAnimation;
+	radius: 8px;
+
+	width: 107px;
+	height: 34px;
+	textTop: 7px;
+	style: defaultBoxButtonTextStyle;
+	icon: icon {{ "menu/unique", windowBoldFg }};
+	iconOver: icon {{ "menu/unique", windowBoldFg }};
+	iconPosition: point(-1px, 4px);
+}
+uniqueAttributeModelActive: icon{{ "menu/unique", activeButtonFg }};
+uniqueAttributeBackdrop: RoundButton(uniqueAttributeModel) {
+	icon: icon {{ "menu/palette", windowBoldFg }};
+	iconOver: icon {{ "menu/palette", windowBoldFg }};
+}
+uniqueAttributeBackdropActive: icon{{ "menu/palette", activeButtonFg }};
+uniqueAttributeSymbol: RoundButton(uniqueAttributeModel) {
+	icon: icon {{ "menu/all_media", windowBoldFg }};
+	iconOver: icon {{ "menu/all_media", windowBoldFg }};
+}
+uniqueAttributeSymbolActive: icon{{ "menu/all_media", activeButtonFg }};
+uniqueAttributesBox: Box(giftBox) {
+	buttonWide: false;
+	buttonHeight: 34px;
+	buttonPadding: margins(10px, 10px, 11px, 10px);
+}
+uniqueAttributeStickerSize: size(64px, 64px);
 upgradeGiftBox: Box(giftBox) {
 	buttonPadding: margins(22px, 3px, 22px, 22px);
 }
@@ -331,6 +385,7 @@ darkUpgradeGiftBox: Box(upgradeGiftBox) {
 	titleAdditionalFg: groupCallMemberNotJoinedStatus;
 }
 darkUpgradeGiftRadiant: icon{{ "menu/unique", groupCallMembersFg }};
+darkUpgradeGiftProfile: icon{{ "settings/premium/features/feature_profile_cover", groupCallMembersFg }};
 darkUpgradeGiftProof: icon{{ "menu/factcheck", groupCallMembersFg }};
 darkUpgradeGiftInfoTitle: FlatLabel(defaultFlatLabel) {
 	textFg: groupCallMembersFg;
@@ -385,6 +440,19 @@ resaleConfirmTonOnly: FlatLabel(boxLabel) {
 	textFg: windowSubTextFg;
 }
 resaleConfirmTonOnlyMargin: margins(0px, 12px, 0px, 12px);
+
+offerValuePadding: margins(0px, 8px, 0px, 0px);
+offerValueGood: FlatLabel(boxLabel) {
+	minWidth: 120px;
+	textFg: windowSubTextFg;
+	align: align(top);
+	style: TextStyle(defaultTextStyle) {
+		font: font(12px);
+	}
+}
+offerValueBad: FlatLabel(offerValueGood) {
+	textFg: attentionButtonFg;
+}
 
 uniqueGiftValuePrice: FlatLabel(defaultFlatLabel) {
 	style: TextStyle(defaultTextStyle) {
@@ -444,6 +512,10 @@ videoStreamStarsCover: PremiumCover(creditsLowBalancePremiumCover) {
 auctionInfoPreviewMargin: margins(0px, 24px, 0px, 8px);
 auctionInfoSubtitleSkip: 8px;
 auctionInfoTableMargin: margins(0px, 12px, 0px, 12px);
+auctionInfoValueMultiline: FlatLabel(defaultTableValue) {
+	minWidth: 96px;
+	maxHeight: 96px;
+}
 auctionBidEmoji: IconEmoji {
 	icon: icon {{ "settings/button_auction", windowFg }};
 	padding: margins(-4px, -2px, -4px, 0px);

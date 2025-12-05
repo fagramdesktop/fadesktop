@@ -60,6 +60,6 @@ void PaintBgPoints(
 	not_null<Ui::Text::CustomEmoji*> emoji,
 	const QColor &patternColor,
 	const QRect &rect,
-	float64 shown);
+	float64 shown = 1.);
 
 } // namespace Ui

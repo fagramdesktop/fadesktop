@@ -848,8 +848,22 @@ std::optional<Data::StarGift> FromTL(
 		const auto releasedBy = releasedById
 			? session->data().peer(releasedById).get()
 			: nullptr;
+		const auto background = [&] {
+			if (!data.vbackground()) {
+				return std::shared_ptr<Data::StarGiftBackground>();
+			}
+			const auto &fields = data.vbackground()->data();
+			using namespace Ui;
+			return std::make_shared<Data::StarGiftBackground>(
+				Data::StarGiftBackground{
+					.center = ColorFromSerialized(fields.vcenter_color()),
+					.edge = ColorFromSerialized(fields.vedge_color()),
+					.text = ColorFromSerialized(fields.vtext_color()),
+				});
+		};
 		return std::optional<Data::StarGift>(Data::StarGift{
 			.id = uint64(data.vid().v),
+			.background = background(),
 			.stars = int64(data.vstars().v),
 			.starsConverted = int64(data.vconvert_stars().v),
 			.starsToUpgrade = int64(data.vupgrade_stars().value_or_empty()),
@@ -860,10 +874,12 @@ std::optional<Data::StarGift> FromTL(
 			.resellCount = int(data.vavailability_resale().value_or_empty()),
 			.auctionSlug = qs(data.vauction_slug().value_or_empty()),
 			.auctionGiftsPerRound = data.vgifts_per_round().value_or_empty(),
+			.auctionStartDate = data.vauction_start_date().value_or_empty(),
 			.limitedLeft = remaining.value_or_empty(),
 			.limitedCount = total.value_or_empty(),
 			.perUserTotal = data.vper_user_total().value_or_empty(),
 			.perUserRemains = data.vper_user_remains().value_or_empty(),
+			.upgradeVariants = data.vupgrade_variants().value_or_empty(),
 			.firstSaleDate = data.vfirst_sale_date().value_or_empty(),
 			.lastSaleDate = data.vlast_sale_date().value_or_empty(),
 			.lockedUntilDate = data.vlocked_until_date().value_or_empty(),
@@ -930,6 +946,7 @@ std::optional<Data::StarGift> FromTL(
 				.themeUser = themeUser,
 				.nanoTonForResale = FindTonForResale(data.vresell_amount()),
 				.starsForResale = FindStarsForResale(data.vresell_amount()),
+				.starsMinOffer = data.voffer_min_stars().value_or(-1),
 				.number = data.vnum().v,
 				.onlyAcceptTon = data.is_resale_ton_only(),
 				.canBeTheme = data.is_theme_available(),
@@ -942,6 +959,8 @@ std::optional<Data::StarGift> FromTL(
 								data.vvalue_currency().value_or_empty()),
 							.valuePrice = int64(
 								data.vvalue_amount().value_or_empty()),
+							.valuePriceUsd = int64(
+								data.vvalue_usd_amount().value_or_empty()),
 						})
 					: nullptr),
 				.peerColor = colorCollectible,
@@ -963,7 +982,7 @@ std::optional<Data::StarGift> FromTL(
 				unique->originalDetails = FromTL(session, data);
 			});
 		}
-		return std::make_optional(result);
+		return std::make_optional(std::move(result));
 	});
 }
 
@@ -1009,6 +1028,7 @@ std::optional<Data::SavedStarGift> FromTL(
 			? peerFromMTP(*data.vfrom_id())
 			: PeerId()),
 		.date = data.vdate().v,
+		.giftNum = data.vgift_num().value_or_empty(),
 		.upgradeSeparate = data.is_upgrade_separate(),
 		.upgradable = data.is_can_upgrade(),
 		.anonymous = data.is_name_hidden(),

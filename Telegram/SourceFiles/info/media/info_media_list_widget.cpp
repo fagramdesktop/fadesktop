@@ -38,6 +38,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "history/history_item_helpers.h"
 #include "media/stories/media_stories_controller.h" // ...TogglePinnedToast.
 #include "media/stories/media_stories_share.h" // PrepareShareBox.
+#include "media/stories/media_stories_stealth.h"
 #include "window/window_session_controller.h"
 #include "window/window_peer_menu.h"
 #include "ui/widgets/menu/menu_add_action_callback.h"
@@ -74,6 +75,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_credits.h" // giftBoxHiddenMark
 #include "styles/style_chat_helpers.h"
+#include "styles/style_media_stories.h"
 
 #include <QtWidgets/QApplication>
 #include <QtGui/QClipboard>
@@ -1327,6 +1329,10 @@ void ListWidget::showContextMenu(
 		}
 		if (const auto peer = _controller->key().storiesPeer()) {
 			if (!peer->isSelf() && IsStoryMsgId(globalId.itemId.msg)) {
+				::Media::Stories::AddStealthModeMenu(
+					Ui::Menu::CreateAddActionCallback(_contextMenu),
+					peer,
+					_controller->parentController());
 				const auto storyId = FullStoryId{
 					globalId.itemId.peer,
 					StoryIdFromMsgId(globalId.itemId.msg),
