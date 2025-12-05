@@ -1117,7 +1117,9 @@ void HistoryWidget::refreshGiftToChannelShown() {
 	const auto channel = _peer->asChannel();
 	const auto visible = channel
 		&& channel->isBroadcast()
-		&& channel->stargiftsAvailable();
+		&& channel->stargiftsAvailable()
+		&& !channel->amCreator()
+		&& !channel->hasAdminRights();
 	_giftToChannel->setVisible(visible);
 	updateControlsGeometry();
 }
@@ -1128,7 +1130,10 @@ void HistoryWidget::refreshDirectMessageShown() {
 	}
 	const auto channel = _peer->asChannel();
 	const auto monoforum = channel ? channel->broadcastMonoforum() : nullptr;
-	const auto visible = monoforum && !monoforum->monoforumDisabled();
+	const auto visible = monoforum
+		&& !monoforum->monoforumDisabled()
+		&& !channel->amCreator()
+		&& !channel->hasAdminRights();
 	_directMessage->setVisible(visible);
 	updateControlsGeometry();
 	if (visible) {

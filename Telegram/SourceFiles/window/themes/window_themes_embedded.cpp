@@ -90,7 +90,13 @@ const auto kColorizeIgnoredKeys = base::flat_set<QLatin1String>{ {
 	qstr("premiumButtonBg2"),
 	qstr("premiumButtonBg3"),
 	qstr("premiumIconBg1"),
-	qstr("premiumIconBg2")
+	qstr("premiumIconBg2"),
+	qstr("creditsBg1"),
+	qstr("creditsBg2"),
+	qstr("creditsBg3"),
+	qstr("creditsFg"),
+	qstr("creditsStroke")
+
 } };
 
 style::colorizer::Color cColor(std::string_view hex) {
