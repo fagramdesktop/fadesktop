@@ -1375,7 +1375,8 @@ const QString &PeerData::topBarNameText() const {
 	}
 	if (const auto user = asUser()) {
 		if (!user->nameOrPhone.isEmpty() && !screenshotMode) {
-			return user->nameOrPhone;
+			// Always show name
+			return _name;
 		}
 	}
 	if (isLoaded()
