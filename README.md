@@ -76,6 +76,7 @@
 - MDY styled folder background
 - MDY styled button cards
 - Hide blocked user messages
+- Always show name instead of phone for unsaved contacts
 
 </details>
 
