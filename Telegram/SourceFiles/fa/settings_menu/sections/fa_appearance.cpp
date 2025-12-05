@@ -124,10 +124,13 @@ namespace Settings {
 			::FASettings::JsonSettings::GetInt("roundness"),
 			updateUserpicRoundness);
     	updateUserpicRoundnessLabel(::FASettings::JsonSettings::GetInt("roundness"));
-        Ui::AddDivider(container);
+        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_rounding_desc")));
 		RestartSettingsMenuJsonSwitch(fa_use_default_rounding, use_default_rounding);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_use_default_rounding_desc")));
 		SettingsMenuJsonSwitch(fa_screenshot_mode, screenshot_mode);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_screenshot_mode_desc")));
 		SettingsMenuJsonSwitch(fa_force_snow, force_snow);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_force_snow_desc")));
     }
 
     void FAAppearance::SetupFAAppearance(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

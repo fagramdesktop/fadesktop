@@ -120,11 +120,17 @@ namespace Settings {
 			::FASettings::JsonSettings::GetInt("recent_stickers_limit"),
 			updateRecentStickersLimitHeight);
 		updateRecentStickersLimitLabel(::FASettings::JsonSettings::GetInt("recent_stickers_limit"));
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_recent_stickers_desc")));
 		SettingsMenuJsonSwitch(fa_disable_custom_chat_background, disable_custom_chat_background);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_disable_custom_chat_background_desc")));
 		SettingsMenuJsonSwitch(fa_hide_open_webapp_button_chatlist, hide_open_webapp_button_chatlist);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_open_webapp_button_chatlist_desc")));
 		SettingsMenuJsonSwitch(fa_show_discuss_button, show_discuss_button);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_discuss_button_desc")));
 		SettingsMenuJsonSwitch(fa_show_message_details, show_message_details);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_message_details_desc")));
 		RestartSettingsMenuJsonSwitch(fa_hide_all_chats_folder, hide_all_chats_folder);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_all_chats_folder_desc")));
 		
 		// FAgram: Red toggle for blocked user message hiding with auto-restart
 		const auto hideBlockedBtn = container->add(object_ptr<Button>(
