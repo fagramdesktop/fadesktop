@@ -91,8 +91,6 @@ namespace Settings {
     void FAGeneral::SetupGeneral(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
         Ui::AddSubsectionTitle(container, FAlang::RplTranslate(QString("fa_general")));
 
-		SettingsMenuJsonSwitch(fa_show_seconds_message, seconds_message);
-        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_seconds_message_desc")));
         SettingsMenuJsonSwitch(fa_disable_ads, disable_ads);
         Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_disable_ads_desc")));
         SettingsMenuJsonSwitch(fa_show_start_token, show_start_token);
@@ -107,10 +105,6 @@ namespace Settings {
         Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_local_tg_premium_desc")));
         SettingsMenuJsonSwitch(fa_show_registration_date, show_registration_date);
         Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_registration_date_desc")));
-        SettingsMenuJsonSwitch(fa_hide_phone_number, hide_phone_number);
-        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_phone_number_desc")));
-        RestartSettingsMenuJsonSwitch(fa_hide_stories, hide_stories);
-        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_stories_desc")));
     }
 
     void FAGeneral::SetupFAGeneral(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

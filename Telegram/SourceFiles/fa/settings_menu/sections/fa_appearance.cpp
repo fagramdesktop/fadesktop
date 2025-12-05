@@ -131,6 +131,10 @@ namespace Settings {
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_screenshot_mode_desc")));
 		SettingsMenuJsonSwitch(fa_force_snow, force_snow);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_force_snow_desc")));
+		SettingsMenuJsonSwitch(fa_hide_phone_number, hide_phone_number);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_phone_number_desc")));
+		RestartSettingsMenuJsonSwitch(fa_hide_stories, hide_stories);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_stories_desc")));
     }
 
     void FAAppearance::SetupFAAppearance(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
