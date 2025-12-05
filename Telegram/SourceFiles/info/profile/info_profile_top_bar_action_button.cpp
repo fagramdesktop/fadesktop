@@ -119,7 +119,8 @@ void TopBarActionButton::paintEvent(QPaintEvent *e) {
 	{
 		auto hq = PainterHighQualityEnabler(p);
 		// Todo shadows.
-		p.drawRoundedRect(rect(), st::boxRadius, st::boxRadius);
+		const auto radius = height() / 2;
+		p.drawRoundedRect(rect(), radius, radius);
 	}
 
 	paintRipple(p, 0, 0);
@@ -181,7 +182,7 @@ void TopBarActionButton::paintEvent(QPaintEvent *e) {
 }
 
 QImage TopBarActionButton::prepareRippleMask() const {
-	return Ui::RippleAnimation::RoundRectMask(size(), st::boxRadius);
+	return Ui::RippleAnimation::RoundRectMask(size(), height() / 2);
 }
 
 QPoint TopBarActionButton::prepareRippleStartPosition() const {
