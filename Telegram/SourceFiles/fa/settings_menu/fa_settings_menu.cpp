@@ -149,7 +149,7 @@ namespace Settings {
 			FAlang::RplTranslate(QString("fa_translation")),
 			rpl::single(QString("Crowdin")),
 			st::settingsButton,
-			{ &st::menuIconChatBubble }
+			{ &st::menuIconTranslate }
 		)->setClickedCallback([=] {
 			UrlClickHandler::Open("https://crowdin.com/project/fagramdesktop");
 		});
@@ -159,7 +159,7 @@ namespace Settings {
 			FAlang::RplTranslate(QString("fa_source_code")),
 			rpl::single(QString("Github")),
 			st::settingsButton,
-			{ &st::menuIconDelete }
+			{ &st::menuIconSigned }
 		)->setClickedCallback([=] {
 			UrlClickHandler::Open("https://github.com/burhancodes/fagramdesktop");
 		});
@@ -188,7 +188,7 @@ namespace Settings {
 			FAlang::RplTranslate(QString("fa_restart_client")),
 			rpl::single(QString("")),
 			st::settingsButton,
-			{ &st::menuIconSettings }
+			{ &st::menuIconRestore }
 		)->setClickedCallback([=] {
 			Core::App().openLocalUrl("tg://fa/restart", {});
 		});
@@ -198,7 +198,7 @@ namespace Settings {
 			FAlang::RplTranslate(QString("fa_quit_client")),
 			rpl::single(QString("")),
 			st::settingsButton,
-			{ &st::menuIconSettings }
+			{ &st::menuIconCancel }
 		)->setClickedCallback([=] {
 			Core::App().openLocalUrl("tg://fa/quit", {});
 		});
