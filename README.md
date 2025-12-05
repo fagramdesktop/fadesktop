@@ -72,7 +72,9 @@
 - Use our own API_ID & API_HASH
 - Use Google Translate API for chat translate feature
 - Screenshot mode
-- Material You accent themes & folder background
+- Material You accent themes
+- MDY styled folder background
+- MDY styled button cards
 - Hide blocked user messages
 
 </details>
