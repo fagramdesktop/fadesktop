@@ -99,7 +99,8 @@ namespace Settings {
         SettingsMenuJsonSwitch(fa_id_in_botapi_type, show_id_botapi);
         SettingsMenuJsonSwitch(fa_local_tg_premium, local_premium);
         SettingsMenuJsonSwitch(fa_show_registration_date, show_registration_date);
-        SettingsMenuJsonSwitch(fa_hide_phone_in_settings, hide_phone_number);
+        SettingsMenuJsonSwitch(fa_hide_phone_number, hide_phone_number);
+        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_phone_number_desc")));
         RestartSettingsMenuJsonSwitch(fa_hide_stories, hide_stories);
     }
 

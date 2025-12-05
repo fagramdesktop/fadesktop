@@ -7,6 +7,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 */
 #include "info/profile/info_profile_values.h"
 
+#include "fa/settings/fa_settings.h"
+
 #include "api/api_chat_participants.h"
 #include "apiwrap.h"
 #include "info/profile/info_profile_phone_menu.h"
@@ -135,17 +137,24 @@ rpl::producer<TextWithEntities> PhoneValue(not_null<UserData*> user) {
 }
 
 rpl::producer<TextWithEntities> PhoneOrHiddenValue(not_null<UserData*> user) {
+	auto settingsChanged = FASettings::JsonSettings::Events("hide_phone_number") | rpl::to_empty;
+
 	return rpl::combine(
 		PhoneValue(user),
 		PlainUsernameValue(user),
 		PlainAboutValue(user),
-		tr::lng_info_mobile_hidden()
+		tr::lng_info_mobile_hidden(),
+		rpl::single(rpl::empty_value()) | rpl::then(std::move(settingsChanged))
 	) | rpl::map([user](
 			const TextWithEntities &phone,
 			const QString &username,
 			const QString &about,
-			const QString &hidden) {
-		if (phone.text.isEmpty() && username.isEmpty() && about.isEmpty()) {
+			const QString &hidden,
+			rpl::empty_value) {
+		const auto hidePhone = FASettings::JsonSettings::GetBool("hide_phone_number");
+		if (hidePhone) {
+			return Ui::Text::WithEntities(QString("Phone hidden"));
+		} else if (phone.text.isEmpty() && username.isEmpty() && about.isEmpty()) {
 			return Ui::Text::WithEntities(hidden);
 		} else if (IsCollectiblePhone(user)) {
 			return Ui::Text::Link(phone, u"internal:collectible_phone/"_q
