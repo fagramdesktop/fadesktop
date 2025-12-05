@@ -49,7 +49,7 @@ void ValidateUserpicCache(
 	view.paletteVersion = version;
 
 	const auto forum = (shape == PeerUserpicShape::Forum);
-	const auto radius = size * (FASettings::JsonSettings::GetInt("roundness") / 100) / style::DevicePixelRatio();
+	const auto radius = size * FASettings::JsonSettings::GetInt("roundness") / 100 / style::DevicePixelRatio();
 
 	if (cloud) {
 		view.cached = cloud->scaled(
@@ -71,7 +71,13 @@ void ValidateUserpicCache(
 					Images::CornersMask(radius));
 			}
 		} else {
-			view.cached = Images::Circle(std::move(view.cached));
+			if (use_default_rounding) {
+				view.cached = Images::Circle(std::move(view.cached));
+			} else {
+				view.cached = Images::Round(
+					std::move(view.cached),
+					Images::CornersMask(radius));
+			}
 		}
 	} else {
 		if (view.cached.size() != full) {
@@ -101,7 +107,11 @@ void ValidateUserpicCache(
 					radius);
 			}
 		} else {
-			empty->paintCircle(p, 0, 0, size, size);
+			if (use_default_rounding) {
+				empty->paintCircle(p, 0, 0, size, size);
+			} else {
+				empty->paintRounded(p, 0, 0, size, size, radius);
+			}
 		}
 	}
 }
