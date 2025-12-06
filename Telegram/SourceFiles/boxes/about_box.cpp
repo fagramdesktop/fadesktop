@@ -157,7 +157,8 @@ QString telegramFaqLink() {
 }
 
 QString currentVersionText() {
-	auto result = QString::fromLatin1(AppVersionStr);
+	auto result = QString::fromLatin1(AppFAVersionStr);
+	result += u" (TGD "_q + QString::fromLatin1(AppTGDVersion) + u")"_q;
 
 	if (cAlphaVersion()) {
 		result += u" alpha %1"_q.arg(cAlphaVersion() % 1000);
