@@ -105,7 +105,7 @@ namespace Settings {
     	addSection(
 			FAlang::RplTranslate(QString("fa_debug_logs")),
 			FALogs::Id(),
-			{ &st::menuIconClear });
+			{ &st::menuIconFile });
     }
 
 
@@ -188,7 +188,7 @@ namespace Settings {
 			FAlang::RplTranslate(QString("fa_restart_client")),
 			rpl::single(QString("")),
 			st::settingsButton,
-			{ &st::menuIconRestore }
+			{ &st::menuIconRemove }
 		)->setClickedCallback([=] {
 			Core::App().openLocalUrl("tg://fa/restart", {});
 		});
