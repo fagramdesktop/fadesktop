@@ -36,7 +36,7 @@
 - Choose type of showing peer id
 - Showing peer id and dc id
 - Hide stories
-- Show registration date of the user
+- Show registration of the user
 - Solar icons (thx design480)
 - Show sticker and emoji pack owner
 - Hide your phone number in settings

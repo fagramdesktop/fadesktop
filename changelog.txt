@@ -180,7 +180,7 @@
 
 1.0.4 (08.10.24)
 
-— Show registration date of the user
+— Show registration of the user
 — Hide stories
 
 1.0.3 (07.10.24)

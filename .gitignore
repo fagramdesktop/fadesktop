@@ -20,6 +20,7 @@ ipch/
 .vs/
 .vscode/
 .cache/
+.venv/
 compile_commands.json
 
 /Telegram/log.txt

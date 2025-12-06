@@ -38,14 +38,16 @@ rpl::producer<TextWithEntities> IDValue(not_null<PeerData*> peer) {
     return rpl::single(IDString(peer)) | Ui::Text::ToWithEntities();
 }
 
-// suddenly stole from materialgram
-
 QString parseRegistrationTime(QString prefix, long long regTime) {
-    return prefix + QDateTime::fromSecsSinceEpoch(regTime)
-        .toString(QLocale::system().dateFormat(QLocale::ShortFormat));
+	const auto date = QDateTime::fromSecsSinceEpoch(regTime).date();
+	const auto monthYear = QLocale::system().toString(date, "MMMM yyyy");
+	return prefix + monthYear;
 }
 
 QString findRegistrationTime(long long userId) {
+	// Telegram uses multiple Data Centers (DCs) with separate ID pools
+	// This causes non-sequential ID allocation - users registering on the same day
+	// can have IDs millions apart. We use k-NN with distance weighting to handle this.
 	struct UserData {
 		long long id;
 		long long registrationTime;
@@ -153,6 +155,7 @@ QString findRegistrationTime(long long userId) {
 		{5772670706, 1661539140},
 		{5778063231, 1667477640},
 		{5802242180, 1671821040},
+		{5979064988, 1669852800}, // 2022-12-01
 		{5853442730, 1674866100}, // 2023
 		{5859878513, 1673117760},
 		{5885964106, 1671081840},
@@ -168,91 +171,80 @@ QString findRegistrationTime(long long userId) {
 		{6279839148, 1688399160},
 		{6306077724, 1692442920},
 		{6321562426, 1688486760},
+		{6338817029, 1705536000}, // 2024-01-18
 		{6364973680, 1696349340},
 		{6386727079, 1691696880},
 		{6429580803, 1692082680},
 		{6527226055, 1690289160},
+		{6739267230, 1704067200}, // 2024-01-01
 		{6813121418, 1698489600},
 		{6865576492, 1699052400},
+		{6911837700, 1720396800}, // 2024-07-08
 		{6925870357, 1701192327},
-		{7000000000, 1711889200}, // 2024
-		{7100000000, 1720224000},
-		{7382248043, 1735689600}, 
-		{7402869501, 1736294400}, 
-		{7423490959, 1736899200}, 
-		{7444112417, 1737504000}, 
-		{7464733876, 1738108800}, 
-		{7485355334, 1738713600}, 
-		{7505976792, 1739318400}, 
-		{7526598250, 1739923200}, 
-		{7547219709, 1740528000}, 
-		{7567841167, 1741132800}, 
-		{7588462625, 1741737600}, 
-		{7609084084, 1742342400}, 
-		{7629705542, 1742947200}, 
-		{7650327000, 1743552000}, 
-		{7670948458, 1744156800}, 
-		{7691569917, 1744761600}, 
-		{7712191375, 1745366400}, 
-		{7732812833, 1745971200}, 
-		{7753434292, 1746576000}, 
-		{7774055750, 1747180800}, 
-		{7794677208, 1747785600}, 
-		{7815298666, 1748390400}, 
-		{7835920125, 1748995200}, 
-		{7856541583, 1749600000}, 
-		{7877163041, 1750204800}, 
-		{7897784500, 1750809600}, 
-		{7918405958, 1751414400}, 
-		{7939027416, 1752019200}, 
-		{7959648874, 1752624000}, 
-		{7980270333, 1753228800}, 
-		{8000891791, 1753833600}, 
-		{8021513249, 1754438400}, 
-		{8042134708, 1755043200}, 
-		{8062756166, 1755648000}, 
-		{8083377624, 1756252800}, 
-		{8103999082, 1756857600}, 
-		{8124620541, 1757462400}, 
-		{8145241999, 1758067200}, 
-		{8165863457, 1758672000}, 
-		{8186484916, 1759276800}, 
-		{8207106374, 1759881600}, 
-		{8227727832, 1760486400}, 
-		{8248349290, 1761091200}, 
-		{8268970749, 1761696000}, 
-		{8289592207, 1762300800}, 
-		{8310213665, 1762905600}, 
-		{8330835124, 1763510400}, 
-		{8351456582, 1764115200}, 
-		{8372078040, 1764720000}, 
-		{8392699498, 1765324800}, 
-		{8413320957, 1765929600}, 
-		{8433942415, 1766534400}, 
-		{8454563873, 1767139200} // 2025
+		{6957108444, 1713312000}, // 2024-04-17
+		{7000000000, 1711889200}, // 2024-03-31
+		{7100000000, 1720224000}, // 2024-07-06
+		{7229898489, 1723075200}, // 2024-08-08
+		{7428898312, 1719360000}, // 2024-06-26
+		{7600158321, 1733356800}, // 2024-12-05
+		{7851389063, 1733097600}, // 2024-12-02
+		{7857659678, 1727222400}, // 2024-09-25
+		{7884373548, 1732233600}, // 2024-11-22
+		{7974384107, 1708128000}, // 2024-02-17
+		{8060910775, 1736294400}, // 2025-01-08
+		{8089817806, 1736899200}, // 2025-01-15
+		{8380915809, 1764979200}, // 2025-12-06
+		{8454563873, 1764979200}, // 2025-12-06
+		{8461412540, 1755628800}  // 2025-08-20
 	};
+
+	// Sort
 	std::sort(userData.begin(), userData.end(), [](const UserData& a, const UserData& b) {
 		return a.id < b.id;
-		});
-	for (size_t i = 1; i < userData.size(); ++i) {
-		if (userId >= userData[i - 1].id && userId <= userData[i].id) {
-			double t = static_cast<double>(userId - userData[i - 1].id) / (userData[i].id - userData[i - 1].id);
+	});
 
-			return parseRegistrationTime("~ ", userData[i - 1].registrationTime + t *
-				(userData[i].registrationTime - userData[i - 1].registrationTime));
-		}
+	constexpr int k = 10;
+	std::vector<std::pair<long long, size_t>> distances;
+	
+	for (size_t i = 0; i < userData.size(); ++i) {
+		long long dist = std::abs(userId - userData[i].id);
+		distances.push_back({dist, i});
 	}
-	if (userId <= 1000000) {
-		return parseRegistrationTime("< ", 1380326400);
+	
+	std::sort(distances.begin(), distances.end());
+	
+	double weightedSum = 0.0;
+	double weightTotal = 0.0;
+	
+	constexpr double scale = 100000000.0;
+	
+	for (int i = 0; i < std::min(k, static_cast<int>(distances.size())); ++i) {
+		double scaledDist = static_cast<double>(distances[i].first) / scale + 0.01;
+		size_t idx = distances[i].second;
+		
+		double weight = 1.0 / (scaledDist * scaledDist * scaledDist * scaledDist);
+		
+		weightedSum += userData[idx].registrationTime * weight;
+		weightTotal += weight;
 	}
-	else {
-		return parseRegistrationTime("> ", 1767139200);
+	
+	long long avgTimestamp = static_cast<long long>(weightedSum / weightTotal);
+	
+	QString prefix = "~ ";
+	if (distances[0].first == 0) {
+		prefix = "";
+	} else if (userId < userData.front().id) {
+		prefix = "< ";
+		avgTimestamp = userData.front().registrationTime;
+	} else if (userId > userData.back().id) {
+		prefix = "> ";
+		avgTimestamp = userData.back().registrationTime;
 	}
+	
+	return parseRegistrationTime(prefix, avgTimestamp);
 }
 
 rpl::producer<TextWithEntities> RegistrationValue(not_null<PeerData*> peer) {
 	auto userId = peer->id.to<UserId>().bare;
 	return rpl::single(findRegistrationTime(userId)) | Ui::Text::ToWithEntities();
 }
-
-// brazenly stole from ayugram
