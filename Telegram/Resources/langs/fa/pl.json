@@ -90,5 +90,9 @@
     "fa_pack_owner": "Właściciel paczki",
     "fa_hide_blocked_user_messages": "Ukryj wiadomości zablokowanych użytkowników",
     "fa_hide_blocked_user_messages_desc": "Wiadomości od zablokowanych użytkowników będą ukryte za spoilerami, a media nie będą pobierane automatycznie.",
-    "fa_restarting_in_seconds": "Ponowne uruchomienie za 3 sekundy..."
+    "fa_restarting_in_seconds": "Ponowne uruchomienie za 3 sekundy...",
+    "fa_context_menu": "Menu kontekstowe",
+    "fa_context_menu_settings": "Używaj ikon skrótów",
+    "fa_context_menu_move_to_bottom": "Przenieś skróty na dół",
+    "fa_context_menu_desc": "Skonfiguruj ikony szybkich akcji w menu kontekstowym wiadomości"
 }

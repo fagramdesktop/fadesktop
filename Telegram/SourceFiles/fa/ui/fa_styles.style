@@ -1,6 +1,7 @@
 using "ui/basic.style";
 using "ui/colors.palette";
 using "ui/widgets/widgets.style";
+using "ui/menu_icons.style";
 using "info/info.style";
 
 iconPreviewStroke: activeButtonBg;
@@ -52,4 +53,8 @@ topBarRecentActions: IconButton {
 	ripple: RippleAnimation(defaultRippleAnimation) {
 		color: windowBgOver;
 	}
+}
+
+faContextMenu: PopupMenu(popupMenuWithIcons) {
+	radius: 8px;
 }

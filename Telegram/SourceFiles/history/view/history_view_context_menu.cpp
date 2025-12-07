@@ -8,6 +8,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "history/view/history_view_context_menu.h"
 
 #include "fa/utils/telegram_helpers.h"
+#include "fa/settings/fa_settings.h"
+#include "fa/ui/history/view/fa_context_menu_shortcuts.h"
 
 #include "api/api_attached_stickers.h"
 #include "api/api_editing.h"
@@ -94,6 +96,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_menu_icons.h"
+#include "styles/style_fa_styles.h"
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
@@ -175,16 +178,20 @@ void AddPhotoActions(
 		not_null<Ui::PopupMenu*> menu,
 		not_null<PhotoData*> photo,
 		HistoryItem *item,
-		not_null<ListWidget*> list) {
+		not_null<ListWidget*> list,
+		bool skipSave = false) {
 	const auto contextId = item ? item->fullId() : FullMsgId();
 	if (!list->hasCopyMediaRestriction(item)) {
-		menu->addAction(
-			tr::lng_context_save_image(tr::now),
-			base::fn_delayed(
-				st::defaultDropdownMenu.menu.ripple.hideDuration,
-				&photo->session(),
-				[=] { SavePhotoToFile(photo); }),
-			&st::menuIconSaveImage);
+		// Skip save image if already in shortcuts
+		if (!skipSave) {
+			menu->addAction(
+				tr::lng_context_save_image(tr::now),
+				base::fn_delayed(
+					st::defaultDropdownMenu.menu.ripple.hideDuration,
+					&photo->session(),
+					[=] { SavePhotoToFile(photo); }),
+				&st::menuIconSaveImage);
+		}
 		menu->addAction(tr::lng_context_copy_image(tr::now), [=] {
 			const auto item = photo->owner().message(contextId);
 			if (!list->showCopyMediaRestriction(item)) {
@@ -243,7 +250,8 @@ void AddDocumentActions(
 		not_null<Ui::PopupMenu*> menu,
 		not_null<DocumentData*> document,
 		HistoryItem *item,
-		not_null<ListWidget*> list) {
+		not_null<ListWidget*> list,
+		bool skipSave = false) {
 	if (document->loading()) {
 		menu->addAction(tr::lng_context_cancel_download(tr::now), [=] {
 			document->cancel();
@@ -320,7 +328,9 @@ void AddDocumentActions(
 				Menu::RateTranscribeCallbackFactory(item)));
 		}
 	}
-	AddSaveDocumentAction(menu, item, document, list);
+	if (!skipSave) {
+		AddSaveDocumentAction(menu, item, document, list);
+	}
 	AddCopyFilename(
 		menu,
 		document,
@@ -329,7 +339,11 @@ void AddDocumentActions(
 
 void AddPostLinkAction(
 		not_null<Ui::PopupMenu*> menu,
-		const ContextMenuRequest &request) {
+		const ContextMenuRequest &request,
+		bool skip = false) {
+	if (skip) {
+		return;
+	}
 	const auto item = request.item;
 	if (!item
 		|| !item->hasDirectLink()
@@ -389,7 +403,11 @@ bool AddForwardSelectedAction(
 bool AddForwardMessageAction(
 		not_null<Ui::PopupMenu*> menu,
 		const ContextMenuRequest &request,
-		not_null<ListWidget*> list) {
+		not_null<ListWidget*> list,
+		bool skip = false) {
+	if (skip) {
+		return false;
+	}
 	const auto item = request.item;
 	if (!request.selectedItems.empty()) {
 		return false;
@@ -421,9 +439,10 @@ bool AddForwardMessageAction(
 void AddForwardAction(
 		not_null<Ui::PopupMenu*> menu,
 		const ContextMenuRequest &request,
-		not_null<ListWidget*> list) {
+		not_null<ListWidget*> list,
+		bool skipForward = false) {
 	AddForwardSelectedAction(menu, request, list);
-	AddForwardMessageAction(menu, request, list);
+	AddForwardMessageAction(menu, request, list, skipForward);
 }
 
 bool AddSendNowSelectedAction(
@@ -722,7 +741,11 @@ bool AddViewRepliesAction(
 bool AddEditMessageAction(
 		not_null<Ui::PopupMenu*> menu,
 		const ContextMenuRequest &request,
-		not_null<ListWidget*> list) {
+		not_null<ListWidget*> list,
+		bool skip = false) {
+	if (skip) {
+		return false;
+	}
 	if (!HasEditMessageAction(request, list)) {
 		return false;
 	}
@@ -770,7 +793,11 @@ void AddFactcheckAction(
 bool AddPinMessageAction(
 		not_null<Ui::PopupMenu*> menu,
 		const ContextMenuRequest &request,
-		not_null<ListWidget*> list) {
+		not_null<ListWidget*> list,
+		bool skip = false) {
+	if (skip) {
+		return false;
+	}
 	const auto context = list->elementContext();
 	const auto item = request.item;
 	if (!item || !item->isRegular()) {
@@ -1030,24 +1057,28 @@ void AddSelectionAction(
 void AddTopMessageActions(
 		not_null<Ui::PopupMenu*> menu,
 		const ContextMenuRequest &request,
-		not_null<ListWidget*> list) {
+		not_null<ListWidget*> list,
+		bool skipEdit = false,
+		bool skipPin = false) {
 	AddGoToMessageAction(menu, request, list);
 	AddViewRepliesAction(menu, request, list);
-	AddEditMessageAction(menu, request, list);
+	AddEditMessageAction(menu, request, list, skipEdit);
 	AddFactcheckAction(menu, request, list);
-	AddPinMessageAction(menu, request, list);
+	AddPinMessageAction(menu, request, list, skipPin);
 }
 
 void AddMessageActions(
 		not_null<Ui::PopupMenu*> menu,
 		const ContextMenuRequest &request,
-		not_null<ListWidget*> list) {
+		not_null<ListWidget*> list,
+		bool skipForward = false,
+		bool skipCopyLink = false) {
 	if (request.item) {
 		MessageDetails(menu, request.item);
 	}
 
-	AddPostLinkAction(menu, request);
-	AddForwardAction(menu, request, list);
+	AddPostLinkAction(menu, request, skipCopyLink);
+	AddForwardAction(menu, request, list, skipForward);
 	AddSendNowAction(menu, request, list);
 	AddDeleteAction(menu, request, list);
 	AddDownloadFilesAction(menu, request, list);
@@ -1302,43 +1333,70 @@ base::unique_qptr<Ui::PopupMenu> FillContextMenu(
 
 	auto result = base::make_unique_q<Ui::PopupMenu>(
 		list,
-		st::popupMenuWithIcons);
+		st::faContextMenu);
 
-	AddReplyToMessageAction(result, request, list);
+	const auto shortcutsAtBottom = FASettings::JsonSettings::GetBool("context_menu_shortcuts_at_bottom");
+	auto shortcutsResult = FaHistoryView::AddContextMenuShortcuts(
+		result->menu(),
+		request,
+		list);
+	const auto& addedShortcuts = shortcutsResult.addedShortcuts;
+	const auto hasShortcutReply = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Reply);
+	const auto hasShortcutCopy = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Copy);
+	const auto hasShortcutEdit = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Edit);
+	const auto hasShortcutPin = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Pin)
+		|| FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Unpin);
+	const auto hasShortcutCopyLink = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::CopyLink);
+	const auto hasShortcutTranslate = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Translate);
+	const auto hasShortcutForward = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Forward);
+	const auto hasShortcutSaveFile = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::SaveFile);
+	
+	if (!shortcutsAtBottom && shortcutsResult.widget) {
+		result->insertAction(0, std::move(shortcutsResult.widget));
+	}
+
+	if (!hasShortcutReply) {
+		AddReplyToMessageAction(result, request, list);
+	}
 	AddTodoListAction(result, request, list);
 
-	if (request.overSelection
-		&& !list->hasCopyRestrictionForSelected()
-		&& !list->getSelectedText().empty()) {
-		const auto text = request.selectedItems.empty()
-			? tr::lng_context_copy_selected(tr::now)
-			: tr::lng_context_copy_selected_items(tr::now);
-		result->addAction(text, [=] {
-			if (!list->showCopyRestrictionForSelected()) {
-				TextUtilities::SetClipboardText(list->getSelectedText());
-			}
-		}, &st::menuIconCopy);
-	}
-	if (request.overSelection
-		&& !Ui::SkipTranslate(list->getSelectedText().rich)) {
-		const auto owner = &view->history()->owner();
-		result->addAction(tr::lng_context_translate_selected(tr::now), [=] {
-			if (const auto item = owner->message(itemId)) {
-				list->controller()->show(Box(
-					Ui::TranslateBox,
-					item->history()->peer,
-					MsgId(),
-					list->getSelectedText().rich,
-					list->hasCopyRestrictionForSelected()));
-			}
-		}, &st::menuIconTranslate);
+	if (!hasShortcutCopy) {
+		if (request.overSelection
+			&& !list->hasCopyRestrictionForSelected()
+			&& !list->getSelectedText().empty()) {
+			const auto text = request.selectedItems.empty()
+				? tr::lng_context_copy_selected(tr::now)
+				: tr::lng_context_copy_selected_items(tr::now);
+			result->addAction(text, [=] {
+				if (!list->showCopyRestrictionForSelected()) {
+					TextUtilities::SetClipboardText(list->getSelectedText());
+				}
+			}, &st::menuIconCopy);
+		}
 	}
 
-	AddTopMessageActions(result, request, list);
+	if (!hasShortcutTranslate) {
+		if (request.overSelection
+			&& !Ui::SkipTranslate(list->getSelectedText().rich)) {
+			const auto owner = &view->history()->owner();
+			result->addAction(tr::lng_context_translate_selected(tr::now), [=] {
+				if (const auto item = owner->message(itemId)) {
+					list->controller()->show(Box(
+						Ui::TranslateBox,
+						item->history()->peer,
+						MsgId(),
+						list->getSelectedText().rich,
+						list->hasCopyRestrictionForSelected()));
+				}
+			}, &st::menuIconTranslate);
+		}
+	}
+
+	AddTopMessageActions(result, request, list, hasShortcutEdit, hasShortcutPin);
 	if (lnkPhoto && request.selectedItems.empty()) {
-		AddPhotoActions(result, lnkPhoto, item, list);
+		AddPhotoActions(result, lnkPhoto, item, list, hasShortcutSaveFile);
 	} else if (lnkDocument) {
-		AddDocumentActions(result, lnkDocument, item, list);
+		AddDocumentActions(result, lnkDocument, item, list, hasShortcutSaveFile);
 	} else if (poll) {
 		const auto context = list->elementContext();
 		AddPollActions(result, poll, item, context, list->controller());
@@ -1347,10 +1405,11 @@ base::unique_qptr<Ui::PopupMenu> FillContextMenu(
 		const auto media = view->media();
 		const auto mediaHasTextForCopy = media && media->hasTextForCopy();
 		if (const auto document = media ? media->getDocument() : nullptr) {
-			AddDocumentActions(result, document, view->data(), list);
+			AddDocumentActions(result, document, view->data(), list, hasShortcutSaveFile);
 		}
 		if (!link && (view->hasVisibleText() || mediaHasTextForCopy)) {
-			if (!list->hasCopyRestriction(view->data())) {
+			// Skip copy text if already in shortcuts
+			if (!hasShortcutCopy && !list->hasCopyRestriction(view->data())) {
 				const auto asGroup = (request.pointState != PointState::GroupPart);
 				result->addAction(tr::lng_context_copy_text(tr::now), [=] {
 					if (const auto item = owner->message(itemId)) {
@@ -1367,32 +1426,34 @@ base::unique_qptr<Ui::PopupMenu> FillContextMenu(
 				}, &st::menuIconCopy);
 			}
 
-			const auto translate = mediaHasTextForCopy
-				? (HistoryView::TransribedText(item)
-					.append('\n')
-					.append(item->originalText()))
-				: item->originalText();
-			if ((!item->translation() || !item->history()->translatedTo())
-				&& !translate.text.isEmpty()
-				&& !Ui::SkipTranslate(translate)) {
-				result->addAction(tr::lng_context_translate(tr::now), [=] {
-					if (const auto item = owner->message(itemId)) {
-						list->controller()->show(Box(
-							Ui::TranslateBox,
-							item->history()->peer,
-							mediaHasTextForCopy
-								? MsgId()
-								: item->fullId().msg,
-							translate,
-							list->hasCopyRestriction(view->data())));
-					}
-				}, &st::menuIconTranslate);
+			if (!hasShortcutTranslate) {
+				const auto translate = mediaHasTextForCopy
+					? (HistoryView::TransribedText(item)
+						.append('\n')
+						.append(item->originalText()))
+					: item->originalText();
+				if ((!item->translation() || !item->history()->translatedTo())
+					&& !translate.text.isEmpty()
+					&& !Ui::SkipTranslate(translate)) {
+					result->addAction(tr::lng_context_translate(tr::now), [=] {
+						if (const auto item = owner->message(itemId)) {
+							list->controller()->show(Box(
+								Ui::TranslateBox,
+								item->history()->peer,
+								mediaHasTextForCopy
+									? MsgId()
+									: item->fullId().msg,
+								translate,
+								list->hasCopyRestriction(view->data())));
+						}
+					}, &st::menuIconTranslate);
+				}
 			}
 		}
 	}
 
 	AddCopyLinkAction(result, link);
-	AddMessageActions(result, request, list);
+	AddMessageActions(result, request, list, hasShortcutForward, hasShortcutCopyLink);
 
 	const auto wasAmount = result->actions().size();
 	if (const auto textItem = view ? view->textItem() : item) {
@@ -1410,6 +1471,10 @@ base::unique_qptr<Ui::PopupMenu> FillContextMenu(
 		AddWhoReactedAction(result, list, item, list->controller());
 	} else if (item) {
 		MaybeAddWhenEditedForwardedAction(result, item, list->controller());
+	}
+
+	if (shortcutsAtBottom && shortcutsResult.widget) {
+		result->addAction(std::move(shortcutsResult.widget));
 	}
 
 	return result;

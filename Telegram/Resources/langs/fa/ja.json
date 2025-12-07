@@ -90,5 +90,9 @@
     "fa_pack_owner": "パック所有者",
     "fa_hide_blocked_user_messages": "ブロックユーザーのメッセージを非表示",
     "fa_hide_blocked_user_messages_desc": "ブロックされたユーザーからのメッセージはスポイラーで隠され、メディアは自動ダウンロードされません。",
-    "fa_restarting_in_seconds": "3秒後に再起動します..."
+    "fa_restarting_in_seconds": "3秒後に再起動します...",
+    "fa_context_menu": "コンテキストメニュー",
+    "fa_context_menu_settings": "ショートカットアイコンを使用する",
+    "fa_context_menu_move_to_bottom": "ショートカットを下部に移動する",
+    "fa_context_menu_desc": "メッセージのコンテキストメニューでクイックアクションのアイコンショートカットを設定します"
 }

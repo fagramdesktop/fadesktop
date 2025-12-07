@@ -21,5 +21,3 @@ QString parseRegistrationTime(QString prefix, long long regTime);
 QString findRegistrationTime(long long userId);
 
 [[nodiscard]] rpl::producer<TextWithEntities> RegistrationValue(not_null<PeerData*> peer_id);
-
-// brazenly stole from ayugram

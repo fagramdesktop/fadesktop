@@ -90,5 +90,9 @@
     "fa_pack_owner": "Paket egasi",
     "fa_hide_blocked_user_messages": "Bloklangan foydalanuvchilar xabarlarini yashirish",
     "fa_hide_blocked_user_messages_desc": "Bloklangan foydalanuvchilarning xabarlari spoyler bilan yashiriladi va media avtomatik yuklanmaydi.",
-    "fa_restarting_in_seconds": "3 soniyadan keyin qayta ishga tushadi..."
+    "fa_restarting_in_seconds": "3 soniyadan keyin qayta ishga tushadi...",
+    "fa_context_menu": "Kontekst menyu",
+    "fa_context_menu_settings": "Tezkor tugmalar ikonkalari",
+    "fa_context_menu_move_to_bottom": "Tezkor tugmalarni pastga ko'chirish",
+    "fa_context_menu_desc": "Xabarlar kontekst menyularida tezkor harakat ikonka yorliqlarini sozlash"
 }

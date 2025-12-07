@@ -90,5 +90,9 @@
     "fa_pack_owner": "Besitzer des Rudels",
     "fa_hide_blocked_user_messages": "Nachrichten von blockierten Benutzern ausblenden",
     "fa_hide_blocked_user_messages_desc": "Nachrichten von blockierten Benutzern werden mit Spoilern ausgeblendet und Medien werden nicht automatisch heruntergeladen.",
-    "fa_restarting_in_seconds": "Neustart in 3 Sekunden..."
+    "fa_restarting_in_seconds": "Neustart in 3 Sekunden...",
+    "fa_context_menu": "Kontextmenü",
+    "fa_context_menu_settings": "Verknüpfungssymbole verwenden",
+    "fa_context_menu_move_to_bottom": "Verknüpfungen nach unten verschieben",
+    "fa_context_menu_desc": "Schnellaktions-Symbole in Nachrichten-Kontextmenüs konfigurieren"
 }

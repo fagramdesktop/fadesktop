@@ -217,6 +217,12 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "hide_blocked_user_messages", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "context_menu_use_shortcuts", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
+	{ "context_menu_shortcuts_at_bottom", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;
@@ -437,7 +443,7 @@ QVariant Manager::get(const QString &key, uint64 accountId, bool isTestAccount) 
 		? _settingsHashMap.value(mapKey)
 		: QVariant();
 	if (!result.isValid()) {
-		result = _settingsHashMap.contains(key) 
+		result = _settingsHashMap.contains(key)
 					? _settingsHashMap.value(key)
 					: getDefault(key);
 		_settingsHashMap.insert(mapKey, result);
@@ -453,7 +459,7 @@ QVariant Manager::getWithPending(const QString &key, uint64 accountId, bool isTe
 		? _settingsHashMap.value(mapKey)
 		: QVariant();
 	if (!result.isValid()) {
-		result = _settingsHashMap.contains(key) 
+		result = _settingsHashMap.contains(key)
 					? _settingsHashMap.value(key)
 					: getDefault(key);
 		_settingsHashMap.insert(mapKey, result);

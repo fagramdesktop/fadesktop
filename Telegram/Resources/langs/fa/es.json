@@ -90,5 +90,9 @@
     "fa_pack_owner": "Propietario del pack",
     "fa_hide_blocked_user_messages": "Ocultar mensajes de usuarios bloqueados",
     "fa_hide_blocked_user_messages_desc": "Los mensajes de usuarios bloqueados se ocultarán con spoilers y los medios no se descargarán automáticamente.",
-    "fa_restarting_in_seconds": "Reiniciando en 3 segundos..."
+    "fa_restarting_in_seconds": "Reiniciando en 3 segundos...",
+    "fa_context_menu": "Menú contextual",
+    "fa_context_menu_settings": "Usar iconos de accesos directos",
+    "fa_context_menu_move_to_bottom": "Mover accesos directos a la parte inferior",
+    "fa_context_menu_desc": "Configurar los iconos de acciones rápidas en los menús contextuales de mensajes"
 }

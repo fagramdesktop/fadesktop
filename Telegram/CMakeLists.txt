@@ -794,6 +794,8 @@ PRIVATE
     fa/lang/fa_lang.h
     fa/ui/previews.cpp
     fa/ui/previews.h
+    fa/ui/history/view/fa_context_menu_shortcuts.cpp
+    fa/ui/history/view/fa_context_menu_shortcuts.h
     fa/fa_version.h
     fa/ui/menu_item_subtext.cpp
     fa/ui/menu_item_subtext.h

@@ -90,5 +90,9 @@
     "fa_pack_owner": "Владелец пака",
     "fa_hide_blocked_user_messages": "Скрыть сообщения от заблокированных",
     "fa_hide_blocked_user_messages_desc": "Сообщения от заблокированных пользователей будут скрыты под спойлером, а медиа не будут загружаться автоматически.",
-    "fa_restarting_in_seconds": "Перезапуск через 3 секунды..."
+    "fa_restarting_in_seconds": "Перезапуск через 3 секунды...",
+    "fa_context_menu": "Контекстное меню",
+    "fa_context_menu_settings": "Использовать иконки ярлыков",
+    "fa_context_menu_move_to_bottom": "Переместить ярлыки вниз",
+    "fa_context_menu_desc": "Настроить иконки быстрых действий в контекстных меню сообщений"
 }

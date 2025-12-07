@@ -9,6 +9,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #include "fa/settings/fa_settings.h"
 #include "fa/utils/telegram_helpers.h"
+#include "fa/ui/history/view/fa_context_menu_shortcuts.h"
 
 #include "chat_helpers/stickers_emoji_pack.h"
 #include "core/file_utilities.h"
@@ -107,6 +108,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "dialogs/ui/dialogs_video_userpic.h"
 #include "styles/style_chat.h"
 #include "styles/style_menu_icons.h"
+#include "styles/style_fa_styles.h"
 
 #include <QtGui/QClipboard>
 #include <QtWidgets/QApplication>
@@ -2387,7 +2389,24 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				_dragStateItem ? _dragStateItem->fullId() : FullMsgId()));
 		return;
 	}
-	_menu = base::make_unique_q<Ui::PopupMenu>(this, st::popupMenuWithIcons);
+	_menu = base::make_unique_q<Ui::PopupMenu>(this, st::faContextMenu);
+	
+	// Pre-calculate which shortcuts will be shown to avoid duplicates
+	const auto availableShortcuts = leaderOrSelf
+		? FaHistoryView::GetAvailableShortcuts(leaderOrSelf, [this](HistoryItem *item) {
+			return hasCopyRestriction(item);
+		})
+		: std::set<FaHistoryView::ShortcutType>{};
+	const auto hasShortcutReply = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::Reply);
+	const auto hasShortcutCopy = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::Copy);
+	const auto hasShortcutEdit = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::Edit);
+	const auto hasShortcutPin = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::Pin)
+		|| FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::Unpin);
+	const auto hasShortcutCopyLink = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::CopyLink);
+	const auto hasShortcutTranslate = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::Translate);
+	const auto hasShortcutForward = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::Forward);
+	const auto hasShortcutSaveFile = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::SaveFile);
+	
 	if (linkUserpicPeerId) {
 		_widget->fillSenderUserpicMenu(
 			_menu.get(),
@@ -2441,7 +2460,8 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			: item->allowsEdit(t)
 			? item
 			: nullptr;
-		if (editItem) {
+		// Skip edit if already in shortcuts
+		if (editItem && !hasShortcutEdit) {
 			const auto editItemId = editItem->fullId();
 			_menu->addAction(tr::lng_context_edit_msg(tr::now), [=] {
 				if (const auto item = session->data().message(editItemId)) {
@@ -2471,10 +2491,11 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				}, FactcheckFieldIniter(controller->uiShow())));
 			}, &st::menuIconFactcheck);
 		}
+		// Skip pin if already in shortcuts
 		const auto pinItem = (item->canPin() && item->isPinned())
 			? item
 			: groupLeaderOrSelf(item);
-		if (pinItem->canPin()) {
+		if (pinItem->canPin() && !hasShortcutPin) {
 			const auto isPinned = pinItem->isPinned();
 			const auto pinItemId = pinItem->fullId();
 			_menu->addAction(isPinned ? tr::lng_context_unpin_msg(tr::now) : tr::lng_context_pin_msg(tr::now), crl::guard(controller, [=] {
@@ -2503,13 +2524,16 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 
 		MessageDetails(_menu, item);
 	};
-	const auto addPhotoActions = [&](not_null<PhotoData*> photo, HistoryItem *item) {
+	const auto addPhotoActions = [&, hasShortcutSaveFile](not_null<PhotoData*> photo, HistoryItem *item) {
 		const auto media = photo->activeMediaView();
 		const auto itemId = item ? item->fullId() : FullMsgId();
 		if (!photo->isNull() && media && media->loaded() && !hasCopyMediaRestriction(item)) {
-			_menu->addAction(tr::lng_context_save_image(tr::now), base::fn_delayed(st::defaultDropdownMenu.menu.ripple.hideDuration, this, [=] {
-				savePhotoToFile(photo);
-			}), &st::menuIconSaveImage);
+			// Skip save image if already in shortcuts
+			if (!hasShortcutSaveFile) {
+				_menu->addAction(tr::lng_context_save_image(tr::now), base::fn_delayed(st::defaultDropdownMenu.menu.ripple.hideDuration, this, [=] {
+					savePhotoToFile(photo);
+				}), &st::menuIconSaveImage);
+			}
 			_menu->addAction(tr::lng_context_copy_image(tr::now), [=] {
 				copyContextImage(photo, itemId);
 			}, &st::menuIconCopy);
@@ -2523,7 +2547,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		}
 	};
 	auto rateTranscriptionItem = (HistoryItem*)(nullptr);
-	const auto addDocumentActions = [&](not_null<DocumentData*> document, HistoryItem *item) {
+	const auto addDocumentActions = [&, hasShortcutSaveFile](not_null<DocumentData*> document, HistoryItem *item) {
 		if (document->loading()) {
 			_menu->addAction(tr::lng_context_cancel_download(tr::now), [=] {
 				cancelContextDownload(document);
@@ -2563,11 +2587,14 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				item,
 				document,
 				controller);
-			HistoryView::AddSaveDocumentAction(
-				Ui::Menu::CreateAddActionCallback(_menu),
-				item,
-				document,
-				controller);
+			// Skip save document action if already in shortcuts
+			if (!hasShortcutSaveFile) {
+				HistoryView::AddSaveDocumentAction(
+					Ui::Menu::CreateAddActionCallback(_menu),
+					item,
+					document,
+					controller);
+			}
 			HistoryView::AddCopyFilename(
 				_menu,
 				document,
@@ -2721,8 +2748,12 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		}
 	};
 
-	const auto addReplyAction = [&](HistoryItem *item) {
+	const auto addReplyAction = [&, hasShortcutReply](HistoryItem *item) {
 		if (!item || !item->isRegular()) {
+			return;
+		}
+		// Skip reply if already in shortcuts
+		if (hasShortcutReply) {
 			return;
 		}
 		const auto canSendReply = CanSendReply(item);
@@ -2789,8 +2820,10 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 
 		if (isUponSelected > 0) {
 			const auto selectedText = getSelectedText();
+			// Skip copy if already in shortcuts
 			if (!hasCopyRestrictionForSelected()
-				&& !selectedText.empty()) {
+				&& !selectedText.empty()
+				&& !hasShortcutCopy) {
 				_menu->addAction(
 					(isUponSelected > 1
 						? tr::lng_context_copy_selected_items(tr::now)
@@ -2798,7 +2831,8 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 					[=] { copySelectedText(); },
 					&st::menuIconCopy);
 			}
-			if (item && !Ui::SkipTranslate(selectedText.rich)) {
+			// Skip translate if already in shortcuts
+			if (item && !Ui::SkipTranslate(selectedText.rich) && !hasShortcutTranslate) {
 				const auto peer = item->history()->peer;
 				_menu->addAction(tr::lng_context_translate_selected({}), [=] {
 					_controller->show(Box(
@@ -2818,7 +2852,8 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				addDocumentActions(lnkDocument, item);
 			}
 		}
-		if (item && item->hasDirectLink() && isUponSelected != 2 && isUponSelected != -2) {
+		// Skip copy post link if already in shortcuts
+		if (item && item->hasDirectLink() && isUponSelected != 2 && isUponSelected != -2 && !hasShortcutCopyLink) {
 			_menu->addAction(item->history()->peer->isMegagroup() ? tr::lng_context_copy_message_link(tr::now) : tr::lng_context_copy_post_link(tr::now), [=] {
 				HistoryView::CopyPostLink(controller, itemId, HistoryView::Context::History);
 			}, &st::menuIconLink);
@@ -2844,7 +2879,8 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			const auto itemId = item->fullId();
 			const auto blockSender = item->history()->peer->isRepliesChat();
 			if (isUponSelected != -2) {
-				if (item->allowsForward()) {
+				// Skip forward if already in shortcuts
+				if (item->allowsForward() && !hasShortcutForward) {
 					_menu->addAction(tr::lng_context_forward_msg(tr::now), [=] {
 						forwardItem(itemId);
 					}, &st::menuIconForward);
@@ -2925,7 +2961,8 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		if (isUponSelected > 0) {
 			addReplyAction(item);
 			const auto selectedText = getSelectedText();
-			if (!hasCopyRestrictionForSelected() && !selectedText.empty()) {
+			// Skip copy if already in shortcuts
+			if (!hasCopyRestrictionForSelected() && !selectedText.empty() && !hasShortcutCopy) {
 				_menu->addAction(
 					((isUponSelected > 1)
 						? tr::lng_context_copy_selected_items(tr::now)
@@ -2933,7 +2970,8 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 					[=] { copySelectedText(); },
 					&st::menuIconCopy);
 			}
-			if (item && !Ui::SkipTranslate(selectedText.rich)) {
+			// Skip translate if already in shortcuts
+			if (item && !Ui::SkipTranslate(selectedText.rich) && !hasShortcutTranslate) {
 				const auto peer = item->history()->peer;
 				_menu->addAction(tr::lng_context_translate_selected({}), [=] {
 					_controller->show(Box(
@@ -3018,15 +3056,19 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				}
 				if (!item->isService() && view && actionText.isEmpty()) {
 					const auto hasRestriction = hasCopyRestriction(item);
+					// Skip copy text if already in shortcuts
 					if (!hasRestriction
-						&& (view->hasVisibleText() || mediaHasTextForCopy)) {
+						&& (view->hasVisibleText() || mediaHasTextForCopy)
+						&& !hasShortcutCopy) {
 						_menu->addAction(
 							tr::lng_context_copy_text(tr::now),
 							[=] { copyContextText(itemId); },
 							&st::menuIconCopy);
 					}
+					// Skip translate if already in shortcuts
 					if ((!item->translation() || !_history->translatedTo())
-						&& (view->hasVisibleText() || mediaHasTextForCopy)) {
+						&& (view->hasVisibleText() || mediaHasTextForCopy)
+						&& !hasShortcutTranslate) {
 						const auto peer = item->history()->peer;
 						const auto itemId = item->id;
 						const auto translate = mediaHasTextForCopy
@@ -3056,7 +3098,8 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 					QGuiApplication::clipboard()->setText(text);
 				},
 				&st::menuIconCopy);
-		} else if (item && item->hasDirectLink() && isUponSelected != 2 && isUponSelected != -2) {
+		// Skip copy post link if already in shortcuts
+		} else if (item && item->hasDirectLink() && isUponSelected != 2 && isUponSelected != -2 && !hasShortcutCopyLink) {
 			_menu->addAction(item->history()->peer->isMegagroup() ? tr::lng_context_copy_message_link(tr::now) : tr::lng_context_copy_post_link(tr::now), [=] {
 				HistoryView::CopyPostLink(controller, itemId, HistoryView::Context::History);
 			}, &st::menuIconLink);
@@ -3105,7 +3148,8 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			}, &st::menuIconSelect);
 		} else if (item && ((isUponSelected != -2 && (canForward || canDelete)) || item->isRegular())) {
 			if (isUponSelected != -2) {
-				if (canForward) {
+				// Skip forward if already in shortcuts
+				if (canForward && !hasShortcutForward) {
 					_menu->addAction(tr::lng_context_forward_msg(tr::now), [=] {
 						forwardAsGroup(itemId);
 					}, &st::menuIconForward);
@@ -3186,6 +3230,77 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			_menu,
 			_menu->st().menu,
 			Menu::RateTranscribeCallbackFactory(rateTranscriptionItem)));
+	}
+
+	// Add FAgram context menu shortcuts
+	if (leaderOrSelf) {
+		const auto shortcutsAtBottom = FASettings::JsonSettings::GetBool("context_menu_shortcuts_at_bottom");
+		const auto inner = this;
+		const auto widget = _widget;
+		const auto controller = _controller;
+		FaHistoryView::ShortcutCallbacks callbacks;
+		callbacks.hasCopyRestriction = [inner](HistoryItem *item) {
+			return inner->hasCopyRestriction(item);
+		};
+		callbacks.showCopyRestriction = [inner](HistoryItem *item) {
+			return inner->showCopyRestriction(item);
+		};
+		callbacks.replyToMessage = [widget](FullReplyTo to, bool) {
+			if (widget) {
+				widget->replyToMessage(to);
+			}
+		};
+		callbacks.editMessage = [widget](FullMsgId id) {
+			if (widget) {
+				if (const auto item = widget->session().data().message(id)) {
+					widget->editMessage(item, TextSelection());
+				}
+			}
+		};
+		callbacks.forwardMessage = [controller](FullMsgId id) {
+			Window::ShowForwardMessagesBox(
+				controller,
+				MessageIdsList{ 1, id });
+		};
+		callbacks.uiShow = [controller]() {
+			return controller->uiShow();
+		};
+		callbacks.elementContext = []() {
+			return HistoryView::Context::History;
+		};
+		callbacks.openPhoto = [inner](not_null<PhotoData*> photo, FullMsgId context) {
+			if (inner) {
+				inner->elementOpenPhoto(photo, context);
+			}
+		};
+		callbacks.openDocument = [inner](not_null<DocumentData*> document, FullMsgId context, bool showInMediaView) {
+			if (inner) {
+				inner->elementOpenDocument(document, context, showInMediaView);
+			}
+		};
+		callbacks.savePhoto = [inner](not_null<PhotoData*> photo) {
+			if (inner) {
+				inner->savePhotoToFile(photo);
+			}
+		};
+		callbacks.hideMenu = [this]() {
+			if (_menu) {
+				_menu->hideMenu(true);
+			}
+		};
+
+		auto shortcutsResult = FaHistoryView::AddContextMenuShortcuts(
+				_menu->menu(),
+				leaderOrSelf,
+				controller,
+				std::move(callbacks));
+		if (shortcutsResult.widget) {
+			if (shortcutsAtBottom) {
+				_menu->addAction(std::move(shortcutsResult.widget));
+			} else {
+				_menu->insertAction(0, std::move(shortcutsResult.widget));
+			}
+		}
 	}
 
 	if (_menu->empty()) {

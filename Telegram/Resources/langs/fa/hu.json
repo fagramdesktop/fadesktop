@@ -90,5 +90,9 @@
     "fa_pack_owner": "Csomag tulajdonosa",
     "fa_hide_blocked_user_messages": "Blokkolt felhasználók üzeneteinek elrejtése",
     "fa_hide_blocked_user_messages_desc": "A blokkolt felhasználók üzenetei spoilerrel lesznek elrejtve, és a média nem töltődik le automatikusan.",
-    "fa_restarting_in_seconds": "Újraindítás 3 másodperc múlva..."
+    "fa_restarting_in_seconds": "Újraindítás 3 másodperc múlva...",
+    "fa_context_menu": "Kontextus menü",
+    "fa_context_menu_settings": "Gyorsbillentyű ikonok használata",
+    "fa_context_menu_move_to_bottom": "Gyorsbillentyűk áthelyezése az aljára",
+    "fa_context_menu_desc": "A gyorsműveleti ikonparancsok beállítása az üzenetek helyi menüiben"
 }

@@ -90,5 +90,9 @@
     "fa_pack_owner": "Propriétaire du pack",
     "fa_hide_blocked_user_messages": "Masquer les messages des utilisateurs bloqués",
     "fa_hide_blocked_user_messages_desc": "Les messages des utilisateurs bloqués seront masqués par des spoilers et les médias ne seront pas téléchargés automatiquement.",
-    "fa_restarting_in_seconds": "Redémarrage dans 3 secondes..."
+    "fa_restarting_in_seconds": "Redémarrage dans 3 secondes...",
+    "fa_context_menu": "Menu contextuel",
+    "fa_context_menu_settings": "Utiliser des icônes de raccourcis",
+    "fa_context_menu_move_to_bottom": "Déplacer les raccourcis vers le bas",
+    "fa_context_menu_desc": "Configurer les icônes de raccourcis d’actions rapides dans les menus contextuels des messages"
 }
