@@ -779,10 +779,10 @@ PRIVATE
     fa/settings_menu/fa_settings_menu.cpp
     fa/settings_menu/fa_settings_menu.h
     fa/settings/fa_settings.cpp
-    fa/settings/fa_settings.h 
-    fa/settings_menu/sections/fa_general.cpp 
+    fa/settings/fa_settings.h
+    fa/settings_menu/sections/fa_general.cpp
     fa/settings_menu/sections/fa_general.h
-    fa/settings_menu/sections/fa_chats.cpp 
+    fa/settings_menu/sections/fa_chats.cpp
     fa/settings_menu/sections/fa_chats.h
     fa/settings_menu/sections/fa_appearance.cpp
     fa/settings_menu/sections/fa_appearance.h
@@ -797,6 +797,8 @@ PRIVATE
     fa/ui/history/view/fa_context_menu_shortcuts.cpp
     fa/ui/history/view/fa_context_menu_shortcuts.h
     fa/fa_version.h
+    fa/fa_changelogs.cpp
+    fa/fa_changelogs.h
     fa/ui/menu_item_subtext.cpp
     fa/ui/menu_item_subtext.h
     history/admin_log/history_admin_log_filter.cpp

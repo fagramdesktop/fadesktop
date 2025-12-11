@@ -151,6 +151,11 @@ struct Definition {
 const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 
 	// Stored settings
+	//   Changelog version tracking
+	{ "fa_last_changelog_version", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 0, }},
+
 	//   General
 	{ "debug_logs", {
 		.type = SettingType::BoolSetting,

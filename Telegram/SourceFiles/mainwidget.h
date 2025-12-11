@@ -92,6 +92,10 @@ namespace Core {
 class Changelogs;
 } // namespace Core
 
+namespace FA {
+class Changelogs;
+} // namespace FA
+
 class MainWidget final
 	: public Ui::RpWidget
 	, private Media::Player::FloatDelegate {
@@ -369,5 +373,6 @@ private:
 
 	// _changelogs depends on _data, subscribes on chats loading event.
 	const std::unique_ptr<Core::Changelogs> _changelogs;
+	const std::unique_ptr<FA::Changelogs> _faChangelogs;
 
 };
