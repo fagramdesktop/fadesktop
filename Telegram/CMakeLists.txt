@@ -796,6 +796,8 @@ PRIVATE
     fa/ui/previews.h
     fa/ui/history/view/fa_context_menu_shortcuts.cpp
     fa/ui/history/view/fa_context_menu_shortcuts.h
+    fa/ui/history/view/fa_reply_in_private.cpp
+    fa/ui/history/view/fa_reply_in_private.h
     fa/fa_version.h
     fa/fa_changelogs.cpp
     fa/fa_changelogs.h

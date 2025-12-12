@@ -76,7 +76,7 @@ namespace Settings {
 
     void FA::SetupFASettings(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
     	AddSubsectionTitle(container, FAlang::RplTranslate(QString("fa_categories")));
-    	
+
 		const auto addSection = [&](
 				rpl::producer<QString> label,
 				Type type,
@@ -113,15 +113,15 @@ namespace Settings {
 	void FA::SetupLinks(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller)
     {
     	AddSubsectionTitle(container, FAlang::RplTranslate(QString("fa_links")));
-    	
+
 	    AddButtonWithLabel(
 			container,
 			FAlang::RplTranslate(QString("fa_channel")),
-			rpl::single(QString("@FAgramClient")),
+			rpl::single(QString("@FAgramDesktop")),
 			st::settingsButton,
 			{ &st::menuIconChannel }
 		)->setClickedCallback([=] {
-			Core::App().openLocalUrl("tg://resolve?domain=FAgramClient", {});
+			Core::App().openLocalUrl("tg://resolve?domain=FAgramDesktop", {});
 		});
 
     	AddButtonWithLabel(

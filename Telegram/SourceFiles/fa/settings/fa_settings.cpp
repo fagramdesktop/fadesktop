@@ -228,6 +228,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "context_menu_shortcuts_at_bottom", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "context_menu_reply_in_private", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = true, }},
 };
 
 using OldOptionKey = QString;

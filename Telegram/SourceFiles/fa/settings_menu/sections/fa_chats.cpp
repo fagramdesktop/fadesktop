@@ -133,8 +133,7 @@ namespace Settings {
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_message_details_desc")));
 		RestartSettingsMenuJsonSwitch(fa_hide_all_chats_folder, hide_all_chats_folder);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_all_chats_folder_desc")));
-		
-		// FAgram: Red toggle for blocked user message hiding with auto-restart
+
 		const auto hideBlockedBtn = container->add(object_ptr<Button>(
 			container,
 			FAlang::RplTranslate(QString("fa_hide_blocked_user_messages")),
@@ -149,20 +148,46 @@ namespace Settings {
 		}) | rpl::start_with_next([=](bool enabled) {
 			::FASettings::JsonSettings::Set("hide_blocked_user_messages", enabled);
 			::FASettings::JsonSettings::Write();
-			
-			// Show toast and restart after 3 seconds
+
 			controller->showToast(FAlang::Translate(QString("fa_restarting_in_seconds")));
 			base::call_delayed(crl::time(3000), container, [] {
 				::Core::Restart();
 			});
 		}, container->lifetime());
-		
+
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_blocked_user_messages_desc")));
+    }
+
+    void FAChats::SetupContextMenu(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
+		Ui::AddSkip(container);
+		Ui::AddSubsectionTitle(container, FAlang::RplTranslate(QString("fa_context_menu")));
+
+		container->add(object_ptr<Button>(
+			container,
+			FAlang::RplTranslate(QString("fa_context_menu_settings")),
+			st::settingsButtonNoIcon
+		))->toggleOn(
+			rpl::single(::FASettings::JsonSettings::GetBool("context_menu_use_shortcuts"))
+		)->toggledValue(
+		) | rpl::filter([](bool enabled) {
+			return (enabled != ::FASettings::JsonSettings::GetBool("context_menu_use_shortcuts"));
+		}) | rpl::start_with_next([](bool enabled) {
+			::FASettings::JsonSettings::Write();
+			::FASettings::JsonSettings::Set("context_menu_use_shortcuts", enabled);
+			::FASettings::JsonSettings::Write();
+		}, container->lifetime());
+
+		SettingsMenuJsonSwitch(fa_context_menu_move_to_bottom, context_menu_shortcuts_at_bottom);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_context_menu_desc")));
+
+		SettingsMenuJsonSwitch(fa_context_menu_reply_in_private, context_menu_reply_in_private);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_context_menu_reply_in_private_desc")));
     }
 
     void FAChats::SetupFAChats(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
 		Ui::AddSkip(container);
-    	SetupChats(container, controller);
+		SetupChats(container, controller);
+		SetupContextMenu(container, controller);
     }
 
     void FAChats::setupContent(not_null<Window::SessionController *> controller) {

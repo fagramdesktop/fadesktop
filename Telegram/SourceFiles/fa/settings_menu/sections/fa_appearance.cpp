@@ -135,30 +135,6 @@ namespace Settings {
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_phone_number_desc")));
 		RestartSettingsMenuJsonSwitch(fa_hide_stories, hide_stories);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_stories_desc")));
-
-		Ui::AddSkip(container);
-		Ui::AddSubsectionTitle(container, FAlang::RplTranslate(("fa_context_menu")));
-
-		// Using Shortcuts toggle
-		container->add(object_ptr<Ui::SettingsButton>(
-			container,
-			FAlang::RplTranslate(QString("fa_context_menu_settings")),
-			st::settingsButtonNoIcon
-		))->toggleOn(
-			rpl::single(::FASettings::JsonSettings::GetBool("context_menu_use_shortcuts"))
-		)->toggledValue(
-		) | rpl::filter([](bool enabled) {
-			return (enabled != ::FASettings::JsonSettings::GetBool("context_menu_use_shortcuts"));
-		}) | rpl::start_with_next([](bool enabled) {
-			::FASettings::JsonSettings::Write();
-			::FASettings::JsonSettings::Set("context_menu_use_shortcuts", enabled);
-			::FASettings::JsonSettings::Write();
-		}, container->lifetime());
-
-		// Move shortcuts to the bottom
-		SettingsMenuJsonSwitch(fa_context_menu_move_to_bottom, context_menu_shortcuts_at_bottom);
-
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_context_menu_desc")));
     }
 
     void FAAppearance::SetupFAAppearance(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

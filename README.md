@@ -77,6 +77,9 @@
 - MDY styled button cards
 - Hide blocked user messages
 - Always show name instead of phone for unsaved contacts
+- New context menu shortcuts
+- Service notifications for changelogs
+- Reply in Private Chat
 
 </details>
 

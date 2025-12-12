@@ -28,6 +28,7 @@ namespace Settings {
 
     private:
         void SetupChats(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller);
+        void SetupContextMenu(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller);
         
         void SetupFAChats(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> null);
         void setupContent(not_null<Window::SessionController *> controller);

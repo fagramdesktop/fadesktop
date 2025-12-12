@@ -10,6 +10,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "fa/utils/telegram_helpers.h"
 #include "fa/settings/fa_settings.h"
 #include "fa/ui/history/view/fa_context_menu_shortcuts.h"
+#include "fa/ui/history/view/fa_reply_in_private.h"
 
 #include "api/api_attached_stickers.h"
 #include "api/api_editing.h"
@@ -1358,6 +1359,7 @@ base::unique_qptr<Ui::PopupMenu> FillContextMenu(
 	if (!hasShortcutReply) {
 		AddReplyToMessageAction(result, request, list);
 	}
+	FA::AddReplyInPrivateChatAction(result, request, list);
 	AddTodoListAction(result, request, list);
 
 	if (!hasShortcutCopy) {

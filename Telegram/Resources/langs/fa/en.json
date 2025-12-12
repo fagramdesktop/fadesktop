@@ -94,5 +94,7 @@
   "fa_context_menu": "Context Menu",
   "fa_context_menu_settings": "Use shortcuts icons",
   "fa_context_menu_move_to_bottom": "Move shortcuts to the bottom",
+  "fa_context_menu_reply_in_private": "Show \"Reply in Private Chat\"",
+  "fa_context_menu_reply_in_private_desc": "Adds a context menu option to quickly reply to a message in a private chat with the sender",
   "fa_context_menu_desc": "Configure quick action icon shortcuts in message context menus"
 }

@@ -5096,6 +5096,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 "lng_reply_in_another_title" = "Reply in...";
 "lng_reply_in_another_chat" = "Reply in Another Chat";
+"lng_reply_in_private_chat" = "Reply in Private Chat";
 "lng_reply_in_author" = "Message author";
 "lng_reply_in_chats_list" = "Your chats";
 "lng_reply_show_in_chat" = "Show in Chat";

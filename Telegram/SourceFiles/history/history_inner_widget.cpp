@@ -10,6 +10,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "fa/utils/telegram_helpers.h"
 #include "fa/ui/history/view/fa_context_menu_shortcuts.h"
+#include "fa/ui/history/view/fa_reply_in_private.h"
 
 #include "chat_helpers/stickers_emoji_pack.h"
 #include "core/file_utilities.h"
@@ -104,6 +105,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_file_click_handler.h"
 #include "data/data_histories.h"
 #include "data/data_changes.h"
+#include "data/data_drafts.h"
 #include "data/data_todo_list.h"
 #include "dialogs/ui/dialogs_video_userpic.h"
 #include "styles/style_chat.h"
@@ -2783,6 +2785,72 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		}
 	};
 
+	const auto addReplyInPrivateAction = [&](HistoryItem *item) {
+		// Check if the feature is enabled in settings
+		if (!FASettings::JsonSettings::GetBool("context_menu_reply_in_private")) {
+			return;
+		}
+		if (!item || !item->isRegular()) {
+			return;
+		}
+		if (!item->allowsForward()) {
+			return;
+		}
+		// Get the display sender
+		const auto displayFrom = item->displayFrom();
+		const auto from = displayFrom ? displayFrom : item->from().get();
+		// Must be a user (not a channel or group)
+		if (!from->isUser()) {
+			return;
+		}
+		const auto user = from->asUser();
+		// Skip if it's the current chat
+		if (from == item->history()->peer) {
+			return;
+		}
+		// Skip if it's ourselves or deleted
+		if (user->isSelf() || user->isInaccessible()) {
+			return;
+		}
+		const auto selected = selectedQuote(item);
+		const auto replyToItem = selected.item ? selected.item : item;
+		const auto itemId = replyToItem->fullId();
+		const auto quote = selected.highlight.quote;
+		const auto quoteOffset = selected.highlight.quoteOffset;
+		_menu->addAction(
+			tr::lng_reply_in_private_chat(tr::now),
+			[=, controller = _controller] {
+				const auto history = user->owner().history(user);
+				auto reply = FullReplyTo{
+					.messageId = itemId,
+					.quote = quote,
+					.quoteOffset = quoteOffset,
+				};
+				const auto existingDraft = history->localDraft(MsgId(0), PeerId(0));
+				const auto textWithTags = existingDraft
+					? existingDraft->textWithTags
+					: TextWithTags();
+				const auto cursor = existingDraft
+					? existingDraft->cursor
+					: MessageCursor();
+				history->setLocalDraft(std::make_unique<Data::Draft>(
+					textWithTags,
+					reply,
+					SuggestOptions(),
+					cursor,
+					Data::WebPageDraft()));
+				history->clearLocalEditDraft(MsgId(0), PeerId(0));
+				history->session().changes().entryUpdated(
+					history,
+					Data::EntryUpdate::Flag::LocalDraftSet);
+				controller->showPeerHistory(
+					user,
+					Window::SectionShow::Way::Forward,
+					ShowAtUnreadMsgId);
+			},
+			&st::menuIconReply);
+	};
+
 	const auto addTodoListAction = [&](HistoryItem *item) {
 		if (!item || !Window::PeerMenuShowAddTodoListTasks(item)) {
 			return;
@@ -2817,6 +2885,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		const auto item = _dragStateItem;
 		const auto itemId = item ? item->fullId() : FullMsgId();
 		addReplyAction(item);
+		addReplyInPrivateAction(item);
 
 		if (isUponSelected > 0) {
 			const auto selectedText = getSelectedText();
@@ -2960,6 +3029,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		}
 		if (isUponSelected > 0) {
 			addReplyAction(item);
+			addReplyInPrivateAction(item);
 			const auto selectedText = getSelectedText();
 			// Skip copy if already in shortcuts
 			if (!hasCopyRestrictionForSelected() && !selectedText.empty() && !hasShortcutCopy) {
@@ -2985,6 +3055,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			addItemActions(item, item);
 		} else {
 			addReplyAction(partItemOrLeader);
+			addReplyInPrivateAction(partItemOrLeader);
 			addTodoListAction(partItemOrLeader);
 			addItemActions(item, albumPartItem);
 			if (item && !isUponSelected) {
