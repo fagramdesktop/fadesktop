@@ -94,7 +94,13 @@
   "fa_context_menu": "Kontekst menyu",
   "fa_context_menu_settings": "Tezkor tugmalar ikonkalari",
   "fa_context_menu_move_to_bottom": "Tezkor tugmalarni pastga ko'chirish",
-  "fa_context_menu_reply_in_private": "\"Shaxsiy chatda javob berishni\" ko‘rsatish",
-  "fa_context_menu_reply_in_private_desc": "Xabarga yuboruvchi bilan shaxsiy chatda tezda javob berish uchun kontekst menyusiga variant qo‘shadi",
-  "fa_context_menu_desc": "Xabarlar kontekst menyularida tezkor harakat ikonka yorliqlarini sozlash"
+  "fa_context_menu_reply_in_private": "\"Shaxsiy chatda javob berishni\" ko'rsatish",
+  "fa_context_menu_reply_in_private_desc": "Xabarga yuboruvchi bilan shaxsiy chatda tezda javob berish uchun kontekst menyusiga variant qo'shadi",
+  "fa_context_menu_desc": "Xabarlar kontekst menyularida tezkor harakat ikonka yorliqlarini sozlash",
+  "fa_context_menu_forward_submenu": "Yo'naltirish menyusi variantlari",
+  "fa_context_menu_forward_submenu_desc": "Kontekst menyusida tezkor yo'naltirish variantlarini ko'rsatish (Nusxa sifatida yo'naltirish, Saqlanganga yo'naltirish)",
+  "fa_forward_with_author": "Muallif bilan yo'naltirish",
+  "fa_forward_as_copy": "Nusxa sifatida yo'naltirish",
+  "fa_forward_to_saved": "Saqlangan xabarlarga yo'naltirish",
+  "fa_forward_to_saved_as_copy": "Saqlanganga nusxa sifatida yo'naltirish"
 }

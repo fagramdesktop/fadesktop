@@ -231,6 +231,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "context_menu_reply_in_private", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},
+	{ "context_menu_forward_submenu", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;

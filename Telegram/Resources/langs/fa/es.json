@@ -96,5 +96,11 @@
   "fa_context_menu_move_to_bottom": "Mover accesos directos a la parte inferior",
   "fa_context_menu_reply_in_private": "Mostrar \"Responder en chat privado\"",
   "fa_context_menu_reply_in_private_desc": "Añade una opción en el menú contextual para responder rápidamente a un mensaje en un chat privado con el remitente",
-  "fa_context_menu_desc": "Configurar los iconos de acciones rápidas en los menús contextuales de mensajes"
+  "fa_context_menu_desc": "Configurar los iconos de acciones rápidas en los menús contextuales de mensajes",
+  "fa_context_menu_forward_submenu": "Opciones del menú Reenviar",
+  "fa_context_menu_forward_submenu_desc": "Muestra opciones rápidas de reenvío (Reenviar como copia, Reenviar a Guardados) en el menú contextual",
+  "fa_forward_with_author": "Reenviar con autor",
+  "fa_forward_as_copy": "Reenviar como copia",
+  "fa_forward_to_saved": "Reenviar a Mensajes Guardados",
+  "fa_forward_to_saved_as_copy": "Reenviar a Guardados como copia"
 }

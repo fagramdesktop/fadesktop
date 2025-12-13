@@ -182,6 +182,9 @@ namespace Settings {
 
 		SettingsMenuJsonSwitch(fa_context_menu_reply_in_private, context_menu_reply_in_private);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_context_menu_reply_in_private_desc")));
+
+		SettingsMenuJsonSwitch(fa_context_menu_forward_submenu, context_menu_forward_submenu);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_context_menu_forward_submenu_desc")));
     }
 
     void FAChats::SetupFAChats(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

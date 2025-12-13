@@ -11,6 +11,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "fa/ui/history/view/fa_context_menu_shortcuts.h"
 #include "fa/ui/history/view/fa_reply_in_private.h"
+#include "fa/lang/fa_lang.h"
 
 #include "api/api_attached_stickers.h"
 #include "api/api_editing.h"
@@ -101,6 +102,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
+#include <QtWidgets/QMenu>
 
 namespace HistoryView {
 namespace {
@@ -386,16 +388,77 @@ bool AddForwardSelectedAction(
 		return false;
 	}
 
+	const auto navigation = request.navigation;
+	const auto selectedItems = request.selectedItems;
+	const auto weak = base::make_weak(list);
+	const auto callback = [=] {
+		if (const auto strong = weak.get()) {
+			strong->cancelSelection();
+		}
+	};
+
+	if (::FASettings::JsonSettings::GetBool("context_menu_forward_submenu")) {
+		const auto ids = ExtractIdsList(selectedItems);
+
+		const auto forwardAction = menu->addAction(
+			tr::lng_context_forward_selected(tr::now),
+			[=] {
+				auto idsCopy = ids;
+				Window::ShowForwardMessagesBox(navigation, std::move(idsCopy), callback);
+			},
+			&st::menuIconForward);
+
+		// Dummy menu to show submenu arrow indicator
+		forwardAction->setMenu(Ui::CreateChild<QMenu>(menu->menu().get()));
+		const auto submenu = menu->ensureSubmenu(forwardAction, st::faContextMenu);
+
+		submenu->addAction(
+			FAlang::Translate("fa_forward_with_author"),
+			[=] {
+				auto idsCopy = ids;
+				Window::ShowForwardMessagesBox(navigation, std::move(idsCopy), callback);
+			},
+			&st::menuIconForward);
+
+		submenu->addAction(
+			FAlang::Translate("fa_forward_as_copy"),
+			[=] {
+				auto draft = Data::ForwardDraft{
+					.ids = ids,
+					.options = Data::ForwardOptions::NoSenderNames,
+				};
+				Window::ShowForwardMessagesBox(navigation, std::move(draft), callback);
+			},
+			&st::menuIconCopy);
+
+		submenu->addAction(
+			FAlang::Translate("fa_forward_to_saved"),
+			[=] {
+				auto draft = Data::ForwardDraft{ .ids = ids };
+				Window::ForwardToSelf(navigation->uiShow(), draft);
+				callback();
+			},
+			&st::menuIconSavedMessages);
+
+		submenu->addAction(
+			FAlang::Translate("fa_forward_to_saved_as_copy"),
+			[=] {
+				auto draft = Data::ForwardDraft{
+					.ids = ids,
+					.options = Data::ForwardOptions::NoSenderNames,
+				};
+				Window::ForwardToSelf(navigation->uiShow(), draft);
+				callback();
+			},
+			&st::menuIconSavedMessages);
+
+		return true;
+	}
+
 	menu->addAction(tr::lng_context_forward_selected(tr::now), [=] {
-		const auto weak = base::make_weak(list);
-		const auto callback = [=] {
-			if (const auto strong = weak.get()) {
-				strong->cancelSelection();
-			}
-		};
 		Window::ShowForwardMessagesBox(
-			request.navigation,
-			ExtractIdsList(request.selectedItems),
+			navigation,
+			ExtractIdsList(selectedItems),
 			callback);
 	}, &st::menuIconForward);
 	return true;
@@ -425,10 +488,86 @@ bool AddForwardMessageAction(
 		}
 	}
 	const auto itemId = item->fullId();
+	const auto navigation = request.navigation;
+
+	if (::FASettings::JsonSettings::GetBool("context_menu_forward_submenu")) {
+		const auto getMessageIds = [=]() -> MessageIdsList {
+			if (const auto item = owner->message(itemId)) {
+				return asGroup
+					? owner->itemOrItsGroup(item)
+					: MessageIdsList{ 1, itemId };
+			}
+			return {};
+		};
+
+		const auto forwardAction = menu->addAction(
+			tr::lng_context_forward_msg(tr::now),
+			[=] {
+				Window::ShowForwardMessagesBox(navigation, getMessageIds());
+			},
+			&st::menuIconForward);
+
+		// Dummy menu to show submenu arrow indicator
+		forwardAction->setMenu(Ui::CreateChild<QMenu>(menu->menu().get()));
+		const auto submenu = menu->ensureSubmenu(forwardAction, st::faContextMenu);
+
+		submenu->addAction(
+			FAlang::Translate("fa_forward_with_author"),
+			[=] {
+				Window::ShowForwardMessagesBox(navigation, getMessageIds());
+			},
+			&st::menuIconForward);
+
+		submenu->addAction(
+			FAlang::Translate("fa_forward_as_copy"),
+			[=] {
+				const auto ids = getMessageIds();
+				if (!ids.empty()) {
+					auto draft = Data::ForwardDraft{
+						.ids = ids,
+						.options = Data::ForwardOptions::NoSenderNames,
+					};
+					Window::ShowForwardMessagesBox(navigation, std::move(draft));
+				}
+			},
+			&st::menuIconCopy);
+
+		submenu->addAction(
+			FAlang::Translate("fa_forward_to_saved"),
+			[=] {
+				const auto ids = getMessageIds();
+				if (!ids.empty()) {
+					auto draft = Data::ForwardDraft{ .ids = ids };
+					Window::ForwardToSelf(
+						navigation->uiShow(),
+						draft);
+				}
+			},
+			&st::menuIconSavedMessages);
+
+		submenu->addAction(
+			FAlang::Translate("fa_forward_to_saved_as_copy"),
+			[=] {
+				const auto ids = getMessageIds();
+				if (!ids.empty()) {
+					auto draft = Data::ForwardDraft{
+						.ids = ids,
+						.options = Data::ForwardOptions::NoSenderNames,
+					};
+					Window::ForwardToSelf(
+						navigation->uiShow(),
+						draft);
+				}
+			},
+			&st::menuIconSavedMessages);
+
+		return true;
+	}
+
 	menu->addAction(tr::lng_context_forward_msg(tr::now), [=] {
 		if (const auto item = owner->message(itemId)) {
 			Window::ShowForwardMessagesBox(
-				request.navigation,
+				navigation,
 				(asGroup
 					? owner->itemOrItsGroup(item)
 					: MessageIdsList{ 1, itemId }));

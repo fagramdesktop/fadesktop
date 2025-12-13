@@ -96,5 +96,11 @@
   "fa_context_menu_move_to_bottom": "Gyorsbillentyűk áthelyezése az aljára",
   "fa_context_menu_reply_in_private": "\"Válasz privát csevegésben\" megjelenítése",
   "fa_context_menu_reply_in_private_desc": "Hozzáad egy menüopciót, amellyel gyorsan válaszolhatsz egy üzenetre a küldővel folytatott privát csevegésben",
-  "fa_context_menu_desc": "A gyorsműveleti ikonparancsok beállítása az üzenetek helyi menüiben"
+  "fa_context_menu_desc": "A gyorsműveleti ikonparancsok beállítása az üzenetek helyi menüiben",
+  "fa_context_menu_forward_submenu": "Továbbítás menü opciók",
+  "fa_context_menu_forward_submenu_desc": "Gyors továbbítási lehetőségek megjelenítése (Továbbítás másolatként, Továbbítás Mentettekbe) a helyi menüben",
+  "fa_forward_with_author": "Továbbítás szerzővel",
+  "fa_forward_as_copy": "Továbbítás másolatként",
+  "fa_forward_to_saved": "Továbbítás Mentett üzenetekbe",
+  "fa_forward_to_saved_as_copy": "Továbbítás Mentettekbe másolatként"
 }

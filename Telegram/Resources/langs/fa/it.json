@@ -96,5 +96,11 @@
   "fa_context_menu_move_to_bottom": "Sposta le scorciatoie in basso",
   "fa_context_menu_reply_in_private": "Mostra \"Rispondi in chat privata\"",
   "fa_context_menu_reply_in_private_desc": "Aggiunge un'opzione nel menu contestuale per rispondere rapidamente a un messaggio in una chat privata con il mittente",
-  "fa_context_menu_desc": "Configura le icone delle azioni rapide nei menu contestuali dei messaggi"
+  "fa_context_menu_desc": "Configura le icone delle azioni rapide nei menu contestuali dei messaggi",
+  "fa_context_menu_forward_submenu": "Opzioni menu Inoltra",
+  "fa_context_menu_forward_submenu_desc": "Mostra opzioni di inoltro rapido (Inoltra come copia, Inoltra ai Salvati) nel menu contestuale",
+  "fa_forward_with_author": "Inoltra con autore",
+  "fa_forward_as_copy": "Inoltra come copia",
+  "fa_forward_to_saved": "Inoltra ai Messaggi Salvati",
+  "fa_forward_to_saved_as_copy": "Inoltra ai Salvati come copia"
 }

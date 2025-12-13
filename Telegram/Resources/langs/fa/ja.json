@@ -96,5 +96,11 @@
   "fa_context_menu_move_to_bottom": "ショートカットを下部に移動する",
   "fa_context_menu_reply_in_private": "「プライベートチャットで返信」を表示",
   "fa_context_menu_reply_in_private_desc": "送信者とのプライベートチャットで素早く返信するためのコンテキストメニュー項目を追加します",
-  "fa_context_menu_desc": "メッセージのコンテキストメニューでクイックアクションのアイコンショートカットを設定します"
+  "fa_context_menu_desc": "メッセージのコンテキストメニューでクイックアクションのアイコンショートカットを設定します",
+  "fa_context_menu_forward_submenu": "転送メニューオプション",
+  "fa_context_menu_forward_submenu_desc": "コンテキストメニューにクイック転送オプション（コピーとして転送、保存済みに転送）を表示",
+  "fa_forward_with_author": "作成者付きで転送",
+  "fa_forward_as_copy": "コピーとして転送",
+  "fa_forward_to_saved": "保存済みメッセージに転送",
+  "fa_forward_to_saved_as_copy": "保存済みにコピーとして転送"
 }

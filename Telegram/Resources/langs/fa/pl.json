@@ -96,5 +96,11 @@
   "fa_context_menu_move_to_bottom": "Przenieś skróty na dół",
   "fa_context_menu_reply_in_private": "Pokaż „Odpowiedz na prywatnym czacie”",
   "fa_context_menu_reply_in_private_desc": "Dodaje opcję w menu kontekstowym, aby szybko odpowiedzieć na wiadomość na prywatnym czacie z nadawcą",
-  "fa_context_menu_desc": "Skonfiguruj ikony szybkich akcji w menu kontekstowym wiadomości"
+  "fa_context_menu_desc": "Skonfiguruj ikony szybkich akcji w menu kontekstowym wiadomości",
+  "fa_context_menu_forward_submenu": "Opcje menu Przekaż",
+  "fa_context_menu_forward_submenu_desc": "Pokazuje szybkie opcje przekazywania (Przekaż jako kopię, Przekaż do Zapisanych) w menu kontekstowym",
+  "fa_forward_with_author": "Przekaż z autorem",
+  "fa_forward_as_copy": "Przekaż jako kopię",
+  "fa_forward_to_saved": "Przekaż do Zapisanych wiadomości",
+  "fa_forward_to_saved_as_copy": "Przekaż do Zapisanych jako kopię"
 }

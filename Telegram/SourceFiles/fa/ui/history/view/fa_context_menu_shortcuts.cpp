@@ -324,19 +324,21 @@ void ContextMenuShortcuts::createButtons() {
 		addedFourthButton = true;
 	}
 
-	if (!addedFourthButton && canForward) {
-		const auto itemId = item->fullId();
+	// If no fourth button and we can pin (and pin wasn't already added in slot 3), add Pin
+	if (!addedFourthButton && canPin && !canLink) {
+		// Pin was already added in the third slot when !canLink
+	} else if (!addedFourthButton && canPin && canLink) {
+		// canLink took the third slot, so we can add Pin in the fourth slot
+		const auto pinItemId = item->fullId();
 		addButton(
-			st::menuIconForward,
+			isPinned ? st::menuIconUnpin : st::menuIconPin,
 			[=] {
 				if (_callbacks.hideMenu) {
 					_callbacks.hideMenu();
 				}
-				if (_callbacks.forwardMessage) {
-					_callbacks.forwardMessage(itemId);
-				}
+				Window::ToggleMessagePinned(_controller, pinItemId, !isPinned);
 			},
-			ShortcutType::Forward);
+			isPinned ? ShortcutType::Unpin : ShortcutType::Pin);
 	}
 
 	if (_buttons.empty()) {
@@ -542,9 +544,10 @@ std::set<ShortcutType> GetAvailableShortcuts(
 		addedFourthButton = true;
 	}
 
-	// If no fourth button, add Forward
-	if (!addedFourthButton && canForward) {
-		result.insert(ShortcutType::Forward);
+	// If no fourth button and we can pin (and pin wasn't already added in slot 3), add Pin
+	if (!addedFourthButton && canPin && canLink) {
+		// canLink took the third slot, so we can add Pin in the fourth slot
+		result.insert(isPinned ? ShortcutType::Unpin : ShortcutType::Pin);
 	}
 
 	return result;

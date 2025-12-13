@@ -7,6 +7,9 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 */
 #include "info/media/info_media_list_widget.h"
 
+#include "fa/settings/fa_settings.h"
+#include "fa/lang/fa_lang.h"
+
 #include "info/global_media/info_global_media_provider.h"
 #include "info/media/info_media_common.h"
 #include "info/media/info_media_provider.h"
@@ -18,6 +21,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "layout/layout_mosaic.h"
 #include "layout/layout_selection.h"
 #include "data/data_media_types.h"
+#include "data/data_types.h"
 #include "data/data_photo.h"
 #include "data/data_chat.h"
 #include "data/data_channel.h"
@@ -76,8 +80,10 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "styles/style_credits.h" // giftBoxHiddenMark
 #include "styles/style_chat_helpers.h"
 #include "styles/style_media_stories.h"
+#include "styles/style_fa_styles.h"
 
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QMenu>
 #include <QtGui/QClipboard>
 
 namespace Info {
@@ -1252,12 +1258,74 @@ void ListWidget::showContextMenu(
 			}
 		}
 		if (canForwardAll()) {
-			_contextMenu->addAction(
-				tr::lng_context_forward_selected(tr::now),
-				crl::guard(this, [this] {
-					forwardSelected();
-				}),
-				&st::menuIconForward);
+			if (::FASettings::JsonSettings::GetBool("context_menu_forward_submenu")) {
+				const auto ids = collectSelectedIds();
+				const auto controller = _controller;
+				const auto weak = base::make_weak(this);
+				const auto callback = [=] {
+					if (const auto strong = weak.get()) {
+						strong->clearSelected();
+					}
+				};
+
+				const auto forwardAction = _contextMenu->addAction(
+					tr::lng_context_forward_selected(tr::now),
+					crl::guard(this, [=] {
+						auto idsCopy = ids;
+						Window::ShowForwardMessagesBox(controller, std::move(idsCopy), callback);
+					}),
+					&st::menuIconForward);
+
+				forwardAction->setMenu(Ui::CreateChild<QMenu>(_contextMenu->menu().get()));
+				const auto submenu = _contextMenu->ensureSubmenu(forwardAction, st::faContextMenu);
+
+				submenu->addAction(
+					FAlang::Translate("fa_forward_with_author"),
+					crl::guard(this, [=] {
+						auto idsCopy = ids;
+						Window::ShowForwardMessagesBox(controller, std::move(idsCopy), callback);
+					}),
+					&st::menuIconForward);
+
+				submenu->addAction(
+					FAlang::Translate("fa_forward_as_copy"),
+					crl::guard(this, [=] {
+						auto draft = Data::ForwardDraft{
+							.ids = ids,
+							.options = Data::ForwardOptions::NoSenderNames,
+						};
+						Window::ShowForwardMessagesBox(controller, std::move(draft), callback);
+					}),
+					&st::menuIconCopy);
+
+				submenu->addAction(
+					FAlang::Translate("fa_forward_to_saved"),
+					crl::guard(this, [=] {
+						auto draft = Data::ForwardDraft{ .ids = ids };
+						Window::ForwardToSelf(controller->parentController()->uiShow(), draft);
+						callback();
+					}),
+					&st::menuIconSavedMessages);
+
+				submenu->addAction(
+					FAlang::Translate("fa_forward_to_saved_as_copy"),
+					crl::guard(this, [=] {
+						auto draft = Data::ForwardDraft{
+							.ids = ids,
+							.options = Data::ForwardOptions::NoSenderNames,
+						};
+						Window::ForwardToSelf(controller->parentController()->uiShow(), draft);
+						callback();
+					}),
+					&st::menuIconSavedMessages);
+			} else {
+				_contextMenu->addAction(
+					tr::lng_context_forward_selected(tr::now),
+					crl::guard(this, [this] {
+						forwardSelected();
+					}),
+					&st::menuIconForward);
+			}
 		}
 		if (canDeleteAll()) {
 			_contextMenu->addAction(
@@ -1307,10 +1375,76 @@ void ListWidget::showContextMenu(
 				}
 			}
 			if (selectionData.canForward) {
-				_contextMenu->addAction(
-					tr::lng_context_forward_msg(tr::now),
-					crl::guard(this, [=] { forwardItem(globalId); }),
-					&st::menuIconForward);
+				if (::FASettings::JsonSettings::GetBool("context_menu_forward_submenu")) {
+					const auto controller = _controller;
+					const auto session = &controller->session();
+					const auto weak = base::make_weak(this);
+					const auto callback = [=] {
+						if (const auto strong = weak.get()) {
+							strong->clearSelected();
+						}
+					};
+
+					const auto forwardAction = _contextMenu->addAction(
+						tr::lng_context_forward_msg(tr::now),
+						crl::guard(this, [=] { forwardItem(globalId); }),
+						&st::menuIconForward);
+
+					forwardAction->setMenu(Ui::CreateChild<QMenu>(_contextMenu->menu().get()));
+					const auto submenu = _contextMenu->ensureSubmenu(forwardAction, st::faContextMenu);
+
+					submenu->addAction(
+						FAlang::Translate("fa_forward_with_author"),
+						crl::guard(this, [=] { forwardItem(globalId); }),
+						&st::menuIconForward);
+
+					submenu->addAction(
+						FAlang::Translate("fa_forward_as_copy"),
+						crl::guard(this, [=] {
+							if (globalId.sessionUniqueId == session->uniqueId()) {
+								if (const auto item = session->data().message(globalId.itemId)) {
+									auto draft = Data::ForwardDraft{
+										.ids = MessageIdsList{ 1, item->fullId() },
+										.options = Data::ForwardOptions::NoSenderNames,
+									};
+									Window::ShowForwardMessagesBox(controller, std::move(draft));
+								}
+							}
+						}),
+						&st::menuIconCopy);
+
+					submenu->addAction(
+						FAlang::Translate("fa_forward_to_saved"),
+						crl::guard(this, [=] {
+							if (globalId.sessionUniqueId == session->uniqueId()) {
+								if (const auto item = session->data().message(globalId.itemId)) {
+									auto draft = Data::ForwardDraft{ .ids = MessageIdsList{ 1, item->fullId() } };
+									Window::ForwardToSelf(controller->parentController()->uiShow(), draft);
+								}
+							}
+						}),
+						&st::menuIconSavedMessages);
+
+					submenu->addAction(
+						FAlang::Translate("fa_forward_to_saved_as_copy"),
+						crl::guard(this, [=] {
+							if (globalId.sessionUniqueId == session->uniqueId()) {
+								if (const auto item = session->data().message(globalId.itemId)) {
+									auto draft = Data::ForwardDraft{
+										.ids = MessageIdsList{ 1, item->fullId() },
+										.options = Data::ForwardOptions::NoSenderNames,
+									};
+									Window::ForwardToSelf(controller->parentController()->uiShow(), draft);
+								}
+							}
+						}),
+						&st::menuIconSavedMessages);
+				} else {
+					_contextMenu->addAction(
+						tr::lng_context_forward_msg(tr::now),
+						crl::guard(this, [=] { forwardItem(globalId); }),
+						&st::menuIconForward);
+				}
 			}
 			if (selectionData.canDelete) {
 				if (_controller->isDownloads()) {

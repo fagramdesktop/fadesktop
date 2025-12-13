@@ -96,5 +96,11 @@
   "fa_context_menu_move_to_bottom": "Déplacer les raccourcis vers le bas",
   "fa_context_menu_reply_in_private": "Afficher « Répondre en message privé »",
   "fa_context_menu_reply_in_private_desc": "Ajoute une option dans le menu contextuel pour répondre rapidement à un message en discussion privée avec l’expéditeur",
-  "fa_context_menu_desc": "Configurer les icônes de raccourcis d’actions rapides dans les menus contextuels des messages"
+  "fa_context_menu_desc": "Configurer les icônes de raccourcis d’actions rapides dans les menus contextuels des messages",
+  "fa_context_menu_forward_submenu": "Options du menu Transférer",
+  "fa_context_menu_forward_submenu_desc": "Affiche des options de transfert rapide (Transférer comme copie, Transférer vers Enregistrés) dans le menu contextuel",
+  "fa_forward_with_author": "Transférer avec auteur",
+  "fa_forward_as_copy": "Transférer comme copie",
+  "fa_forward_to_saved": "Transférer vers Messages enregistrés",
+  "fa_forward_to_saved_as_copy": "Transférer vers Enregistrés comme copie"
 }

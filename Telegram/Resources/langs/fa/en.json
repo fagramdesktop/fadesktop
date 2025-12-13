@@ -96,5 +96,11 @@
   "fa_context_menu_move_to_bottom": "Move shortcuts to the bottom",
   "fa_context_menu_reply_in_private": "Show \"Reply in Private Chat\"",
   "fa_context_menu_reply_in_private_desc": "Adds a context menu option to quickly reply to a message in a private chat with the sender",
-  "fa_context_menu_desc": "Configure quick action icon shortcuts in message context menus"
+  "fa_context_menu_desc": "Configure quick action icon shortcuts in message context menus",
+  "fa_context_menu_forward_submenu": "Forward menu options",
+  "fa_context_menu_forward_submenu_desc": "Shows quick forward options (Forward as Copy, Forward to Saved) in the context menu",
+  "fa_forward_with_author": "Forward with Author",
+  "fa_forward_as_copy": "Forward as Copy",
+  "fa_forward_to_saved": "Forward to Saved Messages",
+  "fa_forward_to_saved_as_copy": "Forward to Saved as Copy"
 }

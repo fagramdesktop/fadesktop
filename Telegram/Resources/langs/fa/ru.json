@@ -96,5 +96,11 @@
   "fa_context_menu_move_to_bottom": "Переместить ярлыки вниз",
   "fa_context_menu_reply_in_private": "Показывать «Ответить в личном чате»",
   "fa_context_menu_reply_in_private_desc": "Добавляет пункт контекстного меню для быстрого ответа на сообщение в личном чате с отправителем",
-  "fa_context_menu_desc": "Настроить иконки быстрых действий в контекстных меню сообщений"
+  "fa_context_menu_desc": "Настроить иконки быстрых действий в контекстных меню сообщений",
+  "fa_context_menu_forward_submenu": "Опции меню пересылки",
+  "fa_context_menu_forward_submenu_desc": "Показывает быстрые опции пересылки (Переслать как копию, Переслать в Избранное) в контекстном меню",
+  "fa_forward_with_author": "Переслать с автором",
+  "fa_forward_as_copy": "Переслать как копию",
+  "fa_forward_to_saved": "Переслать в Избранное",
+  "fa_forward_to_saved_as_copy": "Переслать в Избранное как копию"
 }
