@@ -25,6 +25,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
+#include "data/data_peer_id.h"
 
 namespace FAUrlHandlers
 {
@@ -151,7 +152,7 @@ bool ResolveUser(
 	if (!userId) {
 		return false;
 	}
-	const auto peer = controller->session().data().peerLoaded(static_cast<PeerId>(userId));
+	const auto peer = controller->session().data().peerLoaded(peerFromUser(UserId(userId)));
 	if (peer != nullptr) {
 		controller->showPeerInfo(peer);
 		return true;
