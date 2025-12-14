@@ -176,4 +176,44 @@ bool ResolveUser(
 	return true;
 }
 
+bool ResolveUserChat(
+	Window::SessionController *controller,
+	const Match &match,
+	const QVariant &context) {
+	if (!controller) {
+		return false;
+	}
+
+	const auto userId = match->captured(1).toLongLong();
+	if (!userId) {
+		return false;
+	}
+
+	const auto openChat = [=](not_null<PeerData*> peer) {
+		controller->showPeerHistory(peer);
+		controller->window().activate();
+	};
+
+	const auto peer = controller->session().data().peerLoaded(peerFromUser(UserId(userId)));
+	if (peer != nullptr) {
+		openChat(peer);
+		return true;
+	}
+
+	searchById(
+		userId,
+		&controller->session(),
+		[=](const QString &title, UserData *data) {
+			if (data) {
+				openChat(data);
+				return;
+			}
+
+			Core::App().hideMediaView();
+			controller->showToast(FAlang::Translate(QString("fa_not_found")), 500);
+		});
+
+	return true;
+}
+
 }
