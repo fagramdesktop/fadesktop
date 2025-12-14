@@ -39,7 +39,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_menu_icons.h"
 
-#include <QtGui/QAction>
+#include <QAction>
 #include <QtGui/QPainterPath>
 
 namespace FaHistoryView {
@@ -49,7 +49,7 @@ constexpr auto kShortcutButtonSize = 40;
 constexpr auto kShortcutButtonIconSize = 24;
 constexpr auto kShortcutButtonSpacing = 8;
 constexpr auto kShortcutVerticalPadding = 4;
-constexpr auto kShortcutHorizontalPadding = 7;
+constexpr auto kShortcutHorizontalPadding = 4;
 constexpr auto kShortcutCornerRadius = 6;
 
 class ShortcutButton final : public Ui::RippleButton {
@@ -161,7 +161,6 @@ void ContextMenuShortcuts::createButtons() {
 		: false;
 	const auto canCopy = !item->clipboardText().empty() && !hasCopyRestriction;
 	const auto canLink = item->hasDirectLink();
-	const auto canForward = item->allowsForward();
 	const auto media = item->media();
 	const auto photo = media ? media->photo() : nullptr;
 	const auto document = media ? media->document() : nullptr;
@@ -350,9 +349,11 @@ void ContextMenuShortcuts::createButtons() {
 	_height = kShortcutButtonSize + kShortcutVerticalPadding * 2;
 
 	const auto numButtons = int(_buttons.size());
-	const auto totalWidth = kShortcutHorizontalPadding * 2
-		+ (kShortcutButtonSize * numButtons)
+	// Content width: buttons + spacing only between them
+	const auto contentWidth = (kShortcutButtonSize * numButtons)
 		+ (kShortcutButtonSpacing * (numButtons - 1));
+	// Total width includes minimal horizontal padding on edges
+	const auto totalWidth = contentWidth + kShortcutHorizontalPadding * 2;
 
 	setMinWidth(std::max(totalWidth, _st.widthMin));
 
@@ -371,18 +372,24 @@ void ContextMenuShortcuts::updateButtonsLayout() {
 	}
 
 	const auto numButtons = int(_buttons.size());
+	// Content width: buttons + spacing only between them
 	const auto contentWidth = (kShortcutButtonSize * numButtons)
 		+ (kShortcutButtonSpacing * (numButtons - 1));
 
+	// Center the buttons, but ensure minimum padding from edges
 	auto x = std::max(kShortcutHorizontalPadding, (width() - contentWidth) / 2);
 
-	for (auto &button : _buttons) {
-		button->setGeometry(
+	for (int i = 0; i < numButtons; ++i) {
+		_buttons[i]->setGeometry(
 			x,
 			kShortcutVerticalPadding,
 			kShortcutButtonSize,
 			kShortcutButtonSize);
-		x += kShortcutButtonSize + kShortcutButtonSpacing;
+		x += kShortcutButtonSize;
+		// Add spacing only between buttons, not after the last one
+		if (i < numButtons - 1) {
+			x += kShortcutButtonSpacing;
+		}
 	}
 }
 
@@ -497,7 +504,6 @@ std::set<ShortcutType> GetAvailableShortcuts(
 		: false;
 	const auto canCopy = !item->clipboardText().empty() && !copyRestriction;
 	const auto canLink = item->hasDirectLink();
-	const auto canForward = item->allowsForward();
 	const auto media = item->media();
 	const auto photo = media ? media->photo() : nullptr;
 	const auto document = media ? media->document() : nullptr;

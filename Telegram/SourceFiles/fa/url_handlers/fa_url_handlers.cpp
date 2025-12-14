@@ -10,6 +10,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #include "fa/url_handlers/fa_url_handlers.h"
 
+#include "window/window_controller.h"
+
 #include "fa/utils/telegram_helpers.h"
 
 #include "fa/settings/fa_settings.h"
