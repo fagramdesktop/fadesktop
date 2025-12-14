@@ -102,5 +102,13 @@
   "fa_forward_with_author": "Переслати з автором",
   "fa_forward_as_copy": "Переслати як копію",
   "fa_forward_to_saved": "Переслати в Збережені повідомлення",
-  "fa_forward_to_saved_as_copy": "Переслати в Збережені як копію"
+  "fa_forward_to_saved_as_copy": "Переслати в Збережені як копію",
+  "fa_shortcut_button_size": "Розмір кнопки: %1px",
+  "fa_shortcut_icon_size": "Розмір піктограми: %1px",
+  "fa_shortcut_spacing": "Відступ між кнопками: %1px",
+  "fa_shortcut_horizontal_padding": "Горизонтальний відступ: %1px",
+  "fa_shortcut_vertical_padding": "Вертикальний відступ: %1px",
+  "fa_shortcut_corner_radius": "Радіус закруглення: %1px",
+  "fa_shortcut_customization_desc": "Налаштуйте вигляд кнопок швидких дій у контекстному меню",
+  "fa_reset_to_default": "Скинути до стандартних"
 }

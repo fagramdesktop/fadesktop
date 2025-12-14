@@ -58,3 +58,18 @@ topBarRecentActions: IconButton {
 faContextMenu: PopupMenu(popupMenuWithIcons) {
 	radius: 8px;
 }
+
+settingsSliderRestore: IconButton(defaultIconButton) {
+	width: 20px;
+	height: 20px;
+
+	icon: icon {{ "menu/restore", menuIconFg }};
+	iconOver: icon {{ "menu/restore", menuIconFgOver }};
+	iconPosition: point(0px, 0px);
+
+	rippleAreaPosition: point(0px, 0px);
+	rippleAreaSize: 20px;
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: windowBgOver;
+	}
+}

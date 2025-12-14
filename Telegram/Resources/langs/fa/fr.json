@@ -102,5 +102,13 @@
   "fa_forward_with_author": "Transférer avec auteur",
   "fa_forward_as_copy": "Transférer comme copie",
   "fa_forward_to_saved": "Transférer vers Messages enregistrés",
-  "fa_forward_to_saved_as_copy": "Transférer vers Enregistrés comme copie"
+  "fa_forward_to_saved_as_copy": "Transférer vers Enregistrés comme copie",
+  "fa_shortcut_button_size": "Taille du bouton : %1px",
+  "fa_shortcut_icon_size": "Taille de l'icône : %1px",
+  "fa_shortcut_spacing": "Espacement des boutons : %1px",
+  "fa_shortcut_horizontal_padding": "Marge horizontale : %1px",
+  "fa_shortcut_vertical_padding": "Marge verticale : %1px",
+  "fa_shortcut_corner_radius": "Rayon des coins : %1px",
+  "fa_shortcut_customization_desc": "Personnaliser l'apparence des boutons de raccourci du menu contextuel",
+  "fa_reset_to_default": "Rétablir les valeurs par défaut"
 }

@@ -102,5 +102,13 @@
   "fa_forward_with_author": "Переслать с автором",
   "fa_forward_as_copy": "Переслать как копию",
   "fa_forward_to_saved": "Переслать в Избранное",
-  "fa_forward_to_saved_as_copy": "Переслать в Избранное как копию"
+  "fa_forward_to_saved_as_copy": "Переслать в Избранное как копию",
+  "fa_shortcut_button_size": "Размер кнопки: %1px",
+  "fa_shortcut_icon_size": "Размер иконки: %1px",
+  "fa_shortcut_spacing": "Отступ между кнопками: %1px",
+  "fa_shortcut_horizontal_padding": "Горизонтальный отступ: %1px",
+  "fa_shortcut_vertical_padding": "Вертикальный отступ: %1px",
+  "fa_shortcut_corner_radius": "Скругление углов: %1px",
+  "fa_shortcut_customization_desc": "Настройте внешний вид кнопок быстрых действий в контекстном меню",
+  "fa_reset_to_default": "Сбросить по умолчанию"
 }

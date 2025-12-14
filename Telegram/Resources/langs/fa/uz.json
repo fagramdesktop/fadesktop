@@ -102,5 +102,13 @@
   "fa_forward_with_author": "Muallif bilan yo'naltirish",
   "fa_forward_as_copy": "Nusxa sifatida yo'naltirish",
   "fa_forward_to_saved": "Saqlangan xabarlarga yo'naltirish",
-  "fa_forward_to_saved_as_copy": "Saqlanganga nusxa sifatida yo'naltirish"
+  "fa_forward_to_saved_as_copy": "Saqlanganga nusxa sifatida yo'naltirish",
+  "fa_shortcut_button_size": "Tugma o'lchami: %1px",
+  "fa_shortcut_icon_size": "Belgi o'lchami: %1px",
+  "fa_shortcut_spacing": "Tugma oralig'i: %1px",
+  "fa_shortcut_horizontal_padding": "Gorizontal to'ldirish: %1px",
+  "fa_shortcut_vertical_padding": "Vertikal to'ldirish: %1px",
+  "fa_shortcut_corner_radius": "Burchak radiusi: %1px",
+  "fa_shortcut_customization_desc": "Kontekst menyusidagi yorliq tugmalarining ko'rinishini moslashtiring",
+  "fa_reset_to_default": "Standart holatga qaytarish"
 }

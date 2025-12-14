@@ -102,5 +102,13 @@
   "fa_forward_with_author": "Továbbítás szerzővel",
   "fa_forward_as_copy": "Továbbítás másolatként",
   "fa_forward_to_saved": "Továbbítás Mentett üzenetekbe",
-  "fa_forward_to_saved_as_copy": "Továbbítás Mentettekbe másolatként"
+  "fa_forward_to_saved_as_copy": "Továbbítás Mentettekbe másolatként",
+  "fa_shortcut_button_size": "Gomb mérete: %1px",
+  "fa_shortcut_icon_size": "Ikon mérete: %1px",
+  "fa_shortcut_spacing": "Gombok távolsága: %1px",
+  "fa_shortcut_horizontal_padding": "Vízszintes térköz: %1px",
+  "fa_shortcut_vertical_padding": "Függőleges térköz: %1px",
+  "fa_shortcut_corner_radius": "Sarok lekerekítés: %1px",
+  "fa_shortcut_customization_desc": "A helyi menü gyorsbillentyű gombjainak megjelenésének testreszabása",
+  "fa_reset_to_default": "Visszaállítás alapértelmezettre"
 }

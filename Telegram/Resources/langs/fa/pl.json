@@ -102,5 +102,13 @@
   "fa_forward_with_author": "Przekaż z autorem",
   "fa_forward_as_copy": "Przekaż jako kopię",
   "fa_forward_to_saved": "Przekaż do Zapisanych wiadomości",
-  "fa_forward_to_saved_as_copy": "Przekaż do Zapisanych jako kopię"
+  "fa_forward_to_saved_as_copy": "Przekaż do Zapisanych jako kopię",
+  "fa_shortcut_button_size": "Rozmiar przycisku: %1px",
+  "fa_shortcut_icon_size": "Rozmiar ikony: %1px",
+  "fa_shortcut_spacing": "Odstęp między przyciskami: %1px",
+  "fa_shortcut_horizontal_padding": "Odstęp poziomy: %1px",
+  "fa_shortcut_vertical_padding": "Odstęp pionowy: %1px",
+  "fa_shortcut_corner_radius": "Promień zaokrąglenia: %1px",
+  "fa_shortcut_customization_desc": "Dostosuj wygląd przycisków skrótów w menu kontekstowym",
+  "fa_reset_to_default": "Przywróć domyślne"
 }

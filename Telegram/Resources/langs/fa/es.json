@@ -102,5 +102,13 @@
   "fa_forward_with_author": "Reenviar con autor",
   "fa_forward_as_copy": "Reenviar como copia",
   "fa_forward_to_saved": "Reenviar a Mensajes Guardados",
-  "fa_forward_to_saved_as_copy": "Reenviar a Guardados como copia"
+  "fa_forward_to_saved_as_copy": "Reenviar a Guardados como copia",
+  "fa_shortcut_button_size": "Tamaño del botón: %1px",
+  "fa_shortcut_icon_size": "Tamaño del icono: %1px",
+  "fa_shortcut_spacing": "Espaciado de botones: %1px",
+  "fa_shortcut_horizontal_padding": "Relleno horizontal: %1px",
+  "fa_shortcut_vertical_padding": "Relleno vertical: %1px",
+  "fa_shortcut_corner_radius": "Radio de esquina: %1px",
+  "fa_shortcut_customization_desc": "Personaliza la apariencia de los botones de acceso directo del menú contextual",
+  "fa_reset_to_default": "Restablecer por defecto"
 }

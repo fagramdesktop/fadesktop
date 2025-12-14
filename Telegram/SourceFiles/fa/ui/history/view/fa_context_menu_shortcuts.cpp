@@ -45,12 +45,29 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 namespace FaHistoryView {
 namespace {
 
-constexpr auto kShortcutButtonSize = 40;
-constexpr auto kShortcutButtonIconSize = 24;
-constexpr auto kShortcutButtonSpacing = 8;
-constexpr auto kShortcutVerticalPadding = 4;
-constexpr auto kShortcutHorizontalPadding = 4;
-constexpr auto kShortcutCornerRadius = 6;
+[[nodiscard]] int ShortcutButtonSize() {
+	return FASettings::JsonSettings::GetInt("context_menu_shortcut_button_size");
+}
+
+[[nodiscard]] int ShortcutButtonIconSize() {
+	return FASettings::JsonSettings::GetInt("context_menu_shortcut_icon_size");
+}
+
+[[nodiscard]] int ShortcutButtonSpacing() {
+	return FASettings::JsonSettings::GetInt("context_menu_shortcut_spacing");
+}
+
+[[nodiscard]] int ShortcutVerticalPadding() {
+	return FASettings::JsonSettings::GetInt("context_menu_shortcut_vertical_padding");
+}
+
+[[nodiscard]] int ShortcutHorizontalPadding() {
+	return FASettings::JsonSettings::GetInt("context_menu_shortcut_horizontal_padding");
+}
+
+[[nodiscard]] int ShortcutCornerRadius() {
+	return FASettings::JsonSettings::GetInt("context_menu_shortcut_corner_radius");
+}
 
 class ShortcutButton final : public Ui::RippleButton {
 public:
@@ -74,12 +91,12 @@ protected:
 			p.setRenderHint(QPainter::Antialiasing);
 			p.setPen(Qt::NoPen);
 			p.setBrush(_st.itemBgOver);
-			p.drawRoundedRect(rect(), 4, 4);
+			p.drawRoundedRect(rect(), ShortcutCornerRadius(), ShortcutCornerRadius());
 		}
 
 		paintRipple(p, 0, 0);
 
-		const auto iconSize = kShortcutButtonIconSize;
+		const auto iconSize = ShortcutButtonIconSize();
 		const auto iconX = (width() - iconSize) / 2;
 		const auto iconY = (height() - iconSize) / 2;
 
@@ -186,7 +203,7 @@ void ContextMenuShortcuts::createButtons() {
 		_addedShortcuts.insert(type);
 	};
 
-	// Reply (always if available)
+	// Reply
 	if (canReply) {
 		addButton(
 			st::menuIconReply,
@@ -267,7 +284,7 @@ void ContextMenuShortcuts::createButtons() {
 			isPinned ? ShortcutType::Unpin : ShortcutType::Pin);
 	}
 
-	// Based on media type, or Forward as fallback
+	// Based on media type
 	bool addedFourthButton = false;
 
 	if (canGallery && !hasCopyRestriction) {
@@ -325,9 +342,7 @@ void ContextMenuShortcuts::createButtons() {
 
 	// If no fourth button and we can pin (and pin wasn't already added in slot 3), add Pin
 	if (!addedFourthButton && canPin && !canLink) {
-		// Pin was already added in the third slot when !canLink
 	} else if (!addedFourthButton && canPin && canLink) {
-		// canLink took the third slot, so we can add Pin in the fourth slot
 		const auto pinItemId = item->fullId();
 		addButton(
 			isPinned ? st::menuIconUnpin : st::menuIconPin,
@@ -346,19 +361,22 @@ void ContextMenuShortcuts::createButtons() {
 		return;
 	}
 
-	_height = kShortcutButtonSize + kShortcutVerticalPadding * 2;
+	const auto buttonSize = ShortcutButtonSize();
+	const auto buttonSpacing = ShortcutButtonSpacing();
+	const auto verticalPadding = ShortcutVerticalPadding();
+	const auto horizontalPadding = ShortcutHorizontalPadding();
+
+	_height = buttonSize + verticalPadding * 2;
 
 	const auto numButtons = int(_buttons.size());
-	// Content width: buttons + spacing only between them
-	const auto contentWidth = (kShortcutButtonSize * numButtons)
-		+ (kShortcutButtonSpacing * (numButtons - 1));
-	// Total width includes minimal horizontal padding on edges
-	const auto totalWidth = contentWidth + kShortcutHorizontalPadding * 2;
+	const auto contentWidth = (buttonSize * numButtons)
+		+ (buttonSpacing * (numButtons - 1));
+	const auto totalWidth = contentWidth + horizontalPadding * 2;
 
 	setMinWidth(std::max(totalWidth, _st.widthMin));
 
 	for (auto &button : _buttons) {
-		button->resize(kShortcutButtonSize, kShortcutButtonSize);
+		button->resize(buttonSize, buttonSize);
 		button->show();
 	}
 
@@ -371,24 +389,26 @@ void ContextMenuShortcuts::updateButtonsLayout() {
 		return;
 	}
 
-	const auto numButtons = int(_buttons.size());
-	// Content width: buttons + spacing only between them
-	const auto contentWidth = (kShortcutButtonSize * numButtons)
-		+ (kShortcutButtonSpacing * (numButtons - 1));
+	const auto buttonSize = ShortcutButtonSize();
+	const auto buttonSpacing = ShortcutButtonSpacing();
+	const auto verticalPadding = ShortcutVerticalPadding();
+	const auto horizontalPadding = ShortcutHorizontalPadding();
 
-	// Center the buttons, but ensure minimum padding from edges
-	auto x = std::max(kShortcutHorizontalPadding, (width() - contentWidth) / 2);
+	const auto numButtons = int(_buttons.size());
+	const auto contentWidth = (buttonSize * numButtons)
+		+ (buttonSpacing * (numButtons - 1));
+
+	auto x = std::max(horizontalPadding, (width() - contentWidth) / 2);
 
 	for (int i = 0; i < numButtons; ++i) {
 		_buttons[i]->setGeometry(
 			x,
-			kShortcutVerticalPadding,
-			kShortcutButtonSize,
-			kShortcutButtonSize);
-		x += kShortcutButtonSize;
-		// Add spacing only between buttons, not after the last one
+			verticalPadding,
+			buttonSize,
+			buttonSize);
+		x += buttonSize;
 		if (i < numButtons - 1) {
-			x += kShortcutButtonSpacing;
+			x += buttonSpacing;
 		}
 	}
 }
@@ -536,7 +556,7 @@ std::set<ShortcutType> GetAvailableShortcuts(
 		result.insert(isPinned ? ShortcutType::Unpin : ShortcutType::Pin);
 	}
 
-	// Based on media type, or Forward
+	// Based on media
 	bool addedFourthButton = false;
 
 	if (canGallery && !copyRestriction) {
@@ -552,7 +572,6 @@ std::set<ShortcutType> GetAvailableShortcuts(
 
 	// If no fourth button and we can pin (and pin wasn't already added in slot 3), add Pin
 	if (!addedFourthButton && canPin && canLink) {
-		// canLink took the third slot, so we can add Pin in the fourth slot
 		result.insert(isPinned ? ShortcutType::Unpin : ShortcutType::Pin);
 	}
 

@@ -102,5 +102,13 @@
   "fa_forward_with_author": "Автормен бірге жіберу",
   "fa_forward_as_copy": "Көшірме ретінде жіберу",
   "fa_forward_to_saved": "Сақталған хабарламаларға жіберу",
-  "fa_forward_to_saved_as_copy": "Сақталғанға көшірме ретінде жіберу"
+  "fa_forward_to_saved_as_copy": "Сақталғанға көшірме ретінде жіберу",
+  "fa_shortcut_button_size": "Түйме өлшемі: %1px",
+  "fa_shortcut_icon_size": "Белгіше өлшемі: %1px",
+  "fa_shortcut_spacing": "Түйме аралығы: %1px",
+  "fa_shortcut_horizontal_padding": "Көлденең шегініс: %1px",
+  "fa_shortcut_vertical_padding": "Тік шегініс: %1px",
+  "fa_shortcut_corner_radius": "Бұрыш радиусы: %1px",
+  "fa_shortcut_customization_desc": "Контекстік мәзір таңбашаларының түймелерінің сыртқы түрін реттеу",
+  "fa_reset_to_default": "Әдепкіге қайтару"
 }

@@ -102,5 +102,13 @@
   "fa_forward_with_author": "Inoltra con autore",
   "fa_forward_as_copy": "Inoltra come copia",
   "fa_forward_to_saved": "Inoltra ai Messaggi Salvati",
-  "fa_forward_to_saved_as_copy": "Inoltra ai Salvati come copia"
+  "fa_forward_to_saved_as_copy": "Inoltra ai Salvati come copia",
+  "fa_shortcut_button_size": "Dimensione pulsante: %1px",
+  "fa_shortcut_icon_size": "Dimensione icona: %1px",
+  "fa_shortcut_spacing": "Spaziatura pulsanti: %1px",
+  "fa_shortcut_horizontal_padding": "Padding orizzontale: %1px",
+  "fa_shortcut_vertical_padding": "Padding verticale: %1px",
+  "fa_shortcut_corner_radius": "Raggio angolo: %1px",
+  "fa_shortcut_customization_desc": "Personalizza l'aspetto dei pulsanti scorciatoia nel menu contestuale",
+  "fa_reset_to_default": "Ripristina predefiniti"
 }

@@ -102,5 +102,13 @@
   "fa_forward_with_author": "作成者付きで転送",
   "fa_forward_as_copy": "コピーとして転送",
   "fa_forward_to_saved": "保存済みメッセージに転送",
-  "fa_forward_to_saved_as_copy": "保存済みにコピーとして転送"
+  "fa_forward_to_saved_as_copy": "保存済みにコピーとして転送",
+  "fa_shortcut_button_size": "ボタンサイズ: %1px",
+  "fa_shortcut_icon_size": "アイコンサイズ: %1px",
+  "fa_shortcut_spacing": "ボタンの間隔: %1px",
+  "fa_shortcut_horizontal_padding": "水平パディング: %1px",
+  "fa_shortcut_vertical_padding": "垂直パディング: %1px",
+  "fa_shortcut_corner_radius": "角の丸み: %1px",
+  "fa_shortcut_customization_desc": "コンテキストメニューのショートカットボタンの外観をカスタマイズ",
+  "fa_reset_to_default": "デフォルトに戻す"
 }

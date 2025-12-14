@@ -234,6 +234,32 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "context_menu_forward_submenu", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+
+	//   Context menu shortcuts customization
+	{ "context_menu_shortcut_button_size", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 40,
+		.limitHandler = IntLimit(24, 64, 40), }},
+	{ "context_menu_shortcut_icon_size", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 24,
+		.limitHandler = IntLimit(16, 48, 24), }},
+	{ "context_menu_shortcut_spacing", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 10,
+		.limitHandler = IntLimit(0, 24, 10), }},
+	{ "context_menu_shortcut_vertical_padding", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 2,
+		.limitHandler = IntLimit(0, 16, 2), }},
+	{ "context_menu_shortcut_horizontal_padding", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 10,
+		.limitHandler = IntLimit(0, 16, 10), }},
+	{ "context_menu_shortcut_corner_radius", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 20,
+		.limitHandler = IntLimit(0, 20, 20), }},
 };
 
 using OldOptionKey = QString;
