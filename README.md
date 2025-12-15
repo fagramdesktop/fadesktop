@@ -80,6 +80,8 @@
 - New context menu shortcuts
 - Service notifications for changelogs
 - Reply in Private Chat
+- Advanced forward options
+- Support tg://openmessage links
 
 </details>
 
