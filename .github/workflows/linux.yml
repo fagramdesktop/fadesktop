@@ -83,7 +83,7 @@ jobs:
           cat body.txt
           
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: fagram-${{ env.TAGNAME }}
           path: out/install/fagram-${{ env.TAGNAME }}.tar.gz
