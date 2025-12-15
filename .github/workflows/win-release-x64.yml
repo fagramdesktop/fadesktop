@@ -139,13 +139,13 @@ jobs:
           path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}
 
       - name: Download Libraries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: libraries-x64
           path: ${{ env.TBUILD }}/Libraries
 
       - name: Download ThirdParty
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: thirdparty-x64
           path: ${{ env.TBUILD }}/ThirdParty
