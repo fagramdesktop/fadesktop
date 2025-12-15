@@ -53,7 +53,7 @@ EmojiStatuses::EmojiStatuses(not_null<Session*> owner)
 
 	base::timer_each(
 		kRefreshDefaultListEach
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		refreshDefault();
 		refreshChannelDefault();
 	}, _lifetime);

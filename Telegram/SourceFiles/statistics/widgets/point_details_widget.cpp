@@ -139,7 +139,7 @@ PointDetailsWidget::PointDetailsWidget(
 	if (zoomEnabled) {
 		rpl::single(rpl::empty_value()) | rpl::then(
 			style::PaletteChanged()
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			const auto w = st::statisticsDetailsArrowShift;
 			const auto stroke = style::ConvertScaleExact(
 				st::statisticsDetailsArrowStroke);
@@ -261,7 +261,7 @@ PointDetailsWidget::PointDetailsWidget(
 			+ _maxPercentageWidth;
 	}();
 	sizeValue(
-	) | rpl::start_with_next([=](const QSize &s) {
+	) | rpl::on_next([=](const QSize &s) {
 		const auto fullRect = s.isNull()
 			? Rect(Size(calculatedWidth))
 			: Rect(s);

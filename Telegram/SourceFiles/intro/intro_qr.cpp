@@ -105,7 +105,7 @@ namespace {
 		rpl::duplicate(palettes)
 	) | rpl::map([](const Qr::Data &code, const auto &) {
 		return TelegramQr(code, st::introQrPixel, st::introQrMaxSize);
-	}) | rpl::start_with_next([=](QImage &&image) {
+	}) | rpl::on_next([=](QImage &&image) {
 		state->previous = std::move(state->qr);
 		state->qr = std::move(image);
 		state->waiting.stop();
@@ -120,11 +120,11 @@ namespace {
 		palettes
 	) | rpl::map([] {
 		return TelegramLogoImage();
-	}) | rpl::start_with_next([=](QImage &&image) {
+	}) | rpl::on_next([=](QImage &&image) {
 		state->center = std::move(image);
 	}, result->lifetime());
 	result->paintRequest(
-	) | rpl::start_with_next([=](QRect clip) {
+	) | rpl::on_next([=](QRect clip) {
 		auto p = QPainter(result);
 		const auto has = !state->qr.isNull();
 		const auto shown = has ? state->shown.value(1.) : 0.;
@@ -200,18 +200,23 @@ QrWidget::QrWidget(
 	cancelNearestDcRequest();
 
 	account->mtpUpdates(
-	) | rpl::start_with_next([=](const MTPUpdates &updates) {
+	) | rpl::on_next([=](const MTPUpdates &updates) {
 		checkForTokenUpdate(updates);
 	}, lifetime());
 
 	setupControls();
 	account->mtp().mainDcIdValue(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		api().request(base::take(_requestId)).cancel();
 		refreshCode();
 	}, lifetime());
 
-	_passkeyPossible = account->appConfig().settingsDisplayPasskeys();
+	account->appConfig().value(
+	) | rpl::filter([=] {
+		return !_passkey;
+	}) | rpl::on_next([=] {
+		setupPasskeyLink();
+	}, lifetime());
 }
 
 QString QrWidget::accessibilityName() {
@@ -274,7 +279,7 @@ void QrWidget::setupControls() {
 	rpl::combine(
 		sizeValue(),
 		code->widthValue()
-	) | rpl::start_with_next([=](QSize size, int codeWidth) {
+	) | rpl::on_next([=](QSize size, int codeWidth) {
 		code->moveToLeft(
 			(size.width() - codeWidth) / 2,
 			contentTop() + st::introQrTop);
@@ -287,7 +292,7 @@ void QrWidget::setupControls() {
 	rpl::combine(
 		sizeValue(),
 		title->widthValue()
-	) | rpl::start_with_next([=](QSize size, int titleWidth) {
+	) | rpl::on_next([=](QSize size, int titleWidth) {
 		title->resizeToWidth(st::introQrTitleWidth);
 		const auto oneLine = st::introQrTitle.style.font->height;
 		const auto topDelta = (title->height() - oneLine);
@@ -317,7 +322,7 @@ void QrWidget::setupControls() {
 		rpl::combine(
 			number->widthValue(),
 			label->positionValue()
-		) | rpl::start_with_next([=](int width, QPoint position) {
+		) | rpl::on_next([=](int width, QPoint position) {
 			number->moveToLeft(
 				position.x() - width - st::normalFont->spacew,
 				position.y());
@@ -327,7 +332,7 @@ void QrWidget::setupControls() {
 	rpl::combine(
 		sizeValue(),
 		steps->widthValue()
-	) | rpl::start_with_next([=](QSize size, int stepsWidth) {
+	) | rpl::on_next([=](QSize size, int stepsWidth) {
 		steps->moveToLeft(
 			(size.width() - stepsWidth) / 2,
 			contentTop() + st::introQrStepsTop);
@@ -336,42 +341,51 @@ void QrWidget::setupControls() {
 	_skip = Ui::CreateChild<Ui::LinkButton>(
 		this,
 		tr::lng_intro_qr_phone(tr::now));
-	if (Platform::WebAuthn::IsSupported() && _passkeyPossible) {
-		_passkey = Ui::CreateChild<Ui::LinkButton>(
-			this,
-			tr::lng_intro_qr_passkey(tr::now));
-	}
 	rpl::combine(
 		sizeValue(),
-		_skip->widthValue(),
-		_passkey ? _passkey->widthValue() : rpl::single(0)
-	) | rpl::start_with_next([=](
-			QSize size,
-			int skipWidth,
-			int passkeyWidth) {
+		_skip->widthValue()
+	) | rpl::on_next([=](QSize size, int skipWidth) {
 		_skip->moveToLeft(
 			(size.width() - skipWidth) / 2,
 			contentTop() + st::introQrSkipTop);
-		if (_passkey) {
-			_passkey->moveToLeft(
-				(size.width() - passkeyWidth) / 2,
-				contentTop()
-					+ st::introQrSkipTop + 1.5 * st::normalFont->height);
-		}
 	}, _skip->lifetime());
 
 	_skip->setClickedCallback([=] { submit(); });
-	if (_passkey) {
-		_passkey->setClickedCallback([=] {
+}
+
+void QrWidget::setupPasskeyLink() {
+	Expects(!_passkey);
+
+	if (!account().appConfig().settingsDisplayPasskeys()
+		|| !Platform::WebAuthn::IsSupported()) {
+		return;
+	}
+	_passkey = Ui::CreateChild<Ui::LinkButton>(
+		this,
+		tr::lng_intro_qr_passkey(tr::now));
+	_passkey->show();
+	rpl::combine(
+		sizeValue(),
+		_passkey->widthValue()
+	) | rpl::on_next([=](QSize size, int passkeyWidth) {
+		_passkey->moveToLeft(
+			(size.width() - passkeyWidth) / 2,
+			(contentTop()
+				+ st::introQrSkipTop
+				+ 1.5 * st::normalFont->height));
+	}, _passkey->lifetime());
+
+	_passkey->setClickedCallback([=] {
 		const auto initialDc = api().instance().mainDcId();
 		::Data::InitPasskeyLogin(api(), [=](
-				const ::Data::Passkey::LoginData &loginData) {
+			const ::Data::Passkey::LoginData &loginData) {
 			Platform::WebAuthn::Login(loginData, [=](
 					Platform::WebAuthn::LoginResult result) {
 				if (result.userHandle.isEmpty()) {
 					using Error = Platform::WebAuthn::Error;
 					if (result.error == Error::UnsignedBuild) {
-						showError(tr::lng_settings_passkeys_unsigned_error());
+						showError(
+							tr::lng_settings_passkeys_unsigned_error());
 					}
 					return;
 				}
@@ -387,10 +401,9 @@ void QrWidget::setupControls() {
 							showError(rpl::single(error));
 						}
 					});
-				});
 			});
 		});
-	}
+	});
 }
 
 void QrWidget::refreshCode() {

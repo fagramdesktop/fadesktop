@@ -33,7 +33,7 @@ PostsSearch::PostsSearch(not_null<Main::Session*> session)
 , _api(&_session->api().instance())
 , _timer([=] { applyQuery(); })
 , _recheckTimer([=] { recheck(); }) {
-	Data::AmPremiumValue(_session) | rpl::start_with_next([=] {
+	Data::AmPremiumValue(_session) | rpl::on_next([=] {
 		maybePushPremiumUpdate();
 	}, _lifetime);
 }

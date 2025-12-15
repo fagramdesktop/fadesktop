@@ -154,7 +154,7 @@ void ScheduleBox(
 			.changed = [=](TimeId value) { *repeat = value; },
 			.test = session->isTestMode(),
 		}), style::al_top);
-		std::move(descriptor.width) | rpl::start_with_next([=](int width) {
+		std::move(descriptor.width) | rpl::on_next([=](int width) {
 			row->setNaturalWidth(width);
 		}, row->lifetime());
 	}

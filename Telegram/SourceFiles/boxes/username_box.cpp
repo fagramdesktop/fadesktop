@@ -370,15 +370,15 @@ void UsernamesBox(
 
 	const auto finish = [=] {
 		list->save(
-		) | rpl::start_with_done([=] {
+		) | rpl::on_done([=] {
 			editor->save(
-			) | rpl::start_with_done([=] {
+			) | rpl::on_done([=] {
 				box->closeBox();
 			}, box->lifetime());
 		}, box->lifetime());
 	};
 	editor->submitted(
-	) | rpl::start_with_next(finish, editor->lifetime());
+	) | rpl::on_next(finish, editor->lifetime());
 
 	if (isBot) {
 		box->addButton(tr::lng_close(), [=] { box->closeBox(); });
@@ -410,7 +410,7 @@ void AddUsernameCheckLabel(
 	rpl::combine(
 		std::move(checkInfo),
 		container->widthValue()
-	) | rpl::start_with_next([=](const UsernameCheckInfo &info, int w) {
+	) | rpl::on_next([=](const UsernameCheckInfo &info, int w) {
 		using Type = UsernameCheckInfo::Type;
 		label->setMarkedText(info.text);
 		const auto &color = (info.type == Type::Good)

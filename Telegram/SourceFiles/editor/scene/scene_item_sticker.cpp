@@ -46,7 +46,7 @@ ItemSticker::ItemSticker(
 					* style::DevicePixelRatio(),
 				Lottie::Quality::High);
 			_lottie.player->updates(
-			) | rpl::start_with_next([=] {
+			) | rpl::on_next([=] {
 				updatePixmap(_lottie.player->frame());
 				_lottie.player = nullptr;
 				_lottie.lifetime.destroy();
@@ -85,7 +85,7 @@ ItemSticker::ItemSticker(
 	};
 	if (!updateThumbnail()) {
 		_document->session().downloaderTaskFinished(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			if (updateThumbnail()) {
 				_loadingLifetime.destroy();
 				update();

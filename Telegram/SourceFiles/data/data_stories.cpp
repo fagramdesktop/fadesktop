@@ -195,7 +195,7 @@ Stories::Stories(not_null<Session*> owner)
 	crl::on_main(this, [=] {
 		session().changes().peerUpdates(
 			Data::PeerUpdate::Flag::Rights
-		) | rpl::start_with_next([=](const Data::PeerUpdate &update) {
+		) | rpl::on_next([=](const Data::PeerUpdate &update) {
 			const auto channel = update.peer->asChannel();
 			if (!channel) {
 				return;

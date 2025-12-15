@@ -420,12 +420,12 @@ void FillBotUsepic(
 		titleLabel->width() + (icon ? icon->width() : 0),
 		titleLabel->height());
 	title->widthValue(
-	) | rpl::distinct_until_changed() | rpl::start_with_next([=](int w) {
+	) | rpl::distinct_until_changed() | rpl::on_next([=](int w) {
 		titleLabel->resizeToWidth(w
 			- (icon ? icon->width() + st::lineWidth : 0));
 	}, title->lifetime());
 	if (icon) {
-		title->paintRequest() | rpl::start_with_next([=] {
+		title->paintRequest() | rpl::on_next([=] {
 			auto p = Painter(title);
 			p.fillRect(title->rect(), Qt::transparent);
 			const auto x = std::min(
@@ -600,7 +600,7 @@ void ConfirmEmojiStatusBox(
 	box->addButton(tr::lng_cancel(), [=] {
 		box->closeBox();
 	});
-	box->boxClosing() | rpl::start_with_next([=] {
+	box->boxClosing() | rpl::on_next([=] {
 		if (!*set) {
 			done(false);
 		}
@@ -672,7 +672,7 @@ BotAction::BotAction(
 	_icon.move(_st.itemIconPosition);
 
 	paintRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		Painter p(this);
 		paint(p);
 	}, lifetime());
@@ -778,7 +778,7 @@ MenuBotIcon::MenuBotIcon(
 : RpWidget(parent)
 , _media(std::move(media)) {
 	style::PaletteChanged(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_image = QImage();
 		update();
 	}, lifetime());
@@ -899,7 +899,7 @@ void WebViewInstance::requestFullBot() {
 	_bot->session().changes().peerUpdates(
 		_bot,
 		Data::PeerUpdate::Flag::FullInfo
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		if (_botFullWaitingArgs.has_value()) {
 			auto args = *base::take(_botFullWaitingArgs);
 			if (args.url.isEmpty()) {
@@ -1346,7 +1346,7 @@ void WebViewInstance::show(ShowArgs &&args) {
 		: nullptr;
 	if (titleBadge) {
 		const auto raw = titleBadge.data();
-		raw->paintRequest() | rpl::start_with_next([=] {
+		raw->paintRequest() | rpl::on_next([=] {
 			auto p = Painter(raw);
 			const auto w = raw->width();
 			st::infoVerifiedStar.paint(p, st::lineWidth, 0, w);
@@ -1436,14 +1436,14 @@ void WebViewInstance::started(uint64 queryId) {
 	_session->data().webViewResultSent(
 	) | rpl::filter([=](const Data::Session::WebViewResultSent &sent) {
 		return (sent.queryId == queryId);
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		close();
 	}, _panel->lifetime());
 
 	const auto action = *_context.action;
 	base::timer_each(
 		kProlongTimeout
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		using Flag = MTPmessages_ProlongWebView::Flag;
 		_session->api().request(base::take(_prolongId)).cancel();
 		_prolongId = _session->api().request(MTPmessages_ProlongWebView(
@@ -1960,7 +1960,7 @@ void WebViewInstance::botSendPreparedMessage(
 			};
 			state->send({});
 		});
-		box->boxClosing() | rpl::start_with_next([=] {
+		box->boxClosing() | rpl::on_next([=] {
 			if (!state->sent) {
 				callback("USER_DECLINED");
 			}
@@ -1984,7 +1984,7 @@ void WebViewInstance::botSetEmojiStatus(
 	}
 	_session->data().customEmojiManager().resolve(
 		request.customEmojiId
-	) | rpl::start_with_next_error([=](not_null<DocumentData*> document) {
+	) | rpl::on_next_error([=](not_null<DocumentData*> document) {
 		const auto sticker = document->sticker();
 		if (!sticker || sticker->setType != Data::StickersType::Emoji) {
 			callback(u"SUGGESTED_EMOJI_INVALID"_q);
@@ -2727,7 +2727,7 @@ std::unique_ptr<Ui::DropdownMenu> MakeAttachBotsMenu(
 			bot,
 			callback);
 		action->forceShown(
-		) | rpl::start_with_next([=](bool shown) {
+		) | rpl::on_next([=](bool shown) {
 			if (shown) {
 				raw->setAutoHiding(false);
 			} else {

@@ -410,6 +410,8 @@ PRIVATE
     calls/calls_instance.h
     calls/calls_panel.cpp
     calls/calls_panel.h
+    calls/calls_panel_background.cpp
+    calls/calls_panel_background.h
     calls/calls_signal_bars.cpp
     calls/calls_signal_bars.h
     calls/calls_top_bar.cpp
@@ -957,6 +959,8 @@ PRIVATE
     history/view/history_view_pinned_tracker.h
     history/view/history_view_quick_action.cpp
     history/view/history_view_quick_action.h
+    history/view/history_view_reaction_preview.cpp
+    history/view/history_view_reaction_preview.h
     history/view/history_view_reply.cpp
     history/view/history_view_reply.h
     history/view/history_view_requests_bar.cpp
@@ -1947,15 +1951,17 @@ elseif (APPLE)
         COMMAND cp ${CMAKE_BINARY_DIR}/lib_spellcheck.rcc $<TARGET_FILE_DIR:Telegram>/../Resources
     )
     if (NOT build_macstore AND NOT DESKTOP_APP_DISABLE_CRASH_REPORTS)
-        if (DESKTOP_APP_MAC_ARCH STREQUAL "x86_64" OR DESKTOP_APP_MAC_ARCH STREQUAL "arm64")
-            set(crashpad_dir_part ".${DESKTOP_APP_MAC_ARCH}")
+        if (DESKTOP_APP_USE_PACKAGED)
+            find_program(CRASHPAD_HANDLER crashpad_handler REQUIRED)
+        elseif (DESKTOP_APP_MAC_ARCH STREQUAL "x86_64" OR DESKTOP_APP_MAC_ARCH STREQUAL "arm64")
+            set(CRASHPAD_HANDLER "${libs_loc}/crashpad/out/$<IF:$<CONFIG:Debug>,Debug,Release>.${DESKTOP_APP_MAC_ARCH}/crashpad_handler")
         else()
-            set(crashpad_dir_part "")
+            set(CRASHPAD_HANDLER "${libs_loc}/crashpad/out/$<IF:$<CONFIG:Debug>,Debug,Release>/crashpad_handler")
         endif()
         add_custom_command(TARGET Telegram
         PRE_LINK
             COMMAND mkdir -p $<TARGET_FILE_DIR:Telegram>/../Helpers
-            COMMAND cp ${libs_loc}/crashpad/out/$<IF:$<CONFIG:Debug>,Debug,Release>${crashpad_dir_part}/crashpad_handler $<TARGET_FILE_DIR:Telegram>/../Helpers/
+            COMMAND cp ${CRASHPAD_HANDLER} $<TARGET_FILE_DIR:Telegram>/../Helpers/
         )
     endif()
 else()
@@ -1975,8 +1981,9 @@ if (build_macstore)
     set(bundle_identifier "org.fagram")
     set(bundle_entitlements "Telegram Lite.entitlements")
     set(output_name "fagram")
-    set_target_properties(Telegram PROPERTIES
-        XCODE_ATTRIBUTE_FRAMEWORK_SEARCH_PATHS ${libs_loc}/breakpad/src/client/mac/build/Release
+    target_link_options(Telegram
+    PRIVATE
+        -F${libs_loc}/breakpad/src/client/mac/build/Release
     )
     target_link_frameworks(Telegram PRIVATE Breakpad)
     add_custom_command(TARGET Telegram
@@ -2164,7 +2171,7 @@ if (NOT DESKTOP_APP_DISABLE_AUTOUPDATE AND NOT build_macstore AND NOT build_wins
         endif()
     elseif (APPLE)
         add_custom_command(TARGET Updater
-        PRE_LINK
+        POST_BUILD
             COMMAND mkdir -p $<TARGET_FILE_DIR:Telegram>/../Frameworks
             COMMAND cp $<TARGET_FILE:Updater> $<TARGET_FILE_DIR:Telegram>/../Frameworks/
         )

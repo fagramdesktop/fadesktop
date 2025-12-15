@@ -39,7 +39,7 @@ SendAsPeers::SendAsPeers(not_null<Session*> session)
 	}) | rpl::distinct_until_changed(
 	) | rpl::filter([=](not_null<PeerData*> peer, int) {
 		return _lists.contains(peer) || _lastRequestTime.contains(peer);
-	}) | rpl::start_with_next([=](not_null<PeerData*> peer, int) {
+	}) | rpl::on_next([=](not_null<PeerData*> peer, int) {
 		refresh(peer, true);
 	}, _lifetime);
 }

@@ -111,11 +111,11 @@ void CreateRadiobuttonLock(
 	lock->resize(st::defaultRadio.diameter, st::defaultRadio.diameter);
 
 	widget->sizeValue(
-	) | rpl::start_with_next([=, &st](QSize size) {
+	) | rpl::on_next([=, &st](QSize size) {
 		lock->move(st.checkPosition);
 	}, lock->lifetime());
 
-	lock->paintRequest() | rpl::start_with_next([=] {
+	lock->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(lock);
 		auto hq = PainterHighQualityEnabler(p);
 		const auto &icon = st::messagePrivacyLock;
@@ -138,7 +138,7 @@ void AddPremiumRequiredRow(
 	const auto row = Ui::CreateChild<Ui::AbstractButton>(widget.get());
 
 	widget->sizeValue(
-	) | rpl::start_with_next([=](const QSize &s) {
+	) | rpl::on_next([=](const QSize &s) {
 		row->resize(s);
 	}, row->lifetime());
 	row->setClickedCallback(std::move(clickedCallback));
@@ -147,7 +147,7 @@ void AddPremiumRequiredRow(
 
 	Data::AmPremiumValue(
 		session
-	) | rpl::start_with_next([=](bool premium) {
+	) | rpl::on_next([=](bool premium) {
 		row->setVisible(!premium);
 		if (!premium) {
 			setDefaultOption();
@@ -382,7 +382,7 @@ auto PrivacyExceptionsBoxController::prepareSpecialRowList(
 		tr::lng_edit_privacy_users_and_groups()));
 
 	controller->specialChanges(
-	) | rpl::start_with_next([=](bool chosen) {
+	) | rpl::on_next([=](bool chosen) {
 		if (type == SpecialRowType::Premiums) {
 			_selected.premiums = chosen;
 		} else {
@@ -391,7 +391,7 @@ auto PrivacyExceptionsBoxController::prepareSpecialRowList(
 	}, lifetime);
 
 	controller->rowSelectionChanges(
-	) | rpl::start_with_next([=](RowSelectionChange update) {
+	) | rpl::on_next([=](RowSelectionChange update) {
 		this->delegate()->peerListSetForeignRowChecked(
 			update.row,
 			update.checked,
@@ -543,7 +543,7 @@ auto PrivacyExceptionsBoxController::createRow(not_null<History*> history)
 		updateByValue(value);
 		valueFinished(value);
 	};
-	style::PaletteChanged() | rpl::start_with_next([=] {
+	style::PaletteChanged() | rpl::on_next([=] {
 		min->setTextColorOverride(st::windowSubTextFg->c);
 		max->setTextColorOverride(st::windowSubTextFg->c);
 	}, raw->lifetime());
@@ -559,7 +559,7 @@ auto PrivacyExceptionsBoxController::createRow(not_null<History*> history)
 		state->indexMin);
 	slider->resize(slider->width(), sliderStyle->seekSize.height());
 
-	raw->widthValue() | rpl::start_with_next([=](int width) {
+	raw->widthValue() | rpl::on_next([=](int width) {
 		labels->resizeToWidth(width);
 		updateByIndex();
 	}, slider->lifetime());
@@ -939,7 +939,7 @@ void EditPrivacyBox::setupContent() {
 		+ st::settingsButtonNoIcon.padding.bottom();
 
 	widthValue(
-	) | rpl::start_with_next([=](int width) {
+	) | rpl::on_next([=](int width) {
 		content->resizeToWidth(width);
 	}, content->lifetime());
 
@@ -947,7 +947,7 @@ void EditPrivacyBox::setupContent() {
 	) | rpl::map([=](int height) {
 		return height - always->height() - never->height() + 2 * linkHeight;
 	}) | rpl::distinct_until_changed(
-	) | rpl::start_with_next([=](int height) {
+	) | rpl::on_next([=](int height) {
 		setDimensions(st::boxWideWidth, height);
 	}, content->lifetime());
 }
@@ -1076,7 +1076,7 @@ void EditMessagesPrivacyBox(
 				key
 			) | rpl::take(
 				1
-			) | rpl::start_with_next([=](const Api::UserPrivacy::Rule &value) {
+			) | rpl::on_next([=](const Api::UserPrivacy::Rule &value) {
 				EditNoPaidMessagesExceptions(controller, value);
 			});
 		});
@@ -1233,7 +1233,7 @@ rpl::producer<int> SetupChargeSlider(
 
 	const auto details = container->add(
 		object_ptr<Ui::VerticalLayout>(container));
-	state->stars.value() | rpl::start_with_next([=](int stars) {
+	state->stars.value() | rpl::on_next([=](int stars) {
 		while (details->count()) {
 			delete details->widgetAt(0);
 		}
@@ -1313,7 +1313,7 @@ void EditDirectMessagesPriceBox(
 		savedValue,
 		channel->session().appConfig().paidMessageChannelStarsDefault(),
 		true
-	) | rpl::start_with_next([=](int stars) {
+	) | rpl::on_next([=](int stars) {
 		*result = stars;
 	}, box->lifetime());
 
@@ -1358,7 +1358,7 @@ void EditDirectMessagesPriceBox(
 			label->take(),
 			st::inviteLinkFieldPadding);
 
-		label->clicks() | rpl::start_with_next(copyLink, label->lifetime());
+		label->clicks() | rpl::on_next(copyLink, label->lifetime());
 
 		Ui::AddSkip(inner);
 

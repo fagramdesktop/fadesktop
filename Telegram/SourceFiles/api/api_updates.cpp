@@ -246,12 +246,12 @@ Updates::Updates(not_null<Main::Session*> session)
 	_ptsWaiter.setRequesting(true);
 
 	session->account().mtpUpdates(
-	) | rpl::start_with_next([=](const MTPUpdates &updates) {
+	) | rpl::on_next([=](const MTPUpdates &updates) {
 		mtpUpdateReceived(updates);
 	}, _lifetime);
 
 	session->account().mtpNewSessionCreated(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		mtpNewSessionCreated();
 	}, _lifetime);
 
@@ -265,7 +265,7 @@ Updates::Updates(not_null<Main::Session*> session)
 		Data::PeerUpdate::Flag::FullInfo
 	) | rpl::filter([](const Data::PeerUpdate &update) {
 		return update.peer->isChat() || update.peer->isMegagroup();
-	}) | rpl::start_with_next([=](const Data::PeerUpdate &update) {
+	}) | rpl::on_next([=](const Data::PeerUpdate &update) {
 		const auto peer = update.peer;
 		if (const auto list = _pendingSpeakingCallParticipants.take(peer)) {
 			if (const auto call = peer->groupCall()) {
@@ -766,7 +766,7 @@ void Updates::addActiveChat(rpl::producer<PeerData*> chat) {
 	const auto key = _activeChats.empty() ? 0 : _activeChats.back().first + 1;
 	std::move(
 		chat
-	) | rpl::start_with_next_done([=](PeerData *peer) {
+	) | rpl::on_next_done([=](PeerData *peer) {
 		auto &active = _activeChats[key];
 		const auto was = active.peer;
 		if (was != peer) {

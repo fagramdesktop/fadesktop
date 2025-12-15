@@ -166,7 +166,7 @@ MainMenu::ToggleAccountsButton::ToggleAccountsButton(
 , _current(current) {
 	rpl::single(rpl::empty) | rpl::then(
 		Core::App().unreadBadgeChanges()
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_unreadBadgeStale = true;
 		if (!_toggled) {
 			validateUnreadBadge();
@@ -182,7 +182,7 @@ MainMenu::ToggleAccountsButton::ToggleAccountsButton(
 	settings.mainMenuAccountsShownValue(
 	) | rpl::filter([=](bool value) {
 		return (_toggled != value);
-	}) | rpl::start_with_next([=](bool value) {
+	}) | rpl::on_next([=](bool value) {
 		_toggled = value;
 		_toggledAnimation.start(
 			[=] { update(); },
@@ -354,7 +354,7 @@ MainMenu::MainMenu(
 
 	const auto shadow = Ui::CreateChild<Ui::PlainShadow>(this);
 	widthValue(
-	) | rpl::start_with_next([=](int width) {
+	) | rpl::on_next([=](int width) {
 		const auto line = st::lineWidth;
 		shadow->setGeometry(0, st::mainMenuCoverHeight - line, width, line);
 	}, shadow->lifetime());
@@ -370,7 +370,7 @@ MainMenu::MainMenu(
 	});
 
 	_footer->heightValue(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_telegram->moveToLeft(st::mainMenuFooterLeft, _footer->height() - st::mainMenuTelegramBottom - _telegram->height());
 		_version->moveToLeft(st::mainMenuFooterLeft, _footer->height() - st::mainMenuVersionBottom - _version->height());
 	}, _footer->lifetime());
@@ -378,7 +378,7 @@ MainMenu::MainMenu(
 	rpl::combine(
 		heightValue(),
 		_inner->heightValue()
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		updateInnerControlsGeometry();
 	}, _inner->lifetime());
 
@@ -411,7 +411,7 @@ MainMenu::MainMenu(
 	rpl::combine(
 		_toggleAccounts->rightSkipValue(),
 		rpl::single(rpl::empty) | rpl::then(_badge->updated())
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		moveBadge();
 	}, lifetime());
 	_badge->setPremiumClickCallback([=] {
@@ -419,7 +419,7 @@ MainMenu::MainMenu(
 	});
 
 	_controller->session().downloaderTaskFinished(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		update();
 	}, lifetime());
 
@@ -433,18 +433,18 @@ MainMenu::MainMenu(
 				[=](const QRect &r) { snowRaw->update(r); });
 			snow->setBrush(QColor(230, 230, 230));
 			_showFinished.value(
-			) | rpl::start_with_next([=](bool shown) {
+			) | rpl::on_next([=](bool shown) {
 				snow->setPaused(!shown);
 			}, snowRaw->lifetime());
 			snowRaw->paintRequest(
-			) | rpl::start_with_next([=](const QRect &r) {
+			) | rpl::on_next([=](const QRect &r) {
 				auto p = Painter(snowRaw);
 				p.fillRect(r, st::mainMenuBg);
 				drawName(p);
 				snow->paint(p, snowRaw->rect());
 			}, snowRaw->lifetime());
 			widthValue(
-			) | rpl::start_with_next([=](int width) {
+			) | rpl::on_next([=](int width) {
 				snowRaw->setGeometry(0, 0, width, st::mainMenuCoverHeight);
 			}, snowRaw->lifetime());
 			snowRaw->show();
@@ -453,7 +453,7 @@ MainMenu::MainMenu(
 			snowLifetime->add([=] { base::unique_qptr{ snowRaw }; });
 		};
 		Window::Theme::IsNightModeValue(
-		) | rpl::start_with_next([=](bool isNightMode) {
+		) | rpl::on_next([=](bool isNightMode) {
 			snowLifetime->destroy();
 			if (isNightMode) {
 				rebuild();
@@ -525,7 +525,7 @@ void MainMenu::setupArchive() {
 		{ 0, st::mainMenuSkip, 0, st::mainMenuSkip });
 	button->setAcceptBoth(true);
 	button->clicks(
-	) | rpl::start_with_next([=](Qt::MouseButton which) {
+	) | rpl::on_next([=](Qt::MouseButton which) {
 		if (which == Qt::LeftButton) {
 			showArchive(button->clickModifiers());
 			return;
@@ -547,7 +547,7 @@ void MainMenu::setupArchive() {
 
 	const auto now = folder();
 	auto folderValue = now
-		? (rpl::single(now) | rpl::type_erased())
+		? (rpl::single(now) | rpl::type_erased)
 		: controller->session().data().chatsListChanges(
 		) | rpl::filter([](Data::Folder *folder) {
 			return folder && (folder->id() == Data::Folder::kId);
@@ -574,7 +574,7 @@ void MainMenu::setupArchive() {
 		controller->session().data().stories().sourcesChanged(
 			Data::StorySourcesList::Hidden
 		)
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		const auto isArchiveVisible = checkArchive();
 		wrap->toggle(isArchiveVisible, anim::type::normal);
 		if (!isArchiveVisible) {
@@ -605,7 +605,7 @@ void MainMenu::setupAccounts() {
 
 	std::move(
 		events.closeRequests
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		closeLayer();
 	}, inner->lifetime());
 
@@ -719,7 +719,7 @@ void MainMenu::setupMenu() {
 		)->toggleOn(rpl::single(
 			_controller->session().settings().supportFixChatsOrder()
 		))->toggledChanges(
-		) | rpl::start_with_next([=](bool fix) {
+		) | rpl::on_next([=](bool fix) {
 			_controller->session().settings().setSupportFixChatsOrder(fix);
 			_controller->session().saveSettings();
 		}, _menu->lifetime());
@@ -746,7 +746,7 @@ void MainMenu::setupMenu() {
 	_nightThemeToggle->toggledChanges(
 	) | rpl::filter([=](bool night) {
 		return (night != Window::Theme::IsNightMode());
-	}) | rpl::start_with_next([=](bool night) {
+	}) | rpl::on_next([=](bool night) {
 		if (Window::Theme::Background()->editingTheme()) {
 			_nightThemeSwitches.fire(!night);
 			controller->show(Ui::MakeInformBox(
@@ -768,7 +768,7 @@ void MainMenu::setupMenu() {
 	}, _nightThemeToggle->lifetime());
 
 	Core::App().settings().systemDarkModeValue(
-	) | rpl::start_with_next([=](std::optional<bool> darkMode) {
+	) | rpl::on_next([=](std::optional<bool> darkMode) {
 		const auto darkModeEnabled
 			= Core::App().settings().systemDarkModeEnabled();
 		if (darkModeEnabled && darkMode.has_value()) {
@@ -893,7 +893,7 @@ void MainMenu::initResetScaleButton() {
 		return (available.width() >= st::windowMinWidth)
 			&& (available.height() >= st::windowMinHeight);
 	}) | rpl::distinct_until_changed(
-	) | rpl::start_with_next([=](bool good) {
+	) | rpl::on_next([=](bool good) {
 		if (good) {
 			_resetScaleButton.destroy();
 		} else {

@@ -149,7 +149,7 @@ void SettingsWidget::setupContent() {
 	setupPathAndFormat(content);
 
 	sizeValue(
-	) | rpl::start_with_next([=](QSize size) {
+	) | rpl::on_next([=](QSize size) {
 		scroll->resize(size.width(), size.height() - buttons->height());
 		wrap->resizeToWidth(size.width());
 		content->resizeToWidth(size.width());
@@ -232,7 +232,7 @@ void SettingsWidget::setupMediaOptions(
 	value() | rpl::map([](const Settings &data) {
 		return data.types;
 	}) | rpl::distinct_until_changed(
-	) | rpl::start_with_next([=](Settings::Types types) {
+	) | rpl::on_next([=](Settings::Types types) {
 		mediaWrap->toggle((types & (Type::PersonalChats
 			| Type::BotChats
 			| Type::PrivateGroups
@@ -243,7 +243,7 @@ void SettingsWidget::setupMediaOptions(
 	}, mediaWrap->lifetime());
 
 	widthValue(
-	) | rpl::start_with_next([=](int width) {
+	) | rpl::on_next([=](int width) {
 		mediaWrap->resizeToWidth(width);
 	}, mediaWrap->lifetime());
 }
@@ -495,7 +495,7 @@ void SettingsWidget::addLimitsLabel(
 			const auto toSave = widget->lifetime().make_state<TimeId>(0);
 			std::move(
 				result.secondsValue
-			) | rpl::start_with_next([=](TimeId t) {
+			) | rpl::on_next([=](TimeId t) {
 				*toSave = t;
 			}, box->lifetime());
 			box->addButton(tr::lng_settings_save(), [=] {
@@ -668,14 +668,14 @@ not_null<Ui::RpWidget*> SettingsWidget::setupButtons(
 	value() | rpl::map([](const Settings &data) {
 		return (data.types != Types(0)) || data.onlySinglePeer();
 	}) | rpl::distinct_until_changed(
-	) | rpl::start_with_next([=](bool canStart) {
+	) | rpl::on_next([=](bool canStart) {
 		refreshButtons(buttons, canStart);
 		topShadow->raise();
 		bottomShadow->raise();
 	}, buttons->lifetime());
 
 	sizeValue(
-	) | rpl::start_with_next([=](QSize size) {
+	) | rpl::on_next([=](QSize size) {
 		buttons->resizeToWidth(size.width());
 		buttons->moveToLeft(0, size.height() - buttons->height());
 		topShadow->resizeToWidth(size.width());
@@ -710,7 +710,7 @@ not_null<Ui::Checkbox*> SettingsWidget::addOption(
 			st::defaultBoxCheckbox),
 		st::exportSettingPadding);
 	checkbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		changeData([&](Settings &data) {
 			if (checked) {
 				data.types |= types;
@@ -753,7 +753,7 @@ void SettingsWidget::addChatOption(
 			st::exportSubSettingPadding));
 
 	onlyMy->entity()->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		changeData([&](Settings &data) {
 			if (checked) {
 				data.fullChats &= ~types;
@@ -816,7 +816,7 @@ void SettingsWidget::addMediaOption(
 			st::defaultBoxCheckbox),
 		st::exportSettingPadding);
 	checkbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		changeData([&](Settings &data) {
 			if (checked) {
 				data.media.types |= type;
@@ -850,7 +850,7 @@ void SettingsWidget::addSizeSlider(
 		st::exportFileSizeLabel);
 	value() | rpl::map([](const Settings &data) {
 		return data.media.sizeLimit;
-	}) | rpl::start_with_next([=](int64 sizeLimit) {
+	}) | rpl::on_next([=](int64 sizeLimit) {
 		const auto limit = sizeLimit / kMegabyte;
 		const auto size = QString::number(limit) + " MB";
 		const auto text = tr::lng_export_option_size_limit(
@@ -864,7 +864,7 @@ void SettingsWidget::addSizeSlider(
 		label->widthValue(),
 		slider->geometryValue(),
 		_2
-	) | rpl::start_with_next([=](QRect geometry) {
+	) | rpl::on_next([=](QRect geometry) {
 		label->moveToRight(
 			st::exportFileSizePadding.right(),
 			geometry.y() - label->height() - st::exportFileSizeLabelBottom);
@@ -893,7 +893,7 @@ void SettingsWidget::refreshButtons(
 		_startClicks = start->clicks() | rpl::to_empty;
 
 		container->sizeValue(
-		) | rpl::start_with_next([=](QSize size) {
+		) | rpl::on_next([=](QSize size) {
 			const auto right = st::defaultBox.buttonPadding.right();
 			const auto top = st::defaultBox.buttonPadding.top();
 			start->moveToRight(right, top);
@@ -911,7 +911,7 @@ void SettingsWidget::refreshButtons(
 	rpl::combine(
 		container->sizeValue(),
 		start ? start->widthValue() : rpl::single(0)
-	) | rpl::start_with_next([=](QSize size, int width) {
+	) | rpl::on_next([=](QSize size, int width) {
 		const auto right = st::defaultBox.buttonPadding.right()
 			+ (width ? width + st::defaultBox.buttonPadding.left() : 0);
 		const auto top = st::defaultBox.buttonPadding.top();

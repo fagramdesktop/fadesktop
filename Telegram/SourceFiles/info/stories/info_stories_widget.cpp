@@ -73,14 +73,14 @@ Widget::Widget(
 		_flexibleScroll))
 , _pinnedToTop(_inner->createPinnedToTop(this)) {
 	_emptyAlbumShown = _inner->albumEmptyValue();
-	_inner->albumIdChanges() | rpl::start_with_next([=](int id) {
+	_inner->albumIdChanges() | rpl::on_next([=](int id) {
 		controller->showSection(
 			Make(controller->storiesPeer(), id),
 			Window::SectionShow::Way::Backward);
 	}, _inner->lifetime());
 	_inner->setScrollHeightValue(scrollHeightValue());
 	_inner->scrollToRequests(
-	) | rpl::start_with_next([this](Ui::ScrollToRequest request) {
+	) | rpl::on_next([this](Ui::ScrollToRequest request) {
 		if (request.ymin < 0) {
 			scrollTopRestore(
 				qMin(scrollTopSave(), request.ymax));
@@ -91,13 +91,13 @@ Widget::Widget(
 
 	if (_pinnedToTop) {
 		_inner->widthValue(
-		) | rpl::start_with_next([=](int w) {
+		) | rpl::on_next([=](int w) {
 			_pinnedToTop->resizeToWidth(w);
 			setScrollTopSkip(_pinnedToTop->height());
 		}, _pinnedToTop->lifetime());
 
 		_pinnedToTop->heightValue(
-		) | rpl::start_with_next([=](int h) {
+		) | rpl::on_next([=](int h) {
 			setScrollTopSkip(h);
 		}, _pinnedToTop->lifetime());
 	}
@@ -121,11 +121,11 @@ Widget::Widget(
 	rpl::combine(
 		_albumId.value(),
 		_emptyAlbumShown.value()
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		refreshBottom();
 	}, _inner->lifetime());
 
-	_inner->backRequest() | rpl::start_with_next([=] {
+	_inner->backRequest() | rpl::on_next([=] {
 		checkBeforeClose([=] { controller->showBackFromStack(); });
 	}, _inner->lifetime());
 }
@@ -206,14 +206,14 @@ void Widget::refreshBottom() {
 		};
 
 		_inner->sizeValue(
-		) | rpl::start_with_next([=](const QSize &s) {
+		) | rpl::on_next([=](const QSize &s) {
 			_pinnedToBottom->resizeToWidth(s.width());
 		}, _pinnedToBottom->lifetime());
 
 		rpl::combine(
 			_pinnedToBottom->heightValue(),
 			heightValue()
-		) | rpl::start_with_next(processHeight, _pinnedToBottom->lifetime());
+		) | rpl::on_next(processHeight, _pinnedToBottom->lifetime());
 	}
 }
 
@@ -248,14 +248,14 @@ void Widget::setupBottomButton(int wasBottomHeight) {
 	});
 
 	const auto buttonTop = st::boxRadius;
-	bottom->widthValue() | rpl::start_with_next([=](int width) {
+	bottom->widthValue() | rpl::on_next([=](int width) {
 		const auto normal = width - 2 * buttonTop;
 		button->resizeToWidth(normal);
 		const auto buttonLeft = (width - normal) / 2;
 		button->moveToLeft(buttonLeft, buttonTop);
 	}, button->lifetime());
 
-	button->heightValue() | rpl::start_with_next([=](int height) {
+	button->heightValue() | rpl::on_next([=](int height) {
 		bottom->resize(bottom->width(), st::boxRadius + height);
 	}, button->lifetime());
 

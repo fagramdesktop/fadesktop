@@ -60,7 +60,7 @@ not_null<Ui::RpWidget*> PanelForm::setupContent() {
 	const auto inner = _scroll->setOwnedWidget(
 		object_ptr<Ui::VerticalLayout>(this));
 	_scroll->widthValue(
-	) | rpl::start_with_next([=](int width) {
+	) | rpl::on_next([=](int width) {
 		inner->resizeToWidth(width);
 	}, inner->lifetime());
 
@@ -117,7 +117,7 @@ not_null<Ui::RpWidget*> PanelForm::setupContent() {
 		++index;
 	});
 	_controller->refillRows(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		auto index = 0;
 		_controller->fillRows([&](
 				QString title,

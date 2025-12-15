@@ -137,7 +137,7 @@ Ui::RpWidget *TopBar::pushButton(base::unique_qptr<Ui::RpWidget> button) {
 	auto weak = wrapped.get();
 	_buttons.push_back(std::move(wrapped));
 	weak->widthValue(
-	) | rpl::start_with_next([this] {
+	) | rpl::on_next([this] {
 		updateControlsGeometry(width());
 	}, lifetime());
 	return weak;
@@ -231,13 +231,13 @@ IntroWidget::IntroWidget(
 , _topShadow(this) {
 	_wrap->setAttribute(Qt::WA_OpaquePaintEvent);
 	_wrap->paintRequest(
-	) | rpl::start_with_next([=](QRect clip) {
+	) | rpl::on_next([=](QRect clip) {
 		auto p = QPainter(_wrap.data());
 		p.fillRect(clip, st::boxBg);
 	}, _wrap->lifetime());
 
 	_scrollTopSkip.changes(
-	) | rpl::start_with_next([this] {
+	) | rpl::on_next([this] {
 		updateControlsGeometry();
 	}, lifetime());
 
@@ -322,7 +322,7 @@ void IntroWidget::setInnerWidget(object_ptr<Ui::RpWidget> content) {
 		_scroll->scrollTopValue(),
 		_scroll->heightValue(),
 		_innerWrap->entity()->desiredHeightValue()
-	) | rpl::start_with_next([this](
+	) | rpl::on_next([this](
 			int top,
 			int height,
 			int desired) {
@@ -437,11 +437,11 @@ void LayerWidget::setupHeightConsumers() {
 	_content->scrollTillBottomChanges(
 	) | rpl::filter([this] {
 		return !_inResize;
-	}) | rpl::start_with_next([this] {
+	}) | rpl::on_next([this] {
 		resizeToWidth(width());
 	}, lifetime());
 	_content->desiredHeightValue(
-	) | rpl::start_with_next([this](int height) {
+	) | rpl::on_next([this](int height) {
 		accumulate_max(_desiredHeight, height);
 		if (_content && !_inResize) {
 			resizeToWidth(width());

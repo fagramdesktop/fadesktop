@@ -25,7 +25,7 @@ GiftAuctions::GiftAuctions(not_null<Main::Session*> session)
 			_session->data().chatsListLoadedEvents()
 		) | rpl::filter(
 			!rpl::mappers::_1
-		) | rpl::take(1) | rpl::start_with_next([=] {
+		) | rpl::take(1) | rpl::on_next([=] {
 			requestActive();
 		}, _lifetime);
 	});
@@ -43,7 +43,7 @@ rpl::producer<GiftAuctionState> GiftAuctions::state(const QString &slug) {
 		}
 		const auto raw = entry.get();
 
-		raw->changes.events() | rpl::start_with_next([=] {
+		raw->changes.events() | rpl::on_next([=] {
 			consumer.put_next_copy(raw->state);
 		}, lifetime);
 

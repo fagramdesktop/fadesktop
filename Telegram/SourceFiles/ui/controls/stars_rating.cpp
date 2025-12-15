@@ -239,9 +239,9 @@ void AboutRatingBox(
 		? tr::lng_stars_rating_about(
 			lt_name,
 			rpl::single(TextWithEntities{ name }),
-			Text::RichLangValue) | rpl::type_erased()
+			Text::RichLangValue) | rpl::type_erased
 		: tr::lng_stars_rating_about_your(
-			Text::RichLangValue) | rpl::type_erased();
+			Text::RichLangValue) | rpl::type_erased;
 
 	if (data.level < 0) {
 		auto text = (data.stars < 0)
@@ -431,7 +431,7 @@ StarsRating::~StarsRating() = default;
 void StarsRating::init() {
 	_widget->setPointerCursor(true);
 
-	_widget->paintRequest() | rpl::start_with_next([=] {
+	_widget->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(_widget.get());
 		paint(p);
 	}, lifetime());
@@ -447,7 +447,7 @@ void StarsRating::init() {
 
 	_widget->resize(_widget->width(), st::level1.icon.height());
 
-	_value.value() | rpl::start_with_next([=](Counters rating) {
+	_value.value() | rpl::on_next([=](Counters rating) {
 		updateData(rating);
 	}, lifetime());
 }

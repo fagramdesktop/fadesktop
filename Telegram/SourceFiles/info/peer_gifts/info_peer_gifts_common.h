@@ -167,6 +167,7 @@ public:
 	[[nodiscard]] virtual not_null<StickerPremiumMark*> hiddenMark() = 0;
 	[[nodiscard]] virtual QImage cachedBadge(const GiftBadge &badge) = 0;
 	[[nodiscard]] virtual bool amPremium() = 0;
+	virtual void invalidateCache() = 0;
 };
 
 class GiftButton final : public Ui::AbstractButton {
@@ -272,6 +273,7 @@ public:
 	not_null<StickerPremiumMark*> hiddenMark() override;
 	QImage cachedBadge(const GiftBadge &badge) override;
 	bool amPremium() override;
+	void invalidateCache() override;
 
 private:
 	const not_null<Main::Session*> _session;

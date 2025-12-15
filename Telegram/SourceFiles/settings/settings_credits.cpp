@@ -135,7 +135,7 @@ Credits::Credits(
 	setupSwipeBack();
 
 	_controller->session().premiumPossibleValue(
-	) | rpl::start_with_next([=](bool premiumPossible) {
+	) | rpl::on_next([=](bool premiumPossible) {
 		if (!premiumPossible) {
 			_showBack.fire({});
 		}
@@ -231,7 +231,7 @@ void Credits::setupSubscriptions(not_null<Ui::VerticalLayout*> container) {
 		const auto rebuilder = content->lifetime().make_state<RebuilderPtr>(
 			self->owner().createCreditsSubsRebuilder());
 		rebuilder->get()->events(
-		) | rpl::start_with_next([=](Data::CreditsStatusSlice slice) {
+		) | rpl::on_next([=](Data::CreditsStatusSlice slice) {
 			while (content->count()) {
 				delete content->widgetAt(0);
 			}
@@ -285,12 +285,12 @@ void Credits::setupHistory(not_null<Ui::VerticalLayout*> container) {
 		slider->toggle(!hasOneTab, anim::type::instant);
 		if (!hasOneTab) {
 			const auto shadow = Ui::CreateChild<Ui::RpWidget>(inner);
-			shadow->paintRequest() | rpl::start_with_next([=] {
+			shadow->paintRequest() | rpl::on_next([=] {
 				auto p = QPainter(shadow);
 				p.fillRect(shadow->rect(), st::shadowFg);
 			}, shadow->lifetime());
 			slider->geometryValue(
-			) | rpl::start_with_next([=](const QRect &r) {
+			) | rpl::on_next([=](const QRect &r) {
 				shadow->setGeometry(
 					inner->x(),
 					rect::bottom(slider) - st::lineWidth,
@@ -333,7 +333,7 @@ void Credits::setupHistory(not_null<Ui::VerticalLayout*> container) {
 
 		rpl::single(0) | rpl::then(
 			slider->entity()->sectionActivated()
-		) | rpl::start_with_next([=](int index) {
+		) | rpl::on_next([=](int index) {
 			if (index == 0) {
 				fullWrap->toggle(true, anim::type::instant);
 				inWrap->toggle(false, anim::type::instant);
@@ -403,7 +403,7 @@ void Credits::setupHistory(not_null<Ui::VerticalLayout*> container) {
 				apiOut->request({}, [=](Data::CreditsStatusSlice outSlice) {
 					::Api::PremiumPeerBot(
 						&_controller->session()
-					) | rpl::start_with_next([=](not_null<PeerData*> bot) {
+					) | rpl::on_next([=](not_null<PeerData*> bot) {
 						fill(bot, fullSlice, inSlice, outSlice);
 						apiLifetime->destroy();
 					}, *apiLifetime);
@@ -672,7 +672,7 @@ void Credits::setupContent() {
 			rpl::combine(
 				majorLabel->sizeValue(),
 				minorLabel->sizeValue()
-			) | rpl::start_with_next([=](
+			) | rpl::on_next([=](
 					const QSize &majorSize,
 					const QSize &minorSize) {
 				labels->resize(
@@ -715,7 +715,7 @@ void Credits::setupContent() {
 			rpl::combine(
 				button->sizeValue(),
 				label->sizeValue()
-			) | rpl::start_with_next([=](const QSize &b, const QSize &l) {
+			) | rpl::on_next([=](const QSize &b, const QSize &l) {
 				label->moveToLeft(
 					(b.width() - l.width()) / 2,
 					(b.height() - l.height()) / 2);
@@ -756,7 +756,7 @@ void Credits::setupContent() {
 		const auto apiLifetime = wrap->lifetime().make_state<rpl::lifetime>();
 		const auto api = apiLifetime->make_state<Api::EarnStatistics>(self);
 		wrap->toggle(false, anim::type::instant);
-		api->request() | rpl::start_with_error_done([] {
+		api->request() | rpl::on_error_done([] {
 		}, [=] {
 			if (!api->data().availableBalance.empty()) {
 				wrap->toggle(true, anim::type::normal);
@@ -813,7 +813,7 @@ base::weak_qptr<Ui::RpWidget> Credits::createPinnedToTop(
 	};
 
 	_wrap.value(
-	) | rpl::start_with_next([=](Info::Wrap wrap) {
+	) | rpl::on_next([=](Info::Wrap wrap) {
 		content->setRoundEdges(wrap == Info::Wrap::Layer);
 	}, content->lifetime());
 
@@ -822,7 +822,7 @@ base::weak_qptr<Ui::RpWidget> Credits::createPinnedToTop(
 
 	content->resize(content->width(), content->maximumHeight());
 	content->additionalHeight(
-	) | rpl::start_with_next([=](int additionalHeight) {
+	) | rpl::on_next([=](int additionalHeight) {
 		const auto wasMax = (content->height() == content->maximumHeight());
 		content->setMaximumHeight(st::settingsPremiumTopHeight
 			+ additionalHeight);
@@ -848,7 +848,7 @@ base::weak_qptr<Ui::RpWidget> Credits::createPinnedToTop(
 		rpl::combine(
 			balance->sizeValue(),
 			content->sizeValue()
-		) | rpl::start_with_next([=](const QSize &, const QSize &) {
+		) | rpl::on_next([=](const QSize &, const QSize &) {
 			balance->moveToRight(
 				(_close
 					? _close->width() + st::creditsHistoryRightSkip
@@ -859,7 +859,7 @@ base::weak_qptr<Ui::RpWidget> Credits::createPinnedToTop(
 	}
 
 	_wrap.value(
-	) | rpl::start_with_next([=](Info::Wrap wrap) {
+	) | rpl::on_next([=](Info::Wrap wrap) {
 		const auto isLayer = (wrap == Info::Wrap::Layer);
 		_back = base::make_unique_q<Ui::FadeWrap<Ui::IconButton>>(
 			content,
@@ -869,13 +869,13 @@ base::weak_qptr<Ui::RpWidget> Credits::createPinnedToTop(
 			st::infoTopBarScale);
 		_back->setDuration(0);
 		_back->toggleOn(isLayer
-			? _backToggles.value() | rpl::type_erased()
+			? _backToggles.value() | rpl::type_erased
 			: rpl::single(true));
 		_back->entity()->addClickHandler([=] {
 			_showBack.fire({});
 		});
 		_back->toggledValue(
-		) | rpl::start_with_next([=](bool toggled) {
+		) | rpl::on_next([=](bool toggled) {
 			const auto &st = isLayer ? st::infoLayerTopBar : st::infoTopBar;
 			content->setTextPosition(
 				toggled ? st.back.width : st.titlePosition.x(),
@@ -893,7 +893,7 @@ base::weak_qptr<Ui::RpWidget> Credits::createPinnedToTop(
 				_controller->parentController()->hideSpecialLayer();
 			});
 			content->widthValue(
-			) | rpl::start_with_next([=] {
+			) | rpl::on_next([=] {
 				_close->moveToRight(0, 0);
 			}, _close->lifetime());
 		}
@@ -999,7 +999,7 @@ Fn<void()> BuyStarsHandler::handler(
 			const auto user = show->session().user();
 			_api = std::make_unique<Api::CreditsTopupOptions>(user);
 			_api->request(
-			) | rpl::start_with_error_done([=](const QString &error) {
+			) | rpl::on_error_done([=](const QString &error) {
 				_loading = false;
 				show->showToast(error);
 			}, [=] {

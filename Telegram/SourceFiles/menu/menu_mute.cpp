@@ -96,7 +96,7 @@ MuteItem::MuteItem(
 	nullptr)
 , _itemIconPosition(st.itemIconPosition) {
 	descriptor.isMutedValue(
-	) | rpl::start_with_next([=](bool isMuted) {
+	) | rpl::on_next([=](bool isMuted) {
 		action()->setText(isMuted
 			? tr::lng_mute_menu_duration_unmute(tr::now)
 			: tr::lng_mute_menu_duration_forever(tr::now));
@@ -376,7 +376,7 @@ void SetupMuteMenu(
 	const auto state = parent->lifetime().make_state<State>();
 	std::move(
 		triggers
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		if (state->menu) {
 			return;
 		} else if (const auto descriptor = makeDescriptor()) {

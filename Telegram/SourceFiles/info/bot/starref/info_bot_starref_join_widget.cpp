@@ -296,7 +296,7 @@ ListController::ListController(
 
 	if (_type == JoinType::Joined) {
 		setupLinkBadge();
-		style::PaletteChanged() | rpl::start_with_next([=] {
+		style::PaletteChanged() | rpl::on_next([=] {
 			setupLinkBadge();
 		}, lifetime());
 	}
@@ -454,7 +454,7 @@ void ListController::setupAddForBot() {
 		st::starrefAddForBotIcon,
 		QPoint());
 	button->entity()->heightValue(
-	) | rpl::start_with_next([=](int height) {
+	) | rpl::on_next([=](int height) {
 		icon->moveToLeft(
 			st::starrefAddForBotIconPosition.x(),
 			(height - st::starrefAddForBotIcon.height()) / 2);
@@ -466,7 +466,7 @@ void ListController::setupAddForBot() {
 	button->entity()->events(
 	) | rpl::filter([=](not_null<QEvent*> e) {
 		return (e->type() == QEvent::Enter);
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		delegate()->peerListMouseLeftGeometry();
 	}, button->lifetime());
 	delegate()->peerListSetAboveWidget(std::move(button));
@@ -762,7 +762,7 @@ not_null<ListController*> InnerWidget::setupMy() {
 	) | rpl::map(rpl::mappers::_1 > 0));
 
 	controller->revoked(
-	) | rpl::start_with_next([=](ConnectedBot row) {
+	) | rpl::on_next([=](ConnectedBot row) {
 		_suggested->process(row);
 	}, content->lifetime());
 
@@ -788,7 +788,7 @@ void InnerWidget::setupSort(not_null<Ui::RpWidget*> label) {
 		label->geometryValue(),
 		widthValue(),
 		sort->widthValue()
-	) | rpl::start_with_next([=](QRect geometry, int outer, int sortWidth) {
+	) | rpl::on_next([=](QRect geometry, int outer, int sortWidth) {
 		const auto skip = st::boxRowPadding.right();
 		const auto top = geometry.y()
 			+ st::defaultSubsectionTitle.style.font->ascent
@@ -846,11 +846,11 @@ not_null<ListController*> InnerWidget::setupSuggested() {
 	) | rpl::map(rpl::mappers::_1 > 0));
 
 	controller->connected(
-	) | rpl::start_with_next([=](ConnectedBot row) {
+	) | rpl::on_next([=](ConnectedBot row) {
 		_my->process(row);
 	}, content->lifetime());
 
-	_sort.value() | rpl::start_with_next([=](SuggestedSort sort) {
+	_sort.value() | rpl::on_next([=](SuggestedSort sort) {
 		controller->setSort(sort);
 	}, content->lifetime());
 
@@ -1013,7 +1013,7 @@ std::unique_ptr<Ui::Premium::TopBarAbstract> Widget::setupTop() {
 	const auto raw = result.get();
 
 	controller->wrapValue(
-	) | rpl::start_with_next([=](Info::Wrap wrap) {
+	) | rpl::on_next([=](Info::Wrap wrap) {
 		raw->setRoundEdges(wrap == Info::Wrap::Layer);
 	}, raw->lifetime());
 
@@ -1021,14 +1021,14 @@ std::unique_ptr<Ui::Premium::TopBarAbstract> Widget::setupTop() {
 	raw->resize(width(), baseHeight);
 
 	raw->additionalHeight(
-	) | rpl::start_with_next([=](int additionalHeight) {
+	) | rpl::on_next([=](int additionalHeight) {
 		raw->setMaximumHeight(baseHeight + additionalHeight);
 		raw->setMinimumHeight(baseHeight + additionalHeight);
 		setPaintPadding({ 0, raw->height(), 0, 0 });
 	}, raw->lifetime());
 
 	controller->wrapValue(
-	) | rpl::start_with_next([=](Info::Wrap wrap) {
+	) | rpl::on_next([=](Info::Wrap wrap) {
 		const auto isLayer = (wrap == Info::Wrap::Layer);
 		_back = base::make_unique_q<Ui::FadeWrap<Ui::IconButton>>(
 			raw,
@@ -1040,7 +1040,7 @@ std::unique_ptr<Ui::Premium::TopBarAbstract> Widget::setupTop() {
 			st::infoTopBarScale);
 		_back->setDuration(0);
 		_back->toggleOn(isLayer
-			? _backEnabled.value() | rpl::type_erased()
+			? _backEnabled.value() | rpl::type_erased
 			: rpl::single(true));
 		_back->entity()->addClickHandler([=] {
 			controller->showBackFromStack();
@@ -1048,7 +1048,7 @@ std::unique_ptr<Ui::Premium::TopBarAbstract> Widget::setupTop() {
 		_back->entity()->setRippleColorOverride(
 			&st::universalRippleAnimation.color);
 		_back->toggledValue(
-		) | rpl::start_with_next([=](bool toggled) {
+		) | rpl::on_next([=](bool toggled) {
 			const auto &st = isLayer ? st::infoLayerTopBar : st::infoTopBar;
 			raw->setTextPosition(
 				toggled ? st.back.width : st.titlePosition.x(),
@@ -1068,14 +1068,14 @@ std::unique_ptr<Ui::Premium::TopBarAbstract> Widget::setupTop() {
 			_close->setRippleColorOverride(
 				&st::universalRippleAnimation.color);
 			raw->widthValue(
-			) | rpl::start_with_next([=] {
+			) | rpl::on_next([=] {
 				_close->moveToRight(0, 0);
 			}, _close->lifetime());
 		}
 	}, raw->lifetime());
 
 	raw->move(0, 0);
-	widthValue() | rpl::start_with_next([=](int width) {
+	widthValue() | rpl::on_next([=](int width) {
 		raw->resizeToWidth(width);
 		setScrollTopSkip(raw->height());
 	}, raw->lifetime());
@@ -1117,7 +1117,7 @@ object_ptr<Ui::BoxContent> ProgramsListBox(
 		window,
 		peer,
 		JoinType::Existing);
-	controller->addForBotRequests() | rpl::start_with_next([=] {
+	controller->addForBotRequests() | rpl::on_next([=] {
 		if (const auto strong = weak->get()) {
 			strong->closeBox();
 		}

@@ -94,7 +94,7 @@ rpl::producer<TextWithEntities> AgeVerifyAbout(
 	auto result = object_ptr<Ui::RpWidget>(parent);
 	const auto raw = result.data();
 	raw->resize(full);
-	raw->paintRequest() | rpl::start_with_next([=] {
+	raw->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(raw);
 		const auto x = (raw->width() - full.width()) / 2;
 		auto hq = PainterHighQualityEnabler(p);
@@ -399,7 +399,7 @@ void ShowAgeVerification(
 			});
 		});
 		box->widthValue(
-		) | rpl::start_with_next([=](int width) {
+		) | rpl::on_next([=](int width) {
 			const auto &padding = st::settingsAgeVerifyBox.buttonPadding;
 			button->resizeToWidth(width
 				- padding.left()
@@ -414,7 +414,7 @@ void ShowAgeVerification(
 			box->closeBox();
 		});
 		box->widthValue(
-		) | rpl::start_with_next([=](int width) {
+		) | rpl::on_next([=](int width) {
 			close->moveToRight(0, 0);
 		}, box->lifetime());
 		crl::on_main(close, [=] { close->raise(); });
@@ -438,7 +438,7 @@ void ShowAgeVerificationMobile(
 			st::peerAppearanceIconPadding);
 
 		box->showFinishes(
-		) | rpl::start_with_next([animate = std::move(icon.animate)] {
+		) | rpl::on_next([animate = std::move(icon.animate)] {
 			animate(anim::repeat::once);
 		}, box->lifetime());
 
@@ -503,7 +503,7 @@ void ShowAgeVerificationRequired(
 			state->lifetime = sensitive->loadedValue(
 			) | rpl::filter(
 				rpl::mappers::_1
-			) | rpl::take(1) | rpl::start_with_next(state->check);
+			) | rpl::take(1) | rpl::on_next(state->check);
 			return;
 		} else if (!state->bot.has_value()) {
 			return;

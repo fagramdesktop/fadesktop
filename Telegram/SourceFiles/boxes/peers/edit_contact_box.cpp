@@ -348,8 +348,8 @@ void Controller::initNameFields(
 			_save();
 		}
 	};
-	first->submits() | rpl::start_with_next(submit, first->lifetime());
-	last->submits() | rpl::start_with_next(submit, last->lifetime());
+	first->submits() | rpl::on_next(submit, first->lifetime());
+	last->submits() | rpl::on_next(submit, last->lifetime());
 	first->setMaxLength(Ui::EditPeer::kMaxUserFirstLastName);
 	first->setMaxLength(Ui::EditPeer::kMaxUserFirstLastName);
 }
@@ -418,11 +418,11 @@ void Controller::setupNotesField() {
 	_emojiPanel->hide();
 	_emojiPanel->selector()->setCurrentPeer(_window->session().user());
 	_emojiPanel->selector()->emojiChosen(
-	) | rpl::start_with_next([=](ChatHelpers::EmojiChosen data) {
+	) | rpl::on_next([=](ChatHelpers::EmojiChosen data) {
 		Ui::InsertEmojiAtCursor(_notesField->textCursor(), data.emoji);
 	}, _notesField->lifetime());
 	_emojiPanel->selector()->customEmojiChosen(
-	) | rpl::start_with_next([=](ChatHelpers::FileChosen data) {
+	) | rpl::on_next([=](ChatHelpers::FileChosen data) {
 		const auto info = data.document->sticker();
 		if (info
 			&& info->setType == Data::StickersType::Emoji
@@ -464,7 +464,7 @@ void Controller::setupNotesField() {
 			rpl::combine(
 				limitState->charsLimitation->geometryValue(),
 				_notesField->geometryValue()
-			) | rpl::start_with_next([=](QRect limit, QRect field) {
+			) | rpl::on_next([=](QRect limit, QRect field) {
 				limitState->charsLimitation->setVisible(
 					(w->mapToGlobal(limit.bottomLeft()).y() - border)
 						< w->mapToGlobal(field.bottomLeft()).y());
@@ -474,7 +474,7 @@ void Controller::setupNotesField() {
 		limitState->charsLimitation->setLeft(remove);
 	};
 
-	_notesField->changes() | rpl::start_with_next([=] {
+	_notesField->changes() | rpl::on_next([=] {
 		checkCharsLimitation();
 	}, _notesField->lifetime());
 
@@ -496,7 +496,7 @@ void Controller::setupPhotoButtons() {
 		})) | rpl::map([=](const QString &text) {
 			return text.isEmpty() ? Ui::kQEllipsis : text;
 		})
-		: rpl::single(_user->shortName()) | rpl::type_erased();
+		: rpl::single(_user->shortName()) | rpl::type_erased;
 	const auto inner = _box->verticalLayout();
 	Ui::AddSkip(inner);
 
@@ -558,7 +558,7 @@ void Controller::setupPhotoButtons() {
 
 	_suggestIconWidget = Ui::CreateChild<Ui::RpWidget>(suggestButton);
 	_suggestIconWidget->resize(iconPlaceholder);
-	_suggestIconWidget->paintRequest() | rpl::start_with_next([=] {
+	_suggestIconWidget->paintRequest() | rpl::on_next([=] {
 		if (_suggestIcon && _suggestIcon->valid()) {
 			auto p = QPainter(_suggestIconWidget);
 			const auto frame = _suggestIcon->frame(st::lightButtonFg->c);
@@ -566,7 +566,7 @@ void Controller::setupPhotoButtons() {
 		}
 	}, _suggestIconWidget->lifetime());
 
-	suggestButton->sizeValue() | rpl::start_with_next([=](QSize size) {
+	suggestButton->sizeValue() | rpl::on_next([=](QSize size) {
 		_suggestIconWidget->move(
 			st::settingsButtonLight.iconLeft - iconPlaceholder.width() / 4,
 			(size.height() - _suggestIconWidget->height()) / 2);
@@ -590,7 +590,7 @@ void Controller::setupPhotoButtons() {
 
 	_cameraIconWidget = Ui::CreateChild<Ui::RpWidget>(setButton);
 	_cameraIconWidget->resize(iconPlaceholder);
-	_cameraIconWidget->paintRequest() | rpl::start_with_next([=] {
+	_cameraIconWidget->paintRequest() | rpl::on_next([=] {
 		if (_cameraIcon && _cameraIcon->valid()) {
 			auto p = QPainter(_cameraIconWidget);
 			const auto frame = _cameraIcon->frame(st::lightButtonFg->c);
@@ -598,7 +598,7 @@ void Controller::setupPhotoButtons() {
 		}
 	}, _cameraIconWidget->lifetime());
 
-	setButton->sizeValue() | rpl::start_with_next([=](QSize size) {
+	setButton->sizeValue() | rpl::on_next([=](QSize size) {
 		_cameraIconWidget->move(
 			st::settingsButtonLight.iconLeft - iconPlaceholder.width() / 4,
 			(size.height() - _cameraIconWidget->height()) / 2);
@@ -635,7 +635,7 @@ void Controller::setupPhotoButtons() {
 	userpicButton->setAttribute(Qt::WA_TransparentForMouseEvents);
 
 	resetButton->sizeValue(
-	) | rpl::start_with_next([=](QSize size) {
+	) | rpl::on_next([=](QSize size) {
 		userpicButton->move(
 			st::settingsButtonLight.iconLeft,
 			(size.height() - userpicButton->height()) / 2);

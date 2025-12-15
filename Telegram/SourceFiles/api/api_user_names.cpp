@@ -251,7 +251,7 @@ void Usernames::requestToCache(not_null<PeerData*> peer) {
 	const auto lifetime = std::make_shared<rpl::lifetime>();
 	*lifetime = loadUsernames(
 		peer
-	) | rpl::start_with_next([=, id = peer->id](Data::Usernames usernames) {
+	) | rpl::on_next([=, id = peer->id](Data::Usernames usernames) {
 		_tinyCache = std::make_pair(id, std::move(usernames));
 		lifetime->destroy();
 	});

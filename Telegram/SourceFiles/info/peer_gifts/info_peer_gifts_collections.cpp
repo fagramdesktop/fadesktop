@@ -121,7 +121,7 @@ void EditCollectionBox(
 			)).done(done).fail(fail).send();
 		}
 	};
-	title->submits() | rpl::start_with_next(submit, title->lifetime());
+	title->submits() | rpl::on_next(submit, title->lifetime());
 	auto text = id
 		? tr::lng_settings_save()
 		: tr::lng_gift_collection_new_create();

@@ -79,7 +79,7 @@ void AddOption(
 		});
 	}
 	button->toggledChanges(
-	) | rpl::start_with_next([=, &option](bool toggled) {
+	) | rpl::on_next([=, &option](bool toggled) {
 		if (!option.relevant() && toggled != option.defaultValue()) {
 			toggles->fire_copy(option.defaultValue());
 			window->showToast(

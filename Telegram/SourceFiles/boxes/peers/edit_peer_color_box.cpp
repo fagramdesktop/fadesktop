@@ -142,7 +142,7 @@ base::unique_qptr<Ui::RpWidget> CreateEmptyPlaceholder(
 	container->resize(width, totalHeight);
 
 	container->sizeValue(
-	) | rpl::start_with_next([=](QSize size) {
+	) | rpl::on_next([=](QSize size) {
 		const auto totalContentHeight = iconWidget->height()
 			+ st::normalFont->height + emptyLabel->height()
 			+ (emptyNextLabel
@@ -313,17 +313,17 @@ PreviewWrap::PreviewWrap(
 	_style->apply(_theme.get());
 
 	_fake->setName(peer->name(), QString());
-	std::move(colorIndexValue) | rpl::start_with_next([=](uint8 index) {
+	std::move(colorIndexValue) | rpl::on_next([=](uint8 index) {
 		if (index != kUnsetColorIndex) {
 			_fake->changeColorIndex(index);
 			update();
 		}
 	}, lifetime());
-	std::move(backgroundEmojiId) | rpl::start_with_next([=](DocumentId id) {
+	std::move(backgroundEmojiId) | rpl::on_next([=](DocumentId id) {
 		_fake->changeBackgroundEmojiId(id);
 		update();
 	}, lifetime());
-	std::move(colorCollectible) | rpl::start_with_next([=](
+	std::move(colorCollectible) | rpl::on_next([=](
 			std::optional<Ui::ColorCollectible> &&collectible) {
 		if (collectible) {
 			_fake->changeColorCollectible(std::move(*collectible));
@@ -335,7 +335,7 @@ PreviewWrap::PreviewWrap(
 
 	const auto session = &_history->session();
 	session->data().viewRepaintRequest(
-	) | rpl::start_with_next([=](not_null<const Element*> view) {
+	) | rpl::on_next([=](not_null<const Element*> view) {
 		if (view == _element.get()) {
 			update();
 		}
@@ -391,7 +391,7 @@ void PreviewWrap::initElements() {
 	widthValue(
 	) | rpl::filter([=](int width) {
 		return width > st::msgMinWidth;
-	}) | rpl::start_with_next([=](int width) {
+	}) | rpl::on_next([=](int width) {
 		const auto height = _position.y()
 			+ _element->resizeGetHeight(width)
 			+ st::msgMargin.top();
@@ -749,11 +749,11 @@ void Apply(
 	};
 	const auto state = right->lifetime().make_state<State>();
 	state->panel.someCustomChosen(
-	) | rpl::start_with_next([=](EmojiStatusPanel::CustomChosen chosen) {
+	) | rpl::on_next([=](EmojiStatusPanel::CustomChosen chosen) {
 		emojiIdChosen(chosen.id.documentId);
 	}, raw->lifetime());
 
-	std::move(colorIndexValue) | rpl::start_with_next([=](uint8 index) {
+	std::move(colorIndexValue) | rpl::on_next([=](uint8 index) {
 		state->index = index;
 		if (state->emoji) {
 			right->update();
@@ -762,7 +762,7 @@ void Apply(
 
 	const auto session = &show->session();
 	const auto added = st::lineWidth * 2;
-	std::move(emojiIdValue) | rpl::start_with_next([=](DocumentId emojiId) {
+	std::move(emojiIdValue) | rpl::on_next([=](DocumentId emojiId) {
 		state->emojiId = emojiId;
 		state->emoji = emojiId
 			? session->data().customEmojiManager().create(
@@ -778,14 +778,14 @@ void Apply(
 	rpl::combine(
 		raw->sizeValue(),
 		right->widthValue()
-	) | rpl::start_with_next([=](QSize outer, int width) {
+	) | rpl::on_next([=](QSize outer, int width) {
 		right->resize(width, outer.height());
 		const auto skip = st::settingsButton.padding.right();
 		right->moveToRight(skip - button.added, 0, outer.width());
 	}, right->lifetime());
 
 	right->paintRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		if (state->panel.paintBadgeFrame(right)) {
 			return;
 		}
@@ -893,12 +893,12 @@ void Apply(
 	};
 	const auto state = right->lifetime().make_state<State>();
 	state->panel.someCustomChosen(
-	) | rpl::start_with_next([=](EmojiStatusPanel::CustomChosen chosen) {
+	) | rpl::on_next([=](EmojiStatusPanel::CustomChosen chosen) {
 		statusIdChosen({ chosen.id }, chosen.until);
 	}, raw->lifetime());
 
 	const auto session = &show->session();
-	std::move(statusIdValue) | rpl::start_with_next([=](EmojiStatusId id) {
+	std::move(statusIdValue) | rpl::on_next([=](EmojiStatusId id) {
 		state->statusId = id;
 		state->emoji = id
 			? session->data().customEmojiManager().create(
@@ -914,14 +914,14 @@ void Apply(
 	rpl::combine(
 		raw->sizeValue(),
 		right->widthValue()
-	) | rpl::start_with_next([=](QSize outer, int width) {
+	) | rpl::on_next([=](QSize outer, int width) {
 		right->resize(width, outer.height());
 		const auto skip = st::settingsButton.padding.right();
 		right->moveToRight(skip - button.added, 0, outer.width());
 	}, right->lifetime());
 
 	right->paintRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		if (state->panel.paintBadgeFrame(right)) {
 			return;
 		}
@@ -1007,7 +1007,7 @@ void Apply(
 	rpl::combine(
 		raw->sizeValue(),
 		right->widthValue()
-	) | rpl::start_with_next([=](QSize outer, int width) {
+	) | rpl::on_next([=](QSize outer, int width) {
 		right->resize(width, outer.height());
 		const auto skip = st::settingsButton.padding.right();
 		right->moveToRight(skip - button.added, 0, outer.width());
@@ -1016,7 +1016,7 @@ void Apply(
 	right->paintRequest(
 	) | rpl::filter([=] {
 		return state->icon != nullptr;
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		auto p = QPainter(right);
 		const auto x = button.added;
 		const auto y = (right->height() - button.emojiWidth) / 2;
@@ -1076,7 +1076,7 @@ void Apply(
 			return wrapLoaded(sets->find(id));
 		}));
 	}) | rpl::flatten_latest(
-	) | rpl::start_with_next([=](DocumentData *icon) {
+	) | rpl::on_next([=](DocumentData *icon) {
 		if (state->icon != icon) {
 			state->icon = icon;
 			state->custom = nullptr;
@@ -1111,7 +1111,7 @@ Fn<void()> AddColorGiftTabs(
 	GiftsStars(
 		session,
 		session->user()
-	) | rpl::start_with_next([=](const std::vector<GiftTypeStars> &list) {
+	) | rpl::on_next([=](const std::vector<GiftTypeStars> &list) {
 		auto filtered = std::vector<Data::StarGift>();
 		for (const auto &gift : list) {
 			if ((profile || gift.info.peerColorAvailable) && gift.resale) {
@@ -1122,7 +1122,7 @@ Fn<void()> AddColorGiftTabs(
 	}, container->lifetime());
 
 	state->list.value(
-	) | rpl::start_with_next([=](const std::vector<Data::StarGift> &list) {
+	) | rpl::on_next([=](const std::vector<Data::StarGift> &list) {
 		auto tabs = std::vector<Ui::SubTabs::Tab>();
 		tabs.push_back({
 			.id = u"my"_q,
@@ -1152,7 +1152,7 @@ Fn<void()> AddColorGiftTabs(
 					context));
 
 			state->tabs->activated(
-			) | rpl::start_with_next([=](const QString &id) {
+			) | rpl::on_next([=](const QString &id) {
 				state->tabs->setActiveTab(id);
 				chosen(id.toULongLong());
 			}, state->tabs->lifetime());
@@ -1228,7 +1228,7 @@ void AddGiftSelector(
 				shownGiftId,
 				{},
 				state->current->offset
-			) | rpl::start_with_next([=](Data::ResaleGiftsDescriptor slice) {
+			) | rpl::on_next([=](Data::ResaleGiftsDescriptor slice) {
 				auto &entry = state->lists[shownGiftId];
 				entry.loading.destroy();
 				entry.offset = slice.offset;
@@ -1254,7 +1254,7 @@ void AddGiftSelector(
 				session,
 				Data::MyUniqueType::OwnedAndHosted,
 				state->current->offset
-			) | rpl::start_with_next([=](Data::MyGiftsDescriptor slice) {
+			) | rpl::on_next([=](Data::MyGiftsDescriptor slice) {
 				auto &entry = state->lists[shownGiftId];
 				entry.loading.destroy();
 				entry.offset = slice.offset;
@@ -1393,7 +1393,7 @@ void AddGiftSelector(
 		};
 
 		state->selected.value(
-		) | rpl::combine_previous() | rpl::start_with_next([=](
+		) | rpl::combine_previous() | rpl::on_next([=](
 				uint64 wasCollectibleId,
 				uint64 nowCollectibleId) {
 			if (wasCollectibleId) {
@@ -1409,7 +1409,7 @@ void AddGiftSelector(
 		}, raw->lifetime());
 
 		state->selectedGiftId.value(
-		) | rpl::combine_previous() | rpl::start_with_next([=](
+		) | rpl::combine_previous() | rpl::on_next([=](
 				uint64 wasGiftId,
 				uint64 nowGiftId) {
 			if (wasGiftId) {
@@ -1465,7 +1465,7 @@ void AddGiftSelector(
 	};
 
 	state->showingGiftId.value(
-	) | rpl::start_with_next([=](uint64 showingId) {
+	) | rpl::on_next([=](uint64 showingId) {
 		state->current = &state->lists[showingId];
 		state->buttons.clear();
 		if (state->emptyPlaceholder) {
@@ -1479,7 +1479,7 @@ void AddGiftSelector(
 
 	state->visibleRange = raw->visibleRange();
 	state->visibleRange.value(
-	) | rpl::start_with_next(state->rebuild, raw->lifetime());
+	) | rpl::on_next(state->rebuild, raw->lifetime());
 }
 
 Fn<void(int)> CreateTabsWidget(
@@ -1544,7 +1544,7 @@ Fn<void(int)> CreateTabsWidget(
 
 	const auto penWidth = st::lineWidth * 2;
 
-	tabsContainer->paintRequest() | rpl::start_with_next([=] {
+	tabsContainer->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(tabsContainer);
 		auto hq = PainterHighQualityEnabler(p);
 		const auto r = tabsContainer->rect();
@@ -1639,14 +1639,14 @@ void CreateBoostLevelContainer(
 	};
 	const auto state = boostLevelContainer->lifetime().make_state<State>();
 
-	boostLevelContainer->paintRequest() | rpl::start_with_next([=] {
+	boostLevelContainer->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(boostLevelContainer);
 		const auto bg = state->currentColor.value_or(st::boxDividerBg->c);
 		p.fillRect(boostLevelContainer->rect(), bg);
 		p.fillRect(boostLevelContainer->rect(), st::shadowFg);
 	}, boostLevelContainer->lifetime());
 
-	std::move(colorProducer) | rpl::start_with_next([=](
+	std::move(colorProducer) | rpl::on_next([=](
 			std::optional<QColor> color) {
 		const auto colorChanged = (state->currentColor != color)
 			|| !state->label;
@@ -1672,7 +1672,7 @@ void CreateBoostLevelContainer(
 				style);
 			state->label->show();
 			boostLevelContainer->sizeValue(
-			) | rpl::start_with_next([=](QSize s) {
+			) | rpl::on_next([=](QSize s) {
 				state->label->moveToLeft(
 					(s.width() - state->label->width()) / 2,
 					(s.height() - state->label->height()) / 2);
@@ -1707,7 +1707,7 @@ void AddLevelBadge(
 	rpl::combine(
 		button->sizeValue(),
 		std::move(text)
-	) | rpl::start_with_next([=](const QSize &s, const QString &) {
+	) | rpl::on_next([=](const QSize &s, const QString &) {
 		if (s.isNull()) {
 			return;
 		}
@@ -1771,7 +1771,7 @@ void EditPeerColorSection(
 			state->preview->setPatternEmojiId(
 				state->profileEmojiId.current());
 		}
-		state->statusId.value() | rpl::start_with_next([=](EmojiStatusId id) {
+		state->statusId.value() | rpl::on_next([=](EmojiStatusId id) {
 			state->preview->setLocalEmojiStatusId(std::move(id));
 		}, state->preview->lifetime());
 		const auto peerColors = &peer->session().api().peerColors();
@@ -1835,7 +1835,7 @@ void EditPeerColorSection(
 			true));
 
 		state->profileIndex.value(
-		) | rpl::start_with_next([=](uint8 index) {
+		) | rpl::on_next([=](uint8 index) {
 			selector->updateSelection(index);
 		}, selector->lifetime());
 
@@ -2126,7 +2126,7 @@ void EditPeerColorSection(
 		}));
 	});
 	state->collectible.value(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		const auto buy = state->buyCollectible.get();
 		while (!button->children().isEmpty()) {
 			delete button->children().first();
@@ -2294,7 +2294,7 @@ void EditPeerProfileColorSection(
 	});
 
 	state->index.value(
-	) | rpl::start_with_next([=](uint8 index) {
+	) | rpl::on_next([=](uint8 index) {
 		if (state->selector) {
 			state->selector->updateSelection(index);
 		}
@@ -2386,7 +2386,7 @@ void EditPeerProfileColorSection(
 		}));
 	});
 	state->wearable.value(
-	) | rpl::start_with_next([=](EmojiStatusId id) {
+	) | rpl::on_next([=](EmojiStatusId id) {
 		const auto buy = state->buyCollectible.get();
 		while (!button->children().isEmpty()) {
 			delete button->children().first();
@@ -2469,7 +2469,7 @@ void EditPeerColorBox(
 		buttonContainer->widthValue(),
 		profileButton->sizeValue(),
 		nameButton->sizeValue()
-	) | rpl::start_with_next([=](int w, QSize, QSize) {
+	) | rpl::on_next([=](int w, QSize, QSize) {
 		profileButton->resizeToWidth(w);
 		nameButton->resizeToWidth(w);
 	}, buttonContainer->lifetime());
@@ -2602,7 +2602,7 @@ void SetupPeerColorSample(
 		rpl::duplicate(colorIndexValue),
 		rpl::duplicate(colorProfileIndexValue),
 		rpl::duplicate(emojiStatusIdValue)
-	) | rpl::start_with_next([=](
+	) | rpl::on_next([=](
 			int width,
 			const QString &buttonText,
 			int colorIndex,
@@ -2668,7 +2668,7 @@ void SetupPeerColorSample(
 		rpl::duplicate(colorIndexValue),
 		rpl::duplicate(colorProfileIndexValue),
 		rpl::duplicate(emojiStatusIdValue)
-	) | rpl::start_with_next([=](
+	) | rpl::on_next([=](
 			QSize outer,
 			QSize inner,
 			int colorIndex,
@@ -2746,7 +2746,7 @@ void AddPeerColorButton(
 		rpl::combine(
 			rpl::duplicate(label),
 			button->widthValue()
-		) | rpl::start_with_next([=](
+		) | rpl::on_next([=](
 				const QString &text,
 				int width) {
 			const auto space = st.style.font->spacew;

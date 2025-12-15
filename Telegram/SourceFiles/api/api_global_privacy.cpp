@@ -68,7 +68,7 @@ void GlobalPrivacy::reload(Fn<void()> callback) {
 	}).send();
 
 	_session->appConfig().value(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_showArchiveAndMute = _session->appConfig().get<bool>(
 			u"autoarchive_setting_available"_q,
 			false);

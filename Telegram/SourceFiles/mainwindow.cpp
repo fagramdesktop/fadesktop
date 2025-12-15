@@ -90,17 +90,17 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 
 	using Window::Theme::BackgroundUpdate;
 	Window::Theme::Background()->updates(
-	) | rpl::start_with_next([=](const BackgroundUpdate &data) {
+	) | rpl::on_next([=](const BackgroundUpdate &data) {
 		themeUpdated(data);
 	}, lifetime());
 
 	Core::App().passcodeLockChanges(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		updateGlobalMenu();
 	}, lifetime());
 
 	Ui::Emoji::Updated(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		Ui::ForceFullRepaint(this);
 	}, lifetime());
 
@@ -144,7 +144,7 @@ void MainWindow::finishFirstShow() {
 	windowActiveValue(
 	) | rpl::skip(1) | rpl::filter(
 		!rpl::mappers::_1
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		Ui::Tooltip::Hide();
 	}, lifetime());
 
@@ -289,7 +289,7 @@ void MainWindow::setupIntro(
 		&account(),
 		point);
 	created->showSettingsRequested(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		showSettings();
 	}, created->lifetime());
 
@@ -415,7 +415,7 @@ void MainWindow::ensureLayerCreated() {
 	_layer->hideFinishEvents(
 	) | rpl::filter([=] {
 		return _layer != nullptr; // Last hide finish is sent from destructor.
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		destroyLayer();
 	}, _layer->lifetime());
 

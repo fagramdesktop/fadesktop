@@ -74,7 +74,7 @@ void ConfirmPhoneBox::prepare() {
 			+ (_fragment ? (_fragment->height() + fragmentSkip()) : 0));
 
 	_code->submits(
-	) | rpl::start_with_next([=] { sendCode(); }, _code->lifetime());
+	) | rpl::on_next([=] { sendCode(); }, _code->lifetime());
 
 	showChildren();
 }

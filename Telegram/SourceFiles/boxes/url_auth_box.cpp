@@ -292,7 +292,7 @@ not_null<Ui::RpWidget*> UrlAuthBox::setupContent(
 			auth->checked()
 		) | rpl::then(
 			auth->checkedChanges()
-		) | rpl::start_with_next([=](bool checked) {
+		) | rpl::on_next([=](bool checked) {
 			if (!checked) {
 				allow->setChecked(false);
 			}

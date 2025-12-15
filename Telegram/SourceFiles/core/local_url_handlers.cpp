@@ -324,7 +324,7 @@ void ShowPhonePrivacyBox(Window::SessionController *controller) {
 		key
 	) | rpl::take(
 		1
-	) | rpl::start_with_next([=](const Privacy::Rule &value) mutable {
+	) | rpl::on_next([=](const Privacy::Rule &value) mutable {
 		using namespace ::Settings;
 		const auto show = shared->alive();
 		if (lifetime) {
@@ -1113,7 +1113,7 @@ bool ShowEditBirthdayPrivacy(
 		Api::UserPrivacy::Key::Birthday
 	) | rpl::take(
 		1
-	) | rpl::start_with_next([=](const Api::UserPrivacy::Rule &value) {
+	) | rpl::on_next([=](const Api::UserPrivacy::Rule &value) {
 		if (isFromBox) {
 			using namespace ::Settings;
 			class Controller final : public BirthdayPrivacyController {
@@ -1164,7 +1164,7 @@ bool ShowEditPersonalChannel(
 		};
 
 		rawController->chosen(
-		) | rpl::start_with_next([=](not_null<ChannelData*> channel) {
+		) | rpl::on_next([=](not_null<ChannelData*> channel) {
 			save(channel);
 		}, box->lifetime());
 

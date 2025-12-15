@@ -160,7 +160,7 @@ void VideoStream::Loading::setup(not_null<QWidget*> parent) {
 		[=] { _bg->update(); });
 
 	_bg->show();
-	_bg->paintRequest() | rpl::start_with_next([=] {
+	_bg->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(_bg.get());
 		auto hq = PainterHighQualityEnabler(p);
 
@@ -320,7 +320,7 @@ void VideoStream::setupVideo() {
 		setupTile(endpoint, track);
 	}
 	_call->videoStreamActiveUpdates(
-	) | rpl::start_with_next([=](const Calls::VideoStateToggle &update) {
+	) | rpl::on_next([=](const Calls::VideoStateToggle &update) {
 		if (update.value) {
 			// Add async (=> the participant row is definitely in Members).
 			const auto endpoint = update.endpoint;
@@ -338,7 +338,7 @@ void VideoStream::setupVideo() {
 	}, _viewport->lifetime());
 
 	_viewport->qualityRequests(
-	) | rpl::start_with_next([=](const Calls::VideoQualityRequest &request) {
+	) | rpl::on_next([=](const Calls::VideoQualityRequest &request) {
 		_call->requestVideoQuality(request.endpoint, request.quality);
 	}, _viewport->lifetime());
 
@@ -347,7 +347,7 @@ void VideoStream::setupVideo() {
 	_viewport->setControlsShown(0.);
 
 	_call->hasVideoWithFramesValue(
-	) | rpl::start_with_next([=](bool has) {
+	) | rpl::on_next([=](bool has) {
 		if (has) {
 			_loading = nullptr;
 		}
@@ -357,13 +357,13 @@ void VideoStream::setupVideo() {
 }
 
 void VideoStream::setupMessages() {
-	_messages->hiddenShowRequested() | rpl::start_with_next([=] {
+	_messages->hiddenShowRequested() | rpl::on_next([=] {
 		_call->messages()->requestHiddenShow();
 	}, _messages->lifetime());
 
 
 	_messages->deleteRequests(
-	) | rpl::start_with_next([=](Calls::Group::MessageDeleteRequest event) {
+	) | rpl::on_next([=](Calls::Group::MessageDeleteRequest event) {
 		_call->messages()->deleteConfirmed(event);
 	}, _messages->lifetime());
 }

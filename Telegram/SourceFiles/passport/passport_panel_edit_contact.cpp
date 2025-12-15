@@ -145,7 +145,7 @@ void VerifyBox::setupControls(
 				st::fragmentBoxButton),
 			small);
 		_content->widthValue(
-		) | rpl::start_with_next([=](int w) {
+		) | rpl::on_next([=](int w) {
 			button->setFullWidth(w - small.left() - small.right());
 		}, button->lifetime());
 		button->setClickedCallback([=] { ::File::OpenUrl(openUrl); });
@@ -171,14 +171,14 @@ void VerifyBox::setupControls(
 			small);
 		std::move(
 			resent
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			_content->resizeToWidth(st::boxWidth);
 		}, _content->lifetime());
 		label->overrideLinkClickHandler(resend);
 	}
 	std::move(
 		error
-	) | rpl::start_with_next([=](const QString &error) {
+	) | rpl::on_next([=](const QString &error) {
 		if (error.isEmpty()) {
 			problem->hide(anim::type::normal);
 		} else {
@@ -195,10 +195,10 @@ void VerifyBox::setupControls(
 	if (codeLength > 0) {
 		_code->setAutoSubmit(codeLength, _submit);
 	} else {
-		_code->submits() | rpl::start_with_next(_submit, _code->lifetime());
+		_code->submits() | rpl::on_next(_submit, _code->lifetime());
 	}
 	_code->changes(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		problem->hide(anim::type::normal);
 	}, _code->lifetime());
 }
@@ -215,7 +215,7 @@ void VerifyBox::prepare() {
 
 	_content->resizeToWidth(st::boxWidth);
 	_content->heightValue(
-	) | rpl::start_with_next([=](int height) {
+	) | rpl::on_next([=](int height) {
 		setDimensions(st::boxWidth, height);
 	}, _content->lifetime());
 }
@@ -246,7 +246,7 @@ void PanelEditContact::setupControls(
 		const QString &data,
 		const QString &existing) {
 	widthValue(
-	) | rpl::start_with_next([=](int width) {
+	) | rpl::on_next([=](int width) {
 		_content->resizeToWidth(width);
 	}, _content->lifetime());
 
@@ -311,11 +311,11 @@ void PanelEditContact::setupControls(
 
 	_field->move(0, 0);
 	_field->heightValue(
-	) | rpl::start_with_next([=, pointer = wrap.data()](int height) {
+	) | rpl::on_next([=, pointer = wrap.data()](int height) {
 		pointer->resize(pointer->width(), height);
 	}, _field->lifetime());
 	wrap->widthValue(
-	) | rpl::start_with_next([=](int width) {
+	) | rpl::on_next([=](int width) {
 		_field->resize(width, _field->height());
 	}, _field->lifetime());
 
@@ -353,7 +353,7 @@ void PanelEditContact::setupControls(
 	}
 
 	_controller->saveErrors(
-	) | rpl::start_with_next([=](const ScopeError &error) {
+	) | rpl::on_next([=](const ScopeError &error) {
 		if (error.key == QString("value")) {
 			_field->showError();
 			errorWrap->entity()->setText(error.text);

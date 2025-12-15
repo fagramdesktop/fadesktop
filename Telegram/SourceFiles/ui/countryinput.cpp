@@ -76,7 +76,7 @@ void CountryInput::mousePressEvent(QMouseEvent *e) {
 		const auto box = base::make_weak(object.data());
 		_show->showBox(std::move(object), Ui::LayerOption::CloseOther);
 		box->entryChosen(
-		) | rpl::start_with_next([=](
+		) | rpl::on_next([=](
 				const Ui::CountrySelectBox::Entry &entry) {
 			if (box) {
 				box->closeBox();
@@ -110,7 +110,7 @@ void CountryInput::keyPressEvent(QKeyEvent* e) {
 		const auto box = base::make_weak(object.data());
 		_show->showBox(std::move(object), Ui::LayerOption::CloseOther);
 		box->entryChosen(
-		) | rpl::start_with_next([=](
+		) | rpl::on_next([=](
 			const Ui::CountrySelectBox::Entry& entry) {
 				if (box) {
 					box->closeBox();

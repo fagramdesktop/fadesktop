@@ -434,7 +434,7 @@ rpl::producer<SparseIdsSlice> SearchController::simpleIdsSlice(
 			limitBefore,
 			limitAfter);
 		builder->insufficientAround(
-		) | rpl::start_with_next([=](
+		) | rpl::on_next([=](
 				const SparseIdsSliceBuilder::AroundData &data) {
 			requestMore(data, query, listData);
 		}, lifetime);
@@ -446,7 +446,7 @@ rpl::producer<SparseIdsSlice> SearchController::simpleIdsSlice(
 		listData->list.sliceUpdated(
 		) | rpl::filter([=](const SliceUpdate &update) {
 			return builder->applyUpdate(update);
-		}) | rpl::start_with_next(pushNextSnapshot, lifetime);
+		}) | rpl::on_next(pushNextSnapshot, lifetime);
 
 		_session->data().itemRemoved(
 		) | rpl::filter([=](not_null<const HistoryItem*> item) {
@@ -456,14 +456,14 @@ rpl::producer<SparseIdsSlice> SearchController::simpleIdsSlice(
 					|| item->sublistPeerId() == monoforumPeerId);
 		}) | rpl::filter([=](not_null<const HistoryItem*> item) {
 			return builder->removeOne(item->id);
-		}) | rpl::start_with_next(pushNextSnapshot, lifetime);
+		}) | rpl::on_next(pushNextSnapshot, lifetime);
 
 		_session->data().historyCleared(
 		) | rpl::filter([=](not_null<const History*> history) {
 			return (history->peer->id == peerId);
 		}) | rpl::filter([=] {
 			return builder->removeAll();
-		}) | rpl::start_with_next(pushNextSnapshot, lifetime);
+		}) | rpl::on_next(pushNextSnapshot, lifetime);
 
 		using Result = Storage::SparseIdsListResult;
 		listData->list.query(Storage::SparseIdsListQuery(
@@ -472,7 +472,7 @@ rpl::producer<SparseIdsSlice> SearchController::simpleIdsSlice(
 			limitAfter
 		)) | rpl::filter([=](const Result &result) {
 			return builder->applyInitial(result);
-		}) | rpl::start_with_next_done(
+		}) | rpl::on_next_done(
 			pushNextSnapshot,
 			[=] { builder->checkInsufficient(); },
 			lifetime);

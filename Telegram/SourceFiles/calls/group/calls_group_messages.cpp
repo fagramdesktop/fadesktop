@@ -80,7 +80,7 @@ Messages::Messages(not_null<GroupCall*> call, not_null<MTP::Sender*> api)
 , _starsStatsTimer([=] { requestStarsStats(); }) {
 	Ui::PostponeCall(_call, [=] {
 		_call->real(
-		) | rpl::start_with_next([=](not_null<Data::GroupCall*> call) {
+		) | rpl::on_next([=](not_null<Data::GroupCall*> call) {
 			_real = call;
 			if (ready()) {
 				sendPending();

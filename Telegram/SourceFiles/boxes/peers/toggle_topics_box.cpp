@@ -83,7 +83,7 @@ LayoutButton::LayoutButton(
 		group->setValue(type);
 		iconAnimate(anim::repeat::once);
 	});
-	group->value() | rpl::start_with_next([=](LayoutType value) {
+	group->value() | rpl::on_next([=](LayoutType value) {
 		const auto active = (value == type);
 		_text.setTextColorOverride(active
 			? st::windowFgActive->c
@@ -99,7 +99,7 @@ LayoutButton::LayoutButton(
 		}, _active ? 0. : 1., _active ? 0. : 1., st::fadeWrapDuration);
 	}, lifetime());
 
-	_text.paintRequest() | rpl::start_with_next([=](QRect clip) {
+	_text.paintRequest() | rpl::on_next([=](QRect clip) {
 		if (_active) {
 			auto p = QPainter(&_text);
 			auto hq = PainterHighQualityEnabler(p);
@@ -197,7 +197,7 @@ void ToggleTopicsBox(
 		group);
 
 	buttons->resize(container->width(), tabsButton->height());
-	buttons->widthValue() | rpl::start_with_next([=](int outer) {
+	buttons->widthValue() | rpl::on_next([=](int outer) {
 		const auto skip = st::boxRowPadding.left() - st::boxRadius;
 		tabsButton->moveToLeft(skip, 0, outer);
 		listButton->moveToRight(skip, 0, outer);
@@ -209,7 +209,7 @@ void ToggleTopicsBox(
 
 	layoutWrap->toggle(enabled, anim::type::instant);
 	toggle->toggledChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		layoutWrap->toggle(checked, anim::type::normal);
 	}, layoutWrap->lifetime());
 

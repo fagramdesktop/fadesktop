@@ -94,7 +94,7 @@ EditParticipantBox::Inner::Inner(
 , _hasAdminRights(hasAdminRights)
 , _rows(this) {
 	_rows->heightValue(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		resizeToWidth(width());
 	}, lifetime());
 
@@ -282,7 +282,7 @@ void EditAdminBox::prepare() {
 					true)),
 			st::rightsToggleMargin + (st::rightsDividerMargin / 2));
 		_addAsAdmin->checkedChanges(
-		) | rpl::start_with_next([=](bool checked) {
+		) | rpl::on_next([=](bool checked) {
 			_adminControlsWrap->toggle(checked, anim::type::normal);
 			refreshButtons();
 		}, _addAsAdmin->lifetime());
@@ -530,7 +530,7 @@ not_null<Ui::InputField*> EditAdminBox::addRankInput(
 	result->setMaxLength(kAdminRoleLimit);
 	result->setInstantReplaces(Ui::InstantReplaces::TextOnly());
 	result->changes(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		const auto text = result->getLastText();
 		const auto removed = TextUtilities::RemoveEmoji(text);
 		if (removed != text) {
@@ -654,7 +654,7 @@ void EditAdminBox::requestTransferPassword(not_null<ChannelData*> channel) {
 	peer()->session().api().cloudPassword().state(
 	) | rpl::take(
 		1
-	) | rpl::start_with_next([=](const Core::CloudPasswordState &state) {
+	) | rpl::on_next([=](const Core::CloudPasswordState &state) {
 		auto fields = PasscodeBox::CloudFields::From(state);
 		fields.customTitle = tr::lng_rights_transfer_password_title();
 		fields.customDescription

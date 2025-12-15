@@ -610,11 +610,11 @@ object_ptr<Ui::RpWidget> Controller::createPhotoAndTitleEdit() {
 		container,
 		createTitleEdit());
 	photoWrap->heightValue(
-	) | rpl::start_with_next([container](int height) {
+	) | rpl::on_next([container](int height) {
 		container->resize(container->width(), height);
 	}, photoWrap->lifetime());
 	container->widthValue(
-	) | rpl::start_with_next([titleEdit](int width) {
+	) | rpl::on_next([titleEdit](int width) {
 		const auto left = st::editPeerPhotoMargins.left()
 			+ st::defaultUserpicButton.size.width();
 		titleEdit->resizeToWidth(width - left);
@@ -669,7 +669,7 @@ object_ptr<Ui::RpWidget> Controller::createTitleEdit() {
 		&_peer->session());
 
 	result->entity()->submits(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		submitTitle();
 	}, result->entity()->lifetime());
 
@@ -699,7 +699,7 @@ object_ptr<Ui::RpWidget> Controller::createTitleEdit() {
 		emojiPanel->hide();
 		emojiPanel->selector()->setCurrentPeer(_peer);
 		emojiPanel->selector()->emojiChosen(
-		) | rpl::start_with_next([=](ChatHelpers::EmojiChosen data) {
+		) | rpl::on_next([=](ChatHelpers::EmojiChosen data) {
 			Ui::InsertEmojiAtCursor(field->textCursor(), data.emoji);
 			field->setFocus();
 		}, field->lifetime());
@@ -733,7 +733,7 @@ object_ptr<Ui::RpWidget> Controller::createTitleEdit() {
 			});
 		}());
 
-		field->widthValue() | rpl::start_with_next([=](int width) {
+		field->widthValue() | rpl::on_next([=](int width) {
 			const auto &p = st::editPeerTitleEmojiPosition;
 			emojiToggle->moveToRight(p.x(), p.y(), width);
 			updateEmojiPanelGeometry();
@@ -779,7 +779,7 @@ object_ptr<Ui::RpWidget> Controller::createDescriptionEdit() {
 		&_peer->session());
 
 	result->entity()->submits(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		submitDescription();
 	}, result->entity()->lifetime());
 
@@ -893,7 +893,7 @@ void Controller::showEditPeerTypeBox(
 			_typeDataSavedValue,
 			error));
 	box->boxClosing(
-	) | rpl::start_with_next([peer = _peer] {
+	) | rpl::on_next([peer = _peer] {
 		peer->session().api().usernames().requestToCache(peer);
 	}, box->lifetime());
 }
@@ -1069,13 +1069,13 @@ void Controller::fillDiscussionLinkButton() {
 		? _discussionLinkUpdates.events(
 		) | rpl::map([](ChannelData *chat) {
 			return chat ? chat->name() : QString();
-		}) | rpl::type_erased()
+		}) | rpl::type_erased
 		: rpl::combine(
 			tr::lng_manage_discussion_group_add(),
 			_discussionLinkUpdates.events()
 		) | rpl::map([=](const QString &add, ChannelData *chat) {
 			return chat ? chat->name() : add;
-		}) | rpl::type_erased();
+		}) | rpl::type_erased;
 	AddButtonWithText(
 		_controls.buttonsLayout,
 		std::move(text),
@@ -1242,12 +1242,12 @@ void Controller::fillAutoTranslateButton() {
 		.data = Ui::AskBoostAutotranslate{ .requiredLevel = requiredLevel },
 	};
 
-	state->isLocked.value() | rpl::start_with_next([=](bool locked) {
+	state->isLocked.value() | rpl::on_next([=](bool locked) {
 		autotranslate->setToggleLocked(locked);
 	}, autotranslate->lifetime());
 
 	autotranslate->toggledChanges(
-	) | rpl::start_with_next([=](bool value) {
+	) | rpl::on_next([=](bool value) {
 		if (!state->isLocked.current()) {
 			_autotranslateSavedValue = value;
 		} else if (value) {
@@ -1269,7 +1269,7 @@ void Controller::fillAutoTranslateButton() {
 	}, autotranslate->lifetime());
 
 	autotranslate->toggledValue(
-	) | rpl::start_with_next([=](bool toggled) {
+	) | rpl::on_next([=](bool toggled) {
 		_autotranslateSavedValue = toggled;
 	}, _controls.buttonsLayout->lifetime());
 }
@@ -1306,12 +1306,12 @@ void Controller::fillSignaturesButton() {
 	profiles->entity()->toggleOn(rpl::single(
 		channel->addsSignature() && channel->signatureProfiles()
 	))->toggledValue(
-	) | rpl::start_with_next([=](bool toggled) {
+	) | rpl::on_next([=](bool toggled) {
 		_signatureProfilesSavedValue = toggled;
 	}, profiles->entity()->lifetime());
 
 	signs->toggledValue(
-	) | rpl::start_with_next([=](bool toggled) {
+	) | rpl::on_next([=](bool toggled) {
 		_signaturesSavedValue = toggled;
 		if (!toggled) {
 			_signatureProfilesSavedValue = false;
@@ -1782,7 +1782,7 @@ void Controller::fillPendingRequestsButton() {
 		{ &st::menuIconInvite });
 	std::move(
 		pendingRequestsCount
-	) | rpl::start_with_next([=](int count) {
+	) | rpl::on_next([=](int count) {
 		wrap->toggle(count > 0, anim::type::instant);
 	}, wrap->lifetime());
 }
@@ -1878,7 +1878,7 @@ void Controller::fillBotCurrencyButton() {
 		const auto currencyLoad
 			= button->lifetime().make_state<Api::EarnStatistics>(_peer);
 		currencyLoad->request(
-		) | rpl::start_with_error_done([=](const QString &error) {
+		) | rpl::on_error_done([=](const QString &error) {
 		}, [=] {
 			const auto balance = currencyLoad->data().currentBalance;
 			if (balance) {
@@ -1891,13 +1891,13 @@ void Controller::fillBotCurrencyButton() {
 		const auto icon = Ui::CreateChild<Ui::RpWidget>(button);
 		icon->resize(st::menuIconLinks.size());
 		const auto image = Ui::Earn::MenuIconCurrency(icon->size());
-		icon->paintRequest() | rpl::start_with_next([=] {
+		icon->paintRequest() | rpl::on_next([=] {
 			auto p = QPainter(icon);
 			p.drawImage(0, 0, image);
 		}, icon->lifetime());
 
 		button->sizeValue(
-		) | rpl::start_with_next([=](const QSize &size) {
+		) | rpl::on_next([=](const QSize &size) {
 			icon->moveToLeft(
 				button->st().iconLeft,
 				(size.height() - icon->height()) / 2);
@@ -1947,13 +1947,13 @@ void Controller::fillBotCreditsButton() {
 		const auto icon = Ui::CreateChild<Ui::RpWidget>(button);
 		const auto image = Ui::Earn::MenuIconCredits();
 		icon->resize(image.size() / style::DevicePixelRatio());
-		icon->paintRequest() | rpl::start_with_next([=] {
+		icon->paintRequest() | rpl::on_next([=] {
 			auto p = QPainter(icon);
 			p.drawImage(0, 0, image);
 		}, icon->lifetime());
 
 		button->sizeValue(
-		) | rpl::start_with_next([=](const QSize &size) {
+		) | rpl::on_next([=](const QSize &size) {
 			icon->moveToLeft(
 				button->st().iconLeft,
 				(size.height() - icon->height()) / 2);
@@ -2302,7 +2302,7 @@ void Controller::saveUsernamesOrder() {
 		_peer->session().api().usernames().reorder(
 			_peer,
 			newUsernames
-		) | rpl::start_with_done([=] {
+		) | rpl::on_done([=] {
 			channel->setUsernames(ranges::views::all(
 				newUsernames
 			) | ranges::views::transform([&](QString username) {
@@ -2875,7 +2875,7 @@ void EditPeerInfoBox::prepare() {
 		this,
 		_peer);
 	_focusRequests.events(
-	) | rpl::start_with_next(
+	) | rpl::on_next(
 		[=] { controller->setFocus(); },
 		lifetime());
 	auto content = controller->createContent();
@@ -2939,7 +2939,7 @@ object_ptr<Ui::SettingsButton> EditPeerInfoBox::CreateButton(
 		rpl::duplicate(text),
 		std::move(labelText),
 		button->widthValue()
-	) | rpl::start_with_next([&st, label](
+	) | rpl::on_next([&st, label](
 			const QString &text,
 			const TextWithEntities &labelText,
 			int width) {
@@ -2961,7 +2961,7 @@ object_ptr<Ui::SettingsButton> EditPeerInfoBox::CreateButton(
 			std::move(text),
 			label->widthValue(),
 			button->widthValue()
-		) | rpl::start_with_next([=](
+		) | rpl::on_next([=](
 				const QString &text,
 				int labelWidth,
 				int width) {

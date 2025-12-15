@@ -296,7 +296,7 @@ void Form::loadThumbnail(not_null<PhotoData*> photo) {
 	_thumbnailLoadProcess->view = std::move(view);
 	photo->load(Data::PhotoSize::Thumbnail, thumbnailFileOrigin());
 	_session->downloaderTaskFinished(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		const auto &view = _thumbnailLoadProcess->view;
 		if (auto good = prepareGoodThumbnail(view); !good.isNull()) {
 			_invoice.cover.thumbnail = std::move(good);

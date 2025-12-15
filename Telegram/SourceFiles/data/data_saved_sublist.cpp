@@ -145,13 +145,13 @@ rpl::producer<MessagesSlice> SavedSublist::source(
 		history->session().changes().historyUpdates(
 			history,
 			HistoryUpdate::Flag::ClientSideMessages
-		) | rpl::start_with_next(pushDelayed, lifetime);
+		) | rpl::on_next(pushDelayed, lifetime);
 
 		_listChanges.events(
-		) | rpl::start_with_next(pushDelayed, lifetime);
+		) | rpl::on_next(pushDelayed, lifetime);
 
 		_instantChanges.events(
-		) | rpl::start_with_next(pushInstant, lifetime);
+		) | rpl::on_next(pushInstant, lifetime);
 
 		pushInstant();
 		return lifetime;
@@ -707,7 +707,7 @@ void SavedSublist::subscribeToUnreadChanges() {
 	) | rpl::combine_previous(
 	) | rpl::filter([=] {
 		return inChatList();
-	}) | rpl::start_with_next([=](
+	}) | rpl::on_next([=](
 			std::optional<int> previous,
 			std::optional<int> now) {
 		if (previous.value_or(0) != now.value_or(0)) {

@@ -210,7 +210,7 @@ auto BlockedPeers::slice() -> rpl::producer<BlockedPeers::Slice> {
 	}
 	return _slice
 		? _changes.events_starting_with_copy(*_slice)
-		: (_changes.events() | rpl::type_erased());
+		: (_changes.events() | rpl::type_erased);
 }
 
 void BlockedPeers::request(int offset, Fn<void(BlockedPeers::Slice)> done) {

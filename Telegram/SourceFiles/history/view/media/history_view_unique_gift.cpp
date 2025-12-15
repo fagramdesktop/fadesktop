@@ -399,8 +399,8 @@ auto GenerateUniqueGiftMedia(
 		};
 		auto attributes = std::vector<AttributeTable::Entry>{
 			{ tr::lng_gift_unique_model(tr::now), name(gift->model) },
-			{ tr::lng_gift_unique_backdrop(tr::now), name(gift->backdrop) },
 			{ tr::lng_gift_unique_symbol(tr::now), name(gift->pattern) },
+			{ tr::lng_gift_unique_backdrop(tr::now), name(gift->backdrop) },
 		};
 		const auto tableAddedMargins = gift->releasedBy
 			? QMargins(0, st::chatUniqueAuthorSkip, 0, 0)

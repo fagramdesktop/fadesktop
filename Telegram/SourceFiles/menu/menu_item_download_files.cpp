@@ -150,7 +150,7 @@ void AddAction(
 		} else {
 			auto lifetime = std::make_shared<rpl::lifetime>();
 			session->downloaderTaskFinished(
-			) | rpl::start_with_next([=]() mutable {
+			) | rpl::on_next([=]() mutable {
 				if (finalCheck()) {
 					saveToFiles();
 					base::take(lifetime)->destroy();

@@ -112,7 +112,7 @@ void ShowMenu(not_null<Ui::GenericBox*> box, const QString &text) {
 			Core::App().iv().show(controller, iv, QString());
 		} else {
 			resolver->resolved(
-			) | rpl::start_with_next([=](const QString &s) {
+			) | rpl::on_next([=](const QString &s) {
 				if (s == url) {
 					if (const auto d = resolver->lookup(url)) {
 						if (const auto iv = (*d)->iv.get()) {
@@ -155,7 +155,7 @@ void AddRecipient(not_null<Ui::GenericBox*> box, const TextWithEntities &t) {
 	label->setTryMakeSimilarLines(true);
 	label->resizeToWidth(container->width());
 	label->sizeValue(
-	) | rpl::start_with_next([=](const QSize &s) {
+	) | rpl::on_next([=](const QSize &s) {
 		const auto padding = QMargins(
 			st::chatGiveawayPeerPadding.right(),
 			st::chatGiveawayPeerPadding.top(),
@@ -246,7 +246,7 @@ void InnerWidget::load() {
 		state->apiCreditsLifetime.destroy();
 
 		_peer->session().account().mtpUpdates(
-		) | rpl::start_with_next([=, peerId = _peer->id](
+		) | rpl::on_next([=, peerId = _peer->id](
 				const MTPUpdates &updates) {
 			using TLCreditsUpdate = MTPDupdateStarsRevenueStatus;
 			using TLNotificationUpdate = MTPDupdateServiceNotification;
@@ -307,17 +307,17 @@ void InnerWidget::load() {
 	};
 
 	_showFinished.events(
-	) | rpl::take(1) | rpl::start_with_next([=] {
+	) | rpl::take(1) | rpl::on_next([=] {
 		const auto nextRequests = [=] {
 			state->apiCreditsHistory.request({}, [=](
 					const Data::CreditsStatusSlice &data) {
 				_state.creditsStatusSlice = data;
 				::Api::PremiumPeerBot(
 					&_peer->session()
-				) | rpl::start_with_next([=](not_null<PeerData*> bot) {
+				) | rpl::on_next([=](not_null<PeerData*> bot) {
 					_state.premiumBotId = bot->id;
 					state->apiCredits.request(
-					) | rpl::start_with_error_done([=](const QString &error) {
+					) | rpl::on_error_done([=](const QString &error) {
 						if (canViewCredits) {
 							fail(error);
 						} else {
@@ -334,7 +334,7 @@ void InnerWidget::load() {
 		};
 		const auto isMegagroup = _peer->isMegagroup();
 		state->api.request(
-		) | rpl::start_with_error_done([=](const QString &error) {
+		) | rpl::on_error_done([=](const QString &error) {
 			if (isMegagroup) {
 				_state.currencyEarn = {};
 				if (error == u"BROADCAST_REQUIRED"_q) {
@@ -393,7 +393,7 @@ void InnerWidget::fill() {
 	);
 
 	auto creditsStateValue = bot
-		? rpl::single(Data::CreditsEarnStatistics()) | rpl::type_erased()
+		? rpl::single(Data::CreditsEarnStatistics()) | rpl::type_erased
 		: rpl::single(creditsData) | rpl::then(
 			_stateUpdated.events(
 			) | rpl::map([this] { return _state.creditsEarn; })
@@ -452,7 +452,7 @@ void InnerWidget::fill() {
 						std::move(owned),
 						style::al_top);
 					widget->paintRequest(
-					) | rpl::start_with_next([=] {
+					) | rpl::on_next([=] {
 						auto p = Painter(widget);
 						auto hq = PainterHighQualityEnabler(p);
 						p.setPen(Qt::NoPen);
@@ -500,13 +500,13 @@ void InnerWidget::fill() {
 						const auto left = Ui::CreateChild<Ui::RpWidget>(
 							box->verticalLayout().get());
 						left->paintRequest(
-						) | rpl::start_with_next([=] {
+						) | rpl::on_next([=] {
 							auto p = Painter(left);
 							icon.paint(p, 0, 0, left->width());
 						}, left->lifetime());
 						left->resize(icon.size());
 						top->geometryValue(
-						) | rpl::start_with_next([=](const QRect &g) {
+						) | rpl::on_next([=](const QRect &g) {
 							left->moveToLeft(
 								(g.left() - left->width()) / 2,
 								g.top() + st::channelEarnHistoryThreeSkip);
@@ -734,7 +734,7 @@ void InnerWidget::fill() {
 				majorLabel->sizeValue(),
 				creditsLabel->sizeValue(),
 				std::move(creditsValue)
-			) | rpl::start_with_next([=](
+			) | rpl::on_next([=](
 					int available,
 					const QSize &size,
 					const QSize &creditsSize,
@@ -853,7 +853,7 @@ void InnerWidget::fill() {
 		rpl::combine(
 			majorLabel->sizeValue(),
 			minorLabel->sizeValue()
-		) | rpl::start_with_next([=](
+		) | rpl::on_next([=](
 				const QSize &majorSize,
 				const QSize &minorSize) {
 			labels->resize(
@@ -896,7 +896,7 @@ void InnerWidget::fill() {
 		rpl::combine(
 			button->sizeValue(),
 			label->sizeValue()
-		) | rpl::start_with_next([=](const QSize &b, const QSize &l) {
+		) | rpl::on_next([=](const QSize &b, const QSize &l) {
 			label->moveToLeft(
 				(b.width() - l.width()) / 2,
 				(b.height() - l.height()) / 2);
@@ -1048,7 +1048,7 @@ void InnerWidget::fill() {
 
 		rpl::single(slider->entity()->activeSection()) | rpl::then(
 			slider->entity()->sectionActivated()
-		) | rpl::start_with_next([=](int index) {
+		) | rpl::on_next([=](int index) {
 			if (index == 0) {
 				tabCurrencyList->toggle(true, anim::type::instant);
 				tabCreditsList->toggle(false, anim::type::instant);
@@ -1176,7 +1176,7 @@ void InnerWidget::fill() {
 					rpl::combine(
 						majorLabel->sizeValue(),
 						minorLabel->sizeValue()
-					) | rpl::start_with_next([=](
+					) | rpl::on_next([=](
 							const QSize &majorSize,
 							const QSize &minorSize) {
 						labels->resize(
@@ -1263,7 +1263,7 @@ void InnerWidget::fill() {
 					_show->showBox(Box(detailsBox));
 				});
 				wrap->geometryValue(
-				) | rpl::start_with_next([=](const QRect &g) {
+				) | rpl::on_next([=](const QRect &g) {
 					const auto &padding = st::boxRowPadding;
 					const auto majorTop = (g.height() - majorLabel->height())
 						/ 2;
@@ -1377,7 +1377,7 @@ void InnerWidget::fill() {
 		object_ptr<Ui::VerticalLayout>(container));
 	rpl::single(rpl::empty) | rpl::then(
 		_stateUpdated.events()
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		const auto listsContainer = historyContainer->add(
 			object_ptr<Ui::VerticalLayout>(container));
 		rebuildLists(_state, listsContainer, historyDividerContainer);
@@ -1415,7 +1415,7 @@ void InnerWidget::fill() {
 		button->setToggleLocked(isLocked);
 
 		button->toggledChanges(
-		) | rpl::start_with_next([=](bool value) {
+		) | rpl::on_next([=](bool value) {
 			if (isLocked && value) {
 				toggled->fire(false);
 				CheckBoostLevel(
@@ -1499,7 +1499,7 @@ void AddEmojiToMajor(
 		: TextWithEntities::Simple((*isIn) ? QChar('+') : kMinus);
 	std::move(
 		value
-	) | rpl::start_with_next([=](CreditsAmount v) {
+	) | rpl::on_next([=](CreditsAmount v) {
 		auto helper = Ui::Text::CustomEmojiHelper();
 		auto icon = helper.paletteDependent({ .factory = [=] {
 			return Ui::Earn::IconCurrencyColored(

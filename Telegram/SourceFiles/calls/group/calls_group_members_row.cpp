@@ -106,7 +106,7 @@ MembersRow::BlobsAnimation::BlobsAnimation(
 	float maxLevel)
 : blobs(std::move(blobDatas), levelDuration, maxLevel) {
 	style::PaletteChanged(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		userpicCache = QImage();
 	}, lifetime);
 }
@@ -215,7 +215,7 @@ void MembersRow::setSpeaking(bool speaking) {
 		_statusIcon->arcs.setStrokeRatio(kArcsStrokeRatio);
 		_statusIcon->arcsWidth = _statusIcon->arcs.finishedWidth();
 		_statusIcon->arcs.startUpdateRequests(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			if (!_statusIcon->arcsAnimation.animating()) {
 				_statusIcon->wasArcsWidth = _statusIcon->arcsWidth;
 			}

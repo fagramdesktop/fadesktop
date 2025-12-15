@@ -111,7 +111,7 @@ void ProcessCreditsPayment(
 					onstack(CheckoutResult::Paid);
 				}
 			}));
-		box->boxClosing() | rpl::start_with_next([=] {
+		box->boxClosing() | rpl::on_next([=] {
 			crl::on_main([=] {
 				if (*unsuccessful) {
 					if (const auto onstack = maybeReturnToBot) {

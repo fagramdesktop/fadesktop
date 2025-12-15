@@ -75,7 +75,7 @@ void InnerWidget::load() {
 		const auto api = apiLifetime->make_state<Api::CreditsEarnStatistics>(
 			peer()->asUser());
 		api->request(
-		) | rpl::start_with_error_done([show = _show](const QString &error) {
+		) | rpl::on_error_done([show = _show](const QString &error) {
 			show->showToast(error);
 		}, [=] {
 			done(api->data());
@@ -90,14 +90,14 @@ void InnerWidget::load() {
 		_showFinished.events());
 
 	_showFinished.events(
-	) | rpl::take(1) | rpl::start_with_next([=, this, peer = peer()] {
+	) | rpl::take(1) | rpl::on_next([=, this, peer = peer()] {
 		request([=](Data::CreditsEarnStatistics state) {
 			_state = state;
 			_loaded.fire(true);
 			fill();
 
 			peer->session().account().mtpUpdates(
-			) | rpl::start_with_next([=](const MTPUpdates &updates) {
+			) | rpl::on_next([=](const MTPUpdates &updates) {
 				using TL = MTPDupdateStarsRevenueStatus;
 				Api::PerformForUpdate<TL>(updates, [&](const TL &d) {
 					const auto peerId = peerFromMTP(d.vpeer());
@@ -185,7 +185,7 @@ void InnerWidget::fill() {
 			rpl::combine(
 				line->widthValue(),
 				majorLabel->sizeValue()
-			) | rpl::start_with_next([=](int available, const QSize &size) {
+			) | rpl::on_next([=](int available, const QSize &size) {
 				line->resize(line->width(), size.height());
 				majorLabel->moveToLeft(
 					icon->width() + st::channelEarnOverviewMinorLabelSkip,
@@ -354,7 +354,7 @@ void InnerWidget::fillHistory() {
 
 		rpl::single(slider->entity()->activeSection()) | rpl::then(
 			slider->entity()->sectionActivated()
-		) | rpl::start_with_next([=](int index) {
+		) | rpl::on_next([=](int index) {
 			if (index == 0) {
 				fullWrap->toggle(true, anim::type::instant);
 				inWrap->toggle(false, anim::type::instant);
@@ -414,7 +414,7 @@ void InnerWidget::fillHistory() {
 	const auto apiLifetime = history->lifetime().make_state<rpl::lifetime>();
 	rpl::single(rpl::empty) | rpl::then(
 		_stateUpdated.events()
-	) | rpl::start_with_next([=, peer = peer()] {
+	) | rpl::on_next([=, peer = peer()] {
 		using Api = Api::CreditsHistory;
 		const auto apiFull = apiLifetime->make_state<Api>(peer, true, true);
 		const auto apiIn = apiLifetime->make_state<Api>(peer, true, false);
@@ -424,7 +424,7 @@ void InnerWidget::fillHistory() {
 				apiOut->request({}, [=](Data::CreditsStatusSlice outSlice) {
 					::Api::PremiumPeerBot(
 						&_controller->session()
-					) | rpl::start_with_next([=](not_null<PeerData*> bot) {
+					) | rpl::on_next([=](not_null<PeerData*> bot) {
 						fill(bot, fullSlice, inSlice, outSlice);
 						container->resizeToWidth(container->width());
 						while (history->count() > 1) {

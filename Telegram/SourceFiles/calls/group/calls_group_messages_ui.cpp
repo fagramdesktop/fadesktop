@@ -392,7 +392,7 @@ void MessagesUi::setupBadges() {
 	_adminBadge.setText(st::messageTextStyle, tr::lng_admin_badge(tr::now));
 
 	_topDonors.value(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		for (auto &entry : _views) {
 			const auto place = donorPlace(entry.from);
 			if (entry.place != place) {
@@ -419,7 +419,7 @@ void MessagesUi::setupList(
 	rpl::combine(
 		std::move(messages),
 		std::move(shown)
-	) | rpl::start_with_next([=](std::vector<Message> &&list, bool shown) {
+	) | rpl::on_next([=](std::vector<Message> &&list, bool shown) {
 		if (shown) {
 			_hidden = std::nullopt;
 		} else {
@@ -500,7 +500,7 @@ void MessagesUi::showList(const std::vector<Message> &list) {
 void MessagesUi::handleIdUpdates(rpl::producer<MessageIdUpdate> idUpdates) {
 	std::move(
 		idUpdates
-	) | rpl::start_with_next([=](MessageIdUpdate update) {
+	) | rpl::on_next([=](MessageIdUpdate update) {
 		const auto i = ranges::find(
 			_views,
 			update.localId,
@@ -1008,7 +1008,7 @@ void MessagesUi::startReactionAnimation(MessageView &entry) {
 		rpl::combine(
 			_scroll->scrollTopValue(),
 			_scroll->RpWidget::positionValue()
-		) | rpl::start_with_next([=](int yshift, QPoint point) {
+		) | rpl::on_next([=](int yshift, QPoint point) {
 			_reactionBasePosition = point - QPoint(0, yshift);
 			for (auto &view : _views) {
 				updateReactionPosition(view);
@@ -1029,7 +1029,7 @@ void MessagesUi::startReactionAnimation(MessageView &entry) {
 	const auto effectSize = st::reactionInlineImage * 2;
 	const auto animation = entry.reactionAnimation.get();
 	raw->resize(effectSize, effectSize);
-	raw->paintRequest() | rpl::start_with_next([=] {
+	raw->paintRequest() | rpl::on_next([=] {
 		if (animation->finished()) {
 			crl::on_main(raw, [=] {
 				removeReaction(raw);
@@ -1166,7 +1166,7 @@ void MessagesUi::setupMessagesWidget() {
 		scroll->scrollTopValue(),
 		scroll->heightValue(),
 		_messages->heightValue()
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		updateTopFade();
 		updateBottomFade();
 	}, scroll->lifetime());
@@ -1177,7 +1177,7 @@ void MessagesUi::setupMessagesWidget() {
 		receiveAllMouseEvents();
 	}
 
-	_messages->paintRequest() | rpl::start_with_next([=](QRect clip) {
+	_messages->paintRequest() | rpl::on_next([=](QRect clip) {
 		const auto start = scroll->scrollTop();
 		const auto end = start + scroll->height();
 		const auto ratio = style::DevicePixelRatio();
@@ -1429,7 +1429,7 @@ void MessagesUi::receiveSomeMouseEvents() {
 }
 
 void MessagesUi::receiveAllMouseEvents() {
-	_messages->events() | rpl::start_with_next([=](not_null<QEvent*> e) {
+	_messages->events() | rpl::on_next([=](not_null<QEvent*> e) {
 		const auto type = e->type();
 		if (type != QEvent::MouseButtonPress) {
 			return;
@@ -1529,7 +1529,7 @@ void MessagesUi::setupPinnedWidget() {
 		scroll->scrollLeftValue(),
 		scroll->widthValue(),
 		_pinned->widthValue()
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		updateLeftFade();
 		updateRightFade();
 	}, scroll->lifetime());
@@ -1570,7 +1570,7 @@ void MessagesUi::setupPinnedWidget() {
 	});
 	animation->seconds.callEach(crl::time(1000));
 
-	_pinned->paintRequest() | rpl::start_with_next([=](QRect clip) {
+	_pinned->paintRequest() | rpl::on_next([=](QRect clip) {
 		const auto session = &_show->session();
 		const auto &colorings = session->appConfig().groupCallColorings();
 		const auto start = scroll->scrollLeft();
@@ -1713,7 +1713,7 @@ void MessagesUi::setupPinnedWidget() {
 		}
 		return MsgId();
 	};
-	_pinned->events() | rpl::start_with_next([=](not_null<QEvent*> e) {
+	_pinned->events() | rpl::on_next([=](not_null<QEvent*> e) {
 		const auto type = e->type();
 		if (type == QEvent::MouseButtonPress) {
 			const auto pos = static_cast<QMouseEvent*>(e.get())->pos();

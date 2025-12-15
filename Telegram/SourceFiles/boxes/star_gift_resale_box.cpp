@@ -302,7 +302,7 @@ struct ResaleTabs {
 	};
 
 	state->filter.value(
-	) | rpl::start_with_next([=](const ResaleGiftsFilter &fields) {
+	) | rpl::on_next([=](const ResaleGiftsFilter &fields) {
 		auto x = st::giftBoxResaleTabsMargin.left();
 		auto y = st::giftBoxResaleTabsMargin.top();
 
@@ -356,12 +356,12 @@ struct ResaleTabs {
 	rpl::combine(
 		raw->widthValue(),
 		state->fullWidth.value()
-	) | rpl::start_with_next([=](int outer, int inner) {
+	) | rpl::on_next([=](int outer, int inner) {
 		state->scrollMax = std::max(0, inner - outer);
 	}, raw->lifetime());
 
 	raw->setMouseTracking(true);
-	raw->events() | rpl::start_with_next([=](not_null<QEvent*> e) {
+	raw->events() | rpl::on_next([=](not_null<QEvent*> e) {
 		const auto type = e->type();
 		switch (type) {
 		case QEvent::Leave: setSelected(-1); break;
@@ -420,7 +420,7 @@ struct ResaleTabs {
 		}
 	}, raw->lifetime());
 
-	raw->paintRequest() | rpl::start_with_next([=] {
+	raw->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(raw);
 		auto hq = PainterHighQualityEnabler(p);
 		const auto padding = st::giftBoxTabPadding;
@@ -501,7 +501,7 @@ void GiftResaleBox(
 	countLabel->setTextColorOverride(st::windowSubTextFg->c);
 
 	const auto content = box->verticalLayout();
-	content->paintRequest() | rpl::start_with_next([=](QRect clip) {
+	content->paintRequest() | rpl::on_next([=](QRect clip) {
 		QPainter(content).fillRect(clip, st::boxDividerBg);
 	}, content->lifetime());
 
@@ -529,7 +529,7 @@ void GiftResaleBox(
 		tr::lng_gift_resale_switch_to_ton()));
 #endif
 
-	box->heightValue() | rpl::start_with_next([=](int height) {
+	box->heightValue() | rpl::on_next([=](int height) {
 		if (height > state->lastMinHeight) {
 			state->lastMinHeight = height;
 			box->setMinHeight(height);
@@ -544,14 +544,14 @@ void GiftResaleBox(
 	state->filter = std::move(tabs.filter);
 	content->add(std::move(tabs.widget));
 
-	state->filter.changes() | rpl::start_with_next([=](ResaleGiftsFilter value) {
+	state->filter.changes() | rpl::on_next([=](ResaleGiftsFilter value) {
 		state->data.offset = QString();
 		state->loading = ResaleGiftsSlice(
 			&peer->session(),
 			state->data.giftId,
 			value,
 			QString()
-		) | rpl::start_with_next([=](ResaleGiftsDescriptor &&slice) {
+		) | rpl::on_next([=](ResaleGiftsDescriptor &&slice) {
 			state->loading.destroy();
 			state->data.offset = slice.list.empty()
 				? QString()
@@ -562,7 +562,7 @@ void GiftResaleBox(
 	}, content->lifetime());
 
 	peer->owner().giftUpdates(
-	) | rpl::start_with_next([=](const Data::GiftUpdate &update) {
+	) | rpl::on_next([=](const Data::GiftUpdate &update) {
 		using Action = Data::GiftUpdate::Action;
 		const auto action = update.action;
 		if (action != Action::Transfer && action != Action::ResaleChange) {
@@ -608,7 +608,7 @@ void GiftResaleBox(
 				state->data.giftId,
 				state->filter.current(),
 				state->data.offset
-			) | rpl::start_with_next([=](ResaleGiftsDescriptor &&slice) {
+			) | rpl::on_next([=](ResaleGiftsDescriptor &&slice) {
 				state->loading.destroy();
 				state->data.offset = slice.list.empty()
 					? QString()
@@ -656,7 +656,7 @@ rpl::lifetime ShowStarGiftResale(
 	return Data::ResaleGiftsSlice(
 		session,
 		giftId
-	) | rpl::start_with_next([=](ResaleGiftsDescriptor &&info) {
+	) | rpl::on_next([=](ResaleGiftsDescriptor &&info) {
 		if (const auto onstack = finishRequesting) {
 			onstack();
 		}

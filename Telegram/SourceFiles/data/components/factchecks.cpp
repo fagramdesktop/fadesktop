@@ -60,7 +60,7 @@ void Factchecks::subscribeIfNotYet() {
 	_subscribed = true;
 
 	_session->data().itemRemoved(
-	) | rpl::start_with_next([=](not_null<const HistoryItem*> item) {
+	) | rpl::on_next([=](not_null<const HistoryItem*> item) {
 		_pending.remove(item);
 		const auto i = ranges::find(_requested, item.get());
 		if (i != end(_requested)) {

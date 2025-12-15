@@ -118,7 +118,7 @@ ModerateOptions CalculateModerateOptions(const HistoryItemsList &items) {
 			const auto peer = from[state->index];
 			const auto peerId = peer->id;
 			state->apiLifetime = search->messagesFounds(
-			) | rpl::start_with_next([=](const Api::FoundMessages &found) {
+			) | rpl::on_next([=](const Api::FoundMessages &found) {
 				state->messagesCounts[peerId] = found.total;
 				state->index++;
 				repeat(repeat);
@@ -201,7 +201,7 @@ void CreateModerateMessagesBox(
 			not_null<Ui::Checkbox*> checkbox,
 			not_null<Controller*> controller,
 			Request request) {
-		confirms->events() | rpl::start_with_next([=] {
+		confirms->events() | rpl::on_next([=] {
 			if (checkbox->checked() && controller->collectRequests) {
 				sequentiallyRequest(request, controller->collectRequests());
 			}
@@ -354,7 +354,7 @@ void CreateModerateMessagesBox(
 					}
 					return float64(result);
 				})
-			) | rpl::start_with_next([=](const QString &text) {
+			) | rpl::on_next([=](const QString &text) {
 				title->setText(text);
 				title->resizeToWidth(inner->width()
 					- rect::m::sum::h(st::boxRowPadding));
@@ -386,7 +386,7 @@ void CreateModerateMessagesBox(
 				rpl::conditional(
 					(ownedWrap
 						? ownedWrap->toggledValue()
-						: rpl::single(false) | rpl::type_erased()),
+						: rpl::single(false) | rpl::type_erased),
 					tr::lng_restrict_user(
 						lt_count,
 						rpl::single(participants.size()) | tr::to_count()),
@@ -432,7 +432,7 @@ void CreateModerateMessagesBox(
 				}
 				wrap->toggle(!wrap->toggled(), anim::type::normal);
 				{
-					inner->heightValue() | rpl::start_with_next([=] {
+					inner->heightValue() | rpl::on_next([=] {
 						if (!wrap->animating()) {
 							scrollLifetime->destroy();
 							Ui::PostponeCall(crl::guard(box, [=] {
@@ -458,7 +458,7 @@ void CreateModerateMessagesBox(
 						rpl::single(toggled ? emojiUp : emojiDown),
 						Ui::Text::WithEntities);
 			}) | rpl::flatten_latest(
-			) | rpl::start_with_next([=](const TextWithEntities &text) {
+			) | rpl::on_next([=](const TextWithEntities &text) {
 				raw->setMarkedText(Ui::Text::Link(text, u"internal:"_q));
 			}, label->lifetime());
 
@@ -509,7 +509,7 @@ void CreateModerateMessagesBox(
 				disabledMessages,
 				{ .isForum = peer->isForum() });
 			computeRestrictions = getRestrictions;
-			std::move(changes) | rpl::start_with_next([=] {
+			std::move(changes) | rpl::on_next([=] {
 				ban->setChecked(true);
 			}, ban->lifetime());
 			Ui::AddSkip(container);
@@ -519,7 +519,7 @@ void CreateModerateMessagesBox(
 		}
 
 		// Handle confirmation manually.
-		confirms->events() | rpl::start_with_next([=] {
+		confirms->events() | rpl::on_next([=] {
 			if (ban->checked() && controller->collectRequests) {
 				const auto kick = !wrap || !wrap->toggled();
 				const auto restrictions = computeRestrictions
@@ -627,7 +627,7 @@ void DeleteChatBox(not_null<Ui::GenericBox*> box, not_null<PeerData*> peer) {
 				? tr::lng_profile_delete_conversation() | Ui::Text::ToBold()
 				: rpl::single(
 					userpicPeer->name()
-				) | Ui::Text::ToBold() | rpl::type_erased(),
+				) | Ui::Text::ToBold() | rpl::type_erased,
 			box->getDelegate()->style().title));
 
 	Ui::AddSkip(container);

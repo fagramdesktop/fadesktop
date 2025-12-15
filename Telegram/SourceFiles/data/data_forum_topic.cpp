@@ -250,7 +250,7 @@ ForumTopic::ForumTopic(not_null<Forum*> forum, MsgId rootId)
 
 	if (isGeneral()) {
 		style::PaletteChanged(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			_defaultIcon = QImage();
 		}, _lifetime);
 	}
@@ -374,7 +374,7 @@ void ForumTopic::subscribeToUnreadChanges() {
 	) | rpl::combine_previous(
 	) | rpl::filter([=] {
 		return inChatList();
-	}) | rpl::start_with_next([=](
+	}) | rpl::on_next([=](
 			std::optional<int> previous,
 			std::optional<int> now) {
 		if (previous.value_or(0) != now.value_or(0)) {

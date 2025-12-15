@@ -388,11 +388,11 @@ void EditChatLinkBox(
 	emojiPanel->hide();
 	emojiPanel->selector()->setCurrentPeer(peer);
 	emojiPanel->selector()->emojiChosen(
-	) | rpl::start_with_next([=](ChatHelpers::EmojiChosen data) {
+	) | rpl::on_next([=](ChatHelpers::EmojiChosen data) {
 		Ui::InsertEmojiAtCursor(field->textCursor(), data.emoji);
 	}, field->lifetime());
 	emojiPanel->selector()->customEmojiChosen(
-	) | rpl::start_with_next([=](ChatHelpers::FileChosen data) {
+	) | rpl::on_next([=](ChatHelpers::FileChosen data) {
 		Data::InsertCustomEmoji(field, data.document);
 	}, field->lifetime());
 
@@ -448,21 +448,21 @@ void EditChatLinkBox(
 	base::install_event_filter(emojiPanel, outer, filterCallback);
 
 	field->submits(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		title->setFocus();
 	}, field->lifetime());
 	field->cancelled(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		box->closeBox();
 	}, field->lifetime());
 
 	title->submits(
-	) | rpl::start_with_next(save, title->lifetime());
+	) | rpl::on_next(save, title->lifetime());
 
 	rpl::combine(
 		box->sizeValue(),
 		field->geometryValue()
-	) | rpl::start_with_next([=](QSize outer, QRect inner) {
+	) | rpl::on_next([=](QSize outer, QRect inner) {
 		emojiToggle->moveToLeft(
 			inner.x() + inner.width() - emojiToggle->width(),
 			inner.y() + st::settingsChatLinkEmojiTop);
@@ -485,7 +485,7 @@ void EditChatLinkBox(
 		}
 	});
 	field->changes(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		checkChangedTimer->callOnce(kChangesDebounceTimeout);
 		box->setCloseByOutsideClick(false);
 	}, field->lifetime());
@@ -525,12 +525,12 @@ LinksController::LinksController(
 : _window(window)
 , _session(&window->session()) {
 	style::PaletteChanged(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_icon = QImage();
 	}, _lifetime);
 
 	_session->api().chatLinks().updates(
-	) | rpl::start_with_next([=](const Api::ChatLinkUpdate &update) {
+	) | rpl::on_next([=](const Api::ChatLinkUpdate &update) {
 		if (!update.now) {
 			if (removeRow(update.was)) {
 				delegate()->peerListRefreshRows();

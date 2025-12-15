@@ -146,7 +146,7 @@ private:
 	raw->hide();
 
 	style::PaletteChanged(
-	) | rpl::start_with_next(repaint, preview.lifetime);
+	) | rpl::on_next(repaint, preview.lifetime);
 
 	return preview;
 }
@@ -314,7 +314,7 @@ Widget::Widget(
 	refreshTitleText();
 	setTitlePosition(st::boxTitlePosition.x(), st::boxTitlePosition.y());
 
-	_badge.changes() | rpl::start_with_next([this] {
+	_badge.changes() | rpl::on_next([this] {
 		_preview = PreviewState();
 		update();
 	}, lifetime());
@@ -552,14 +552,14 @@ object_ptr<RoundButton> FilterLinkProcessButton(
 	};
 	const auto label = result->lifetime().make_state<Label>(result.data());
 	label->setAttribute(Qt::WA_TransparentForMouseEvents);
-	result->sizeValue() | rpl::start_with_next([=](QSize size) {
+	result->sizeValue() | rpl::on_next([=](QSize size) {
 		const auto xskip = st->style.font->spacew;
 		const auto yskip = xskip / 2;
 		label->setGeometry(QRect(QPoint(), size).marginsRemoved(
 			{ xskip, yskip, xskip, yskip }));
 	}, label->lifetime());
 	label->paintRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		auto p = Painter(label);
 		const auto width = label->width();
 		const auto hasBadge = !label->badge.isEmpty();
@@ -605,7 +605,7 @@ object_ptr<RoundButton> FilterLinkProcessButton(
 	}, label->lifetime());
 
 	context.repaint = [=] { label->update(); };
-	std::move(data) | rpl::start_with_next([=](Data data) {
+	std::move(data) | rpl::on_next([=](Data data) {
 		label->text.setMarkedText(
 			st::filterInviteButtonStyle,
 			data.text,

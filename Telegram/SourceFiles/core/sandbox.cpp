@@ -359,7 +359,7 @@ void Sandbox::singleInstanceChecked() {
 			_lastCrashDump,
 			[=] { launchApplication(); });
 		window->proxyChanges(
-		) | rpl::start_with_next([=](MTP::ProxyData &&proxy) {
+		) | rpl::on_next([=](MTP::ProxyData &&proxy) {
 			_sandboxProxy = std::move(proxy);
 			refreshGlobalProxy();
 		}, window->lifetime());

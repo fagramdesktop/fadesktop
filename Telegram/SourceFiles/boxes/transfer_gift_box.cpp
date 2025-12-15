@@ -148,7 +148,7 @@ void ExportOnBlockchain(
 		state->lifetime = session->api().cloudPassword().state(
 		) | rpl::take(
 			1
-		) | rpl::start_with_next([=](const Core::CloudPasswordState &pass) {
+		) | rpl::on_next([=](const Core::CloudPasswordState &pass) {
 			state->lifetime.destroy();
 
 			auto fields = PasscodeBox::CloudFields::From(pass);
@@ -703,7 +703,7 @@ void ShowTransferGiftBox(
 
 		box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
 
-		box->noSearchSubmits() | rpl::start_with_next([=] {
+		box->noSearchSubmits() | rpl::on_next([=] {
 			controllerRaw->noSearchSubmit();
 		}, box->lifetime());
 	};
@@ -1019,7 +1019,7 @@ void ShowBuyResaleGiftBox(
 						},
 					}),
 				st::boxRowPadding + st::resaleConfirmTonOnlyMargin);
-			tabs->activated() | rpl::start_with_next([=](QString id) {
+			tabs->activated() | rpl::on_next([=](QString id) {
 				tabs->setActiveTab(id);
 				state->ton = (id == u"ton"_q);
 			}, tabs->lifetime());

@@ -296,7 +296,7 @@ void SubscribeToMigration(
 				return (channel != nullptr);
 			}) | rpl::take(
 				1
-			) | rpl::start_with_next([=](not_null<ChannelData*> channel) {
+			) | rpl::on_next([=](not_null<ChannelData*> channel) {
 				const auto onstack = base::duplicate(migrate);
 				onstack(channel);
 			}, lifetime);
@@ -812,7 +812,7 @@ ParticipantsOnlineSorter::ParticipantsOnlineSorter(
 , _sortByOnlineTimer([=] { sort(); }) {
 	peer->session().changes().peerUpdates(
 		Data::PeerUpdate::Flag::OnlineStatus
-	) | rpl::start_with_next([=](const Data::PeerUpdate &update) {
+	) | rpl::on_next([=](const Data::PeerUpdate &update) {
 		const auto peerId = update.peer->id;
 		if (const auto row = _delegate->peerListFindRow(peerId.value)) {
 			row->refreshStatus();
@@ -910,7 +910,7 @@ void ParticipantsBoxController::setupListChangeViewers() {
 
 	channel->owner().megagroupParticipantAdded(
 		channel
-	) | rpl::start_with_next([=](not_null<UserData*> user) {
+	) | rpl::on_next([=](not_null<UserData*> user) {
 		if (delegate()->peerListFullRowsCount() > 0) {
 			if (delegate()->peerListRowAt(0)->peer() == user) {
 				return;
@@ -935,7 +935,7 @@ void ParticipantsBoxController::setupListChangeViewers() {
 
 	channel->owner().megagroupParticipantRemoved(
 		channel
-	) | rpl::start_with_next([=](not_null<UserData*> user) {
+	) | rpl::on_next([=](not_null<UserData*> user) {
 		if (const auto row = delegate()->peerListFindRow(user->id.value)) {
 			delegate()->peerListRemoveRow(row);
 		}
@@ -1127,13 +1127,13 @@ auto ParticipantsBoxController::saveState() const
 		chat->session().changes().peerUpdates(
 			chat,
 			Data::PeerUpdate::Flag::Members
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			weak->controllerState = nullptr;
 		}, my->lifetime);
 	} else if (const auto channel = _peer->asMegagroup()) {
 		channel->owner().megagroupParticipantAdded(
 			channel
-		) | rpl::start_with_next([=](not_null<UserData*> user) {
+		) | rpl::on_next([=](not_null<UserData*> user) {
 			if (!weak->list.empty()) {
 				if (weak->list[0] == user) {
 					return;
@@ -1150,7 +1150,7 @@ auto ParticipantsBoxController::saveState() const
 
 		channel->owner().megagroupParticipantRemoved(
 			channel
-		) | rpl::start_with_next([=](not_null<UserData*> user) {
+		) | rpl::on_next([=](not_null<UserData*> user) {
 			weak->list.erase(std::remove(
 				weak->list.begin(),
 				weak->list.end(),
@@ -1257,7 +1257,7 @@ void ParticipantsBoxController::prepare() {
 		auto visible = _peer->isMegagroup()
 			? Info::Profile::CanViewParticipantsValue(_peer->asMegagroup())
 			: rpl::single(true);
-		std::move(visible) | rpl::start_with_next([=](bool visible) {
+		std::move(visible) | rpl::on_next([=](bool visible) {
 			if (!visible) {
 				_onlineCountValue = 0;
 				_onlineSorter = nullptr;
@@ -1275,7 +1275,7 @@ void ParticipantsBoxController::prepare() {
 	}
 
 	_peer->session().changes().chatAdminChanges(
-	) | rpl::start_with_next([=](const Data::ChatAdminChange &update) {
+	) | rpl::on_next([=](const Data::ChatAdminChange &update) {
 		if (update.peer != _peer) {
 			return;
 		}
@@ -1347,7 +1347,7 @@ void ParticipantsBoxController::prepareChatRows(not_null<ChatData*> chat) {
 	chat->session().changes().peerUpdates(
 		chat,
 		UpdateFlag::Members | UpdateFlag::Admins
-	) | rpl::start_with_next([=](const Data::PeerUpdate &update) {
+	) | rpl::on_next([=](const Data::PeerUpdate &update) {
 		_additional.fillFromPeer();
 		if ((update.flags & UpdateFlag::Members)
 			|| (_role == Role::Admins)) {
@@ -2201,7 +2201,7 @@ void ParticipantsBoxController::subscribeToCreatorChange(
 		return (change.diff & ChannelDataFlag::Creator);
 	}) | rpl::filter([=] {
 		return (isCreator != channel->amCreator());
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		if (channel->isBroadcast()) {
 			fullListRefresh();
 			return;

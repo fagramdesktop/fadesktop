@@ -79,7 +79,7 @@ void SetSearchButtonLabel(
 	rpl::combine(
 		button->sizeValue(),
 		std::move(text)
-	) | rpl::start_with_next([=](QSize size, const auto &) {
+	) | rpl::on_next([=](QSize size, const auto &) {
 		icons->setGeometry(QRect(QPoint(), size));
 		const auto available = size.width() - leftSkip - rightSkip;
 		if (available <= 0) {
@@ -93,7 +93,7 @@ void SetSearchButtonLabel(
 		label->moveToLeft(x + leftSkip, y, size.width());
 	}, icons->lifetime());
 
-	icons->paintRequest() | rpl::start_with_next([=] {
+	icons->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(icons);
 		left->paint(
 			p,
@@ -198,7 +198,7 @@ void PostsSearchIntro::setup() {
 	_footer->setTryMakeSimilarLines(true);
 
 	_state.value(
-	) | rpl::start_with_next([=](const PostsSearchIntroState &state) {
+	) | rpl::on_next([=](const PostsSearchIntroState &state) {
 		if (state.query.trimmed().isEmpty() && !state.needsPremium) {
 			_button->resize(_button->width(), 0);
 			_content->resizeToWidth(width());

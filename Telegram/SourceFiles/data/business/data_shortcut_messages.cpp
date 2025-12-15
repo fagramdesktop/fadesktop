@@ -114,7 +114,7 @@ ShortcutMessages::ShortcutMessages(not_null<Session*> owner)
 	owner->itemRemoved(
 	) | rpl::filter([](not_null<const HistoryItem*> item) {
 		return item->isBusinessShortcut();
-	}) | rpl::start_with_next([=](not_null<const HistoryItem*> item) {
+	}) | rpl::on_next([=](not_null<const HistoryItem*> item) {
 		remove(item);
 	}, _lifetime);
 }

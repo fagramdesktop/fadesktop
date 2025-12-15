@@ -164,7 +164,7 @@ void DeleteMessagesBox::prepare() {
 			appendDetails(std::move(revoke->description));
 			if (!peer->isUser() && !_wipeHistoryJustClear) {
 				_revoke->checkedValue(
-				) | rpl::start_with_next([=](bool revokeForAll) {
+				) | rpl::on_next([=](bool revokeForAll) {
 					*deleteText = revokeForAll
 						? tr::lng_box_delete()
 						: tr::lng_box_leave();
@@ -251,13 +251,13 @@ void DeleteMessagesBox::prepare() {
 						st::defaultBoxCheckbox));
 				_revokeRemember->hide(anim::type::instant);
 				_revoke->checkedValue(
-				) | rpl::start_with_next([=](bool checked) {
+				) | rpl::on_next([=](bool checked) {
 					_revokeRemember->toggle(
 						checked != revokeByDefault,
 						anim::type::normal);
 				}, _revokeRemember->lifetime());
 				_revokeRemember->heightValue(
-				) | rpl::start_with_next([=](int h) {
+				) | rpl::on_next([=](int h) {
 					setDimensions(st::boxWidth, _fullHeight + h);
 				}, lifetime());
 				appendDetails(std::move(revoke->description));
@@ -320,7 +320,7 @@ void DeleteMessagesBox::prepare() {
 	rpl::combine(
 		widthValue(),
 		_text->naturalWidthValue()
-	) | rpl::start_with_next([=](int full, int) {
+	) | rpl::on_next([=](int full, int) {
 		_text->resizeToNaturalWidth(full - padding.left() - padding.right());
 
 		auto fullHeight = st::boxPadding.top()

@@ -197,7 +197,7 @@ void ReplyArea::initGeometry() {
 	rpl::combine(
 		_controller->layoutValue(),
 		_controls->height()
-	) | rpl::start_with_next([=](const Layout &layout, int height) {
+	) | rpl::on_next([=](const Layout &layout, int height) {
 		const auto content = layout.content;
 		_controls->resizeToWidth(layout.controlsWidth);
 		if (_controls->heightCurrent() == height) {
@@ -800,24 +800,24 @@ bool ReplyArea::confirmSendingFiles(
 
 void ReplyArea::initActions() {
 	_controls->cancelRequests(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_controller->unfocusReply();
 	}, _lifetime);
 
 	_controls->sendRequests(
-	) | rpl::start_with_next([=](Api::SendOptions options) {
+	) | rpl::on_next([=](Api::SendOptions options) {
 		send(options);
 	}, _lifetime);
 
 	_controls->sendVoiceRequests(
-	) | rpl::start_with_next([=](const VoiceToSend &data) {
+	) | rpl::on_next([=](const VoiceToSend &data) {
 		sendVoice(data);
 	}, _lifetime);
 
 	_controls->attachRequests(
 	) | rpl::filter([=] {
 		return !_chooseAttachRequest;
-	}) | rpl::start_with_next([=](std::optional<bool> overrideCompress) {
+	}) | rpl::on_next([=](std::optional<bool> overrideCompress) {
 		_chooseAttachRequest = true;
 		base::call_delayed(
 			st::storiesAttach.ripple.hideDuration,
@@ -826,7 +826,7 @@ void ReplyArea::initActions() {
 	}, _lifetime);
 
 	_controls->fileChosen(
-	) | rpl::start_with_next([=](ChatHelpers::FileChosen data) {
+	) | rpl::on_next([=](ChatHelpers::FileChosen data) {
 		_controller->uiShow()->hideLayer();
 		auto messageToSend = Api::MessageToSend(
 			prepareSendAction(data.options));
@@ -838,18 +838,18 @@ void ReplyArea::initActions() {
 	}, _lifetime);
 
 	_controls->photoChosen(
-	) | rpl::start_with_next([=](ChatHelpers::PhotoChosen chosen) {
+	) | rpl::on_next([=](ChatHelpers::PhotoChosen chosen) {
 		sendExistingPhoto(chosen.photo, chosen.options);
 	}, _lifetime);
 
 	_controls->inlineResultChosen(
-	) | rpl::start_with_next([=](ChatHelpers::InlineChosen chosen) {
+	) | rpl::on_next([=](ChatHelpers::InlineChosen chosen) {
 		const auto localId = chosen.messageSendingFrom.localId;
 		sendInlineResult(chosen.result, chosen.bot, chosen.options, localId);
 	}, _lifetime);
 
 	_controls->likeToggled(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_controller->toggleLiked();
 	}, _lifetime);
 
@@ -868,7 +868,7 @@ void ReplyArea::initActions() {
 	});
 
 	_controls->lockShowStarts(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 	}, _lifetime);
 
 	_controls->show();
@@ -932,7 +932,7 @@ void ReplyArea::show(
 					.text = tr::lng_video_stream_comments_disabled(tr::now),
 					.type = WriteRestrictionType::Rights,
 				};
-		}) | rpl::type_erased()
+		}) | rpl::type_erased
 		: Data::CanSendAnythingValue(
 			peer
 		) | rpl::map([=](bool can) {
@@ -980,7 +980,7 @@ void ReplyArea::show(
 		if (cant) {
 			_cant = std::make_unique<Cant>(_controller->wrap());
 			_controller->layoutValue(
-			) | rpl::start_with_next([=](const Layout &layout) {
+			) | rpl::on_next([=](const Layout &layout) {
 				const auto height = st::storiesComposeControls.attach.height;
 				const auto position = layout.controlsBottomPosition
 					- QPoint(0, height);

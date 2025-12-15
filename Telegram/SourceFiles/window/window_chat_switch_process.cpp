@@ -297,14 +297,14 @@ void ChatSwitchProcess::setSelected(int index) {
 
 void ChatSwitchProcess::setupWidget(not_null<Ui::RpWidget*> geometry) {
 	geometry->geometryValue(
-	) | rpl::start_with_next([=](QRect value) {
+	) | rpl::on_next([=](QRect value) {
 		const auto parent = geometry->parentWidget();
 		_widget->setGeometry((parent == _widget->parentWidget())
 			? value
 			: QRect(QPoint(), value.size()));
 	}, _widget->lifetime());
 
-	_widget->events() | rpl::start_with_next([=](not_null<QEvent*> e) {
+	_widget->events() | rpl::on_next([=](not_null<QEvent*> e) {
 		if (e->type() == QEvent::MouseButtonPress) {
 			crl::on_main(_widget.get(), [=] {
 				_closeRequests.fire({});
@@ -343,7 +343,7 @@ void ChatSwitchProcess::setupContent(Data::Thread *opened) {
 			_userpics);
 		const auto raw = button.get();
 
-		raw->selectRequests() | rpl::start_with_next([=] {
+		raw->selectRequests() | rpl::on_next([=] {
 			const auto i = find(raw);
 			setSelected(int(i - begin(_entries)));
 		}, raw->lifetime());
@@ -362,7 +362,7 @@ void ChatSwitchProcess::setupContent(Data::Thread *opened) {
 		if (!destroyed) {
 			continue;
 		}
-		std::move(destroyed) | rpl::start_with_next([=] {
+		std::move(destroyed) | rpl::on_next([=] {
 			remove(thread);
 		}, raw->lifetime());
 	}
@@ -395,12 +395,12 @@ void ChatSwitchProcess::remove(not_null<Data::Thread*> thread) {
 }
 
 void ChatSwitchProcess::setupView() {
-	_widget->sizeValue() | rpl::start_with_next([=](QSize size) {
+	_widget->sizeValue() | rpl::on_next([=](QSize size) {
 		layout(size);
 	}, _view->lifetime());
 	_view->show();
 
-	_view->paintRequest() | rpl::start_with_next([=](QRect clip) {
+	_view->paintRequest() | rpl::on_next([=](QRect clip) {
 		if (_outer.isEmpty()) {
 			return;
 		}
@@ -410,7 +410,7 @@ void ChatSwitchProcess::setupView() {
 		_bg.paint(p, _outer);
 	}, _view->lifetime());
 
-	_view->events() | rpl::start_with_next([=](not_null<QEvent*> e) {
+	_view->events() | rpl::on_next([=](not_null<QEvent*> e) {
 		if (e->type() == QEvent::MouseButtonPress) {
 			e->accept();
 		}

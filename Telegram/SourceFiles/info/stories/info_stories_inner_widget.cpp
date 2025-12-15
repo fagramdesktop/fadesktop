@@ -99,7 +99,7 @@ EditAlbumBox::EditAlbumBox(
 , _changes(Data::StoryAlbumUpdate{ .peer = peer, .albumId = albumId })
 , _reload(std::move(reload)) {
 	_content->selectedListValue(
-	) | rpl::start_with_next([=](const SelectedItems &selection) {
+	) | rpl::on_next([=](const SelectedItems &selection) {
 		const auto stories = &_window->session().data().stories();
 		auto ids = stories->albumKnownInArchive(peer->id, albumId);
 		auto now = _changes.current();
@@ -125,7 +125,7 @@ void EditAlbumBox::prepare() {
 	setStyle(st::collectionEditBox);
 
 	_content->desiredHeightValue(
-	) | rpl::start_with_next([=](int height) {
+	) | rpl::on_next([=](int height) {
 		setDimensions(st::boxWideWidth, height);
 	}, _content->lifetime());
 
@@ -217,7 +217,7 @@ InnerWidget::InnerWidget(
 	preloadArchiveCount();
 
 	_albumId.value(
-	) | rpl::start_with_next([=](int albumId) {
+	) | rpl::on_next([=](int albumId) {
 		if (_albumsTabs
 			&& (albumId == Data::kStoriesAlbumIdSaved
 				|| ranges::contains(
@@ -246,7 +246,7 @@ void InnerWidget::preloadArchiveCount() {
 		rpl::mappers::_1 == key
 	) | rpl::take_while([=] {
 		return !stories->albumIdsCountKnown(_peer->id, kArchive);
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		refreshAlbumsTabs();
 	}, lifetime());
 }
@@ -257,7 +257,7 @@ void InnerWidget::setupAlbums() {
 
 	_peer->owner().stories().albumsListValue(
 		_peer->id
-	) | rpl::start_with_next([=](std::vector<Data::StoryAlbum> &&albums) {
+	) | rpl::on_next([=](std::vector<Data::StoryAlbum> &&albums) {
 		_albums = std::move(albums);
 		refreshAlbumsTabs();
 	}, lifetime());
@@ -430,7 +430,7 @@ void InnerWidget::addRecentButton(Ui::MultiSlideTracker &tracker) {
 	rpl::combine(
 		recent->sizeValue(),
 		rpl::duplicate(last)
-	) | rpl::start_with_next([=](QSize size, const Content &content) {
+	) | rpl::on_next([=](QSize size, const Content &content) {
 		if (content.elements.empty()) {
 			return;
 		}
@@ -554,7 +554,7 @@ void InnerWidget::finalizeTop() {
 	_top->resizeToWidth(width());
 
 	_top->heightValue(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		refreshHeight();
 	}, _top->lifetime());
 }
@@ -654,7 +654,7 @@ void InnerWidget::setupEmpty() {
 			) | rpl::to_empty
 		),
 		_list->heightValue()
-	) | rpl::start_with_next([=](auto, int listHeight) {
+	) | rpl::on_next([=](auto, int listHeight) {
 		const auto padding = st::infoMediaMargin;
 		if (const auto raw = _empty.release()) {
 			raw->hide();
@@ -793,13 +793,13 @@ void InnerWidget::refreshAlbumsTabs() {
 		_albumsWrap->resize(
 			_albumsWrap->width(),
 			padding.top() + _albumsTabs->height() + padding.top());
-		_albumsWrap->widthValue() | rpl::start_with_next([=](int width) {
+		_albumsWrap->widthValue() | rpl::on_next([=](int width) {
 			_albumsTabs->resizeToWidth(width);
 		}, _albumsTabs->lifetime());
 		_albumsTabs->move(0, padding.top());
 
 		_albumsTabs->activated(
-		) | rpl::start_with_next([=](const QString &id) {
+		) | rpl::on_next([=](const QString &id) {
 			if (id == u"add"_q) {
 				const auto added = [=](Data::StoryAlbum album) {
 					albumAdded(album);
@@ -816,7 +816,7 @@ void InnerWidget::refreshAlbumsTabs() {
 		}, _albumsTabs->lifetime());
 
 		_albumsTabs->contextMenuRequests(
-		) | rpl::start_with_next([=](const QString &id) {
+		) | rpl::on_next([=](const QString &id) {
 			if (id == u"add"_q || id == u"all"_q) {
 				return;
 			}
@@ -825,7 +825,7 @@ void InnerWidget::refreshAlbumsTabs() {
 
 		using ReorderUpdate = Ui::SubTabsReorderUpdate;
 		_albumsTabs->reorderUpdates(
-		) | rpl::start_with_next([=](const ReorderUpdate &update) {
+		) | rpl::on_next([=](const ReorderUpdate &update) {
 			if (update.state == ReorderUpdate::State::Applied) {
 				reorderAlbumsLocally(update);
 			}

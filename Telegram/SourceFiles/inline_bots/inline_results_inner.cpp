@@ -66,12 +66,12 @@ Inner::Inner(
 	setAttribute(Qt::WA_OpaquePaintEvent);
 
 	_controller->session().downloaderTaskFinished(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		updateInlineItems();
 	}, lifetime());
 
 	controller->gifPauseLevelChanged(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		if (!_controller->isGifPausedAtLeastFor(
 				Window::GifPauseReason::InlineResults)) {
 			updateInlineItems();
@@ -82,7 +82,7 @@ Inner::Inner(
 		Data::PeerUpdate::Flag::Rights
 	) | rpl::filter([=](const Data::PeerUpdate &update) {
 		return (update.peer.get() == _inlineQueryPeer);
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		auto isRestricted = (_restrictedLabel != nullptr);
 		if (isRestricted != isRestrictedView()) {
 			auto h = countHeight();
@@ -91,7 +91,7 @@ Inner::Inner(
 	}, lifetime());
 
 	sizeValue(
-	) | rpl::start_with_next([=](const QSize &s) {
+	) | rpl::on_next([=](const QSize &s) {
 		_mosaic.setFullWidth(s.width());
 	}, lifetime());
 

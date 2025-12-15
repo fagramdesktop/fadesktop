@@ -30,7 +30,7 @@ ChatData::ChatData(not_null<Data::Session*> owner, PeerId id)
 : PeerData(owner, id)
 , inputChat(MTP_long(peerToChat(id).bare)) {
 	_flags.changes(
-	) | rpl::start_with_next([=](const Flags::Change &change) {
+	) | rpl::on_next([=](const Flags::Change &change) {
 		if (change.diff & Flag::CallNotEmpty) {
 			if (const auto history = this->owner().historyLoaded(this)) {
 				history->updateChatListEntry();

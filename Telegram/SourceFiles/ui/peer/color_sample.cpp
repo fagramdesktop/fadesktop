@@ -39,7 +39,7 @@ ColorSample::ColorSample(
 	rpl::combine(
 		std::move(colorIndex),
 		std::move(collectible)
-	) | rpl::start_with_next([=](
+	) | rpl::on_next([=](
 			uint8 index,
 			std::shared_ptr<Ui::ColorCollectible> collectible) {
 		_index = index;
@@ -295,7 +295,7 @@ ColorSelector::ColorSelector(
 , _isProfileMode(false) {
 	std::move(
 		indices
-	) | rpl::start_with_next([=](std::vector<uint8> indices) {
+	) | rpl::on_next([=](std::vector<uint8> indices) {
 		fillFrom(std::move(indices));
 	}, lifetime());
 	setupSelectionTracking();
@@ -385,7 +385,7 @@ void ColorSelector::setupSelectionTracking() {
 	}
 	_index.value(
 	) | rpl::combine_previous(
-	) | rpl::start_with_next([=](uint8 was, uint8 now) {
+	) | rpl::on_next([=](uint8 was, uint8 now) {
 		const auto i = ranges::find(_samples, was, &ColorSample::index);
 		if (i != end(_samples)) {
 			i->get()->setSelected(false);

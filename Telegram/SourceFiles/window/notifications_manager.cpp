@@ -194,7 +194,7 @@ System::System()
 , _waitForAllGroupedTimer([=] { showGrouped(); })
 , _manager(std::make_unique<DummyManager>(this)) {
 	settingsChanged(
-	) | rpl::start_with_next([=](ChangeType type) {
+	) | rpl::on_next([=](ChangeType type) {
 		if (type == ChangeType::DesktopEnabled) {
 			clearAll();
 		} else if (type == ChangeType::ViewParams) {
@@ -387,7 +387,7 @@ void System::registerThread(not_null<Data::Thread*> thread) {
 	if (const auto topic = thread->asTopic()) {
 		const auto &[i, ok] = _watchedTopics.emplace(topic, rpl::lifetime());
 		if (ok) {
-			topic->destroyed() | rpl::start_with_next([=] {
+			topic->destroyed() | rpl::on_next([=] {
 				clearFromTopic(topic);
 			}, i->second);
 		}
@@ -396,7 +396,7 @@ void System::registerThread(not_null<Data::Thread*> thread) {
 			sublist,
 			rpl::lifetime());
 		if (ok) {
-			sublist->destroyed() | rpl::start_with_next([=] {
+			sublist->destroyed() | rpl::on_next([=] {
 				clearFromSublist(sublist);
 			}, i->second);
 		}

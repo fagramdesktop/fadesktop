@@ -1,3 +1,12 @@
+6.3.8 (15.12.25)
+
+- Fix crash on older Linux.
+
+6.3.7 (12.12.25)
+
+- Fix login with passkey visibility on Windows.
+- Improve gift upgrading experience.
+
 6.3.6 (06.12.25)
 
 - Fix crash in media viewer.

@@ -367,7 +367,7 @@ void AttributeButton::setDocument(not_null<DocumentData*> document) {
 		document->session().downloaderTaskFinished()
 	) | rpl::filter([=] {
 		return media->loaded();
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		_mediaLifetime.destroy();
 
 		auto result = std::unique_ptr<HistoryView::StickerPlayer>();
@@ -709,7 +709,7 @@ void Delegate::update(
 			document->session().downloaderTaskFinished()
 		) | rpl::filter([=] {
 			return media->loaded();
-		}) | rpl::start_with_next([=, &model] {
+		}) | rpl::on_next([=, &model] {
 			model.mediaLifetime.destroy();
 
 			auto result = std::unique_ptr<HistoryView::StickerPlayer>();
@@ -963,7 +963,7 @@ AttributesList::AttributesList(
 	fill();
 
 	_tab.value(
-	) | rpl::start_with_next([=](Tab tab) {
+	) | rpl::on_next([=](Tab tab) {
 		_entries = [&] {
 			switch (tab) {
 			case Tab::Model: return &_models;
@@ -977,7 +977,7 @@ AttributesList::AttributesList(
 		refreshAbout();
 	}, lifetime());
 
-	_selected.value() | rpl::combine_previous() | rpl::start_with_next([=](
+	_selected.value() | rpl::combine_previous() | rpl::on_next([=](
 			Selection was,
 			Selection now) {
 		const auto tab = _tab.current();
@@ -1356,7 +1356,7 @@ void StarGiftPreviewBox(
 		&state->attributes,
 		state->tab.value()));
 	state->list->selected(
-	) | rpl::start_with_next([=](Selection value) {
+	) | rpl::on_next([=](Selection value) {
 		state->fixed = value;
 		state->paused = (value.model >= 0)
 			|| (value.pattern >= 0)
@@ -1381,7 +1381,7 @@ void StarGiftPreviewBox(
 			state->tab = tab;
 		});
 		const auto icon = &active;
-		state->tab.value() | rpl::start_with_next([=](Tab now) {
+		state->tab.value() | rpl::on_next([=](Tab now) {
 			raw->setTextFgOverride((now == tab)
 				? st::defaultActiveButton.textFg->c
 				: std::optional<QColor>());
@@ -1408,7 +1408,7 @@ void StarGiftPreviewBox(
 		st::uniqueAttributeModelActive,
 		Tab::Model);
 
-	state->paused.value() | rpl::start_with_next([=](bool paused) {
+	state->paused.value() | rpl::on_next([=](bool paused) {
 		if (paused) {
 			state->pushNextTimer.cancel();
 		} else {

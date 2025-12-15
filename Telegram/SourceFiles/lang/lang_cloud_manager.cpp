@@ -103,7 +103,7 @@ void ConfirmSwitchBox::prepare() {
 
 	content->resizeToWidth(st::boxWideWidth);
 	content->heightValue(
-	) | rpl::start_with_next([=](int height) {
+	) | rpl::on_next([=](int height) {
 		setDimensions(st::boxWideWidth, height);
 	}, lifetime());
 }
@@ -137,7 +137,7 @@ void NotReadyBox::prepare() {
 
 	content->resizeToWidth(st::boxWidth);
 	content->heightValue(
-	) | rpl::start_with_next([=](int height) {
+	) | rpl::on_next([=](int height) {
 		setDimensions(st::boxWidth, height);
 	}, lifetime());
 }
@@ -162,9 +162,9 @@ CloudManager::CloudManager(Instance &langpack)
 	Core::App().domain().activeValue(
 	) | rpl::filter([=](Main::Account *account) {
 		return (account != nullptr);
-	}) | rpl::start_with_next_done([=](Main::Account *account) {
+	}) | rpl::on_next_done([=](Main::Account *account) {
 		*mtpLifetime = account->mtpMainSessionValue(
-		) | rpl::start_with_next([=](not_null<MTP::Instance*> instance) {
+		) | rpl::on_next([=](not_null<MTP::Instance*> instance) {
 			_api.emplace(instance);
 			resendRequests();
 		});
@@ -333,7 +333,7 @@ void CloudManager::offerSwitchLangPack() {
 
 	if (!showOfferSwitchBox()) {
 		languageListChanged(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			showOfferSwitchBox();
 		}, _lifetime);
 		requestLanguageList();

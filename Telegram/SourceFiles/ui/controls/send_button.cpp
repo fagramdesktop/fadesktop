@@ -340,7 +340,7 @@ SendStarButton::SendStarButton(
 , _counterSt(counterSt) {
 	resize(_st.width, _st.height);
 
-	std::move(state) | rpl::start_with_next([=](SendStarButtonState value) {
+	std::move(state) | rpl::on_next([=](SendStarButtonState value) {
 		setCount(value.count);
 		highlight(value.highlight);
 	}, lifetime());

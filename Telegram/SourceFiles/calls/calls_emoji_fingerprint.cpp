@@ -205,7 +205,7 @@ base::unique_qptr<Ui::RpWidget> CreateFingerprintAndSignalBars(
 			call->user()->name()));
 	raw->setMouseTracking(true);
 	raw->events(
-	) | rpl::start_with_next([=](not_null<QEvent*> e) {
+	) | rpl::on_next([=](not_null<QEvent*> e) {
 		if (e->type() == QEvent::MouseMove) {
 			Ui::Tooltip::Show(kTooltipShowTimeoutMs, shower);
 		} else if (e->type() == QEvent::Leave) {
@@ -254,7 +254,7 @@ base::unique_qptr<Ui::RpWidget> CreateFingerprintAndSignalBars(
 		rpl::single(rpl::empty),
 		Ui::Emoji::Updated(),
 		style::PaletteChanged()
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		background->fill(Qt::transparent);
 
 		// Prepare.
@@ -300,7 +300,7 @@ base::unique_qptr<Ui::RpWidget> CreateFingerprintAndSignalBars(
 	}, raw->lifetime());
 
 	raw->paintRequest(
-	) | rpl::start_with_next([=](QRect clip) {
+	) | rpl::on_next([=](QRect clip) {
 		QPainter(raw).drawImage(raw->rect(), *background);
 	}, raw->lifetime());
 
@@ -522,7 +522,7 @@ FingerprintBadge SetupFingerprintBadge(
 
 	std::move(
 		fingerprint
-	) | rpl::start_with_next([=](const QByteArray &fingerprint) {
+	) | rpl::on_next([=](const QByteArray &fingerprint) {
 		auto buffered = base::BufferedRandom<uint32>(
 			kEmojiInCarousel * kEmojiInFingerprint);
 		const auto now = crl::now();
@@ -615,7 +615,7 @@ void SetupFingerprintTooltip(not_null<Ui::RpWidget*> widget) {
 		raw->toggleAnimated(true);
 	};
 
-	widget->events() | rpl::start_with_next([=](not_null<QEvent*> e) {
+	widget->events() | rpl::on_next([=](not_null<QEvent*> e) {
 		const auto type = e->type();
 		if (type == QEvent::Enter) {
 			// Enter events may come from widget destructors,
@@ -681,7 +681,7 @@ void SetupFingerprintBadgeWidget(
 	const auto ratio = style::DevicePixelRatio();
 	const auto esize = Ui::Emoji::GetSizeNormal();
 	const auto size = esize / ratio;
-	widget->widthValue() | rpl::start_with_next([=](int width) {
+	widget->widthValue() | rpl::on_next([=](int width) {
 		static_assert(!(kEmojiInFingerprint % 2));
 
 		const auto available = width
@@ -729,7 +729,7 @@ void SetupFingerprintBadgeWidget(
 	}, lifetime);
 
 	const auto cache = lifetime.make_state<FingerprintBadgeCache>();
-	button->paintRequest() | rpl::start_with_next([=] {
+	button->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(button);
 
 		const auto outer = button->rect();
@@ -770,7 +770,7 @@ void SetupFingerprintBadgeWidget(
 		}
 	}, lifetime);
 
-	std::move(repaints) | rpl::start_with_next([=] {
+	std::move(repaints) | rpl::on_next([=] {
 		button->update();
 	}, lifetime);
 

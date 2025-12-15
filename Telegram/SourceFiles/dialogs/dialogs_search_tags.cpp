@@ -92,7 +92,7 @@ SearchTags::SearchTags(
 	rpl::combine(
 		std::move(tags),
 		Data::AmPremiumValue(&owner->session())
-	) | rpl::start_with_next([=](
+	) | rpl::on_next([=](
 			const std::vector<Data::Reaction> &list,
 			bool premium) {
 		fill(list, premium);
@@ -107,7 +107,7 @@ SearchTags::SearchTags(
 	}
 
 	style::PaletteChanged(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_normalBg = _selectedBg = QImage();
 	}, _lifetime);
 }

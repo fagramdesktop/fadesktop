@@ -197,7 +197,7 @@ Cover::Cover(
 			_badge.widget(),
 			_badge.sizeTag());
 	});
-	_badge.updated() | rpl::start_with_next([=] {
+	_badge.updated() | rpl::on_next([=] {
 		refreshNameGeometry(width());
 	}, _name->lifetime());
 }
@@ -207,7 +207,7 @@ Cover::~Cover() = default;
 void Cover::setupChildGeometry() {
 	using namespace rpl::mappers;
 	widthValue(
-	) | rpl::start_with_next([=](int newWidth) {
+	) | rpl::on_next([=](int newWidth) {
 		_userpic->moveToLeft(
 			st::settingsPhotoLeft,
 			st::settingsPhotoTop,
@@ -221,7 +221,7 @@ void Cover::setupChildGeometry() {
 void Cover::initViewers() {
 	Info::Profile::NameValue(
 		_user
-	) | rpl::start_with_next([=](const QString &name) {
+	) | rpl::on_next([=](const QString &name) {
 		_name->setText(name);
 		refreshNameGeometry(width());
 	}, lifetime());
@@ -230,14 +230,14 @@ void Cover::initViewers() {
 
 	Info::Profile::PhoneValue(
 		_user
-	) | rpl::start_with_next([=](const TextWithEntities &value) {
+	) | rpl::on_next([=](const TextWithEntities &value) {
 		_phone->setText(hide_phone ? QString("Phone hidden") : QString::fromStdString(value.text.toStdString()));
 		refreshPhoneGeometry(width());
 	}, lifetime());
 
 	Info::Profile::UsernameValue(
 		_user
-	) | rpl::start_with_next([=](const TextWithEntities &value) {
+	) | rpl::on_next([=](const TextWithEntities &value) {
 		_username->setMarkedText(Ui::Text::Link(value.text.isEmpty()
 			? tr::lng_settings_username_add(tr::now)
 			: value.text));
@@ -315,12 +315,12 @@ void Cover::refreshUsernameGeometry(int newWidth) {
 
 	const auto isPausedValue
 		= button->lifetime().make_state<rpl::variable<bool>>(isPaused());
-	isPausedValue->value() | rpl::start_with_next([=](bool value) {
+	isPausedValue->value() | rpl::on_next([=](bool value) {
 		ministars->setPaused(value);
 	}, ministarsContainer->lifetime());
 
 	ministarsContainer->paintRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		(*isPausedValue) = isPaused();
 		auto p = QPainter(ministarsContainer);
 		{
@@ -352,13 +352,13 @@ void Cover::refreshUsernameGeometry(int newWidth) {
 	}();
 	badge->resize(star.size() / style::DevicePixelRatio());
 	badge->paintRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		auto p = QPainter(badge);
 		p.drawImage(0, 0, star);
 	}, badge->lifetime());
 
 	button->sizeValue(
-	) | rpl::start_with_next([=](const QSize &s) {
+	) | rpl::on_next([=](const QSize &s) {
 		badge->moveToLeft(
 			button->st().iconLeft
 				+ (st::menuIconShop.width() - badge->width()) / 2,
@@ -518,7 +518,7 @@ void SetupValidatePhoneNumberSuggestion(
 		}));
 	});
 
-	wrap->widthValue() | rpl::start_with_next([=](int width) {
+	wrap->widthValue() | rpl::on_next([=](int width) {
 		const auto buttonWidth = (width - st::inviteLinkButtonsSkip) / 2;
 		yes->setFullWidth(buttonWidth);
 		no->setFullWidth(buttonWidth);
@@ -589,7 +589,7 @@ void SetupValidatePasswordSuggestion(
 		showOther(Settings::CloudPasswordSuggestionInputId());
 	});
 
-	wrap->widthValue() | rpl::start_with_next([=](int width) {
+	wrap->widthValue() | rpl::on_next([=](int width) {
 		const auto buttonWidth = (width - st::inviteLinkButtonsSkip) / 2;
 		yes->setFullWidth(buttonWidth);
 		no->setFullWidth(buttonWidth);
@@ -969,7 +969,7 @@ void SetupInterfaceScale(
 	button->toggledValue(
 	) | rpl::map([](bool checked) {
 		return checked ? style::kScaleAuto : cEvalScale(cConfigScale());
-	}) | rpl::start_with_next([=](int scale) {
+	}) | rpl::on_next([=](int scale) {
 		setScale(scale, setScale);
 	}, button->lifetime());
 

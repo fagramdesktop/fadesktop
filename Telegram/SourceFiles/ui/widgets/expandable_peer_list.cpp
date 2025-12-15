@@ -94,7 +94,7 @@ void AddExpandablePeerList(
 	const auto overlay = Ui::CreateChild<Ui::AbstractButton>(inner);
 
 	checkbox->geometryValue(
-	) | rpl::start_with_next([=](const QRect &rect) {
+	) | rpl::on_next([=](const QRect &rect) {
 		overlay->setGeometry(rect);
 		overlay->raise();
 
@@ -108,7 +108,7 @@ void AddExpandablePeerList(
 	}, overlay->lifetime());
 
 	controller->toggleRequestsFromInner.events(
-	) | rpl::start_with_next([=](bool toggled) {
+	) | rpl::on_next([=](bool toggled) {
 		checkbox->setChecked(toggled);
 	}, checkbox->lifetime());
 	if (button) {
@@ -132,7 +132,7 @@ void AddExpandablePeerList(
 		wrap->toggle(hideRightButton, anim::type::instant);
 
 		controller->toggleRequestsFromTop.events(
-		) | rpl::start_with_next([=](bool toggled) {
+		) | rpl::on_next([=](bool toggled) {
 			wrap->toggle(toggled, anim::type::normal);
 		}, wrap->lifetime());
 
@@ -169,7 +169,7 @@ void AddExpandablePeerList(
 							(u"(%1) "_q).arg(it->second)
 						}.append(richName);
 				})
-				: std::move(name) | rpl::type_erased(),
+				: std::move(name) | rpl::type_erased,
 				st::defaultBoxCheckbox,
 				std::make_unique<Ui::CheckView>(
 					st::defaultCheck,
@@ -178,7 +178,7 @@ void AddExpandablePeerList(
 			rpl::combine(
 				line->widthValue(),
 				checkbox->widthValue()
-			) | rpl::start_with_next([=](int width, int) {
+			) | rpl::on_next([=](int width, int) {
 				userpic->moveToLeft(
 					st::boxRowPadding.left()
 						+ checkbox->checkRect().width()
@@ -207,7 +207,7 @@ void AddExpandablePeerList(
 		}) | ranges::to_vector;
 
 		clicks->events(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			controller->toggleRequestsFromInner.fire_copy(
 				checkTopOnAllInner
 				? ranges::all_of(checkboxes, &Ui::Checkbox::checked)
@@ -215,7 +215,7 @@ void AddExpandablePeerList(
 		}, container->lifetime());
 
 		controller->checkAllRequests.events(
-		) | rpl::start_with_next([=](bool checked) {
+		) | rpl::on_next([=](bool checked) {
 			for (const auto &c : checkboxes) {
 				c->setChecked(checked);
 			}

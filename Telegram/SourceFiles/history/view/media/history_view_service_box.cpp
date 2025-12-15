@@ -102,7 +102,7 @@ ServiceBox::ServiceBox(
 	InitElementTextPart(_parent, _subtitle);
 	if (auto text = _content->button()) {
 		_button.repaint = [=] { repaint(); };
-		std::move(text) | rpl::start_with_next([=](QString value) {
+		std::move(text) | rpl::on_next([=](QString value) {
 			_button.text.setText(st::semiboldTextStyle, value);
 			const auto height = st::msgServiceGiftBoxButtonHeight;
 			const auto &padding = st::msgServiceGiftBoxButtonPadding;
@@ -126,7 +126,7 @@ ServiceBox::ServiceBox(
 	}
 
 	if (auto changes = _content->changes()) {
-		std::move(changes) | rpl::start_with_next([=] {
+		std::move(changes) | rpl::on_next([=] {
 			applyContentChanges();
 		}, _lifetime);
 	}

@@ -327,7 +327,7 @@ void Item::setupTop() {
 	_top->setClickedCallback([=] {
 		_actions.fire({ .openInfo = true });
 	});
-	_top->paintRequest() | rpl::start_with_next([=](QRect clip) {
+	_top->paintRequest() | rpl::on_next([=](QRect clip) {
 		auto p = QPainter(_top.get());
 		p.fillRect(clip, st::topBarBg);
 	}, _top->lifetime());
@@ -363,7 +363,7 @@ void Item::setupTop() {
 	if (status) {
 		std::move(
 			statusFields
-		) | rpl::start_with_next([=](const StatusFields &fields) {
+		) | rpl::on_next([=](const StatusFields &fields) {
 			status->setTextColorOverride(fields.active
 				? st::windowActiveTextFg->c
 				: std::optional<QColor>());
@@ -396,7 +396,7 @@ void Item::setupTop() {
 		_top->widthValue(),
 		std::move(nameValue),
 		rpl::single(rpl::empty) | rpl::then(_badge.updated())
-	) | rpl::start_with_next([=](int width, const auto &, const auto &) {
+	) | rpl::on_next([=](int width, const auto &, const auto &) {
 		const auto &st = st::previewTop;
 		name->resizeToNaturalWidth(width
 			- st.namePosition.x()
@@ -415,7 +415,7 @@ void Item::setupTop() {
 			name->y() + name->height());
 	}, name->lifetime());
 
-	_top->geometryValue() | rpl::start_with_next([=](QRect geometry) {
+	_top->geometryValue() | rpl::on_next([=](QRect geometry) {
 		const auto &st = st::previewTop;
 		if (status) {
 			status->resizeToWidth(geometry.width()
@@ -447,7 +447,7 @@ void Item::setupMarkRead() {
 	) | rpl::then(
 		_thread->owner().chatsListFor(_thread)->unreadStateChanges(
 		) | rpl::to_empty
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		const auto state = _thread->chatListBadgesState();
 		const auto unread = (state.unreadCounter || state.unread);
 		const auto hidden = (_thread->asTopic() || _thread->asSublist())
@@ -468,7 +468,7 @@ void Item::setupMarkRead() {
 	}, _markRead->lifetime());
 
 	const auto shadow = Ui::CreateChild<Ui::PlainShadow>(this);
-	_markRead->geometryValue() | rpl::start_with_next([=](QRect geometry) {
+	_markRead->geometryValue() | rpl::on_next([=](QRect geometry) {
 		shadow->setGeometry(
 			geometry.x(),
 			geometry.y() - st::lineWidth,
@@ -493,7 +493,7 @@ void Item::setupBackground() {
 			QRect(QPoint(), size()));
 	};
 	paint();
-	_theme->repaintBackgroundRequests() | rpl::start_with_next([=] {
+	_theme->repaintBackgroundRequests() | rpl::on_next([=] {
 		paint();
 		update();
 	}, lifetime());
@@ -509,7 +509,7 @@ void Item::setupHistory() {
 		_chatStyle.get(),
 		static_cast<CornerButtonsDelegate*>(this));
 
-	_markRead->shownValue() | rpl::start_with_next([=](bool shown) {
+	_markRead->shownValue() | rpl::on_next([=](bool shown) {
 		const auto top = _top->height();
 		const auto bottom = shown ? _markRead->height() : 0;
 		_scroll->setGeometry(rect().marginsRemoved({ 0, top, 0, bottom }));
@@ -517,7 +517,7 @@ void Item::setupHistory() {
 	}, _markRead->lifetime());
 
 	_scroll->scrolls(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		updateInnerVisibleArea();
 	}, lifetime());
 	_scroll->setOverscrollBg(QColor(0, 0, 0, 0));
@@ -525,11 +525,11 @@ void Item::setupHistory() {
 	_scroll->setOverscrollTypes(Type::Real, Type::Real);
 
 	_inner->scrollKeyEvents(
-	) | rpl::start_with_next([=](not_null<QKeyEvent*> e) {
+	) | rpl::on_next([=](not_null<QKeyEvent*> e) {
 		_scroll->keyPressEvent(e);
 	}, lifetime());
 
-	_scroll->events() | rpl::start_with_next([=](not_null<QEvent*> e) {
+	_scroll->events() | rpl::on_next([=](not_null<QEvent*> e) {
 		if (e->type() == QEvent::MouseButtonDblClick) {
 			const auto button = static_cast<QMouseEvent*>(e.get())->button();
 			if (button == Qt::LeftButton) {
@@ -965,7 +965,7 @@ ChatPreview MakeChatPreview(
 	menu->addAction(std::move(action));
 	if (const auto topic = thread->asTopic()) {
 		const auto weak = base::make_weak(menu);
-		topic->destroyed() | rpl::start_with_next([weak] {
+		topic->destroyed() | rpl::on_next([weak] {
 			if (const auto strong = weak.get()) {
 				LOG(("Preview hidden for a destroyed topic."));
 				strong->hideMenu(true);

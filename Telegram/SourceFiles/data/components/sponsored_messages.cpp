@@ -60,7 +60,7 @@ SponsoredMessages::SponsoredMessages(not_null<Main::Session*> session)
 , _clearTimer([=] { clearOldRequests(); }) {
 	Data::AmPremiumValue(
 		_session
-	) | rpl::start_with_next([=](bool premium) {
+	) | rpl::on_next([=](bool premium) {
 		if (premium) {
 			clear();
 		}

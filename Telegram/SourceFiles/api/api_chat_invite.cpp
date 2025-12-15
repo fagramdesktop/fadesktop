@@ -159,7 +159,7 @@ void ConfirmSubscriptionBox(
 	state->frame.setDevicePixelRatio(style::DevicePixelRatio());
 	const auto options = Images::Option::RoundCircle;
 	userpic->paintRequest(
-	) | rpl::start_with_next([=, small = Data::PhotoSize::Small] {
+	) | rpl::on_next([=, small = Data::PhotoSize::Small] {
 		state->frame.fill(Qt::transparent);
 		{
 			auto p = QPainter(&state->frame);
@@ -194,7 +194,7 @@ void ConfirmSubscriptionBox(
 		state->photoMedia->wanted(Data::PhotoSize::Small, Data::FileOrigin());
 		if (!state->photoMedia->image(Data::PhotoSize::Small)) {
 			session->downloaderTaskFinished(
-			) | rpl::start_with_next([=] {
+			) | rpl::on_next([=] {
 				userpic->update();
 			}, userpic->lifetime());
 		}
@@ -260,7 +260,7 @@ void ConfirmSubscriptionBox(
 		rpl::combine(
 			balance->sizeValue(),
 			content->sizeValue()
-		) | rpl::start_with_next([=](const QSize &, const QSize &) {
+		) | rpl::on_next([=](const QSize &, const QSize &) {
 			balance->moveToRight(
 				st::creditsHistoryRightSkip * 2,
 				st::creditsHistoryRightSkip);
@@ -408,7 +408,7 @@ void CheckChatInvite(
 				box->boxClosing(
 				) | rpl::filter([=] {
 					return !invitePeekChannel->amIn();
-				}) | rpl::start_with_next([=] {
+				}) | rpl::on_next([=] {
 					if (const auto strong = weak.get()) {
 						strong->clearSectionStack(Window::SectionShow(
 							Window::SectionShow::Way::ClearStack,
@@ -527,7 +527,7 @@ ConfirmInviteBox::ConfirmInviteBox(
 		_photo->wanted(Data::PhotoSize::Small, Data::FileOrigin());
 		if (!_photo->image(Data::PhotoSize::Small)) {
 			_session->downloaderTaskFinished(
-			) | rpl::start_with_next([=] {
+			) | rpl::on_next([=] {
 				update();
 			}, lifetime());
 		}

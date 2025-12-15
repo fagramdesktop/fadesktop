@@ -167,7 +167,7 @@ struct State {
 	const auto inner = result->entity();
 	inner->resize(size);
 	inner->paintRequest(
-	) | rpl::start_with_next([=, &st] {
+	) | rpl::on_next([=, &st] {
 		auto p = QPainter(inner);
 		auto hq = PainterHighQualityEnabler(p);
 		p.setBrush(st.logoBg);
@@ -234,7 +234,7 @@ struct State {
 				tr::now,
 				lt_left,
 				TimeLeftText(left));
-		}) | rpl::type_erased();
+		}) | rpl::type_erased;
 	}) | rpl::flatten_latest();
 
 	auto result = object_ptr<Ui::RoundButton>(
@@ -254,7 +254,7 @@ struct State {
 	lock->setAttribute(Qt::WA_TransparentForMouseEvents);
 	lock->resize(st.lockIcon.size());
 	lock->paintRequest(
-	) | rpl::start_with_next([=, &st] {
+	) | rpl::on_next([=, &st] {
 		auto p = QPainter(lock);
 		st.lockIcon.paintInCenter(p, lock->rect());
 	}, lock->lifetime());
@@ -274,7 +274,7 @@ struct State {
 		lock->move(right + lockLeft, top + lockTop);
 	};
 
-	std::move(state) | rpl::start_with_next([=](const State &state) {
+	std::move(state) | rpl::on_next([=](const State &state) {
 		const auto cooldown = state.premium
 			&& (state.mode.cooldownTill > state.now);
 		label->setOpacity(cooldown ? kCooldownButtonLabelOpacity : 1.);
@@ -283,7 +283,7 @@ struct State {
 	}, label->lifetime());
 
 	raw->widthValue(
-	) | rpl::start_with_next(updateLabelLockGeometry, label->lifetime());
+	) | rpl::on_next(updateLabelLockGeometry, label->lifetime());
 
 	return result;
 }
@@ -348,7 +348,7 @@ struct State {
 		});
 		data->state.value() | rpl::filter([](const State &state) {
 			return state.mode.enabledTill > state.now;
-		}) | rpl::start_with_next([=] {
+		}) | rpl::on_next([=] {
 			box->closeBox();
 			show->showToast(ToastActivated());
 			if (onActivated) {

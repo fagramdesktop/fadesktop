@@ -162,7 +162,7 @@ void ShowReportMessageBox(
 									RectPart::Top | RectPart::Bottom);
 							background->lower();
 							widget->sizeValue(
-							) | rpl::start_with_next([=](const QSize &s) {
+							) | rpl::on_next([=](const QSize &s) {
 								background->resize(s);
 							}, background->lifetime());
 						}
@@ -183,7 +183,7 @@ void ShowReportMessageBox(
 							repeatRequest(repeatRequest, std::move(copy));
 						};
 						details->submits(
-						) | rpl::start_with_next(submit, details->lifetime());
+						) | rpl::on_next(submit, details->lifetime());
 						box->addButton(tr::lng_report_button(), submit);
 					} else {
 						box->addButton(

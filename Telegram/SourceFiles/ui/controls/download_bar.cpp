@@ -45,19 +45,19 @@ DownloadBar::DownloadBar(
 	_button.setDirectionUp(false);
 	_button.entity()->resize(0, st::downloadBarHeight);
 	_button.entity()->paintRequest(
-	) | rpl::start_with_next([=](QRect clip) {
+	) | rpl::on_next([=](QRect clip) {
 		auto p = Painter(_button.entity());
 		paint(p, clip);
 	}, lifetime());
 
 	style::PaletteChanged(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		refreshIcon();
 	}, lifetime());
 	refreshIcon();
 
 	_progress.value(
-	) | rpl::start_with_next([=](const DownloadBarProgress &progress) {
+	) | rpl::on_next([=](const DownloadBarProgress &progress) {
 		refreshInfo(progress);
 	}, lifetime());
 }

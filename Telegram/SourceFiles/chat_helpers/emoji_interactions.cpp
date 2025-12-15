@@ -53,7 +53,7 @@ EmojiInteractions::EmojiInteractions(not_null<Main::Session*> session)
 	_session->changes().messageUpdates(
 		Data::MessageUpdate::Flag::Destroyed
 		| Data::MessageUpdate::Flag::Edited
-	) | rpl::start_with_next([=](const Data::MessageUpdate &update) {
+	) | rpl::on_next([=](const Data::MessageUpdate &update) {
 		if (update.flags & Data::MessageUpdate::Flag::Destroyed) {
 			_outgoing.remove(update.item);
 			_incoming.remove(update.item);
@@ -408,7 +408,7 @@ void EmojiInteractions::setWaitingForDownload(bool waiting) {
 	_waitingForDownload = waiting;
 	if (_waitingForDownload) {
 		_session->downloaderTaskFinished(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			check();
 		}, _downloadCheckLifetime);
 	} else {

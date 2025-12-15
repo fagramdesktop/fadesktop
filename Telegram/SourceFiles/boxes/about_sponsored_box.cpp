@@ -42,7 +42,7 @@ void AboutSponsoredBox(not_null<Ui::GenericBox*> box) {
 		rpl::combine(
 			row->sizeValue(),
 			button->sizeValue()
-		) | rpl::start_with_next([=](
+		) | rpl::on_next([=](
 				const QSize &rowSize,
 				const QSize &buttonSize) {
 			button->moveToLeft(

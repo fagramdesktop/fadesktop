@@ -119,7 +119,7 @@ void ConnectStarRef(
 		st::starrefLinkCountFont->height);
 	const auto badgeRect = badge.marginsAdded(st::starrefLinkCountPadding);
 
-	raw->paintRequest() | rpl::start_with_next([=] {
+	raw->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(raw);
 		p.setPen(Qt::NoPen);
 		p.setBrush(st::windowBgActive);
@@ -285,12 +285,12 @@ not_null<Ui::AbstractButton*> AddViewListButton(
 	dummy->show();
 
 	parent->sizeValue(
-	) | rpl::start_with_next([=](const QSize &s) {
+	) | rpl::on_next([=](const QSize &s) {
 		dummy->resize(s.width(), iconSize.height());
 	}, dummy->lifetime());
 
 	button->geometryValue(
-	) | rpl::start_with_next([=](const QRect &r) {
+	) | rpl::on_next([=](const QRect &r) {
 		dummy->moveToLeft(0, r.y() + (r.height() - iconSize.height()) / 2);
 	}, dummy->lifetime());
 
@@ -303,7 +303,7 @@ not_null<Ui::AbstractButton*> AddViewListButton(
 		parent->widthValue(),
 		label->heightValue(),
 		description->heightValue()
-	) | rpl::start_with_next([=,
+	) | rpl::on_next([=,
 		topPadding = titlePadding,
 		bottomPadding = descriptionPadding](
 			int width,
@@ -319,7 +319,7 @@ not_null<Ui::AbstractButton*> AddViewListButton(
 			+ bottomPadding.bottom());
 	}, button->lifetime());
 	label->topValue(
-	) | rpl::start_with_next([=, padding = titlePadding.top()](int top) {
+	) | rpl::on_next([=, padding = titlePadding.top()](int top) {
 		button->moveToLeft(0, top - padding);
 	}, button->lifetime());
 	const auto arrow = Ui::CreateChild<Ui::IconButton>(
@@ -330,7 +330,7 @@ not_null<Ui::AbstractButton*> AddViewListButton(
 		&st::settingsPremiumArrowOver);
 	arrow->setAttribute(Qt::WA_TransparentForMouseEvents);
 	button->sizeValue(
-	) | rpl::start_with_next([=](const QSize &s) {
+	) | rpl::on_next([=](const QSize &s) {
 		const auto &point = st::settingsPremiumArrowShift;
 		arrow->moveToRight(
 			-point.x(),
@@ -353,7 +353,7 @@ not_null<Ui::RoundButton*> AddFullWidthButton(
 	rpl::combine(
 		box->widthValue(),
 		result->widthValue()
-	) | rpl::start_with_next([=](int width, int buttonWidth) {
+	) | rpl::on_next([=](int width, int buttonWidth) {
 		const auto correct = width
 			- boxSt.buttonPadding.left()
 			- boxSt.buttonPadding.right();
@@ -377,7 +377,7 @@ void AddFullWidthButtonFooter(
 		std::move(text),
 		st::starrefJoinFooter);
 	footer->setTryMakeSimilarLines(true);
-	button->geometryValue() | rpl::start_with_next([=](QRect geometry) {
+	button->geometryValue() | rpl::on_next([=](QRect geometry) {
 		footer->resizeToWidth(geometry.width());
 		const auto &st = box->getDelegate()->style();
 		const auto top = geometry.y() + geometry.height();
@@ -402,7 +402,7 @@ object_ptr<Ui::AbstractButton> MakeLinkLabel(
 	const auto raw = result.data();
 
 	raw->resize(height, height);
-	raw->paintRequest() | rpl::start_with_next([=] {
+	raw->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(raw);
 		auto hq = PainterHighQualityEnabler(p);
 		p.setPen(Qt::NoPen);
@@ -557,7 +557,7 @@ object_ptr<Ui::BoxContent> JoinStarRefBox(
 			QMargins());
 
 		state->recipient.value(
-		) | rpl::start_with_next([=](not_null<PeerData*> recipient) {
+		) | rpl::on_next([=](not_null<PeerData*> recipient) {
 			while (userpicsWrap->count()) {
 				delete userpicsWrap->widgetAt(0);
 			}
@@ -638,7 +638,7 @@ object_ptr<Ui::BoxContent> JoinStarRefBox(
 				object_ptr<Ui::VerticalLayout>(box),
 				QMargins());
 			state->recipient.value(
-			) | rpl::start_with_next([=](not_null<PeerData*> recipient) {
+			) | rpl::on_next([=](not_null<PeerData*> recipient) {
 				while (recipientWrap->count()) {
 					delete recipientWrap->widgetAt(0);
 				}
@@ -656,7 +656,7 @@ object_ptr<Ui::BoxContent> JoinStarRefBox(
 					const auto height = st::chatGiveawayPeerSize
 						- st::chatGiveawayPeerPadding.top() * 2;
 					right->resize(skip + icon->width(), height);
-					right->paintRequest() | rpl::start_with_next([=] {
+					right->paintRequest() | rpl::on_next([=] {
 						auto p = QPainter(right);
 						icon->paint(
 							p,
@@ -748,7 +748,7 @@ object_ptr<Ui::BoxContent> ConfirmEndBox(Fn<void()> finish) {
 						st::blockUserConfirmation),
 					QMargins(st::boxTextFont->height, 0, 0, 0)),
 				margins);
-			padded->paintRequest() | rpl::start_with_next([=] {
+			padded->paintRequest() | rpl::on_next([=] {
 				auto p = QPainter(padded);
 				auto hq = PainterHighQualityEnabler(p);
 				const auto size = st::starrefEndBulletSize;
@@ -893,7 +893,7 @@ std::unique_ptr<Ui::AbstractButton> MakePeerBubbleButton(
 	rpl::combine(
 		raw->sizeValue(),
 		std::move(rightWidth)
-	) | rpl::start_with_next([=](QSize outer, int rwidth) {
+	) | rpl::on_next([=](QSize outer, int rwidth) {
 		const auto full = outer.width();
 		const auto decorations = size
 			+ padding.left()
@@ -918,7 +918,7 @@ std::unique_ptr<Ui::AbstractButton> MakePeerBubbleButton(
 				outer.width());
 		}
 	}, raw->lifetime());
-	raw->paintRequest() | rpl::start_with_next([=] {
+	raw->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(raw);
 		const auto left = (raw->width() - *width) / 2;
 		const auto skip = size / 2;

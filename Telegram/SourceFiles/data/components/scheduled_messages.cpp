@@ -117,7 +117,7 @@ ScheduledMessages::ScheduledMessages(not_null<Main::Session*> session)
 	_session->data().itemRemoved(
 	) | rpl::filter([](not_null<const HistoryItem*> item) {
 		return item->isScheduled();
-	}) | rpl::start_with_next([=](not_null<const HistoryItem*> item) {
+	}) | rpl::on_next([=](not_null<const HistoryItem*> item) {
 		remove(item);
 	}, _lifetime);
 }

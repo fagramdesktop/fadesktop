@@ -84,7 +84,7 @@ GroupCall::GroupCall(
 			return !update.now
 				&& !update.was->peer->isSelf()
 				&& !_participantsWithAccess.current().empty();
-		}) | rpl::start_with_next([=](const ParticipantUpdate &update) {
+		}) | rpl::on_next([=](const ParticipantUpdate &update) {
 			if (const auto id = peerToUser(update.was->peer->id)) {
 				if (_participantsWithAccess.current().contains(id)) {
 					_staleParticipantIds.fire({ id });
@@ -95,7 +95,7 @@ GroupCall::GroupCall(
 		_participantsWithAccess.changes(
 		) | rpl::filter([=](const base::flat_set<UserId> &list) {
 			return !list.empty();
-		}) | rpl::start_with_next([=] {
+		}) | rpl::on_next([=] {
 			if (_allParticipantsLoaded) {
 				checkStaleParticipants();
 			} else {

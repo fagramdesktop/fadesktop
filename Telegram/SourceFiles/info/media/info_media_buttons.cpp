@@ -369,7 +369,7 @@ not_null<Ui::SettingsButton*> AddPeerGiftsButton(
 
 	rpl::duplicate(forked) | rpl::filter(
 		rpl::mappers::_1 > 0
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		state->appearedLifetime.destroy();
 		const auto requestDone = crl::guard(wrap, [=](
 				std::vector<Data::SavedStarGift> gifts) {

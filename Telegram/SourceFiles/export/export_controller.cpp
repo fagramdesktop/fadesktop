@@ -163,12 +163,12 @@ ControllerObject::ControllerObject(
 : _api(mtproto, weak.runner())
 , _state(PasswordCheckState{}) {
 	_api.errors(
-	) | rpl::start_with_next([=](const MTP::Error &error) {
+	) | rpl::on_next([=](const MTP::Error &error) {
 		setState(ApiErrorState{ error });
 	}, _lifetime);
 
 	_api.ioErrors(
-	) | rpl::start_with_next([=](const Output::Result &result) {
+	) | rpl::on_next([=](const Output::Result &result) {
 		ioCatchError(result);
 	}, _lifetime);
 
@@ -193,12 +193,12 @@ ControllerObject::ControllerObject(
 , _topicPeerId(peerId)
 , _topicTitle(topicTitle) {
 	_api.errors(
-	) | rpl::start_with_next([=](const MTP::Error &error) {
+	) | rpl::on_next([=](const MTP::Error &error) {
 		setState(ApiErrorState{ error });
 	}, _lifetime);
 
 	_api.ioErrors(
-	) | rpl::start_with_next([=](const Output::Result &result) {
+	) | rpl::on_next([=](const Output::Result &result) {
 		ioCatchError(result);
 	}, _lifetime);
 

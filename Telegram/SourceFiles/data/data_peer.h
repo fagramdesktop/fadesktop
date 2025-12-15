@@ -492,7 +492,7 @@ public:
 	[[nodiscard]] auto barSettingsValue() const {
 		return (_barSettings.current() & PeerBarSetting::Unknown)
 			? _barSettings.changes()
-			: (_barSettings.value() | rpl::type_erased());
+			: (_barSettings.value() | rpl::type_erased);
 	}
 	[[nodiscard]] int paysPerMessage() const;
 	void clearPaysPerMessage();

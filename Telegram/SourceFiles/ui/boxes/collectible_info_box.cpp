@@ -82,7 +82,7 @@ constexpr auto kTonMultiplier = uint64(1000000000);
 	const auto nameWidth = st->style.font->width(name);
 	const auto added = size + st->padding.left() + st->padding.right();
 	const auto subscribed = std::make_shared<bool>(false);
-	raw->paintRequest() | rpl::start_with_next([=] {
+	raw->paintRequest() | rpl::on_next([=] {
 		const auto use = std::min(nameWidth + added, raw->width());
 		const auto x = (raw->width() - use) / 2;
 		if (const auto available = use - added; available > 0) {
@@ -132,7 +132,7 @@ void CollectibleInfoBox(
 		object_ptr<Ui::FixedHeightWidget>(box, st::collectibleIconDiameter),
 		st::collectibleIconPadding);
 	icon->paintRequest(
-	) | rpl::start_with_next([=](QRect clip) {
+	) | rpl::on_next([=](QRect clip) {
 		const auto size = icon->height();
 		const auto inner = QRect(
 			(icon->width() - size) / 2,
@@ -160,11 +160,11 @@ void CollectibleInfoBox(
 		},
 		QMargins());
 	box->showFinishes(
-	) | rpl::start_with_next([animate = std::move(lottie.animate)] {
+	) | rpl::on_next([animate = std::move(lottie.animate)] {
 		animate(anim::repeat::once);
 	}, box->lifetime());
 	const auto animation = lottie.widget.release();
-	icon->sizeValue() | rpl::start_with_next([=](QSize size) {
+	icon->sizeValue() | rpl::on_next([=](QSize size) {
 		const auto skip = (type == CollectibleType::Phone)
 			? style::ConvertScale(2)
 			: 0;
@@ -260,11 +260,11 @@ void CollectibleInfoBox(
 		box->closeBox();
 	});
 	box->widthValue(
-	) | rpl::start_with_next([=](int width) {
+	) | rpl::on_next([=](int width) {
 		close->moveToRight(0, 0);
 	}, box->lifetime());
 
-	box->widthValue() | rpl::start_with_next([=](int width) {
+	box->widthValue() | rpl::on_next([=](int width) {
 		more->setFullWidth(width
 			- st::collectibleMorePadding.left()
 			- st::collectibleMorePadding.right());

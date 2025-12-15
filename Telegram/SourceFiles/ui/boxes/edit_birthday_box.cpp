@@ -82,7 +82,7 @@ void EditBirthdayBox(
 		content->sizeValue(),
 		state->months.value(),
 		state->days.value()
-	) | rpl::start_with_next([=](
+	) | rpl::on_next([=](
 			QSize s,
 			Ui::VerticalDrumPicker *months,
 			Ui::VerticalDrumPicker *days) {
@@ -98,7 +98,7 @@ void EditBirthdayBox(
 
 	Ui::SendPendingMoveResizeEvents(years);
 
-	years->value() | rpl::start_with_next([=](int yearsIndex) {
+	years->value() | rpl::on_next([=](int yearsIndex) {
 		const auto year = (yearsIndex == yearsCount - 1)
 			? 0
 			: minYear + yearsIndex;
@@ -134,7 +134,7 @@ void EditBirthdayBox(
 		return picker ? picker->value() : rpl::single(current.month()
 			? (current.month() - 1)
 			: (now.month() - 1));
-	}) | rpl::flatten_latest() | rpl::start_with_next([=](int monthIndex) {
+	}) | rpl::flatten_latest() | rpl::on_next([=](int monthIndex) {
 		const auto month = monthIndex + 1;
 		const auto yearsIndex = years->index();
 		const auto year = (yearsIndex == yearsCount - 1)
@@ -170,7 +170,7 @@ void EditBirthdayBox(
 	}, years->lifetime());
 
 	content->paintRequest(
-	) | rpl::start_with_next([=](const QRect &r) {
+	) | rpl::on_next([=](const QRect &r) {
 		auto p = QPainter(content);
 
 		p.fillRect(r, Qt::transparent);

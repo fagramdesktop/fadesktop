@@ -102,12 +102,12 @@ void Viewport::setup() {
 	_content->sizeValue(
 	) | rpl::filter([=] {
 		return wide() || videoStream();
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		updateTilesGeometry();
 	}, lifetime());
 
 	_content->events(
-	) | rpl::start_with_next([=](not_null<QEvent*> e) {
+	) | rpl::on_next([=](not_null<QEvent*> e) {
 		const auto type = e->type();
 		if (type == QEvent::Enter) {
 			Ui::Integration::Instance().registerLeaveSubscription(raw);
@@ -299,12 +299,12 @@ void Viewport::add(
 	_tiles.back()->trackSizeValue(
 	) | rpl::filter([](QSize size) {
 		return !size.isEmpty();
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		updateTilesGeometry();
 	}, _tiles.back()->lifetime());
 
 	_tiles.back()->track()->stateValue(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		updateTilesGeometry();
 	}, _tiles.back()->lifetime());
 }

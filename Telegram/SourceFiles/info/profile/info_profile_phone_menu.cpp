@@ -84,7 +84,7 @@ TextItem::TextItem(
 	setMinWidth(std::max(min1, min2) + added);
 
 	sizeValue(
-	) | rpl::start_with_next([=](const QSize &s) {
+	) | rpl::on_next([=](const QSize &s) {
 		if (s.width() <= added) {
 			return;
 		}

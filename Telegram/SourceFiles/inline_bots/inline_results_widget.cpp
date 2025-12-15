@@ -53,18 +53,18 @@ Widget::Widget(
 	_inner->moveToLeft(0, 0, _scroll->width());
 
 	_scroll->scrolls(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		onScroll();
 	}, lifetime());
 
 	_inner->inlineRowsCleared(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		hideAnimated();
 		_inner->clearInlineRowsPanel();
 	}, lifetime());
 
 	style::PaletteChanged(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_innerRounding = Ui::PrepareCornerPixmaps(
 			ImageRoundRadius::Small,
 			st::emojiPanBg);
@@ -73,7 +73,7 @@ Widget::Widget(
 	macWindowDeactivateEvents(
 	) | rpl::filter([=] {
 		return !isHidden();
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		leaveEvent(nullptr);
 	}, lifetime());
 

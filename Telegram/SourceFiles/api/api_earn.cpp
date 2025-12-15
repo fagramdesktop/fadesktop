@@ -69,7 +69,7 @@ void HandleWithdrawalButton(
 		state->lifetime = session->api().cloudPassword().state(
 		) | rpl::take(
 			1
-		) | rpl::start_with_next([=](const Core::CloudPasswordState &pass) {
+		) | rpl::on_next([=](const Core::CloudPasswordState &pass) {
 			state->loading = false;
 
 			auto fields = PasscodeBox::CloudFields::From(pass);

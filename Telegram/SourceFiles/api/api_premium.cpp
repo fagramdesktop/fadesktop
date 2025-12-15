@@ -95,7 +95,7 @@ Premium::Premium(not_null<ApiWrap*> api)
 		// only queued, because it is not constructed yet.
 		Data::AmPremiumValue(
 			_session
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			reload();
 			if (_session->premium()) {
 				reloadCloudSet();

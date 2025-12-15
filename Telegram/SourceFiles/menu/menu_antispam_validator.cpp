@@ -93,10 +93,10 @@ object_ptr<Ui::RpWidget> AntiSpamValidator::createButton() const {
 	_channel->session().changes().peerUpdates(
 		_channel,
 		UpdateFlag::Members | UpdateFlag::Admins
-	) | rpl::start_with_next(updateLocked, button->lifetime());
+	) | rpl::on_next(updateLocked, button->lifetime());
 	updateLocked();
 	button->toggledValue(
-	) | rpl::start_with_next([=, controller = _controller](bool toggled) {
+	) | rpl::on_next([=, controller = _controller](bool toggled) {
 		if (state->locked.current() && toggled) {
 			state->toggled.fire(false);
 			controller->showToast(tr::lng_manage_peer_antispam_not_enough(

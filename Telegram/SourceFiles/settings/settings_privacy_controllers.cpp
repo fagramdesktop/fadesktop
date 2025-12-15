@@ -111,7 +111,7 @@ void BlockPeerBoxController::prepareViewHook() {
 	delegate()->peerListSetTitle(tr::lng_blocked_list_add_title());
 	session().changes().peerUpdates(
 		Data::PeerUpdate::Flag::IsBlocked
-	) | rpl::start_with_next([=](const Data::PeerUpdate &update) {
+	) | rpl::on_next([=](const Data::PeerUpdate &update) {
 		if (auto row = delegate()->peerListFindRow(update.peer->id.value)) {
 			updateIsBlocked(row, update.peer);
 			delegate()->peerListUpdateRow(row);
@@ -350,14 +350,14 @@ void BlockedBoxController::prepare() {
 
 	session().changes().peerUpdates(
 		Data::PeerUpdate::Flag::IsBlocked
-	) | rpl::start_with_next([=](const Data::PeerUpdate &update) {
+	) | rpl::on_next([=](const Data::PeerUpdate &update) {
 		handleBlockedEvent(update.peer);
 	}, lifetime());
 
 	session().api().blockedPeers().slice(
 	) | rpl::take(
 		1
-	) | rpl::start_with_next([=](const Api::BlockedPeers::Slice &result) {
+	) | rpl::on_next([=](const Api::BlockedPeers::Slice &result) {
 		setDescriptionText(tr::lng_blocked_list_about(tr::now));
 		applySlice(result);
 		loadMoreRows();
@@ -588,7 +588,7 @@ object_ptr<Ui::RpWidget> PhoneNumberPrivacyController::setupMiddleWidget(
 		key
 	) | rpl::take(
 		1
-	) | rpl::start_with_next([=](const PrivacyRule &value) {
+	) | rpl::on_next([=](const PrivacyRule &value) {
 		group->setValue(value.option);
 	}, widget->lifetime());
 
@@ -696,7 +696,7 @@ object_ptr<Ui::RpWidget> LastSeenPrivacyController::setupBelowWidget(
 		tr::lng_edit_lastseen_hide_read_time(),
 		st::settingsButtonNoIcon
 	))->toggleOn(privacy->hideReadTime())->toggledValue(
-	) | rpl::start_with_next([=](bool value) {
+	) | rpl::on_next([=](bool value) {
 		_hideReadTime = value;
 	}, content->lifetime());
 
@@ -1037,7 +1037,7 @@ object_ptr<Ui::RpWidget> ForwardsPrivacyController::setupAboveWidget(
 	state->item = std::move(message);
 	state->tooltip = base::make_unique_q<Ui::RpWidget>(outerContainer);
 	state->tooltip->paintRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		if (state->info.paint) {
 			auto p = QPainter(state->tooltip.get());
 			state->info.paint(p);
@@ -1079,7 +1079,7 @@ object_ptr<Ui::RpWidget> ForwardsPrivacyController::setupAboveWidget(
 	widget->widthValue(
 	) | rpl::filter(
 		_1 >= (st::historyMinimalWidth / 2)
-	) | rpl::start_with_next([=](int width) {
+	) | rpl::on_next([=](int width) {
 		const auto height = view->resizeGetHeight(width);
 		const auto top = view->marginTop();
 		const auto bottom = view->marginBottom();
@@ -1090,7 +1090,7 @@ object_ptr<Ui::RpWidget> ForwardsPrivacyController::setupAboveWidget(
 	rpl::combine(
 		widget->widthValue(),
 		std::move(optionValue)
-	) | rpl::start_with_next([=](int width, Option value) {
+	) | rpl::on_next([=](int width, Option value) {
 		state->info = PrepareForwardedTooltip(view, value);
 		state->tooltip->resize(state->info.geometry.size());
 		state->refreshGeometry();
@@ -1098,7 +1098,7 @@ object_ptr<Ui::RpWidget> ForwardsPrivacyController::setupAboveWidget(
 	}, state->tooltip->lifetime());
 
 	widget->paintRequest(
-	) | rpl::start_with_next([=](QRect rect) {
+	) | rpl::on_next([=](QRect rect) {
 		// #TODO themes
 		Window::SectionWidget::PaintBackground(
 			controller,
@@ -1216,7 +1216,7 @@ object_ptr<Ui::RpWidget> ProfilePhotoPrivacyController::setupMiddleWidget(
 		removeButton->entity());
 	userpic->resize(state->userpicSize);
 	userpic->paintRequest(
-	) | rpl::start_with_next([=](const QRect &r) {
+	) | rpl::on_next([=](const QRect &r) {
 		auto p = QPainter(userpic);
 		p.fillRect(r, Qt::transparent);
 		if (!state->localPhoto.isNull()) {
@@ -1226,7 +1226,7 @@ object_ptr<Ui::RpWidget> ProfilePhotoPrivacyController::setupMiddleWidget(
 		}
 	}, userpic->lifetime());
 	removeButton->entity()->heightValue(
-	) | rpl::start_with_next([=,
+	) | rpl::on_next([=,
 			left = stRemoveButton.iconLeft,
 			width = st::menuBlueIconPhotoSet.width()](int height) {
 		userpic->moveToLeft(
@@ -1240,7 +1240,7 @@ object_ptr<Ui::RpWidget> ProfilePhotoPrivacyController::setupMiddleWidget(
 
 	(
 		PrepareShortInfoFallbackUserpic(self, st::shortInfoCover).value
-	) | rpl::start_with_next([=](PeerShortInfoUserpic info) {
+	) | rpl::on_next([=](PeerShortInfoUserpic info) {
 		state->updatePhoto(base::take(info.photo), false);
 		userpic->update();
 	}, userpic->lifetime());
@@ -1360,7 +1360,7 @@ VoicesPrivacyController::VoicesPrivacyController(
 		not_null<::Main::Session*> session) {
 	Data::AmPremiumValue(
 		session
-	) | rpl::start_with_next([=](bool premium) {
+	) | rpl::on_next([=](bool premium) {
 		if (!premium) {
 			if (const auto box = view()) {
 				box->closeBox();
@@ -1692,13 +1692,13 @@ object_ptr<Ui::RpWidget> GiftsAutoSavePrivacyController::setupAboveWidget(
 	) | rpl::then(_state->disables.events() | rpl::map([=] {
 		return false;
 	})));
-	Data::AmPremiumValue(session) | rpl::start_with_next([=](bool value) {
+	Data::AmPremiumValue(session) | rpl::on_next([=](bool value) {
 		icon->setToggleLocked(!value);
 		if (!value) {
 			_state->disables.fire({});
 		}
 	}, icon->lifetime());
-	icon->toggledValue() | rpl::start_with_next([=](bool enable) {
+	icon->toggledValue() | rpl::on_next([=](bool enable) {
 		if (!enable) {
 			_state->disallowed &= ~Type::SendHide;
 		} else if (!session->premium()) {
@@ -1752,10 +1752,10 @@ object_ptr<Ui::RpWidget> GiftsAutoSavePrivacyController::setupBelowWidget(
 		) | rpl::then(_state->disables.events() | rpl::map([=] {
 			return true;
 		})));
-		rpl::duplicate(premium) | rpl::start_with_next([=](bool value) {
+		rpl::duplicate(premium) | rpl::on_next([=](bool value) {
 			button->setToggleLocked(!value);
 		}, button->lifetime());
-		button->toggledValue() | rpl::start_with_next([=](bool enable) {
+		button->toggledValue() | rpl::on_next([=](bool enable) {
 			if (enable) {
 				_state->disallowed &= ~type;
 			} else if (!session->premium()) {

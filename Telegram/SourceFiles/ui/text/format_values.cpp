@@ -103,7 +103,7 @@ QString FormatDateTime(QDateTime date) {
 	}
 }
 
-QString FormatDateTimeSavedFrom(QDateTime dateTime, bool shortFormat) {
+QString FormatDateTimeSavedFrom(QDateTime dateTime) {
 	const auto current = QDate::currentDate();
 	const auto date = dateTime.date();
 	const auto timeStr = QLocale().toString(
@@ -111,21 +111,9 @@ QString FormatDateTimeSavedFrom(QDateTime dateTime, bool shortFormat) {
 		QLocale::ShortFormat);
 
 	if (date == current) {
-		return shortFormat
-			? timeStr
-			: tr::lng_mediaview_date_time(
-				tr::now,
-				lt_date,
-				tr::lng_weekday7(tr::now),
-				lt_time,
-				timeStr);
+		return tr::lng_mediaview_today(tr::now, lt_time, timeStr);
 	} else if (date == current.addDays(-1)) {
-		return tr::lng_mediaview_date_time(
-			tr::now,
-			lt_date,
-			tr::lng_weekday6(tr::now),
-			lt_time,
-			timeStr);
+		return tr::lng_mediaview_yesterday(tr::now, lt_time, timeStr);
 	}
 	const auto diff = std::abs(
 		base::unixtime::now() - base::unixtime::serialize(dateTime));

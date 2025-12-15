@@ -27,7 +27,7 @@ AppConfig::AppConfig(not_null<Account*> account) : _account(account) {
 	account->sessionChanges(
 	) | rpl::filter([=](Session *session) {
 		return (session != nullptr);
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		_lastFrozenRefresh = 0;
 		refresh();
 	}, _lifetime);
@@ -37,12 +37,13 @@ AppConfig::~AppConfig() = default;
 
 void AppConfig::start() {
 	_account->mtpMainSessionValue(
-	) | rpl::start_with_next([=](not_null<MTP::Instance*> instance) {
+	) | rpl::on_next([=](not_null<MTP::Instance*> instance) {
 		_api.emplace(instance);
+		_requestId = 0;
 		refresh();
 
 		_frozenTrackLifetime = instance->frozenErrorReceived(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			if (!get<int>(u"freeze_since_date"_q, 0)) {
 				const auto now = crl::now();
 				if (!_lastFrozenRefresh

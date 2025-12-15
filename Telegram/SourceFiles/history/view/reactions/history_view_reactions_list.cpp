@@ -217,7 +217,7 @@ Controller::Controller(
 		switches
 	) | rpl::filter([=](const ReactionId &reaction) {
 		return (_shownReaction != reaction);
-	}) | rpl::start_with_next([=](const ReactionId &reaction) {
+	}) | rpl::on_next([=](const ReactionId &reaction) {
 		showReaction(reaction);
 	}, lifetime());
 }

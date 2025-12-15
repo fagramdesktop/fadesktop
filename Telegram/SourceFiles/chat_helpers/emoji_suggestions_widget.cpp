@@ -763,15 +763,15 @@ SuggestionsController::SuggestionsController(
 		[=] { handleCursorPositionChange(); });
 
 	_suggestions->toggleAnimated(
-	) | rpl::start_with_next([=](bool visible) {
+	) | rpl::on_next([=](bool visible) {
 		suggestionsUpdated(visible);
 	}, _lifetime);
 	_suggestions->triggered(
-	) | rpl::start_with_next([=](const SuggestionsWidget::Chosen &chosen) {
+	) | rpl::on_next([=](const SuggestionsWidget::Chosen &chosen) {
 		replaceCurrent(chosen.emoji, chosen.customData);
 	}, _lifetime);
 	Core::App().emojiKeywords().refreshed(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_keywordsRefreshed = true;
 		if (!_showExactTimer.isActive()) {
 			showWithQuery(_lastShownQuery);
@@ -783,7 +783,7 @@ SuggestionsController::SuggestionsController(
 	_container->shownValue(
 	) | rpl::filter([=](bool shown) {
 		return shown && !_shown;
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		_container->hide();
 	}, _container->lifetime());
 

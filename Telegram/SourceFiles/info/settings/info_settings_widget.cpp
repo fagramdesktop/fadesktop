@@ -62,19 +62,19 @@ Widget::Widget(
 , _pinnedToTop(_inner->createPinnedToTop(this))
 , _pinnedToBottom(_inner->createPinnedToBottom(this)) {
 	_inner->sectionShowOther(
-	) | rpl::start_with_next([=](Type type) {
+	) | rpl::on_next([=](Type type) {
 		controller->showSettings(type);
 	}, _inner->lifetime());
 
 	_inner->sectionShowBack(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		controller->showBackFromStack();
 	}, _inner->lifetime());
 
 	_inner->setStepDataReference(controller->stepDataReference());
 
 	_removesFromStack.events(
-	) | rpl::start_with_next([=](const std::vector<Type> &types) {
+	) | rpl::on_next([=](const std::vector<Type> &types) {
 		const auto sections = ranges::views::all(
 			types
 		) | ranges::views::transform([](Type type) {
@@ -85,13 +85,13 @@ Widget::Widget(
 
 	if (_pinnedToTop) {
 		_inner->widthValue(
-		) | rpl::start_with_next([=](int w) {
+		) | rpl::on_next([=](int w) {
 			_pinnedToTop->resizeToWidth(w);
 			setScrollTopSkip(_pinnedToTop->height());
 		}, _pinnedToTop->lifetime());
 
 		_pinnedToTop->heightValue(
-		) | rpl::start_with_next([=](int h) {
+		) | rpl::on_next([=](int h) {
 			setScrollTopSkip(h);
 		}, _pinnedToTop->lifetime());
 	}
@@ -105,7 +105,7 @@ Widget::Widget(
 		};
 
 		_inner->sizeValue(
-		) | rpl::start_with_next([=](const QSize &s) {
+		) | rpl::on_next([=](const QSize &s) {
 			_pinnedToBottom->resizeToWidth(s.width());
 			//processHeight();
 		}, _pinnedToBottom->lifetime());
@@ -113,7 +113,7 @@ Widget::Widget(
 		rpl::combine(
 			_pinnedToBottom->heightValue(),
 			heightValue()
-		) | rpl::start_with_next(processHeight, _pinnedToBottom->lifetime());
+		) | rpl::on_next(processHeight, _pinnedToBottom->lifetime());
 	}
 
 	if (_pinnedToTop
@@ -127,12 +127,12 @@ Widget::Widget(
 		rpl::combine(
 			_pinnedToTop->heightValue(),
 			_inner->heightValue()
-		) | rpl::start_with_next([=](int, int h) {
+		) | rpl::on_next([=](int, int h) {
 			_flexibleScroll.contentHeightValue.fire(h + heightDiff());
 		}, _pinnedToTop->lifetime());
 
 		scrollTopValue(
-		) | rpl::start_with_next([=](int top) {
+		) | rpl::on_next([=](int top) {
 			if (!_pinnedToTop) {
 				return;
 			}
@@ -144,7 +144,7 @@ Widget::Widget(
 		}, _inner->lifetime());
 
 		_flexibleScroll.fillerWidthValue.events(
-		) | rpl::start_with_next([=](int w) {
+		) | rpl::on_next([=](int w) {
 			_inner->resizeToWidth(w);
 		}, _inner->lifetime());
 

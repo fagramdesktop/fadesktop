@@ -89,7 +89,7 @@ void PasskeysNoneBox(
 			st::settingLocalPasscodeIconPadding);
 		const auto animate = std::move(icon.animate);
 		box->addRow(std::move(icon.widget), style::al_top);
-		box->showFinishes() | rpl::take(1) | rpl::start_with_next([=] {
+		box->showFinishes() | rpl::take(1) | rpl::on_next([=] {
 			animate(anim::repeat::once);
 		}, content->lifetime());
 	}
@@ -138,13 +138,13 @@ void PasskeysNoneBox(
 			const auto left = Ui::CreateChild<Ui::RpWidget>(
 				box->verticalLayout().get());
 			left->paintRequest(
-			) | rpl::start_with_next([=] {
+			) | rpl::on_next([=] {
 				auto p = Painter(left);
 				icon.paint(p, 0, 0, left->width());
 			}, left->lifetime());
 			left->resize(icon.size());
 			top->geometryValue(
-			) | rpl::start_with_next([=](const QRect &g) {
+			) | rpl::on_next([=](const QRect &g) {
 				left->moveToLeft(
 					iconLeft,
 					g.top() + st::channelEarnHistoryThreeSkip);
@@ -171,12 +171,15 @@ void PasskeysNoneBox(
 	}
 	Ui::AddSkip(content);
 	Ui::AddSkip(content);
-	if (session->passkeys().canRegister()) {
+	{
 		const auto &st = st::premiumPreviewDoubledLimitsBox;
+		const auto canRegister = session->passkeys().canRegister();
 		box->setStyle(st);
 		auto button = object_ptr<Ui::RoundButton>(
 			box,
-			tr::lng_settings_passkeys_none_button(),
+			canRegister
+				? tr::lng_settings_passkeys_none_button()
+				: tr::lng_settings_passkeys_none_button_unsupported(),
 			st::defaultActiveButton);
 		button->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
 		button->resizeToWidth(box->width()
@@ -202,6 +205,11 @@ void PasskeysNoneBox(
 				});
 			});
 		});
+		if (!canRegister) {
+			button->setAttribute(Qt::WA_TransparentForMouseEvents);
+			button->setTextFgOverride(
+				anim::with_alpha(button->st().textFg->c, 0.5));
+		}
 		box->addButton(std::move(button));
 	}
 }
@@ -283,7 +291,7 @@ void Passkeys::setupContent(
 					QPoint(menu->width(), menu->height()));
 				popup->popup(menuGlobal);
 			});
-			button->widthValue() | rpl::start_with_next([=](int width) {
+			button->widthValue() | rpl::on_next([=](int width) {
 				menu->moveToRight(0, (st.height - menu->height()) / 2, width);
 			}, button->lifetime());
 			const auto iconSize = st::settingsIconPasskeys.width();
@@ -317,17 +325,24 @@ void Passkeys::setupContent(
 					lt_date,
 					formatDateTime(passkey.date));
 			const auto nameText = button->lifetime().make_state<
-				Ui::Text::String>(*nameStyle, passkey.name);
+				Ui::Text::String>(
+					*nameStyle,
+					passkey.name.isEmpty()
+						? tr::lng_settings_passkey_unknown(tr::now)
+						: passkey.name);
 			const auto dateText = button->lifetime().make_state<
 				Ui::Text::String>(st::defaultTextStyle, date);
 			button->paintOn([=](QPainter &p) {
+				const auto iconTop = (st.height - iconSize) / 2;
 				if (emojiPtr) {
-					const auto emojiY = (st.height - iconSize) / 2;
 					emojiPtr->paint(p, {
 						.textColor = st.nameFg->c,
 						.now = crl::now(),
-						.position = QPoint(iconLeft, emojiY),
+						.position = QPoint(iconLeft, iconTop),
 					});
+				} else {
+					const auto w = button->width();
+					st::settingsIconPasskeys.paint(p, iconLeft, iconTop, w);
 				}
 				const auto textLeft = st::settingsButton.padding.left();
 				const auto textWidth = button->width() - textLeft
@@ -369,7 +384,7 @@ void Passkeys::setupContent(
 	buttonWrap->finishAnimating();
 
 	session->passkeys().requestList(
-	) | rpl::start_with_next(rebuild, content->lifetime());
+	) | rpl::on_next(rebuild, content->lifetime());
 	rebuild();
 
 	Ui::AddSkip(content);

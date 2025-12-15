@@ -22,7 +22,9 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_menu_my_stories" = "My Stories";
 "lng_menu_my_groups" = "My Groups";
 "lng_menu_my_channels" = "My Channels";
-"lng_open_menu" = "Open navigation menu";
+"lng_main_menu" = "Main menu";
+"lng_filter_unread_chats#one" = "{text} ({count} unread chat)";
+"lng_filter_unread_chats#other" = "{text} ({count} unread chats)";
 
 "lng_disable_notifications_from_tray" = "Disable notifications";
 "lng_enable_notifications_from_tray" = "Enable notifications";
@@ -1269,10 +1271,11 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_settings_passkeys_none_info3_title" = "Store Passkey securely";
 "lng_settings_passkeys_none_info3_about" = "Your passkey is stored safely in the cloud service you choose.";
 "lng_settings_passkeys_none_button" = "Create Passkey";
+"lng_settings_passkeys_none_button_unsupported" = "Unsupported";
 "lng_settings_passkeys_created" = "Created {date}";
 "lng_settings_passkeys_last_used" = "Last used {date}";
 "lng_settings_passkeys_unsigned_error" = "Passkeys are not available in unsigned builds. Please use an official signed version of Telegram Desktop.";
-
+"lng_settings_passkey_unknown" = "Passkey";
 
 "lng_settings_quick_dialog_action_title" = "Chat list quick action";
 "lng_settings_quick_dialog_action_about" = "Choose the action you want to perform when you middle-click or swipe left in the chat list.";
@@ -4093,8 +4096,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_auction_rounds_label" = "Rounds";
 "lng_auction_rounds_exact" = "Round {n}";
 "lng_auction_rounds_range" = "Rounds {n}-{last}";
-"lng_auction_rounds_seconds#one" = "{count} minute each";
-"lng_auction_rounds_seconds#other" = "{count} minutes each";
+"lng_auction_rounds_seconds#one" = "{count} second each";
+"lng_auction_rounds_seconds#other" = "{count} seconds each";
 "lng_auction_rounds_minutes#one" = "{count} minute each";
 "lng_auction_rounds_minutes#other" = "{count} minutes each";
 "lng_auction_rounds_hours#one" = "{count} hour each";

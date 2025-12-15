@@ -195,7 +195,7 @@ void ArchiveHintBox(
 		owned->setNaturalWidth(rect.width());
 		const auto widget = box->addRow(std::move(owned), style::al_top);
 		widget->paintRequest(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			auto p = Painter(widget);
 			auto hq = PainterHighQualityEnabler(p);
 			p.setPen(Qt::NoPen);
@@ -272,13 +272,13 @@ void ArchiveHintBox(
 			const auto left = Ui::CreateChild<Ui::RpWidget>(
 				box->verticalLayout().get());
 			left->paintRequest(
-			) | rpl::start_with_next([=] {
+			) | rpl::on_next([=] {
 				auto p = Painter(left);
 				icon.paint(p, 0, 0, left->width());
 			}, left->lifetime());
 			left->resize(icon.size());
 			top->geometryValue(
-			) | rpl::start_with_next([=](const QRect &g) {
+			) | rpl::on_next([=](const QRect &g) {
 				left->moveToLeft(
 					(g.left() - left->width()) / 2,
 					g.top() + st::channelEarnHistoryThreeSkip);

@@ -189,7 +189,7 @@ void ListWidget::start() {
 	_controller->setSearchEnabledByContent(false);
 
 	_provider->layoutRemoved(
-	) | rpl::start_with_next([=](not_null<BaseLayout*> layout) {
+	) | rpl::on_next([=](not_null<BaseLayout*> layout) {
 		if (_overLayout == layout) {
 			_overLayout = nullptr;
 		}
@@ -197,7 +197,7 @@ void ListWidget::start() {
 	}, lifetime());
 
 	_provider->refreshed(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		refreshRows();
 	}, lifetime());
 
@@ -205,7 +205,7 @@ void ListWidget::start() {
 		_provider->refreshViewer();
 
 		_controller->searchQueryValue(
-		) | rpl::start_with_next([this](QString &&query) {
+		) | rpl::on_next([this](QString &&query) {
 			_provider->setSearchQuery(std::move(query));
 		}, lifetime());
 	} else if (_controller->storiesPeer()) {
@@ -221,7 +221,7 @@ void ListWidget::start() {
 		(_controller->key().isGlobalMedia()
 			? _controller->searchQueryValue()
 			: _controller->mediaSourceQueryValue()
-		) | rpl::start_with_next([this] {
+		) | rpl::on_next([this] {
 			restart();
 		}, lifetime());
 
@@ -232,7 +232,7 @@ void ListWidget::start() {
 					const Data::Session::ItemVisibilityQuery &query) {
 				return _provider->isPossiblyMyItem(query.item)
 					&& isVisible();
-			}) | rpl::start_with_next([=](
+			}) | rpl::on_next([=](
 					const Data::Session::ItemVisibilityQuery &query) {
 				if (const auto found = findItemByItem(query.item)) {
 					if (itemVisible(found->layout)) {
@@ -250,27 +250,27 @@ void ListWidget::subscribeToSession(
 		not_null<Main::Session*> session,
 		rpl::lifetime &lifetime) {
 	session->downloaderTaskFinished(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		update();
 	}, lifetime);
 
 	session->data().itemLayoutChanged(
-	) | rpl::start_with_next([this](auto item) {
+	) | rpl::on_next([this](auto item) {
 		itemLayoutChanged(item);
 	}, lifetime);
 
 	session->data().itemRemoved(
-	) | rpl::start_with_next([this](auto item) {
+	) | rpl::on_next([this](auto item) {
 		itemRemoved(item);
 	}, lifetime);
 
 	session->data().itemRepaintRequest(
-	) | rpl::start_with_next([this](auto item) {
+	) | rpl::on_next([this](auto item) {
 		repaintItem(item);
 	}, lifetime);
 
 	session->data().itemDataChanges(
-	) | rpl::start_with_next([=](not_null<HistoryItem*> item) {
+	) | rpl::on_next([=](not_null<HistoryItem*> item) {
 		if (const auto found = findItemByItem(item)) {
 			found->layout->itemDataChanged();
 		}
@@ -281,7 +281,7 @@ void ListWidget::setupSelectRestriction() {
 	_provider->hasSelectRestrictionChanges(
 	) | rpl::filter([=] {
 		return _provider->hasSelectRestriction() && hasSelectedItems();
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		clearSelected();
 		if (_mouseAction == MouseAction::PrepareSelect) {
 			mouseActionCancel();
@@ -302,7 +302,7 @@ void ListWidget::setupStoriesTrackIds() {
 		stories->albumIdsChanged() | rpl::filter(
 			rpl::mappers::_1 == key
 		) | rpl::to_empty
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		const auto albumId = _storiesAddToAlbumId;
 		const auto &ids = stories->albumKnownInArchive(peerId, albumId);
 		if (_storiesInAlbum != ids) {
@@ -334,7 +334,7 @@ void ListWidget::setupStoriesTrackIds() {
 		stories->albumIdsChanged() | rpl::filter(
 			rpl::mappers::_1 == akey
 		) | rpl::to_empty
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_storiesAddToAlbumTotal = stories->albumIdsCount(
 			peerId,
 			_storiesAddToAlbumId);
@@ -652,7 +652,7 @@ void ListWidget::trackSession(not_null<Main::Session*> session) {
 	auto &lifetime = _trackedSessions.emplace(session).first->second;
 	subscribeToSession(session, lifetime);
 	session->account().sessionChanges(
-	) | rpl::take(1) | rpl::start_with_next([=] {
+	) | rpl::take(1) | rpl::on_next([=] {
 		_trackedSessions.remove(session);
 	}, lifetime);
 }
@@ -1759,7 +1759,7 @@ void ListWidget::deleteItems(SelectedItems &&items, Fn<void()> confirmed) {
 void ListWidget::setActionBoxWeak(base::weak_qptr<Ui::BoxContent> box) {
 	if ((_actionBoxWeak = box)) {
 		_actionBoxWeakLifetime = _actionBoxWeak->alive(
-		) | rpl::start_with_done([weak = base::make_weak(this)]{
+		) | rpl::on_done([weak = base::make_weak(this)]{
 			if (weak) {
 				weak->_checkForHide.fire({});
 			}

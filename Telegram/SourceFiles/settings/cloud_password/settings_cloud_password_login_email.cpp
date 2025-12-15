@@ -68,7 +68,7 @@ void LoginEmail::setupContent() {
 		tr::lng_settings_cloud_login_email_placeholder(),
 		QString());
 	const auto error = AddError(content, nullptr);
-	newInput->changes() | rpl::start_with_next([=] {
+	newInput->changes() | rpl::on_next([=] {
 		error->hide();
 	}, newInput->lifetime());
 	newInput->setText(newEmail);
@@ -159,7 +159,7 @@ void LoginEmail::setupContent() {
 	}
 
 	const auto submit = [=] { button->clicked({}, Qt::LeftButton); };
-	newInput->submits() | rpl::start_with_next(submit, newInput->lifetime());
+	newInput->submits() | rpl::on_next(submit, newInput->lifetime());
 
 	setFocusCallback([=] { newInput->setFocus(); });
 

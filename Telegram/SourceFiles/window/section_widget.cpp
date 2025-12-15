@@ -118,7 +118,7 @@ struct ResolvedPaper {
 
 		consumer.put_next_copy(rpl::empty);
 		style::PaletteChanged(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			if (state->scheduled) {
 				return;
 			}
@@ -234,7 +234,7 @@ AbstractSectionWidget::AbstractSectionWidget(
 				theme->repaintBackgroundRequests()
 			);
 		}) | rpl::flatten_latest();
-	}) | rpl::flatten_latest() | rpl::start_with_next([=] {
+	}) | rpl::flatten_latest() | rpl::on_next([=] {
 		update();
 	}, lifetime());
 }

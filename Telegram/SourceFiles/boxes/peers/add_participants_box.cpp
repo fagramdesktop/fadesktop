@@ -273,7 +273,7 @@ void SimpleForbiddenBox(
 
 	Data::AmPremiumValue(
 		&peer->session()
-	) | rpl::skip(1) | rpl::start_with_next([=] {
+	) | rpl::skip(1) | rpl::on_next([=] {
 		box->closeBox();
 	}, box->lifetime());
 }
@@ -555,7 +555,7 @@ void InviteForbiddenController::setComplexCover() {
 
 void InviteForbiddenController::prepare() {
 	session().api().premium().someMessageMoneyRestrictionsResolved(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		auto stars = 0;
 		const auto process = [&](not_null<PeerListRow*> raw) {
 			const auto row = static_cast<ForbiddenRow*>(raw.get());
@@ -667,7 +667,7 @@ void InviteForbiddenController::send(
 	if (!waiting.empty()) {
 		session().changes().peerUpdates(
 			Data::PeerUpdate::Flag::FullInfo
-		) | rpl::start_with_next([=](const Data::PeerUpdate &update) {
+		) | rpl::on_next([=](const Data::PeerUpdate &update) {
 			if (waiting.contains(update.peer)) {
 				withPaymentApproved(alreadyApproved);
 			}
@@ -677,7 +677,7 @@ void InviteForbiddenController::send(
 			session().credits().loadedValue(
 			) | rpl::filter(
 				rpl::mappers::_1
-			) | rpl::take(1) | rpl::start_with_next([=] {
+			) | rpl::take(1) | rpl::on_next([=] {
 				withPaymentApproved(alreadyApproved);
 			}, _paymentCheckLifetime);
 		}
@@ -750,7 +750,7 @@ void InviteForbiddenController::send(
 		_peer->session().changes().peerUpdates(
 			_peer,
 			Data::PeerUpdate::Flag::FullInfo
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			sendForFull();
 		}, lifetime());
 	}
@@ -926,7 +926,7 @@ void AddParticipantsBoxController::addInviteLinkButton() {
 		st::inviteViaLinkIcon,
 		QPoint());
 	button->entity()->heightValue(
-	) | rpl::start_with_next([=](int height) {
+	) | rpl::on_next([=](int height) {
 		icon->moveToLeft(
 			st::inviteViaLinkIconPosition.x(),
 			(height - st::inviteViaLinkIcon.height()) / 2);
@@ -938,7 +938,7 @@ void AddParticipantsBoxController::addInviteLinkButton() {
 	button->entity()->events(
 	) | rpl::filter([=](not_null<QEvent*> e) {
 		return (e->type() == QEvent::Enter);
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		delegate()->peerListMouseLeftGeometry();
 	}, button->lifetime());
 	delegate()->peerListSetAboveWidget(std::move(button));
@@ -1062,7 +1062,7 @@ void AddParticipantsBoxController::Start(
 			[=] { box->closeBox(); });
 		if (justCreated) {
 			const auto weak = base::make_weak(parent);
-			box->boxClosing() | rpl::start_with_next([=] {
+			box->boxClosing() | rpl::on_next([=] {
 				auto params = Window::SectionShow();
 				params.activation = anim::activation::background;
 				if (const auto strong = weak.get()) {
@@ -1145,7 +1145,7 @@ bool ChatInviteForbidden(
 		) | rpl::map(
 			rpl::mappers::_1 > 0
 		) | rpl::distinct_until_changed(
-		) | rpl::start_with_next([=](bool has) {
+		) | rpl::on_next([=](bool has) {
 			box->clearButtons();
 			if (has) {
 				const auto send = box->addButton(tr::lng_via_link_send(), [=] {
@@ -1165,7 +1165,7 @@ bool ChatInviteForbidden(
 
 		Data::AmPremiumValue(
 			&peer->session()
-		) | rpl::skip(1) | rpl::start_with_next([=] {
+		) | rpl::skip(1) | rpl::on_next([=] {
 			box->closeBox();
 		}, box->lifetime());
 	};
@@ -1272,7 +1272,7 @@ void AddSpecialBoxController::prepareChatRows(not_null<ChatData*> chat) {
 	chat->session().changes().peerUpdates(
 		chat,
 		UpdateFlag::Members | UpdateFlag::Admins
-	) | rpl::start_with_next([=](const Data::PeerUpdate &update) {
+	) | rpl::on_next([=](const Data::PeerUpdate &update) {
 		_additional.fillFromPeer();
 		if (update.flags & UpdateFlag::Members) {
 			rebuildChatRows(chat);

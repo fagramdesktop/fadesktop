@@ -276,12 +276,12 @@ Session::Session(not_null<Main::Session*> session)
 	setupUserIsContactViewer();
 
 	_chatsList.unreadStateChanges(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		notifyUnreadBadgeChanged();
 	}, _lifetime);
 
 	_chatsFilters->changed(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		const auto enabled = _chatsFilters->has();
 		if (enabled != session->settings().dialogsFiltersEnabled()) {
 			session->settings().setDialogsFiltersEnabled(enabled);
@@ -290,7 +290,7 @@ Session::Session(not_null<Main::Session*> session)
 	}, _lifetime);
 
 	_reactions->myTagRenamed(
-	) | rpl::start_with_next([=](const ReactionId &id) {
+	) | rpl::on_next([=](const ReactionId &id) {
 		const auto i = _viewsByTag.find(id);
 		if (i != end(_viewsByTag)) {
 			for (const auto &view : i->second) {
@@ -300,7 +300,7 @@ Session::Session(not_null<Main::Session*> session)
 	}, _lifetime);
 
 	Spellchecker::HighlightReady(
-	) | rpl::start_with_next([=](uint64 processId) {
+	) | rpl::on_next([=](uint64 processId) {
 		highlightProcessDone(processId);
 	}, _lifetime);
 
@@ -309,7 +309,7 @@ Session::Session(not_null<Main::Session*> session)
 	crl::on_main(_session, [=] {
 		AmPremiumValue(
 			_session
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			for (const auto &[document, items] : _documentItems) {
 				if (document->isVoiceMessage()) {
 					for (const auto &item : items) {
@@ -326,7 +326,7 @@ Session::Session(not_null<Main::Session*> session)
 	});
 
 	session->appConfig().ignoredRestrictionReasonsChanges(
-	) | rpl::start_with_next([=](std::vector<QString> &&changed) {
+	) | rpl::on_next([=](std::vector<QString> &&changed) {
 		auto refresh = std::vector<not_null<const HistoryItem*>>();
 		for (const auto &[item, reasons] : _possiblyRestricted) {
 			for (const auto &reason : changed) {
@@ -344,7 +344,7 @@ Session::Session(not_null<Main::Session*> session)
 
 void Session::subscribeForTopicRepliesLists() {
 	repliesReadTillUpdates(
-	) | rpl::start_with_next([=](const RepliesReadTillUpdate &update) {
+	) | rpl::on_next([=](const RepliesReadTillUpdate &update) {
 		if (const auto peer = peerLoaded(update.id.peer)) {
 			if (const auto topic = peer->forumTopicFor(update.id.msg)) {
 				topic->replies()->apply(update);
@@ -353,7 +353,7 @@ void Session::subscribeForTopicRepliesLists() {
 	}, _lifetime);
 
 	sublistReadTillUpdates(
-	) | rpl::start_with_next([=](const SublistReadTillUpdate &update) {
+	) | rpl::on_next([=](const SublistReadTillUpdate &update) {
 		if (const auto parentChat = channelLoaded(update.parentChatId)) {
 			if (const auto monoforum = parentChat->monoforum()) {
 				const auto sublistPeerId = update.sublistPeerId;
@@ -370,7 +370,7 @@ void Session::subscribeForTopicRepliesLists() {
 		| MessageUpdate::Flag::NewMaybeAdded
 		| MessageUpdate::Flag::ReplyToTopAdded
 		| MessageUpdate::Flag::Destroyed
-	) | rpl::start_with_next([=](const MessageUpdate &update) {
+	) | rpl::on_next([=](const MessageUpdate &update) {
 		if (const auto topic = update.item->topic()) {
 			topic->replies()->apply(update);
 		} else if (update.flags == MessageUpdate::Flag::ReplyToTopAdded) {
@@ -383,12 +383,12 @@ void Session::subscribeForTopicRepliesLists() {
 
 	session().changes().topicUpdates(
 		TopicUpdate::Flag::Creator
-	) | rpl::start_with_next([=](const TopicUpdate &update) {
+	) | rpl::on_next([=](const TopicUpdate &update) {
 		update.topic->replies()->apply(update);
 	}, _lifetime);
 
 	channelDifferenceTooLong(
-	) | rpl::start_with_next([=](not_null<ChannelData*> channel) {
+	) | rpl::on_next([=](not_null<ChannelData*> channel) {
 		if (const auto forum = channel->forum()) {
 			forum->enumerateTopics([](not_null<ForumTopic*> topic) {
 				topic->replies()->applyDifferenceTooLong();
@@ -1627,7 +1627,7 @@ void Session::setupMigrationViewer() {
 		return update.peer->asChat();
 	}) | rpl::filter([=](ChatData *chat) {
 		return (chat != nullptr);
-	}) | rpl::start_with_next([=](not_null<ChatData*> chat) {
+	}) | rpl::on_next([=](not_null<ChatData*> chat) {
 		const auto channel = chat->migrateTo();
 		if (!channel) {
 			return;
@@ -1649,7 +1649,7 @@ void Session::setupChannelLeavingViewer() {
 		PeerUpdate::Flag::ChannelAmIn
 	) | rpl::map([](const PeerUpdate &update) {
 		return update.peer->asChannel();
-	}) | rpl::start_with_next([=](not_null<ChannelData*> channel) {
+	}) | rpl::on_next([=](not_null<ChannelData*> channel) {
 		if (channel->amIn()) {
 			channel->clearInvitePeek();
 		} else {
@@ -1667,7 +1667,7 @@ void Session::setupChannelLeavingViewer() {
 
 void Session::setupPeerNameViewer() {
 	session().changes().realtimeNameUpdates(
-	) | rpl::start_with_next([=](const NameUpdate &update) {
+	) | rpl::on_next([=](const NameUpdate &update) {
 		const auto peer = update.peer;
 		if (const auto history = historyLoaded(peer)) {
 			history->refreshChatListNameSortKey();
@@ -1683,7 +1683,7 @@ void Session::setupUserIsContactViewer() {
 		PeerUpdate::Flag::IsContact
 	) | rpl::map([](const PeerUpdate &update) {
 		return update.peer->asUser();
-	}) | rpl::start_with_next([=](not_null<UserData*> user) {
+	}) | rpl::on_next([=](not_null<UserData*> user) {
 		const auto i = _contactViews.find(peerToUser(user->id));
 		if (i != _contactViews.end()) {
 			for (const auto &view : i->second) {

@@ -114,7 +114,7 @@ private:
 Panel::Incoming::RendererGL::RendererGL(not_null<Incoming*> owner)
 : _owner(owner) {
 	style::PaletteChanged(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_controlsShadowImage.invalidate();
 	}, _lifetime);
 }

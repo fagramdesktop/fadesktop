@@ -83,7 +83,7 @@ void FlexibleScrollHelper::setupScrollHandling() {
 	rpl::combine(
 		_pinnedToTop->heightValue(),
 		_inner->heightValue()
-	) | rpl::start_with_next([=](int, int h) {
+	) | rpl::on_next([=](int, int h) {
 		_data.contentHeightValue.fire(h + heightDiff());
 	}, _pinnedToTop->lifetime());
 
@@ -99,7 +99,7 @@ void FlexibleScrollHelper::setupScrollHandling() {
 	_scrollTopPrevious = _scroll->scrollTop();
 
 	_scroll->scrollTopValue(
-	) | rpl::start_with_next([=](int top) {
+	) | rpl::on_next([=](int top) {
 		if (_applyingFakeScrollState) {
 			return;
 		}
@@ -198,7 +198,7 @@ void FlexibleScrollHelper::setupScrollHandling() {
 	}, _inner->lifetime());
 
 	_data.fillerWidthValue.events(
-	) | rpl::start_with_next([=](int w) {
+	) | rpl::on_next([=](int w) {
 		_inner->resizeToWidth(w);
 	}, _inner->lifetime());
 
@@ -213,7 +213,7 @@ void FlexibleScrollHelper::setupScrollHandlingWithFilter() {
 	rpl::combine(
 		_pinnedToTop->heightValue(),
 		_inner->heightValue()
-	) | rpl::start_with_next([=](int, int h) {
+	) | rpl::on_next([=](int, int h) {
 		const auto max = _pinnedToTop->maximumHeight();
 		const auto min = _pinnedToTop->minimumHeight();
 		const auto diff = max - min;
@@ -325,12 +325,12 @@ void FlexibleScrollHelper::setupScrollHandlingWithFilter() {
 		return base::EventFilterResult::Cancel;
 	}, _filterLifetime);
 
-	_scroll->scrollTopValue() | rpl::start_with_next([=](int top) {
+	_scroll->scrollTopValue() | rpl::on_next([=](int top) {
 		applyScrollToPinnedLayout(top);
 	}, _inner->lifetime());
 
 	_data.fillerWidthValue.events(
-	) | rpl::start_with_next([=](int w) {
+	) | rpl::on_next([=](int w) {
 		_inner->resizeToWidth(w);
 	}, _inner->lifetime());
 

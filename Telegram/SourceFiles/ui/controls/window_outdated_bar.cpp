@@ -166,7 +166,7 @@ object_ptr<RpWidget> CreateOutdatedBar(
 	const auto wrap = result.data();
 
 	wrap->entity()->hideClicks(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		wrap->toggle(false, anim::type::normal);
 		Closed(workingPath);
 	}, wrap->lifetime());

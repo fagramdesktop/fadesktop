@@ -298,7 +298,7 @@ void ShowPaidReactionDetails(
 
 	if (const auto strong = state->selectBox.get()) {
 		session->data().itemRemoved(
-		) | rpl::start_with_next([=](not_null<const HistoryItem*> removed) {
+		) | rpl::on_next([=](not_null<const HistoryItem*> removed) {
 			if (removed == item) {
 				strong->closeBox();
 			}

@@ -483,7 +483,7 @@ ThemeDocumentBox::ThemeDocumentBox(
 	Window::WallPaperResolved(
 		&_parent->history()->owner(),
 		&paper
-	) | rpl::start_with_next([=](const Data::WallPaper *paper) {
+	) | rpl::on_next([=](const Data::WallPaper *paper) {
 		_parent->repaint();
 		if (!paper) {
 			_preview.reset();

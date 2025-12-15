@@ -312,7 +312,7 @@ not_null<Ui::RpWidget*> PanelEditDocument::setupContent(
 	const auto inner = _scroll->setOwnedWidget(
 		object_ptr<Ui::VerticalLayout>(this));
 	_scroll->widthValue(
-	) | rpl::start_with_next([=](int width) {
+	) | rpl::on_next([=](int width) {
 		inner->resizeToWidth(width);
 	}, inner->lifetime());
 
@@ -442,7 +442,7 @@ not_null<Ui::RpWidget*> PanelEditDocument::setupContent(
 				st::passportNativeNameHeaderPadding);
 			std::move(
 				title
-			) | rpl::start_with_next([=] {
+			) | rpl::on_next([=] {
 				const auto &padding = st::passportNativeNameHeaderPadding;
 				const auto available = added->width()
 					- padding.left()
@@ -483,7 +483,7 @@ not_null<Ui::RpWidget*> PanelEditDocument::setupContent(
 
 			std::move(langValue) | rpl::map(
 				shown
-			) | rpl::start_with_next([=](bool visible) {
+			) | rpl::on_next([=](bool visible) {
 				_additionalShown = visible;
 			}, lifetime());
 		}
@@ -545,7 +545,7 @@ void PanelEditDocument::createDetailsRow(
 			row.lengthLimit)));
 	const bool details = (row.valueClass != Scheme::ValueClass::Scans);
 	it->second->value(
-	) | rpl::skip(1) | rpl::start_with_next([=] {
+	) | rpl::skip(1) | rpl::on_next([=] {
 		if (details) {
 			_fieldsChanged = true;
 			updateCommonError();

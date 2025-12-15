@@ -99,7 +99,8 @@ protected:
 			p.drawImage(
 				width()
 					- size.width()
-					- st::menuWithIcons.itemPadding.right(),
+					- st::menuWithIcons.itemPadding.right()
+					- st::popupMenuWithIcons.shadow.extend.right(),
 				(height() - size.height()) / 2,
 				_icon);
 		}
@@ -344,7 +345,7 @@ void FillChooseFilterMenu(
 	}
 
 	history->owner().chatsFilters().changed(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		menu->hideMenu();
 	}, menu->lifetime());
 }

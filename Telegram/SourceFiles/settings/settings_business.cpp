@@ -214,12 +214,12 @@ void AddBusinessSummary(
 		dummy->setAttribute(Qt::WA_TransparentForMouseEvents);
 
 		content->sizeValue(
-		) | rpl::start_with_next([=](const QSize &s) {
+		) | rpl::on_next([=](const QSize &s) {
 			dummy->resize(s.width(), iconSize.height());
 		}, dummy->lifetime());
 
 		label->geometryValue(
-		) | rpl::start_with_next([=](const QRect &r) {
+		) | rpl::on_next([=](const QRect &r) {
 			dummy->moveToLeft(0, r.y() + (r.height() - labelAscent));
 		}, dummy->lifetime());
 
@@ -227,7 +227,7 @@ void AddBusinessSummary(
 			content->widthValue(),
 			label->heightValue(),
 			description->heightValue()
-		) | rpl::start_with_next([=,
+		) | rpl::on_next([=,
 			topPadding = titlePadding,
 			bottomPadding = descriptionPadding](
 				int width,
@@ -243,7 +243,7 @@ void AddBusinessSummary(
 					+ bottomPadding.bottom());
 		}, button->lifetime());
 		label->topValue(
-		) | rpl::start_with_next([=, padding = titlePadding.top()](int top) {
+		) | rpl::on_next([=, padding = titlePadding.top()](int top) {
 			button->moveToLeft(0, top - padding);
 		}, button->lifetime());
 		const auto arrow = Ui::CreateChild<Ui::IconButton>(
@@ -254,7 +254,7 @@ void AddBusinessSummary(
 			&st::settingsPremiumArrowOver);
 		arrow->setAttribute(Qt::WA_TransparentForMouseEvents);
 		button->sizeValue(
-		) | rpl::start_with_next([=](const QSize &s) {
+		) | rpl::on_next([=](const QSize &s) {
 			const auto &point = st::settingsPremiumArrowShift;
 			arrow->moveToRight(
 				-point.x(),
@@ -516,7 +516,7 @@ void Business::setupContent() {
 			owner->session().user(),
 			Data::PeerUpdate::Flag::FullInfo) | rpl::to_empty,
 		owner->session().api().chatLinks().loadedUpdates()
-	) | rpl::start_with_next(check, content->lifetime());
+	) | rpl::on_next(check, content->lifetime());
 
 	AddBusinessSummary(content, _controller, [=](PremiumFeature feature) {
 		if (!_controller->session().premium()) {
@@ -592,16 +592,16 @@ void Business::setupContent() {
 			session);
 
 		api->toggled(
-		) | rpl::start_with_next([=](bool enabled) {
+		) | rpl::on_next([=](bool enabled) {
 			button->toggleOn(rpl::single(enabled));
 			wrap->toggle(true, anim::type::instant);
 			loading->toggle(false, anim::type::instant);
 
 			button->toggledChanges(
-			) | rpl::start_with_next([=](bool toggled) {
+			) | rpl::on_next([=](bool toggled) {
 				api->setToggled(
 					toggled
-				) | rpl::start_with_error_done([=](const QString &error) {
+				) | rpl::on_error_done([=](const QString &error) {
 					_controller->showToast(error);
 				}, [] {
 				}, button->lifetime());
@@ -613,7 +613,7 @@ void Business::setupContent() {
 	};
 	Data::AmPremiumValue(
 		&_controller->session()
-	) | rpl::start_with_next([=](bool isPremium) {
+	) | rpl::on_next([=](bool isPremium) {
 		sponsoredWrap->toggle(isPremium, anim::type::normal);
 		if (isPremium) {
 			fillSponsoredWrap();
@@ -660,7 +660,7 @@ base::weak_qptr<Ui::RpWidget> Business::createPinnedToTop(
 	};
 
 	_wrap.value(
-	) | rpl::start_with_next([=](Info::Wrap wrap) {
+	) | rpl::on_next([=](Info::Wrap wrap) {
 		content->setRoundEdges(wrap == Info::Wrap::Layer);
 	}, content->lifetime());
 
@@ -670,7 +670,7 @@ base::weak_qptr<Ui::RpWidget> Business::createPinnedToTop(
 	content->resize(content->width(), content->maximumHeight());
 
 	_wrap.value(
-	) | rpl::start_with_next([=](Info::Wrap wrap) {
+	) | rpl::on_next([=](Info::Wrap wrap) {
 		const auto isLayer = (wrap == Info::Wrap::Layer);
 		_back = base::make_unique_q<Ui::FadeWrap<Ui::IconButton>>(
 			content,
@@ -682,13 +682,13 @@ base::weak_qptr<Ui::RpWidget> Business::createPinnedToTop(
 			st::infoTopBarScale);
 		_back->setDuration(0);
 		_back->toggleOn(isLayer
-			? _backToggles.value() | rpl::type_erased()
+			? _backToggles.value() | rpl::type_erased
 			: rpl::single(true));
 		_back->entity()->addClickHandler([=] {
 			_showBack.fire({});
 		});
 		_back->toggledValue(
-		) | rpl::start_with_next([=](bool toggled) {
+		) | rpl::on_next([=](bool toggled) {
 			const auto &st = isLayer ? st::infoLayerTopBar : st::infoTopBar;
 			content->setTextPosition(
 				toggled ? st.back.width : st.titlePosition.x(),
@@ -706,7 +706,7 @@ base::weak_qptr<Ui::RpWidget> Business::createPinnedToTop(
 				_controller->parentController()->hideSpecialLayer();
 			});
 			content->widthValue(
-			) | rpl::start_with_next([=] {
+			) | rpl::on_next([=] {
 				_close->moveToRight(0, 0);
 			}, _close->lifetime());
 		}
@@ -759,12 +759,12 @@ base::weak_qptr<Ui::RpWidget> Business::createPinnedToBottom(
 	}
 
 	_showFinished.events(
-	) | rpl::take(1) | rpl::start_with_next([=] {
+	) | rpl::take(1) | rpl::on_next([=] {
 		_subscribe->startGlareAnimation();
 	}, _subscribe->lifetime());
 
 	content->widthValue(
-	) | rpl::start_with_next([=](int width) {
+	) | rpl::on_next([=](int width) {
 		const auto padding = st::settingsPremiumButtonPadding;
 		_subscribe->resizeToWidth(width - padding.left() - padding.right());
 	}, _subscribe->lifetime());
@@ -773,7 +773,7 @@ base::weak_qptr<Ui::RpWidget> Business::createPinnedToBottom(
 		_subscribe->heightValue(),
 		Data::AmPremiumValue(session),
 		session->premiumPossibleValue()
-	) | rpl::start_with_next([=](
+	) | rpl::on_next([=](
 			int buttonHeight,
 			bool premium,
 			bool premiumPossible) {

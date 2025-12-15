@@ -370,14 +370,14 @@ Reactions::Reactions(not_null<Session*> owner)
 
 	base::timer_each(
 		kRefreshFullListEach
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		refreshDefault();
 		requestEffects();
 	}, _lifetime);
 
 	_owner->session().changes().messageUpdates(
 		MessageUpdate::Flag::Destroyed
-	) | rpl::start_with_next([=](const MessageUpdate &update) {
+	) | rpl::on_next([=](const MessageUpdate &update) {
 		const auto item = update.item;
 		_pollingItems.remove(item);
 		_pollItems.remove(item);
@@ -404,7 +404,7 @@ Reactions::Reactions(not_null<Session*> owner)
 				: ReactionId{ config.reactionDefaultEmoji };
 		}) | rpl::filter([=](const ReactionId &id) {
 			return !_saveFaveRequestId;
-		}) | rpl::start_with_next([=](ReactionId &&id) {
+		}) | rpl::on_next([=](ReactionId &&id) {
 			applyFavorite(id);
 		}, _lifetime);
 	});
@@ -918,7 +918,7 @@ void Reactions::loadImage(
 		setAnimatedIcon(set);
 	} else if (!_imagesLoadLifetime) {
 		document->session().downloaderTaskFinished(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			downloadTaskFinished();
 		}, _imagesLoadLifetime);
 	}

@@ -36,7 +36,7 @@ void SetButtonTwoLabels(
 	if (textFg) {
 		buttonTitle->setTextColorOverride((*textFg)->c);
 		buttonSubtitle->setTextColorOverride((*textFg)->c);
-		style::PaletteChanged() | rpl::start_with_next([=] {
+		style::PaletteChanged() | rpl::on_next([=] {
 			buttonTitle->setTextColorOverride((*textFg)->c);
 			buttonSubtitle->setTextColorOverride((*textFg)->c);
 		}, buttonTitle->lifetime());
@@ -46,7 +46,7 @@ void SetButtonTwoLabels(
 		buttonTitle->sizeValue(),
 		buttonSubtitle->sizeValue(),
 		std::move(subtitle)
-	) | rpl::start_with_next([=](
+	) | rpl::on_next([=](
 			QSize outer,
 			QSize title,
 			QSize subtitle,

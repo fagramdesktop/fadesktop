@@ -402,7 +402,7 @@ rpl::producer<SavedMusicSlice> SavedMusicList(
 		savedMusic->changed(
 		) | rpl::filter(
 			rpl::mappers::_1 == peerId
-		) | rpl::start_with_next(schedule, lifetime);
+		) | rpl::on_next(schedule, lifetime);
 
 		if (!savedMusic->countKnown(peerId)) {
 			savedMusic->loadMore(peerId);

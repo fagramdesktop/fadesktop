@@ -79,7 +79,7 @@ Step::Step(
 			: st::introDescription)) {
 	hide();
 	style::PaletteChanged(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		if (!_coverMask.isNull()) {
 			_coverMask = QPixmap();
 			prepareCoverMask();
@@ -87,19 +87,19 @@ Step::Step(
 	}, lifetime());
 
 	_errorText.value(
-	) | rpl::start_with_next([=](const QString &text) {
+	) | rpl::on_next([=](const QString &text) {
 		refreshError(text);
 	}, lifetime());
 
 	_titleText.value(
-	) | rpl::start_with_next([=](const QString &text) {
+	) | rpl::on_next([=](const QString &text) {
 		_title->setText(text);
 		accessibilityNameChanged();
 		updateLabelsPosition();
 	}, lifetime());
 
 	_descriptionText.value(
-	) | rpl::start_with_next([=](const TextWithEntities &text) {
+	) | rpl::on_next([=](const TextWithEntities &text) {
 		const auto label = _description->entity();
 		const auto hasSpoiler = ranges::contains(
 			text.entities,

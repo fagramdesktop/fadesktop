@@ -106,7 +106,7 @@ Widget::Widget(
 
 	_inner->move(0, 0);
 	_inner->scrollToRequests(
-	) | rpl::start_with_next([this](Ui::ScrollToRequest request) {
+	) | rpl::on_next([this](Ui::ScrollToRequest request) {
 		if (request.ymin < 0) {
 			scrollTopRestore(
 				qMin(scrollTopSave(), request.ymax));
@@ -115,19 +115,19 @@ Widget::Widget(
 		}
 	}, lifetime());
 
-	_inner->backRequest() | rpl::start_with_next([=] {
+	_inner->backRequest() | rpl::on_next([=] {
 		checkBeforeClose([=] { controller->showBackFromStack(); });
 	}, _inner->lifetime());
 
 	if (_pinnedToTop) {
 		_inner->widthValue(
-		) | rpl::start_with_next([=](int w) {
+		) | rpl::on_next([=](int w) {
 			_pinnedToTop->resizeToWidth(w);
 			setScrollTopSkip(_pinnedToTop->height());
 		}, _pinnedToTop->lifetime());
 
 		_pinnedToTop->heightValue(
-		) | rpl::start_with_next([=](int h) {
+		) | rpl::on_next([=](int h) {
 			setScrollTopSkip(h);
 		}, _pinnedToTop->lifetime());
 	}
@@ -141,14 +141,14 @@ Widget::Widget(
 		};
 
 		_inner->sizeValue(
-		) | rpl::start_with_next([=](const QSize &s) {
+		) | rpl::on_next([=](const QSize &s) {
 			_pinnedToBottom->resizeToWidth(s.width());
 		}, _pinnedToBottom->lifetime());
 
 		rpl::combine(
 			_pinnedToBottom->heightValue(),
 			heightValue()
-		) | rpl::start_with_next(processHeight, _pinnedToBottom->lifetime());
+		) | rpl::on_next(processHeight, _pinnedToBottom->lifetime());
 	}
 
 	if (_pinnedToTop

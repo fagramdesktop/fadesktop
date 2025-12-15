@@ -563,7 +563,7 @@ Fn<void()> SavePreparedTheme(
 		session->uploader().documentReady(
 		) | rpl::filter([=](const UploadedMedia &data) {
 			return (data.fullId == state->id) && data.info.thumb.has_value();
-		}) | rpl::start_with_next([=](const UploadedMedia &data) {
+		}) | rpl::on_next([=](const UploadedMedia &data) {
 			uploadTheme(data);
 		}, state->lifetime);
 
@@ -811,12 +811,12 @@ void SaveThemeBox(
 		cloud.slug.isEmpty() ? GenerateSlug() : cloud.slug,
 		window->account().session().createInternalLink(QString()));
 	linkWrap->widthValue(
-	) | rpl::start_with_next([=](int width) {
+	) | rpl::on_next([=](int width) {
 		link->resize(width, link->height());
 		link->moveToLeft(0, 0, width);
 	}, link->lifetime());
 	link->heightValue(
-	) | rpl::start_with_next([=](int height) {
+	) | rpl::on_next([=](int height) {
 		linkWrap->resize(linkWrap->width(), height);
 	}, link->lifetime());
 	link->setLinkPlaceholder(

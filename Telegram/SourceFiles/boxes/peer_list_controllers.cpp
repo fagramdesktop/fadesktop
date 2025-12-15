@@ -117,7 +117,7 @@ object_ptr<Ui::BoxContent> PrepareContactsBox(
 		});
 		raw->setSortMode(Mode::Online);
 
-		raw->wheelClicks() | rpl::start_with_next([=](not_null<PeerData*> p) {
+		raw->wheelClicks() | rpl::on_next([=](not_null<PeerData*> p) {
 			sessionController->showInNewWindow(p);
 		}, box->lifetime());
 	};
@@ -385,7 +385,7 @@ void TrackMessageMoneyRestrictionsChanges(
 	rpl::merge(
 		Data::AmPremiumValue(session) | rpl::to_empty,
 		session->api().premium().someMessageMoneyRestrictionsResolved()
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		const auto st = &controller->computeListSt().item;
 		const auto delegate = controller->delegate();
 		const auto process = [&](not_null<PeerListRow*> raw) {
@@ -431,18 +431,18 @@ void ChatsListBoxController::prepare() {
 		session().data().chatsListLoadedEvents(
 		) | rpl::filter([=](Data::Folder *folder) {
 			return !folder;
-		}) | rpl::start_with_next([=] {
+		}) | rpl::on_next([=] {
 			checkForEmptyRows();
 		}, lifetime());
 	}
 
 	session().data().chatsListChanges(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		rebuildRows();
 	}, lifetime());
 
 	session().data().contactsLoaded().value(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		rebuildRows();
 	}, lifetime());
 }
@@ -586,14 +586,14 @@ void PeerListStories::prepare(not_null<PeerListDelegate*> delegate) {
 	_delegate = delegate;
 
 	_unreadBrush = PeerListStoriesGradient(_controller->computeListSt());
-	style::PaletteChanged() | rpl::start_with_next([=] {
+	style::PaletteChanged() | rpl::on_next([=] {
 		_unreadBrush = PeerListStoriesGradient(_controller->computeListSt());
 		updateColors();
 	}, _lifetime);
 
 	_session->changes().peerUpdates(
 		Data::PeerUpdate::Flag::StoriesState
-	) | rpl::start_with_next([=](const Data::PeerUpdate &update) {
+	) | rpl::on_next([=](const Data::PeerUpdate &update) {
 		const auto id = update.peer->id.value;
 		if (const auto row = _delegate->peerListFindRow(id)) {
 			process(row);
@@ -601,7 +601,7 @@ void PeerListStories::prepare(not_null<PeerListDelegate*> delegate) {
 	}, _lifetime);
 
 	const auto stories = &_session->data().stories();
-	stories->sourceChanged() | rpl::start_with_next([=](PeerId id) {
+	stories->sourceChanged() | rpl::on_next([=](PeerId id) {
 		const auto source = stories->source(id);
 		const auto info = source
 			? source->info()
@@ -662,7 +662,7 @@ void ContactsBoxController::prepare() {
 	}
 
 	session().data().contactsLoaded().value(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		rebuildRows();
 	}, lifetime());
 }
@@ -724,7 +724,7 @@ void ContactsBoxController::setSortMode(SortMode mode) {
 		) | rpl::filter([=](const Data::PeerUpdate &update) {
 			return !_sortByOnlineTimer.isActive()
 				&& delegate()->peerListFindRow(update.peer->id.value);
-		}) | rpl::start_with_next([=] {
+		}) | rpl::on_next([=] {
 			_sortByOnlineTimer.callOnce(kSortByOnlineThrottle);
 		}, _sortByOnlineLifetime);
 	} else {
@@ -874,7 +874,7 @@ void ChooseRecipientBoxController::rowClicked(not_null<PeerListRow*> row) {
 				});
 
 				forum->destroyed(
-				) | rpl::start_with_next([=] {
+				) | rpl::on_next([=] {
 					box->closeBox();
 				}, box->lifetime());
 			});
@@ -913,7 +913,7 @@ void ChooseRecipientBoxController::rowClicked(not_null<PeerListRow*> row) {
 				});
 
 				monoforum->destroyed(
-				) | rpl::start_with_next([=] {
+				) | rpl::on_next([=] {
 					box->closeBox();
 				}, box->lifetime());
 			});
@@ -1098,12 +1098,12 @@ ChooseTopicBoxController::ChooseTopicBoxController(
 	setStyleOverrides(&st::chooseTopicList);
 
 	_forum->chatsListChanges(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		refreshRows();
 	}, lifetime());
 
 	_forum->topicDestroyed(
-	) | rpl::start_with_next([=](not_null<Data::ForumTopic*> topic) {
+	) | rpl::on_next([=](not_null<Data::ForumTopic*> topic) {
 		const auto id = PeerListRowId(topic->rootId().bare);
 		if (const auto row = delegate()->peerListFindRow(id)) {
 			delegate()->peerListRemoveRow(row);
@@ -1133,7 +1133,7 @@ void ChooseTopicBoxController::prepare() {
 
 	session().changes().entryUpdates(
 		Data::EntryUpdate::Flag::Repaint
-	) | rpl::start_with_next([=](const Data::EntryUpdate &update) {
+	) | rpl::on_next([=](const Data::EntryUpdate &update) {
 		if (const auto topic = update.entry->asTopic()) {
 			if (topic->forum() == _forum) {
 				const auto id = topic->rootId().bare;
@@ -1200,12 +1200,12 @@ ChooseSublistBoxController::ChooseSublistBoxController(
 	setStyleOverrides(&st::chooseTopicList);
 
 	_monoforum->chatsListChanges(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		refreshRows();
 	}, lifetime());
 
 	_monoforum->sublistDestroyed(
-	) | rpl::start_with_next([=](not_null<Data::SavedSublist*> sublist) {
+	) | rpl::on_next([=](not_null<Data::SavedSublist*> sublist) {
 		const auto id = sublist->sublistPeer()->id.value;
 		if (const auto row = delegate()->peerListFindRow(id)) {
 			delegate()->peerListRemoveRow(row);
@@ -1235,7 +1235,7 @@ void ChooseSublistBoxController::prepare() {
 
 	session().changes().entryUpdates(
 		Data::EntryUpdate::Flag::Repaint
-	) | rpl::start_with_next([=](const Data::EntryUpdate &update) {
+	) | rpl::on_next([=](const Data::EntryUpdate &update) {
 		if (const auto sublist = update.entry->asSublist()) {
 			if (sublist->parent() == _monoforum) {
 				const auto id = sublist->sublistPeer()->id.value;

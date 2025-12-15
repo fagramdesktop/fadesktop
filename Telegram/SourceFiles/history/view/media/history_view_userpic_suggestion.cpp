@@ -159,7 +159,7 @@ void ShowSetToast(
 		preview->show();
 		preview->setAttribute(Qt::WA_TransparentForMouseEvents);
 		preview->paintRequest(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			QPainter(preview).drawImage(0, 0, copy);
 		}, preview->lifetime());
 	}

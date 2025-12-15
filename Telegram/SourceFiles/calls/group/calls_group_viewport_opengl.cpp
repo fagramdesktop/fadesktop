@@ -308,7 +308,7 @@ Viewport::RendererGL::RendererGL(not_null<Viewport*> owner)
 	st::radialBg) {
 
 	style::PaletteChanged(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_buttons.invalidate();
 	}, _lifetime);
 }

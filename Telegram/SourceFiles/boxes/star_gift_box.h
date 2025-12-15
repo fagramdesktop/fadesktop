@@ -77,9 +77,11 @@ struct UniqueGiftCoverArgs {
 		std::optional<Data::UniqueGift> now,
 		std::optional<Data::UniqueGift> next,
 		float64 progress)> repaintedHook;
+	std::shared_ptr<Data::GiftUpgradeSpinner> upgradeSpinner;
 };
 struct UniqueGiftCover {
 	Data::UniqueGift values;
+	bool spinner = false;
 	bool force = false;
 };
 
@@ -119,8 +121,9 @@ void GiftReleasedByHandler(not_null<PeerData*> peer);
 
 struct StarGiftUpgradeArgs {
 	not_null<Window::SessionController*> controller;
-	base::required<uint64> stargiftId;
+	Data::StarGift stargift;
 	Fn<void(bool)> ready;
+	Fn<void()> upgraded;
 	not_null<PeerData*> peer;
 	Data::SavedStarGiftId savedId;
 	QString giftPrepayUpgradeHash;

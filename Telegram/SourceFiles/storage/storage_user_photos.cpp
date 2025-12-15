@@ -147,7 +147,7 @@ std::map<UserId, UserPhotos::List>::iterator UserPhotos::enforceLists(
 	}
 	result = _lists.emplace(user, List {}).first;
 	result->second.sliceUpdated(
-	) | rpl::start_with_next([this, user](
+	) | rpl::on_next([this, user](
 			const SliceUpdate &update) {
 		_sliceUpdated.fire(UserPhotosSliceUpdate(
 			user,

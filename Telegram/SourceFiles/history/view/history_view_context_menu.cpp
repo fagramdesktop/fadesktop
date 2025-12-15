@@ -747,7 +747,7 @@ bool AddRescheduleAction(
 				date));
 
 		owner->itemRemoved(
-		) | rpl::start_with_next([=](not_null<const HistoryItem*> item) {
+		) | rpl::on_next([=](not_null<const HistoryItem*> item) {
 			if (ranges::contains(ids, item->fullId())) {
 				box->closeBox();
 			}
@@ -1280,7 +1280,7 @@ void EditTagBox(
 	} else {
 		owner->reactions().preloadReactionImageFor(id);
 	}
-	field->paintRequest() | rpl::start_with_next([=](QRect clip) {
+	field->paintRequest() | rpl::on_next([=](QRect clip) {
 		auto p = QPainter(field);
 		const auto top = st::editTagField.textMargins.top();
 		if (const auto custom = state->custom.get()) {
@@ -1320,7 +1320,7 @@ void EditTagBox(
 	};
 
 	field->submits(
-	) | rpl::start_with_next(save, field->lifetime());
+	) | rpl::on_next(save, field->lifetime());
 
 	box->addButton(tr::lng_settings_save(), save);
 	box->addButton(tr::lng_cancel(), [=] {
@@ -1425,7 +1425,7 @@ void ShowWhoReadInfo(
 	action->setDisabled(true);
 	auto lifetime = LookupMessageAuthor(
 		item
-	) | rpl::start_with_next([=](not_null<UserData*> author) {
+	) | rpl::on_next([=](not_null<UserData*> author) {
 		action->setText(
 			tr::lng_context_sent_by(tr::now, lt_user, author->name()));
 		action->setDisabled(false);
@@ -2069,7 +2069,7 @@ void ShowWhoReactedMenu(
 		st::defaultWhoRead
 	) | rpl::filter([=](const Ui::WhoReadContent &content) {
 		return content.state != Ui::WhoReadState::Unknown;
-	}) | rpl::start_with_next([=, &lifetime](Ui::WhoReadContent &&content) {
+	}) | rpl::on_next([=, &lifetime](Ui::WhoReadContent &&content) {
 		const auto creating = !*menu;
 		const auto refillTop = [=] {
 			if (activeNonQuick) {

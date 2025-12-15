@@ -249,6 +249,36 @@ struct SavedStarGift {
 	bool mine = false;
 };
 
+struct GiftUpgradeSpinner {
+	enum class State {
+		Initial, // Didn't start the upgrade.
+		Preparing, // Upgraded, requested Cover to prepare the spinners.
+		Loading, // Cover started preparing the spinners.
+		Prepared, // Cover prepared the spinners, waiting for nextToUpgrade.
+		Started, // Started spinning animations.
+		FinishBackdrop, // Ready to animate to target backdrop.
+		FinishedBackdrop, // Backdrop finishes spinning.
+		FinishPattern, // Ready to animate to target pattern.
+		FinishedPattern, // Pattern finishes spinning.
+		FinishModel, // Ready to animate to target model.
+		FinishedModel, // All spinners finish animating or user pressed Skip.
+		Finished, // Animations finished, show fireworks.
+		Timeout, // Waited for Prepared for too long, skipping animations.
+	};
+
+	Data::UniqueGiftAttributes attributes;
+	std::shared_ptr<Data::UniqueGift> target;
+	rpl::variable<State> state;
+};
+
+struct GiftUpgradeResult {
+	StarGift info;
+	SavedStarGiftId manageId;
+	TimeId date = 0;
+	int starsForDetailsRemove = 0;
+	bool saved = false;
+};
+
 struct GiftCollection {
 	int id = 0;
 	int count = 0;

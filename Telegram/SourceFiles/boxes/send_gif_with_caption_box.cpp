@@ -76,7 +76,7 @@ namespace {
 				Qt::KeepAspectRatio).height()),
 		st::boxRowPadding);
 	widget->paintRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		auto p = QPainter(widget);
 		if (state->gif && state->gif->started()) {
 			p.drawImage(
@@ -122,7 +122,7 @@ namespace {
 	};
 	if (!updateThumbnail()) {
 		document->session().downloaderTaskFinished(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			if (updateThumbnail()) {
 				state->loadingLifetime.destroy();
 				widget->update();
@@ -175,11 +175,11 @@ namespace {
 		emojiPanel->hide();
 		emojiPanel->selector()->setCurrentPeer(controller->session().user());
 		emojiPanel->selector()->emojiChosen(
-		) | rpl::start_with_next([=](ChatHelpers::EmojiChosen data) {
+		) | rpl::on_next([=](ChatHelpers::EmojiChosen data) {
 			Ui::InsertEmojiAtCursor(input->textCursor(), data.emoji);
 		}, input->lifetime());
 		emojiPanel->selector()->customEmojiChosen(
-		) | rpl::start_with_next([=](ChatHelpers::FileChosen data) {
+		) | rpl::on_next([=](ChatHelpers::FileChosen data) {
 			const auto info = data.document->sticker();
 			if (info
 				&& info->setType == Data::StickersType::Emoji
@@ -212,7 +212,7 @@ namespace {
 					emojiButton,
 					style::al_top);
 				state->charsLimitation->show();
-				Data::AmPremiumValue(session) | rpl::start_with_next([=] {
+				Data::AmPremiumValue(session) | rpl::on_next([=] {
 					repeat(repeat);
 				}, state->charsLimitation->lifetime());
 			}
@@ -223,7 +223,7 @@ namespace {
 		}
 	};
 
-	input->changes() | rpl::start_with_next([=] {
+	input->changes() | rpl::on_next([=] {
 		checkCharsLimitation(checkCharsLimitation);
 	}, input->lifetime());
 
@@ -342,7 +342,7 @@ void CaptionBox(
 		box->closeBox();
 	});
 	input->submits(
-	) | rpl::start_with_next([=] { send({}); }, input->lifetime());
+	) | rpl::on_next([=] { send({}); }, input->lifetime());
 }
 
 } // namespace
@@ -378,7 +378,7 @@ void EditCaptionBox(
 	state->fullId = view->data()->fullId();
 
 	data->itemIdChanged(
-	) | rpl::start_with_next([=](Data::Session::IdChange event) {
+	) | rpl::on_next([=](Data::Session::IdChange event) {
 		if (event.oldId == state->fullId.msg) {
 			state->fullId = event.newId;
 		}

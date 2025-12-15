@@ -460,7 +460,7 @@ bool SendPaymentHelper::check(
 			peer->session().credits().loadedValue(
 			) | rpl::filter(
 				rpl::mappers::_1
-			) | rpl::take(1) | rpl::start_with_next([=] {
+			) | rpl::take(1) | rpl::on_next([=] {
 				if (const auto callback = base::take(_resend)) {
 					callback();
 				}
@@ -472,7 +472,7 @@ bool SendPaymentHelper::check(
 			peer->session().credits().tonLoadedValue(
 			) | rpl::filter(
 				rpl::mappers::_1
-			) | rpl::take(1) | rpl::start_with_next([=] {
+			) | rpl::take(1) | rpl::on_next([=] {
 				if (const auto callback = base::take(_resend)) {
 					callback();
 				}
@@ -482,7 +482,7 @@ bool SendPaymentHelper::check(
 		peer->session().changes().peerUpdates(
 			peer,
 			Data::PeerUpdate::Flag::FullInfo
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			if (const auto callback = base::take(_resend)) {
 				callback();
 			}

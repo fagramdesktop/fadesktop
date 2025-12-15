@@ -81,7 +81,7 @@ Controller::Controller(
 		Data::PeerUpdate::Flag::FullInfo
 	) | rpl::filter([=](const Data::PeerUpdate &update) {
 		return (update.peer == _waitForFull);
-	}) | rpl::start_with_next([=](const Data::PeerUpdate &update) {
+	}) | rpl::on_next([=](const Data::PeerUpdate &update) {
 		choose(std::exchange(_waitForFull, nullptr));
 	}, lifetime());
 }

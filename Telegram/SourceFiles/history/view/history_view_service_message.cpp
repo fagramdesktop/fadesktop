@@ -462,14 +462,6 @@ void Service::animateReaction(Ui::ReactionFlyAnimationArgs &&args) {
 	}
 	const auto repainter = [=] { repaint(); };
 
-	const auto item = data();
-	const auto keyboard = item->inlineReplyKeyboard();
-	auto keyboardHeight = 0;
-	if (keyboard) {
-		keyboardHeight = keyboard->naturalHeight();
-		g.setHeight(g.height() - st::msgBotKbButton.margin - keyboardHeight);
-	}
-
 	if (_reactions) {
 		const auto reactionsHeight = st::mediaInBubbleSkip + _reactions->height();
 		const auto reactionsLeft = 0;
@@ -632,30 +624,6 @@ void Service::draw(Painter &p, const PaintContext &context) const {
 	const auto mediaDisplayed = media && media->isDisplayed();
 	const auto onlyMedia = (mediaDisplayed && media->hideServiceText());
 
-	const auto item = data();
-	const auto keyboard = item->inlineReplyKeyboard();
-	if (keyboard) {
-		// We need to count geometry without keyboard for bubble selection
-		// intervals counting below.
-		const auto keyboardHeight = st::msgBotKbButton.margin + keyboard->naturalHeight();
-		g.setHeight(g.height() - keyboardHeight);
-	}
-
-	if (keyboard) {
-		const auto keyboardWidth = mediaDisplayed ? media->width() : g.width();
-		const auto keyboardPosition = QPoint(
-			g.left() + (g.width() - keyboardWidth) / 2,
-			g.top() + g.height() + st::msgBotKbButton.margin);
-		p.translate(keyboardPosition);
-		keyboard->paint(
-			p,
-			context.st,
-			KeyboardRounding(),
-			keyboardWidth,
-			context.clip.translated(-keyboardPosition));
-		p.translate(-keyboardPosition);
-	}
-
 	if (_reactions) {
 		const auto reactionsHeight = st::mediaInBubbleSkip + _reactions->height();
 		const auto reactionsLeft = 0;
@@ -668,6 +636,28 @@ void Service::draw(Painter &p, const PaintContext &context) const {
 			context.reactionInfo->position = reactionsPosition;
 		}
 		p.translate(-reactionsPosition);
+	}
+
+	const auto item = data();
+	const auto keyboard = item->inlineReplyKeyboard();
+	if (keyboard) {
+		// We need to count geometry without keyboard for bubble selection
+		// intervals counting below.
+		const auto keyboardHeight = st::msgBotKbButton.margin + keyboard->naturalHeight();
+		g.setHeight(g.height() - keyboardHeight);
+
+		const auto keyboardWidth = mediaDisplayed ? media->width() : g.width();
+		const auto keyboardPosition = QPoint(
+			g.left() + (g.width() - keyboardWidth) / 2,
+			g.top() + g.height() + st::msgBotKbButton.margin);
+		p.translate(keyboardPosition);
+		keyboard->paint(
+			p,
+			context.st,
+			KeyboardRounding(),
+			keyboardWidth,
+			context.clip.translated(-keyboardPosition));
+		p.translate(-keyboardPosition);
 	}
 
 	if (!onlyMedia) {
@@ -745,6 +735,24 @@ TextState Service::textState(QPoint point, StateRequest request) const {
 		return result;
 	}
 
+	if (const auto service = Get<ServicePreMessage>()) {
+		result.link = service->textState(point, request, g);
+		if (result.link) {
+			return result;
+		}
+	}
+
+	if (_reactions) {
+		const auto reactionsHeight = st::mediaInBubbleSkip + _reactions->height();
+		const auto reactionsLeft = 0;
+		g.setHeight(g.height() - reactionsHeight);
+		const auto reactionsPosition = QPoint(reactionsLeft + g.left(), g.top() + g.height() + st::mediaInBubbleSkip);
+		if (_reactions->getState(point - reactionsPosition, &result)) {
+			//result.symbol += visibleMediaTextLen + visibleTextLen;
+			return result;
+		}
+	}
+
 	auto keyboard = item->inlineReplyKeyboard();
 	auto keyboardHeight = 0;
 	if (keyboard) {
@@ -762,24 +770,6 @@ TextState Service::textState(QPoint point, StateRequest request) const {
 					return result;
 				}
 			}
-		}
-	}
-
-	if (const auto service = Get<ServicePreMessage>()) {
-		result.link = service->textState(point, request, g);
-		if (result.link) {
-			return result;
-		}
-	}
-
-	if (_reactions) {
-		const auto reactionsHeight = st::mediaInBubbleSkip + _reactions->height();
-		const auto reactionsLeft = 0;
-		g.setHeight(g.height() - reactionsHeight);
-		const auto reactionsPosition = QPoint(reactionsLeft + g.left(), g.top() + g.height() + st::mediaInBubbleSkip);
-		if (_reactions->getState(point - reactionsPosition, &result)) {
-			//result.symbol += visibleMediaTextLen + visibleTextLen;
-			return result;
 		}
 	}
 

@@ -99,7 +99,7 @@ rpl::producer<Content> ContentForSession(
 			rpl::empty
 		) | rpl::then(
 			stories->sourcesChanged(list)
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			consumer.put_next(state->next());
 		}, result);
 		return result;
@@ -191,11 +191,11 @@ rpl::producer<Content> LastForPeer(not_null<PeerData*> peer) {
 
 			rpl::single(peerId) | rpl::then(
 				stories->itemsChanged() | rpl::filter(_1 == peerId)
-			) | rpl::start_with_next(state->check, lifetime);
+			) | rpl::on_next(state->check, lifetime);
 
 			stories->session().changes().storyUpdates(
 				Data::StoryUpdate::Flag::MarkRead
-			) | rpl::start_with_next([=](const Data::StoryUpdate &update) {
+			) | rpl::on_next([=](const Data::StoryUpdate &update) {
 				if (update.story->peer()->id == peerId) {
 					if (update.story->id() > state->readTill) {
 						state->readTill = update.story->id();

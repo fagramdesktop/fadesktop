@@ -57,13 +57,13 @@ Members::Members(
 	_listController->setDelegate(static_cast<PeerListDelegate*>(this));
 
 	_controller->searchFieldController()->queryValue(
-	) | rpl::start_with_next([this](QString &&query) {
+	) | rpl::on_next([this](QString &&query) {
 		peerListScrollToTop();
 		content()->searchQueryChanged(std::move(query));
 	}, lifetime());
 	MembersCountValue(
 		_peer
-	) | rpl::start_with_next([this](int count) {
+	) | rpl::on_next([this](int count) {
 		const auto enabled = (count >= kEnableSearchMembersAfterCount);
 		_controller->setSearchEnabledByContent(enabled);
 	}, lifetime());
@@ -156,12 +156,12 @@ void Members::setupHeader() {
 	setupButtons();
 
 	//_controller->wrapValue(
-	//) | rpl::start_with_next([this](Wrap wrap) {
+	//) | rpl::on_next([this](Wrap wrap) {
 	//	_wrap = wrap;
 	//	updateSearchOverrides();
 	//}, lifetime());
 	widthValue(
-	) | rpl::start_with_next([this](int width) {
+	) | rpl::on_next([this](int width) {
 		_header->resizeToWidth(width);
 	}, _header->lifetime());
 }
@@ -197,7 +197,7 @@ void Members::setupButtons() {
 	auto visible = _peer->isMegagroup()
 		? CanViewParticipantsValue(_peer->asMegagroup())
 		: rpl::single(true);
-	rpl::duplicate(visible) | rpl::start_with_next([=](bool visible) {
+	rpl::duplicate(visible) | rpl::on_next([=](bool visible) {
 		_openMembers->setVisible(visible);
 	}, lifetime());
 
@@ -225,7 +225,7 @@ void Members::setupButtons() {
 		std::move(addMemberShown),
 		std::move(searchShown),
 		std::move(visible)
-	) | rpl::start_with_next([this] {
+	) | rpl::on_next([this] {
 		updateHeaderControlsGeometry(width());
 	}, lifetime());
 }
@@ -238,7 +238,7 @@ void Members::setupList() {
 		this,
 		_listController.get());
 	_list->scrollToRequests(
-	) | rpl::start_with_next([this](Ui::ScrollToRequest request) {
+	) | rpl::on_next([this](Ui::ScrollToRequest request) {
 		auto addmin = (request.ymin < 0 || !_header)
 			? 0
 			: _header->height();
@@ -250,11 +250,11 @@ void Members::setupList() {
 			request.ymax + addmax });
 	}, _list->lifetime());
 	widthValue(
-	) | rpl::start_with_next([this](int newWidth) {
+	) | rpl::on_next([this](int newWidth) {
 		_list->resizeToWidth(newWidth);
 	}, _list->lifetime());
 	_list->heightValue(
-	) | rpl::start_with_next([=](int listHeight) {
+	) | rpl::on_next([=](int listHeight) {
 		auto newHeight = (listHeight > st::membersMarginBottom)
 			? (topSkip
 				+ listHeight

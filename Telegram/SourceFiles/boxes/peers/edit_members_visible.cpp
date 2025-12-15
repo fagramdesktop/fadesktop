@@ -62,7 +62,7 @@ namespace {
 	Ui::AddDividerText(container, tr::lng_profile_hide_participants_about());
 
 	button->toggledValue(
-	) | rpl::start_with_next([=](bool toggled) {
+	) | rpl::on_next([=](bool toggled) {
 		megagroup->session().api().request(
 			MTPchannels_ToggleParticipantsHidden(
 				megagroup->inputChannel,

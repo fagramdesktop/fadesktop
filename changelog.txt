@@ -1,3 +1,14 @@
+2.0.9 (16.12.25)
+
+- Updated to tdesktop v6.3.8
+- Updated to tdesktop v6.3.7
+- Fix user registration time estimation with KNN-based algorithm
+- Added new context menu shortcuts
+- Service notifications for changelogs
+- Reply in Private Chat
+- Advanced forward options
+- Support tg://openmessage links
+
 2.0.8 (06.12.25)
 
 - Update translations

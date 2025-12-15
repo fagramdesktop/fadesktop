@@ -154,7 +154,7 @@ void MusicInner::setupEmpty() {
 			) | rpl::to_empty
 		),
 		_list->heightValue()
-	) | rpl::start_with_next([=](auto, int listHeight) {
+	) | rpl::on_next([=](auto, int listHeight) {
 		const auto padding = st::infoMediaMargin;
 		if (const auto raw = _empty.release()) {
 			raw->hide();
@@ -288,7 +288,7 @@ MusicWidget::MusicWidget(
 	_inner = setInnerWidget(object_ptr<MusicInner>(this, controller));
 	_inner->setScrollHeightValue(scrollHeightValue());
 	_inner->scrollToRequests(
-	) | rpl::start_with_next([this](Ui::ScrollToRequest request) {
+	) | rpl::on_next([this](Ui::ScrollToRequest request) {
 		scrollTo(request);
 	}, _inner->lifetime());
 }

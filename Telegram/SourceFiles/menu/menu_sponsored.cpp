@@ -77,7 +77,7 @@ void AboutBox(
 		owned->setNaturalWidth(rect.width());
 		const auto widget = box->addRow(std::move(owned), style::al_top);
 		widget->paintRequest(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			auto p = Painter(widget);
 			auto hq = PainterHighQualityEnabler(p);
 			p.setPen(Qt::NoPen);
@@ -129,13 +129,13 @@ void AboutBox(
 			const auto left = Ui::CreateChild<Ui::RpWidget>(
 				box->verticalLayout().get());
 			left->paintRequest(
-			) | rpl::start_with_next([=] {
+			) | rpl::on_next([=] {
 				auto p = Painter(left);
 				icon.paint(p, 0, 0, left->width());
 			}, left->lifetime());
 			left->resize(icon.size());
 			top->geometryValue(
-			) | rpl::start_with_next([=](const QRect &g) {
+			) | rpl::on_next([=](const QRect &g) {
 				left->moveToLeft(
 					(g.left() - left->width()) / 2,
 					g.top() + st::channelEarnHistoryThreeSkip);
@@ -261,7 +261,7 @@ void AboutBox(
 			box,
 			st::infoTopBarMenu);
 		box->widthValue(
-		) | rpl::start_with_next([=](int width) {
+		) | rpl::on_next([=](int width) {
 			top->raise();
 			top->moveToLeft(
 				width - top->width() - st::defaultScrollArea.width,
@@ -275,7 +275,7 @@ void AboutBox(
 				st::popupMenuWithIcons);
 			const auto raw = menu->get();
 			raw->animatePhaseValue(
-			) | rpl::start_with_next([=](Ui::PopupMenu::AnimatePhase phase) {
+			) | rpl::on_next([=](Ui::PopupMenu::AnimatePhase phase) {
 				top->setForceRippled(false
 					|| phase == Ui::PopupMenu::AnimatePhase::Shown
 					|| phase == Ui::PopupMenu::AnimatePhase::StartShow);
@@ -416,7 +416,7 @@ void FillSponsored(
 					st::historyHasCustomEmojiPosition,
 					base::duplicate(i));
 				item->clicks(
-				) | rpl::start_with_next(callback, menu->lifetime());
+				) | rpl::on_next(callback, menu->lifetime());
 				menu->addAction(std::move(item));
 				if (i != details.info.back()) {
 					menu->addSeparator();

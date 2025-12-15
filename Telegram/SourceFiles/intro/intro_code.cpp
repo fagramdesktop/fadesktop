@@ -40,7 +40,7 @@ CodeWidget::CodeWidget(
 , _callLabel(this, st::introDescription)
 , _checkRequestTimer([=] { checkRequest(); }) {
 	Lang::Updated(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		refreshLang();
 	}, lifetime());
 
@@ -62,7 +62,7 @@ CodeWidget::CodeWidget(
 	});
 
 	_code->codeCollected(
-	) | rpl::start_with_next([=](const QString &code) {
+	) | rpl::on_next([=](const QString &code) {
 		hideError();
 		submitCode(code);
 	}, lifetime());

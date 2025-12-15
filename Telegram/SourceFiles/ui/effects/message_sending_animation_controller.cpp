@@ -109,7 +109,7 @@ Content::Content(
 	base::take(
 		_toInfo.globalEndTopLeft
 	) | rpl::distinct_until_changed(
-	) | rpl::start_with_next([=](const std::optional<QPoint> &p) {
+	) | rpl::on_next([=](const std::optional<QPoint> &p) {
 		if (p) {
 			_to = parent->mapFromGlobal(*p);
 		} else {
@@ -118,7 +118,7 @@ Content::Content(
 	}, lifetime());
 
 	_controller->session().downloaderTaskFinished(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		update();
 	}, lifetime());
 
@@ -298,7 +298,7 @@ void Content::createSurrounding() {
 	stackUnder(_surrounding.get());
 
 	_surrounding->paintRequest(
-	) | rpl::start_with_next([=, size = surroundingSize](const QRect &r) {
+	) | rpl::on_next([=, size = surroundingSize](const QRect &r) {
 		Painter p(_surrounding);
 
 		p.fillRect(r, Qt::transparent);
@@ -368,7 +368,7 @@ void Content::createBubble() {
 	_bubble.widget->stackUnder(this);
 
 	_bubble.widget->paintRequest(
-	) | rpl::start_with_next([=, raw = _bubble.widget.get()](const QRect &r) {
+	) | rpl::on_next([=, raw = _bubble.widget.get()](const QRect &r) {
 		auto p = Painter(raw);
 
 		p.fillRect(r, Qt::transparent);
@@ -427,12 +427,12 @@ MessageSendingAnimationController::MessageSendingAnimationController(
 
 void MessageSendingAnimationController::subscribeToDestructions() {
 	_controller->session().data().itemIdChanged(
-	) | rpl::start_with_next([=](Data::Session::IdChange change) {
+	) | rpl::on_next([=](Data::Session::IdChange change) {
 		_itemSendPending.remove(change.oldId);
 	}, _lifetime);
 
 	_controller->session().data().itemRemoved(
-	) | rpl::start_with_next([=](not_null<const HistoryItem*> item) {
+	) | rpl::on_next([=](not_null<const HistoryItem*> item) {
 		_itemSendPending.remove(item->id);
 		_processing.remove(item);
 	}, _lifetime);
@@ -475,7 +475,7 @@ void MessageSendingAnimationController::startAnimation(SendingInfoTo &&to) {
 		std::move(to));
 
 	content->destroyRequests(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_processing.erase(item);
 	}, content->lifetime());
 

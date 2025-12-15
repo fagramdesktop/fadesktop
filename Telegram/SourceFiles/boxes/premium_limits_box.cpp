@@ -596,12 +596,12 @@ void ChannelsLimitBox(
 
 	using namespace rpl::mappers;
 	controller->countValue(
-	) | rpl::filter(_1 > 0) | rpl::start_with_next([=] {
+	) | rpl::filter(_1 > 0) | rpl::on_next([=] {
 		delete placeholder;
 	}, placeholder->lifetime());
 
 	delegate->selectedCountChanges(
-	) | rpl::start_with_next([=](int count) {
+	) | rpl::on_next([=](int count) {
 		const auto leave = [=](const base::flat_set<PeerListRowId> &ids) {
 			for (const auto rowId : ids) {
 				const auto id = peerToChannel(PeerId(rowId));
@@ -687,7 +687,7 @@ void PublicLinksLimitBox(
 
 	using namespace rpl::mappers;
 	controller->countValue(
-	) | rpl::filter(_1 > 0) | rpl::start_with_next([=] {
+	) | rpl::filter(_1 > 0) | rpl::on_next([=] {
 		delete placeholder;
 	}, placeholder->lifetime());
 }
@@ -1162,7 +1162,7 @@ void AccountsLimitBox(
 			return;
 		}
 		*switchingLifetime = session->domain().activeSessionChanges(
-		) | rpl::start_with_next([=](Main::Session *session) mutable {
+		) | rpl::on_next([=](Main::Session *session) mutable {
 			if (session) {
 				Settings::ShowPremium(session, ref);
 			}

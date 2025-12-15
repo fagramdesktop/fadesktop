@@ -110,7 +110,7 @@ float roundedCorner() {
 OverlayWidget::RendererGL::RendererGL(not_null<OverlayWidget*> owner)
 : _owner(owner) {
 	style::PaletteChanged(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_controlsFadeImage.invalidate();
 		_radialImage.invalidate();
 		_documentBubbleImage.invalidate();
@@ -123,11 +123,11 @@ OverlayWidget::RendererGL::RendererGL(not_null<OverlayWidget*> owner)
 
 	crl::on_main(this, [=] {
 		_owner->_storiesChanged.events(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			if (_owner->_storiesSession) {
 				Data::AmPremiumValue(
 					_owner->_storiesSession
-				) | rpl::start_with_next([=] {
+				) | rpl::on_next([=] {
 					invalidateControls();
 				}, _storiesLifetime);
 			} else {

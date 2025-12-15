@@ -222,14 +222,14 @@ StickerPremiumMark::StickerPremiumMark(
 : _lockIcon(lockIcon)
 , _part(part) {
 	style::PaletteChanged(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_lockGray = QImage();
 		_star = QImage();
 	}, _lifetime);
 
 	Data::AmPremiumValue(
 		session
-	) | rpl::start_with_next([=](bool premium) {
+	) | rpl::on_next([=](bool premium) {
 		_premium = premium;
 	}, _lifetime);
 }
@@ -521,7 +521,7 @@ void StickerSetBox::prepare() {
 		st::stickersScroll);
 	_session->data().stickers().updated(
 		_type
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		updateButtons();
 	}, lifetime());
 
@@ -534,12 +534,12 @@ void StickerSetBox::prepare() {
 	updateTitleAndButtons();
 
 	_inner->updateControls(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		updateTitleAndButtons();
 	}, lifetime());
 
 	_inner->setInstalled(
-	) | rpl::start_with_next([=](uint64 setId) {
+	) | rpl::on_next([=](uint64 setId) {
 		if (_inner->setType() == Data::StickersType::Masks) {
 			showToast(tr::lng_masks_installed(tr::now));
 		} else if (_inner->setType() == Data::StickersType::Emoji) {
@@ -553,12 +553,12 @@ void StickerSetBox::prepare() {
 	}, lifetime());
 
 	_inner->errors(
-	) | rpl::start_with_next([=](Error error) {
+	) | rpl::on_next([=](Error error) {
 		handleError(error);
 	}, lifetime());
 
 	_inner->setArchived(
-	) | rpl::start_with_next([=](uint64 setId) {
+	) | rpl::on_next([=](uint64 setId) {
 		const auto type = _inner->setType();
 		if (type == Data::StickersType::Emoji) {
 			return;
@@ -929,7 +929,7 @@ StickerSetBox::Inner::Inner(
 	_session->api().updateStickers();
 
 	_session->downloaderTaskFinished(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		updateItems();
 	}, lifetime());
 
@@ -1524,7 +1524,7 @@ void StickerSetBox::Inner::fillDeleteStickerBox(
 		animation->start();
 	}
 	sticker->paintRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		auto p = Painter(sticker);
 		if ([[maybe_unused]] const auto strong = weak.get()) {
 			const auto paused = On(PowerSaving::kStickersPanel)
@@ -1540,7 +1540,7 @@ void StickerSetBox::Inner::fillDeleteStickerBox(
 		tr::lng_stickers_context_delete(),
 		box->getDelegate()->style().title);
 	line->widthValue(
-	) | rpl::start_with_next([=](int width) {
+	) | rpl::on_next([=](int width) {
 		sticker->moveToLeft(st::boxRowPadding.left(), 0);
 		const auto skip = st::defaultBoxCheckbox.textPosition.x();
 		label->resizeToWidth(width
@@ -1679,7 +1679,7 @@ not_null<Lottie::MultiPlayer*> StickerSetBox::Inner::getLottiePlayer() {
 			Lottie::Quality::Default,
 			Lottie::MakeFrameRenderer());
 		_lottiePlayer->updates(
-		) | rpl::start_with_next([=] {
+		) | rpl::on_next([=] {
 			updateItems();
 		}, lifetime());
 	}
