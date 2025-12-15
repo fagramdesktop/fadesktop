@@ -107,7 +107,7 @@ jobs:
     if: github.event.inputs.build_type == 'rel'
     steps:
       - name: Trigger repository dispatch event
-        uses: peter-evans/repository-dispatch@v3
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.PAT }}
           repository: burhancodes/fagram-rpm
