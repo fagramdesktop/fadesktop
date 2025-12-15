@@ -19,9 +19,14 @@ namespace {
 std::map<int, const char*> FALogs() {
 	return {
 	{
-		2000008,
-		"- New context menu\n"
-		"- New custom changelogs service notifications\n"
+		2000009,
+		"- Updated to tdesktop v6.3.8\n"
+		"- Updated to tdesktop v6.3.7\n"
+		"- New context menu shortcuts\n"
+		"- Service notifications for changelogs\n"
+		"- Reply in Private Chat\n"
+		"- Advanced forward options\n"
+		"- Support tg://openmessage links\n"
 		"- Fixed registration timestamps\n\n"
 		"@FAgramDesktop\n"
 	},
