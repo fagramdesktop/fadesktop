@@ -138,7 +138,7 @@ jobs:
           mkdir artifact
           move C:/Users/runneradmin/TBuild/fagramdesktop/out/* artifact/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         name: Upload Release Artifacts
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
         with:

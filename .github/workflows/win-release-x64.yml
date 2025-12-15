@@ -83,7 +83,7 @@ jobs:
           for /d /r Libraries %%d in (.git) do @if exist "%%d" rd /s /q "%%d"
 
       - name: Upload Libraries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: libraries-x64
           path: ${{ env.TBUILD }}/Libraries
@@ -91,7 +91,7 @@ jobs:
           compression-level: 1
 
       - name: Upload ThirdParty
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: thirdparty-x64
           path: ${{ env.TBUILD }}/ThirdParty
@@ -211,7 +211,7 @@ jobs:
           cd artifact
           7z a -tzip FAgram_Win-x64_%RELEASE_TAG%_portable.zip *.exe icon.ico
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         name: Upload Release Artifacts
         if: env.UPLOAD_ARTIFACT == 'true'
         with:
