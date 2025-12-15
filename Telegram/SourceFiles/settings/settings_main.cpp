@@ -231,14 +231,14 @@ void Cover::initViewers() {
 	Info::Profile::PhoneValue(
 		_user
 	) | rpl::on_next([=](const TextWithEntities &value) {
-		_phone->setText(hide_phone ? QString("Phone hidden") : QString::fromStdString(value.text.toStdString()));
+		_phone->setText(hide_phone ? QString("Phone hidden") : value.text);
 		refreshPhoneGeometry(width());
 	}, lifetime());
 
 	Info::Profile::UsernameValue(
 		_user
 	) | rpl::on_next([=](const TextWithEntities &value) {
-		_username->setMarkedText(Ui::Text::Link(value.text.isEmpty()
+		_username->setMarkedText(tr::link(value.text.isEmpty()
 			? tr::lng_settings_username_add(tr::now)
 			: value.text));
 		refreshUsernameGeometry(width());
@@ -443,11 +443,10 @@ void SetupValidatePhoneNumberSuggestion(
 			content,
 			tr::lng_settings_suggestion_phone_number_about(
 				lt_link,
-				tr::lng_collectible_learn_more(
-				) | Ui::Text::ToLink(
+				tr::lng_collectible_learn_more(tr::url(
 					tr::lng_settings_suggestion_phone_number_about_link(
-						tr::now)),
-				Ui::Text::WithEntities),
+						tr::now))),
+				tr::marked),
 			st::boxLabel),
 		st::boxRowPadding);
 	label->setClickHandlerFilter([=, weak = base::make_weak(controller)](
@@ -508,7 +507,7 @@ void SetupValidatePhoneNumberSuggestion(
 					tr::lng_settings_suggestion_phone_number_change(
 						lt_emoji,
 						rpl::single(Ui::Text::SingleCustomEmoji(u"@"_q)),
-						Ui::Text::WithEntities),
+						tr::marked),
 					st::boxLabel,
 					st::defaultPopupMenu,
 					Ui::Text::MarkedContext{

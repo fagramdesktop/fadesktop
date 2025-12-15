@@ -123,7 +123,7 @@ void Location::setupPicker(not_null<Ui::VerticalLayout*> content) {
 		.lottieSize = st::settingsCloudPasswordIconSize,
 		.lottieMargins = st::peerAppearanceIconPadding,
 		.showFinished = showFinishes(),
-		.about = tr::lng_location_about(Ui::Text::WithEntities),
+		.about = tr::lng_location_about(tr::marked),
 		.aboutMargins = st::peerAppearanceCoverLabelMargin,
 	});
 
@@ -273,7 +273,7 @@ void Location::setupUnsupported(not_null<Ui::VerticalLayout*> content) {
 		.lottieSize = st::settingsCloudPasswordIconSize,
 		.lottieMargins = st::peerAppearanceIconPadding,
 		.showFinished = showFinishes(),
-		.about = tr::lng_location_fallback(Ui::Text::WithEntities),
+		.about = tr::lng_location_fallback(tr::marked),
 		.aboutMargins = st::peerAppearanceCoverLabelMargin,
 		.parts = RectPart::Top,
 	});

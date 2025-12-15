@@ -863,7 +863,7 @@ void TopBarWithSticker::updateTitle(
 				tr::now,
 				lt_user,
 				std::move(name),
-				Ui::Text::WithEntities));
+				tr::marked));
 	}
 	const auto stickerInfo = document->sticker();
 	if (!stickerInfo) {
@@ -886,21 +886,21 @@ void TopBarWithSticker::updateTitle(
 		set->thumbnailDocumentId);
 	const auto entities = EntitiesInText{
 		{ EntityType::CustomEmoji, 0, 1, entityEmojiData },
-		Ui::Text::Link(text, linkIndex).entities.front(),
+		tr::link(text, linkIndex).entities.front(),
 	};
 	auto title = (setId == coloredId)
 		? tr::lng_premium_emoji_status_title_colored(
 			tr::now,
 			lt_user,
 			std::move(name),
-			Ui::Text::WithEntities)
+			tr::marked)
 		: tr::lng_premium_emoji_status_title(
 			tr::now,
 			lt_user,
 			std::move(name),
 			lt_link,
 			{ .text = text, .entities = entities, },
-			Ui::Text::WithEntities);
+			tr::marked);
 	_title->setMarkedText(
 		std::move(title),
 		Core::TextContext({ .session = &controller->session() }));
@@ -929,7 +929,7 @@ void TopBarWithSticker::updateAbout(
 			? tr::lng_premium_emoji_status_about
 			: tr::lng_premium_summary_user_about)(
 				tr::now,
-				Ui::Text::RichLangValue));
+				tr::rich));
 }
 
 void TopBarWithSticker::setPaused(bool paused) {
@@ -1154,14 +1154,13 @@ void Premium::setupContent() {
 	content->add(
 		object_ptr<Ui::FlatLabel>(
 			content,
-			tr::lng_premium_summary_bottom_subtitle(
-			) | Ui::Text::ToBold(),
+			tr::lng_premium_summary_bottom_subtitle(tr::bold),
 			stLabel),
 		st::defaultSubsectionTitlePadding);
 	content->add(
 		object_ptr<Ui::FlatLabel>(
 			content,
-			tr::lng_premium_summary_bottom_about(Ui::Text::RichLangValue),
+			tr::lng_premium_summary_bottom_about(tr::rich),
 			st::aboutLabel),
 		st::boxRowPadding);
 	Ui::AddSkip(
@@ -1197,14 +1196,14 @@ base::weak_qptr<Ui::RpWidget> Premium::createPinnedToTop(
 						lt_count,
 						rpl::single(float64(months ? months : gift.days)),
 						lt_user,
-						rpl::single(Ui::Text::Bold(peer->name())),
-						Ui::Text::RichLangValue);
+						rpl::single(tr::bold(peer->name())),
+						tr::rich);
 			}
 		}
 		return rpl::conditional(
 			Data::AmPremiumValue(&_controller->session()),
 			_controller->session().api().premium().statusTextValue(),
-			tr::lng_premium_summary_top_about(Ui::Text::RichLangValue));
+			tr::lng_premium_summary_top_about(tr::rich));
 	}();
 
 	const auto emojiStatusData = Ref::EmojiStatus::Parse(_ref);
@@ -1246,7 +1245,7 @@ base::weak_qptr<Ui::RpWidget> Premium::createPinnedToTop(
 					.aboutValue = tr::lng_gift_premium_text(
 						lt_count,
 						rpl::single(premiumGiftData.perUserTotal * 1.),
-						Ui::Text::RichLangValue),
+						tr::rich),
 					.type = TopBarWithStickerType::PremiumGift,
 				},
 				_showFinished.events());
@@ -1841,7 +1840,7 @@ void AddSummaryPremium(
 		const auto label = content->add(
 			object_ptr<Ui::FlatLabel>(
 				content,
-				std::move(entry.title) | Ui::Text::ToBold(),
+				std::move(entry.title) | rpl::map(tr::bold),
 				stLabel),
 			titlePadding);
 		label->setAttribute(Qt::WA_TransparentForMouseEvents);

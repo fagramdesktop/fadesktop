@@ -509,7 +509,7 @@ auto PhoneNumberPrivacyController::warning() const
 	) | rpl::map([=](bool onlyContactsSee) {
 		return onlyContactsSee
 			? tr::lng_edit_privacy_phone_number_contacts(
-				Ui::Text::WithEntities)
+				tr::marked)
 			: rpl::combine(
 				tr::lng_edit_privacy_phone_number_warning(),
 				tr::lng_username_link()
@@ -518,7 +518,7 @@ auto PhoneNumberPrivacyController::warning() const
 					warning + "\n\n" + added + "\n",
 				};
 				const auto link = PublicLinkByPhone(self);
-				return base.append(Ui::Text::Link(link, link));
+				return base.append(tr::link(link, link));
 			});
 	}) | rpl::flatten_latest();
 }
@@ -642,7 +642,7 @@ rpl::producer<QString> LastSeenPrivacyController::optionsTitleKey() const {
 
 auto LastSeenPrivacyController::warning() const
 -> rpl::producer<TextWithEntities> {
-	return tr::lng_edit_privacy_lastseen_warning(Ui::Text::WithEntities);
+	return tr::lng_edit_privacy_lastseen_warning(tr::marked);
 }
 
 rpl::producer<QString> LastSeenPrivacyController::exceptionButtonTextKey(
@@ -909,7 +909,7 @@ QString CallsPeer2PeerPrivacyController::optionLabel(
 
 auto CallsPeer2PeerPrivacyController::warning() const
 -> rpl::producer<TextWithEntities> {
-	return tr::lng_settings_peer_to_peer_about(Ui::Text::WithEntities);
+	return tr::lng_settings_peer_to_peer_about(tr::marked);
 }
 
 auto CallsPeer2PeerPrivacyController::exceptionButtonTextKey(
@@ -968,7 +968,7 @@ rpl::producer<QString> ForwardsPrivacyController::optionsTitleKey() const {
 
 auto ForwardsPrivacyController::warning() const
 -> rpl::producer<TextWithEntities> {
-	return tr::lng_edit_privacy_forwards_warning(Ui::Text::WithEntities);
+	return tr::lng_edit_privacy_forwards_warning(tr::marked);
 }
 
 rpl::producer<QString> ForwardsPrivacyController::exceptionButtonTextKey(
@@ -1446,15 +1446,15 @@ Fn<void()> VoicesPrivacyController::premiumClickedCallback(
 		return nullptr;
 	}
 	const auto showToast = [=] {
-		auto link = Ui::Text::Link(
-			Ui::Text::Semibold(
+		auto link = tr::link(
+			tr::semibold(
 				tr::lng_settings_privacy_premium_link(tr::now)));
 		_toastInstance = controller->showToast({
 			.text = tr::lng_settings_privacy_premium(
 				tr::now,
 				lt_link,
 				link,
-				Ui::Text::WithEntities),
+				tr::marked),
 			.filter = crl::guard(&controller->session(), [=](
 					const ClickHandlerPtr &,
 					Qt::MouseButton button) {
@@ -1569,8 +1569,8 @@ object_ptr<Ui::RpWidget> BirthdayPrivacyController::setupAboveWidget(
 				tr::lng_edit_privacy_birthday_yet(
 					lt_link,
 					tr::lng_edit_privacy_birthday_yet_link(
-					) | Ui::Text::ToLink("internal:edit_birthday"),
-					Ui::Text::WithEntities),
+						tr::url(u"internal:edit_birthday"_q)),
+					tr::marked),
 				st::boxDividerLabel),
 			st::defaultBoxDividerLabelPadding));
 	result->toggleOn(session->changes().peerFlagsValue(
@@ -1648,15 +1648,15 @@ void GiftsAutoSavePrivacyController::ensureAdditionalState(
 	_state->disallowed = globalPrivacy->disallowedGiftTypesCurrent();
 	_state->promo = [=] {
 		_state->disables.fire({});
-		const auto link = Ui::Text::Bold(
+		const auto link = tr::bold(
 			tr::lng_settings_generic_subscribe_link(tr::now));
 		Settings::ShowPremiumPromoToast(
 			controller->uiShow(),
 			tr::lng_settings_generic_subscribe(
 				tr::now,
 				lt_link,
-				Ui::Text::Link(link),
-				Ui::Text::WithEntities),
+				tr::link(link),
+				tr::marked),
 			u"gifts_privacy"_q);
 	};
 	_state->save = [=] {
@@ -1713,7 +1713,7 @@ object_ptr<Ui::RpWidget> GiftsAutoSavePrivacyController::setupAboveWidget(
 		tr::lng_edit_privacy_gifts_show_icon_about(
 			lt_emoji,
 			rpl::single(Ui::Text::IconEmoji(&st::settingsGiftIconEmoji)),
-			Ui::Text::WithEntities));
+			tr::marked));
 
 	return result;
 }

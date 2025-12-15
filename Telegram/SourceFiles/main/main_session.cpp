@@ -247,7 +247,7 @@ Session::Session(
 		// Listen for blocked state changes and refresh messages from that peer
 		changes().peerUpdates(
 			Data::PeerUpdate::Flag::IsBlocked
-		) | rpl::start_with_next([=](const Data::PeerUpdate &update) {
+		) | rpl::on_next([=](const Data::PeerUpdate &update) {
 			// When a peer's blocked state changes to blocked, update their messages
 			if (update.peer->isBlocked()) {
 				// Get the history for this peer and refresh all their messages

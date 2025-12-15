@@ -596,7 +596,7 @@ void PaintRow(
 								.entities = ConvertTextTagsToEntities(
 									draft->textWithTags.tags),
 							}),
-							Text::WithEntities);
+							tr::marked);
 					if (draft && draft->reply) {
 						draftText = Ui::Text::Colorized(
 							Ui::Text::IconEmoji(&st::dialogsMiniReplyIcon)

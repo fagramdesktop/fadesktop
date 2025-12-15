@@ -541,13 +541,13 @@ void LinkController::addHeader(not_null<Ui::VerticalLayout*> container) {
 		object_ptr<Ui::FlatLabel>(
 			verticalLayout,
 			(_data.url.isEmpty()
-				? tr::lng_filters_link_no_about(Ui::Text::WithEntities)
+				? tr::lng_filters_link_no_about(tr::marked)
 				: tr::lng_filters_link_share_about(
 					lt_folder,
 					rpl::single(Ui::Text::Wrapped(
 						_filterTitle.text,
 						EntityType::Bold)),
-					Ui::Text::WithEntities)),
+					tr::marked)),
 			st::settingsFilterDividerLabel,
 			st::defaultPopupMenu,
 			Core::TextContext({

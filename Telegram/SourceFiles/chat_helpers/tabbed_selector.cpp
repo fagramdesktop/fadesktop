@@ -1117,7 +1117,7 @@ void TabbedSelector::checkRestrictedPeer() {
 			_restrictedLabel.create(
 				this,
 				rpl::single(error.boostsToLift
-					? Ui::Text::Link(error.text)
+					? tr::link(error.text)
 					: TextWithEntities{ error.text }),
 				st::stickersRestrictedLabel);
 			const auto lifting = error.boostsToLift;

@@ -149,7 +149,7 @@ void AboutBox(
 				: isSearch
 				? tr::lng_sponsored_revenued_info1_search_description
 				: tr::lng_sponsored_revenued_info1_bot_description)(
-					Ui::Text::RichLangValue),
+					tr::rich),
 			st::sponsoredAboutPrivacyIcon);
 		if (!isSearch) {
 			Ui::AddSkip(content);
@@ -161,14 +161,14 @@ void AboutBox(
 				(isChannel
 					? tr::lng_sponsored_revenued_info2_description
 					: tr::lng_sponsored_revenued_info2_bot_description)(
-						Ui::Text::RichLangValue),
+						tr::rich),
 				st::sponsoredAboutSplitIcon);
 		}
 		Ui::AddSkip(content);
 		Ui::AddSkip(content);
 		auto link = tr::lng_settings_privacy_premium_link(
 		) | rpl::map([](QString t) {
-			return Ui::Text::Link(std::move(t), u"internal:"_q);
+			return tr::link(std::move(t), u"internal:"_q);
 		});
 		addEntry(
 			tr::lng_sponsored_revenued_info3_title(),
@@ -178,7 +178,7 @@ void AboutBox(
 					rpl::single(float64(levels)),
 					lt_link,
 					std::move(link),
-					Ui::Text::RichLangValue)
+					tr::rich)
 				: isSearch
 				? tr::lng_sponsored_revenued_info3_search_description(
 					lt_link,
@@ -186,18 +186,18 @@ void AboutBox(
 						lt_arrow,
 						rpl::single(
 							Ui::Text::IconEmoji(&st::textMoreIconEmoji)),
-						Ui::Text::WithEntities
+						tr::marked
 					) | rpl::map([](TextWithEntities &&link) {
 						return Ui::Text::Wrapped(
 							std::move(link),
 							EntityType::CustomUrl,
 							u"internal:"_q);
 					}),
-					Ui::Text::RichLangValue)
+					tr::rich)
 				: tr::lng_sponsored_revenued_info3_bot_description(
 					lt_link,
 					std::move(link),
-					Ui::Text::RichLangValue)),
+					tr::rich)),
 			st::sponsoredAboutRemoveIcon)->setClickHandlerFilter([=](
 					const auto &...) {
 				ShowPremiumPreviewBox(show, PremiumFeature::NoAds);
@@ -233,11 +233,11 @@ void AboutBox(
 						tr::lng_channel_earn_about_link(
 							lt_emoji,
 							rpl::single(arrow),
-							Ui::Text::RichLangValue
+							tr::rich
 						) | rpl::map([=](TextWithEntities t) {
-							return Ui::Text::Link(std::move(t), kUrl.utf16());
+							return tr::link(std::move(t), kUrl.utf16());
 						}),
-						Ui::Text::RichLangValue),
+						tr::rich),
 				st::channelEarnLearnDescription))->resizeToWidth(available);
 	}
 	Ui::AddSkip(content);
@@ -305,7 +305,7 @@ void AboutBox(
 void ShowReportSponsoredBox(
 		std::shared_ptr<ChatHelpers::Show> show,
 		Data::SponsoredReportAction report) {
-	const auto guideLink = Ui::Text::Link(
+	const auto guideLink = tr::link(
 		tr::lng_report_sponsored_reported_link(tr::now),
 		u"https://promote.telegram.org/guidelines"_q);
 
@@ -343,7 +343,7 @@ void ShowReportSponsoredBox(
 								tr::lng_report_sponsored_reported_learn(
 									lt_link,
 									rpl::single(guideLink),
-									Ui::Text::WithEntities),
+									tr::marked),
 								st::boxDividerLabel),
 							st::defaultBoxDividerLabelPadding));
 					}
@@ -364,7 +364,7 @@ void ShowReportSponsoredBox(
 						tr::now,
 						lt_link,
 						guideLink,
-						Ui::Text::WithEntities);
+						tr::marked);
 					show->showToast({
 						.text = std::move(text),
 						.duration = kToastDuration,

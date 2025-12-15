@@ -306,7 +306,7 @@ void SettingsWidget::addLocationLabel(
 			? u"Downloads/"_q + File::DefaultDownloadPathFolder(_session)
 			: tr::lng_download_path_temp(tr::now)
 			: path;
-		return Ui::Text::Link(
+		return tr::link(
 			QDir::toNativeSeparators(text),
 			QString("internal:edit_export_path"));
 	});
@@ -316,7 +316,7 @@ void SettingsWidget::addLocationLabel(
 			tr::lng_export_option_location(
 				lt_path,
 				std::move(pathLink),
-				Ui::Text::WithEntities),
+				tr::marked),
 			st::exportLocationLabel),
 		st::exportLocationPadding);
 	label->overrideLinkClickHandler([=] {
@@ -355,7 +355,7 @@ void SettingsWidget::addFormatAndLocationLabel(
 			? u"Downloads/"_q + File::DefaultDownloadPathFolder(_session)
 			: tr::lng_download_path_temp(tr::now)
 			: path;
-		return Ui::Text::Link(
+		return tr::link(
 			QDir::toNativeSeparators(text),
 			u"internal:edit_export_path"_q);
 	});
@@ -368,7 +368,7 @@ void SettingsWidget::addFormatAndLocationLabel(
 			: (format == Format::Json)
 			? "JSON"
 			: tr::lng_export_option_html_and_json(tr::now);
-		return Ui::Text::Link(text, u"internal:edit_format"_q);
+		return tr::link(text, u"internal:edit_format"_q);
 	});
 	const auto label = container->add(
 		object_ptr<Ui::FlatLabel>(
@@ -378,7 +378,7 @@ void SettingsWidget::addFormatAndLocationLabel(
 				std::move(formatLink),
 				lt_path,
 				std::move(pathLink),
-				Ui::Text::WithEntities),
+				tr::marked),
 			st::exportLocationLabel),
 		st::exportLocationPadding);
 	label->overrideLinkClickHandler([=](const QString &url) {
@@ -403,7 +403,7 @@ void SettingsWidget::addLimitsLabel(
 			? rpl::single(langDayOfMonthFull(
 				base::unixtime::parse(from).date()))
 			: tr::lng_export_beginning()
-		) | Ui::Text::ToLink(u"internal:edit_from"_q);
+		) | rpl::map(tr::url(u"internal:edit_from"_q));
 	}) | rpl::flatten_latest();
 
 	const auto mapToTime = [](TimeId id, const QString &link) {
@@ -412,7 +412,7 @@ void SettingsWidget::addLimitsLabel(
 				base::unixtime::parse(id).time(),
 				QLocale::ShortFormat)
 			: QString()
-		) | Ui::Text::ToLink(link);
+		) | rpl::map(tr::url(link));
 	};
 
 	const auto concat = [](TextWithEntities date, TextWithEntities link) {
@@ -441,7 +441,7 @@ void SettingsWidget::addLimitsLabel(
 			? rpl::single(langDayOfMonthFull(
 				base::unixtime::parse(till).date()))
 			: tr::lng_export_end()
-		) | Ui::Text::ToLink(u"internal:edit_till"_q);
+		) | rpl::map(tr::url(u"internal:edit_till"_q));
 	}) | rpl::flatten_latest();
 
 	auto tillTimeLink = value() | rpl::map([](const Settings &data) {
@@ -461,7 +461,7 @@ void SettingsWidget::addLimitsLabel(
 		std::move(fromLink),
 		lt_till,
 		std::move(tillLink),
-		Ui::Text::WithEntities
+		tr::marked
 	) | rpl::after_next([=] {
 		container->resizeToWidth(container->width());
 	});

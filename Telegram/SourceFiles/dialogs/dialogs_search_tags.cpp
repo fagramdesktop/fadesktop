@@ -58,7 +58,7 @@ namespace {
 	const auto attempt = [&](const auto &phrase) {
 		result.setMarkedText(
 			st::dialogsSearchTagPromo,
-			phrase(tr::now, lt_arrow, emoji, Ui::Text::WithEntities),
+			phrase(tr::now, lt_arrow, emoji, tr::marked),
 			kMarkupTextOptions);
 		return result.maxWidth() < width;
 	};

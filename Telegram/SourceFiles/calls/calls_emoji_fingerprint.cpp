@@ -592,7 +592,7 @@ void SetupFingerprintTooltip(not_null<Ui::RpWidget*> widget) {
 		}
 		const auto text = tr::lng_confcall_e2e_about(
 			tr::now,
-			Ui::Text::WithEntities);
+			tr::marked);
 		if (text.empty()) {
 			return;
 		}

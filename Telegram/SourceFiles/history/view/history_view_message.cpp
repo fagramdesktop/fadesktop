@@ -221,12 +221,12 @@ void Message::initPaidInformation() {
 		return (info.messages == 1)
 			? tr::lng_action_paid_message_one(
 				tr::now,
-				Ui::Text::WithEntities)
+				tr::marked)
 			: tr::lng_action_paid_message_some(
 				tr::now,
 				lt_count,
 				info.messages,
-				Ui::Text::WithEntities);
+				tr::marked);
 	};
 	auto text = PreparedServiceText{
 		.text = item->out()
@@ -236,14 +236,14 @@ void Message::initPaidInformation() {
 				info.stars,
 				lt_action,
 				action(),
-				Ui::Text::WithEntities)
+				tr::marked)
 			: tr::lng_action_paid_message_got(
 				tr::now,
 				lt_count,
 				info.stars,
 				lt_name,
-				Ui::Text::Link(item->from()->shortName(), 1),
-				Ui::Text::WithEntities),
+				tr::link(item->from()->shortName(), 1),
+				tr::marked),
 	};
 	if (!item->out()) {
 		text.links.push_back(item ->from()->createOpenLink());
@@ -2730,7 +2730,7 @@ ClickHandlerPtr Message::psaTooltipLink() const {
 		const auto custom = type.isEmpty()
 			? QString()
 			: Lang::GetNonDefaultValue(kPsaTooltipPrefix + type.toUtf8());
-		auto text = Ui::Text::RichLangValue(
+		auto text = tr::rich(
 			(custom.isEmpty()
 				? tr::lng_tooltip_psa_default(tr::now)
 				: custom));

@@ -796,6 +796,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_settings_channel_label" = "Personal channel";
 "lng_settings_channel_add" = "Add";
 "lng_settings_channel_remove" = "Remove";
+"lng_settings_channel_menu_remove" = "Remove Personal Channel";
 "lng_settings_channel_no_yet" = "You don't have any public channels yet.";
 "lng_settings_channel_start" = "Start a Channel";
 "lng_settings_channel_saved" = "Your personal channel was updated.";
@@ -5178,6 +5179,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 "lng_edit_channel_status_about" = "Choose a status that will be shown next to the channel's name.";
 "lng_edit_channel_status_group" = "Set Group Emoji Status";
 "lng_edit_channel_status_about_group" = "Choose a status that will be shown next to the group's name.";
+"lng_edit_channel_personal_channel" = "Set as Personal Channel";
 "lng_edit_self_title" = "Edit your name";
 "lng_confirm_contact_data" = "New Contact";
 "lng_add_contact" = "Create";

@@ -4290,66 +4290,66 @@ TextWithEntities ComposeInviteResultToast(
 		append(tr::lng_confcall_invite_done_user(
 			tr::now,
 			lt_user,
-			Ui::Text::Bold(result.invited.front()->shortName()),
-			Ui::Text::RichLangValue));
+			tr::bold(result.invited.front()->shortName()),
+			tr::rich));
 	} else if (invited > 1) {
 		append(tr::lng_confcall_invite_done_many(
 			tr::now,
 			lt_count,
 			invited,
-			Ui::Text::RichLangValue));
+			tr::rich));
 	}
 	if (already == 1) {
 		append(tr::lng_confcall_invite_already_user(
 			tr::now,
 			lt_user,
-			Ui::Text::Bold(result.alreadyIn.front()->shortName()),
-			Ui::Text::RichLangValue));
+			tr::bold(result.alreadyIn.front()->shortName()),
+			tr::rich));
 	} else if (already > 1) {
 		append(tr::lng_confcall_invite_already_many(
 			tr::now,
 			lt_count,
 			already,
-			Ui::Text::RichLangValue));
+			tr::rich));
 	}
 	if (restricted == 1) {
 		append(tr::lng_confcall_invite_fail_user(
 			tr::now,
 			lt_user,
-			Ui::Text::Bold(result.privacyRestricted.front()->shortName()),
-			Ui::Text::RichLangValue));
+			tr::bold(result.privacyRestricted.front()->shortName()),
+			tr::rich));
 	} else if (restricted > 1) {
 		append(tr::lng_confcall_invite_fail_many(
 			tr::now,
 			lt_count,
 			restricted,
-			Ui::Text::RichLangValue));
+			tr::rich));
 	}
 	if (kicked == 1) {
 		append(tr::lng_confcall_invite_kicked_user(
 			tr::now,
 			lt_user,
-			Ui::Text::Bold(result.kicked.front()->shortName()),
-			Ui::Text::RichLangValue));
+			tr::bold(result.kicked.front()->shortName()),
+			tr::rich));
 	} else if (kicked > 1) {
 		append(tr::lng_confcall_invite_kicked_many(
 			tr::now,
 			lt_count,
 			kicked,
-			Ui::Text::RichLangValue));
+			tr::rich));
 	}
 	if (failed == 1) {
 		append(tr::lng_confcall_invite_fail_user(
 			tr::now,
 			lt_user,
-			Ui::Text::Bold(result.failed.front()->shortName()),
-			Ui::Text::RichLangValue));
+			tr::bold(result.failed.front()->shortName()),
+			tr::rich));
 	} else if (failed > 1) {
 		append(tr::lng_confcall_invite_fail_many(
 			tr::now,
 			lt_count,
 			failed,
-			Ui::Text::RichLangValue));
+			tr::rich));
 	}
 	return text;
 }

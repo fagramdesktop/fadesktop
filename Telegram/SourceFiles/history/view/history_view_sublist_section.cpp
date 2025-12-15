@@ -84,7 +84,7 @@ SublistWidget::SublistWidget(
 		controller->chatStyle(),
 		static_cast<HistoryView::CornerButtonsDelegate*>(this)) {
 	controller->chatStyle()->paletteChanged(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_scroll->updateBars();
 	}, _scroll->lifetime());
 
@@ -94,7 +94,7 @@ SublistWidget::SublistWidget(
 	Window::ChatThemeValueFromPeer(
 		controller,
 		sublist->peer()
-	) | rpl::start_with_next([=](std::shared_ptr<Ui::ChatTheme> &&theme) {
+	) | rpl::on_next([=](std::shared_ptr<Ui::ChatTheme> &&theme) {
 		_theme = std::move(theme);
 		controller->setChatStyleTheme(_theme);
 	}, lifetime());
@@ -111,26 +111,26 @@ SublistWidget::SublistWidget(
 	_topBar->show();
 
 	_topBar->deleteSelectionRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		confirmDeleteSelected();
 	}, _topBar->lifetime());
 	_topBar->forwardSelectionRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		confirmForwardSelected();
 	}, _topBar->lifetime());
 	_topBar->clearSelectionRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		clearSelected();
 	}, _topBar->lifetime());
 	_topBar->searchRequest(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		searchInSublist();
 	}, _topBar->lifetime());
 
 	_translateBar->raise();
 	_topBarShadow->raise();
 	controller->adaptive().value(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		updateAdaptiveLayout();
 	}, lifetime());
 
@@ -141,7 +141,7 @@ SublistWidget::SublistWidget(
 	_scroll->move(0, _topBar->height());
 	_scroll->show();
 	_scroll->scrolls(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		onScroll();
 	}, lifetime());
 
@@ -177,7 +177,7 @@ void SublistWidget::setupAboutHiddenAuthor() {
 		return;
 	}
 	_aboutHiddenAuthor = std::make_unique<Ui::RpWidget>(this);
-	_aboutHiddenAuthor->paintRequest() | rpl::start_with_next([=] {
+	_aboutHiddenAuthor->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(_aboutHiddenAuthor.get());
 		auto rect = _aboutHiddenAuthor->rect();
 
@@ -195,7 +195,7 @@ void SublistWidget::setupAboutHiddenAuthor() {
 
 void SublistWidget::setupTranslateBar() {
 	controller()->adaptive().oneColumnValue(
-	) | rpl::start_with_next([=, raw = _translateBar.get()](bool one) {
+	) | rpl::on_next([=, raw = _translateBar.get()](bool one) {
 		raw->setShadowGeometryPostprocess([=](QRect geometry) {
 			if (!one) {
 				geometry.setLeft(geometry.left() + st::lineWidth);
@@ -206,7 +206,7 @@ void SublistWidget::setupTranslateBar() {
 
 	_translateBarHeight = 0;
 	_translateBar->heightValue(
-	) | rpl::start_with_next([=](int height) {
+	) | rpl::on_next([=](int height) {
 		if (const auto delta = height - _translateBarHeight) {
 			_translateBarHeight = height;
 			setGeometryWithTopMoved(geometry(), delta);
@@ -354,7 +354,7 @@ bool SublistWidget::searchInChatEmbedded(
 	setInnerFocus();
 
 	_composeSearch->activations(
-	) | rpl::start_with_next([=](ComposeSearch::Activation activation) {
+	) | rpl::on_next([=](ComposeSearch::Activation activation) {
 		const auto item = activation.item;
 		auto params = ::Window::SectionShow(
 			::Window::SectionShow::Way::ClearStack);
@@ -369,7 +369,7 @@ bool SublistWidget::searchInChatEmbedded(
 	_composeSearch->destroyRequests(
 	) | rpl::take(
 		1
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		_composeSearch = nullptr;
 
 		updateControlsGeometry();
@@ -611,7 +611,7 @@ rpl::producer<Data::MessagesSlice> SublistWidget::listSource(
 			consumer.put_next(std::move(result));
 		};
 		auto lifetime = rpl::lifetime();
-		_sublist->changes() | rpl::start_with_next(pushSlice, lifetime);
+		_sublist->changes() | rpl::on_next(pushSlice, lifetime);
 		pushSlice();
 		return lifetime;
 	};
@@ -779,7 +779,7 @@ void SublistWidget::setupShortcuts() {
 			&& Ui::InFocusChain(this)
 			&& !controller()->isLayerShown()
 			&& (Core::App().activeWindow() == &controller()->window());
-	}) | rpl::start_with_next([=](not_null<Shortcuts::Request*> request) {
+	}) | rpl::on_next([=](not_null<Shortcuts::Request*> request) {
 		using Command = Shortcuts::Command;
 		request->check(Command::Search, 1) && request->handle([=] {
 			searchInSublist();

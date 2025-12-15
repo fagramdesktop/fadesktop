@@ -301,11 +301,11 @@ void EditAdminBox::prepare() {
 			tr::lng_rights_about_by(
 				lt_user,
 				rpl::single(_by
-					? Ui::Text::Link(_by->name(), 1)
+					? tr::link(_by->name(), 1)
 					: TextWithEntities{ QString::fromUtf8("\U0001F47B") }),
 				lt_date,
 				rpl::single(TextWithEntities{ langDateTimeFull(parsed) }),
-				Ui::Text::WithEntities));
+				tr::marked));
 		if (_by) {
 			label->setLink(1, _by->createOpenLink());
 		}
@@ -465,8 +465,8 @@ void EditAdminBox::prepare() {
 					phrase(
 						tr::now,
 						lt_group,
-						Ui::Text::Bold(peer()->name()),
-						Ui::Text::WithEntities),
+						tr::bold(peer()->name()),
+						tr::marked),
 					crl::guard(this, [=] { finishAddAdmin(); })
 				}));
 			} else {
@@ -611,10 +611,10 @@ void EditAdminBox::transferOwnership() {
 				.text = tr::lng_rights_transfer_about(
 					tr::now,
 					lt_group,
-					Ui::Text::Bold(peer()->name()),
+					tr::bold(peer()->name()),
 					lt_user,
-					Ui::Text::Bold(user()->shortName()),
-					Ui::Text::RichLangValue),
+					tr::bold(user()->shortName()),
+					tr::rich),
 				.confirmed = callback,
 				.confirmText = tr::lng_rights_transfer_sure(),
 			}));
@@ -627,8 +627,8 @@ bool EditAdminBox::handleTransferPasswordError(const QString &error) {
 	auto about = tr::lng_rights_transfer_check_about(
 		tr::now,
 		lt_user,
-		Ui::Text::Bold(user()->shortName()),
-		Ui::Text::WithEntities);
+		tr::bold(user()->shortName()),
+		tr::marked);
 	if (auto box = PrePasswordErrorBox(error, session, std::move(about))) {
 		getDelegate()->show(std::move(box));
 		return true;
@@ -837,11 +837,11 @@ void EditRestrictedBox::prepare() {
 				: tr::lng_rights_chat_restricted_by)(
 					lt_user,
 					rpl::single(_by
-						? Ui::Text::Link(_by->name(), 1)
+						? tr::link(_by->name(), 1)
 						: TextWithEntities{ QString::fromUtf8("\U0001F47B") }),
 					lt_date,
 					rpl::single(TextWithEntities{ langDateTimeFull(parsed) }),
-					Ui::Text::WithEntities));
+					tr::marked));
 		if (_by) {
 			label->setLink(1, _by->createOpenLink());
 		}

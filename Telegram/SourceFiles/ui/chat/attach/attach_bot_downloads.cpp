@@ -197,12 +197,12 @@ void Action::refresh(const DownloadsEntry &entry) {
 			? TextWithEntities{
 				FormatProgressText(entry.ready, entry.total),
 			}
-			: tr::lng_bot_download_starting(tr::now, Text::WithEntities))
+			: tr::lng_bot_download_starting(tr::now, tr::marked))
 		: tr::lng_bot_download_failed(
 			tr::now,
 			lt_retry,
 			Text::Link(tr::lng_bot_download_retry(tr::now)),
-			Text::WithEntities);
+			tr::marked);
 	_progress.setMarkedText(progressText);
 
 	const auto enabled = isEnabled();

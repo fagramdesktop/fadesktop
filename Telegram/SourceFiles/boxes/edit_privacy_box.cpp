@@ -907,7 +907,7 @@ void EditPrivacyBox::setupContent() {
 	const auto never = addExceptionLink(Exception::Never);
 	addLabel(
 		content,
-		_controller->exceptionsDescription() | Ui::Text::ToWithEntities(),
+		_controller->exceptionsDescription() | rpl::map(tr::marked),
 		st::defaultVerticalListSkip);
 
 	auto below = _controller->setupBelowWidget(
@@ -1092,15 +1092,15 @@ void EditMessagesPrivacyBox(
 	using WeakToast = base::weak_ptr<Ui::Toast::Instance>;
 	const auto toast = std::make_shared<WeakToast>();
 	const auto showToast = [=] {
-		auto link = Ui::Text::Link(
-			Ui::Text::Semibold(
+		auto link = tr::link(
+			tr::semibold(
 				tr::lng_messages_privacy_premium_link(tr::now)));
 		(*toast) = controller->showToast({
 			.text = tr::lng_messages_privacy_premium(
 				tr::now,
 				lt_link,
 				link,
-				Ui::Text::WithEntities),
+				tr::marked),
 			.filter = crl::guard(&controller->session(), [=](
 					const ClickHandlerPtr &,
 					Qt::MouseButton button) {
@@ -1277,7 +1277,7 @@ void EditDirectMessagesPriceBox(
 		.lottieMargins = st::settingsFilterIconPadding,
 		.showFinished = box->showFinishes(),
 		.about = tr::lng_manage_monoforum_about(
-			Ui::Text::RichLangValue
+			tr::rich
 		),
 		.aboutMargins = st::settingsFilterDividerLabelPadding,
 	});

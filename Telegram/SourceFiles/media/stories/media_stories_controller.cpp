@@ -1986,14 +1986,14 @@ Ui::Toast::Config PrepareToggleInProfileToast(
 					? tr::lng_stories_channel_save_done
 					: tr::lng_stories_save_done)(
 						tr::now,
-						Ui::Text::Bold)
+						tr::bold)
 				: (channel
 					? tr::lng_stories_channel_save_done_many
 					: tr::lng_stories_save_done_many)(
 						tr::now,
 						lt_count,
 						count,
-						Ui::Text::Bold)).append(
+						tr::bold)).append(
 							'\n').append((channel
 								? tr::lng_stories_channel_save_done_about
 								: tr::lng_stories_save_done_about)(tr::now))
@@ -2002,14 +2002,14 @@ Ui::Toast::Config PrepareToggleInProfileToast(
 					? tr::lng_stories_channel_archive_done
 					: tr::lng_stories_archive_done)(
 						tr::now,
-						Ui::Text::WithEntities)
+						tr::marked)
 				: (channel
 					? tr::lng_stories_channel_archive_done_many
 					: tr::lng_stories_archive_done_many)(
 						tr::now,
 						lt_count,
 						count,
-						Ui::Text::WithEntities))),
+						tr::marked))),
 		.st = &st::storiesActionToast,
 		.duration = (inProfile
 			? Data::Stories::kInProfileToastDuration

@@ -195,7 +195,7 @@ void AddBusinessSummary(
 		const auto label = content->add(
 			object_ptr<Ui::FlatLabel>(
 				content,
-				std::move(entry.title) | Ui::Text::ToBold(),
+				std::move(entry.title) | rpl::map(tr::bold),
 				stLabel),
 			titlePadding);
 		label->setAttribute(Qt::WA_TransparentForMouseEvents);
@@ -578,12 +578,12 @@ void Business::setupContent() {
 								lt_emoji,
 								rpl::single(Ui::Text::IconEmoji(
 									&st::textMoreIconEmoji)),
-								Ui::Text::RichLangValue),
+								tr::rich),
 							tr::lng_business_about_sponsored_url()
 						) | rpl::map([](TextWithEntities text, QString url) {
-							return Ui::Text::Link(text, url);
+							return tr::link(text, url);
 						}),
-						Ui::Text::RichLangValue),
+						tr::rich),
 					st::boxDividerLabel),
 				st::defaultBoxDividerLabelPadding));
 		}
@@ -629,9 +629,8 @@ base::weak_qptr<Ui::RpWidget> Business::createPinnedToTop(
 	auto about = [&]() -> rpl::producer<TextWithEntities> {
 		return rpl::conditional(
 			Data::AmPremiumValue(&_controller->session()),
-			tr::lng_business_unlocked(),
-			tr::lng_business_about()
-		) | Ui::Text::ToWithEntities();
+			tr::lng_business_unlocked(tr::marked),
+			tr::lng_business_about(tr::marked));
 	}();
 
 	const auto content = [&]() -> Ui::Premium::TopBarAbstract* {

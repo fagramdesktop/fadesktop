@@ -485,7 +485,7 @@ void ProxyRow::updateFields(View &&view) {
 		TextWithEntities()
 			.append(_view.type)
 			.append(' ')
-			.append(Ui::Text::Link(endpoint, QString())),
+			.append(tr::link(endpoint, QString())),
 		Ui::ItemTextDefaultOptions());
 
 	const auto state = _view.state;

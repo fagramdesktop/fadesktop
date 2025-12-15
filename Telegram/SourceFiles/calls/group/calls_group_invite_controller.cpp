@@ -899,14 +899,14 @@ object_ptr<Ui::BoxContent> PrepareInviteBox(
 				showToast(tr::lng_group_call_invite_done_user(
 					tr::now,
 					lt_user,
-					Ui::Text::Bold(result.invited.front()->firstName),
-					Ui::Text::WithEntities));
+					tr::bold(result.invited.front()->firstName),
+					tr::marked));
 			} else if (result.invited.size() > 1) {
 				showToast(tr::lng_group_call_invite_done_many(
 					tr::now,
 					lt_count,
 					result.invited.size(),
-					Ui::Text::RichLangValue));
+					tr::rich));
 			}
 		});
 	};

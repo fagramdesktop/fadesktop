@@ -135,13 +135,13 @@ InviteLinkSubscriptionToggle FillCreateInviteLinkSubscriptionToggle(
 			tr::lng_group_invite_subscription_about_link(
 				lt_emoji,
 				rpl::single(Ui::Text::IconEmoji(&st::textMoreIconEmoji)),
-				Ui::Text::RichLangValue
+				tr::rich
 			) | rpl::map([](TextWithEntities text) {
-				return Ui::Text::Link(
+				return tr::link(
 					std::move(text),
 					tr::lng_group_invite_subscription_about_url(tr::now));
 			}),
-			Ui::Text::RichLangValue),
+			tr::rich),
 		st::boxDividerLabel);
 	Ui::AddSkip(wrap->entity());
 	Ui::AddSkip(wrap->entity());

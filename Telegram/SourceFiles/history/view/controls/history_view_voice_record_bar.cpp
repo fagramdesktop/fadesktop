@@ -412,9 +412,9 @@ TTLButton::TTLButton(
 			(recordingVideo
 				? tr::lng_record_once_active_video
 				: tr::lng_record_once_active_tooltip)(
-					Ui::Text::RichLangValue),
+					tr::rich),
 			tr::lng_record_once_first_tooltip(
-				Ui::Text::RichLangValue));
+				tr::rich));
 		_tooltip.reset(Ui::CreateChild<Ui::ImportantTooltip>(
 			parent.get(),
 			object_ptr<Ui::PaddingWrap<Ui::FlatLabel>>(

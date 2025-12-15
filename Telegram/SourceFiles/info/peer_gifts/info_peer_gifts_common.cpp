@@ -222,7 +222,7 @@ void GiftButton::setDescriptor(const GiftDescriptor &descriptor, Mode mode) {
 		_text = Ui::Text::String(st::giftBoxGiftHeight / 4);
 		_text.setMarkedText(
 			st::defaultTextStyle,
-			Ui::Text::Bold(
+			tr::bold(
 				tr::lng_months(tr::now, lt_count, months)
 			).append('\n').append(
 				tr::lng_gift_premium_label(tr::now)

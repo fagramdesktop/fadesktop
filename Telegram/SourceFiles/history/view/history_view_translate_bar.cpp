@@ -487,8 +487,8 @@ void TranslateBar::showSettingsToast(
 	const auto text = tr::lng_translate_dont_added(
 		tr::now,
 		lt_name,
-		Ui::Text::Bold(Ui::LanguageName(ignored)),
-		Ui::Text::WithEntities);
+		tr::bold(Ui::LanguageName(ignored)),
+		tr::marked);
 	showToast(text, tr::lng_translate_settings(tr::now), [=] {
 		if (const auto strong = weak.get()) {
 			const auto box = strong->show(
@@ -513,7 +513,7 @@ void TranslateBar::showHiddenToast(not_null<PeerData*> peer) {
 		: peer->isBroadcast()
 		? tr::lng_translate_hidden_channel
 		: tr::lng_translate_hidden_group;
-	const auto proj = Ui::Text::WithEntities;
+	const auto proj = tr::marked;
 	showToast(phrase(tr::now, proj), tr::lng_translate_undo(tr::now), [=] {
 		peer->saveTranslationDisabled(false);
 	});

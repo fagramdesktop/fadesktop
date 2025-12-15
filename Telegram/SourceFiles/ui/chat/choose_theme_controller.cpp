@@ -343,8 +343,8 @@ void ChooseThemeController::initButtons() {
 			Ui::ConfirmBox(box, {
 				.text = tr::lng_chat_theme_gift_replace(
 					lt_name,
-					rpl::single(Ui::Text::Bold(nowHasTheme->shortName())),
-					Ui::Text::WithEntities),
+					rpl::single(tr::bold(nowHasTheme->shortName())),
+					tr::marked),
 				.confirmed = confirmed,
 				.confirmText = tr::lng_box_yes(),
 			});

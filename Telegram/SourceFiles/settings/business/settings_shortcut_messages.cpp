@@ -420,21 +420,21 @@ void ShortcutMessages::refreshEmptyText() {
 	auto text = away
 		? tr::lng_away_empty_title(
 			tr::now,
-			Ui::Text::Bold
+			tr::bold
 		).append("\n\n").append(tr::lng_away_empty_about(tr::now))
 		: greeting
 		? tr::lng_greeting_empty_title(
 			tr::now,
-			Ui::Text::Bold
+			tr::bold
 		).append("\n\n").append(tr::lng_greeting_empty_about(tr::now))
 		: tr::lng_replies_empty_title(
 			tr::now,
-			Ui::Text::Bold
+			tr::bold
 		).append("\n\n").append(tr::lng_replies_empty_about(
 			tr::now,
 			lt_shortcut,
-			Ui::Text::Bold('/' + shortcut),
-			Ui::Text::WithEntities));
+			tr::bold('/' + shortcut),
+			tr::marked));
 	_emptyIcon = away
 		? &st::awayEmptyIcon
 		: greeting

@@ -385,8 +385,8 @@ void DownloadFileBox(not_null<Ui::GenericBox*> box, DownloadBoxArgs args) {
 		box,
 		tr::lng_bot_download_file_sure(
 			lt_bot,
-			rpl::single(Ui::Text::Bold(args.bot)),
-			Ui::Text::RichLangValue),
+			rpl::single(tr::bold(args.bot)),
+			tr::rich),
 		st::botDownloadLabel));
 	//box->addRow(MakeFilePreview(box, args));
 	const auto done = std::move(args.done);

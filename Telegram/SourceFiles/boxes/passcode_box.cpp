@@ -73,17 +73,17 @@ void TransferPasswordError(
 	auto text = std::move(about).append('\n').append('\n').append(
 		tr::lng_rights_transfer_check_password(
 			tr::now,
-			Ui::Text::RichLangValue)
+			tr::rich)
 	).append('\n').append('\n').append(
 		tr::lng_rights_transfer_check_session(
 			tr::now,
-			Ui::Text::RichLangValue)
+			tr::rich)
 	);
 	if (error == PasswordErrorType::Later) {
 		text.append('\n').append('\n').append(
 			tr::lng_rights_transfer_check_later(
 				tr::now,
-				Ui::Text::RichLangValue));
+				tr::rich));
 	}
 	box->addRow(object_ptr<Ui::FlatLabel>(
 		box,
@@ -1152,7 +1152,7 @@ RecoverBox::RecoverBox(
 	tr::lng_signin_recover_hint(
 		lt_recover_email,
 		rpl::single(Ui::Text::WrapEmailPattern(pattern)),
-		Ui::Text::WithEntities),
+		tr::marked),
 	st::termsContent,
 	st::defaultPopupMenu)
 , _closeParent(std::move(closeParent)) {

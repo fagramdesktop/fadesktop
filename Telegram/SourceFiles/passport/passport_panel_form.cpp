@@ -138,22 +138,22 @@ not_null<Ui::RpWidget*> PanelForm::setupContent() {
 	auto policyLink = tr::lng_passport_policy(
 		lt_bot,
 		rpl::single(bot->name())
-	) | Ui::Text::ToLink(
-		policyUrl
+	) | rpl::map(
+		tr::url(policyUrl)
 	) | rpl::map([=](TextWithEntities &&text) {
 		return Ui::Text::Wrapped(std::move(text), EntityType::Bold);
 	});
 	auto text = policyUrl.isEmpty()
 		? tr::lng_passport_allow(
 			lt_bot,
-			rpl::single('@' + bot->username())
-		) | Ui::Text::ToWithEntities()
+			rpl::single(tr::marked('@' + bot->username())),
+			tr::marked)
 		: tr::lng_passport_accept_allow(
 			lt_policy,
 			std::move(policyLink),
 			lt_bot,
-			rpl::single('@' + bot->username()) | Ui::Text::ToWithEntities(),
-			Ui::Text::WithEntities);
+			rpl::single(tr::marked('@' + bot->username())),
+			tr::marked);
 	const auto policy = inner->add(
 		object_ptr<Ui::FlatLabel>(
 			inner,

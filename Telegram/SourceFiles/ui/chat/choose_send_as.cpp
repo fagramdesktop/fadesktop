@@ -243,11 +243,11 @@ void SetupSendAsButton(
 					tr::lng_send_as_premium_required(
 						tr::now,
 						lt_link,
-						Ui::Text::Link(
-							Ui::Text::Bold(
+						tr::link(
+							tr::bold(
 								tr::lng_send_as_premium_required_link(
 									tr::now))),
-						Ui::Text::WithEntities),
+						tr::marked),
 					u"send_as"_q);
 				return false;
 			}

@@ -272,7 +272,7 @@ struct MadePrivacyBadge {
 			from,
 			st::storiesRepostUserpicPadding));
 	result.append(from->name());
-	return Ui::Text::Link(result);
+	return tr::link(result);
 }
 
 [[nodiscard]] TextWithEntities RepostNameValue(
@@ -287,7 +287,7 @@ struct MadePrivacyBadge {
 				st::storiesRepostUserpicPadding)));
 	}
 	result.append(name);
-	return Ui::Text::Link(result);
+	return tr::link(result);
 }
 
 } // namespace
@@ -403,7 +403,7 @@ void Header::show(HeaderData data, rpl::producer<int> videoStreamViewers) {
 				data.repostFrom);
 		const auto prefix = data.fromPeer ? data.fromPeer : data.repostPeer;
 		_repost->setMarkedText(
-			(prefix ? Ui::Text::Link(prefixName) : prefixName),
+			(prefix ? tr::link(prefixName) : prefixName),
 			Core::TextContext({ .session = &data.peer->session() }));
 		if (prefix) {
 			_repost->setClickHandlerFilter([=](const auto &...) {
@@ -727,7 +727,7 @@ void Header::toggleTooltip(Tooltip type, bool show) {
 	}
 	const auto text = [&]() -> TextWithEntities {
 		using Privacy = Data::StoryPrivacy;
-		const auto boldName = Ui::Text::Bold(_data->peer->shortName());
+		const auto boldName = tr::bold(_data->peer->shortName());
 		const auto self = _data->peer->isSelf();
 		switch (type) {
 		case Tooltip::SilentVideo:
@@ -737,32 +737,32 @@ void Header::toggleTooltip(Tooltip type, bool show) {
 				return self
 					? tr::lng_stories_about_close_friends_my(
 						tr::now,
-						Ui::Text::RichLangValue)
+						tr::rich)
 					: tr::lng_stories_about_close_friends(
 						tr::now,
 						lt_user,
 						boldName,
-						Ui::Text::RichLangValue);
+						tr::rich);
 			case Privacy::Contacts:
 				return self
 					? tr::lng_stories_about_contacts_my(
 						tr::now,
-						Ui::Text::RichLangValue)
+						tr::rich)
 					: tr::lng_stories_about_contacts(
 						tr::now,
 						lt_user,
 						boldName,
-						Ui::Text::RichLangValue);
+						tr::rich);
 			case Privacy::SelectedContacts:
 				return self
 					? tr::lng_stories_about_selected_contacts_my(
 						tr::now,
-						Ui::Text::RichLangValue)
+						tr::rich)
 					: tr::lng_stories_about_selected_contacts(
 						tr::now,
 						lt_user,
 						boldName,
-						Ui::Text::RichLangValue);
+						tr::rich);
 			}
 		}
 		return {};

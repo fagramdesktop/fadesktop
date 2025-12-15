@@ -764,6 +764,7 @@ storiesComposeControls: ComposeControls(defaultComposeControls) {
 		dropdown: InnerDropdown(emojiSuggestionsDropdown) {
 			animation: PanelAnimation(defaultPanelAnimation) {
 				fadeBg: storiesComposeBg;
+				shadow: defaultRoundShadow;
 			}
 			bg: storiesComposeBg;
 		}

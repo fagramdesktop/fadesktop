@@ -2110,9 +2110,9 @@ bool StickerSetBox::Inner::official() const {
 
 rpl::producer<TextWithEntities> StickerSetBox::Inner::title() const {
 	if (!_loaded) {
-		return tr::lng_contacts_loading() | Ui::Text::ToWithEntities();
+		return tr::lng_contacts_loading(tr::marked);
 	} else if (_pack.isEmpty()) {
-		return tr::lng_attach_failed() | Ui::Text::ToWithEntities();
+		return tr::lng_attach_failed(tr::marked);
 	}
 	auto text = TextWithEntities{ _setTitle };
 	TextUtilities::ParseEntities(text, TextParseMentions);

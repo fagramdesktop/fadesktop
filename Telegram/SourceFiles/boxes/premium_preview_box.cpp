@@ -913,7 +913,7 @@ void AddGiftsInfoRows(not_null<Ui::VerticalLayout*> container) {
 		raw->add(
 			object_ptr<Ui::FlatLabel>(
 				raw,
-				std::move(title) | Ui::Text::ToBold(),
+				std::move(title) | rpl::map(tr::bold),
 				st::defaultFlatLabel),
 			st::settingsPremiumRowTitlePadding);
 		raw->add(
@@ -1473,7 +1473,7 @@ void PremiumUnavailableBox(not_null<Ui::GenericBox*> box) {
 	Ui::ConfirmBox(box, {
 		.text = tr::lng_premium_unavailable(
 			tr::now,
-			Ui::Text::RichLangValue),
+			tr::rich),
 		.inform = true,
 	});
 }
@@ -1492,7 +1492,7 @@ void DoubledLimitsPreviewBox(
 			tr::lng_premium_double_limits_about_channels(
 				lt_count,
 				rpl::single(float64(premium)),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			limits.channelsDefault(),
 			premium,
 		});
@@ -1504,7 +1504,7 @@ void DoubledLimitsPreviewBox(
 			tr::lng_premium_double_limits_about_pins(
 				lt_count,
 				rpl::single(float64(premium)),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			limits.dialogsPinnedDefault(),
 			premium,
 		});
@@ -1516,7 +1516,7 @@ void DoubledLimitsPreviewBox(
 			tr::lng_premium_double_limits_about_links(
 				lt_count,
 				rpl::single(float64(premium)),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			limits.channelsPublicDefault(),
 			premium,
 		});
@@ -1528,7 +1528,7 @@ void DoubledLimitsPreviewBox(
 			tr::lng_premium_double_limits_about_gifs(
 				lt_count,
 				rpl::single(float64(premium)),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			limits.gifsDefault(),
 			premium,
 		});
@@ -1540,7 +1540,7 @@ void DoubledLimitsPreviewBox(
 			tr::lng_premium_double_limits_about_stickers(
 				lt_count,
 				rpl::single(float64(premium)),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			limits.stickersFavedDefault(),
 			premium,
 		});
@@ -1550,7 +1550,7 @@ void DoubledLimitsPreviewBox(
 		entries.push_back({
 			tr::lng_premium_double_limits_subtitle_bio(),
 			tr::lng_premium_double_limits_about_bio(
-				Ui::Text::RichLangValue),
+				tr::rich),
 			limits.aboutLengthDefault(),
 			premium,
 		});
@@ -1560,7 +1560,7 @@ void DoubledLimitsPreviewBox(
 		entries.push_back({
 			tr::lng_premium_double_limits_subtitle_captions(),
 			tr::lng_premium_double_limits_about_captions(
-				Ui::Text::RichLangValue),
+				tr::rich),
 			limits.captionLengthDefault(),
 			premium,
 		});
@@ -1572,7 +1572,7 @@ void DoubledLimitsPreviewBox(
 			tr::lng_premium_double_limits_about_folders(
 				lt_count,
 				rpl::single(float64(premium)),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			limits.dialogFiltersDefault(),
 			premium,
 		});
@@ -1584,7 +1584,7 @@ void DoubledLimitsPreviewBox(
 			tr::lng_premium_double_limits_about_folder_chats(
 				lt_count,
 				rpl::single(float64(premium)),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			limits.dialogFiltersChatsDefault(),
 			premium,
 		});
@@ -1598,7 +1598,7 @@ void DoubledLimitsPreviewBox(
 		tr::lng_premium_double_limits_about_accounts(
 			lt_count,
 			rpl::single(float64(Main::Domain::kPremiumMaxAccounts)),
-			Ui::Text::RichLangValue),
+			tr::rich),
 		Main::Domain::kMaxAccounts,
 		Main::Domain::kPremiumMaxAccounts,
 		till,
@@ -1610,7 +1610,7 @@ void DoubledLimitsPreviewBox(
 			tr::lng_premium_double_limits_about_similar_channels(
 				lt_count,
 				rpl::single(float64(premium)),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			limits.similarChannelsDefault(),
 			premium,
 		});

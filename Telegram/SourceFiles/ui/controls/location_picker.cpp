@@ -546,7 +546,7 @@ void SetupEmptyView(
 		(query ? Icon::NoResults : Icon::Search),
 		(query
 			? tr::lng_maps_no_places
-			: tr::lng_maps_choose_to_search)(Text::WithEntities));
+			: tr::lng_maps_choose_to_search)(tr::marked));
 	view->setMinimalHeight(st::recentPeersEmptyHeightMin);
 	view->show();
 

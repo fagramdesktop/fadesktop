@@ -135,10 +135,10 @@ void ScheduleBox(
 				tr::lng_schedule_repeat_promo(
 					tr::now,
 					lt_link,
-					Ui::Text::Link(
-						Ui::Text::Bold(
+					tr::link(
+						tr::bold(
 							tr::lng_schedule_repeat_promo_link(tr::now))),
-					Ui::Text::RichLangValue),
+					tr::rich),
 				u"schedule_repeat"_q);
 			return true;
 		};

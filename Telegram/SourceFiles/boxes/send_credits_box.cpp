@@ -109,9 +109,9 @@ void AddTerms(
 				tr::lng_paid_react_agree_link(),
 				tr::lng_group_invite_subscription_about_url()
 			) | rpl::map([](const QString &text, const QString &url) {
-				return Ui::Text::Link(text, url);
+				return tr::link(text, url);
 			}),
-			Ui::Text::RichLangValue),
+			tr::rich),
 		st::inviteLinkSubscribeBoxTerms);
 	const auto &buttonPadding = stBox.buttonPadding;
 	const auto style = box->lifetime().make_state<style::Box>(style::Box{
@@ -153,25 +153,25 @@ void AddTerms(
 		auto photosBold = tr::lng_credits_box_out_photos(
 			lt_count,
 			rpl::single(photos) | tr::to_count(),
-			Ui::Text::Bold);
+			tr::bold);
 		auto videosBold = tr::lng_credits_box_out_videos(
 			lt_count,
 			rpl::single(videos) | tr::to_count(),
-			Ui::Text::Bold);
+			tr::bold);
 		auto media = (!videos)
 				? ((photos > 1)
 					? std::move(photosBold)
-					: tr::lng_credits_box_out_photo(Ui::Text::WithEntities))
+					: tr::lng_credits_box_out_photo(tr::marked))
 				: (!photos)
 				? ((videos > 1)
 					? std::move(videosBold)
-					: tr::lng_credits_box_out_video(Ui::Text::WithEntities))
+					: tr::lng_credits_box_out_video(tr::marked))
 				: tr::lng_credits_box_out_both(
 					lt_photo,
 					std::move(photosBold),
 					lt_video,
 					std::move(videosBold),
-					Ui::Text::WithEntities);
+					tr::marked);
 		if (const auto user = data.peer->asUser()) {
 			return tr::lng_credits_box_out_media_user(
 				lt_count,
@@ -179,8 +179,8 @@ void AddTerms(
 				lt_media,
 				std::move(media),
 				lt_user,
-				rpl::single(Ui::Text::Bold(user->shortName())),
-				Ui::Text::RichLangValue);
+				rpl::single(tr::bold(user->shortName())),
+				tr::rich);
 		}
 		return tr::lng_credits_box_out_media(
 			lt_count,
@@ -188,8 +188,8 @@ void AddTerms(
 			lt_media,
 			std::move(media),
 			lt_chat,
-			rpl::single(Ui::Text::Bold(data.peer->name())),
-			Ui::Text::RichLangValue);
+			rpl::single(tr::bold(data.peer->name())),
+			tr::rich);
 	}
 
 	const auto bot = session->data().user(form->botId);
@@ -203,7 +203,7 @@ void AddTerms(
 			rpl::single(TextWithEntities{ form->title }),
 			lt_recipient,
 			rpl::single(TextWithEntities{ bot->name() }),
-			Ui::Text::RichLangValue);
+			tr::rich);
 	}
 	return tr::lng_credits_box_out_sure(
 		lt_count,
@@ -212,7 +212,7 @@ void AddTerms(
 		rpl::single(TextWithEntities{ form->title }),
 		lt_bot,
 		rpl::single(TextWithEntities{ bot->name() }),
-		Ui::Text::RichLangValue);
+		tr::rich);
 }
 
 [[nodiscard]] object_ptr<Ui::RpWidget> SendCreditsThumbnail(
@@ -455,7 +455,7 @@ void SendCreditsBox(
 					rpl::single(form->invoice.amount) | tr::to_count(),
 					lt_emoji,
 					rpl::single(CreditsEmojiSmall()),
-					Ui::Text::RichLangValue),
+					tr::rich),
 			state->confirmButtonBusy.value()
 		) | rpl::map([](TextWithEntities &&text, bool busy) {
 			return busy ? TextWithEntities() : std::move(text);

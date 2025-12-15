@@ -91,15 +91,15 @@ void CodeWidget::updateDescText() {
 		? tr::lng_intro_email_confirm_subtitle(
 			lt_email,
 			rpl::single(Ui::Text::WrapEmailPattern(emailPattern)),
-			Ui::Text::WithEntities)
+			tr::marked)
 		: isFragment
 		? tr::lng_intro_fragment_about(
 			lt_phone_number,
 			rpl::single(
 				TextWithEntities::Simple(Ui::FormatPhone(getData()->phone))),
-			Ui::Text::RichLangValue)
+			tr::rich)
 		: (byTelegram ? tr::lng_code_from_telegram : tr::lng_code_desc)(
-			Ui::Text::RichLangValue));
+			tr::rich));
 	if (getData()->codeByTelegram) {
 		_noTelegramCode->show();
 		_callTimer.cancel();

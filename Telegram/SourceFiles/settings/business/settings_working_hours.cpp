@@ -614,7 +614,7 @@ void WorkingHours::setupContent(
 		.lottieSize = st::settingsCloudPasswordIconSize,
 		.lottieMargins = st::peerAppearanceIconPadding,
 		.showFinished = showFinishes(),
-		.about = tr::lng_hours_about(Ui::Text::WithEntities),
+		.about = tr::lng_hours_about(tr::marked),
 		.aboutMargins = st::peerAppearanceCoverLabelMargin,
 	});
 

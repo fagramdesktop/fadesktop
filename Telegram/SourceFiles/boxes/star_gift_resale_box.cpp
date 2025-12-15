@@ -265,7 +265,7 @@ struct ResaleTabs {
 					const auto id = IdFor(entry.model);
 					const auto text = TextWithEntities{
 						entry.model.name
-					}.append(' ').append(Ui::Text::Bold(
+					}.append(' ').append(tr::bold(
 						Lang::FormatCountDecimal(entry.count)
 					));
 					actionWithDocument(text, [=] {
@@ -277,7 +277,7 @@ struct ResaleTabs {
 					const auto id = IdFor(entry.backdrop);
 					const auto text = TextWithEntities{
 						entry.backdrop.name
-					}.append(' ').append(Ui::Text::Bold(
+					}.append(' ').append(tr::bold(
 						Lang::FormatCountDecimal(entry.count)
 					));
 					actionWithColor(text, [=] {
@@ -289,7 +289,7 @@ struct ResaleTabs {
 					const auto id = IdFor(entry.pattern);
 					const auto text = TextWithEntities{
 						entry.pattern.name
-					}.append(' ').append(Ui::Text::Bold(
+					}.append(' ').append(tr::bold(
 						Lang::FormatCountDecimal(entry.count)
 					));
 					actionWithDocument(text, [=] {

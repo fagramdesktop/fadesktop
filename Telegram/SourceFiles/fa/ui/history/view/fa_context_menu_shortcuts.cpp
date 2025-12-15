@@ -150,13 +150,13 @@ void ContextMenuShortcuts::prepare() {
 	createButtons();
 
 	paintRequest(
-	) | rpl::start_with_next([=](const QRect &clip) {
+	) | rpl::on_next([=](const QRect &clip) {
 		auto p = Painter(this);
 		paint(p, clip);
 	}, lifetime());
 
 	sizeValue(
-	) | rpl::start_with_next([=](QSize size) {
+	) | rpl::on_next([=](QSize size) {
 		updateButtonsLayout();
 	}, lifetime());
 }

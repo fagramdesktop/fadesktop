@@ -592,9 +592,8 @@ void AddReactionsText(
 			inner,
 			tr::lng_manage_peer_reactions_own(
 				lt_link,
-				tr::lng_manage_peer_reactions_own_link(
-				) | Ui::Text::ToLink(),
-				Ui::Text::WithEntities),
+				tr::lng_manage_peer_reactions_own_link(tr::link),
+				tr::marked),
 			st::boxDividerLabel));
 	const auto weak = base::make_weak(navigation);
 	label->setClickHandlerFilter([=](const auto &...) {
@@ -615,11 +614,11 @@ void AddReactionsText(
 			count->value() | tr::to_count(),
 			lt_same_count,
 			std::move(countString),
-			Ui::Text::RichLangValue),
+			tr::rich),
 		tr::lng_manage_peer_reactions_boost(
 			lt_link,
-			tr::lng_manage_peer_reactions_boost_link() | Ui::Text::ToLink(),
-			Ui::Text::RichLangValue)
+			tr::lng_manage_peer_reactions_boost_link(tr::link),
+			tr::rich)
 	) | rpl::map([](TextWithEntities &&a, TextWithEntities &&b) {
 		a.append(' ').append(std::move(b));
 		return std::move(a);
@@ -936,11 +935,11 @@ void EditAllowedReactionsBox(
 			tr::lng_manage_peer_reactions_paid_about(
 				lt_link,
 				tr::lng_manage_peer_reactions_paid_link([=](QString text) {
-					return Ui::Text::Link(
+					return tr::link(
 						text,
 						u"https://telegram.org/tos/stars"_q);
 				}),
-				Ui::Text::WithEntities));
+				tr::marked));
 	}
 	const auto collect = [=] {
 		auto result = AllowedReactions();

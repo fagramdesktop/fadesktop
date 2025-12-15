@@ -224,13 +224,13 @@ void ConfirmSubscriptionBox(
 			box,
 			tr::lng_channel_invite_subscription_about(
 				lt_channel,
-				rpl::single(Ui::Text::Bold(name)),
+				rpl::single(tr::bold(name)),
 				lt_price,
 				tr::lng_credits_summary_options_credits(
 					lt_count,
 					rpl::single(amount) | tr::to_count(),
-					Ui::Text::Bold),
-				Ui::Text::WithEntities),
+					tr::bold),
+				tr::marked),
 			st::inviteLinkSubscribeBoxAbout),
 		style::al_top);
 	Ui::AddSkip(content);
@@ -243,9 +243,9 @@ void ConfirmSubscriptionBox(
 					tr::lng_paid_react_agree_link(),
 					tr::lng_group_invite_subscription_about_url()
 				) | rpl::map([](const QString &text, const QString &url) {
-					return Ui::Text::Link(text, url);
+					return tr::link(text, url);
 				}),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			st::inviteLinkSubscribeBoxTerms),
 		style::al_top);
 

@@ -490,7 +490,7 @@ void ApiWrap::sendMessageFail(
 				PeerFloodErrorText(&session(), PeerFloodType::Send)),
 			Ui::LayerOption::CloseOther);
 	} else if (show && error == u"USER_BANNED_IN_CHANNEL"_q) {
-		const auto link = Ui::Text::Link(
+		const auto link = tr::link(
 			tr::lng_cant_more_info(tr::now),
 			session().createInternalLinkFull(u"spambot"_q));
 		show->showBox(
@@ -499,7 +499,7 @@ void ApiWrap::sendMessageFail(
 					tr::now,
 					lt_more_info,
 					link,
-					Ui::Text::WithEntities)),
+					tr::marked)),
 			Ui::LayerOption::CloseOther);
 	} else if (error.startsWith(u"SLOWMODE_WAIT_"_q)) {
 		const auto chop = u"SLOWMODE_WAIT_"_q.size();

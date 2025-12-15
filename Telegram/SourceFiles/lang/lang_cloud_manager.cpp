@@ -79,12 +79,12 @@ void ConfirmSwitchBox::prepare() {
 		? tr::lng_language_switch_about_official
 		: tr::lng_language_switch_about_unofficial)(
 			lt_lang_name,
-			rpl::single(Ui::Text::Bold(_name)),
+			rpl::single(tr::bold(_name)),
 			lt_percent,
-			rpl::single(Ui::Text::Bold(QString::number(_percent))),
+			rpl::single(tr::bold(QString::number(_percent))),
 			lt_link,
-			tr::lng_language_switch_link() | Ui::Text::ToLink(_editLink),
-			Ui::Text::WithEntities);
+			tr::lng_language_switch_link(tr::url(_editLink)),
+			tr::marked);
 	const auto content = Ui::CreateChild<Ui::PaddingWrap<Ui::FlatLabel>>(
 		this,
 		object_ptr<Ui::FlatLabel>(
@@ -120,10 +120,10 @@ void NotReadyBox::prepare() {
 
 	auto text = tr::lng_language_not_ready_about(
 		lt_lang_name,
-		rpl::single(_name) | Ui::Text::ToWithEntities(),
+		rpl::single(tr::marked(_name)),
 		lt_link,
-		tr::lng_language_not_ready_link() | Ui::Text::ToLink(_editLink),
-		Ui::Text::WithEntities);
+		tr::lng_language_not_ready_link(tr::url(_editLink)),
+		tr::marked);
 	const auto content = Ui::CreateChild<Ui::PaddingWrap<Ui::FlatLabel>>(
 		this,
 		object_ptr<Ui::FlatLabel>(

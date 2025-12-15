@@ -176,9 +176,9 @@ void MusicInner::refreshEmpty() {
 	_empty = object_ptr<Ui::FlatLabel>(
 		this,
 		(!knownEmpty
-			? tr::lng_contacts_loading(Ui::Text::WithEntities)
+			? tr::lng_contacts_loading(tr::marked)
 			: rpl::single(
-				tr::lng_media_song_empty(tr::now, Ui::Text::WithEntities))),
+				tr::lng_media_song_empty(tr::now, tr::marked))),
 		st::giftListAbout);
 	_empty->show();
 	_emptyLoading = !knownEmpty;

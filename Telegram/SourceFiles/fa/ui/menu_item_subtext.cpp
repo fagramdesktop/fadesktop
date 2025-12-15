@@ -107,7 +107,7 @@ ActionWithSubText::ActionWithSubText(
 	setClickedCallback(std::move(callback));
 
 	paintRequest(
-	) | rpl::start_with_next([=]
+	) | rpl::on_next([=]
 							 {
 								 Painter p(this);
 								 paint(p);

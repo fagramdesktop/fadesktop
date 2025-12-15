@@ -515,8 +515,8 @@ void Widget::showTerms() {
 			this,
 			tr::lng_terms_signup(
 				lt_link,
-				tr::lng_terms_signup_link() | Ui::Text::ToLink(),
-				Ui::Text::WithEntities),
+				tr::lng_terms_signup_link(tr::link),
+				tr::marked),
 			st::introTermsLabel);
 		_terms.create(this, std::move(entity));
 		_terms->entity()->overrideLinkClickHandler([=] {

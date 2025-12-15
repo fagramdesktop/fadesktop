@@ -50,7 +50,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 )->toggledValue( \
 ) | rpl::filter([](bool enabled) { \
 	return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-}) | rpl::start_with_next([](bool enabled) { \
+}) | rpl::on_next([](bool enabled) { \
 	::FASettings::JsonSettings::Write(); \
 	::FASettings::JsonSettings::Set(#Option, enabled); \
 	::FASettings::JsonSettings::Write(); \
@@ -65,7 +65,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 )->toggledValue( \
 ) | rpl::filter([](bool enabled) { \
     return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-}) | rpl::start_with_next([=](bool enabled) { \
+}) | rpl::on_next([=](bool enabled) { \
     ::FASettings::JsonSettings::Write(); \
     ::FASettings::JsonSettings::Set(#Option, enabled); \
     ::FASettings::JsonSettings::Write(); \
@@ -147,7 +147,7 @@ namespace Settings {
 		)->toggledValue(
 		) | rpl::filter([](bool enabled) {
 			return (enabled != ::FASettings::JsonSettings::GetBool("hide_blocked_user_messages"));
-		}) | rpl::start_with_next([=](bool enabled) {
+		}) | rpl::on_next([=](bool enabled) {
 			::FASettings::JsonSettings::Set("hide_blocked_user_messages", enabled);
 			::FASettings::JsonSettings::Write();
 
@@ -173,7 +173,7 @@ namespace Settings {
 		)->toggledValue(
 		) | rpl::filter([](bool enabled) {
 			return (enabled != ::FASettings::JsonSettings::GetBool("context_menu_use_shortcuts"));
-		}) | rpl::start_with_next([](bool enabled) {
+		}) | rpl::on_next([](bool enabled) {
 			::FASettings::JsonSettings::Write();
 			::FASettings::JsonSettings::Set("context_menu_use_shortcuts", enabled);
 			::FASettings::JsonSettings::Write();
@@ -214,7 +214,7 @@ namespace Settings {
 		rpl::combine(
 			buttonSizeLabel->geometryValue(),
 			container->widthValue()
-		) | rpl::start_with_next([=](QRect labelRect, int width) {
+		) | rpl::on_next([=](QRect labelRect, int width) {
 			resetButtonSize->moveToRight(
 				st::settingsAudioVolumeLabelPadding.right(),
 				labelRect.y() + (labelRect.height() - resetButtonSize->height()) / 2,
@@ -258,7 +258,7 @@ namespace Settings {
 		rpl::combine(
 			iconSizeLabel->geometryValue(),
 			container->widthValue()
-		) | rpl::start_with_next([=](QRect labelRect, int width) {
+		) | rpl::on_next([=](QRect labelRect, int width) {
 			resetIconSize->moveToRight(
 				st::settingsAudioVolumeLabelPadding.right(),
 				labelRect.y() + (labelRect.height() - resetIconSize->height()) / 2,
@@ -302,7 +302,7 @@ namespace Settings {
 		rpl::combine(
 			spacingLabel->geometryValue(),
 			container->widthValue()
-		) | rpl::start_with_next([=](QRect labelRect, int width) {
+		) | rpl::on_next([=](QRect labelRect, int width) {
 			resetSpacing->moveToRight(
 				st::settingsAudioVolumeLabelPadding.right(),
 				labelRect.y() + (labelRect.height() - resetSpacing->height()) / 2,
@@ -346,7 +346,7 @@ namespace Settings {
 		rpl::combine(
 			hPaddingLabel->geometryValue(),
 			container->widthValue()
-		) | rpl::start_with_next([=](QRect labelRect, int width) {
+		) | rpl::on_next([=](QRect labelRect, int width) {
 			resetHPadding->moveToRight(
 				st::settingsAudioVolumeLabelPadding.right(),
 				labelRect.y() + (labelRect.height() - resetHPadding->height()) / 2,
@@ -390,7 +390,7 @@ namespace Settings {
 		rpl::combine(
 			vPaddingLabel->geometryValue(),
 			container->widthValue()
-		) | rpl::start_with_next([=](QRect labelRect, int width) {
+		) | rpl::on_next([=](QRect labelRect, int width) {
 			resetVPadding->moveToRight(
 				st::settingsAudioVolumeLabelPadding.right(),
 				labelRect.y() + (labelRect.height() - resetVPadding->height()) / 2,
@@ -434,7 +434,7 @@ namespace Settings {
 		rpl::combine(
 			cornerRadiusLabel->geometryValue(),
 			container->widthValue()
-		) | rpl::start_with_next([=](QRect labelRect, int width) {
+		) | rpl::on_next([=](QRect labelRect, int width) {
 			resetCornerRadius->moveToRight(
 				st::settingsAudioVolumeLabelPadding.right(),
 				labelRect.y() + (labelRect.height() - resetCornerRadius->height()) / 2,

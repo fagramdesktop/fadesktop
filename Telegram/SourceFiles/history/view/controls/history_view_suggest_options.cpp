@@ -747,12 +747,12 @@ void ChooseSuggestPriceBox(
 						tr::now,
 						lt_count,
 						nanoTonMin / float64(Ui::kNanosInOne),
-						Ui::Text::RichLangValue)
+						tr::rich)
 					: tr::lng_gift_sell_min_price(
 						tr::now,
 						lt_count,
 						starsMin,
-						Ui::Text::RichLangValue));
+						tr::rich));
 			}
 			return;
 		}
@@ -830,25 +830,25 @@ void ChooseSuggestPriceBox(
 		if (args.mode == SuggestMode::Change) {
 			return tr::lng_suggest_options_update(
 				tr::now,
-				Ui::Text::WithEntities);
+				tr::marked);
 		} else if (price.empty()) {
 			return tr::lng_suggest_options_offer_free(
 				tr::now,
-				Ui::Text::WithEntities);
+				tr::marked);
 		} else if (price.ton()) {
 			return tr::lng_suggest_options_offer(
 				tr::now,
 				lt_amount,
 				Ui::Text::IconEmoji(&st::tonIconEmoji).append(
 					Lang::FormatCreditsAmountDecimal(price)),
-				Ui::Text::WithEntities);
+				tr::marked);
 		}
 		return tr::lng_suggest_options_offer(
 			tr::now,
 			lt_amount,
 			Ui::Text::IconEmoji(&st::starIconEmoji).append(
 				Lang::FormatCreditsAmountDecimal(price)),
-			Ui::Text::WithEntities);
+			tr::marked);
 	}));
 	const auto buttonWidth = st::boxWidth
 		- rect::m::sum::h(st::suggestPriceBox.buttonPadding);
@@ -967,7 +967,7 @@ void InsufficientTonBox(
 	const auto label = box->addRow(
 		object_ptr<Ui::FlatLabel>(
 			box,
-			tr::lng_suggest_low_ton_text(Ui::Text::RichLangValue),
+			tr::lng_suggest_low_ton_text(tr::rich),
 			st::lowTonText),
 		st::boxRowPadding + st::lowTonTextPadding,
 		style::al_top);

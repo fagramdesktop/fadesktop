@@ -29,7 +29,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/boxes/confirm_box.h"
 #include "ui/boxes/show_or_premium_box.h"
 #include "ui/effects/premium_graphics.h"
-#include "ui/text/text_utilities.h" // Ui::Text::RichLangValue
+#include "ui/text/text_utilities.h" // tr::rich
 #include "ui/toast/toast.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/checkbox.h"
@@ -191,17 +191,17 @@ void FillUpgradeToPremiumCover(
 	for (auto i = 0; i != names; ++i) {
 		const auto name = userpicUsers[i]->shortName();
 		if (text.empty()) {
-			text = Ui::Text::Bold(name);
+			text = tr::bold(name);
 		} else if (i == names - 1 && !remaining) {
 			text = tr::lng_invite_upgrade_users_few(
 				tr::now,
 				lt_users,
 				text,
 				lt_last,
-				Ui::Text::Bold(name),
-				Ui::Text::RichLangValue);
+				tr::bold(name),
+				tr::rich);
 		} else {
-			text.append(", ").append(Ui::Text::Bold(name));
+			text.append(", ").append(tr::bold(name));
 		}
 	}
 	if (remaining > 0) {
@@ -211,7 +211,7 @@ void FillUpgradeToPremiumCover(
 			remaining,
 			lt_users,
 			text,
-			Ui::Text::RichLangValue);
+			tr::rich);
 	}
 	const auto inviteOnly = !forbidden.premiumAllowsInvite.empty()
 		&& (forbidden.premiumAllowsWrite.size() != forbidden.users.size());
@@ -227,7 +227,7 @@ void FillUpgradeToPremiumCover(
 				int(userpicUsers.size()),
 				lt_users,
 				text,
-				Ui::Text::RichLangValue);
+				tr::rich);
 	container->add(
 		object_ptr<Ui::FlatLabel>(
 			container,
@@ -474,11 +474,11 @@ void InviteForbiddenController::setSimpleCover() {
 		? phraseCounted(
 			lt_count,
 			rpl::single<float64>(count),
-			Ui::Text::RichLangValue)
+			tr::rich)
 		: phraseNamed(
 			lt_user,
 			rpl::single(TextWithEntities{ _users.front()->name() }),
-			Ui::Text::RichLangValue);
+			tr::rich);
 	delegate()->peerListSetAboveWidget(object_ptr<Ui::PaddingWrap<>>(
 		(QWidget*)nullptr,
 		object_ptr<Ui::FlatLabel>(
@@ -530,18 +530,18 @@ void InviteForbiddenController::setComplexCover() {
 				? tr::lng_invite_upgrade_via_channel_about
 				: tr::lng_invite_upgrade_via_group_about)(
 					tr::now,
-					Ui::Text::WithEntities)
+					tr::marked)
 			: (_forbidden.users.size() == 1
 				? tr::lng_via_link_cant_one(
 					tr::now,
 					lt_user,
 					TextWithEntities{ _forbidden.users.front()->shortName() },
-					Ui::Text::RichLangValue)
+					tr::rich)
 				: tr::lng_via_link_cant_many(
 					tr::now,
 					lt_count,
 					int(_forbidden.users.size()),
-					Ui::Text::RichLangValue));
+					tr::rich));
 		container->add(
 			object_ptr<Ui::FlatLabel>(
 				container,
@@ -721,12 +721,12 @@ void InviteForbiddenController::send(
 				tr::now,
 				lt_user,
 				TextWithEntities{ list.front()->name() },
-				Ui::Text::RichLangValue)
+				tr::rich)
 			: tr::lng_via_link_shared_many(
 				tr::now,
 				lt_count,
 				int(list.size()),
-				Ui::Text::RichLangValue);
+				tr::rich);
 		close();
 		show->showToast(std::move(text));
 		return true;
@@ -989,14 +989,14 @@ void AddParticipantsBoxController::inviteSelectedUsers(
 				{ users.front()->name()},
 				lt_group,
 				{ _peer->name()},
-				Ui::Text::RichLangValue)
+				tr::rich)
 			: tr::lng_participant_invite_sure_many(
 				tr::now,
 				lt_count,
 				int(users.size()),
 				lt_group,
 				{ _peer->name() },
-				Ui::Text::RichLangValue);
+				tr::rich);
 		Ui::ConfirmBox(box, {
 			.text = std::move(text),
 			.confirmed = crl::guard(weak, [=](Fn<void()> &&close) {

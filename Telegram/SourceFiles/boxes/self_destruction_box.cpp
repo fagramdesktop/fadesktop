@@ -53,7 +53,7 @@ void AddDeleteAccount(
 			fields.customTitle = tr::lng_settings_destroy_title();
 			fields.customDescription = tr::lng_context_mark_read_all_sure_2(
 				tr::now,
-				Ui::Text::RichLangValue).text;
+				tr::rich).text;
 			fields.customSubmitButton = tr::lng_theme_delete();
 			fields.customCheckCallback = [=](
 					const Core::CloudPasswordResult &result,

@@ -8,6 +8,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #include "fa/utils/fa_profile_values.h"
 
+#include "lang/lang_keys.h"
 #include <QLocale>
 #include <QDateTime>
 #include <vector>
@@ -35,7 +36,7 @@ QString IDString(not_null<PeerData*> peer) {
     return resultId;
 }
 rpl::producer<TextWithEntities> IDValue(not_null<PeerData*> peer) {
-    return rpl::single(IDString(peer)) | Ui::Text::ToWithEntities();
+    return rpl::single(IDString(peer)) | rpl::map(tr::marked);
 }
 
 QString parseRegistrationTime(QString prefix, long long regTime) {
@@ -246,5 +247,5 @@ QString findRegistrationTime(long long userId) {
 
 rpl::producer<TextWithEntities> RegistrationValue(not_null<PeerData*> peer) {
 	auto userId = peer->id.to<UserId>().bare;
-	return rpl::single(findRegistrationTime(userId)) | Ui::Text::ToWithEntities();
+	return rpl::single(findRegistrationTime(userId)) | rpl::map(tr::marked);
 }

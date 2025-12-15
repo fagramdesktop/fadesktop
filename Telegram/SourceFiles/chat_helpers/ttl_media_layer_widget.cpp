@@ -226,11 +226,11 @@ PreviewWrap::PreviewWrap(
 					lt_user,
 					rpl::single(
 						item->history()->peer->shortName()
-					) | Ui::Text::ToRichLangValue(),
-					Ui::Text::RichLangValue)
+					) | rpl::map(tr::rich),
+					tr::rich)
 			: (isRound
 				? tr::lng_ttl_round_tooltip_in
-				: tr::lng_ttl_voice_tooltip_in)(Ui::Text::RichLangValue);
+				: tr::lng_ttl_voice_tooltip_in)(tr::rich);
 		const auto tooltip = Ui::CreateChild<Ui::ImportantTooltip>(
 			this,
 			object_ptr<Ui::PaddingWrap<Ui::FlatLabel>>(

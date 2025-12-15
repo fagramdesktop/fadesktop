@@ -1686,11 +1686,11 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 			auto text = phrase(
 				tr::now,
 				lt_user,
-				Ui::Text::Bold(by->name()),
+				tr::bold(by->name()),
 				lt_date,
-				Ui::Text::Bold(
+				tr::bold(
 					langDateTimeFull(base::unixtime::parse(since))),
-				Ui::Text::WithEntities);
+				tr::marked);
 			auto button = base::make_unique_q<Ui::Menu::MultilineAction>(
 				result->menu(),
 				result->st().menu,

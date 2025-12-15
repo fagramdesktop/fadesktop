@@ -505,11 +505,11 @@ void Credits::setupContent() {
 				rpl::single(TextWithEntities()),
 				isCurrency
 					? tr::lng_credits_currency_summary_in_button(
-						Ui::Text::WithEntities)
+						tr::marked)
 					: tr::lng_credits_topup_button(
 						lt_emoji,
 						rpl::single(Ui::Text::SingleCustomEmoji(u"+"_q)),
-						Ui::Text::WithEntities)));
+						tr::marked)));
 		button->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
 		const auto show = _controller->uiShow();
 		if (isCurrency) {
@@ -562,8 +562,8 @@ void Credits::setupContent() {
 					: _controller->session().credits().balanceValue()
 				) | rpl::map(
 					Lang::FormatCreditsAmountDecimal
-				) | rpl::map(Ui::Text::Bold),
-				Ui::Text::WithEntities),
+				) | rpl::map(tr::bold),
+				tr::marked),
 			textSt,
 			st::defaultPopupMenu,
 			std::move(context)),

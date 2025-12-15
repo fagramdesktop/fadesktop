@@ -217,13 +217,13 @@ void Controller::prepare() {
 			above.data(),
 			tr::lng_boost_reassign_text(
 				lt_channel,
-				rpl::single(Ui::Text::Bold(_to->name())),
+				rpl::single(tr::bold(_to->name())),
 				lt_gift,
 				tr::lng_boost_reassign_gift(
 					lt_count,
 					rpl::single(1. * BoostsForGift(session)),
-					Ui::Text::RichLangValue),
-				Ui::Text::RichLangValue),
+					tr::rich),
+				tr::rich),
 			st::boostReassignText),
 		st::boxRowPadding,
 		style::al_top);
@@ -278,7 +278,7 @@ void Controller::rowClicked(not_null<PeerListRow*> row) {
 				tr::now,
 				lt_count,
 				BoostsForGift(&session()),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			.adaptive = true,
 		});
 		return;
@@ -331,14 +331,14 @@ object_ptr<Ui::BoxContent> ReassignBoostFloodBox(int seconds, bool group) {
 			? tr::lng_boost_error_flood_text_group
 			: tr::lng_boost_error_flood_text)(
 				lt_left,
-				rpl::single(Ui::Text::Bold((days > 1)
+				rpl::single(tr::bold((days > 1)
 					? tr::lng_days(tr::now, lt_count, days)
 					: (hours > 1)
 					? tr::lng_hours(tr::now, lt_count, hours)
 					: (minutes > 1)
 					? tr::lng_minutes(tr::now, lt_count, minutes)
 					: tr::lng_seconds(tr::now, lt_count, seconds))),
-				Ui::Text::RichLangValue),
+				tr::rich),
 		.title = tr::lng_boost_error_flood_title(),
 	});
 }
@@ -362,10 +362,10 @@ object_ptr<Ui::BoxContent> ReassignBoostSingleBox(
 		Ui::ConfirmBox(box, {
 			.text = tr::lng_boost_now_instead(
 				lt_channel,
-				rpl::single(Ui::Text::Bold(peer->name())),
+				rpl::single(tr::bold(peer->name())),
 				lt_other,
-				rpl::single(Ui::Text::Bold(to->name())),
-				Ui::Text::WithEntities),
+				rpl::single(tr::bold(to->name())),
+				tr::marked),
 			.confirmed = confirmed,
 			.confirmText = tr::lng_boost_now_replace(),
 			.labelPadding = st::boxRowPadding,

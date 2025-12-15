@@ -160,7 +160,7 @@ void MustBePublicFailed(
 TextWithEntities PeerFloodErrorText(
 		not_null<Main::Session*> session,
 		PeerFloodType type) {
-	const auto link = Ui::Text::Link(
+	const auto link = tr::link(
 		tr::lng_cant_more_info(tr::now),
 		session->createInternalLinkFull(u"spambot"_q));
 	return ((type == PeerFloodType::InviteGroup)
@@ -169,7 +169,7 @@ TextWithEntities PeerFloodErrorText(
 			tr::now,
 			lt_more_info,
 			link,
-			Ui::Text::WithEntities);
+			tr::marked);
 }
 
 void ShowAddParticipantsError(

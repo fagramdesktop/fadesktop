@@ -20,7 +20,6 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/fade_wrap.h"
 #include "ui/text/format_values.h" // Ui::FormatPhone
-#include "ui/text/text_utilities.h" // Ui::Text::ToUpper
 #include "ui/widgets/fields/special_fields.h"
 #include "boxes/abstract_box.h"
 #include "data/data_user.h"
@@ -344,7 +343,7 @@ void PanelEditContact::setupControls(
 		_content->add(
 			object_ptr<Ui::SettingsButton>(
 				_content,
-				std::move(*text) | Ui::Text::ToUpper(),
+				std::move(*text) | rpl::map(tr::upper),
 				st::passportDeleteButton),
 			st::passportUploadButtonPadding
 		)->addClickHandler([=] {

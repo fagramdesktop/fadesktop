@@ -154,7 +154,7 @@ void ToggleTopicsBox(
 		.lottieMargins = st::settingsFilterIconPadding,
 		.showFinished = box->showFinishes(),
 		.about = tr::lng_edit_topics_about(
-			Ui::Text::RichLangValue
+			tr::rich
 		),
 		.aboutMargins = st::settingsFilterDividerLabelPadding,
 	});
@@ -205,7 +205,7 @@ void ToggleTopicsBox(
 
 	Ui::AddDividerText(
 		layout,
-		tr::lng_edit_topics_layout_about(Ui::Text::RichLangValue));
+		tr::lng_edit_topics_layout_about(tr::rich));
 
 	layoutWrap->toggle(enabled, anim::type::instant);
 	toggle->toggledChanges(

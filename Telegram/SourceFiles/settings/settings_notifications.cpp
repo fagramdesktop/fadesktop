@@ -282,7 +282,7 @@ void AddTypeButton(
 					.text = phrase(
 						lt_count,
 						rpl::single(float64(count)),
-						Ui::Text::RichLangValue),
+						tr::rich),
 					.confirmed = [=](auto close) { toggle(); close(); },
 					.confirmText = tr::lng_box_ok(),
 					.title = tr::lng_notification_exceptions_title(),

@@ -1491,10 +1491,10 @@ TextWithEntities ItemReactionsAbout(not_null<HistoryItem*> item) {
 		: tr::lng_subscribe_tag_about(
 			tr::now,
 			lt_link,
-			Ui::Text::Link(
+			tr::link(
 				tr::lng_subscribe_tag_link(tr::now),
 				u"internal:about_tags"_q),
-			Ui::Text::WithEntities);
+			tr::marked);
 }
 
 } // namespace HistoryView::Reactions

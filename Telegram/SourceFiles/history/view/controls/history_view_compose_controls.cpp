@@ -3083,11 +3083,11 @@ void SetupRestrictionView(
 						lt_user,
 						TextWithEntities{ peer->shortName() },
 						lt_link,
-						Ui::Text::Link(
-							Ui::Text::Bold(
+						tr::link(
+							tr::bold(
 								tr::lng_send_non_premium_message_toast_link(
 									tr::now))),
-						Ui::Text::RichLangValue),
+						tr::rich),
 					u"require_premium"_q);
 			});
 			state->label = makeLabel(value.text, st->premiumRequired.label);

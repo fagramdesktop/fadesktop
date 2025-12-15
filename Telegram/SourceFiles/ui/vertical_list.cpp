@@ -7,7 +7,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 */
 #include "ui/vertical_list.h"
 
-#include "ui/text/text_utilities.h"
+#include "lang/lang_text_entity.h"
 #include "ui/widgets/box_content_divider.h"
 #include "ui/widgets/labels.h"
 #include "ui/wrap/padding_wrap.h"
@@ -41,7 +41,7 @@ not_null<Ui::FlatLabel*> AddDividerText(
 		RectParts parts) {
 	return AddDividerText(
 		container,
-		std::move(text) | Ui::Text::ToWithEntities(),
+		std::move(text) | rpl::map(tr::marked),
 		margins,
 		st,
 		parts);

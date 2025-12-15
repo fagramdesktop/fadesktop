@@ -9,6 +9,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #include "data/data_peer.h"
 #include "info/profile/info_profile_values.h"
+#include "lang/lang_text_entity.h"
 #include "ui/controls/userpic_button.h"
 #include "ui/rect.h"
 #include "ui/text/text_utilities.h"
@@ -151,8 +152,8 @@ void AddExpandablePeerList(
 
 			using namespace Info::Profile;
 			auto name = controller->data.bold
-				? NameValue(peer) | Ui::Text::ToBold()
-				: NameValue(peer) | Ui::Text::ToWithEntities();
+				? (NameValue(peer) | rpl::map(tr::bold) | rpl::type_erased)
+				: NameValue(peer) | rpl::map(tr::marked);
 			const auto userpic
 				= Ui::CreateChild<Ui::UserpicButton>(line, peer, st);
 			const auto checkbox = Ui::CreateChild<Ui::Checkbox>(

@@ -135,7 +135,7 @@ void Greeting::setupContent(
 		.lottieSize = st::settingsCloudPasswordIconSize,
 		.lottieMargins = st::peerAppearanceIconPadding,
 		.showFinished = showFinishes(),
-		.about = tr::lng_greeting_about(Ui::Text::WithEntities),
+		.about = tr::lng_greeting_about(tr::marked),
 		.aboutMargins = st::peerAppearanceCoverLabelMargin,
 	});
 

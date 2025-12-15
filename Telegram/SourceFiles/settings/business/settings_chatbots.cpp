@@ -429,8 +429,8 @@ void Chatbots::setupContent() {
 		.about = tr::lng_chatbots_about(
 			lt_link,
 			tr::lng_chatbots_about_link(
-			) | Ui::Text::ToLink(tr::lng_chatbots_info_url(tr::now)),
-			Ui::Text::WithEntities),
+				tr::url(tr::lng_chatbots_info_url(tr::now))),
+			tr::marked),
 		.aboutMargins = st::peerAppearanceCoverLabelMargin,
 	});
 
@@ -524,7 +524,7 @@ void Chatbots::refreshDetails() {
 	) | rpl::on_next([=](Data::ChatbotsPermissions now) {
 		const auto warn = [&](tr::phrase<lngtag_bot> text) {
 			controller()->show(Ui::MakeInformBox({
-				.text = text(tr::now, lt_bot, Ui::Text::Bold(bot->name()), Ui::Text::RichLangValue),
+				.text = text(tr::now, lt_bot, tr::bold(bot->name()), tr::rich),
 				.title = tr::lng_chatbots_warning_title(),
 			}));
 		};

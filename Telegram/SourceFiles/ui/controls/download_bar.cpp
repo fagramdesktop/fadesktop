@@ -86,7 +86,7 @@ void DownloadBar::show(DownloadBarContent &&content) {
 	_title.setMarkedText(
 		st::defaultTextStyle,
 		(content.count > 1
-			? Ui::Text::Bold(
+			? tr::bold(
 				tr::lng_profile_files(tr::now, lt_count, content.count))
 			: content.singleName));
 	refreshInfo(_progress.current());
@@ -139,7 +139,7 @@ void DownloadBar::refreshInfo(const DownloadBarProgress &progress) {
 	_info.setMarkedText(
 		st::downloadInfoStyle,
 		(progress.ready < progress.total
-			? Text::WithEntities(
+			? tr::marked(
 				FormatDownloadText(progress.ready, progress.total))
 			: Text::Link((_content.count > 1)
 				? tr::lng_downloads_view_in_section(tr::now)

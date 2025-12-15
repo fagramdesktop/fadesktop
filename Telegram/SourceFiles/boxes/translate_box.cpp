@@ -258,18 +258,15 @@ void TranslateBox(
 		//	const auto &list = data.vresult().v;
 		//	if (list.isEmpty()) {
 		//		showText(
-		//			Ui::Text::Italic(tr::lng_translate_box_error(tr::now)));
+		//			tr::italic(tr::lng_translate_box_error(tr::now)));
 		//	} else {
-		//		showText(TextWithEntities{
-		//			.text = qs(list.front().data().vtext()),
-		//			.entities = Api::EntitiesFromMTP(
-		//				&peer->session(),
-		//				list.front().data().ventities().v),
-		//		});
+		//		showText(Api::ParseTextWithEntities(
+		//			&peer->session(),
+		//			list.front()));
 		//	}
 		//}).fail([=](const MTP::Error &error) {
 		//	showText(
-		//		Ui::Text::Italic(tr::lng_translate_box_error(tr::now)));
+		//		tr::italic(tr::lng_translate_box_error(tr::now)));
 		//}).send();
 	};
 	state->to.value() | rpl::on_next(send, box->lifetime());

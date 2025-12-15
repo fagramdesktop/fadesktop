@@ -926,7 +926,7 @@ TextWithEntities List::computeTooltipText() const {
 			break;
 		}
 	}
-	auto sequence = Ui::Text::Bold(names.front());
+	auto sequence = tr::bold(names.front());
 	if (names.size() > 1) {
 		for (auto i = 1; i + 1 != names.size(); ++i) {
 			sequence = tr::lng_stories_click_to_view_and_one(
@@ -934,22 +934,22 @@ TextWithEntities List::computeTooltipText() const {
 				lt_accumulated,
 				sequence,
 				lt_user,
-				Ui::Text::Bold(names[i]),
-				Ui::Text::WithEntities);
+				tr::bold(names[i]),
+				tr::marked);
 		}
 		sequence = tr::lng_stories_click_to_view_and_last(
 			tr::now,
 			lt_accumulated,
 			sequence,
 			lt_user,
-			Ui::Text::Bold(names.back()),
-			Ui::Text::WithEntities);
+			tr::bold(names.back()),
+			tr::marked);
 	}
 	return tr::lng_stories_click_to_view(
 		tr::now,
 		lt_users,
 		sequence,
-		Ui::Text::WithEntities);
+		tr::marked);
 }
 
 void List::setShowTooltip(

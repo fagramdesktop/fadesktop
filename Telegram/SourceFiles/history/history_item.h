@@ -214,6 +214,7 @@ public:
 	[[nodiscard]] TextWithEntities factcheckText() const;
 
 	[[nodiscard]] not_null<Data::Thread*> notificationThread() const;
+	[[nodiscard]] Data::Thread *maybeNotificationThread() const;
 	[[nodiscard]] not_null<History*> history() const {
 		return _history;
 	}

@@ -751,7 +751,7 @@ void PeerShortInfoBox::prepareRows() {
 			const style::FlatLabel &textSt) {
 		auto line = CreateTextWithLabel(
 			_rows,
-			rpl::duplicate(label) | Ui::Text::ToWithEntities(),
+			rpl::duplicate(label) | rpl::map(tr::marked),
 			rpl::duplicate(text),
 			_st.label,
 			textSt,
@@ -801,7 +801,7 @@ void PeerShortInfoBox::prepareRows() {
 		tr::lng_context_copy_link(tr::now));
 	addInfoOneLine(
 		tr::lng_info_mobile_label(),
-		phoneValue() | Ui::Text::ToWithEntities(),
+		phoneValue() | rpl::map(tr::marked),
 		tr::lng_profile_copy_phone(tr::now));
 	auto label = _fields.current().isBio
 		? tr::lng_info_bio_label()
@@ -809,11 +809,11 @@ void PeerShortInfoBox::prepareRows() {
 	addInfoLine(std::move(label), aboutValue(), _st.labeled);
 	addInfoOneLine(
 		tr::lng_info_username_label(),
-		usernameValue() | Ui::Text::ToWithEntities(),
+		usernameValue() | rpl::map(tr::marked),
 		tr::lng_context_copy_mention(tr::now));
 	addInfoOneLine(
 		birthdayLabel(),
-		birthdayValue() | Ui::Text::ToWithEntities(),
+		birthdayValue() | rpl::map(tr::marked),
 		tr::lng_mediaview_copy(tr::now));
 	addInfoLine(
 		tr::lng_info_notes_label(),
@@ -881,14 +881,14 @@ rpl::producer<QString> PeerShortInfoBox::nameValue() const {
 rpl::producer<TextWithEntities> PeerShortInfoBox::channelValue() const {
 	return _fields.value(
 	) | rpl::map([](const PeerShortInfoFields &fields) {
-		return Ui::Text::Link(fields.channelName, fields.channelLink);
+		return tr::link(fields.channelName, fields.channelLink);
 	}) | rpl::distinct_until_changed();
 }
 
 rpl::producer<TextWithEntities> PeerShortInfoBox::linkValue() const {
 	return _fields.value(
 	) | rpl::map([](const PeerShortInfoFields &fields) {
-		return Ui::Text::Link(fields.link, fields.link);
+		return tr::link(fields.link, fields.link);
 	}) | rpl::distinct_until_changed();
 }
 

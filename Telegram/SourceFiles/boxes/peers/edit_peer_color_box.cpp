@@ -436,7 +436,7 @@ void LevelBadge::updateText() {
 			tr::now,
 			lt_count,
 			_level,
-			Ui::Text::WithEntities));
+			tr::marked));
 	} else {
 		text.append(QString::number(_level));
 	}
@@ -1126,7 +1126,7 @@ Fn<void()> AddColorGiftTabs(
 		auto tabs = std::vector<Ui::SubTabs::Tab>();
 		tabs.push_back({
 			.id = u"my"_q,
-			.text = tr::lng_gift_stars_tabs_my(tr::now, Ui::Text::WithEntities),
+			.text = tr::lng_gift_stars_tabs_my(tr::now, tr::marked),
 		});
 		for (const auto &gift : list) {
 			auto text = TextWithEntities();
@@ -1668,7 +1668,7 @@ void CreateBoostLevelContainer(
 						using namespace Ui::Text;
 						return Link(std::move(t), u"internal:"_q);
 					}),
-					Ui::Text::RichLangValue),
+					tr::rich),
 				style);
 			state->label->show();
 			boostLevelContainer->sizeValue(
@@ -2150,13 +2150,13 @@ void EditPeerColorSection(
 				tr::lng_gift_buy_resale_button(
 					lt_cost,
 					rpl::single(Data::FormatGiftResaleTon(*buy)),
-					Ui::Text::WithEntities),
+					tr::marked),
 				tr::lng_gift_buy_resale_equals(
 					lt_cost,
 					rpl::single(Ui::Text::IconEmoji(
 						&st::starIconEmojiSmall
 					).append(Lang::FormatCountDecimal(buy->starsForResale))),
-					Ui::Text::WithEntities),
+					tr::marked),
 				st::resaleButtonTitle,
 				st::resaleButtonSubtitle);
 		} else {
@@ -2164,7 +2164,7 @@ void EditPeerColorSection(
 				lt_cost,
 				rpl::single(Ui::Text::IconEmoji(&st::starIconEmoji).append(
 					Lang::FormatCountDecimal(buy->starsForResale))),
-				Ui::Text::WithEntities));
+				tr::marked));
 		}
 	}, button->lifetime());
 }
@@ -2282,11 +2282,11 @@ void EditPeerProfileColorSection(
 			tr::lng_settings_color_profile_about_link(
 				lt_emoji,
 				rpl::single(Ui::Text::IconEmoji(&st::textMoreIconEmoji)),
-				Ui::Text::RichLangValue
+				tr::rich
 			) | rpl::map([=](TextWithEntities t) {
-				return Ui::Text::Link(std::move(t), u"internal:"_q);
+				return tr::link(std::move(t), u"internal:"_q);
 			}),
-			Ui::Text::RichLangValue));
+			tr::rich));
 	Ui::AddSkip(container, st::settingsColorSampleSkip);
 	about->setClickHandlerFilter([=](auto...) {
 		aboutCallback();
@@ -2412,13 +2412,13 @@ void EditPeerProfileColorSection(
 				tr::lng_gift_buy_resale_button(
 					lt_cost,
 					rpl::single(Data::FormatGiftResaleTon(*buy)),
-					Ui::Text::WithEntities),
+					tr::marked),
 				tr::lng_gift_buy_resale_equals(
 					lt_cost,
 					rpl::single(Ui::Text::IconEmoji(
 						&st::starIconEmojiSmall
 					).append(Lang::FormatCountDecimal(buy->starsForResale))),
-					Ui::Text::WithEntities),
+					tr::marked),
 				st::resaleButtonTitle,
 				st::resaleButtonSubtitle);
 		} else {
@@ -2426,7 +2426,7 @@ void EditPeerProfileColorSection(
 				lt_cost,
 				rpl::single(Ui::Text::IconEmoji(&st::starIconEmoji).append(
 					Lang::FormatCountDecimal(buy->starsForResale))),
-				Ui::Text::WithEntities));
+				tr::marked));
 		}
 	}, button->lifetime());
 }

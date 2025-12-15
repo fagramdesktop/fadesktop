@@ -259,15 +259,15 @@ void PaidReactionToast::showFor(
 			tr::lng_paid_react_toast_anonymous(
 				lt_count,
 				_count.value() | tr::to_count(),
-				Ui::Text::Bold),
+				tr::bold),
 			tr::lng_paid_react_toast(
 				lt_count,
 				_count.value() | tr::to_count(),
-				Ui::Text::Bold)),
+				tr::bold)),
 		tr::lng_paid_react_toast_text(
 			lt_count_decimal,
 			_count.value() | tr::to_count(),
-			Ui::Text::RichLangValue)
+			tr::rich)
 	) | rpl::map([](TextWithEntities &&title, TextWithEntities &&body) {
 		title.append('\n').append(body);
 		return std::move(title);

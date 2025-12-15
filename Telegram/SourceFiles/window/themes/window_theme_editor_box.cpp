@@ -665,8 +665,8 @@ void CreateForExistingBox(
 	const auto amCreator = window->account().sessionExists()
 		&& (window->account().session().userId() == cloud.createdBy);
 	box->setTitle(amCreator
-		? (rpl::single(cloud.title) | Ui::Text::ToWithEntities())
-		: tr::lng_theme_editor_create_title(Ui::Text::WithEntities));
+		? (rpl::single(cloud.title) | rpl::map(tr::marked))
+		: tr::lng_theme_editor_create_title(tr::marked));
 
 	box->addRow(object_ptr<Ui::FlatLabel>(
 		box,
@@ -790,7 +790,7 @@ void SaveThemeBox(
 		? GenerateName(collected.accent)
 		: cloud.title;
 
-	box->setTitle(tr::lng_theme_editor_save_title(Ui::Text::WithEntities));
+	box->setTitle(tr::lng_theme_editor_save_title(tr::marked));
 
 	const auto name = box->addRow(object_ptr<Ui::InputField>(
 		box,

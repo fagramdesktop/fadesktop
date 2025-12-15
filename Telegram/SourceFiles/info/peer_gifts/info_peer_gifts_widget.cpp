@@ -1257,8 +1257,8 @@ void InnerWidget::refreshAbout() {
 	if (filteredEmpty) {
 		auto text = tr::lng_peer_gifts_empty_search(
 			tr::now,
-			Ui::Text::RichLangValue);
-		text.append("\n\n").append(Ui::Text::Link(
+			tr::rich);
+		text.append("\n\n").append(tr::link(
 			tr::lng_peer_gifts_view_all(tr::now)));
 		auto about = std::make_unique<Ui::FlatLabel>(
 			this,
@@ -1316,13 +1316,13 @@ void InnerWidget::refreshAbout() {
 		_about = std::make_unique<Ui::FlatLabel>(
 			this,
 			((maybeEmpty && !knownEmpty)
-				? tr::lng_contacts_loading(Ui::Text::WithEntities)
+				? tr::lng_contacts_loading(tr::marked)
 				: _peer->isSelf()
-				? tr::lng_peer_gifts_about_mine(Ui::Text::RichLangValue)
+				? tr::lng_peer_gifts_about_mine(tr::rich)
 				: tr::lng_peer_gifts_about(
 					lt_user,
-					rpl::single(Ui::Text::Bold(_peer->shortName())),
-					Ui::Text::RichLangValue)),
+					rpl::single(tr::bold(_peer->shortName())),
+					tr::rich)),
 			st::giftListAbout);
 		_about->show();
 		resizeToWidth(width());
@@ -1469,7 +1469,7 @@ void InnerWidget::refreshCollectionsTabs() {
 	auto tabs = std::vector<Ui::SubTabs::Tab>();
 	tabs.push_back({
 		.id = u"all"_q,
-		.text = tr::lng_gift_collection_all(tr::now, Ui::Text::WithEntities),
+		.text = tr::lng_gift_collection_all(tr::now, tr::marked),
 	});
 	for (const auto &collection : _collections) {
 		auto &per = _perCollection[collection.id];

@@ -242,7 +242,7 @@ ScheduledWidget::ScheduledWidget(
 			_inner,
 			controller->chatStyle(),
 			st::msgServicePadding);
-		const auto emptyText = Ui::Text::Semibold(
+		const auto emptyText = tr::semibold(
 			tr::lng_scheduled_messages_empty(tr::now));
 		emptyInfo->setText(emptyText);
 		_inner->setEmptyInfoWidget(std::move(emptyInfo));
@@ -1337,7 +1337,7 @@ void ScheduledWidget::showProcessingVideoTooltip() {
 		_inner.data(),
 		Ui::MakeNiceTooltipLabel(
 			_inner.data(),
-			tr::lng_scheduled_video_tip(Ui::Text::WithEntities),
+			tr::lng_scheduled_video_tip(tr::marked),
 			st::processingVideoTipMaxWidth,
 			st::defaultImportantTooltipLabel),
 		st::defaultImportantTooltip);
@@ -1729,7 +1729,7 @@ bool ShowScheduledVideoPublished(
 
 	const auto text = tr::lng_scheduled_video_published(
 		tr::now,
-		Ui::Text::Bold);
+		tr::bold);
 	const auto &st = st::processingVideoToast;
 	const auto skip = st::processingVideoPreviewSkip;
 	const auto size = st.style.font->height * 2;

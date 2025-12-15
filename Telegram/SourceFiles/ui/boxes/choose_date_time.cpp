@@ -290,7 +290,7 @@ object_ptr<Ui::RpWidget> ChooseRepeatPeriod(
 	) | rpl::on_next([=](TimeId value, bool locked) {
 		auto result = tr::lng_schedule_repeat_label(
 			tr::now,
-			Ui::Text::WithEntities);
+			tr::marked);
 
 		const auto text = [&] {
 			const auto i = ranges::lower_bound(
@@ -301,8 +301,8 @@ object_ptr<Ui::RpWidget> ChooseRepeatPeriod(
 			return (i != end(map)) ? i->text : map.back().text;
 		}();
 
-		label->setMarkedText(result.append(' ').append(Ui::Text::Link(
-			Ui::Text::Bold(text).append(
+		label->setMarkedText(result.append(' ').append(tr::link(
+			tr::bold(text).append(
 				Ui::Text::IconEmoji(locked
 					? &st::scheduleRepeatDropdownLock
 					: &st::scheduleRepeatDropdownArrow))

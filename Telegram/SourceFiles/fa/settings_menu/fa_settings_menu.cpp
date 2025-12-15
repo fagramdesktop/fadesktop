@@ -55,7 +55,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 )->toggledValue( \
 ) | rpl::filter([](bool enabled) { \
 	return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-}) | rpl::start_with_next([](bool enabled) { \
+}) | rpl::on_next([](bool enabled) { \
 	::FASettings::JsonSettings::Write(); \
 	::FASettings::JsonSettings::Set(#Option, enabled); \
 	::FASettings::JsonSettings::Write(); \

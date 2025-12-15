@@ -20,8 +20,7 @@ std::map<int, const char*> FALogs() {
 	return {
 	{
 		2000009,
-		"- Updated to tdesktop v6.3.8\n"
-		"- Updated to tdesktop v6.3.7\n"
+		"- Updated to tdesktop v6.3.9\n"
 		"- New context menu shortcuts\n"
 		"- Service notifications for changelogs\n"
 		"- Reply in Private Chat\n"
@@ -41,7 +40,7 @@ Changelogs::Changelogs(not_null<Main::Session*> session, int oldVersion)
 	_session->data().chatsListChanges(
 	) | rpl::filter([](Data::Folder *folder) {
 		return !folder;
-	}) | rpl::start_with_next([=] {
+	}) | rpl::on_next([=] {
 		requestChanges();
 	}, _chatsSubscription);
 }

@@ -53,7 +53,7 @@ struct State {
 			tr::now,
 			lt_left,
 			TextWithEntities{ TimeLeftText(left) },
-			Ui::Text::RichLangValue),
+			tr::rich),
 		.st = &st::storiesStealthToast,
 		.adaptive = true,
 		.duration = kAlreadyToastDuration,
@@ -65,7 +65,7 @@ struct State {
 		.title = tr::lng_stealth_mode_enabled_tip_title(tr::now),
 		.text = tr::lng_stealth_mode_enabled_tip(
 			tr::now,
-			Ui::Text::RichLangValue),
+			tr::rich),
 		.st = &st::storiesStealthToast,
 		.adaptive = true,
 		.duration = kAlreadyToastDuration,
@@ -76,7 +76,7 @@ struct State {
 	return {
 		.text = tr::lng_stealth_mode_cooldown_tip(
 			tr::now,
-			Ui::Text::RichLangValue),
+			tr::rich),
 		.st = &st::storiesStealthToast,
 		.adaptive = true,
 		.duration = kAlreadyToastDuration,

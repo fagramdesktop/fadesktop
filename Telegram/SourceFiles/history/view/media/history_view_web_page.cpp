@@ -193,7 +193,7 @@ constexpr auto kSponsoredUserpicLines = 2;
 
 [[nodiscard]] TextWithEntities PageToPhrase(not_null<WebPageData*> page) {
 	const auto type = page->type;
-	const auto text = Ui::Text::Upper(page->iv
+	const auto text = tr::upper(page->iv
 		? tr::lng_view_button_iv(tr::now)
 		: page->uniqueGift
 		? tr::lng_view_button_collectible(tr::now)
@@ -408,7 +408,7 @@ QSize WebPage::countOptimalSize() {
 	} else if (sponsored && !sponsored->buttonText.isEmpty()) {
 		_openButton.setText(
 			st::semiboldTextStyle,
-			Ui::Text::Upper(sponsored->buttonText));
+			tr::upper(sponsored->buttonText));
 	}
 
 	const auto padding = inBubblePadding() + innerMargin();
@@ -597,14 +597,14 @@ QSize WebPage::countOptimalSize() {
 		_siteNameLines = 1;
 		_siteName.setMarkedText(
 			st::webPageTitleStyle,
-			Ui::Text::Link(siteName, _data->url),
+			tr::link(siteName, _data->url),
 			Ui::WebpageTextTitleOptions());
 	}
 	if (_title.isEmpty() && !title.isEmpty()) {
 		if (!_siteNameLines && !_data->url.isEmpty()) {
 			_title.setMarkedText(
 				st::webPageTitleStyle,
-				Ui::Text::Link(title, _data->url),
+				tr::link(title, _data->url),
 				Ui::WebpageTextTitleOptions());
 
 		} else {

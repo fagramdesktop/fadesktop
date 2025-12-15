@@ -301,9 +301,9 @@ void ContactStatus::Bar::showState(
 				lt_emoji,
 				status,
 				lt_link,
-				Ui::Text::Link(
+				tr::link(
 					tr::lng_new_contact_about_status_link(tr::now)),
-				Ui::Text::WithEntities),
+				tr::marked),
 			context);
 		_emojiStatusInfo->entity()->overrideLinkClickHandler([=] {
 			_emojiStatusClicks.fire({});
@@ -325,10 +325,10 @@ void ContactStatus::Bar::showState(
 			: tr::lng_new_contact_from_request_group)(
 			tr::now,
 			lt_user,
-			Ui::Text::Bold(_name),
+			tr::bold(_name),
 			lt_name,
-			Ui::Text::Bold(state.requestChatName),
-			Ui::Text::WithEntities));
+			tr::bold(state.requestChatName),
+			tr::marked));
 	resizeToWidth(width());
 }
 
@@ -710,11 +710,11 @@ void ContactStatus::setupShareHandler(not_null<UserData*> user) {
 			.text = tr::lng_new_contact_share_sure(
 				tr::now,
 				lt_phone,
-				Ui::Text::WithEntities(
+				tr::marked(
 					Ui::FormatPhone(user->session().user()->phone())),
 				lt_user,
-				Ui::Text::Bold(user->name()),
-				Ui::Text::WithEntities),
+				tr::bold(user->name()),
+				tr::marked),
 			.confirmed = share,
 			.confirmText = tr::lng_box_ok(),
 		}));
@@ -804,12 +804,12 @@ void ContactStatus::setupRequestInfoHandler(not_null<PeerData*> peer) {
 				box,
 				tr::lng_from_request_body(
 					lt_name,
-					rpl::single(Ui::Text::Bold(_state.requestChatName)),
+					rpl::single(tr::bold(_state.requestChatName)),
 					lt_date,
-					rpl::single(langDateTimeFull(
+					rpl::single(tr::marked(langDateTimeFull(
 						base::unixtime::parse(_state.requestDate)
-					)) | Ui::Text::ToWithEntities(),
-					Ui::Text::WithEntities),
+					))),
+					tr::marked),
 				st::boxLabel));
 
 			box->addButton(tr::lng_from_request_understand(), [=] {
@@ -1167,7 +1167,7 @@ void PaysStatus::Bar::showState(State state) {
 		TextWithEntities{ _peer->shortName() },
 		lt_cost,
 		PaidSendButtonText(tr::now, state.perMessage),
-		Ui::Text::WithEntities));
+		tr::marked));
 	resizeToWidth(width());
 }
 

@@ -311,15 +311,15 @@ void AddPremiumPrivacyButton(
 	}
 
 	const auto showToast = [=] {
-		auto link = Ui::Text::Link(
-			Ui::Text::Semibold(
+		auto link = tr::link(
+			tr::semibold(
 				tr::lng_settings_privacy_premium_link(tr::now)));
 		(*toast) = controller->showToast({
 			.text = tr::lng_settings_privacy_premium(
 				tr::now,
 				lt_link,
 				link,
-				Ui::Text::WithEntities),
+				tr::marked),
 			.duration = Ui::Toast::kDefaultDuration * 2,
 			.filter = crl::guard(&controller->session(), [=](
 					const ClickHandlerPtr &,

@@ -156,10 +156,10 @@ void PersonalChannelController::prepare() {
 		}
 		if (!delegate()->peerListFullRowsCount()) {
 			auto none = rpl::combine(
-				tr::lng_settings_channel_no_yet(Ui::Text::WithEntities),
+				tr::lng_settings_channel_no_yet(tr::marked),
 				tr::lng_settings_channel_start()
 			) | rpl::map([](TextWithEntities &&text, const QString &link) {
-				return text.append('\n').append(Ui::Text::Link(link));
+				return text.append('\n').append(tr::link(link));
 			});
 			auto label = object_ptr<Ui::FlatLabel>(
 				nullptr,
@@ -1087,14 +1087,12 @@ bool ShowEditBirthday(
 				std::move(isExactlyContacts),
 				tr::lng_settings_birthday_contacts(
 					lt_link,
-					tr::lng_settings_birthday_contacts_link(
-					) | Ui::Text::ToLink(link),
-					Ui::Text::WithEntities),
+					tr::lng_settings_birthday_contacts_link(tr::url(link)),
+					tr::marked),
 				tr::lng_settings_birthday_about(
 					lt_link,
-					tr::lng_settings_birthday_about_link(
-					) | Ui::Text::ToLink(link),
-					Ui::Text::WithEntities)));
+					tr::lng_settings_birthday_about_link(tr::url(link)),
+					tr::marked)));
 		}));
 
 	}
@@ -1146,6 +1144,22 @@ bool ShowEditPersonalChannel(
 	if (!controller) {
 		return false;
 	} else if (controller->showFrozenError()) {
+		return true;
+	}
+	const auto maybePeerId = match->captured(1);
+	const auto maybeRemove = match->captured(2);
+
+	if (!maybePeerId.isEmpty()) {
+		if (const auto peerId = PeerId(maybePeerId.toULongLong())) {
+			if (const auto peer = controller->session().data().peer(peerId)) {
+				if (const auto channel = peer->asChannel()) {
+					SavePersonalChannel(controller, channel);
+					return true;
+				}
+			}
+		}
+	} else if (!maybeRemove.isEmpty()) {
+		SavePersonalChannel(controller, nullptr);
 		return true;
 	}
 
@@ -1583,10 +1597,10 @@ bool ResolveTopUp(
 					.text = tr::lng_credits_enough(
 						tr::now,
 						lt_link,
-						Ui::Text::Link(
-							Ui::Text::Bold(
+						tr::link(
+							tr::bold(
 								tr::lng_credits_enough_link(tr::now))),
-						Ui::Text::RichLangValue),
+						tr::rich),
 					.filter = filter,
 					.duration = 4 * crl::time(1000),
 				});
@@ -1882,7 +1896,7 @@ const std::vector<LocalUrlHandler> &InternalUrlHandlers() {
 			ShowEditBirthdayPrivacy,
 		},
 		{
-			u"^edit_personal_channel$"_q,
+			u"^edit_personal_channel(?::(?:(\\d{2,})|(remove)))?$"_q,
 			ShowEditPersonalChannel,
 		},
 		{

@@ -742,8 +742,8 @@ void Panel::requestTermsAcceptance(
 				? tr::lng_payments_terms_text
 				: tr::lng_payments_terms_text_once)(
 					lt_bot,
-					rpl::single(Ui::Text::Bold('@' + username)),
-					Ui::Text::WithEntities),
+					rpl::single(tr::bold('@' + username)),
+					tr::marked),
 			st::boxLabel));
 		const auto update = std::make_shared<Fn<void()>>();
 		auto checkView = std::make_unique<Ui::CheckView>(
@@ -756,10 +756,10 @@ void Panel::requestTermsAcceptance(
 				box.get(),
 				tr::lng_payments_terms_agree(
 					lt_link,
-					rpl::single(Ui::Text::Link(
+					rpl::single(tr::link(
 						tr::lng_payments_terms_link(tr::now),
 						url)),
-					Ui::Text::WithEntities),
+					tr::marked),
 				st::defaultBoxCheckbox,
 				std::move(checkView)),
 			{

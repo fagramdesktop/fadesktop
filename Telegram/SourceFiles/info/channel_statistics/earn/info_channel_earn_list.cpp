@@ -357,7 +357,7 @@ void InnerWidget::fill() {
 		const auto empty = container->add(object_ptr<Dialogs::SearchEmpty>(
 			container,
 			Dialogs::SearchEmptyIcon::NoResults,
-			tr::lng_search_tab_no_results(Ui::Text::Bold)));
+			tr::lng_search_tab_no_results(tr::bold)));
 		empty->setMinimalHeight(st::normalBoxLottieSize.height());
 		empty->animate();
 		return;
@@ -419,11 +419,11 @@ void InnerWidget::fill() {
 				tr::lng_channel_earn_about_link(
 					lt_emoji,
 					rpl::single(Ui::Text::IconEmoji(&st::textMoreIconEmoji)),
-					Ui::Text::RichLangValue
+					tr::rich
 				) | rpl::map([](TextWithEntities text) {
-					return Ui::Text::Link(std::move(text), 1);
+					return tr::link(std::move(text), 1);
 				}),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			st::boxDividerLabel);
 		label->setLink(1, std::make_shared<LambdaClickHandler>([=] {
 			_show->showBox(Box([=](not_null<Ui::GenericBox*> box) {
@@ -542,8 +542,8 @@ void InnerWidget::fill() {
 							tr::lng_channel_earn_learn_coin_title(
 								lt_emoji,
 								rpl::single(
-									Ui::Text::Link(bigCurrencyIcon, 1)),
-								Ui::Text::RichLangValue),
+									tr::link(bigCurrencyIcon, 1)),
+								tr::rich),
 							st::boxTitle,
 							st::defaultPopupMenu,
 							emojiHelper.context()),
@@ -571,11 +571,11 @@ void InnerWidget::fill() {
 									lt_emoji,
 									rpl::single(Ui::Text::IconEmoji(
 										&st::textMoreIconEmoji)),
-									Ui::Text::RichLangValue
+									tr::rich
 								) | rpl::map([](TextWithEntities text) {
-									return Ui::Text::Link(std::move(text), 1);
+									return tr::link(std::move(text), 1);
 								}),
-								Ui::Text::RichLangValue),
+								tr::rich),
 							st::channelEarnLearnDescription));
 					label->resizeToWidth(box->width()
 						- rect::m::sum::h(st::boxRowPadding));

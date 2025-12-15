@@ -138,8 +138,8 @@ void Controller::confirmAdd(not_null<PeerData*> peer) {
 						.text = PeerVerifyPhrases(peer).sent(
 							tr::now,
 							lt_name,
-							Ui::Text::Bold(peer->shortName()),
-							Ui::Text::WithEntities),
+							tr::bold(peer->shortName()),
+							tr::marked),
 						.duration = kSetupVerificationToastDuration,
 					});
 				} else {
@@ -153,8 +153,8 @@ void Controller::confirmAdd(not_null<PeerData*> peer) {
 		Ui::ConfirmBox(box, {
 			.text = phrases.text(
 				lt_name,
-				rpl::single(Ui::Text::Bold(peer->shortName())),
-				Ui::Text::WithEntities),
+				rpl::single(tr::bold(peer->shortName())),
+				tr::marked),
 			.confirmed = send,
 			.confirmText = phrases.submit(),
 			.title = phrases.title(),

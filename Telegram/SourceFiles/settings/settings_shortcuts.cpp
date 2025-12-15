@@ -244,7 +244,7 @@ struct Labeled {
 						- st.style.font->width(button)
 						- st::settingsButtonRightSkip;
 					keys->setMarkedText((recording == raw)
-						? Ui::Text::Italic(
+						? tr::italic(
 							tr::lng_shortcuts_recording(tr::now))
 						: key.isEmpty()
 						? TextWithEntities()

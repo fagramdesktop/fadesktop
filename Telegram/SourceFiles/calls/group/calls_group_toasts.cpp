@@ -56,8 +56,8 @@ void Toasts::setupJoinAsChanged() {
 			: tr::lng_group_call_join_as_changed)(
 			tr::now,
 			lt_name,
-			Ui::Text::Bold(_call->joinAs()->name()),
-			Ui::Text::WithEntities));
+			tr::bold(_call->joinAs()->name()),
+			tr::marked));
 	}, _lifetime);
 }
 
@@ -76,8 +76,8 @@ void Toasts::setupTitleChanged() {
 			: tr::lng_group_call_title_changed)(
 			tr::now,
 			lt_title,
-			Ui::Text::Bold(title),
-			Ui::Text::WithEntities));
+			tr::bold(title),
+			tr::marked));
 	}, _lifetime);
 }
 
@@ -96,8 +96,8 @@ void Toasts::setupAllowedToSpeak() {
 				.text = tr::lng_group_call_can_speak(
 					tr::now,
 					lt_chat,
-					Ui::Text::Bold(name),
-					Ui::Text::WithEntities),
+					tr::bold(name),
+					tr::marked),
 			});
 		}
 	}, _lifetime);

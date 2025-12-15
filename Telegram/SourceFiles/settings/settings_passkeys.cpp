@@ -395,11 +395,11 @@ void Passkeys::setupContent(
 			tr::lng_channel_earn_about_link(
 				lt_emoji,
 				rpl::single(Ui::Text::IconEmoji(&st::textMoreIconEmoji)),
-				Ui::Text::RichLangValue
+				tr::rich
 			) | rpl::map([](TextWithEntities text) {
-				return Ui::Text::Link(std::move(text), u"internal"_q);
+				return tr::link(std::move(text), u"internal"_q);
 			}),
-			Ui::Text::RichLangValue
+			tr::rich
 		));
 	label->setClickHandlerFilter([=](const auto &...) {
 		controller->show(Box(PasskeysNoneBox, session));

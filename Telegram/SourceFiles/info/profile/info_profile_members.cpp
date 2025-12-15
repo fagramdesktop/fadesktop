@@ -22,7 +22,6 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/scroll_area.h"
 #include "ui/wrap/padding_wrap.h"
-#include "ui/text/text_utilities.h" // Ui::Text::ToUpper
 #include "ui/search_field_controller.h"
 #include "lang/lang_keys.h"
 #include "ui/boxes/confirm_box.h"
@@ -177,8 +176,8 @@ object_ptr<Ui::FlatLabel> Members::setupTitle() {
 			tr::lng_chat_status_members(
 				lt_count_decimal,
 				MembersCountValue(_peer) | tr::to_count(),
-				Ui::Text::Upper),
-			tr::lng_channel_admins(Ui::Text::Upper)),
+				tr::upper),
+			tr::lng_channel_admins(tr::upper)),
 		st::infoBlockHeaderLabel);
 	result->setAttribute(Qt::WA_TransparentForMouseEvents);
 	return result;

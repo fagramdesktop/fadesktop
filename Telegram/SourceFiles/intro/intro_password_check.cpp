@@ -354,8 +354,8 @@ void PasswordCheckWidget::updateDescriptionText() {
 		? tr::lng_signin_recover_desc(
 			lt_email,
 			rpl::single(Ui::Text::WrapEmailPattern(emailPattern)),
-			Ui::Text::WithEntities)
-		: tr::lng_signin_desc(Ui::Text::WithEntities));
+			tr::marked)
+		: tr::lng_signin_desc(tr::marked));
 }
 
 void PasswordCheckWidget::submit() {

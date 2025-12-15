@@ -1302,8 +1302,8 @@ void PopularAppsController::fill() {
 				tr::lng_bot_apps_which(
 					lt_link,
 					tr::lng_bot_apps_which_link(
-					) | Ui::Text::ToLink(u"internal:about_popular_apps"_q),
-					Ui::Text::WithEntities),
+						tr::url(u"internal:about_popular_apps"_q)),
+					tr::marked),
 				st::dialogsPopularAppsAbout),
 			st::dialogsPopularAppsPadding));
 	}
@@ -2012,7 +2012,7 @@ void Suggestions::setupPostsIntro(const PostsSearchIntroState &intro) {
 								tr::now,
 								lt_count,
 								spent,
-								Ui::Text::RichLangValue),
+								tr::rich),
 							.attach = RectPart::Top,
 							.duration = Ui::Toast::kDefaultDuration * 2,
 						});
@@ -2702,7 +2702,7 @@ object_ptr<Ui::SlideWrap<>> Suggestions::setupEmpty(
 	auto content = object_ptr<SearchEmpty>(
 		parent,
 		icon,
-		std::move(text) | Ui::Text::ToWithEntities());
+		std::move(text) | rpl::map(tr::marked));
 
 	const auto raw = content.data();
 	rpl::combine(
@@ -2924,13 +2924,13 @@ object_ptr<Ui::BoxContent> PopularAppsAboutBox(
 	return Ui::MakeInformBox({
 		.text = tr::lng_popular_apps_info_text(
 			lt_bot,
-			rpl::single(Ui::Text::Link(
+			rpl::single(tr::link(
 				u"@botfather"_q,
 				u"https://t.me/botfather"_q)),
 			lt_link,
 			tr::lng_popular_apps_info_here(
-			) | Ui::Text::ToLink(tr::lng_popular_apps_info_url(tr::now)),
-			Ui::Text::RichLangValue),
+				tr::url(tr::lng_popular_apps_info_url(tr::now))),
+			tr::rich),
 		.confirmText = tr::lng_popular_apps_info_confirm(),
 		.title = tr::lng_popular_apps_info_title(),
 	});

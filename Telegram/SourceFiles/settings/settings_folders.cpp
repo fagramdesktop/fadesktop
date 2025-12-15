@@ -954,13 +954,13 @@ void SetupTagContent(
 		content,
 		rpl::conditional(
 			rpl::duplicate(premium),
-			tr::lng_filters_enable_tags_about(Ui::Text::RichLangValue),
+			tr::lng_filters_enable_tags_about(tr::rich),
 			tr::lng_filters_enable_tags_about_premium(
 				lt_link,
 				tr::lng_effect_premium_link() | rpl::map([](QString t) {
-					return Ui::Text::Link(std::move(t), u"internal:"_q);
+					return tr::link(std::move(t), u"internal:"_q);
 				}),
-				Ui::Text::RichLangValue)));
+				tr::rich)));
 	about->setClickHandlerFilter([=](const auto &...) {
 		Settings::ShowPremium(controller, u"folder_tags"_q);
 		return true;

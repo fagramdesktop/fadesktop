@@ -220,7 +220,7 @@ void ShowPaidReactionDetails(
 		return tr::lng_paid_react_send(
 			lt_price,
 			std::move(nice),
-			Ui::Text::RichLangValue);
+			tr::rich);
 	};
 	auto top = std::vector<Ui::PaidReactionTop>();
 	const auto add = [&](const Data::MessageReactionsTopPaid &entry) {

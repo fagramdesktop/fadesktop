@@ -202,10 +202,10 @@ object_ptr<Ui::BoxContent> MakeConfirmBox(
 	auto text = tr::lng_request_peer_confirm(
 		tr::now,
 		lt_chat,
-		Ui::Text::Bold(name),
+		tr::bold(name),
 		lt_bot,
-		Ui::Text::Bold(botName),
-		Ui::Text::WithEntities);
+		tr::bold(botName),
+		tr::marked);
 	if (!peer->isUser()) {
 		const auto rights = peer->isBroadcast()
 			? BroadcastRightsText(query.botRights)
@@ -215,12 +215,12 @@ object_ptr<Ui::BoxContent> MakeConfirmBox(
 				tr::lng_request_peer_confirm_rights(
 					tr::now,
 					lt_bot,
-					Ui::Text::Bold(botName),
+					tr::bold(botName),
 					lt_chat,
-					Ui::Text::Bold(name),
+					tr::bold(name),
 					lt_rights,
 					TextWithEntities{ rights },
-					Ui::Text::WithEntities));
+					tr::marked));
 		} else if (!peer->isBroadcast() && query.isBotParticipant) {
 			const auto common = bot->session().api().botCommonGroups(bot);
 			if (!common || !ranges::contains(*common, peer)) {
@@ -228,10 +228,10 @@ object_ptr<Ui::BoxContent> MakeConfirmBox(
 					tr::lng_request_peer_confirm_add(
 						tr::now,
 						lt_bot,
-						Ui::Text::Bold(botName),
+						tr::bold(botName),
 						lt_chat,
-						Ui::Text::Bold(name),
-						Ui::Text::WithEntities));
+						tr::bold(name),
+						tr::marked));
 			}
 		}
 	}

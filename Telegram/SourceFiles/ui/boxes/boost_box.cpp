@@ -141,7 +141,6 @@ void AddFeaturesList(
 			st,
 			st::boostFeatureIconPosition);
 	};
-	const auto proj = &Ui::Text::RichLangValue;
 	const auto lowMax = std::max({
 		features.linkLogoLevel,
 		features.profileIconLevel,
@@ -206,13 +205,15 @@ void AddFeaturesList(
 			}, line->lifetime());
 		}
 		if (i >= features.sponsoredLevel) {
-			add(tr::lng_channel_earn_off(proj), st::boostFeatureOffSponsored);
+			add(
+				tr::lng_channel_earn_off(tr::rich),
+				st::boostFeatureOffSponsored);
 		}
 		if (i >= features.customWallpaperLevel) {
 			add(
 				(group
 					? tr::lng_feature_custom_background_group
-					: tr::lng_feature_custom_background_channel)(proj),
+					: tr::lng_feature_custom_background_channel)(tr::rich),
 				st::boostFeatureCustomBackground);
 		}
 		if (i >= features.wallpaperLevel) {
@@ -222,12 +223,12 @@ void AddFeaturesList(
 					: tr::lng_feature_backgrounds_channel)(
 						lt_count,
 						rpl::single(float64(features.wallpapersCount)),
-						proj),
+						tr::rich),
 				st::boostFeatureBackground);
 		}
 		if (i >= features.emojiStatusLevel) {
 			add(
-				tr::lng_feature_emoji_status(proj),
+				tr::lng_feature_emoji_status(tr::rich),
 				st::boostFeatureEmojiStatus);
 		}
 		if (const auto j = features.profileColorsByLevel.find(i)
@@ -238,7 +239,7 @@ void AddFeaturesList(
 			add(
 				(group
 					? tr::lng_feature_profile_icon_group
-					: tr::lng_feature_profile_icon_channel)(proj),
+					: tr::lng_feature_profile_icon_channel)(tr::rich),
 				st::boostFeatureProfileIcon);
 		}
 		if (profileColors > 0) {
@@ -247,7 +248,7 @@ void AddFeaturesList(
 				: tr::lng_feature_profile_color_channel)(
 					lt_count,
 					rpl::single(float64(profileColors)),
-					proj
+					tr::rich
 				), st::boostFeatureProfileColor);
 		}
 		if (!group) {
@@ -257,14 +258,14 @@ void AddFeaturesList(
 			}
 			if (i >= features.linkLogoLevel) {
 				add(
-					tr::lng_feature_link_emoji(proj),
+					tr::lng_feature_link_emoji(tr::rich),
 					st::boostFeatureCustomLink);
 			}
 			if (linkStyles > 0) {
 				add(tr::lng_feature_link_style_channel(
 					lt_count,
 					rpl::single(float64(linkStyles)),
-					proj
+					tr::rich
 				), st::boostFeatureLink);
 			}
 			if (const auto j = features.nameColorsByLevel.find(i)
@@ -275,31 +276,31 @@ void AddFeaturesList(
 				add(tr::lng_feature_name_color_channel(
 					lt_count,
 					rpl::single(float64(nameColors)),
-					proj
+					tr::rich
 				), st::boostFeatureName);
 			}
 			add(tr::lng_feature_reactions(
 				lt_count,
 				rpl::single(float64(i)),
-				proj
+				tr::rich
 			), st::boostFeatureCustomReactions);
 		}
 		add(
-			tr::lng_feature_stories(lt_count, rpl::single(float64(i)), proj),
+			tr::lng_feature_stories(lt_count, rpl::single(1. * i), tr::rich),
 			st::boostFeatureStories);
 		if (!group && i >= features.autotranslateLevel) {
 			add(
-				tr::lng_feature_autotranslate(proj),
+				tr::lng_feature_autotranslate(tr::rich),
 				st::boostFeatureAutoTranslate);
 		}
 		if (group && i >= features.transcribeLevel) {
 			add(
-				tr::lng_feature_transcribe(proj),
+				tr::lng_feature_transcribe(tr::rich),
 				st::boostFeatureTranscribe);
 		}
 		if (group && i >= features.emojiPackLevel) {
 			add(
-				tr::lng_feature_custom_emoji_pack(proj),
+				tr::lng_feature_custom_emoji_pack(tr::rich),
 				st::boostFeatureCustomEmoji);
 		}
 	}
@@ -391,7 +392,7 @@ void BoostBox(
 			? (wasLifting
 				- std::clamp(counters.mine - wasMine, 0, wasLifting - 1))
 			: 0;
-		const auto bold = Ui::Text::Bold(name);
+		const auto bold = tr::bold(name);
 		const auto now = counters.boosts;
 		const auto full = !counters.nextLevelBoosts;
 		const auto left = (counters.nextLevelBoosts > now)
@@ -400,14 +401,14 @@ void BoostBox(
 		auto post = tr::lng_boost_channel_post_stories(
 			lt_count,
 			rpl::single(float64(counters.level + (left ? 1 : 0))),
-			Ui::Text::RichLangValue);
+			tr::rich);
 		return (lifting > 1)
 			? tr::lng_boost_group_lift_restrictions_many(
 				lt_count,
 				rpl::single(float64(lifting)),
-				Ui::Text::RichLangValue)
+				tr::rich)
 			: lifting
-			? tr::lng_boost_group_lift_restrictions(Ui::Text::RichLangValue)
+			? tr::lng_boost_group_lift_restrictions(tr::rich)
 			: (counters.mine || full)
 			? (left
 				? tr::lng_boost_channel_needs_unlock(
@@ -415,12 +416,12 @@ void BoostBox(
 					rpl::single(float64(left)),
 					lt_channel,
 					rpl::single(bold),
-					Ui::Text::RichLangValue)
+					tr::rich)
 				: (!counters.level
 					? (data.group
 						? tr::lng_boost_channel_reached_first_group
 						: tr::lng_boost_channel_reached_first)(
-							Ui::Text::RichLangValue)
+							tr::rich)
 					: (data.group
 						? tr::lng_boost_channel_reached_more_group
 						: tr::lng_boost_channel_reached_more)(
@@ -428,13 +429,13 @@ void BoostBox(
 							rpl::single(float64(counters.level)),
 							lt_post,
 							std::move(post),
-							Ui::Text::RichLangValue)))
+							tr::rich)))
 			: tr::lng_boost_channel_needs_unlock(
 				lt_count,
 				rpl::single(float64(left)),
 				lt_channel,
 				rpl::single(bold),
-				Ui::Text::RichLangValue);
+				tr::rich);
 	}) | rpl::flatten_latest();
 	if (wasLifting) {
 		state->data.value(
@@ -657,7 +658,7 @@ void BoostBoxAlready(not_null<GenericBox*> box, bool group) {
 	ConfirmBox(box, {
 		.text = (group
 			? tr::lng_boost_error_already_text_group
-			: tr::lng_boost_error_already_text)(Text::RichLangValue),
+			: tr::lng_boost_error_already_text)(tr::rich),
 		.title = tr::lng_boost_error_already_title(),
 		.inform = true,
 	});
@@ -676,7 +677,7 @@ void GiftForBoostsBox(
 				rpl::single(receive) | tr::to_count(),
 				lt_channel,
 				rpl::single(TextWithEntities{ channel }),
-				Text::RichLangValue),
+				tr::rich),
 		.title = tr::lng_boost_need_more(),
 		.inform = true,
 	});
@@ -686,7 +687,7 @@ void GiftedNoBoostsBox(not_null<GenericBox*> box, bool group) {
 	InformBox(box, {
 		.text = (group
 			? tr::lng_boost_error_gifted_text_group
-			: tr::lng_boost_error_gifted_text)(Text::RichLangValue),
+			: tr::lng_boost_error_gifted_text)(tr::rich),
 		.title = tr::lng_boost_error_gifted_title(),
 	});
 }
@@ -698,7 +699,7 @@ void PremiumForBoostsBox(
 	ConfirmBox(box, {
 		.text = (group
 			? tr::lng_boost_error_premium_text_group
-			: tr::lng_boost_error_premium_text)(Text::RichLangValue),
+			: tr::lng_boost_error_premium_text)(tr::rich),
 		.confirmed = buyPremium,
 		.confirmText = tr::lng_boost_error_premium_yes(),
 		.title = tr::lng_boost_error_premium_title(),
@@ -746,12 +747,12 @@ void AskBoostBox(
 		return tr::lng_boost_channel_needs_level_color(
 			lt_count,
 			rpl::single(float64(data.requiredLevel)),
-			Ui::Text::RichLangValue);
+			tr::rich);
 	}, [&](AskBoostAutotranslate data) {
 		return tr::lng_boost_channel_needs_level_autotranslate(
 			lt_count,
 			rpl::single(float64(data.requiredLevel)),
-			Ui::Text::RichLangValue);
+			tr::rich);
 	}, [&](AskBoostWallpaper data) {
 		isGroup = data.group;
 		return (data.group
@@ -759,7 +760,7 @@ void AskBoostBox(
 			: tr::lng_boost_channel_needs_level_wallpaper)(
 				lt_count,
 				rpl::single(float64(data.requiredLevel)),
-				Ui::Text::RichLangValue);
+				tr::rich);
 	}, [&](AskBoostEmojiStatus data) {
 		isGroup = data.group;
 		return (data.group
@@ -767,35 +768,35 @@ void AskBoostBox(
 			: tr::lng_boost_channel_needs_level_status)(
 				lt_count,
 				rpl::single(float64(data.requiredLevel)),
-				Ui::Text::RichLangValue);
+				tr::rich);
 	}, [&](AskBoostEmojiPack data) {
 		isGroup = true;
 		return tr::lng_boost_group_needs_level_emoji(
 			lt_count,
 			rpl::single(float64(data.requiredLevel)),
-			Ui::Text::RichLangValue);
+			tr::rich);
 	}, [&](AskBoostCustomReactions data) {
 		return tr::lng_boost_channel_needs_level_reactions(
 			lt_count,
 			rpl::single(float64(data.count)),
 			lt_same_count,
 			rpl::single(TextWithEntities{ QString::number(data.count) }),
-			Ui::Text::RichLangValue);
+			tr::rich);
 	}, [&](AskBoostCpm data) {
 		return tr::lng_boost_channel_needs_level_cpm(
 			lt_count,
 			rpl::single(float64(data.requiredLevel)),
-			Ui::Text::RichLangValue);
+			tr::rich);
 	}, [&](AskBoostWearCollectible data) {
 		return tr::lng_boost_channel_needs_level_wear(
 			lt_count,
 			rpl::single(float64(data.requiredLevel)),
-			Ui::Text::RichLangValue);
+			tr::rich);
 	});
 	auto text = rpl::combine(
 		std::move(reasonText),
 		(isGroup ? tr::lng_boost_group_ask : tr::lng_boost_channel_ask)(
-			Ui::Text::RichLangValue)
+			tr::rich)
 	) | rpl::map([](TextWithEntities &&text, TextWithEntities &&ask) {
 		return text.append(u"\n\n"_q).append(std::move(ask));
 	});

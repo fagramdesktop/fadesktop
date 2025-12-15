@@ -1727,7 +1727,7 @@ void SessionController::suggestArchiveAndMute() {
 		box->setTitle(tr::lng_suggest_hide_new_title());
 		box->addRow(object_ptr<Ui::FlatLabel>(
 			box,
-			tr::lng_suggest_hide_new_about(Ui::Text::RichLangValue),
+			tr::lng_suggest_hide_new_about(tr::rich),
 			st::boxLabel));
 		box->addButton(tr::lng_suggest_hide_new_to_settings(), [=] {
 			showSettings(Settings::PrivacySecurity::Id());

@@ -2121,7 +2121,7 @@ TextWithEntities ErrorText(const Webview::Available &info) {
 			Text::Link(
 				"Microsoft Edge WebView2 Runtime",
 				"https://go.microsoft.com/fwlink/p/?LinkId=2124703"),
-			Ui::Text::WithEntities);
+			tr::marked);
 	case Error::NoWebKitGTK:
 		return { tr::lng_payments_webview_install_webkit(tr::now) };
 	case Error::OldWindows:

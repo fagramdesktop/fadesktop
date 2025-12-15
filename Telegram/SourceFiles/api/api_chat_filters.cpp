@@ -116,24 +116,24 @@ private:
 			tr::now,
 			lt_folder,
 			std::move(boldTitle),
-			Ui::Text::WithEntities)
+			tr::marked)
 		: (type == Type::AddingChats)
 		? tr::lng_filters_by_link_more_sure(
 			tr::now,
 			lt_folder,
 			std::move(boldTitle),
-			Ui::Text::WithEntities)
+			tr::marked)
 		: (type == Type::AllAdded)
 		? tr::lng_filters_by_link_already_about(
 			tr::now,
 			lt_folder,
 			std::move(boldTitle),
-			Ui::Text::WithEntities)
+			tr::marked)
 		: tr::lng_filters_by_link_remove_sure(
 			tr::now,
 			lt_folder,
 			std::move(boldTitle),
-			Ui::Text::WithEntities);
+			tr::marked);
 }
 
 void InitFilterLinkHeader(
@@ -547,7 +547,7 @@ void ShowImportToast(
 		? tr::lng_filters_added_title
 		: tr::lng_filters_updated_title;
 	auto text = Ui::Text::Wrapped(
-		phrase(tr::now, lt_folder, title.text, Ui::Text::WithEntities),
+		phrase(tr::now, lt_folder, title.text, tr::marked),
 		EntityType::Bold);
 	if (added > 0) {
 		const auto phrase = created

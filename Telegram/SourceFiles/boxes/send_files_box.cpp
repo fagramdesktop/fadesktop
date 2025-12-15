@@ -158,8 +158,8 @@ void EditPriceBox(
 			box,
 			tr::lng_paid_about(
 				lt_link,
-				tr::lng_paid_about_link() | Ui::Text::ToLink(),
-				Ui::Text::WithEntities),
+				tr::lng_paid_about_link(tr::link),
+				tr::marked),
 			st::paidAmountAbout),
 		st::boxRowPadding + QMargins(0, st::sendMediaRowSkip, 0, 0));
 	about->setClickHandlerFilter([=](const auto &...) {
@@ -854,7 +854,7 @@ void SendFilesBox::refreshPriceTag() {
 		auto text = tr::lng_paid_price(
 			lt_price,
 			std::move(price),
-			Ui::Text::WithEntities);
+			tr::marked);
 		const auto label = Ui::CreateChild<Ui::FlatLabel>(
 			raw,
 			QString(),

@@ -189,7 +189,9 @@ void History::checkChatListMessageRemoved(not_null<HistoryItem*> item) {
 }
 
 void History::itemVanished(not_null<HistoryItem*> item) {
-	item->notificationThread()->removeNotification(item);
+	if (const auto thread = item->maybeNotificationThread()) {
+		thread->removeNotification(item);
+	}
 	if (lastKeyboardId == item->id) {
 		clearLastKeyboard();
 	}
@@ -1326,8 +1328,8 @@ void History::applyServiceChanges(
 							payment->amount,
 							EntityType::Bold),
 						lt_title,
-						Ui::Text::Bold(paid->title),
-						Ui::Text::WithEntities),
+						tr::bold(paid->title),
+						tr::marked),
 					.textContext = Core::TextContext({
 						.session = &session(),
 					}),

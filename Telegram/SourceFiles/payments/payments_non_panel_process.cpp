@@ -71,7 +71,7 @@ void ProcessCreditsPayment(
 									tr::now,
 									lt_count_decimal,
 									form->starGiftLimitedCount,
-									Ui::Text::RichLangValue),
+									tr::rich),
 							});
 						} else {
 							show->showToast(
@@ -83,7 +83,7 @@ void ProcessCreditsPayment(
 								tr::now,
 								lt_count,
 								std::max(form->starGiftPerUserLimit, 1),
-								Ui::Text::RichLangValue),
+								tr::rich),
 						});
 					} else {
 						show->showToast(*error);

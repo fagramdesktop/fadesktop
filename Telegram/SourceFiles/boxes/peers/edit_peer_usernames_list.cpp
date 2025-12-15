@@ -20,7 +20,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/boxes/confirm_box.h"
 #include "ui/layers/show.h"
 #include "ui/painter.h"
-#include "ui/text/text_utilities.h" // Ui::Text::RichLangValue.
+#include "ui/text/text_utilities.h" // tr::rich.
 #include "ui/toast/toast.h"
 #include "ui/ui_utility.h"
 #include "ui/vertical_list.h"
@@ -335,7 +335,7 @@ void UsernamesList::rebuild(const Data::Usernames &usernames) {
 										tr::lng_usernames_activate_error(
 											lt_count,
 											rpl::single(kMaxUsernames),
-											Ui::Text::RichLangValue)));
+											tr::rich)));
 							}
 							if (error == Api::Usernames::Error::Flood) {
 								_show->showToast(

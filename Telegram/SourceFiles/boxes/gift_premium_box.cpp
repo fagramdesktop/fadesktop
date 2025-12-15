@@ -235,10 +235,10 @@ using SpinnerState = Data::GiftUpgradeSpinner::State;
 		tr::lng_gift_value_minimum_price_tooltip(
 			tr::now,
 			lt_amount,
-			Ui::Text::Bold(text.text),
+			tr::bold(text.text),
 			lt_gift,
-			Ui::Text::Bold(unique->title),
-			Ui::Text::WithEntities));
+			tr::bold(unique->title),
+			tr::marked));
 }
 
 [[nodiscard]] object_ptr<Ui::RpWidget> MakeAveragePriceValue(
@@ -254,10 +254,10 @@ using SpinnerState = Data::GiftUpgradeSpinner::State;
 		tr::lng_gift_value_average_price_tooltip(
 			tr::now,
 			lt_amount,
-			Ui::Text::Bold(text.text),
+			tr::bold(text.text),
 			lt_gift,
-			Ui::Text::Bold(unique->title),
-			Ui::Text::WithEntities));
+			tr::bold(unique->title),
+			tr::marked));
 }
 
 [[nodiscard]] object_ptr<Ui::RpWidget> MakeAttributeValue(
@@ -466,7 +466,7 @@ void AddUniqueGiftPropertyRows(
 		showTooltip(widget, tr::lng_gift_unique_rarity(
 			lt_percent,
 			rpl::single(TextWithEntities{ percent }),
-			Ui::Text::WithEntities));
+			tr::marked));
 	};
 	const auto empty = std::vector<Data::UniqueGiftAttribute>();
 	const auto extract = [&](const auto &list) {
@@ -646,15 +646,15 @@ void AddTable(
 		AddTableRow(
 			table,
 			tr::lng_gift_link_label_to(),
-			tr::lng_gift_link_label_to_unclaimed(Ui::Text::WithEntities));
+			tr::lng_gift_link_label_to_unclaimed(tr::marked));
 	}
 	AddTableRow(
 		table,
 		tr::lng_gift_link_label_gift(),
 		tr::lng_gift_link_gift_premium(
 			lt_duration,
-			GiftDurationValue(current.days) | Ui::Text::ToWithEntities(),
-			Ui::Text::WithEntities));
+			GiftDurationValue(current.days) | rpl::map(tr::marked),
+			tr::marked));
 	if (!skipReason && current.from) {
 		const auto reason = AddTableRow(
 			table,
@@ -662,15 +662,14 @@ void AddTable(
 			(current.giveawayId
 				? ((current.to
 					? tr::lng_gift_link_reason_giveaway
-					: tr::lng_gift_link_reason_unclaimed)(
-						) | Ui::Text::ToLink())
+					: tr::lng_gift_link_reason_unclaimed)(tr::link))
 				: current.giveaway
 				? ((current.to
 					? tr::lng_gift_link_reason_giveaway
 					: tr::lng_gift_link_reason_unclaimed)(
-						Ui::Text::WithEntities
+						tr::marked
 					) | rpl::type_erased)
-				: tr::lng_gift_link_reason_chosen(Ui::Text::WithEntities)));
+				: tr::lng_gift_link_reason_chosen(tr::marked)));
 		reason->setClickHandlerFilter([=](const auto &...) {
 			if (const auto window = show->resolveWindow()) {
 				window->showPeerHistory(
@@ -685,7 +684,7 @@ void AddTable(
 		AddTableRow(
 			table,
 			tr::lng_gift_link_label_date(),
-			rpl::single(Ui::Text::WithEntities(
+			rpl::single(tr::marked(
 				langDateTime(base::unixtime::parse(current.date)))));
 	}
 }
@@ -726,11 +725,11 @@ void ShowAlreadyPremiumToast(
 		.text = tr::lng_gift_link_already_about(
 			tr::now,
 			lt_date,
-			Ui::Text::Bold(langDateTime(base::unixtime::parse(date))),
+			tr::bold(langDateTime(base::unixtime::parse(date))),
 			lt_link,
-			Ui::Text::Link(
-				Ui::Text::Bold(tr::lng_gift_link_already_link(tr::now))),
-			Ui::Text::WithEntities),
+			tr::link(
+				tr::bold(tr::lng_gift_link_already_link(tr::now))),
+			tr::marked),
 		.filter = crl::guard(navigation, shareLink),
 		.duration = 6 * crl::time(1000),
 	});
@@ -789,8 +788,8 @@ void GiftCodeBox(
 					tr::lng_gift_link_title()),
 				.about = rpl::conditional(
 					state->used.value(),
-					tr::lng_gift_link_used_about(Ui::Text::RichLangValue),
-					tr::lng_gift_link_about(Ui::Text::RichLangValue)),
+					tr::lng_gift_link_used_about(tr::rich),
+					tr::lng_gift_link_about(tr::rich)),
 				.light = true,
 			}));
 
@@ -815,7 +814,7 @@ void GiftCodeBox(
 
 	auto shareLink = tr::lng_gift_link_also_send_link(
 	) | rpl::map([](const QString &text) {
-		return Ui::Text::Link(text);
+		return tr::link(text);
 	});
 	auto richDate = [](const Api::GiftCode &data) {
 		return TextWithEntities{
@@ -830,11 +829,11 @@ void GiftCodeBox(
 				tr::lng_gift_link_used_footer(
 					lt_date,
 					state->data.value() | rpl::map(richDate),
-					Ui::Text::WithEntities),
+					tr::marked),
 				tr::lng_gift_link_also_send(
 					lt_link,
 					std::move(shareLink),
-					Ui::Text::WithEntities)),
+					tr::marked)),
 			st::giveawayGiftCodeFooter),
 		st::giveawayGiftCodeFooterMargin,
 		style::al_top);
@@ -916,8 +915,8 @@ void GiftCodePendingBox(
 					.title = tr::lng_gift_link_title(),
 					.about = tr::lng_gift_link_pending_about(
 						lt_user,
-						rpl::single(Ui::Text::Link(resultToName)),
-						Ui::Text::RichLangValue),
+						rpl::single(tr::link(resultToName)),
+						tr::rich),
 					.light = true,
 				}));
 
@@ -1040,20 +1039,20 @@ void GiveawayInfoBox(
 			lt_cup,
 			rpl::single(
 				TextWithEntities{ QString::fromUtf8("\xf0\x9f\x8f\x86") }),
-			Ui::Text::WithEntities)
+			tr::marked)
 		: (info.credits)
 		? tr::lng_prizes_you_won_credits(
 			lt_amount,
 			tr::lng_prizes_you_won_credits_amount(
 				lt_count,
 				rpl::single(float64(info.credits)),
-				Ui::Text::Bold),
+				tr::bold),
 			lt_cup,
 			rpl::single(
 				TextWithEntities{ QString::fromUtf8("\xf0\x9f\x8f\x86") }),
-			Ui::Text::WithEntities)
+			tr::marked)
 		: (info.state == State::Finished)
-		? tr::lng_prizes_you_didnt(Ui::Text::WithEntities)
+		? tr::lng_prizes_you_didnt(tr::marked)
 		: (rpl::producer<TextWithEntities>)(nullptr);
 
 	if (resultText) {
@@ -1105,14 +1104,14 @@ void GiveawayInfoBox(
 					: tr::lng_prizes_credits_admins)(
 						tr::now,
 						lt_channel,
-						Ui::Text::Bold(first),
+						tr::bold(first),
 						lt_amount,
 						tr::lng_prizes_credits_admins_amount(
 							tr::now,
 							lt_count_decimal,
 							float64(credits),
-							Ui::Text::Bold),
-						Ui::Text::RichLangValue)
+							tr::bold),
+						tr::rich)
 				: (group
 					? tr::lng_prizes_admins_group
 					: tr::lng_prizes_admins)(
@@ -1120,11 +1119,11 @@ void GiveawayInfoBox(
 						lt_count,
 						quantity,
 						lt_channel,
-						Ui::Text::Bold(first),
+						tr::bold(first),
 						lt_duration,
 						TextWithEntities{ GiftDuration(months * 30) },
-						Ui::Text::RichLangValue),
-			Ui::Text::RichLangValue));
+						tr::rich),
+			tr::rich));
 	const auto many = start
 		? (start->channels.size() > 1)
 		: (results->additionalPeersCount > 0);
@@ -1144,8 +1143,8 @@ void GiveawayInfoBox(
 				lt_count,
 				count,
 				lt_channel,
-				Ui::Text::Bold(first),
-				Ui::Text::RichLangValue)
+				tr::bold(first),
+				tr::rich)
 		: (many
 			? tr::lng_prizes_winners_new_of_many
 			: tr::lng_prizes_winners_new_of_one)(
@@ -1153,11 +1152,11 @@ void GiveawayInfoBox(
 				lt_count,
 				count,
 				lt_channel,
-				Ui::Text::Bold(first),
+				tr::bold(first),
 				lt_start_date,
-				Ui::Text::Bold(
+				tr::bold(
 					langDateTime(base::unixtime::parse(info.startDate))),
-				Ui::Text::RichLangValue);
+				tr::rich);
 	const auto additionalPrize = results
 		? results->additionalPrize
 		: start->additionalPrize;
@@ -1169,10 +1168,10 @@ void GiveawayInfoBox(
 				lt_count,
 				count,
 				lt_channel,
-				Ui::Text::Bold(first),
+				tr::bold(first),
 				lt_prize,
 				TextWithEntities{ additionalPrize },
-				Ui::Text::RichLangValue));
+				tr::rich));
 	}
 	const auto untilDate = start
 		? start->untilDate
@@ -1182,17 +1181,17 @@ void GiveawayInfoBox(
 		: tr::lng_prizes_how_when_finish)(
 			tr::now,
 			lt_date,
-			Ui::Text::Bold(langDayOfMonthFull(
+			tr::bold(langDayOfMonthFull(
 				base::unixtime::parse(untilDate).date())),
 			lt_winners,
 			winners,
-			Ui::Text::RichLangValue));
+			tr::rich));
 	if (info.activatedCount > 0) {
 		text.append(' ').append(tr::lng_prizes_end_activated(
 			tr::now,
 			lt_count,
 			info.activatedCount,
-			Ui::Text::RichLangValue));
+			tr::rich));
 	}
 	if (!info.giftCode.isEmpty()
 		|| info.state == State::Finished
@@ -1206,8 +1205,8 @@ void GiveawayInfoBox(
 				: tr::lng_prizes_how_no_admin)(
 					tr::now,
 					lt_channel,
-					Ui::Text::Bold(channel->name()),
-					Ui::Text::RichLangValue));
+					tr::bold(channel->name()),
+					tr::rich));
 		} else if (info.tooEarlyDate) {
 			const auto channel = controller->session().data().channel(
 				info.adminChannelId);
@@ -1216,33 +1215,33 @@ void GiveawayInfoBox(
 				: tr::lng_prizes_how_no_joined)(
 					tr::now,
 					lt_date,
-					Ui::Text::Bold(
+					tr::bold(
 						langDateTime(
 							base::unixtime::parse(info.tooEarlyDate))),
-					Ui::Text::RichLangValue));
+					tr::rich));
 		} else if (!info.disallowedCountry.isEmpty()) {
 			text.append("\n\n").append(tr::lng_prizes_how_no_country(
 				tr::now,
-				Ui::Text::RichLangValue));
+				tr::rich));
 		} else if (info.participating) {
 			text.append("\n\n").append((many
 				? tr::lng_prizes_how_yes_joined_many
 				: tr::lng_prizes_how_yes_joined_one)(
 					tr::now,
 					lt_channel,
-					Ui::Text::Bold(first),
-					Ui::Text::RichLangValue));
+					tr::bold(first),
+					tr::rich));
 		} else {
 			text.append("\n\n").append((many
 				? tr::lng_prizes_how_participate_many
 				: tr::lng_prizes_how_participate_one)(
 					tr::now,
 					lt_channel,
-					Ui::Text::Bold(first),
+					tr::bold(first),
 					lt_date,
-					Ui::Text::Bold(langDayOfMonthFull(
+					tr::bold(langDayOfMonthFull(
 						base::unixtime::parse(untilDate).date())),
-					Ui::Text::RichLangValue));
+					tr::rich));
 		}
 	}
 	const auto padding = st::boxPadding;
@@ -1380,7 +1379,7 @@ struct AddedUniqueDetails {
 					rpl::single(
 						Ui::Text::IconEmoji(&st::starIconEmoji).append(
 							Lang::FormatCountDecimal(removeCost))),
-					Ui::Text::RichLangValue),
+					tr::rich),
 				.title = tr::lng_gift_unique_info_remove_title(),
 			});
 			box->addRow(
@@ -1460,8 +1459,8 @@ void AddStarGiftTable(
 			const auto show = [&](const auto &phrase) {
 				showTooltip(badge, phrase(
 					lt_name,
-					rpl::single(Ui::Text::Bold(UniqueGiftName(*unique))),
-					Ui::Text::WithEntities));
+					rpl::single(tr::bold(UniqueGiftName(*unique))),
+					tr::marked));
 			};
 			if (!*was || *was == id) {
 				*was = id;
@@ -1510,8 +1509,8 @@ void AddStarGiftTable(
 				const auto show = [&](const auto &phrase) {
 					showTooltip(badge, phrase(
 						lt_name,
-						rpl::single(Ui::Text::Bold(UniqueGiftName(*unique))),
-						Ui::Text::WithEntities));
+						rpl::single(tr::bold(UniqueGiftName(*unique))),
+						tr::marked));
 				};
 				if (!*was || *was == id) {
 					*was = id;
@@ -1582,21 +1581,21 @@ void AddStarGiftTable(
 		AddTableRow(
 			table,
 			tr::lng_gift_link_label_first_sale(),
-			rpl::single(Ui::Text::WithEntities(
+			rpl::single(tr::marked(
 				langDateTime(entry.firstSaleDate))));
 	}
 	if (!unique && !entry.lastSaleDate.isNull()) {
 		AddTableRow(
 			table,
 			tr::lng_gift_link_label_last_sale(),
-			rpl::single(Ui::Text::WithEntities(
+			rpl::single(tr::marked(
 				langDateTime(entry.lastSaleDate))));
 	}
 	if (!unique && !entry.date.isNull()) {
 		AddTableRow(
 			table,
 			tr::lng_gift_link_label_date(),
-			rpl::single(Ui::Text::WithEntities(langDateTime(entry.date))));
+			rpl::single(tr::marked(langDateTime(entry.date))));
 	}
 	if (unique) {
 		AddUniqueGiftPropertyRows(container, table, unique, spinner);
@@ -1626,7 +1625,7 @@ void AddStarGiftTable(
 				? tr::lng_gift_availability_none(
 					lt_amount,
 					std::move(amount),
-					Ui::Text::WithEntities)
+					tr::marked)
 				: (unique
 					? tr::lng_gift_unique_availability
 					: tr::lng_gift_availability_left)(
@@ -1634,13 +1633,13 @@ void AddStarGiftTable(
 						rpl::single(count * 1.),
 						lt_amount,
 						std::move(amount),
-						Ui::Text::WithEntities)));
+						tr::marked)));
 	}
 	if (!unique && !entry.soldOutInfo && canStartUpgrade) {
 		AddTableRow(
 			table,
 			tr::lng_gift_unique_status(),
-			tr::lng_gift_unique_status_non(Ui::Text::WithEntities));
+			tr::lng_gift_unique_status_non(tr::marked));
 	}
 	if (unique) {
 		if (unique->value) {
@@ -1662,37 +1661,37 @@ void AddStarGiftTable(
 				? (original.message.empty()
 					? tr::lng_gift_unique_info_sender(
 						lt_from,
-						rpl::single(Ui::Text::Link(from->name(), 2)),
+						rpl::single(tr::link(from->name(), 2)),
 						lt_recipient,
-						rpl::single(Ui::Text::Link(to->name(), 1)),
+						rpl::single(tr::link(to->name(), 1)),
 						lt_date,
 						rpl::single(dateText),
-						Ui::Text::WithEntities)
+						tr::marked)
 					: tr::lng_gift_unique_info_sender_comment(
 						lt_from,
-						rpl::single(Ui::Text::Link(from->name(), 2)),
+						rpl::single(tr::link(from->name(), 2)),
 						lt_recipient,
-						rpl::single(Ui::Text::Link(to->name(), 1)),
+						rpl::single(tr::link(to->name(), 1)),
 						lt_date,
 						rpl::single(dateText),
 						lt_text,
 						rpl::single(original.message),
-						Ui::Text::WithEntities))
+						tr::marked))
 				: (original.message.empty()
 					? tr::lng_gift_unique_info_reciever(
 						lt_recipient,
-						rpl::single(Ui::Text::Link(to->name(), 1)),
+						rpl::single(tr::link(to->name(), 1)),
 						lt_date,
 						rpl::single(dateText),
-						Ui::Text::WithEntities)
+						tr::marked)
 					: tr::lng_gift_unique_info_reciever_comment(
 						lt_recipient,
-						rpl::single(Ui::Text::Link(to->name(), 1)),
+						rpl::single(tr::link(to->name(), 1)),
 						lt_date,
 						rpl::single(dateText),
 						lt_text,
 						rpl::single(original.message),
-						Ui::Text::WithEntities));
+						tr::marked));
 			const auto tmp = std::make_shared<Ui::RpWidget*>(nullptr);
 			auto made = MakeUniqueDetails(
 				show,
@@ -1795,7 +1794,7 @@ void AddCreditsHistoryEntryTable(
 				table,
 				tr::lng_gift_link_label_reason(),
 				tr::lng_credits_box_history_entry_reason_star_ref(
-					Ui::Text::WithEntities));
+					tr::marked));
 		}
 	}
 	if (starrefRecipientId && entry.starrefAmount && !entry.giftResale) {
@@ -1861,7 +1860,7 @@ void AddCreditsHistoryEntryTable(
 				entry.bareMsgId);
 			auto label = object_ptr<Ui::FlatLabel>(
 				table,
-				rpl::single(Ui::Text::Link(link)),
+				rpl::single(tr::link(link)),
 				table->st().defaultValue);
 			label->setClickHandlerFilter([=](const auto &...) {
 				if (const auto window = show->resolveWindow()) {
@@ -1883,13 +1882,13 @@ void AddCreditsHistoryEntryTable(
 			table,
 			tr::lng_credits_box_history_entry_via(),
 			tr::lng_credits_box_history_entry_app_store(
-				Ui::Text::RichLangValue));
+				tr::rich));
 	} else if (entry.peerType == Type::PlayMarket) {
 		AddTableRow(
 			table,
 			tr::lng_credits_box_history_entry_via(),
 			tr::lng_credits_box_history_entry_play_market(
-				Ui::Text::RichLangValue));
+				tr::rich));
 	} else if (entry.peerType == Type::Fragment) {
 		AddTableRow(
 			table,
@@ -1899,18 +1898,18 @@ void AddCreditsHistoryEntryTable(
 			((entry.gift && entry.credits.stars())
 				? tr::lng_credits_box_history_entry_anonymous
 				: tr::lng_credits_box_history_entry_fragment)(
-					Ui::Text::RichLangValue));
+					tr::rich));
 	} else if (entry.peerType == Type::Ads) {
 		AddTableRow(
 			table,
 			tr::lng_credits_box_history_entry_via(),
-			tr::lng_credits_box_history_entry_ads(Ui::Text::RichLangValue));
+			tr::lng_credits_box_history_entry_ads(tr::rich));
 	} else if (entry.peerType == Type::PremiumBot) {
 		AddTableRow(
 			table,
 			tr::lng_credits_box_history_entry_via(),
 			tr::lng_credits_box_history_entry_via_premium_bot(
-				Ui::Text::RichLangValue));
+				tr::rich));
 	}
 	if (entry.bareGiveawayMsgId) {
 		AddTableRow(
@@ -1926,7 +1925,7 @@ void AddCreditsHistoryEntryTable(
 			tr::lng_gift_stars_title(
 				lt_count,
 				rpl::single(entry.credits.value()),
-				Ui::Text::RichLangValue));
+				tr::rich));
 	}
 	{
 		const auto link = CreateMessageLink(
@@ -1939,7 +1938,7 @@ void AddCreditsHistoryEntryTable(
 				tr::lng_gift_link_label_reason(),
 				tr::lng_gift_link_reason_giveaway(
 				) | rpl::map([link](const QString &text) {
-					return Ui::Text::Link(text, link);
+					return tr::link(text, link);
 				}));
 		}
 	}
@@ -1948,7 +1947,7 @@ void AddCreditsHistoryEntryTable(
 			table,
 			tr::lng_gift_link_label_reason(),
 			tr::lng_credits_box_history_entry_subscription(
-				Ui::Text::WithEntities));
+				tr::marked));
 	}
 	if (entry.paidMessagesAmount) {
 		auto value = Ui::Text::IconEmoji(&st::starIconEmojiColored);
@@ -1967,7 +1966,7 @@ void AddCreditsHistoryEntryTable(
 			tr::lng_months(
 				lt_count,
 				rpl::single(1. * months),
-				Ui::Text::WithEntities));
+				tr::marked));
 	}
 	if (!entry.id.isEmpty()) {
 		auto label = MakeMaybeMultilineTokenValue(table, entry.id, st);
@@ -1988,27 +1987,27 @@ void AddCreditsHistoryEntryTable(
 			table,
 			tr::lng_credits_box_history_entry_floodskip_row(),
 			rpl::single(
-				Ui::Text::WithEntities(
+				tr::marked(
 					Lang::FormatCountDecimal(entry.floodSkip))));
 	}
 	if (!entry.date.isNull()) {
 		AddTableRow(
 			table,
 			tr::lng_gift_link_label_date(),
-			rpl::single(Ui::Text::WithEntities(langDateTime(entry.date))));
+			rpl::single(tr::marked(langDateTime(entry.date))));
 	}
 	if (!entry.successDate.isNull()) {
 		AddTableRow(
 			table,
 			tr::lng_credits_box_history_entry_success_date(),
-			rpl::single(Ui::Text::WithEntities(langDateTime(entry.date))));
+			rpl::single(tr::marked(langDateTime(entry.date))));
 	}
 	if (!entry.successLink.isEmpty()) {
 		AddTableRow(
 			table,
 			tr::lng_credits_box_history_entry_success_url(),
 			rpl::single(
-				Ui::Text::Link(entry.successLink, entry.successLink)));
+				tr::link(entry.successLink, entry.successLink)));
 	}
 	if (entry.limitedCount > 0 && entry.limitedLeft >= 0) {
 		AddTableRow(
@@ -2021,7 +2020,7 @@ void AddCreditsHistoryEntryTable(
 				rpl::single(TextWithEntities{
 					Lang::FormatCountDecimal(entry.limitedCount)
 				}),
-				Ui::Text::WithEntities));
+				tr::marked));
 	}
 }
 
@@ -2055,7 +2054,7 @@ void AddSubscriptionEntryTable(
 		AddTableRow(
 			table,
 			tr::lng_credits_subscription_row_to(),
-			rpl::single(Ui::Text::WithEntities(s.title)));
+			rpl::single(tr::marked(s.title)));
 	}
 	if (!s.until.isNull()) {
 		if (s.subscription.period > 0) {
@@ -2065,7 +2064,7 @@ void AddSubscriptionEntryTable(
 					table,
 					tr::lng_group_invite_joined_row_date(),
 					rpl::single(
-						Ui::Text::WithEntities(langDateTime(subscribed))));
+						tr::marked(langDateTime(subscribed))));
 			}
 		}
 		AddTableRow(
@@ -2075,7 +2074,7 @@ void AddSubscriptionEntryTable(
 				: s.cancelled
 				? tr::lng_credits_subscription_row_next_off()
 				: tr::lng_credits_subscription_row_next_on(),
-			rpl::single(Ui::Text::WithEntities(langDateTime(s.until))));
+			rpl::single(tr::marked(langDateTime(s.until))));
 	}
 }
 
@@ -2099,7 +2098,7 @@ void AddSubscriberEntryTable(
 		AddTableRow(
 			table,
 			tr::lng_group_invite_joined_row_date(),
-			rpl::single(Ui::Text::WithEntities(langDateTime(d))));
+			rpl::single(tr::marked(langDateTime(d))));
 	}
 }
 
@@ -2130,7 +2129,7 @@ void AddCreditsBoostTable(
 			tr::lng_gift_stars_title(
 				lt_count,
 				rpl::single(float64(b.credits)),
-				Ui::Text::RichLangValue));
+				tr::rich));
 	}
 	{
 		const auto link = CreateMessageLink(
@@ -2143,7 +2142,7 @@ void AddCreditsBoostTable(
 				tr::lng_gift_link_label_reason(),
 				tr::lng_gift_link_reason_giveaway(
 				) | rpl::map([link](const QString &text) {
-					return Ui::Text::Link(text, link);
+					return tr::link(text, link);
 				}));
 		}
 	}
@@ -2151,13 +2150,13 @@ void AddCreditsBoostTable(
 		AddTableRow(
 			table,
 			tr::lng_gift_link_label_date(),
-			rpl::single(Ui::Text::WithEntities(langDateTime(b.date))));
+			rpl::single(tr::marked(langDateTime(b.date))));
 	}
 	if (!b.expiresAt.isNull()) {
 		AddTableRow(
 			table,
 			tr::lng_gift_until(),
-			rpl::single(Ui::Text::WithEntities(langDateTime(b.expiresAt))));
+			rpl::single(tr::marked(langDateTime(b.expiresAt))));
 	}
 }
 
@@ -2219,7 +2218,7 @@ void AddUniqueGiftValueTable(
 				value->initialSalePrice,
 				value->currency,
 				true)),
-			Ui::Text::WithEntities),
+			tr::marked),
 		helper.context());
 	if (value->lastSaleDate) {
 		AddTableRow(

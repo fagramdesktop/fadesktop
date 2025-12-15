@@ -145,14 +145,14 @@ void StickerToast::showWithTitle(const QString &title) {
 	const auto toSaved = isEmoji
 		&& (_section == Section::Message)
 		&& !(++counter % 2);
-	const auto text = Ui::Text::Bold(
+	const auto text = tr::bold(
 		title
 	).append('\n').append(
 		(toSaved
-			? tr::lng_animated_emoji_saved(tr::now, Ui::Text::RichLangValue)
+			? tr::lng_animated_emoji_saved(tr::now, tr::rich)
 			: isEmoji
-			? tr::lng_animated_emoji_text(tr::now, Ui::Text::RichLangValue)
-			: tr::lng_sticker_premium_text(tr::now, Ui::Text::RichLangValue))
+			? tr::lng_animated_emoji_text(tr::now, tr::rich)
+			: tr::lng_sticker_premium_text(tr::now, tr::rich))
 	);
 	_st = st::historyPremiumToast;
 	const auto skip = _st.padding.top();

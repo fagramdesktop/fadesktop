@@ -809,10 +809,10 @@ void OverlayWidget::showSaveMsgToast(const QString &path, auto phrase) {
 		phrase(
 			tr::now,
 			lt_downloads,
-			Ui::Text::Link(
+			tr::link(
 				tr::lng_mediaview_downloads(tr::now),
 				"internal:show_saved_message"),
-			Ui::Text::WithEntities),
+			tr::marked),
 		st::mediaviewSaveMsgShown);
 }
 
@@ -1375,10 +1375,10 @@ void OverlayWidget::showPremiumDownloadPromo() {
 		.text = tr::lng_stories_save_promo(
 			tr::now,
 			lt_link,
-			Ui::Text::Link(
-				Ui::Text::Bold(
+			tr::link(
+				tr::bold(
 					tr::lng_send_as_premium_required_link(tr::now))),
-			Ui::Text::WithEntities),
+			tr::marked),
 		.filter = filter,
 		.adaptive = true,
 		.duration = kStorySavePromoDuration,
@@ -3432,7 +3432,7 @@ void OverlayWidget::refreshCaption() {
 				if (media->webpage()) {
 					if (_message->isSponsored()) {
 						return TextWithEntities()
-							.append(Ui::Text::Bold(media->webpage()->title))
+							.append(tr::bold(media->webpage()->title))
 							.append('\n')
 							.append(media->webpage()->description);
 					}

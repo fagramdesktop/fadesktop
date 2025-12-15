@@ -363,10 +363,10 @@ TextWithEntities Story::inReplyText() const {
 				tr::now,
 				lt_media,
 				Ui::Text::Colorized(type),
-				Ui::Text::WithEntities),
+				tr::marked),
 			lt_caption,
 			_caption,
-			Ui::Text::WithEntities);
+			tr::marked);
 }
 
 void Story::setPinnedToTop(bool pinned) {

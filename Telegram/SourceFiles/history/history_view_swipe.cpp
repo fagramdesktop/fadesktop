@@ -61,7 +61,7 @@ void SetupSwipeHandler(
 	const auto state = widget->lifetime().make_state<State>();
 	std::move(
 		dontStart
-	) | rpl::start_with_next([=](bool dontStart) {
+	) | rpl::on_next([=](bool dontStart) {
 		state->dontStart = dontStart;
 	}, state->lifetime);
 
@@ -109,7 +109,7 @@ void SetupSwipeHandler(
 		state->started = false;
 		state->reached = false;
 	};
-	scroll->scrolls() | rpl::start_with_next([=] {
+	scroll->scrolls() | rpl::on_next([=] {
 		if (state->orientation != Qt::Vertical) {
 			processEnd();
 		}

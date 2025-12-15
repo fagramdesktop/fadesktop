@@ -756,7 +756,7 @@ void ShowListBox(
 		const auto title = content->add(
 			object_ptr<Ui::FlatLabel>(
 				content,
-				base::take(entry.title) | Ui::Text::ToBold(),
+				base::take(entry.title) | rpl::map(tr::bold),
 				stLabel),
 			entry.icon ? iconTitlePadding : titlePadding);
 		content->add(

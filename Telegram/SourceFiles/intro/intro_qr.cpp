@@ -312,12 +312,12 @@ void QrWidget::setupControls() {
 		const auto label = steps->add(
 			object_ptr<Ui::FlatLabel>(
 				steps,
-				text(Ui::Text::RichLangValue),
+				text(tr::rich),
 				st::introQrStep),
 			st::introQrStepMargins);
 		const auto number = Ui::CreateChild<Ui::FlatLabel>(
 			steps,
-			rpl::single(Ui::Text::Semibold(QString::number(++index) + ".")),
+			rpl::single(tr::semibold(QString::number(++index) + ".")),
 			st::defaultFlatLabel);
 		rpl::combine(
 			number->widthValue(),

@@ -645,8 +645,8 @@ base::unique_qptr<Ui::PopupMenu> ListController::rowContextMenu(
 			_controller->show(Ui::MakeConfirmBox({
 				.text = tr::lng_star_ref_revoke_text(
 					lt_bot,
-					rpl::single(Ui::Text::Bold(bot->name())),
-					Ui::Text::RichLangValue),
+					rpl::single(tr::bold(bot->name())),
+					tr::rich),
 				.confirmed = sure,
 				.title = tr::lng_star_ref_revoke_title(),
 			}));
@@ -771,18 +771,16 @@ not_null<ListController*> InnerWidget::setupMy() {
 
 void InnerWidget::setupSort(not_null<Ui::RpWidget*> label) {
 	constexpr auto phrase = [](SuggestedSort sort) {
-		return (sort == SuggestedSort::Profitability)
-			? tr::lng_star_ref_sort_profitability(tr::now)
+		return ((sort == SuggestedSort::Profitability)
+			? tr::lng_star_ref_sort_profitability
 			: (sort == SuggestedSort::Revenue)
-			? tr::lng_star_ref_sort_revenue(tr::now)
-			: tr::lng_star_ref_sort_date(tr::now);
+			? tr::lng_star_ref_sort_revenue
+			: tr::lng_star_ref_sort_date)(tr::now, tr::link);
 	};
 	const auto sort = Ui::CreateChild<Ui::FlatLabel>(
 		label->parentWidget(),
-		tr::lng_star_ref_sort_text(
-			lt_sort,
-			_sort.value() | rpl::map(phrase) | Ui::Text::ToLink(),
-		Ui::Text::WithEntities),
+		tr::lng_star_ref_sort_text(lt_sort, _sort.value() | rpl::map(phrase),
+		tr::marked),
 		st::defaultFlatLabel);
 	rpl::combine(
 		label->geometryValue(),
@@ -806,7 +804,7 @@ void InnerWidget::setupSort(not_null<Ui::RpWidget*> label) {
 		};
 		for (const auto order : orders) {
 			const auto chosen = (order == _sort.current());
-			menu->addAction(phrase(order), crl::guard(this, [=] {
+			menu->addAction(phrase(order).text, crl::guard(this, [=] {
 				_sort = order;
 			}), chosen ? &st::mediaPlayerMenuCheck : nullptr);
 		}
@@ -867,7 +865,7 @@ object_ptr<Ui::RpWidget> InnerWidget::infoRow(
 	raw->add(
 		object_ptr<Ui::FlatLabel>(
 			raw,
-			std::move(title) | Ui::Text::ToBold(),
+			std::move(title) | rpl::map(tr::bold),
 			st::defaultFlatLabel),
 		st::settingsPremiumRowTitlePadding);
 	raw->add(
@@ -989,8 +987,7 @@ void Widget::restoreState(not_null<Memento*> memento) {
 
 std::unique_ptr<Ui::Premium::TopBarAbstract> Widget::setupTop() {
 	auto title = tr::lng_star_ref_list_title();
-	auto about = tr::lng_star_ref_list_about_channel()
-		| Ui::Text::ToWithEntities();
+	auto about = tr::lng_star_ref_list_about_channel(tr::marked);
 
 	const auto controller = this->controller();
 	const auto weak = base::make_weak(controller->parentController());

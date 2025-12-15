@@ -549,7 +549,7 @@ void InnerWidget::showFilter(Fn<void(FilterValue &&filter)> callback) {
 				box->verticalLayout(),
 				tr::lng_admin_log_filter_actions_admins_section(
 					tr::now,
-					Ui::Text::WithEntities),
+					tr::marked),
 				checkedPeerId.size() == admins.size(),
 				st::defaultBoxCheckbox));
 		using Controller = Ui::ExpandablePeerListController;
@@ -602,7 +602,7 @@ void InnerWidget::clearAndRequestLog() {
 void InnerWidget::updateEmptyText() {
 	auto hasSearch = !_searchQuery.isEmpty();
 	auto hasFilter = _filter.flags || _filter.admins;
-	auto text = Ui::Text::Semibold((hasSearch || hasFilter)
+	auto text = tr::semibold((hasSearch || hasFilter)
 		? tr::lng_admin_log_no_results_title(tr::now)
 		: tr::lng_admin_log_no_events_title(tr::now));
 	auto description = hasSearch

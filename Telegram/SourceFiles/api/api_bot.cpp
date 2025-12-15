@@ -218,7 +218,7 @@ void SendBotCallbackDataWithPassword(
 			session,
 			tr::lng_bots_password_confirm_check_about(
 				tr::now,
-				Ui::Text::WithEntities));
+				tr::marked));
 		if (box) {
 			show->showBox(std::move(box), Ui::LayerOption::CloseOther);
 		} else {

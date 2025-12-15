@@ -73,7 +73,7 @@ void QuickReplies::setupContent(
 		.lottieSize = st::settingsCloudPasswordIconSize,
 		.lottieMargins = st::peerAppearanceIconPadding,
 		.showFinished = showFinishes(),
-		.about = tr::lng_replies_about(Ui::Text::WithEntities),
+		.about = tr::lng_replies_about(tr::marked),
 		.aboutMargins = st::peerAppearanceCoverLabelMargin,
 	});
 	Ui::AddSkip(content);

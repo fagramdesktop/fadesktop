@@ -1996,23 +1996,23 @@ void MainWidget::showNonPremiumLimitToast(bool download) {
 				tr::now,
 				lt_percent,
 				TextWithEntities{ QString::number(percent - 100) },
-				Ui::Text::RichLangValue)
+				tr::rich)
 		: (download
 			? tr::lng_limit_download_increase_times
 			: tr::lng_limit_upload_increase_times)(
 				tr::now,
 				lt_count,
 				percent / 100,
-				Ui::Text::RichLangValue);
+				tr::rich);
 	auto text = (download
 		? tr::lng_limit_download_subscribe
 		: tr::lng_limit_upload_subscribe)(
 			tr::now,
 			lt_link,
-			Ui::Text::Link(Ui::Text::Bold(link)),
+			tr::link(tr::bold(link)),
 			lt_increase,
 			TextWithEntities{ increase },
-			Ui::Text::RichLangValue);
+			tr::rich);
 	auto filter = [=](ClickHandlerPtr handler, Qt::MouseButton button) {
 		Settings::ShowPremium(
 			controller(),

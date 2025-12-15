@@ -37,6 +37,25 @@ struct ReplaceTag<TextWithEntities> {
 namespace tr {
 namespace details {
 
+struct UpperProjection {
+	[[nodiscard]] QString operator()(const QString &value) const {
+		return value.toUpper();
+	}
+	[[nodiscard]] QString operator()(QString &&value) const {
+		return std::move(value).toUpper();
+	}
+	[[nodiscard]] TextWithEntities operator()(
+			const TextWithEntities &value) const {
+		return { value.text.toUpper(), value.entities };
+	}
+	[[nodiscard]] TextWithEntities operator()(
+			TextWithEntities &&value) const {
+		return {
+			std::move(value.text).toUpper(),
+			std::move(value.entities) };
+	}
+};
+
 struct MarkedProjection {
 	[[nodiscard]] TextWithEntities operator()() const {
 		return {};
@@ -177,8 +196,22 @@ struct LinkProjection {
 	}
 };
 
+struct UrlProjection {
+	[[nodiscard]] auto operator()(const QString &url) const {
+		return [url](auto &&text) {
+			return Ui::Text::Link(std::forward<decltype(text)>(text), url);
+		};
+	}
+	[[nodiscard]] auto operator()(int index) const {
+		return [index](auto &&text) {
+			return Ui::Text::Link(std::forward<decltype(text)>(text), index);
+		};
+	}
+};
+
 } // namespace details
 
+inline constexpr details::UpperProjection upper{};
 inline constexpr details::MarkedProjection marked{};
 inline constexpr details::RichProjection rich{};
 inline constexpr details::BoldProjection bold{};
@@ -187,5 +220,6 @@ inline constexpr details::ItalicProjection italic{};
 inline constexpr details::UnderlineProjection underline{};
 inline constexpr details::StrikeOutProjection strikeout{};
 inline constexpr details::LinkProjection link{};
+inline constexpr details::UrlProjection url{};
 
 } // namespace tr

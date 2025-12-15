@@ -285,13 +285,13 @@ void ChatSearchIn::apply(
 	updateSection(
 		&_in,
 		i->icon->clone(),
-		Ui::Text::Semibold(TabLabel(active, peerTabType)));
+		tr::semibold(TabLabel(active, peerTabType)));
 
 	auto text = tr::lng_dlg_search_from(
 		tr::now,
 		lt_user,
-		Ui::Text::Semibold(fromName),
-		Ui::Text::WithEntities);
+		tr::semibold(fromName),
+		tr::marked);
 	updateSection(&_from, std::move(fromUserpic), std::move(text));
 
 	resizeToWidth(width());

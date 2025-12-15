@@ -178,13 +178,13 @@ void CollectibleInfoBox(
 		? tr::lng_collectible_phone_title(
 			tr::now,
 			lt_phone,
-			Ui::Text::Link(formatted),
-			Ui::Text::WithEntities)
+			tr::link(formatted),
+			tr::marked)
 		: tr::lng_collectible_username_title(
 			tr::now,
 			lt_username,
-			Ui::Text::Link(formatted),
-			Ui::Text::WithEntities);
+			tr::link(formatted),
+			tr::marked);
 	const auto copyCallback = [box, type, formatted, text = info.copyText](
 			bool copyLink) {
 		QGuiApplication::clipboard()->setText((text.isEmpty() || !copyLink)
@@ -218,7 +218,7 @@ void CollectibleInfoBox(
 			TextWithEntities{ FormatDate(info.date) },
 			lt_price,
 			FormatPrice(info),
-			Ui::Text::RichLangValue);
+			tr::rich);
 	const auto label = box->addRow(
 		object_ptr<Ui::FlatLabel>(box, st::collectibleInfo),
 		st::collectibleInfoPadding,

@@ -278,8 +278,8 @@ EffectPreview::EffectPreview(
 			this,
 			tr::lng_effect_premium(
 				lt_link,
-				tr::lng_effect_premium_link() | Ui::Text::ToLink(),
-				Ui::Text::WithEntities),
+				tr::lng_effect_premium_link(tr::link),
+				tr::marked),
 			st::effectPreviewPromoLabel),
 		st::effectPreviewPromoPadding))
 , _bottom(_send ? ((Ui::RpWidget*)_send.get()) : _premiumPromoLabel.get())

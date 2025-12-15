@@ -238,7 +238,7 @@ void AwayMessage::setupContent(
 		.lottieSize = st::settingsCloudPasswordIconSize,
 		.lottieMargins = st::peerAppearanceIconPadding,
 		.showFinished = showFinishes(),
-		.about = tr::lng_away_about(Ui::Text::WithEntities),
+		.about = tr::lng_away_about(tr::marked),
 		.aboutMargins = st::peerAppearanceCoverLabelMargin,
 	});
 

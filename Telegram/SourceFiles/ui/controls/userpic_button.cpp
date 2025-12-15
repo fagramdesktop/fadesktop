@@ -310,8 +310,8 @@ void UserpicButton::choosePhotoLocally() {
 				? (*phrase)(
 					tr::now,
 					lt_user,
-					Ui::Text::Bold(name),
-					Ui::Text::WithEntities)
+					tr::bold(name),
+					tr::marked)
 				: TextWithEntities()),
 			.confirm = ((type == ChosenType::Suggest)
 				? tr::lng_profile_suggest_button(tr::now)

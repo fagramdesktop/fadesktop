@@ -16,7 +16,6 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/chat/attach/attach_prepare.h"
-#include "ui/text/text_utilities.h" // Ui::Text::ToUpper
 #include "ui/text/text_options.h"
 #include "ui/image/image_prepare.h"
 #include "ui/painter.h"
@@ -225,7 +224,7 @@ Ui::SlideWrap<ScanButton> *EditScans::List::nonDeletedErrorRow() const {
 rpl::producer<QString> EditScans::List::uploadButtonText() const {
 	return (files.empty()
 		? tr::lng_passport_upload_scans
-		: tr::lng_passport_upload_more)() | Ui::Text::ToUpper();
+		: tr::lng_passport_upload_more)(tr::upper);
 }
 
 void EditScans::List::hideError() {
@@ -684,9 +683,8 @@ void EditScans::setupSpecialScans(
 		}
 		auto label = scan.rowCreated.value(
 		) | rpl::map([=, type = type](bool created) {
-			return uploadText(type, created)();
-		}) | rpl::flatten_latest(
-		) | Ui::Text::ToUpper();
+			return uploadText(type, created)(tr::upper);
+		}) | rpl::flatten_latest();
 		scan.upload = inner->add(
 			object_ptr<Ui::SettingsButton>(
 				inner,

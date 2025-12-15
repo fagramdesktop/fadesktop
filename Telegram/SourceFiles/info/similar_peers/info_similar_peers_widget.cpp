@@ -173,8 +173,9 @@ void ListController::setupUnlock() {
 				rpl::single(upto * 1.),
 				lt_link,
 				tr::lng_similar_channels_premium_all_link(
-				) | Ui::Text::ToBold() | Ui::Text::ToLink(),
-				Ui::Text::RichLangValue),
+					tr::bold
+				) | rpl::map(tr::link),
+				tr::rich),
 		st::similarChannelsLockAbout);
 	about->setClickHandlerFilter([=](const auto &...) {
 		const auto window = _controller->parentController();

@@ -199,10 +199,10 @@ void RecentSharedMediaGifts::togglePinned(
 								TextWithEntities{
 									Data::UniqueGiftName(*replacingData),
 								},
-								Ui::Text::WithEntities)
+								tr::marked)
 							: tr::lng_gift_pinned_done(
 								tr::now,
-								Ui::Text::WithEntities)),
+								tr::marked)),
 						.duration = Ui::Toast::kDefaultDuration * 2,
 					});
 				}

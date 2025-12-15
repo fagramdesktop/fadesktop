@@ -83,14 +83,14 @@ void ShowOrPremiumBox(
 			tr::lng_lastseen_show_about(
 				lt_user,
 				rpl::single(TextWithEntities{ shortName }),
-				Text::RichLangValue),
+				tr::rich),
 			tr::lng_lastseen_show_button(),
 			tr::lng_lastseen_or(),
 			tr::lng_lastseen_premium_title(),
 			tr::lng_lastseen_premium_about(
 				lt_user,
 				rpl::single(TextWithEntities{ shortName }),
-				Text::RichLangValue),
+				tr::rich),
 			tr::lng_lastseen_premium_button(),
 			tr::lng_lastseen_shown_toast(tr::now),
 			u"show_or_premium_lastseen"_q,
@@ -100,14 +100,14 @@ void ShowOrPremiumBox(
 			tr::lng_readtime_show_about(
 				lt_user,
 				rpl::single(TextWithEntities{ shortName }),
-				Text::RichLangValue),
+				tr::rich),
 			tr::lng_readtime_show_button(),
 			tr::lng_readtime_or(),
 			tr::lng_readtime_premium_title(),
 			tr::lng_readtime_premium_about(
 				lt_user,
 				rpl::single(TextWithEntities{ shortName }),
-				Text::RichLangValue),
+				tr::rich),
 			tr::lng_readtime_premium_button(),
 			tr::lng_readtime_shown_toast(tr::now),
 			u"show_or_premium_readtime"_q,

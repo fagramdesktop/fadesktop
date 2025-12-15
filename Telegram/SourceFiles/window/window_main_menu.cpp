@@ -110,7 +110,7 @@ constexpr auto kPlayStatusLimit = 2;
 		return !!self->emojiStatusId();
 	}) | rpl::distinct_until_changed() | rpl::map([](bool has) {
 		const auto makeLink = [](const QString &text) {
-			return Ui::Text::Link(text);
+			return tr::link(text);
 		};
 		return (has
 			? tr::lng_menu_change_status
@@ -384,12 +384,12 @@ MainMenu::MainMenu(
 
 	parentResized();
 
-	_telegram->setMarkedText(Ui::Text::Link(
+	_telegram->setMarkedText(tr::link(
 		u"FAgram Desktop"_q,
-		u"https://t.me/FAgramClient"_q));
+		u"https://t.me/FAgramDesktop"_q));
 	_telegram->setLinksTrusted();
 	_version->setMarkedText(
-		Ui::Text::Link(
+		tr::link(
 			tr::lng_settings_current_version(
 				tr::now,
 				lt_version,
@@ -398,7 +398,7 @@ MainMenu::MainMenu(
 		.append(QChar(' '))
 		.append(QChar(8211))
 		.append(QChar(' '))
-		.append(Ui::Text::Link(tr::lng_menu_about(tr::now), 2))); // Link 2.
+		.append(tr::link(tr::lng_menu_about(tr::now), 2))); // Link 2.
 	_version->setLink(
 		1,
 		std::make_shared<UrlClickHandler>(Core::App().changelogLink()));

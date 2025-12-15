@@ -274,7 +274,7 @@ void SelfForwardsTagger::showTaggedToast(DocumentId reaction) {
 		tr::now,
 		lt_emoji,
 		Data::SingleCustomEmoji(reaction),
-		Ui::Text::WithEntities);
+		tr::marked);
 	hideToast();
 
 	const auto &st = st::selfForwardsTaggerToast;

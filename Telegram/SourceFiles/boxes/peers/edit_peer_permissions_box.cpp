@@ -459,7 +459,7 @@ not_null<Ui::RpWidget*> AddInnerToggle(
 				rpl::empty_value()
 			) | rpl::map(countChecked)
 		) | rpl::map([=](const QString &t, int checked) {
-			auto count = Ui::Text::Bold("  "
+			auto count = tr::bold("  "
 				+ QString::number(checked)
 				+ '/'
 				+ QString::number(totalInnerChecks));
@@ -1295,7 +1295,7 @@ Fn<void()> AboutGigagroupCallback(
 				object_ptr<Ui::FlatLabel>(
 					box,
 					tr::lng_gigagroup_warning(
-					) | Ui::Text::ToRichLangValue(),
+					) | rpl::map(tr::rich),
 					st::infoAboutGigagroup));
 			box->addButton(tr::lng_gigagroup_convert_sure(), convertSure);
 			box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });

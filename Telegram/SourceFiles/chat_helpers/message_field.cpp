@@ -496,7 +496,7 @@ void InitMessageFieldHandlers(MessageFieldHandlersArgs &&args) {
 				return url.startsWith(start) ? url : (start + url);
 			}
 			show->showToast(
-				tr::lng_factcheck_links(tr::now, Ui::Text::RichLangValue));
+				tr::lng_factcheck_links(tr::now, tr::rich));
 			return QString();
 		};
 		if (action == EditLinkAction::Check) {
@@ -1308,8 +1308,8 @@ std::unique_ptr<Ui::AbstractButton> FrozenWriteRestriction(
 			? tr::lng_frozen_bar_text(
 				lt_arrow,
 				rpl::single(Ui::Text::IconEmoji(&st::textMoreIconEmoji)),
-				Ui::Text::WithEntities)
-			: tr::lng_frozen_restrict_text(Ui::Text::WithEntities)),
+				tr::marked)
+			: tr::lng_frozen_restrict_text(tr::marked)),
 		bar ? st::frozenBarSubtitle : st::frozenRestrictionSubtitle);
 	subtitle->setAttribute(Qt::WA_TransparentForMouseEvents);
 	subtitle->show();
@@ -1445,7 +1445,7 @@ void FrozenInfoBox(
 		raw->add(
 			object_ptr<Ui::FlatLabel>(
 				raw,
-				std::move(title) | Ui::Text::ToBold(),
+				std::move(title) | rpl::map(tr::bold),
 				st.infoTitle ? *st.infoTitle : st::defaultFlatLabel),
 			st::settingsPremiumRowTitlePadding);
 		raw->add(
@@ -1472,23 +1472,23 @@ void FrozenInfoBox(
 
 	infoRow(
 		tr::lng_frozen_subtitle1(),
-		tr::lng_frozen_text1(Ui::Text::WithEntities),
+		tr::lng_frozen_text1(tr::marked),
 		st.violationIcon ? st.violationIcon : &st::menuIconBlock);
 	infoRow(
 		tr::lng_frozen_subtitle2(),
-		tr::lng_frozen_text2(Ui::Text::WithEntities),
+		tr::lng_frozen_text2(tr::marked),
 		st.readOnlyIcon ? st.readOnlyIcon : &st::menuIconLock);
 	infoRow(
 		tr::lng_frozen_subtitle3(),
 		tr::lng_frozen_text3(
 			lt_link,
-			rpl::single(Ui::Text::Link(u"@SpamBot"_q, info.appealUrl)),
+			rpl::single(tr::link(u"@SpamBot"_q, info.appealUrl)),
 			lt_date,
 			rpl::single(TextWithEntities{
 				langDayOfMonthFull(
 					base::unixtime::parse(info.until).date()),
 			}),
-			Ui::Text::WithEntities),
+			tr::marked),
 		st.appealIcon ? st.appealIcon : &st::menuIconHourglass);
 
 	const auto button = box->addButton(

@@ -783,7 +783,7 @@ void ClearCallsBox(
 			lt_count,
 			rpl::single(controller->session().appConfig().confcallSizeLimit()
 				* 1.),
-			Ui::Text::WithEntities));
+			tr::marked));
 
 	const auto icon = Ui::CreateChild<Info::Profile::FloatingIcon>(
 		result,

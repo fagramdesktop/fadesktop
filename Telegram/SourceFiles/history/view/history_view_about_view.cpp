@@ -306,7 +306,7 @@ auto GenerateChatIntro(
 		const auto description = data.customPhrases()
 			? data.description
 			: tr::lng_chat_intro_default_message(tr::now);
-		pushText(Ui::Text::Bold(title), st::chatIntroTitleMargin);
+		pushText(tr::bold(title), st::chatIntroTitleMargin);
 		pushText({ description }, title.isEmpty()
 			? st::chatIntroTitleMargin
 			: st::chatIntroMargin);
@@ -366,7 +366,7 @@ auto GenerateNewBotThread(
 		const auto title = tr::lng_bot_new_thread_title(tr::now);
 		const auto description = tr::lng_bot_new_thread_about(tr::now);
 		push(std::make_unique<NewBotThreadDottedLine>(parent));
-		pushText(Ui::Text::Bold(title), st::chatIntroTitleMargin);
+		pushText(tr::bold(title), st::chatIntroTitleMargin);
 		pushText({ description }, st::chatIntroMargin);
 		push(std::make_unique<NewBotThreadDownIcon>());
 
@@ -396,10 +396,10 @@ auto GenerateNewPeerInfo(
 			return result;
 		};
 		push(std::make_unique<MediaGenericTextPart>(
-			Ui::Text::Bold(user->name()),
+			tr::bold(user->name()),
 			st::newPeerTitleMargin));
 		push(std::make_unique<TextPartColored>(
-			tr::lng_new_contact_not_contact(tr::now, Ui::Text::WithEntities),
+			tr::lng_new_contact_not_contact(tr::now, tr::marked),
 			st::newPeerSubtitleMargin,
 			fadedFg));
 
@@ -411,7 +411,7 @@ auto GenerateNewPeerInfo(
 			const auto flag = countries.flagEmojiByISO2(country);
 			entries.push_back({
 				tr::lng_new_contact_phone_number(tr::now),
-				Ui::Text::Bold(flag + QChar(0xA0) + name),
+				tr::bold(flag + QChar(0xA0) + name),
 			});
 		}
 		const auto month = user->registrationMonth();
@@ -419,7 +419,7 @@ auto GenerateNewPeerInfo(
 		if (month && year) {
 			entries.push_back({
 				tr::lng_new_contact_registration(tr::now),
-				Ui::Text::Bold(langMonthOfYearFull(month, year)),
+				tr::bold(langMonthOfYearFull(month, year)),
 			});
 		}
 
@@ -450,7 +450,7 @@ auto GenerateNewPeerInfo(
 						Ui::Text::SingleCustomEmoji(userpicsData),
 						lt_arrow,
 						Ui::Text::IconEmoji(&st::textMoreIconEmoji),
-						Ui::Text::Bold),
+						tr::bold),
 					EntityType::CustomUrl,
 					url),
 			});
@@ -901,7 +901,7 @@ AdminLog::OwnedItem AboutView::makeNewPeerInfo(not_null<UserData*> user) {
 
 AdminLog::OwnedItem AboutView::makeAboutVerifyCodes() {
 	return makeAboutSimple(
-		tr::lng_verification_codes_about(tr::now, Ui::Text::RichLangValue));
+		tr::lng_verification_codes_about(tr::now, tr::rich));
 }
 
 AdminLog::OwnedItem AboutView::makeAboutBot(not_null<BotInfo*> info) {
@@ -944,8 +944,8 @@ AdminLog::OwnedItem AboutView::makePremiumRequired() {
 	}, PreparedServiceText{ tr::lng_send_non_premium_text(
 		tr::now,
 		lt_user,
-		Ui::Text::Bold(_history->peer->shortName()),
-		Ui::Text::RichLangValue),
+		tr::bold(_history->peer->shortName()),
+		tr::rich),
 	});
 	auto result = AdminLog::OwnedItem(_delegate, item);
 	result->overrideMedia(std::make_unique<ServiceBox>(
@@ -957,10 +957,10 @@ AdminLog::OwnedItem AboutView::makePremiumRequired() {
 }
 
 AdminLog::OwnedItem AboutView::makeStarsPerMessage(int stars) {
-	auto name = Ui::Text::Bold(_history->peer->shortName());
+	auto name = tr::bold(_history->peer->shortName());
 	auto cost = Ui::Text::IconEmoji(
 		&st::starIconEmoji
-	).append(Ui::Text::Bold(Lang::FormatCountDecimal(stars)));
+	).append(tr::bold(Lang::FormatCountDecimal(stars)));
 	const auto item = _history->makeMessage({
 		.id = _history->nextNonHistoryEntryId(),
 		.flags = (MessageFlag::FakeAboutView
@@ -974,7 +974,7 @@ AdminLog::OwnedItem AboutView::makeStarsPerMessage(int stars) {
 			std::move(name),
 			lt_amount,
 			std::move(cost),
-			Ui::Text::RichLangValue)
+			tr::rich)
 		: stars
 		? tr::lng_send_charges_stars_channel(
 			tr::now,
@@ -982,12 +982,12 @@ AdminLog::OwnedItem AboutView::makeStarsPerMessage(int stars) {
 			std::move(name),
 			lt_amount,
 			std::move(cost),
-			Ui::Text::RichLangValue)
+			tr::rich)
 		: tr::lng_send_free_channel(
 			tr::now,
 			lt_channel,
 			std::move(name),
-			Ui::Text::RichLangValue),
+			tr::rich),
 	});
 	auto result = AdminLog::OwnedItem(_delegate, item);
 	result->overrideMedia(std::make_unique<ServiceBox>(
@@ -1021,7 +1021,7 @@ AdminLog::OwnedItem AboutView::makeNewBotThread() {
 			| MessageFlag::Local),
 		.from = _history->peer->id,
 	}, PreparedServiceText{
-		tr::lng_bot_new_thread_about(tr::now, Ui::Text::RichLangValue)
+		tr::lng_bot_new_thread_about(tr::now, tr::rich)
 	});
 	auto result = AdminLog::OwnedItem(_delegate, item);
 	result->overrideMedia(std::make_unique<MediaGeneric>(

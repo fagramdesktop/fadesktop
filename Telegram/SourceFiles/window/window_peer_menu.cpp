@@ -17,6 +17,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "chat_helpers/compose/compose_show.h"
 #include "chat_helpers/message_field.h"
 #include "chat_helpers/share_message_phrase_factory.h"
+#include "ui/basic_click_handlers.h"
 #include "ui/controls/userpic_button.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/widgets/fields/input_field.h"
@@ -330,6 +331,7 @@ private:
 	void addViewStatistics();
 	void addBoostChat();
 	void addToggleFee();
+	void addSetPersonalChannel();
 
 	[[nodiscard]] bool skipCreateActions() const;
 
@@ -1610,6 +1612,7 @@ void Filler::fillProfileActions() {
 	addViewStatistics();
 	addStoryArchive();
 	addManageChat();
+	addSetPersonalChannel();
 	addTopicLink();
 	addManageTopic();
 	addToggleTopicClosed();
@@ -1749,7 +1752,7 @@ void Filler::addToggleFee() {
 				tr::now,
 				lt_name,
 				TextWithEntities{ user->shortName() },
-				Ui::Text::WithEntities)
+				tr::marked)
 			: tr::lng_context_fee_now(
 				tr::now,
 				lt_name,
@@ -1760,7 +1763,7 @@ void Filler::addToggleFee() {
 				).append(Lang::FormatCountDecimal(
 					user->owner().commonStarsPerMessage(parent)
 				)),
-				Ui::Text::WithEntities);
+				tr::marked);
 		const auto action = new QAction(actionParent);
 		action->setDisabled(true);
 		auto result = base::make_unique_q<Ui::Menu::Action>(
@@ -1775,6 +1778,21 @@ void Filler::addToggleFee() {
 			Core::TextContext({ .session = &user->session() }));
 		return result;
 	} });
+}
+
+void Filler::addSetPersonalChannel() {
+	const auto channel = _peer->asChannel();
+	if (!channel
+		|| _peer->session().user()->personalChannelId()
+		|| channel->isMegagroup()
+		|| !channel->amCreator()
+		|| !channel->isPublic()) {
+		return;
+	}
+	_addAction(tr::lng_edit_channel_personal_channel(tr::now), [=] {
+		UrlClickHandler::Open(u"internal:edit_personal_channel:"_q
+			+ QString::number(channel->id.value));
+	}, &st::menuIconProfile);
 }
 
 } // namespace
@@ -1826,7 +1844,7 @@ void PeerMenuDeleteContact(
 				st::mainMenuUserpic),
 			Ui::CreateChild<Ui::FlatLabel>(
 				box,
-				tr::lng_info_delete_contact() | Ui::Text::ToBold(),
+				tr::lng_info_delete_contact(tr::bold),
 				box->getDelegate()->style().title));
 		Ui::ConfirmBox(box, {
 			.text = text,
@@ -2088,8 +2106,8 @@ void PeerMenuTodoWantsPremium(TodoWantsPremium type) {
 		}
 		return false;
 	};
-	const auto link = Ui::Text::Link(
-		Ui::Text::Semibold(tr::lng_todo_premium_link(tr::now)));
+	const auto link = tr::link(
+		tr::semibold(tr::lng_todo_premium_link(tr::now)));
 	const auto text = [&] {
 		switch (type) {
 		case TodoWantsPremium::Create: return tr::lng_todo_create_premium;
@@ -2104,7 +2122,7 @@ void PeerMenuTodoWantsPremium(TodoWantsPremium type) {
 			tr::now,
 			lt_link,
 			link,
-			Ui::Text::WithEntities),
+			tr::marked),
 		.filter = filter,
 		.duration = kToastDuration,
 	});
@@ -2271,8 +2289,8 @@ void PeerMenuBlockUserBox(
 			box,
 			tr::lng_blocked_list_confirm_text(
 				lt_name,
-				rpl::single(Ui::Text::Bold(name)),
-				Ui::Text::WithEntities),
+				rpl::single(tr::bold(name)),
+				tr::marked),
 			st::blockUserConfirmation));
 
 		box->addSkip(st::boxMediumSkip);
@@ -2311,8 +2329,8 @@ void PeerMenuBlockUserBox(
 			tr::lng_delete_all_from_user(
 				tr::now,
 				lt_user,
-				Ui::Text::Bold(peer->name()),
-				Ui::Text::WithEntities),
+				tr::bold(peer->name()),
+				tr::marked),
 			true,
 			st::defaultBoxCheckbox))
 		: nullptr;
@@ -3560,7 +3578,7 @@ void MenuAddMarkAsReadAllChatsAction(
 				auto text = rpl::combine(
 					tr::lng_context_mark_read_all_sure(),
 					tr::lng_context_mark_read_all_sure_2(
-						Ui::Text::RichLangValue)
+						tr::rich)
 				) | rpl::map([](QString t1, TextWithEntities t2) {
 					return TextWithEntities()
 						.append(std::move(t1))
@@ -3903,8 +3921,8 @@ void PeerMenuConfirmToggleFee(
 			.text = tr::lng_payment_refund_text(
 				tr::now,
 				lt_name,
-				Ui::Text::Bold(user->shortName()),
-				Ui::Text::WithEntities),
+				tr::bold(user->shortName()),
+				tr::marked),
 			.confirmed = [=](Fn<void()> close) {
 				exception(*refund && (*refund)->checked());
 				close();

@@ -1355,8 +1355,8 @@ void Stories::toggleHidden(
 			show->showToast(phrase(
 				tr::now,
 				lt_user,
-				Ui::Text::Bold(name),
-				Ui::Text::RichLangValue));
+				tr::bold(name),
+				tr::rich));
 		}
 	});
 

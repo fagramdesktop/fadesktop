@@ -739,14 +739,14 @@ void Controller::setupAboveJoinedWidget() {
 					TextWithEntities{ .text = QString(QChar(0x00D7)) },
 					lt_total,
 					{ QString::number(current.usage) },
-					Ui::Text::WithEntities)
+					tr::marked)
 				: tr::lng_group_invite_subscription_info_title_none(
 					tr::now,
 					lt_emoji,
 					_creditsEmoji,
 					lt_price,
 					{ QString::number(current.subscription.credits) },
-					Ui::Text::WithEntities),
+					tr::marked),
 			kMarkupTextOptions,
 			_emojiHelper.context([=] { widget->update(); }));
 		auto &lifetime = widget->lifetime();
@@ -997,7 +997,7 @@ void Controller::rowClicked(not_null<PeerListRow*> row) {
 				_creditsEmoji,
 				lt_cost,
 				{ QString::number(data.subscription.credits) },
-				Ui::Text::WithEntities),
+				tr::marked),
 			_emojiHelper.context());
 		const auto subtitle2 = box->addRow(
 			object_ptr<Ui::FlatLabel>(
@@ -1030,10 +1030,9 @@ void Controller::rowClicked(not_null<PeerListRow*> row) {
 				box,
 				tr::lng_credits_box_out_about(
 					lt_link,
-					tr::lng_payments_terms_link(
-					) | Ui::Text::ToLink(
-						tr::lng_credits_box_out_about_link(tr::now)),
-					Ui::Text::WithEntities),
+					tr::lng_payments_terms_link(tr::url(
+						tr::lng_credits_box_out_about_link(tr::now))),
+					tr::marked),
 				st::creditsBoxAboutDivider),
 			style::al_top);
 
@@ -1103,8 +1102,8 @@ void Controller::processRequest(
 				: tr::lng_group_requests_was_added)(
 					tr::now,
 					lt_user,
-					Ui::Text::Bold(user->name()),
-					Ui::Text::WithEntities));
+					tr::bold(user->name()),
+					tr::marked));
 		}
 	});
 	const auto fail = crl::guard(this, [=] {

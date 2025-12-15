@@ -234,16 +234,16 @@ QString FormatProgramDuration(int durationMonths) {
 rpl::producer<TextWithEntities> FormatForProgramDuration(
 		int durationMonths) {
 	return !durationMonths
-		? tr::lng_star_ref_one_about_for_forever(Ui::Text::RichLangValue)
+		? tr::lng_star_ref_one_about_for_forever(tr::rich)
 		: (durationMonths < 12)
 		? tr::lng_star_ref_one_about_for_months(
 			lt_count,
 			rpl::single(durationMonths * 1.),
-			Ui::Text::RichLangValue)
+			tr::rich)
 		: tr::lng_star_ref_one_about_for_years(
 			lt_count,
 			rpl::single((durationMonths / 12) * 1.),
-			Ui::Text::RichLangValue);
+			tr::rich);
 }
 
 not_null<Ui::AbstractButton*> AddViewListButton(
@@ -264,7 +264,7 @@ not_null<Ui::AbstractButton*> AddViewListButton(
 	const auto label = parent->add(
 		object_ptr<Ui::FlatLabel>(
 			parent,
-			std::move(title) | Ui::Text::ToBold(),
+			std::move(title) | rpl::map(tr::bold),
 			stLabel),
 		titlePadding);
 	label->setAttribute(Qt::WA_TransparentForMouseEvents);
@@ -457,13 +457,13 @@ object_ptr<Ui::BoxContent> StarRefLinkBox(
 					? tr::lng_star_ref_link_about_user
 					: tr::lng_star_ref_link_about_channel)(
 						lt_amount,
-						rpl::single(Ui::Text::Bold(
+						rpl::single(tr::bold(
 							FormatCommission(program.commission))),
 						lt_app,
-						rpl::single(Ui::Text::Bold(bot->name())),
+						rpl::single(tr::bold(bot->name())),
 						lt_duration,
 						FormatForProgramDuration(program.durationMonths),
-						Ui::Text::WithEntities),
+						tr::marked),
 				st::starrefCenteredText),
 			style::al_top);
 
@@ -509,11 +509,11 @@ object_ptr<Ui::BoxContent> StarRefLinkBox(
 					rpl::single(row.state.users * 1.),
 					lt_app,
 					rpl::single(name),
-					Ui::Text::WithEntities)
+					tr::marked)
 				: tr::lng_star_ref_link_copy_none(
 					lt_app,
 					rpl::single(name),
-					Ui::Text::WithEntities)));
+					tr::marked)));
 	});
 }
 
@@ -583,13 +583,13 @@ object_ptr<Ui::BoxContent> JoinStarRefBox(
 				box,
 				tr::lng_star_ref_one_about(
 					lt_app,
-					rpl::single(Ui::Text::Bold(bot->name())),
+					rpl::single(tr::bold(bot->name())),
 					lt_amount,
-					rpl::single(Ui::Text::Bold(
+					rpl::single(tr::bold(
 						FormatCommission(program.commission))),
 					lt_duration,
 					FormatForProgramDuration(program.durationMonths),
-					Ui::Text::WithEntities),
+					tr::marked),
 				st::starrefCenteredText),
 			style::al_top);
 
@@ -605,7 +605,7 @@ object_ptr<Ui::BoxContent> JoinStarRefBox(
 						lt_amount,
 						rpl::single(
 							Ui::Text::Wrapped(text, EntityType::Bold)),
-						Ui::Text::WithEntities),
+						tr::marked),
 					st::starrefRevenueText,
 					st::defaultPopupMenu),
 				st::boxRowPadding,
@@ -722,8 +722,8 @@ object_ptr<Ui::BoxContent> JoinStarRefBox(
 			tr::lng_star_ref_one_join_text(
 				lt_terms,
 				tr::lng_star_ref_button_link(
-				) | Ui::Text::ToLink(tr::lng_star_ref_tos_url(tr::now)),
-				Ui::Text::WithEntities));
+					tr::url(tr::lng_star_ref_tos_url(tr::now))),
+				tr::marked));
 	});
 }
 
@@ -735,7 +735,7 @@ object_ptr<Ui::BoxContent> ConfirmEndBox(Fn<void()> finish) {
 		box->addRow(
 			object_ptr<Ui::FlatLabel>(
 				box,
-				tr::lng_star_ref_warning_if_end(Ui::Text::RichLangValue),
+				tr::lng_star_ref_warning_if_end(tr::rich),
 				st::boxLabel),
 			margins);
 		const auto addPoint = [&](tr::phrase<> text) {
@@ -744,7 +744,7 @@ object_ptr<Ui::BoxContent> ConfirmEndBox(Fn<void()> finish) {
 					box,
 					object_ptr<Ui::FlatLabel>(
 						box,
-						text(Ui::Text::RichLangValue),
+						text(tr::rich),
 						st::blockUserConfirmation),
 					QMargins(st::boxTextFont->height, 0, 0, 0)),
 				margins);
@@ -943,7 +943,7 @@ void ConfirmUpdate(
 		Ui::ConfirmBox(box, {
 			.text = (exists
 				? tr::lng_star_ref_warning_change
-				: tr::lng_star_ref_warning_text)(Ui::Text::RichLangValue),
+				: tr::lng_star_ref_warning_text)(tr::rich),
 			.confirmed = [=](Fn<void()> close) {
 				if (*sent) {
 					return;

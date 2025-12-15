@@ -51,8 +51,8 @@ void ConfirmPhoneBox::prepare() {
 		this,
 		tr::lng_confirm_phone_about(
 			lt_phone,
-			rpl::single(Ui::Text::Bold(Ui::FormatPhone(_phone))),
-			Ui::Text::WithEntities),
+			rpl::single(tr::bold(Ui::FormatPhone(_phone))),
+			tr::marked),
 		st::confirmPhoneAboutLabel);
 
 	_code.create(this, st::confirmPhoneCodeField, tr::lng_code_ph());

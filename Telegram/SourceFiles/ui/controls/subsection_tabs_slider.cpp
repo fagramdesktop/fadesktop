@@ -53,6 +53,7 @@ public:
 		not_null<QWidget*> parent,
 		not_null<SubsectionButtonDelegate*> delegate,
 		SubsectionTab &&data);
+	~VerticalButton();
 
 private:
 	void paintEvent(QPaintEvent *e) override;
@@ -125,9 +126,14 @@ VerticalButton::VerticalButton(
 	updateSize();
 }
 
+VerticalButton::~VerticalButton() {
+	if (_subscribed) {
+		_data.userpic->subscribeToUpdates(nullptr);
+	}
+}
+
 void VerticalButton::dataUpdatedHook() {
 	_text.setMarkedText(_st.nameStyle, _data.text, kDefaultTextOptions);
-	_subscribed = false;
 	updateSize();
 }
 

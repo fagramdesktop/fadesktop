@@ -102,7 +102,7 @@ bool ShowReactionPreview(
 				tr::lng_context_animated_reaction(
 					lt_name,
 					rpl::single(Ui::Text::Colorized(packName)),
-					Ui::Text::RichLangValue));
+					tr::rich));
 			state->label->setAttribute(Qt::WA_TransparentForMouseEvents);
 			const auto backgroundRaw = state->background.get();
 			const auto labelRaw = state->label.get();

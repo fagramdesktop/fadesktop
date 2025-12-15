@@ -1669,7 +1669,7 @@ void CopyPostLink(
 	if (isPublicLink && !videoTimestamp) {
 		show->showToast({
 			.text = tr::lng_channel_public_link_copied(
-				tr::now, Ui::Text::Bold
+				tr::now, tr::bold
 			).append('\n').append(Platform::IsMac()
 				? tr::lng_public_post_private_hint_cmd(tr::now)
 				: tr::lng_public_post_private_hint_ctrl(tr::now)),
@@ -2175,25 +2175,25 @@ void AddEmojiPacksAction(
 					tr::now,
 					lt_count,
 					count,
-					Ui::Text::RichLangValue)
+					tr::rich)
 				: tr::lng_context_animated_emoji(
 					tr::now,
 					lt_name,
 					TextWithEntities{ name },
-					Ui::Text::RichLangValue);
+					tr::rich);
 		case EmojiPacksSource::Tag:
 			return tr::lng_context_animated_tag(
 				tr::now,
 				lt_name,
 				TextWithEntities{ name },
-				Ui::Text::RichLangValue);
+				tr::rich);
 		case EmojiPacksSource::Reaction:
 			if (!name.text.isEmpty()) {
 				return tr::lng_context_animated_reaction(
 					tr::now,
 					lt_name,
 					TextWithEntities{ name },
-					Ui::Text::RichLangValue);
+					tr::rich);
 			}
 			[[fallthrough]];
 		case EmojiPacksSource::Reactions:
@@ -2202,12 +2202,12 @@ void AddEmojiPacksAction(
 					tr::now,
 					lt_count,
 					count,
-					Ui::Text::RichLangValue)
+					tr::rich)
 				: tr::lng_context_animated_reactions(
 					tr::now,
 					lt_name,
 					TextWithEntities{ name },
-					Ui::Text::RichLangValue);
+					tr::rich);
 		}
 		Unexpected("Source in AddEmojiPacksAction.");
 	}();
@@ -2274,7 +2274,7 @@ void AddSelectRestrictionAction(
 			? tr::lng_context_noforwards_info_bot
 			: tr::lng_context_noforwards_info_channel)(
 			tr::now,
-			Ui::Text::RichLangValue),
+			tr::rich),
 		addIcon ? &st::menuIconCopyright : nullptr);
 	button->setAttribute(Qt::WA_TransparentForMouseEvents);
 	menu->addAction(std::move(button));

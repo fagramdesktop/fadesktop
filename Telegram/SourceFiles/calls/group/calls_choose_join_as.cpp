@@ -237,7 +237,7 @@ void ChooseJoinAsBox(
 	if ((context == Context::Create)
 		&& (peer->isChannel() && peer->asChannel()->hasAdminRights())) {
 		const auto makeLink = [](const QString &text) {
-			return Ui::Text::Link(text);
+			return tr::link(text);
 		};
 		const auto label = box->addRow(object_ptr<Ui::FlatLabel>(
 			box,
@@ -246,7 +246,7 @@ void ChooseJoinAsBox(
 				(livestream
 					? tr::lng_group_call_schedule_channel
 					: tr::lng_group_call_schedule)(makeLink),
-				Ui::Text::WithEntities),
+				tr::marked),
 			labelSt));
 		label->overrideLinkClickHandler([=] {
 			auto withJoinAs = info;
@@ -294,8 +294,8 @@ void ChooseJoinAsBox(
 		: tr::lng_group_call_join_confirm)(
 		tr::now,
 		lt_chat,
-		Ui::Text::Bold(name),
-		Ui::Text::WithEntities);
+		tr::bold(name),
+		tr::marked);
 }
 
 } // namespace
@@ -451,10 +451,10 @@ void ChooseJoinAsProcess::processList(
 				.append(tr::lng_group_call_or_schedule(
 				tr::now,
 				lt_link,
-				Ui::Text::Link((livestream
+				tr::link((livestream
 					? tr::lng_group_call_schedule_channel
 					: tr::lng_group_call_schedule)(tr::now)),
-				Ui::Text::WithEntities));
+				tr::marked));
 		}
 		const auto guard = base::make_weak(&_request->guard);
 		const auto safeFinish = crl::guard(guard, [=] { finish(info); });

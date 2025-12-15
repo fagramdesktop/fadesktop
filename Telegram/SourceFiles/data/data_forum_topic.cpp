@@ -222,7 +222,7 @@ TopicIconDescriptor ParseTopicIconEmojiEntity(QStringView entity) {
 		const auto parts = entity.mid(normal.size()).split(' ');
 		if (parts.size() == 2) {
 			return {
-				.title = parts[1].toString(),
+				.title = parts[1].isEmpty() ? u" "_q : parts[1].toString(),
 				.colorId = int32(parts[0].toUInt()),
 			};
 		}
