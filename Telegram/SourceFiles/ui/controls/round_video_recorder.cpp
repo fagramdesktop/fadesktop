@@ -856,7 +856,7 @@ void RoundVideoRecorder::Private::initCircularTextImage() {
 	constexpr auto kCircularTextStartAngle = 125;
 	constexpr auto kCircularTextEndAngle = 145;
 	_circularTextImage = CircularTextImage(
-		u"Telegram"_q.toUpper(),
+		u"FAgram"_q.toUpper(),
 		kSide,
 		kSide,
 		kCircularTextRadius,
