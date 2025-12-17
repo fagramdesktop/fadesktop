@@ -60,4 +60,9 @@ bool ResolveUserChat(
 	const Match &match,
 	const QVariant &context);
 
+bool ResolveChat(
+	Window::SessionController *controller,
+	const Match &match,
+	const QVariant &context);
+
 }

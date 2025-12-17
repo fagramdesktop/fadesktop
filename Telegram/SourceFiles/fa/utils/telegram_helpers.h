@@ -58,6 +58,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include <QtNetwork/QNetworkReply>
 
 using Callback = Fn<void(const QString &, UserData *)>;
+using ChannelCallback = Fn<void(ChannelData *)>;
 
 void markAsOnline(not_null<Main::Session*> session);
 
@@ -83,6 +84,8 @@ QString getLocalizedAt();
 
 void searchById(ID userId, Main::Session *session, bool retry, const Callback &callback);
 void searchById(ID userId, Main::Session *session, const Callback &callback);
+
+void searchChannelById(ID channelId, Main::Session *session, const ChannelCallback &callback);
 
 // Blocked user message hiding feature
 [[nodiscard]] bool shouldHideBlockedUserMessage(PeerData *from);

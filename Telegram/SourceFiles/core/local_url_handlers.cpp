@@ -1810,6 +1810,10 @@ const std::vector<LocalUrlHandler> &LocalUrlHandlers() {
 			FAUrlHandlers::ResolveUser
 		},
 		{
+			u"^chat/?\\?(.+)(#|$)"_q,
+			FAUrlHandlers::ResolveChat
+		},
+		{
 			u"^openmessage/?\\?user_id=([0-9]+)(&|$)"_q,
 			FAUrlHandlers::ResolveUserChat
 		},

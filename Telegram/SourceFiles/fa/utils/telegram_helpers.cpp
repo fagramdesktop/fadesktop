@@ -867,6 +867,46 @@ void searchById(ID userId, Main::Session *session, const Callback &callback) {
 			   });
 }
 
+void searchChannelById(ID channelId, Main::Session *session, const ChannelCallback &callback) {
+	if (channelId == 0 || !session) {
+		callback(nullptr);
+		return;
+	}
+
+	// First check if channel is already loaded
+	if (const auto channel = session->data().channelLoaded(ChannelId(channelId))) {
+		callback(channel);
+		return;
+	}
+
+	// Also check if it's a basic chat
+	if (const auto chat = session->data().chatLoaded(ChatId(channelId))) {
+		// Basic chats cannot be returned as ChannelData, but we can still try to show them
+		callback(nullptr);
+		return;
+	}
+
+	// Try to fetch the channel using MTPchannels_GetChannels
+	// Note: This requires an access hash, so we try with 0 which works for public channels
+	// or channels the user has interacted with
+	session->api().request(MTPchannels_GetChannels(
+		MTP_vector<MTPInputChannel>(
+			1,
+			MTP_inputChannel(MTP_long(channelId), MTP_long(0)))
+	)).done([=](const MTPmessages_Chats &result) {
+		result.match([&](const auto &data) {
+			const auto peer = session->data().processChats(data.vchats());
+			if (peer && peer->id == peerFromChannel(ChannelId(channelId))) {
+				callback(peer->asChannel());
+			} else {
+				callback(nullptr);
+			}
+		});
+	}).fail([=] {
+		callback(nullptr);
+	}).send();
+}
+
 bool shouldHideBlockedUserMessage(PeerData *from) {
 	if (!from) {
 		return false;

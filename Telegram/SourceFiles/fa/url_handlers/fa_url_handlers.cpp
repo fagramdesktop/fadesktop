@@ -27,6 +27,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
+#include "data/data_channel.h"
+#include "data/data_chat.h"
 #include "data/data_peer_id.h"
 
 namespace FAUrlHandlers
@@ -206,6 +208,53 @@ bool ResolveUserChat(
 		[=](const QString &title, UserData *data) {
 			if (data) {
 				openChat(data);
+				return;
+			}
+
+			Core::App().hideMediaView();
+			controller->showToast(FAlang::Translate(QString("fa_not_found")), 500);
+		});
+
+	return true;
+}
+
+bool ResolveChat(
+	Window::SessionController *controller,
+	const Match &match,
+	const QVariant &context) {
+	if (!controller) {
+		return false;
+	}
+	const auto params = url_parse_params(
+		match->captured(1),
+		qthelp::UrlParamNameTransform::ToLower);
+	const auto chatId = params.value(qsl("id")).toLongLong();
+	if (!chatId) {
+		return false;
+	}
+
+	const auto showPeer = [=](not_null<PeerData*> peer) {
+		controller->showPeerInfo(peer);
+	};
+
+	// First check if it's a channel/supergroup
+	if (const auto channel = controller->session().data().channelLoaded(ChannelId(chatId))) {
+		showPeer(channel);
+		return true;
+	}
+
+	// Check if it's a basic chat/group
+	if (const auto chat = controller->session().data().chatLoaded(ChatId(chatId))) {
+		showPeer(chat);
+		return true;
+	}
+
+	// Try to fetch channel by ID
+	searchChannelById(chatId,
+		&controller->session(),
+		[=](ChannelData *data) {
+			if (data) {
+				controller->showPeerInfo(data);
 				return;
 			}
 
