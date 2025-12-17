@@ -61,6 +61,7 @@ struct ShortcutCallbacks {
 	Fn<void(not_null<DocumentData*>, FullMsgId, bool)> openDocument = nullptr;
 	Fn<void(not_null<PhotoData*>)> savePhoto = nullptr;
 	Fn<void()> hideMenu = nullptr;
+	Fn<void()> clearSelection = nullptr;
 };
 
 class ContextMenuShortcuts final : public Ui::Menu::ItemBase {
@@ -70,7 +71,8 @@ public:
 		const style::Menu &st,
 		not_null<HistoryItem*> item,
 		not_null<Window::SessionController*> controller,
-		ShortcutCallbacks callbacks);
+		ShortcutCallbacks callbacks,
+		HistoryView::SelectedQuote quote = {});
 
 	bool isEnabled() const override;
 	not_null<QAction*> action() const override;
@@ -94,6 +96,7 @@ private:
 	const not_null<HistoryItem*> _item;
 	const not_null<Window::SessionController*> _controller;
 	ShortcutCallbacks _callbacks;
+	HistoryView::SelectedQuote _quote;
 	
 	std::vector<object_ptr<Ui::AbstractButton>> _buttons;
 	std::set<ShortcutType> _addedShortcuts;
@@ -121,7 +124,8 @@ struct AddContextMenuShortcutsResult {
 	not_null<Ui::Menu::Menu*> menu,
 	not_null<HistoryItem*> item,
 	not_null<Window::SessionController*> controller,
-	ShortcutCallbacks callbacks);
+	ShortcutCallbacks callbacks,
+	HistoryView::SelectedQuote quote = {});
 
 [[nodiscard]] inline bool HasShortcut(
 	const std::set<ShortcutType>& shortcuts,

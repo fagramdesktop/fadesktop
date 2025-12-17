@@ -437,7 +437,7 @@ LastCrashedWindow::LastCrashedWindow(
 	connect(&_saveReport, &QPushButton::clicked, [=] { saveReport(); });
 	_getApp.setText(u"GET THE LATEST OFFICIAL VERSION OF FAgram Desktop"_q);
 	connect(&_getApp, &QPushButton::clicked, [=] {
-		QDesktopServices::openUrl(u"https://t.me/FAgramClient"_q);
+		QDesktopServices::openUrl(u"https://t.me/FAgramDesktop"_q);
 	});
 
 	_send.setText(u"SEND CRASH REPORT"_q);

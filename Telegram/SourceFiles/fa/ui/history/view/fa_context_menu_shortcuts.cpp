@@ -25,6 +25,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/popup_menu.h"
+#include "ui/widgets/menu/menu_common.h"
 #include "ui/text/text_utilities.h"
 #include "ui/painter.h"
 #include "ui/ui_utility.h"
@@ -116,13 +117,15 @@ ContextMenuShortcuts::ContextMenuShortcuts(
 	const style::Menu &st,
 	not_null<HistoryItem*> item,
 	not_null<Window::SessionController*> controller,
-	ShortcutCallbacks callbacks)
+	ShortcutCallbacks callbacks,
+	HistoryView::SelectedQuote quote)
 : ItemBase(parent, st)
 , _dummyAction(Ui::CreateChild<QAction>(this))
 , _st(st)
 , _item(item)
 , _controller(controller)
 , _callbacks(std::move(callbacks))
+, _quote(std::move(quote))
 , _height(0) {
 	setAcceptBoth(true);
 	initResizeHook(parent->sizeValue());
@@ -198,23 +201,32 @@ void ContextMenuShortcuts::createButtons() {
 			this,
 			_st,
 			icon);
-		button->setClickedCallback(std::move(callback));
+		button->setClickedCallback([this, callback = std::move(callback)] {
+			callback();
+			setClicked(Ui::Menu::TriggeredSource::Mouse);
+		});
 		_buttons.push_back(std::move(button));
 		_addedShortcuts.insert(type);
 	};
 
 	// Reply
 	if (canReply) {
+		const auto hasQuote = static_cast<bool>(_quote);
+		const auto replyToId = hasQuote ? _quote.item->fullId() : item->fullId();
+		const auto quoteText = _quote.highlight.quote;
+		const auto quoteOffset = _quote.highlight.quoteOffset;
 		addButton(
 			st::menuIconReply,
 			[=] {
-				if (_callbacks.hideMenu) {
-					_callbacks.hideMenu();
-				}
 				if (_callbacks.replyToMessage) {
-					_callbacks.replyToMessage({
-						.messageId = item->fullId(),
-					}, false);
+					auto replyTo = FullReplyTo();
+					replyTo.messageId = replyToId;
+					replyTo.quote = quoteText;
+					replyTo.quoteOffset = quoteOffset;
+					_callbacks.replyToMessage(std::move(replyTo), false);
+				}
+				if (hasQuote && _callbacks.clearSelection) {
+					_callbacks.clearSelection();
 				}
 			},
 			ShortcutType::Reply);
@@ -231,18 +243,12 @@ void ContextMenuShortcuts::createButtons() {
 				if (!restricted) {
 					TextUtilities::SetClipboardText(item->clipboardText());
 				}
-				if (_callbacks.hideMenu) {
-					_callbacks.hideMenu();
-				}
 			},
 			ShortcutType::Copy);
 	} else if (canEdit) {
 		addButton(
 			st::menuIconEdit,
 			[=] {
-				if (_callbacks.hideMenu) {
-					_callbacks.hideMenu();
-				}
 				if (_callbacks.editMessage) {
 					_callbacks.editMessage(item->fullId());
 				}
@@ -266,9 +272,6 @@ void ContextMenuShortcuts::createButtons() {
 					item->fullId(),
 					context,
 					std::nullopt);
-				if (_callbacks.hideMenu) {
-					_callbacks.hideMenu();
-				}
 			},
 			ShortcutType::CopyLink);
 	} else if (canPin) {
@@ -276,9 +279,6 @@ void ContextMenuShortcuts::createButtons() {
 		addButton(
 			isPinned ? st::menuIconUnpin : st::menuIconPin,
 			[=] {
-				if (_callbacks.hideMenu) {
-					_callbacks.hideMenu();
-				}
 				Window::ToggleMessagePinned(_controller, pinItemId, !isPinned);
 			},
 			isPinned ? ShortcutType::Unpin : ShortcutType::Pin);
@@ -299,9 +299,6 @@ void ContextMenuShortcuts::createButtons() {
 						document,
 						DocumentSaveClickHandler::Mode::ToNewFile);
 				}
-				if (_callbacks.hideMenu) {
-					_callbacks.hideMenu();
-				}
 			},
 			ShortcutType::SaveFile);
 		addedFourthButton = true;
@@ -316,9 +313,6 @@ void ContextMenuShortcuts::createButtons() {
 					item->fullId(),
 					document,
 					DocumentSaveClickHandler::Mode::ToNewFile);
-				if (_callbacks.hideMenu) {
-					_callbacks.hideMenu();
-				}
 			},
 			ShortcutType::SaveFile);
 		addedFourthButton = true;
@@ -332,9 +326,6 @@ void ContextMenuShortcuts::createButtons() {
 					item->fullId().msg,
 					item->originalText(),
 					hasCopyRestriction));
-				if (_callbacks.hideMenu) {
-					_callbacks.hideMenu();
-				}
 			},
 			ShortcutType::Translate);
 		addedFourthButton = true;
@@ -347,9 +338,6 @@ void ContextMenuShortcuts::createButtons() {
 		addButton(
 			isPinned ? st::menuIconUnpin : st::menuIconPin,
 			[=] {
-				if (_callbacks.hideMenu) {
-					_callbacks.hideMenu();
-				}
 				Window::ToggleMessagePinned(_controller, pinItemId, !isPinned);
 			},
 			isPinned ? ShortcutType::Unpin : ShortcutType::Pin);
@@ -426,6 +414,8 @@ AddContextMenuShortcutsResult AddContextMenuShortcuts(
 		return { nullptr, {} };
 	}
 
+	const auto quote = request.quote;
+
 	ShortcutCallbacks callbacks;
 	callbacks.hasCopyRestriction = [list](HistoryItem *item) {
 		return list->hasCopyRestriction(item);
@@ -435,6 +425,9 @@ AddContextMenuShortcutsResult AddContextMenuShortcuts(
 	};
 	callbacks.replyToMessage = [list](FullReplyTo to, bool b) {
 		list->replyToMessageRequestNotify(to, b);
+	};
+	callbacks.clearSelection = [list]() {
+		list->cancelSelection();
 	};
 	callbacks.editMessage = [list](FullMsgId id) {
 		list->editMessageRequestNotify(id);
@@ -480,7 +473,8 @@ AddContextMenuShortcutsResult AddContextMenuShortcuts(
 		menu->st(),
 		request.item,
 		list->controller(),
-		std::move(callbacks));
+		std::move(callbacks),
+		quote);
 
 	auto addedShortcuts = widget ? widget->addedShortcuts() : std::set<ShortcutType>{};
 	return { std::move(widget), std::move(addedShortcuts) };
@@ -491,7 +485,8 @@ AddContextMenuShortcutsResult AddContextMenuShortcuts(
 	not_null<Ui::Menu::Menu*> menu,
 	not_null<HistoryItem*> item,
 	not_null<Window::SessionController*> controller,
-	ShortcutCallbacks callbacks) {
+	ShortcutCallbacks callbacks,
+	HistoryView::SelectedQuote quote) {
 
 	if (!FASettings::JsonSettings::GetBool("context_menu_use_shortcuts")) {
 		return { nullptr, {} };
@@ -502,7 +497,8 @@ AddContextMenuShortcutsResult AddContextMenuShortcuts(
 		menu->st(),
 		item,
 		controller,
-		std::move(callbacks));
+		std::move(callbacks),
+		std::move(quote));
 
 	auto addedShortcuts = widget ? widget->addedShortcuts() : std::set<ShortcutType>{};
 	return { std::move(widget), std::move(addedShortcuts) };

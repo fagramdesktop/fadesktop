@@ -3601,12 +3601,19 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				_menu->hideMenu(true);
 			}
 		};
+		callbacks.clearSelection = [inner]() {
+			if (inner) {
+				inner->clearSelected();
+			}
+		};
 
+		const auto quote = selectedQuote(leaderOrSelf);
 		auto shortcutsResult = FaHistoryView::AddContextMenuShortcuts(
 				_menu->menu(),
 				leaderOrSelf,
 				controller,
-				std::move(callbacks));
+				std::move(callbacks),
+				quote);
 		if (shortcutsResult.widget) {
 			if (shortcutsAtBottom) {
 				_menu->addAction(std::move(shortcutsResult.widget));

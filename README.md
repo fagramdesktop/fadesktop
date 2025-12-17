@@ -12,8 +12,8 @@
 
 > ***✏️ Source code is published under GPLv3 with OpenSSL exception, the license is available [here][license].***
 
-<a href="https://t.me/FAgramClient"><img alt="Telegram" src="https://img.shields.io/badge/Telegram_Channel-0a0a0a?style=for-the-badge&logo=telegram"></a>
-<a href="https://t.me/FAgram_Group"><img alt="Telegram" src="https://img.shields.io/badge/Telegram_Chat-0a0a0a?style=for-the-badge&logo=telegram"></a>
+<a href="https://t.me/FAgramDesktop"><img alt="Telegram" src="https://img.shields.io/badge/Telegram_Channel-0a0a0a?style=for-the-badge&logo=telegram"></a>
+<a href="https://t.me/FAgramChat"><img alt="Telegram" src="https://img.shields.io/badge/Telegram_Chat-0a0a0a?style=for-the-badge&logo=telegram"></a>
 <a href="https://github.com/FajoX1/fagramdesktop"><img alt="Original Repository" src="https://img.shields.io/badge/Original_Repo-0a0a0a?style=for-the-badge&logo=github"></a>
 
 <div align="center">
@@ -155,14 +155,14 @@ For detailed insturctions on how to install on linux [Click Here](https://burhan
 * [hikariatama (for emojis in readme)](https://github.com/hikariatama)
 
 [//]: # (LINKS)
-[fagram]: https://t.me/FAgramClient
-[fagram_desktop]: https://t.me/FAgramClient
+[fagram]: https://t.me/FAgramDesktop
+[fagram_desktop]: https://t.me/FAgramDesktop
 [telegram_desktop]: https://github.com/telegramdesktop/tdesktop
 [telegram_api]: https://core.telegram.org
 [telegram_proto]: https://core.telegram.org/mtproto
 [license]: LICENSE
-[win]: https://t.me/FAgramWindows
-[linux]: https://t.me/FAgramLinux
+[win]: https://t.me/FAgramDesktop
+[linux]: https://t.me/FAgramDesktop
 [win32_build]: docs/building-win.md
 [win64_build]: docs/building-win64.md
 [mac_build]: docs/building-mac.md

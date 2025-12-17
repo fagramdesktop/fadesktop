@@ -1238,7 +1238,7 @@ void CheckReactionNotificationSchedule(
 }
 
 [[nodiscard]] TextWithEntities UnsupportedMessageText() {
-	const auto siteLink = u"https://t.me/FAgram_Group/11"_q;
+	const auto siteLink = u"https://t.me/FAgramChat/11"_q;
 	auto result = TextWithEntities{
 		tr::lng_message_unsupported(tr::now, lt_link, siteLink).replace("Telegram", "FAgram")
 	};

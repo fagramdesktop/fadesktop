@@ -127,11 +127,11 @@ namespace Settings {
     	AddButtonWithLabel(
 			container,
 			FAlang::RplTranslate(QString("fa_group")),
-			rpl::single(QString("@FAgram_Group")),
+			rpl::single(QString("@FAgramChat")),
 			st::settingsButton,
 			{ &st::menuIconGroups }
 		)->setClickedCallback([=] {
-			Core::App().openLocalUrl("tg://resolve?domain=FAgram_Group", {});
+			Core::App().openLocalUrl("tg://resolve?domain=FAgramChat", {});
 		});
 
     	AddButtonWithLabel(

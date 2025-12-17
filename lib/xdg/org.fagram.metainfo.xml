@@ -13,7 +13,7 @@
         <category>InstantMessaging</category>
     </categories>
     <developer id="org.fateam"><name>FAteam</name></developer>
-    <url type="homepage">https://t.me/FAgramClient/</url>
+    <url type="homepage">https://t.me/FAgramDesktop/</url>
     <url type="bugtracker">https://github.com/fajox1/fagramdesktop/issues</url>
     <url type="translate">https://translations.telegram.org/</url>
     <url type="contribute">https://github.com/fajox1/fagramdesktop/blob/dev/.github/CONTRIBUTING.md</url>
