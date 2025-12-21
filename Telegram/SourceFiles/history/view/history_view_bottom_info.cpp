@@ -456,9 +456,9 @@ void BottomInfo::layoutDateText() {
 	const auto prefix = !author.isEmpty() ? u", "_q : QString();
 	const auto date = edited + ((_data.flags & Data::Flag::ForwardedDate)
 		? Ui::FormatDateTimeSavedFrom(_data.date)
-		: QLocale().toString(
-			_data.date.time(),
-			FASettings::JsonSettings::GetBool("seconds_message") ? QLocale::LongFormat : QLocale::ShortFormat));
+		: (FASettings::JsonSettings::GetBool("seconds_message")
+			? QLocale().toString(_data.date.time(), QLocale().timeFormat(QLocale::ShortFormat).replace(QString("mm"), QString("mm:ss")))
+			: QLocale().toString(_data.date.time(), QLocale::ShortFormat)));
 	const auto afterAuthor = prefix + date;
 	const auto afterAuthorWidth = st::msgDateFont->width(afterAuthor);
 	const auto authorWidth = st::msgDateFont->width(author);
