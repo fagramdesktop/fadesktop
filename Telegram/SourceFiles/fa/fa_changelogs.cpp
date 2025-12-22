@@ -9,27 +9,93 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #include "fa/fa_version.h"
 #include "fa/settings/fa_settings.h"
+#include "fa/changelog/fa_changelog_peer.h"
 #include "main/main_session.h"
 #include "data/data_session.h"
+#include "data/data_folder.h"
+#include "data/data_peer.h"
+#include "base/unixtime.h"
 #include "base/qt/qt_common_adapters.h"
+#include "base/call_delayed.h"
+#include "ui/text/text_utilities.h"
+
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonArray>
+#include <QtCore/QJsonObject>
+#include <QtCore/QFile>
+#include <QtCore/QDir>
+
+#include <set>
 
 namespace FA {
 namespace {
 
-std::map<int, const char*> FALogs() {
-	return {
-	{
-		2000009,
-		"- Updated to tdesktop v6.3.9\n"
-		"- New context menu shortcuts\n"
-		"- Service notifications for changelogs\n"
-		"- Reply in Private Chat\n"
-		"- Advanced forward options\n"
-		"- Support tg://openmessage links\n"
-		"- Fixed registration timestamps\n\n"
-		"@FAgramDesktop\n"
-	},
+struct BuiltInChangelog {
+	int version;
+	const char *changes;
+};
+
+const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
+	static const std::vector<BuiltInChangelog> entries = {
+	    {
+			2000009,
+			"- Updated to tdesktop v6.3.9\n"
+			"- New context menu shortcuts\n"
+			"- Service notifications for changelogs\n"
+			"- Reply in Private Chat\n"
+			"- Advanced forward options\n"
+			"- Support tg://openmessage links\n"
+			"- Fixed registration timestamps\n\n"
+			"@FAgramDesktop\n"
+		},
+	    {
+			2001000,
+			"- Added support for tg://chat?id= links, similar to tg://user?id=, but for groups and channels.\n"
+			"- Use FAgram title on more UI-visible occurrences\n"
+			"- Removed TZ info from message time\n"
+			"- Fix quote & reply on context menu shortcuts mode\n"
+			"- Added support tg://openmessage?chat_id=\n"
+			"- Updated changelog service notification\n"
+			"- Fix overall behaviour of context menu shortcuts mode\n\n"
+			"@FAgramDesktop\n"
+		},
 	};
+	return entries;
+}
+
+QString FormatChangelogText(int version, const QString &changes) {
+	static const auto simple = u"\n- "_q;
+	static const auto separator = QString::fromUtf8("\n\xE2\x80\xA2 ");
+	auto result = changes.trimmed();
+	if (result.startsWith(base::StringViewMid(simple, 1))) {
+		result = separator.mid(1) + result.mid(simple.size() - 1);
+	}
+	result = result.replace(simple, separator);
+
+	const auto versionStr = FormatFAVersionDisplay(version);
+	return u"FAgram Desktop %1:\n\n%2"_q.arg(versionStr).arg(result);
+}
+
+std::vector<std::pair<int, QString>> GetUnshownChangelogs(int oldVersion) {
+	std::vector<std::pair<int, QString>> result;
+
+	for (const auto &builtin : GetBuiltInChangelogs()) {
+		if (Changelog::IsVersionStored(builtin.version)) {
+			continue;
+		}
+
+		if (builtin.version <= oldVersion || builtin.version > AppFAVersion) {
+			continue;
+		}
+
+		result.emplace_back(builtin.version, QString::fromUtf8(builtin.changes));
+	}
+
+	std::sort(result.begin(), result.end(), [](const auto &a, const auto &b) {
+		return a.first < b.first;
+	});
+
+	return result;
 }
 
 } // namespace
@@ -37,12 +103,6 @@ std::map<int, const char*> FALogs() {
 Changelogs::Changelogs(not_null<Main::Session*> session, int oldVersion)
 : _session(session)
 , _oldVersion(oldVersion) {
-	_session->data().chatsListChanges(
-	) | rpl::filter([](Data::Folder *folder) {
-		return !folder;
-	}) | rpl::on_next([=] {
-		requestChanges();
-	}, _chatsSubscription);
 }
 
 std::unique_ptr<Changelogs> Changelogs::Create(
@@ -57,43 +117,60 @@ std::unique_ptr<Changelogs> Changelogs::Create(
 		FASettings::JsonSettings::Write();
 	}
 
-	return (oldVersion > 0 && oldVersion < AppFAVersion)
-		? std::make_unique<Changelogs>(session, oldVersion)
-		: nullptr;
+	const auto unshown = GetUnshownChangelogs(oldVersion);
+	const auto hasUnshown = oldVersion > 0 && !unshown.empty();
+
+	auto changelogs = std::make_unique<Changelogs>(session, oldVersion);
+
+	const auto raw = changelogs.get();
+	if (session->data().chatsListLoaded()) {
+		raw->initializeAfterChatsLoaded(hasUnshown);
+	} else {
+		using namespace rpl::mappers;
+		session->data().chatsListLoadedEvents(
+		) | rpl::filter(_1 == nullptr) | rpl::take(1) | rpl::on_next([=] {
+			raw->initializeAfterChatsLoaded(hasUnshown);
+		}, session->lifetime());
+	}
+
+	return changelogs;
 }
 
-void Changelogs::requestChanges() {
-	_chatsSubscription.destroy();
-	showChangelog();
-}
+void Changelogs::initializeAfterChatsLoaded(bool hasUnshown) {
+	Changelog::InitializeChangelogPeer(_session);
+	Changelog::LoadStoredMessages(_session);
 
-void Changelogs::showChangelog() {
-	for (const auto &[version, changes] : FALogs()) {
-		if (_oldVersion < version && version <= AppFAVersion) {
-			addLog(version, QString::fromUtf8(changes));
+	if (hasUnshown) {
+		processChangelogs();
+	} else {
+		const auto storedMessages = Changelog::GetStoredMessages();
+		if (!storedMessages.empty()) {
+			Changelog::RequestChangelogDialogEntry(_session);
 		}
 	}
 }
 
+void Changelogs::processChangelogs() {
+	const auto entries = GetUnshownChangelogs(_oldVersion);
+
+	for (const auto &[version, changes] : entries) {
+		addLog(version, changes);
+	}
+
+	Changelog::RequestChangelogDialogEntry(_session);
+}
+
 void Changelogs::addLog(int version, const QString &changes) {
-	const auto text = [&] {
-		static const auto simple = u"\n- "_q;
-		static const auto separator = QString::fromUtf8("\n\xE2\x80\xA2 ");
-		auto result = changes.trimmed();
-		if (result.startsWith(base::StringViewMid(simple, 1))) {
-			result = separator.mid(1) + result.mid(simple.size() - 1);
-		}
-		return result.replace(simple, separator);
-	}();
+	const auto text = FormatChangelogText(version, changes);
+	const auto date = base::unixtime::now();
 
-	const auto versionStr = FormatFAVersionDisplay(version);
-	const auto log = u"FAgram Desktop %1:\n\n%2"_q.arg(versionStr).arg(text);
+	const auto item = Changelog::AddChangelogMessage(
+		_session,
+		version,
+		text,
+		date);
 
-	auto textWithEntities = TextWithEntities{ log };
-	TextUtilities::ParseEntities(
-		textWithEntities,
-		TextParseLinks | TextParseMentions);
-	_session->data().serviceNotification(textWithEntities);
+	Changelog::TriggerChangelogNotification(_session, item);
 }
 
 QString FormatFAVersionDisplay(int version) {

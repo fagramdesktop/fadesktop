@@ -8,6 +8,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #pragma once
 
 #include "base/weak_ptr.h"
+#include "base/basic_types.h"
 
 namespace Main {
 class Session;
@@ -24,14 +25,14 @@ public:
 	static std::unique_ptr<Changelogs> Create(
 		not_null<Main::Session*> session);
 
+	void processChangelogs();
+	void initializeAfterChatsLoaded(bool hasUnshown);
+
 private:
-	void requestChanges();
-	void showChangelog();
 	void addLog(int version, const QString &changes);
 
 	const not_null<Main::Session*> _session;
 	const int _oldVersion = 0;
-	rpl::lifetime _chatsSubscription;
 
 };
 

@@ -44,6 +44,8 @@ struct SelectedQuote;
 class AboutView;
 } // namespace HistoryView
 
+
+
 namespace HistoryView::Reactions {
 class Manager;
 struct ChosenReaction;

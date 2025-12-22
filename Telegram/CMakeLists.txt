@@ -803,6 +803,8 @@ PRIVATE
     fa/fa_version.h
     fa/fa_changelogs.cpp
     fa/fa_changelogs.h
+    fa/changelog/fa_changelog_peer.cpp
+    fa/changelog/fa_changelog_peer.h
     fa/ui/menu_item_subtext.cpp
     fa/ui/menu_item_subtext.h
     history/admin_log/history_admin_log_filter.cpp

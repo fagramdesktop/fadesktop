@@ -8,6 +8,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_peer.h"
 
 #include "fa/settings/fa_settings.h"
+#include "fa/changelog/fa_changelog_peer.h"
 
 #include "api/api_sensitive_content.h"
 #include "data/data_user.h"
@@ -468,6 +469,45 @@ void PeerData::paintUserpic(
 		broadcast->paintUserpic(p, view, context);
 		return;
 	}
+
+	// FAgram: Paint PNG avatar for changelog peer
+	if (id == FA::Changelog::GetChangelogPeerId()) {
+		const auto size = context.size;
+		const auto x = context.position.x();
+		const auto y = context.position.y();
+
+		static QImage changelogAvatar;
+		if (changelogAvatar.isNull()) {
+			changelogAvatar = QImage(u":/gui/art/icon512.png"_q);
+		}
+		if (!changelogAvatar.isNull()) {
+			const auto ratio = style::DevicePixelRatio();
+			auto scaled = changelogAvatar.scaled(
+				size * ratio,
+				size * ratio,
+				Qt::KeepAspectRatio,
+				Qt::SmoothTransformation);
+			scaled.setDevicePixelRatio(ratio);
+
+			// Apply circular mask
+			QImage result(size * ratio, size * ratio, QImage::Format_ARGB32_Premultiplied);
+			result.setDevicePixelRatio(ratio);
+			result.fill(Qt::transparent);
+
+			QPainter painter(&result);
+			painter.setRenderHint(QPainter::Antialiasing, true);
+			painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+
+			QPainterPath circlePath;
+			circlePath.addEllipse(0, 0, size, size);
+			painter.setClipPath(circlePath);
+			painter.drawImage(0, 0, scaled);
+			painter.end();
+
+			p.drawImage(x, y, result);
+			return;
+		}
+	}
 	const auto size = context.size;
 	const auto x = context.position.x();
 	const auto y = context.position.y();
@@ -558,6 +598,11 @@ bool PeerData::useEmptyUserpic(Ui::PeerUserpicView &view) const {
 }
 
 InMemoryKey PeerData::userpicUniqueKey(Ui::PeerUserpicView &view) const {
+	// FAgram: Return unique key for changelog peer PNG avatar
+	if (id == FA::Changelog::GetChangelogPeerId()) {
+		// Use a fixed unique key for the changelog peer avatar
+		return InMemoryKey(0xFA9FAFC10910900FULL, 0x1ULL);
+	}
 	return useEmptyUserpic(view)
 		? ensureEmptyUserpic()->uniqueKey()
 		: inMemoryKey(_userpic.location());
@@ -568,6 +613,49 @@ QImage PeerData::GenerateUserpicImage(
 		Ui::PeerUserpicView &view,
 		int size,
 		std::optional<int> radius) {
+	// FAgram: Generate PNG avatar for changelog peer
+	if (peer->id == FA::Changelog::GetChangelogPeerId()) {
+		static QImage changelogAvatar;
+		if (changelogAvatar.isNull()) {
+			changelogAvatar = QImage(u":/gui/art/icon512.png"_q);
+		}
+		if (!changelogAvatar.isNull()) {
+			auto scaled = changelogAvatar.scaled(
+				size,
+				size,
+				Qt::KeepAspectRatio,
+				Qt::SmoothTransformation);
+
+			// Apply circular mask (or square/rounded based on radius)
+			QImage result(size, size, QImage::Format_ARGB32_Premultiplied);
+			result.fill(Qt::transparent);
+
+			QPainter painter(&result);
+			painter.setRenderHint(QPainter::Antialiasing, true);
+			painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+
+			if (radius == 0) {
+				// Square
+				painter.drawImage(0, 0, scaled);
+			} else if (radius) {
+				// Rounded
+				QPainterPath roundedPath;
+				roundedPath.addRoundedRect(0, 0, size, size, *radius, *radius);
+				painter.setClipPath(roundedPath);
+				painter.drawImage(0, 0, scaled);
+			} else {
+				// Circle (default)
+				QPainterPath circlePath;
+				circlePath.addEllipse(0, 0, size, size);
+				painter.setClipPath(circlePath);
+				painter.drawImage(0, 0, scaled);
+			}
+			painter.end();
+
+			return result;
+		}
+	}
+
 	if (const auto userpic = peer->userpicCloudImage(view)) {
 		auto image = userpic->scaled(
 			{ size, size },

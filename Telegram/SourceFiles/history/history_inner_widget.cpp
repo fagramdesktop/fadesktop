@@ -13,6 +13,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "fa/ui/history/view/fa_reply_in_private.h"
 #include "fa/lang/fa_lang.h"
 
+
 #include "chat_helpers/stickers_emoji_pack.h"
 #include "core/file_utilities.h"
 #include "core/click_handler_types.h"
@@ -1118,7 +1119,9 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 			context.translate(0, top);
 			p.translate(0, -top);
 		}
-	} else if (historyDisplayedEmpty) {
+	}
+
+	if (historyDisplayedEmpty) {
 		paintEmpty(p, context.st, width(), height());
 	} else {
 		_emptyPainter = nullptr;
@@ -3966,6 +3969,7 @@ void HistoryInner::recountHistoryGeometry(bool initial) {
 		_recountedAfterPendingResizedItems = true;
 	}
 	const auto aboutAboveHistory = _aboutView && _aboutView->aboveHistory();
+
 	const auto visibleHeight = _scroll->height();
 	auto oldHistoryMarginTop = qMax(
 		visibleHeight - historyHeight() - _historyMarginBottom,
@@ -3981,8 +3985,6 @@ void HistoryInner::recountHistoryGeometry(bool initial) {
 		_migrated->resizeToWidth(_contentWidth);
 	}
 
-	// With migrated history we perhaps do not need to display
-	// the first _history message date (just skip it by height).
 	_historySkipHeight = 0;
 	if (_migrated
 		&& _migrated->loadedAtBottom()
@@ -4190,6 +4192,7 @@ void HistoryInner::updateSize() {
 	const auto itemsHeight = historyHeight() - _revealHeight;
 	const auto aboutAboveHistory = _aboutView && _aboutView->aboveHistory();
 	const auto aboutBelowHistory = _aboutView && !aboutAboveHistory;
+
 	auto newHistoryMarginBottom = st::historyPaddingBottom;
 	if (aboutBelowHistory) {
 		accumulate_max(newHistoryMarginBottom, _aboutView->height);
@@ -5045,11 +5048,13 @@ void HistoryInner::clearChooseReportReason() {
 }
 
 auto HistoryInner::viewByItem(const HistoryItem *item) const -> Element* {
-	return !item
-		? nullptr
-		: (_aboutView && _aboutView->item() == item)
-		? _aboutView->view()
-		: item->mainView();
+	if (!item) {
+		return nullptr;
+	}
+	if (_aboutView && _aboutView->item() == item) {
+		return _aboutView->view();
+	}
+	return item->mainView();
 }
 
 // -1 if should not be visible, -2 if bad history()
@@ -5062,7 +5067,8 @@ int HistoryInner::itemTop(const Element *view) const {
 		return -1;
 	} else if (_aboutView && view == _aboutView->view()) {
 		return _aboutView->top;
-	} else if (view->data()->mainView() != view) {
+	}
+	if (view->data()->mainView() != view) {
 		return -1;
 	}
 
