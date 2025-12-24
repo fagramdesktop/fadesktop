@@ -57,7 +57,7 @@ bool HandleSomeText(
     std::uniform_int_distribution<> dis(0, responds.size() - 1);
 
     int randomIndex = dis(gen);
-    
+
     QString respond = responds[randomIndex];
 
 	controller->showToast(respond, 500);
@@ -105,8 +105,8 @@ bool HandleSwitchDebugLogs(
 	FASettings::JsonSettings::Set("debug_logs", !debug_logs);
 	FASettings::JsonSettings::Write();
 
-	QString message = debug_logs 
-		? FAlang::Translate(QString("fa_debug_logs_off")) 
+	QString message = debug_logs
+		? FAlang::Translate(QString("fa_debug_logs_off"))
 		: FAlang::Translate(QString("fa_debug_logs_on"));
 	controller->showToast(message, 1000);
 
@@ -237,24 +237,64 @@ bool ResolveChat(
 		controller->showPeerInfo(peer);
 	};
 
-	// First check if it's a channel/supergroup
 	if (const auto channel = controller->session().data().channelLoaded(ChannelId(chatId))) {
 		showPeer(channel);
 		return true;
 	}
 
-	// Check if it's a basic chat/group
 	if (const auto chat = controller->session().data().chatLoaded(ChatId(chatId))) {
 		showPeer(chat);
 		return true;
 	}
 
-	// Try to fetch channel by ID
 	searchChannelById(chatId,
 		&controller->session(),
 		[=](ChannelData *data) {
 			if (data) {
 				controller->showPeerInfo(data);
+				return;
+			}
+
+			Core::App().hideMediaView();
+			controller->showToast(FAlang::Translate(QString("fa_not_found")), 500);
+		});
+
+	return true;
+}
+
+bool ResolveChatOpen(
+	Window::SessionController *controller,
+	const Match &match,
+	const QVariant &context) {
+	if (!controller) {
+		return false;
+	}
+
+	const auto chatId = match->captured(1).toLongLong();
+	if (!chatId) {
+		return false;
+	}
+
+	const auto openChat = [=](not_null<PeerData*> peer) {
+		controller->showPeerHistory(peer);
+		controller->window().activate();
+	};
+
+	if (const auto channel = controller->session().data().channelLoaded(ChannelId(chatId))) {
+		openChat(channel);
+		return true;
+	}
+
+	if (const auto chat = controller->session().data().chatLoaded(ChatId(chatId))) {
+		openChat(chat);
+		return true;
+	}
+
+	searchChannelById(chatId,
+		&controller->session(),
+		[=](ChannelData *data) {
+			if (data) {
+				openChat(data);
 				return;
 			}
 
