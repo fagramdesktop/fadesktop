@@ -57,8 +57,8 @@ void ConnectStarRef(
 		Fn<void(ConnectedBot)> done,
 		Fn<void(const QString &)> fail) {
 	bot->session().api().request(MTPpayments_ConnectStarRefBot(
-		peer->input,
-		bot->inputUser
+		peer->input(),
+		bot->inputUser()
 	)).done([=](const MTPpayments_ConnectedStarRefBots &result) {
 		const auto parsed = Parse(&bot->session(), result);
 		if (parsed.empty()) {
@@ -340,34 +340,6 @@ not_null<Ui::AbstractButton*> AddViewListButton(
 	return button;
 }
 
-not_null<Ui::RoundButton*> AddFullWidthButton(
-		not_null<Ui::BoxContent*> box,
-		rpl::producer<QString> text,
-		Fn<void()> callback,
-		const style::RoundButton *stOverride) {
-	const auto &boxSt = box->getDelegate()->style();
-	const auto result = box->addButton(
-		std::move(text),
-		std::move(callback),
-		stOverride ? *stOverride : boxSt.button);
-	rpl::combine(
-		box->widthValue(),
-		result->widthValue()
-	) | rpl::on_next([=](int width, int buttonWidth) {
-		const auto correct = width
-			- boxSt.buttonPadding.left()
-			- boxSt.buttonPadding.right();
-		if (correct > 0 && buttonWidth != correct) {
-			result->resizeToWidth(correct);
-			result->moveToLeft(
-				boxSt.buttonPadding.left(),
-				boxSt.buttonPadding.top(),
-				width);
-		}
-	}, result->lifetime());
-	return result;
-}
-
 void AddFullWidthButtonFooter(
 		not_null<Ui::BoxContent*> box,
 		not_null<Ui::RpWidget*> button,
@@ -494,11 +466,11 @@ object_ptr<Ui::BoxContent> StarRefLinkBox(
 			};
 		};
 		preview->setClickedCallback(copy(false));
-		const auto button = AddFullWidthButton(
-			box,
+		const auto button = box->addButton(
 			tr::lng_star_ref_link_copy(),
-			copy(true),
-			&st::starrefCopyButton);
+			[=] { copy(true); },
+			st::starrefCopyButton);
+
 		const auto name = TextWithEntities{ bot->name() };
 		AddFullWidthButtonFooter(
 			box,
@@ -712,8 +684,7 @@ object_ptr<Ui::BoxContent> JoinStarRefBox(
 				show->showToast(u"Failed: "_q + error);
 			});
 		};
-		const auto button = AddFullWidthButton(
-			box,
+		const auto button = box->addButton(
 			tr::lng_star_ref_one_join(),
 			send);
 		AddFullWidthButtonFooter(
@@ -1002,7 +973,7 @@ void UpdateProgram(
 		MTP_flags((program.commission > 0 && program.durationMonths > 0)
 			? Flag::f_duration_months
 			: Flag()),
-		bot->inputUser,
+		bot->inputUser(),
 		MTP_int(program.commission),
 		MTP_int(program.durationMonths)
 	)).done([=](const MTPStarRefProgram &result) {

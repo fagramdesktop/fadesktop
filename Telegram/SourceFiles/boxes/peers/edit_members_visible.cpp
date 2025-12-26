@@ -65,7 +65,7 @@ namespace {
 	) | rpl::on_next([=](bool toggled) {
 		megagroup->session().api().request(
 			MTPchannels_ToggleParticipantsHidden(
-				megagroup->inputChannel,
+				megagroup->inputChannel(),
 				MTP_bool(toggled)
 			)
 		).done([=](const MTPUpdates &result) {

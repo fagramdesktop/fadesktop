@@ -33,7 +33,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 namespace FA::Changelog {
 namespace {
 
-constexpr auto kChangelogPeerName = "FAgram Updates";
+constexpr auto kChangelogPeerName = "What's New!";
 
 constexpr auto kChangelogPeerIdShift = (0xFEULL << 32);
 constexpr auto kChangelogPeerIdBase = 696969ULL;

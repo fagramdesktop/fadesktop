@@ -200,7 +200,7 @@ void ListController::loadMoreRows() {
 	const auto limit = _offset.isEmpty() ? kFirstPage : kPerPage;
 	_loadRequestId = _api.request(MTPmessages_GetPollVotes(
 		MTP_flags(flags),
-		item->history()->peer->input,
+		item->history()->peer->input(),
 		MTP_int(item->id),
 		MTP_bytes(_option),
 		MTP_string(_offset),

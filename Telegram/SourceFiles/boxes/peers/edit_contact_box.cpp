@@ -92,7 +92,7 @@ void SendRequest(
 	user->session().api().request(MTPcontacts_AddContact(
 		MTP_flags(Flag::f_note
 			| (sharePhone ? Flag::f_add_phone_privacy_exception : Flag(0))),
-		user->inputUser,
+		user->inputUser(),
 		MTP_string(first),
 		MTP_string(last),
 		MTP_string(phone),
@@ -688,7 +688,7 @@ void Controller::setupDeleteContactButton() {
 		const auto deleteSure = [=](Fn<void()> &&close) {
 			close();
 			_user->session().api().request(MTPcontacts_DeleteContacts(
-				MTP_vector<MTPInputUser>(1, _user->inputUser)
+				MTP_vector<MTPInputUser>(1, _user->inputUser())
 			)).done([=](const MTPUpdates &result) {
 				_user->session().api().applyUpdates(result);
 				_box->closeBox();

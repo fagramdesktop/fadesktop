@@ -282,7 +282,7 @@ void SponsoredMessages::request(not_null<History*> history, Fn<void()> done) {
 	request.requestId = _session->api().request(
 		MTPmessages_GetSponsoredMessages(
 			MTP_flags(0),
-			history->peer->input,
+			history->peer->input(),
 			MTPint()) // msg_id
 	).done([=](const MTPmessages_sponsoredMessages &result) {
 		parse(history, result);
@@ -343,7 +343,7 @@ void SponsoredMessages::requestForVideo(
 	request.requestId = _session->api().request(
 		MTPmessages_GetSponsoredMessages(
 			MTP_flags(Flag::f_msg_id),
-			peer->input,
+			peer->input(),
 			MTP_int(item->id.bare))
 	).done([=](const MTPmessages_sponsoredMessages &result) {
 		parseForVideo(peer, result);

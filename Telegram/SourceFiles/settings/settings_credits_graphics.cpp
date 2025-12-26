@@ -1326,6 +1326,12 @@ void GenericCreditsEntryCover(
 			.resalePrice = UniqueGiftResalePrice(e.uniqueGift, forceTon),
 			.resaleClick = resaleClick,
 		});
+		if (e.bareGiftOwnerId == session->userPeerId().value) {
+			if (const auto fromId = PeerId(e.barePeerId)) {
+				const auto from = session->data().peer(fromId);
+				AttachGiftSenderBadge(box, show, from, e.date);
+			}
+		}
 	} else if (const auto callback = Ui::PaintPreviewCallback(session, e)) {
 		const auto thumb = content->add(
 			GenericEntryPhoto(content, callback, stUser.photoSize),

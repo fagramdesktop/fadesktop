@@ -440,7 +440,7 @@ bool Helper::isOccupiedBySomeone(History *history) const {
 
 void Helper::refreshInfo(not_null<UserData*> user) {
 	_api.request(MTPhelp_GetUserInfo(
-		user->inputUser
+		user->inputUser()
 	)).done([=](const MTPhelp_UserInfo &result) {
 		applyInfo(user, result);
 		if (const auto controller = _userInfoEditPending.take(user)) {
@@ -569,7 +569,7 @@ void Helper::saveInfo(
 		text.entities,
 		Api::ConvertOption::SkipLocal);
 	_userInfoSaving[user].requestId = _api.request(MTPhelp_EditUserInfo(
-		user->inputUser,
+		user->inputUser(),
 		MTP_string(text.text),
 		entities
 	)).done([=](const MTPhelp_UserInfo &result) {

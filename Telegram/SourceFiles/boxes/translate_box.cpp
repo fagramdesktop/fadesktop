@@ -240,7 +240,7 @@ void TranslateBox(
 
 		//state->api.request(MTPmessages_TranslateText(
 		//	MTP_flags(flags),
-		//	msgId ? peer->input : MTP_inputPeerEmpty(),
+		//	msgId ? peer->input() : MTP_inputPeerEmpty(),
 		//	(msgId
 		//		? MTP_vector<MTPint>(1, MTP_int(msgId))
 		//		: MTPVector<MTPint>()),

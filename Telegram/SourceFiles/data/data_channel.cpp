@@ -32,6 +32,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "core/application.h"
 #include "history/history.h"
+#include "history/history_item.h"
 #include "api/api_chat_invite.h"
 #include "api/api_invite_links.h"
 #include "apiwrap.h"
@@ -115,8 +116,6 @@ std::unique_ptr<Data::SavedMessages> MegagroupInfo::takeMonoforumData() {
 
 ChannelData::ChannelData(not_null<Data::Session*> owner, PeerId id)
 : PeerData(owner, id)
-, inputChannel(
-	MTP_inputChannel(MTP_long(peerToChannel(id).bare), MTP_long(0)))
 , _ptsWaiter(&owner->session().updates()) {
 }
 
@@ -175,13 +174,7 @@ bool ChannelData::isUsernameEditable(QString username) const {
 }
 
 void ChannelData::setAccessHash(uint64 accessHash) {
-	access = accessHash;
-	input = MTP_inputPeerChannel(
-		MTP_long(peerToChannel(id).bare),
-		MTP_long(accessHash));
-	inputChannel = MTP_inputChannel(
-		MTP_long(peerToChannel(id).bare),
-		MTP_long(accessHash));
+	_accessHash = accessHash;
 }
 
 void ChannelData::setFlags(ChannelDataFlags which) {
@@ -603,7 +596,7 @@ void ChannelData::markForbidden() {
 			? MTPDchannelForbidden::Flag::f_megagroup
 			: MTPDchannelForbidden::Flag::f_broadcast),
 		MTP_long(peerToChannel(id).bare),
-		MTP_long(access),
+		MTP_long(_accessHash),
 		MTP_string(name()),
 		MTPint()));
 }
@@ -763,9 +756,7 @@ bool ChannelData::canEditEmoji() const {
 }
 
 bool ChannelData::canDelete() const {
-	constexpr auto kDeleteChannelMembersLimit = 1000;
-	return amCreator()
-		&& (membersCount() <= kDeleteChannelMembersLimit);
+	return amCreator();
 }
 
 bool ChannelData::canEditLastAdmin(not_null<UserData*> user) const {
@@ -1210,6 +1201,19 @@ TimeId ChannelData::subscriptionUntilDate() const {
 
 void ChannelData::updateSubscriptionUntilDate(TimeId subscriptionUntilDate) {
 	_subscriptionUntilDate = subscriptionUntilDate;
+}
+
+MTPInputChannel ChannelData::inputChannel() const {
+	const auto item = isLoaded() ? nullptr : owner().messageWithPeer(id);
+	if (item) {
+		return MTP_inputChannelFromMessage(
+			item->history()->peer->input(),
+			MTP_int(item->id.bare),
+			MTP_long(peerToChannel(id).bare));
+	}
+	return MTP_inputChannel(
+		MTP_long(peerToChannel(id).bare),
+		MTP_long(_accessHash));
 }
 
 namespace Data {

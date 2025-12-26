@@ -406,7 +406,7 @@ void InnerWidget::loadCollections() {
 		return;
 	}
 	_api.request(MTPpayments_GetStarGiftCollections(
-		_peer->input,
+		_peer->input(),
 		MTP_long(Api::CountHash(_collections
 			| ranges::views::transform(&Data::GiftCollection::hash)))
 	)).done([=](const MTPpayments_StarGiftCollections &result) {
@@ -642,7 +642,7 @@ void InnerWidget::loadMore() {
 			| (filter.skipSaved ? Flag::f_exclude_saved : Flag())
 			| (filter.skipUnsaved ? Flag::f_exclude_unsaved : Flag())
 			| (collectionId ? Flag::f_collection_id : Flag())),
-		_peer->input,
+		_peer->input(),
 		MTP_int(collectionId),
 		MTP_string(filterChanged ? QString() : _offset),
 		MTP_int(kPerPage)
@@ -1042,7 +1042,7 @@ void InnerWidget::editCollectionName(int id) {
 void InnerWidget::confirmDeleteCollection(int id) {
 	const auto done = [=](Fn<void()> close) {
 		_window->session().api().request(
-			MTPpayments_DeleteStarGiftCollection(_peer->input, MTP_int(id))
+			MTPpayments_DeleteStarGiftCollection(_peer->input(), MTP_int(id))
 		).send();
 		collectionRemoved(id);
 		close();
@@ -1095,7 +1095,7 @@ void InnerWidget::addGiftToCollection(
 	_window->session().api().request(
 		MTPpayments_UpdateStarGiftCollection(
 			MTP_flags(Flag::f_add_stargift),
-			_peer->input,
+			_peer->input(),
 			MTP_int(collectionId),
 			MTPstring(),
 			MTPVector<MTPInputSavedStarGift>(),
@@ -1433,7 +1433,7 @@ void InnerWidget::editCollectionGifts(int id) {
 						| (remove.isEmpty()
 							? Flag()
 							: Flag::f_delete_stargift)),
-					_peer->input,
+					_peer->input(),
 					MTP_int(id),
 					MTPstring(),
 					MTP_vector<MTPInputSavedStarGift>(remove),
@@ -1588,7 +1588,7 @@ void InnerWidget::removeGiftFromCollection(
 	_window->session().api().request(
 		MTPpayments_UpdateStarGiftCollection(
 			MTP_flags(Flag::f_delete_stargift),
-			_peer->input,
+			_peer->input(),
 			MTP_int(collectionId),
 			MTPstring(),
 			MTP_vector<MTPInputSavedStarGift>({
@@ -1897,7 +1897,7 @@ void InnerWidget::flushCollectionReorder() {
 	}
 
 	_api.request(MTPpayments_ReorderStarGiftCollections(
-		_peer->input,
+		_peer->input(),
 		MTP_vector<MTPint>(order)
 	)).fail([show = _window->uiShow()](const MTP::Error &error) {
 		show->showToast(error.type());
@@ -2276,7 +2276,7 @@ void InnerWidget::requestReorder(int fromIndex, int toIndex) {
 		_api.request(
 			MTPpayments_UpdateStarGiftCollection(
 				MTP_flags(MTPpayments_UpdateStarGiftCollection::Flag::f_order),
-				_peer->input,
+				_peer->input(),
 				MTP_int(collectionId),
 				MTPstring(),
 				MTPVector<MTPInputSavedStarGift>(),
@@ -2560,7 +2560,7 @@ void Widget::setupNotifyCheckbox(int wasBottomHeight, bool enabled) {
 		using Flag = MTPpayments_ToggleChatStarGiftNotifications::Flag;
 		api->request(MTPpayments_ToggleChatStarGiftNotifications(
 			MTP_flags(checked ? Flag::f_enabled : Flag()),
-			_inner->peer()->input
+			_inner->peer()->input()
 		)).send();
 		if (checked) {
 			show->showToast(tr::lng_peer_gifts_notify_enabled(tr::now));

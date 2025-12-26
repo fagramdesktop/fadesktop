@@ -161,7 +161,7 @@ void StartRtmpProcess::requestUrl(bool revoke) {
 	const auto session = &_request->peer->session();
 	_request->id = session->api().request(MTPphone_GetGroupCallStreamRtmpUrl(
 		MTP_flags(0),
-		_request->peer->input,
+		_request->peer->input(),
 		MTP_bool(revoke)
 	)).done([=](const MTPphone_GroupCallStreamRtmpUrl &result) {
 		auto data = result.match([&](

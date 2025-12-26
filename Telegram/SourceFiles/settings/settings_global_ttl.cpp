@@ -388,7 +388,7 @@ void GlobalTTL::setupContent() {
 				const auto ttl = apiTTL.periodDefaultHistoryTTLCurrent();
 				for (const auto &peer : peers) {
 					peer->session().api().request(MTPmessages_SetHistoryTTL(
-						peer->input,
+						peer->input(),
 						MTP_int(ttl)
 					)).done([=](const MTPUpdates &result) {
 						peer->session().api().applyUpdates(result);

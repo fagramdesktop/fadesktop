@@ -1330,7 +1330,7 @@ void AddSpecialBoxController::loadMoreRows() {
 	const auto channel = _peer->asChannel();
 
 	_loadRequestId = _api.request(MTPchannels_GetParticipants(
-		channel->inputChannel,
+		channel->inputChannel(),
 		MTP_channelParticipantsRecent(),
 		MTP_int(_offset),
 		MTP_int(perPage),
@@ -1393,8 +1393,8 @@ bool AddSpecialBoxController::checkInfoLoaded(
 	// We don't know what this user status is in the group.
 	const auto channel = _peer->asChannel();
 	_api.request(MTPchannels_GetParticipant(
-		channel->inputChannel,
-		participant->input
+		channel->inputChannel(),
+		participant->input()
 	)).done([=](const MTPchannels_ChannelParticipant &result) {
 		result.match([&](const MTPDchannels_channelParticipant &data) {
 			channel->owner().processUsers(data.vusers());
@@ -1800,7 +1800,7 @@ void AddSpecialBoxSearchController::requestParticipants() {
 	const auto channel = _peer->asChannel();
 
 	_requestId = _api.request(MTPchannels_GetParticipants(
-		channel->inputChannel,
+		channel->inputChannel(),
 		MTP_channelParticipantsSearch(MTP_string(_query)),
 		MTP_int(_offset),
 		MTP_int(perPage),

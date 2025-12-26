@@ -830,7 +830,7 @@ void AboutView::loadCommonGroups() {
 	_commonGroups = cached.list;
 	const auto requestId = _history->session().api().request(
 		MTPmessages_GetCommonChats(
-			user->inputUser,
+			user->inputUser(),
 			MTP_long(0),
 			MTP_int(kMaxCommonChatsUserpics))
 	).done([=](const MTPmessages_Chats &result) {

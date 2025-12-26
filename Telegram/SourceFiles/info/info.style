@@ -595,7 +595,7 @@ infoRatingDeductedBadge: RoundButton(customEmojiTextBadge) {
 
 infoProfileInaccessibleUserpic: icon {{ "info/inaccessible_userpic", historyPeerUserpicFg }};
 
-infoVerifiedCheckPosition: point(4px, 2px);
+infoVerifiedCheckPosition: point(4px, 0px);
 infoVerifiedStar: icon {{ "profile_verified_star", profileVerifiedCheckBg }};
 infoPremiumStar: icon {{ "profile_premium", profileVerifiedCheckBg }};
 

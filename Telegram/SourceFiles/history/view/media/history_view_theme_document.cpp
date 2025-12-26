@@ -555,7 +555,7 @@ ClickHandlerPtr ThemeDocumentBox::createViewLink() {
 					const auto api = &controller->session().api();
 					api->request(MTPmessages_SetChatWallPaper(
 						MTP_flags(MTPmessages_SetChatWallPaper::Flag::f_revert),
-						view->data()->history()->peer->input,
+						view->data()->history()->peer->input(),
 						MTPInputWallPaper(),
 						MTPWallPaperSettings(),
 						MTPint()

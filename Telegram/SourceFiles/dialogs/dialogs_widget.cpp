@@ -2681,10 +2681,10 @@ bool Widget::search(bool inCache, SearchRequestDelay delay) {
 							| (_searchQueryTags.empty()
 								? Flag()
 								: Flag::f_saved_reaction)),
-						inPeer->input,
+						inPeer->input(),
 						MTP_string(_searchQuery),
-						(fromPeer ? fromPeer->input : MTP_inputPeerEmpty()),
-						(savedPeer ? savedPeer->input : MTP_inputPeerEmpty()),
+						(fromPeer ? fromPeer->input() : MTP_inputPeerEmpty()),
+						(savedPeer ? savedPeer->input() : MTP_inputPeerEmpty()),
 						MTP_vector_from_range(
 							_searchQueryTags | ranges::views::transform(
 								Data::ReactionToMTP
@@ -2794,7 +2794,7 @@ void Widget::searchTopics() {
 	_api.request(base::take(_topicSearchRequest)).cancel();
 	_topicSearchRequest = _api.request(MTPmessages_GetForumTopics(
 		MTP_flags(MTPmessages_GetForumTopics::Flag::f_q),
-		_openedForum->peer()->input,
+		_openedForum->peer()->input(),
 		MTP_string(_topicSearchQuery),
 		MTP_int(_topicSearchOffsetDate),
 		MTP_int(_topicSearchOffsetId),
@@ -2862,11 +2862,11 @@ void Widget::searchMore() {
 							| (_searchQueryTags.empty()
 								? Flag()
 								: Flag::f_saved_reaction)),
-						peer->input,
+						peer->input(),
 						MTP_string(_searchQuery),
-						(fromPeer ? fromPeer->input : MTP_inputPeerEmpty()),
+						(fromPeer ? fromPeer->input() : MTP_inputPeerEmpty()),
 						(savedPeer
-							? savedPeer->input
+							? savedPeer->input()
 							: MTP_inputPeerEmpty()),
 						MTP_vector_from_range(
 							_searchQueryTags | ranges::views::transform(
@@ -2919,10 +2919,10 @@ void Widget::searchMore() {
 			_migratedProcess.requestId = session().api().request(
 				MTPmessages_Search(
 					flags,
-					_searchInMigrated->peer->input,
+					_searchInMigrated->peer->input(),
 					MTP_string(_searchQuery),
 					(_searchQueryFrom
-						? _searchQueryFrom->input
+						? _searchQueryFrom->input()
 						: MTP_inputPeerEmpty()),
 					MTPInputPeer(), // saved_peer_id
 					MTPVector<MTPReaction>(), // saved_reaction
@@ -2967,7 +2967,7 @@ void Widget::requestPublicPosts(bool fromStart) {
 			MTP_int(fromStart ? 0 : _postsProcess.nextRate),
 			(fromStart
 				? MTP_inputPeerEmpty()
-				: _postsProcess.lastPeer->input),
+				: _postsProcess.lastPeer->input()),
 			MTP_int(fromStart ? 0 : _postsProcess.lastId),
 			MTP_int(kSearchPerPage),
 			MTP_long(0)) // allow_paid_stars
@@ -3012,7 +3012,7 @@ void Widget::requestMessages(bool fromStart) {
 			MTP_int(fromStart ? 0 : _searchProcess.nextRate),
 			(fromStart
 				? MTP_inputPeerEmpty()
-				: _searchProcess.lastPeer->input),
+				: _searchProcess.lastPeer->input()),
 			MTP_int(fromStart ? 0 : _searchProcess.lastId),
 			MTP_int(kSearchPerPage))
 	).done([=](const MTPmessages_Messages &result) {

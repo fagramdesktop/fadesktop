@@ -66,7 +66,7 @@ void SendApproval(
 	suggestion->requestId = session->api().request(
 		MTPmessages_ToggleSuggestedPostApproval(
 			MTP_flags(scheduleDate ? Flag::f_schedule_date : Flag()),
-			item->history()->peer->input,
+			item->history()->peer->input(),
 			MTP_int(item->id.bare),
 			MTP_int(scheduleDate),
 			MTPstring()) // reject_comment
@@ -267,7 +267,7 @@ void SendDecline(
 		MTPmessages_ToggleSuggestedPostApproval(
 			MTP_flags(Flag::f_reject
 				| (comment.isEmpty() ? Flag() : Flag::f_reject_comment)),
-			item->history()->peer->input,
+			item->history()->peer->input(),
 			MTP_int(item->id.bare),
 			MTPint(), // schedule_date
 			MTP_string(comment))

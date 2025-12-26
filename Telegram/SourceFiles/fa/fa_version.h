@@ -10,5 +10,5 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 constexpr auto AppFAVersion = 2001000;
 constexpr auto AppFAVersionStr = "2.1.0";
-constexpr auto AppTGDVersion = "6.3.9";
+constexpr auto AppTGDVersion = "6.3.10.beta";
 constexpr auto AppFABetaVersion = false;

@@ -501,6 +501,7 @@ not_null<HistoryItem*> History::createItem(
 		MessageFlags localFlags,
 		bool detachExistingItem,
 		bool newMessage) {
+	owner().fillMessagePeers(peer->id, message);
 	if (const auto result = owner().message(peer, id)) {
 		if (detachExistingItem) {
 			result->removeMainView();

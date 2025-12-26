@@ -352,7 +352,7 @@ void PlaceAuctionBid(
 			| (passDetails ? Flag::f_peer : Flag())
 			| (passDetails ? Flag::f_message : Flag())
 			| (hideName ? Flag::f_hide_name : Flag())),
-		passDetails ? to->input : MTP_inputPeerEmpty(),
+		passDetails ? to->input() : MTP_inputPeerEmpty(),
 		MTP_long(state.gift->id),
 		MTP_long(amount),
 		MTP_textWithEntities(
@@ -1469,7 +1469,10 @@ void AuctionInfoBox(
 				st::boxRowPadding + st::uniqueGiftValueAvailableMargin,
 				style::al_top
 			)->setClickHandlerFilter([=](const auto &...) {
-				show->show(Box(StarGiftPreviewBox, window, *now.gift, list));
+				const auto title = now.gift->resellTitle;
+				const auto type = Data::GiftAttributeIdType::Model;
+				const auto null = nullptr;
+				show->show(Box(StarGiftPreviewBox, title, list, type, null));
 				return false;
 			});
 		}, box->lifetime());

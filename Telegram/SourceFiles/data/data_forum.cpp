@@ -162,7 +162,7 @@ void Forum::requestTopics() {
 	const auto loadCount = firstLoad ? kTopicsFirstLoad : kTopicsPerPage;
 	_requestId = session().api().request(MTPmessages_GetForumTopics(
 		MTP_flags(0),
-		peer()->input,
+		peer()->input(),
 		MTPstring(), // q
 		MTP_int(_offset.date),
 		MTP_int(_offset.id),
@@ -425,7 +425,7 @@ void Forum::requestSomeStale() {
 			Fn<void()> finish) {
 		return session().api().request(
 			MTPmessages_GetForumTopicsByID(
-				peer()->input,
+				peer()->input(),
 				MTP_vector<MTPint>(rootIds))
 		).done([=](const MTPmessages_ForumTopics &result) {
 			_staleRequestId = 0;

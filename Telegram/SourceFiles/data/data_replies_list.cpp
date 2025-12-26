@@ -534,7 +534,7 @@ void RepliesList::loadAround(MsgId id) {
 
 	const auto send = [=](Fn<void()> finish) {
 		return _history->session().api().request(MTPmessages_GetReplies(
-			_history->peer->input,
+			_history->peer->input(),
 			MTP_int(_rootId),
 			MTP_int(id), // offset_id
 			MTP_int(0), // offset_date
@@ -591,7 +591,7 @@ void RepliesList::loadBefore() {
 	const auto last = _list.back();
 	const auto send = [=](Fn<void()> finish) {
 		return _history->session().api().request(MTPmessages_GetReplies(
-			_history->peer->input,
+			_history->peer->input(),
 			MTP_int(_rootId),
 			MTP_int(last), // offset_id
 			MTP_int(0), // offset_date
@@ -635,7 +635,7 @@ void RepliesList::loadAfter() {
 	const auto first = _list.front();
 	const auto send = [=](Fn<void()> finish) {
 		return _history->session().api().request(MTPmessages_GetReplies(
-			_history->peer->input,
+			_history->peer->input(),
 			MTP_int(_rootId),
 			MTP_int(first + 1), // offset_id
 			MTP_int(0), // offset_date
@@ -940,7 +940,7 @@ void RepliesList::requestUnreadCount() {
 	};
 	_reloadUnreadCountRequestId = session->api().request(
 		MTPmessages_GetDiscussionMessage(
-			_history->peer->input,
+			_history->peer->input(),
 			MTP_int(_rootId))
 	).done([=](const MTPmessages_DiscussionMessage &result) {
 		if (weak) {
@@ -1004,7 +1004,7 @@ void RepliesList::sendReadTillRequest() {
 	api->request(base::take(_readRequestId)).cancel();
 
 	_readRequestId = api->request(MTPmessages_ReadDiscussion(
-		_history->peer->input,
+		_history->peer->input(),
 		MTP_int(_rootId),
 		MTP_int(computeInboxReadTillFull())
 	)).done(crl::guard(this, [=] {

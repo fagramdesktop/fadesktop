@@ -1273,7 +1273,7 @@ Fn<void()> AboutGigagroupCallback(
 		}
 		*converting = true;
 		channel->session().api().request(MTPchannels_ConvertToGigagroup(
-			channel->inputChannel
+			channel->inputChannel()
 		)).done([=](const MTPUpdates &result) {
 			channel->session().api().applyUpdates(result);
 			if (const auto strong = weak.get()) {

@@ -1010,7 +1010,7 @@ void SaveAllowedReactions(
 		MTP_flags(Flag()
 			| (maxCount ? Flag::f_reactions_limit : Flag())
 			| (editPaidEnabled ? Flag::f_paid_enabled : Flag())),
-		peer->input,
+		peer->input(),
 		updated,
 		MTP_int(maxCount),
 		MTP_bool(paidEnabled)

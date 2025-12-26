@@ -468,7 +468,7 @@ void TransferGift(
 		// Like when we transfer a gift from Resale tab.
 		session->api().request(MTPpayments_TransferStarGift(
 			Api::InputSavedStarGiftId(savedId, gift),
-			to->input
+			to->input()
 		)).done([=](const MTPUpdates &result) {
 			session->api().applyUpdates(result);
 			formDone(Payments::CheckoutResult::Paid, &result);
@@ -492,7 +492,7 @@ void TransferGift(
 			window->uiShow(),
 			MTP_inputInvoiceStarGiftTransfer(
 				Api::InputSavedStarGiftId(savedId, gift),
-				to->input),
+				to->input()),
 			std::move(formDone));
 	}
 }
@@ -541,7 +541,7 @@ void BuyResaleGift(
 	const auto invoice = MTP_inputInvoiceStarGiftResale(
 		MTP_flags((type == CreditsType::Ton) ? Flag::f_ton : Flag()),
 		MTP_string(gift->slug),
-		to->input);
+		to->input());
 
 	Ui::RequestOurForm(show, invoice, [=](
 			uint64 formId,
@@ -922,7 +922,7 @@ void SendPeerThemeChangeRequest(
 
 	api->request(MTPmessages_SetChatWallPaper(
 		MTP_flags(0),
-		peer->input,
+		peer->input(),
 		MTPInputWallPaper(),
 		MTPWallPaperSettings(),
 		MTPint()
@@ -931,7 +931,7 @@ void SendPeerThemeChangeRequest(
 	}).send();
 
 	api->request(MTPmessages_SetChatTheme(
-		peer->input,
+		peer->input(),
 		(unique
 			? MTP_inputChatThemeUniqueGift(MTP_string(unique->slug))
 			: MTP_inputChatTheme(MTP_string(token)))

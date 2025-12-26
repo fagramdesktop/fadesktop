@@ -27,8 +27,7 @@ using UpdateFlag = Data::PeerUpdate::Flag;
 } // namespace
 
 ChatData::ChatData(not_null<Data::Session*> owner, PeerId id)
-: PeerData(owner, id)
-, inputChat(MTP_long(peerToChat(id).bare)) {
+: PeerData(owner, id) {
 	_flags.changes(
 	) | rpl::on_next([=](const Flags::Change &change) {
 		if (change.diff & Flag::CallNotEmpty) {
@@ -311,6 +310,10 @@ void ChatData::setAllowedReactions(Data::AllowedReactions value) {
 
 const Data::AllowedReactions &ChatData::allowedReactions() const {
 	return _allowedReactions;
+}
+
+MTPlong ChatData::inputChat() const {
+	return MTP_long(peerToChat(id).bare);
 }
 
 namespace Data {

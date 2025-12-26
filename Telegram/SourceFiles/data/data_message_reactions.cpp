@@ -175,7 +175,7 @@ constexpr auto kPaidAccumulatePeriod = 5 * crl::time(1000) + 500;
 		: (*shownPeer == session->userPeerId())
 		? MTP_paidReactionPrivacyDefault()
 		: MTP_paidReactionPrivacyPeer(
-			session->data().peer(*shownPeer)->input);
+			session->data().peer(*shownPeer)->input());
 }
 
 } // namespace
@@ -1061,7 +1061,7 @@ void Reactions::requestMyTags(SavedSublist *sublist) {
 	using Flag = MTPmessages_GetSavedReactionTags::Flag;
 	my.requestId = api.request(MTPmessages_GetSavedReactionTags(
 		MTP_flags(sublist ? Flag::f_peer : Flag()),
-		(sublist ? sublist->sublistPeer()->input : MTP_inputPeerEmpty()),
+		(sublist ? sublist->sublistPeer()->input() : MTP_inputPeerEmpty()),
 		MTP_long(my.hash)
 	)).done([=](const MTPmessages_SavedReactionTags &result) {
 		auto &my = _myTags[sublist];
@@ -1507,7 +1507,7 @@ void Reactions::send(not_null<HistoryItem*> item, bool addToRecent) {
 		| (addToRecent ? Flag::f_add_to_recent : Flag(0));
 	i->second = api.request(MTPmessages_SendReaction(
 		MTP_flags(flags),
-		item->history()->peer->input,
+		item->history()->peer->input(),
 		MTP_int(id.msg),
 		MTP_vector<MTPReaction>(chosen | ranges::views::filter([](
 				const ReactionId &id) {
@@ -1731,7 +1731,7 @@ void Reactions::pollCollected() {
 			}
 		};
 		_pollRequestId = api.request(MTPmessages_GetMessagesReactions(
-			peer->input,
+			peer->input(),
 			MTP_vector<MTPint>(ids)
 		)).done([=](const MTPUpdates &result) {
 			_owner->session().api().applyUpdates(result);
@@ -1835,7 +1835,7 @@ void Reactions::sendPaidPrivacyRequest(
 	auto &api = _owner->session().api();
 	const auto requestId = api.request(
 		MTPmessages_TogglePaidReactionPrivacy(
-			item->history()->peer->input,
+			item->history()->peer->input(),
 			MTP_int(id.msg),
 			PaidReactionShownPeerToTL(&_owner->session(), send.shownPeer))
 	).done([=] {
@@ -1872,7 +1872,7 @@ void Reactions::sendPaidRequest(
 	using Flag = MTPmessages_SendPaidReaction::Flag;
 	const auto requestId = api.request(MTPmessages_SendPaidReaction(
 		MTP_flags(send.shownPeer ? Flag::f_private : Flag()),
-		item->history()->peer->input,
+		item->history()->peer->input(),
 		MTP_int(id.msg),
 		MTP_int(send.count),
 		MTP_long(randomId),

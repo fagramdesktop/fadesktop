@@ -137,7 +137,7 @@ rpl::producer<MyGiftsDescriptor> MyUniqueGiftsSlice(
 				| ((type == MyUniqueType::OnlyOwned)
 					? Flag::f_exclude_hosted
 					: Flag())),
-			user->input,
+			user->input(),
 			MTP_int(0), // collection_id
 			MTP_string(offset),
 			MTP_int(kMyGiftsPerPage)

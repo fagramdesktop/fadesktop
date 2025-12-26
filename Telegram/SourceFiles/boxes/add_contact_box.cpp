@@ -126,7 +126,7 @@ void ChatCreateDone(
 void MustBePublicDestroy(not_null<ChannelData*> channel) {
 	const auto session = &channel->session();
 	session->api().request(MTPchannels_DeleteChannel(
-		channel->inputChannel
+		channel->inputChannel()
 	)).done([=](const MTPUpdates &result) {
 		session->api().applyUpdates(result);
 	}).send();
@@ -735,7 +735,7 @@ void GroupInfoBox::createGroup(
 		auto user = peer->asUser();
 		Assert(user != nullptr);
 		if (!user->isSelf()) {
-			inputs.push_back(user->inputUser);
+			inputs.push_back(user->inputUser());
 		}
 	}
 	_creationRequestId = _api.request(MTPmessages_CreateChat(
@@ -1034,7 +1034,7 @@ void SetupChannelBox::prepare() {
 	setMouseTracking(true);
 
 	_checkRequestId = _api.request(MTPchannels_CheckUsername(
-		_channel->inputChannel,
+		_channel->inputChannel(),
 		MTP_string("preston")
 	)).fail([=](const MTP::Error &error) {
 		_checkRequestId = 0;
@@ -1281,7 +1281,7 @@ void SetupChannelBox::save() {
 	const auto saveUsername = [&](const QString &link) {
 		_sentUsername = link;
 		_saveRequestId = _api.request(MTPchannels_UpdateUsername(
-			_channel->inputChannel,
+			_channel->inputChannel(),
 			MTP_string(_sentUsername)
 		)).done([=] {
 			const auto done = _done;
@@ -1365,7 +1365,7 @@ void SetupChannelBox::check() {
 	if (link.size() >= Ui::EditPeer::kMinUsernameLength) {
 		_checkUsername = link;
 		_checkRequestId = _api.request(MTPchannels_CheckUsername(
-			_channel->inputChannel,
+			_channel->inputChannel(),
 			MTP_string(link)
 		)).done([=](const MTPBool &result) {
 			_checkRequestId = 0;

@@ -2966,7 +2966,7 @@ void Account::writeExportSettings(const Export::Settings &settings) {
 		<< quint32(settings.format)
 		<< settings.path
 		<< quint32(settings.availableAt);
-	settings.singlePeer.match([&](const MTPDinputPeerUser & user) {
+	settings.singlePeer.match([&](const MTPDinputPeerUser &user) {
 		data.stream
 			<< kSinglePeerTypeUser
 			<< quint64(user.vuser_id().v)

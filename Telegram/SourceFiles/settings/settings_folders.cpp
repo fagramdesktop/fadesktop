@@ -730,7 +730,7 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 				auto inputs = ranges::views::all(
 					row.removePeers
 				) | ranges::views::transform([](not_null<PeerData*> peer) {
-					return MTPInputPeer(peer->input);
+					return MTPInputPeer(peer->input());
 				}) | ranges::to<QVector<MTPInputPeer>>();
 				removeChatlistRequests.push_back(
 					MTPchatlists_LeaveChatlist(

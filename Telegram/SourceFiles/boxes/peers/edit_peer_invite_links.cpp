@@ -803,7 +803,7 @@ void AdminsController::prepare() {
 		return;
 	}
 	_requestId = session().api().request(MTPmessages_GetAdminsWithInvites(
-		_peer->input
+		_peer->input()
 	)).done([=](const MTPmessages_ChatAdminsWithInvites &result) {
 		result.match([&](const MTPDmessages_chatAdminsWithInvites &data) {
 			auto &owner = _peer->owner();

@@ -91,7 +91,7 @@ FROM builder AS patches
 RUN git init patches \
 	&& cd patches \
 	&& git remote add origin https://github.com/desktop-app/patches.git \
-	&& git fetch --depth=1 origin 0b68b11048987a68d31b2d8380d9b7c5116aa961 \
+	&& git fetch --depth=1 origin 859556cab51d17585ff76d3db62ff1c7502bc850 \
 	&& git reset --hard FETCH_HEAD \
 	&& rm -rf .git
 
@@ -294,6 +294,7 @@ COPY --link --from=highway /usr/src/highway-cache /
 RUN git clone -b v0.11.1 --depth=1 https://github.com/libjxl/libjxl.git \
 	&& cd libjxl \
 	&& git submodule update --init --recursive --depth=1 third_party/libjpeg-turbo \
+	&& curl -sSL https://github.com/libjxl/libjxl/commit/ee3955b1553bcc10304d45b85dfef9afa9349d72.patch | sed 's/offset + t/offset + i/' | git apply \
 	&& cmake -B build . \
 		-DBUILD_SHARED_LIBS=OFF \
 		-DBUILD_TESTING=OFF \
@@ -731,7 +732,7 @@ COPY --link --from=xcb-cursor /usr/src/xcb-cursor-cache /
 COPY --link --from=openssl /usr/src/openssl-cache /
 COPY --link --from=xkbcommon /usr/src/xkbcommon-cache /
 
-ENV QT=6.10.0
+ENV QT=6.10.1
 RUN git clone -b v$QT --depth=1 https://github.com/qt/qt5.git \
 	&& cd qt5 \
 	&& git submodule update --init --recursive --depth=1 qtbase qtdeclarative qtwayland qtimageformats qtsvg qtshadertools \
@@ -747,7 +748,6 @@ RUN git clone -b v$QT --depth=1 https://github.com/qt/qt5.git \
 		-DFEATURE_sanitize_address=ON \
 {%- endif %}
 		-DQT_QPA_PLATFORMS="wayland;xcb" \
-		-DFEATURE_copy_file_range=OFF \
 		-DINPUT_libpng=qt \
 		-DINPUT_harfbuzz=qt \
 		-DINPUT_pcre=qt \

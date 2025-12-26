@@ -366,11 +366,11 @@ void PublicsController::rowRightActionClicked(not_null<PeerListRow*> row) {
 		}
 		*once = true;
 		peer->session().api().request(MTPchannels_UpdateUsername(
-			peer->asChannel()->inputChannel,
+			peer->asChannel()->inputChannel(),
 			MTP_string()
 		)).done([=] {
 			peer->session().api().request(MTPchannels_DeactivateAllUsernames(
-				peer->asChannel()->inputChannel
+				peer->asChannel()->inputChannel()
 			)).done([=] {
 				closeBox();
 				close();

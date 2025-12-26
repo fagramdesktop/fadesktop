@@ -602,7 +602,7 @@ void Set(
 						: Flag(0))
 					| Flag::f_background_emoji_id
 					| (values.forProfile ? Flag::f_for_profile : Flag(0))),
-				channel->inputChannel,
+				channel->inputChannel(),
 				MTP_int(values.colorIndex),
 				MTP_long(values.backgroundEmojiId)));
 		}
@@ -2776,7 +2776,7 @@ void CheckBoostLevel(
 		Fn<std::optional<Ui::AskBoostReason>(int level)> askMore,
 		Fn<void()> cancel) {
 	peer->session().api().request(MTPpremium_GetBoostsStatus(
-		peer->input
+		peer->input()
 	)).done([=](const MTPpremium_BoostsStatus &result) {
 		const auto &data = result.data();
 		if (const auto channel = peer->asChannel()) {

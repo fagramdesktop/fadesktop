@@ -553,7 +553,7 @@ void Controller::checkUsernameAvailability() {
 	const auto channel = _peer->migrateToOrMe()->asChannel();
 	const auto username = channel ? channel->editableUsername() : QString();
 	_checkUsernameRequestId = _api.request(MTPchannels_CheckUsername(
-		channel ? channel->inputChannel : MTP_inputChannelEmpty(),
+		channel ? channel->inputChannel() : MTP_inputChannelEmpty(),
 		MTP_string(checking)
 	)).done([=](const MTPBool &result) {
 		_checkUsernameRequestId = 0;
