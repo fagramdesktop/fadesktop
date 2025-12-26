@@ -1,11 +1,13 @@
 /*
-This file is part of Telegram Desktop,
-the official desktop application for the Telegram messaging service.
+This file is part of FAgram Desktop,
+the unofficial desktop client based on Telegram Desktop.
 
 For license and copyright information please follow this link:
-https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 */
 #include "api/api_peer_search.h"
+
+#include "fa/settings/fa_settings.h"
 
 #include "api/api_single_message_search.h"
 #include "apiwrap.h"
@@ -53,7 +55,8 @@ void PeerSearch::request(
 	}
 	cache.requested = true;
 	cache.result.query = _query;
-	if (_query.size() < kMinSponsoredQueryLength) {
+	if (_query.size() < kMinSponsoredQueryLength
+		|| FASettings::JsonSettings::GetBool("disable_ads")) {
 		cache.sponsoredReady = true;
 	} else if (_type == Type::WithSponsored) {
 		requestSponsored();
