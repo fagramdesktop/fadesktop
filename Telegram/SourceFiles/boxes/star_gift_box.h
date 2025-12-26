@@ -94,6 +94,12 @@ void AddWearGiftCover(
 	const Data::UniqueGift &data,
 	not_null<PeerData*> peer);
 
+void AttachGiftSenderBadge(
+	not_null<GenericBox*> box,
+	std::shared_ptr<ChatHelpers::Show> show,
+	not_null<PeerData*> from,
+	const QDateTime &date);
+
 void ShowUniqueGiftWearBox(
 	std::shared_ptr<ChatHelpers::Show> show,
 	not_null<PeerData*> peer,

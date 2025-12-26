@@ -1305,7 +1305,7 @@ void GroupCall::start(TimeId scheduleDate, bool rtmp) {
 	_createRequestId = _api.request(MTPphone_CreateGroupCall(
 		MTP_flags((scheduleDate ? Flag::f_schedule_date : Flag(0))
 			| (rtmp ? Flag::f_rtmp_stream : Flag(0))),
-		_peer->input,
+		_peer->input(),
 		MTP_int(base::RandomValue<int32>()),
 		MTPstring(), // title
 		MTP_int(scheduleDate)
@@ -1584,8 +1584,8 @@ void GroupCall::setJoinAs(not_null<PeerData*> as) {
 void GroupCall::saveDefaultJoinAs(not_null<PeerData*> as) {
 	setJoinAs(as);
 	_api.request(MTPphone_SaveDefaultGroupCallJoinAs(
-		_peer->input,
-		joinAs()->input
+		_peer->input(),
+		joinAs()->input()
 	)).send();
 }
 
@@ -1664,7 +1664,7 @@ void GroupCall::sendJoinRequest() {
 	_api.request(MTPphone_JoinGroupCall(
 		MTP_flags(flags),
 		inputCallSafe(),
-		joinAs()->input,
+		joinAs()->input(),
 		MTP_string(_joinHash),
 		(_e2e ? TdE2E::PublicKeyToMTP(_e2e->myKey()) : MTPint256()),
 		MTP_bytes(joinBlock),
@@ -3915,7 +3915,7 @@ void GroupCall::sendSelfUpdate(SendUpdateType type) {
 			? Flag::f_presentation_paused
 			: Flag::f_muted),
 		inputCall(),
-		joinAs()->input,
+		joinAs()->input(),
 		MTP_bool(muted() != MuteState::Active),
 		MTP_int(100000), // volume
 		MTP_bool(muted() == MuteState::RaisedHand),
@@ -4012,7 +4012,7 @@ void GroupCall::editParticipant(
 	_api.request(MTPphone_EditGroupCallParticipant(
 		MTP_flags(flags),
 		inputCall(),
-		participantPeer->input,
+		participantPeer->input(),
 		MTP_bool(mute),
 		MTP_int(std::clamp(volume.value_or(0), 1, Group::kMaxVolume)),
 		MTPBool(), // raise_hand
@@ -4039,7 +4039,7 @@ void GroupCall::inviteToConference(
 	_api.request(MTPphone_InviteConferenceCallParticipant(
 		MTP_flags(request.video ? Flag::f_video : Flag()),
 		inputCall(),
-		user->inputUser
+		user->inputUser()
 	)).done([=](const MTPUpdates &result) {
 		const auto call = _sharedCall.get();
 		user->owner().registerInvitedToCallUser(_id, call, user, true);
@@ -4129,7 +4129,7 @@ void GroupCall::inviteUsers(
 		const auto user = request.user;
 		owner->registerInvitedToCallUser(_id, _peer, user, false);
 		usersSlice.push_back(user);
-		slice.push_back(user->inputUser);
+		slice.push_back(user->inputUser());
 		if (slice.size() == kMaxInvitePerSlice) {
 			sendSlice();
 		}

@@ -1,3 +1,10 @@
+6.3.10 beta (22.12.25)
+
+- Fix user info showing from large group messages.
+- Fix sent state of outgoing messages in forums.
+- Show who sent your unique collectible gifts.
+- Update Qt on all platforms.
+
 6.3.9 (15.12.25)
 
 - Fix possible crash in audio playback speed menu.

@@ -194,9 +194,9 @@ namespace Media::Stories {
 				randomId,
 				Data::Histories::PrepareMessage<MTPmessages_SendMedia>(
 					MTP_flags(sendFlags),
-					threadPeer->input,
+					threadPeer->input(),
 					Data::Histories::ReplyToPlaceholder(),
-					MTP_inputMediaStory(peer->input, MTP_int(id.story)),
+					MTP_inputMediaStory(peer->input(), MTP_int(id.story)),
 					MTPstring(),
 					MTP_long(randomId),
 					MTPReplyMarkup(),

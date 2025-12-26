@@ -349,7 +349,7 @@ void Call::startOutgoing() {
 		: MTPphone_RequestCall::Flag(0);
 	_api.request(MTPphone_RequestCall(
 		MTP_flags(flags),
-		_user->inputUser,
+		_user->inputUser(),
 		MTP_int(base::RandomValue<int32>()),
 		MTP_bytes(_gaHash),
 		MTP_phoneCallProtocol(

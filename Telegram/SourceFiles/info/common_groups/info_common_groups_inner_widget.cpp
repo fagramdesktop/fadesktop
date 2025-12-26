@@ -98,7 +98,7 @@ void ListController::loadMoreRows() {
 		return;
 	}
 	_preloadRequestId = _api.request(MTPmessages_GetCommonChats(
-		_user->inputUser,
+		_user->inputUser(),
 		MTP_long(peerIsChat(_preloadGroupId)
 			? peerToChat(_preloadGroupId).bare
 			: peerToChannel(_preloadGroupId).bare),

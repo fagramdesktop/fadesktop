@@ -257,6 +257,9 @@ rpl::producer<Badge::Content> BadgeContentForPeer(not_null<PeerData*> peer) {
 		BadgeValue(peer),
 		EmojiStatusIdValue(peer)
 	) | rpl::map([=](BadgeType badge, EmojiStatusId emojiStatusId) {
+		if (emojiStatusId.collectible) {
+			return Badge::Content{ BadgeType::Premium, emojiStatusId };
+		}
 		if (badge == BadgeType::Verified) {
 			badge = BadgeType::None;
 		}

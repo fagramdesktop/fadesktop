@@ -109,7 +109,7 @@ void TopPeers::remove(not_null<PeerData*> peer) {
 
 	_requestId = _session->api().request(MTPcontacts_ResetTopPeerRating(
 		TypeToCategory(_type),
-		peer->input
+		peer->input()
 	)).send();
 }
 

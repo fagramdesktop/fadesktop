@@ -79,7 +79,7 @@ void RecentSharedMediaGifts::request(
 	_recent[peer->id].requestId = peer->session().api().request(
 		MTPpayments_GetSavedStarGifts(
 			MTP_flags(0),
-			peer->input,
+			peer->input(),
 			MTP_int(0), // collection_id
 			MTP_string(QString()),
 			MTP_int(kMaxPinnedGifts)
@@ -128,7 +128,7 @@ void RecentSharedMediaGifts::updatePinnedOrder(
 	}
 
 	_session->api().request(MTPpayments_ToggleStarGiftsPinnedToTop(
-		peer->input,
+		peer->input(),
 		MTP_vector<MTPInputSavedStarGift>(std::move(inputs))
 	)).done([=] {
 		auto result = std::deque<SavedStarGift>();

@@ -668,7 +668,7 @@ void BackgroundPreviewBox::setExistingForPeer(
 			| (_fromMessageId ? Flag() : Flag::f_wallpaper)
 			| (both ? Flag::f_for_both : Flag())
 			| Flag::f_settings),
-		_forPeer->input,
+		_forPeer->input(),
 		paper.mtpInput(&_controller->session()),
 		paper.mtpSettings(),
 		MTP_int(_fromMessageId.msg)

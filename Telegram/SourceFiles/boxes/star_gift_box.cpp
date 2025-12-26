@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_global_privacy.h"
 #include "api/api_premium.h"
 #include "api/api_text_entities.h"
+//#include "base/call_delayed.h"
 #include "base/event_filter.h"
 #include "base/qt_signal_producer.h"
 #include "base/random.h"
@@ -36,6 +37,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "chat_helpers/tabbed_panel.h"
 #include "chat_helpers/tabbed_selector.h"
 #include "core/application.h"
+#include "core/click_handler_types.h"
 #include "core/ui_integration.h"
 #include "data/components/gift_auctions.h"
 #include "data/components/promo_suggestions.h"
@@ -1475,7 +1477,7 @@ void GiftUpgrade(
 	RequestStarsFormAndSubmit(
 		window->uiShow(),
 		MTP_inputInvoiceStarGiftPrepaidUpgrade(
-			peer->input,
+			peer->input(),
 			MTP_string(giftPrepayUpgradeHash)),
 		std::move(formDone));
 }
@@ -1820,7 +1822,7 @@ void CheckMaybeGiftLocked(
 						window->uiShow(),
 						MTP_inputInvoiceStarGiftTransfer(
 							Api::InputSavedStarGiftId(savedId, unique),
-							peer->input),
+							peer->input()),
 						formReady);
 				} else if (star && star->resale) {
 					const auto id = star->info.id;
@@ -3919,6 +3921,107 @@ void AddWearGiftCover(
 	}, cover->lifetime());
 }
 
+void AttachGiftSenderBadge(
+		not_null<GenericBox*> box,
+		std::shared_ptr<ChatHelpers::Show> show,
+		not_null<PeerData*> from,
+		const QDateTime &date) {
+	const auto parent = box->getDelegate()->outerContainer();
+
+	const auto dateText = tr::bold(langDayOfMonth(date.date()));
+	const auto badge = CreateChild<FlatLabel>(
+		parent,
+		(from->isSelf()
+			? tr::lng_gift_unique_sender_you(
+				lt_date,
+				rpl::single(dateText),
+				tr::marked)
+			: tr::lng_gift_unique_sender(
+				lt_from,
+				rpl::single(tr::link(tr::bold(from->shortName()), 1)),
+				lt_date,
+				rpl::single(dateText),
+				tr::marked)),
+		st::uniqueGiftSenderBadge);
+
+	badge->paintOn([=](QPainter &p) {
+		auto hq = PainterHighQualityEnabler(p);
+		p.setBrush(st::radialBg);
+		p.setPen(Qt::NoPen);
+		const auto radius = badge->height() / 2.;
+		p.drawRoundedRect(badge->rect(), radius, radius);
+	});
+	badge->setLink(1, std::make_shared<LambdaClickHandler>([=] {
+		if (const auto window = show->resolveWindow()) {
+			window->showPeerHistory(from);
+		}
+	}));
+
+	auto widget = static_cast<QWidget*>(box);
+	while (widget->parentWidget() && widget->parentWidget() != parent) {
+		widget = widget->parentWidget();
+	}
+
+	const auto updateGeometry = [=] {
+		const auto outer = parent->rect();
+		const auto margin = st::msgServiceMargin;
+		const auto padding = st::msgServicePadding;
+		const auto available = outer.marginsRemoved(margin).width();
+		badge->resizeToWidth(std::min(
+			available - padding.left() - padding.right(),
+			badge->textMaxWidth()));
+		const auto inner = Ui::MapFrom(parent, box, box->rect());
+		const auto top = std::max(
+			inner.y() - badge->height() - margin.top(),
+			outer.y() + (margin.top() * 2));
+		const auto left = margin.left() + (available - badge->width()) / 2;
+		badge->move(left, top);
+	};
+	badge->naturalWidthValue(
+	) | rpl::on_next(updateGeometry, badge->lifetime());
+	for (auto w = static_cast<QWidget*>(box)
+		; w != widget
+		; w = w->parentWidget()) {
+		base::install_event_filter(w, [=](not_null<QEvent*> e) {
+			const auto type = e->type();
+			if (type == QEvent::Move || type == QEvent::Resize) {
+				PostponeCall(badge, updateGeometry);
+			}
+			return base::EventFilterResult::Continue;
+		});
+	}
+
+	base::install_event_filter(widget, [=](not_null<QEvent*> e) {
+		const auto type = e->type();
+		if (type == QEvent::Show) {
+			badge->show();
+		} else if (type == QEvent::Hide) {
+			badge->hide();
+		} else if (type == QEvent::Move || type == QEvent::Resize) {
+			PostponeCall(badge, updateGeometry);
+		} else if (type == QEvent::ZOrderChange) {
+			PostponeCall(badge, [=] { badge->raise(); });
+		}
+		return base::EventFilterResult::Continue;
+	});
+	badge->setVisible(!widget->isHidden());
+
+	base::install_event_filter(parent, [=](not_null<QEvent*> e) {
+		const auto type = e->type();
+		if (type == QEvent::ChildAdded) {
+			PostponeCall(badge, [=] { badge->raise(); });
+		} else if (e->type() == QEvent::Resize) {
+			PostponeCall(badge, updateGeometry);
+		}
+		return base::EventFilterResult::Continue;
+	});
+	badge->raise();
+
+	box->boxClosing() | rpl::on_next([=] {
+		delete badge;
+	}, badge->lifetime());
+}
+
 void ShowUniqueGiftWearBox(
 		std::shared_ptr<ChatHelpers::Show> show,
 		not_null<PeerData*> peer,
@@ -4356,7 +4459,7 @@ void SendOfferBuyGift(
 	using Flag = MTPpayments_SendStarGiftOffer::Flag;
 	show->session().api().request(MTPpayments_SendStarGiftOffer(
 		MTP_flags(starsPerMessage ? Flag::f_allow_paid_stars : Flag()),
-		owner->input,
+		owner->input(),
 		MTP_string(unique->slug),
 		StarsAmountToTL(options.price()),
 		MTP_int(options.offerDuration),

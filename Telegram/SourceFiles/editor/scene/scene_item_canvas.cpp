@@ -126,13 +126,16 @@ void ItemCanvas::renderSegment(
 		}
 	}
 	path.lineTo(points.back().pos);
-	const auto avgPressure = std::accumulate(
-		points.begin() + std::max(0, startIdx),
-		points.end(),
-		0.0,
-		[](float64 sum, const StrokePoint &p) {
-			return sum + p.pressure;
-		}) / (points.size() - std::max(0, startIdx));
+	const auto count = points.size() - std::max(0, startIdx);
+	const auto avgPressure = count > 0
+		? std::accumulate(
+			points.begin() + std::max(0, startIdx),
+			points.end(),
+			0.0,
+			[](float64 sum, const StrokePoint &p) {
+				return sum + p.pressure;
+			}) / count
+		: 1.0;
 	const auto width = _brushData.size * avgPressure;
 	auto stroker = QPainterPathStroker();
 	stroker.setWidth(width);
@@ -164,7 +167,9 @@ void ItemCanvas::drawIncrementalStroke() {
 	renderSegment(
 		segment,
 		std::min(kSegmentOverlap, int(segment.size()) - 1));
-	_lastRenderedIndex = _currentStroke.size() - kSegmentOverlap;
+	_lastRenderedIndex = std::max(
+		0,
+		int(_currentStroke.size()) - kSegmentOverlap);
 }
 
 void ItemCanvas::addStrokePoint(const QPointF &point, int64 time) {
@@ -194,7 +199,7 @@ void ItemCanvas::addStrokePoint(const QPointF &point, int64 time) {
 		}
 	}
 	const auto timeDelta = _lastPointTime
-		? (time - _lastPointTime)
+		? std::max(int64(1), time - _lastPointTime)
 		: kBatchUpdateInterval;
 	const auto speed = !_currentStroke.empty()
 		? PointDistance(point, _currentStroke.back().pos) / timeDelta

@@ -353,7 +353,7 @@ void Stories::requestPeerStories(
 		}
 	};
 	_owner->session().api().request(MTPstories_GetPeerStories(
-		peer->input
+		peer->input()
 	)).done([=](const MTPstories_PeerStories &result) {
 		const auto &data = result.data();
 		_owner->processUsers(data.vusers());
@@ -870,7 +870,7 @@ void Stories::sendResolveRequests() {
 		};
 		const auto peer = _owner->session().data().peer(peerId);
 		api->request(MTPstories_GetStoriesByID(
-			peer->input,
+			peer->input(),
 			MTP_vector<MTPint>(prepared)
 		)).done([=](const MTPstories_Stories &result) {
 			owner().processUsers(result.data().vusers());
@@ -1111,7 +1111,7 @@ void Stories::sendReaction(FullStoryId id, Data::ReactionId reaction) {
 		const auto api = &session().api();
 		api->request(MTPstories_SendReaction(
 			MTP_flags(0),
-			story->peer()->input,
+			story->peer()->input(),
 			MTP_int(id.story),
 			ReactionToMTP(reaction)
 		)).send();
@@ -1338,7 +1338,7 @@ void Stories::toggleHidden(
 			peer->setStoriesHidden(hidden);
 		}
 		session().api().request(MTPstories_TogglePeerStoriesHidden(
-			peer->input,
+			peer->input(),
 			MTP_bool(hidden)
 		)).send();
 		if (byHints) {
@@ -1421,7 +1421,7 @@ void Stories::sendMarkAsReadRequest(
 
 	const auto api = &_owner->session().api();
 	api->request(MTPstories_ReadStories(
-		peer->input,
+		peer->input(),
 		MTP_int(tillId)
 	)).done(finish).fail(finish).send();
 }
@@ -1482,7 +1482,7 @@ void Stories::sendIncrementViewsRequests() {
 			checkQuitPreventFinished();
 		};
 		api->request(MTPstories_IncrementStoryViews(
-			_owner->peer(peer)->input,
+			_owner->peer(peer)->input(),
 			MTP_vector<MTPint>(std::move(ids))
 		)).done(finish).fail(finish).send();
 		_incrementViewsPending.remove(peer);
@@ -1542,7 +1542,7 @@ void Stories::loadReactionsSlice(
 	_owner->session().api().request(_reactionsRequestId).cancel();
 	_reactionsRequestId = api->request(MTPstories_GetStoryReactionsList(
 		MTP_flags(offset.isEmpty() ? Flag() : Flag::f_offset),
-		_reactionsStoryPeer->input,
+		_reactionsStoryPeer->input(),
 		MTP_int(_reactionsStoryId),
 		MTPReaction(),
 		MTP_string(_reactionsOffset),
@@ -1616,7 +1616,7 @@ void Stories::sendViewsSliceRequest() {
 	_owner->session().api().request(_viewsRequestId).cancel();
 	_viewsRequestId = api->request(MTPstories_GetStoryViewsList(
 		MTP_flags(Flag::f_reactions_first),
-		_viewsStoryPeer->input,
+		_viewsStoryPeer->input(),
 		MTPstring(), // q
 		MTP_int(_viewsStoryId),
 		MTP_string(_viewsOffset),
@@ -1692,7 +1692,7 @@ void Stories::sendViewsCountsRequest() {
 	const auto api = &_owner->session().api();
 	_owner->session().api().request(_viewsRequestId).cancel();
 	_viewsRequestId = api->request(MTPstories_GetStoriesViews(
-		_viewsStoryPeer->input,
+		_viewsStoryPeer->input(),
 		MTP_vector<MTPint>(1, MTP_int(_viewsStoryId))
 	)).done([=](const MTPstories_StoryViews &result) {
 		_viewsRequestId = 0;
@@ -1864,18 +1864,18 @@ void Stories::albumIdsLoadMore(PeerId peerId, int albumId, bool reload) {
 	};
 	set->requestId = (albumId == kStoriesAlbumIdArchive)
 		? api->request(MTPstories_GetStoriesArchive(
-			peer->input,
+			peer->input(),
 			MTP_int(set->lastId),
 			MTP_int(set->lastId ? kArchivePerPage : kArchiveFirstPerPage)
 		)).done(done).fail(fail).send()
 		: (albumId == kStoriesAlbumIdSaved)
 		? api->request(MTPstories_GetPinnedStories(
-			peer->input,
+			peer->input(),
 			MTP_int(set->lastId),
 			MTP_int(set->lastId ? kSavedPerPage : kSavedFirstPerPage)
 		)).done(done).fail(fail).send()
 		: api->request(MTPstories_GetAlbumStories(
-			peer->input,
+			peer->input(),
 			MTP_int(albumId),
 			MTP_int(reload ? 0 : set->ids.list.size()),
 			MTP_int((reload || set->ids.list.empty())
@@ -1912,7 +1912,7 @@ void Stories::loadAlbums(not_null<PeerData*> peer, Albums &albums) {
 	const auto api = &_owner->session().api();
 	api->request(base::take(albums.requestId)).cancel();
 	albums.requestId = api->request(MTPstories_GetAlbums(
-		peer->input,
+		peer->input(),
 		MTP_long(albums.hash)
 	)).done([=](const MTPstories_Albums &result) {
 		auto &albums = _albums[peer->id];
@@ -1946,7 +1946,7 @@ void Stories::albumCreate(
 		ids.push_back(MTP_int(addId));
 	}
 	_owner->session().api().request(MTPstories_CreateAlbum(
-		peer->input,
+		peer->input(),
 		MTP_string(title),
 		MTP_vector<MTPint>(ids)
 	)).done([=](const MTPStoryAlbum &result) {
@@ -1975,7 +1975,7 @@ void Stories::albumRename(
 	using Flag = MTPstories_UpdateAlbum::Flag;
 	_owner->session().api().request(MTPstories_UpdateAlbum(
 		MTP_flags(Flag::f_title),
-		peer->input,
+		peer->input(),
 		MTP_int(id),
 		MTP_string(title),
 		MTPVector<MTPint>(),
@@ -2000,7 +2000,7 @@ void Stories::albumRename(
 
 void Stories::albumDelete(not_null<PeerData*> peer, int id) {
 	_owner->session().api().request(MTPstories_DeleteAlbum(
-		peer->input,
+		peer->input(),
 		MTP_int(id)
 	)).send();
 
@@ -2060,7 +2060,7 @@ void Stories::albumReorderStories(
 	_reorderStoriesRequestId = _owner->session().api().request(
 		MTPstories_UpdateAlbum(
 			MTP_flags(MTPstories_UpdateAlbum::Flag::f_order),
-			peer->input,
+			peer->input(),
 			MTP_int(albumId),
 			MTPstring(),
 			MTPVector<MTPint>(),
@@ -2155,7 +2155,7 @@ void Stories::deleteList(const std::vector<FullStoryId> &ids) {
 	}
 	const auto api = &_owner->session().api();
 	api->request(MTPstories_DeleteStories(
-		peer->input,
+		peer->input(),
 		MTP_vector<MTPint>(list)
 	)).done([=](const MTPVector<MTPint> &result) {
 		for (const auto &id : result.v) {
@@ -2183,7 +2183,7 @@ void Stories::toggleInProfileList(
 	}
 	const auto api = &_owner->session().api();
 	api->request(MTPstories_TogglePinned(
-		peer->input,
+		peer->input(),
 		MTP_vector<MTPint>(list),
 		MTP_bool(inProfile)
 	)).done([=](const MTPVector<MTPint> &result) {
@@ -2286,7 +2286,7 @@ void Stories::togglePinnedList(
 	const auto api = &_owner->session().api();
 	const auto peer = session().data().peer(peerId);
 	api->request(MTPstories_TogglePinnedToTop(
-		peer->input,
+		peer->input(),
 		MTP_vector<MTPint>(list)
 	)).done([=] {
 		setPinnedToTop(peerId, list

@@ -61,7 +61,7 @@ constexpr auto ByDocument = [](const auto &entry) {
 	if (const auto user = peer->asUser()) {
 		return user->accessHash();
 	} else if (const auto channel = peer->asChannel()) {
-		return channel->access;
+		return channel->accessHash();
 	}
 	return 0;
 }

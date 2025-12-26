@@ -1152,7 +1152,7 @@ void GroupCall::saveSendAs(not_null<PeerData*> peer) {
 	_savedSendAs = peer;
 	api().request(MTPphone_SaveDefaultSendAs(
 		input(),
-		peer->input
+		peer->input()
 	)).send();
 }
 

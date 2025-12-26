@@ -1,5 +1,6 @@
 2.1.0 (25.12.25)
 
+- Update tdesktop to v6.3.10.beta
 - Added support for tg://chat?id= links, similar to tg://user?id=, but for groups and channels.
 - Use FAgram title on more UI-visible occurrences
 - Removed TZ info from message time
@@ -7,6 +8,7 @@
 - Added support tg://openmessage?chat_id=
 - Updated changelog service notification
 - Fix overall behaviour of context menu shortcuts mode
+- Fix disable ads on global search results
 
 2.0.9 (16.12.25)
 

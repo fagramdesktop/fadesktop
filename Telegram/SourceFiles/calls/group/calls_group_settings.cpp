@@ -694,7 +694,7 @@ void SettingsBox(
 			state->requestId = session->api().request(
 				MTPphone_GetGroupCallStreamRtmpUrl(
 					MTP_flags(0),
-					peer->input,
+					peer->input(),
 					MTP_bool(true)
 			)).done([=](const MTPphone_GroupCallStreamRtmpUrl &result) {
 				auto data = result.match([&](

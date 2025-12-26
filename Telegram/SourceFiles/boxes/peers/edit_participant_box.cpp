@@ -592,7 +592,7 @@ void EditAdminBox::transferOwnership() {
 	}
 
 	const auto channel = peer()->isChannel()
-		? peer()->asChannel()->inputChannel
+		? peer()->asChannel()->inputChannel()
 		: MTP_inputChannelEmpty();
 	const auto api = &peer()->session().api();
 	api->cloudPassword().reload();
@@ -680,8 +680,8 @@ void EditAdminBox::sendTransferRequestFrom(
 	const auto user = this->user();
 	const auto api = &channel->session().api();
 	_transferRequestId = api->request(MTPchannels_EditCreator(
-		channel->inputChannel,
-		user->inputUser,
+		channel->inputChannel(),
+		user->inputUser(),
 		result.result
 	)).done([=](const MTPUpdates &result) {
 		api->applyUpdates(result);

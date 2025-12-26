@@ -270,8 +270,8 @@ void Resolve(
 		not_null<UserData*> bot,
 		Fn<void(std::optional<ConnectedBotState>)> done) {
 	peer->session().api().request(MTPpayments_GetConnectedStarRefBot(
-		peer->input,
-		bot->inputUser
+		peer->input(),
+		bot->inputUser()
 	)).done([=](const MTPpayments_ConnectedStarRefBots &result) {
 		const auto parsed = Parse(&peer->session(), result);
 		if (parsed.empty()) {
@@ -358,7 +358,7 @@ void ListController::loadMoreRows() {
 				MTP_flags(Flag()
 					| (_offsetDate ? Flag::f_offset_date : Flag())
 					| (_offsetThing.isEmpty() ? Flag() : Flag::f_offset_link)),
-				_peer->input,
+				_peer->input(),
 				MTP_int(_offsetDate),
 				MTP_string(_offsetThing),
 				MTP_int(kPerPage))
@@ -390,7 +390,7 @@ void ListController::loadMoreRows() {
 					: (_sort == SuggestedSort::Date)
 					? Flag::f_order_by_date
 					: Flag()),
-				_peer->input,
+				_peer->input(),
 				MTP_string(_offsetThing),
 				MTP_int(kPerPage))
 		).done([=](const MTPpayments_SuggestedStarRefBots &result) {
@@ -595,7 +595,7 @@ void RevokeLink(
 		Fn<void()> revoked) {
 	peer->session().api().request(MTPpayments_EditConnectedStarRefBot(
 		MTP_flags(MTPpayments_EditConnectedStarRefBot::Flag::f_revoked),
-		peer->input,
+		peer->input(),
 		MTP_string(link)
 	)).done([=] {
 		controller->showToast({

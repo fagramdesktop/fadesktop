@@ -1,17 +1,17 @@
-name: Linux
+name: Build Linux
 
 on:
   workflow_dispatch:
     inputs:
       tagname:
-        description: 'tagname'
+        description: "tagname"
         type: string
         required: true
       build_type:
-        description: 'Build type'
+        description: "Build type"
         type: choice
         required: true
-        default: 'ci'
+        default: "ci"
         options:
           - ci
           - rel
@@ -64,7 +64,7 @@ jobs:
         run: |
           cd out/install
           tar -czvf fagram-${{ env.TAGNAME }}.tar.gz usr
-          
+
       - name: Extract changelog for release
         if: github.event.inputs.build_type == 'rel'
         run: |
@@ -78,10 +78,10 @@ jobs:
           }
           found && /^-/ { print; }
           found && /^—/ { print; }' changelog.txt > body.txt
-          
+
           echo "Release body:"
           cat body.txt
-          
+
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:

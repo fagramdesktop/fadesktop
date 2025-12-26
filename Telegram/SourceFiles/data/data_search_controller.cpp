@@ -83,7 +83,7 @@ std::optional<GlobalMediaRequest> PrepareGlobalMediaRequest(
 		MTP_int(maxDate),
 		MTP_int(offsetRate),
 		(offsetPosition.fullId.peer
-			? session->data().peer(PeerId(offsetPosition.fullId.peer))->input
+			? session->data().peer(PeerId(offsetPosition.fullId.peer))->input()
 			: MTP_inputPeerEmpty()),
 		MTP_int(offsetPosition.fullId.msg),
 		MTP_int(limit));
@@ -171,11 +171,11 @@ std::optional<SearchRequest> PrepareSearchRequest(
 	return MTPmessages_Search(
 		MTP_flags((topicRootId ? Flag::f_top_msg_id : Flag(0))
 			| (monoforumPeerId ? Flag::f_saved_peer_id : Flag(0))),
-		peer->input,
+		peer->input(),
 		MTP_string(query),
 		MTP_inputPeerEmpty(),
 		(monoforumPeerId
-			? peer->owner().peer(monoforumPeerId)->input
+			? peer->owner().peer(monoforumPeerId)->input()
 			: MTPInputPeer()),
 		MTPVector<MTPReaction>(), // saved_reaction
 		MTP_int(topicRootId),
@@ -311,7 +311,7 @@ HistoryRequest PrepareHistoryRequest(
 		int64(0),
 		int64(0x3FFFFFFF)));
 	return MTPmessages_GetHistory(
-		peer->input,
+		peer->input(),
 		MTP_int(mtpOffsetId),
 		MTP_int(offsetDate),
 		MTP_int(addOffset),

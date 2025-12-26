@@ -1783,13 +1783,13 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 				threadHistory->sendRequestId = api.request(
 					MTPmessages_ForwardMessages(
 						MTP_flags(sendFlags),
-						history->peer->input,
+						history->peer->input(),
 						MTP_vector<MTPint>(mtpMsgIds),
 						MTP_vector<MTPlong>(generateRandom()),
-						peer->input,
+						peer->input(),
 						MTP_int(topMsgId),
 						(sublistPeer
-							? MTP_inputReplyToMonoForum(sublistPeer->input)
+							? MTP_inputReplyToMonoForum(sublistPeer->input())
 							: MTPInputReplyTo()),
 						MTP_int(options.scheduled),
 						MTP_int(options.scheduleRepeatPeriod),

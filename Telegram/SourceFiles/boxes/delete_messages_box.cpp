@@ -634,8 +634,8 @@ void DeleteMessagesBox::deleteAndClear() {
 		if (_reportSpam->checked()) {
 			_moderateInChannel->session().api().request(
 				MTPchannels_ReportSpam(
-					_moderateInChannel->inputChannel,
-					_moderateFrom->input,
+					_moderateInChannel->inputChannel(),
+					_moderateFrom->input(),
 					MTP_vector<MTPint>(1, MTP_int(_ids[0].msg)))
 			).send();
 		}

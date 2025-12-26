@@ -281,7 +281,7 @@ void EmojiInteractions::sendAccumulatedOutgoing(
 	const auto emoji = from->emoji;
 	const auto requestId = _session->api().request(MTPmessages_SetTyping(
 		MTP_flags(0),
-		peer->input,
+		peer->input(),
 		MTPint(), // top_msg_id
 		MTP_sendMessageEmojiInteraction(
 			MTP_string(from->emoticon),
@@ -426,7 +426,7 @@ void EmojiInteractions::playStarted(not_null<PeerData*> peer, QString emoji) {
 	}
 	_session->api().request(MTPmessages_SetTyping(
 		MTP_flags(0),
-		peer->input,
+		peer->input(),
 		MTPint(), // top_msg_id
 		MTP_sendMessageEmojiInteractionSeen(MTP_string(emoji))
 	)).send();

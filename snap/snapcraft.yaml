@@ -121,7 +121,7 @@ parts:
   patches:
     source: https://github.com/desktop-app/patches.git
     source-depth: 1
-    source-commit: 0b68b11048987a68d31b2d8380d9b7c5116aa961
+    source-commit: 859556cab51d17585ff76d3db62ff1c7502bc850
     plugin: nil
     override-pull: |
       craftctl default
@@ -343,6 +343,9 @@ parts:
       - -DJPEGXL_FORCE_SYSTEM_BROTLI=ON
       - -DJPEGXL_FORCE_SYSTEM_LCMS2=ON
       - -DJPEGXL_FORCE_SYSTEM_HWY=ON
+    override-pull: |
+      craftctl default
+      curl -sSL https://github.com/libjxl/libjxl/commit/ee3955b1553bcc10304d45b85dfef9afa9349d72.patch | sed 's/offset + t/offset + i/' | git apply
     override-build: |
       craftctl default
       cp lib/libjpegli-static.a "$CRAFT_PART_INSTALL"/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libjpeg.a
@@ -398,7 +401,7 @@ parts:
   qt:
     source: https://github.com/qt/qt5.git
     source-depth: 1
-    source-tag: v6.10.0
+    source-tag: v6.10.1
     source-submodules:
       - qtbase
       - qtdeclarative
@@ -431,7 +434,6 @@ parts:
       - -DINSTALL_LIBDIR=/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
       - -DBUILD_SHARED_LIBS=OFF
       - -DQT_QPA_PLATFORMS="wayland;xcb"
-      - -DFEATURE_copy_file_range=OFF
       - -DFEATURE_eglfs=OFF
       - -DINPUT_openssl=linked
     override-pull: |

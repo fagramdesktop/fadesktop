@@ -50,12 +50,14 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 		},
 	    {
 			2001000,
+			"- Updated to tdesktop v6.3.10.beta\n"
 			"- Added support for tg://chat?id= links, similar to tg://user?id=, but for groups and channels.\n"
 			"- Use FAgram title on more UI-visible occurrences\n"
 			"- Removed TZ info from message time\n"
 			"- Fix quote & reply on context menu shortcuts mode\n"
 			"- Added support tg://openmessage?chat_id=\n"
 			"- Updated changelog service notification\n"
+			"- Fix disable ads on global search results\n"
 			"- Fix overall behaviour of context menu shortcuts mode\n\n"
 			"@FAgramDesktop\n"
 		},

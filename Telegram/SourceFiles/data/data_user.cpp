@@ -36,6 +36,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_wall_paper.h"
 #include "data/notify/data_notify_settings.h"
 #include "history/history.h"
+#include "history/history_item.h"
 #include "api/api_peer_photo.h"
 #include "apiwrap.h"
 #include "lang/lang_keys.h"
@@ -318,6 +319,24 @@ void UserData::setPersonalChannel(ChannelId channelId, MsgId messageId) {
 		_personalChannelMessageId = messageId;
 		session().changes().peerUpdated(this, UpdateFlag::PersonalChannel);
 	}
+}
+
+MTPInputUser UserData::inputUser() const {
+	const auto item = isLoaded() ? nullptr : owner().messageWithPeer(id);
+	if (item) {
+		const auto peer = item->history()->peer;
+		Assert(peer.get() != this);
+
+		return MTP_inputUserFromMessage(
+			item->history()->peer->input(),
+			MTP_int(item->id.bare),
+			MTP_long(peerToUser(id).bare));
+	} else if (isSelf()) {
+		return MTP_inputUserSelf();
+	}
+	return MTP_inputUser(
+		MTP_long(peerToUser(id).bare),
+		MTP_long(_accessHash));
 }
 
 void UserData::setName(

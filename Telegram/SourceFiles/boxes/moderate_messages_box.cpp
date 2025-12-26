@@ -280,8 +280,8 @@ void CreateModerateMessagesBox(
 			}) | ranges::to<QVector<MTPint>>();
 			c->session().api().request(
 				MTPchannels_ReportSpam(
-					c->inputChannel,
-					p->input,
+					c->inputChannel(),
+					p->input(),
 					MTP_vector<MTPint>(std::move(filtered)))
 			).send();
 		});

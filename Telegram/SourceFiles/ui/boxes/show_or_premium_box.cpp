@@ -133,30 +133,11 @@ void ShowOrPremiumBox(
 				- Size(st::showOrTitleIconMargin * 2),
 		},
 		{ 0, st::showOrTitleIconMargin, 0, st::showOrTitleIconMargin });
-	{
-		const auto iconRow = box->addRow(
-			std::move(icon.widget),
-			st::settingsBlockedListIconPadding,
-			style::al_top);
-
-		const auto circle = Ui::CreateChild<Ui::RpWidget>(
-			iconRow->parentWidget());
-		circle->lower();
-		circle->paintRequest() | rpl::on_next([=] {
-			auto p = QPainter(circle);
-			auto hq = PainterHighQualityEnabler(p);
-			const auto size = st::normalBoxLottieSize;
-			const auto left = (circle->width() - size.width()) / 2;
-			const auto top = (circle->height() - size.height()) / 2;
-			p.setPen(Qt::NoPen);
-			p.setBrush(st::activeButtonBg);
-			p.drawEllipse(QRect(QPoint(left, top), size));
-		}, circle->lifetime());
-
-		iconRow->geometryValue() | rpl::on_next([=](const QRect &g) {
-			circle->setGeometry(g);
-		}, circle->lifetime());
-	}
+	Settings::AddLottieIconWithCircle(
+		box->verticalLayout(),
+		std::move(icon.widget),
+		st::settingsBlockedListIconPadding,
+		st::normalBoxLottieSize);
 	Ui::AddSkip(box->verticalLayout());
 	box->addRow(
 		object_ptr<FlatLabel>(

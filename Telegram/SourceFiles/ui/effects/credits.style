@@ -320,6 +320,18 @@ uniqueMenuButton: IconButton(uniqueCloseButton) {
 		color: shadowFg;
 	}
 }
+uniqueGiftSenderBadge: FlatLabel(defaultFlatLabel) {
+	style: semiboldTextStyle;
+	palette: TextPalette(defaultTextPalette) {
+		linkFg: radialFg;
+		monoFg: radialFg;
+	}
+	margin: margins(12px, 3px, 12px, 4px);
+	minWidth: 128px;
+	align: align(top);
+	textFg: radialFg;
+}
+
 uniqueAttributeTop: 10px;
 uniqueAttributeSkip: 8px;
 uniqueAttributePadding: margins(6px, 8px, 6px, 8px);

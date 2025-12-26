@@ -918,6 +918,14 @@ public:
 
 	void clearLocalStorage();
 
+	void fillMessagePeers(PeerId peerId, const MTPMessage &message);
+	void fillMessagePeers(const MTPDupdateShortMessage &data);
+	void fillMessagePeers(const MTPDupdateShortChatMessage &data);
+	void fillMessagePeers(
+		FullMsgId fullId,
+		const MTPDupdateShortSentMessage &data);
+	[[nodiscard]] HistoryItem *messageWithPeer(PeerId id) const;
+
 private:
 	using Messages = std::unordered_map<MsgId, not_null<HistoryItem*>>;
 
@@ -1061,6 +1069,14 @@ private:
 		ChannelId linkedId);
 
 	void checkPollsClosings();
+
+	void fillMessagePeer(FullMsgId fullId, PeerId peerId);
+	void fillForwardedInfo(
+		FullMsgId fullId,
+		const MTPMessageFwdHeader &header);
+	void fillMentionUsers(
+		FullMsgId fullId,
+		const MTPVector<MTPMessageEntity> &entities);
 
 	const not_null<Main::Session*> _session;
 
@@ -1258,6 +1274,8 @@ private:
 	base::flat_map<
 		not_null<ChannelData*>,
 		mtpRequestId> _viewAsMessagesRequests;
+
+	mutable base::flat_map<PeerId, std::vector<FullMsgId>> _messagesWithPeer;
 
 	Groups _groups;
 	const std::unique_ptr<ChatFilters> _chatsFilters;

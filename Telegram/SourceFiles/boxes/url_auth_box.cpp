@@ -38,7 +38,7 @@ void UrlAuthBox::Activate(
 		return;
 	}
 	const auto session = &message->history()->session();
-	const auto inputPeer = message->history()->peer->input;
+	const auto inputPeer = message->history()->peer->input();
 	const auto buttonId = button->buttonId;
 	const auto url = QString::fromUtf8(button->data);
 
@@ -127,7 +127,7 @@ void UrlAuthBox::Request(
 		return;
 	}
 	const auto session = &message->history()->session();
-	const auto inputPeer = message->history()->peer->input;
+	const auto inputPeer = message->history()->peer->input();
 	const auto buttonId = button->buttonId;
 	const auto url = QString::fromUtf8(button->data);
 

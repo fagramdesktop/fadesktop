@@ -279,7 +279,7 @@ void TranslateTracker::requestSome() {
 	using Flag = MTPmessages_TranslateText::Flag;
 	_requestId = session->api().request(MTPmessages_TranslateText(
 		MTP_flags(Flag::f_peer | Flag::f_id),
-		peer->input,
+		peer->input(),
 		MTP_vector<MTPint>(list),
 		MTPVector<MTPTextWithEntities>(),
 		MTP_string(to.twoLetterCode())

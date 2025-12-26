@@ -1545,6 +1545,10 @@ void ListWidget::clearTextSelection() {
 void ListWidget::setTextSelection(
 		not_null<Element*> view,
 		TextSelection selection) {
+	if (!selection.empty()) {
+		// We started selecting text in web page preview.
+		ClickHandler::unpressed();
+	}
 	clearSelected();
 	const auto item = view->data();
 	if (_selectedTextItem != item) {
@@ -3437,7 +3441,11 @@ void ListWidget::mouseActionStart(
 		Ui::MarkInactivePress(window(), false);
 	}
 
-	if (ClickHandler::getPressed()) {
+	const auto pressed = ClickHandler::getPressed();
+	if (pressed
+		&& (!_overElement
+			|| _overState.pointState == PointState::Outside
+			|| !_overElement->allowTextSelectionByHandler(pressed))) {
 		_mouseAction = MouseAction::PrepareDrag;
 	} else if (hasSelectedItems()) {
 		if (overSelectedItems()) {
@@ -3569,9 +3577,7 @@ void ListWidget::mouseActionFinish(
 
 	_wasSelectedText = false;
 
-	if (_mouseAction == MouseAction::Dragging
-		|| _mouseAction == MouseAction::Selecting
-		|| needItemSelectionToggle) {
+	if (_mouseAction == MouseAction::Dragging || needItemSelectionToggle) {
 		activated = nullptr;
 	} else if (activated) {
 		mouseActionCancel();

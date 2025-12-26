@@ -948,7 +948,7 @@ void SetupUnreadMentionsMenu(
 		using Flag = MTPmessages_ReadMentions::Flag;
 		peer->session().api().request(MTPmessages_ReadMentions(
 			MTP_flags(rootId ? Flag::f_top_msg_id : Flag()),
-			peer->input,
+			peer->input(),
 			MTP_int(rootId)
 		)).done([=](const MTPmessages_AffectedHistory &result) {
 			const auto offset = peer->session().api().applyAffectedHistory(
@@ -991,9 +991,9 @@ void SetupUnreadReactionsMenu(
 		peer->session().api().request(MTPmessages_ReadReactions(
 			MTP_flags((rootId ? Flag::f_top_msg_id : Flag(0))
 				| (sublist ? Flag::f_saved_peer_id : Flag(0))),
-			peer->input,
+			peer->input(),
 			MTP_int(rootId),
-			sublist ? sublist->sublistPeer()->input : MTPInputPeer()
+			sublist ? sublist->sublistPeer()->input() : MTPInputPeer()
 		)).done([=](const MTPmessages_AffectedHistory &result) {
 			const auto offset = peer->session().api().applyAffectedHistory(
 				peer,

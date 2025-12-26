@@ -33,7 +33,7 @@ TLInputRules RulesToTL(const UserPrivacy::Rule &rule) {
 		result.reserve(peers.size());
 		for (const auto &peer : peers) {
 			if (const auto user = peer->asUser()) {
-				result.push_back(user->inputUser);
+				result.push_back(user->inputUser());
 			}
 		}
 		return result;

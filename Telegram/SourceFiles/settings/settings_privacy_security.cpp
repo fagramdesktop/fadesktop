@@ -597,6 +597,8 @@ void SetupPasskeys(
 	) | rpl::map([=](const QString &loading, int count) {
 		return !session->passkeys().listKnown()
 			? loading
+			: count == 1
+			? session->passkeys().list().front().name
 			: count
 			? QString::number(count)
 			: tr::lng_settings_cloud_password_off(tr::now);

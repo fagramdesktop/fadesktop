@@ -463,9 +463,6 @@ ChatWidget::ChatWidget(
 
 ChatWidget::~ChatWidget() {
 	base::take(_sendAction);
-	if (_repliesRootId || _sublist) {
-		session().api().saveCurrentDraftToCloud();
-	}
 	if (_repliesRootId) {
 		controller()->sendingAnimation().clear();
 	}

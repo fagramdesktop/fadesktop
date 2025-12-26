@@ -48,6 +48,8 @@ jobs:
           SDK="$(grep "SDK version" $DOCPATH | sed -r 's/.*\*\*(.*)\*\* SDK version.*/\1/')"
           echo "SDK=$SDK" >> $GITHUB_ENV
 
+          sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/${_Zi}//' "$PROGRAMFILES"/CMake/share/cmake*/Modules/Platform/Windows-MSVC.cmake
+
           echo "$(sha256sum $TBUILD/$REPO_NAME/$PREPARE_PATH | awk '{ print $1 }')" >> CACHE_KEY.txt
           echo "$SDK" >> CACHE_KEY.txt
           echo "CACHE_KEY=$(sha256sum CACHE_KEY.txt | awk '{ print $1 }')" >> $GITHUB_ENV
@@ -102,14 +104,14 @@ jobs:
               *) ARCH="${{ matrix.arch }}";;
             esac
             echo "Architecture from matrix: $ARCH"
-            ARTIFACT_NAME="${ARTIFACT_NAME}_${{ matrix.arch }}"
+            ARTIFACT_NAME="${ARTIFACT_NAME} ${{ matrix.arch }}"
           fi
 
           GENERATOR=""
           if [ -n "${{ matrix.generator }}" ]; then
             GENERATOR="-G \"${{ matrix.generator }}\""
             echo "Generator from matrix: $GENERATOR"
-            ARTIFACT_NAME="${ARTIFACT_NAME}_${{ matrix.generator }}"
+            ARTIFACT_NAME="${ARTIFACT_NAME} ${{ matrix.generator }}"
           fi
           echo "TDESKTOP_BUILD_GENERATOR=$GENERATOR" >> $GITHUB_ENV
 
@@ -120,7 +122,7 @@ jobs:
           if [ -n "${{ matrix.defines }}" ]; then
             DEFINE="-D ${{ matrix.defines }}=ON"
             echo "Define from matrix: $DEFINE"
-            ARTIFACT_NAME="${ARTIFACT_NAME}_${{ matrix.defines }}"
+            ARTIFACT_NAME="${ARTIFACT_NAME} ${{ matrix.defines }}"
           fi
           echo "TDESKTOP_BUILD_DEFINE=$DEFINE" >> $GITHUB_ENV
 
@@ -134,11 +136,8 @@ jobs:
           echo "TDESKTOP_BUILD_API=$API" >> $GITHUB_ENV
 
       - name: Free up some disk space.
-        run: |
-          cd %TBUILD%
-          del /S Libraries\*.pdb
-          del /S Libraries\*.pch
-          del /S Libraries\*.obj
+        shell: bash
+        run: find TBuild/Libraries '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -path '*/include/*'  -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' ')' -type f ')' -o -empty ')' -delete
 
       - name: FAgram Desktop build.
         if: env.ONLY_CACHE == 'false'

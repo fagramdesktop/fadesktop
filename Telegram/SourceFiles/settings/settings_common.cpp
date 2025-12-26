@@ -327,4 +327,31 @@ SliderWithLabel MakeSliderWithLabel(
 	};
 }
 
+void AddLottieIconWithCircle(
+		not_null<Ui::VerticalLayout*> layout,
+		object_ptr<Ui::RpWidget> icon,
+		QMargins iconPadding,
+		QSize circleSize) {
+	const auto iconRow = layout->add(
+		std::move(icon),
+		iconPadding,
+		style::al_top);
+
+	const auto circle = Ui::CreateChild<Ui::RpWidget>(
+		iconRow->parentWidget());
+	circle->lower();
+	circle->paintOn([=](QPainter &p) {
+		auto hq = PainterHighQualityEnabler(p);
+		const auto left = (circle->width() - circleSize.width()) / 2;
+		const auto top = (circle->height() - circleSize.height()) / 2;
+		p.setPen(Qt::NoPen);
+		p.setBrush(st::activeButtonBg);
+		p.drawEllipse(QRect(QPoint(left, top), circleSize));
+	});
+
+	iconRow->geometryValue() | rpl::on_next([=](const QRect &g) {
+		circle->setGeometry(g);
+	}, circle->lifetime());
+}
+
 } // namespace Settings

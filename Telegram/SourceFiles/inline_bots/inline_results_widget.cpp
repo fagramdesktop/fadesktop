@@ -465,8 +465,8 @@ void Widget::onInlineRequest() {
 	_requesting.fire(true);
 	_inlineRequestId = _api.request(MTPmessages_GetInlineBotResults(
 		MTP_flags(0),
-		_inlineBot->inputUser,
-		_inlineQueryPeer->input,
+		_inlineBot->inputUser(),
+		_inlineQueryPeer->input(),
 		MTPInputGeoPoint(),
 		MTP_string(_inlineQuery),
 		MTP_string(nextOffset)

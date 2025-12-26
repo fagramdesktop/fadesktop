@@ -168,7 +168,7 @@ void EditAlbumBox::prepare() {
 					| (remove.isEmpty()
 						? Flag()
 						: Flag::f_delete_stories)),
-				changes.peer->input,
+				changes.peer->input(),
 				MTP_int(changes.albumId),
 				MTPstring(),
 				MTP_vector<MTPint>(remove),
@@ -1118,7 +1118,7 @@ void InnerWidget::flushAlbumReorder() {
 	}
 
 	_reorderRequestId = _api->request(MTPstories_ReorderAlbums(
-		_peer->input,
+		_peer->input(),
 		MTP_vector<MTPint>(order)
 	)).done([=] {
 		_reorderRequestId = 0;
