@@ -90,6 +90,8 @@
   "fa_pack_owner": "Proprietario del pack",
   "fa_hide_blocked_user_messages": "Nascondi messaggi utenti bloccati",
   "fa_hide_blocked_user_messages_desc": "I messaggi degli utenti bloccati verranno nascosti con spoiler e i media non verranno scaricati automaticamente.",
+  "fa_show_status_dot": "Mostra punto di stato sugli avatar",
+  "fa_show_status_dot_desc": "Mostra un indicatore di stato online/offline sugli avatar degli utenti nei messaggi della chat. Verde per online, grigio per offline/visto di recente, nero per utenti eliminati o bloccati.",
   "fa_restarting_in_seconds": "Riavvio in 3 secondi...",
   "fa_context_menu": "Menu contestuale",
   "fa_context_menu_settings": "Usa le icone delle scorciatoie",

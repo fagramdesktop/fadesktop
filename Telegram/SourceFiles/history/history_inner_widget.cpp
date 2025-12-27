@@ -106,6 +106,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_peer_values.h"
 #include "data/data_chat.h"
 #include "data/data_user.h"
+#include "data/data_lastseen_status.h"
 #include "data/data_file_click_handler.h"
 #include "data/data_histories.h"
 #include "data/data_changes.h"
@@ -1306,6 +1307,9 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 		p.translate(0, -top);
 	}
 
+	const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
+	const auto nowTime = showStatusDot ? base::unixtime::now() : TimeId(0);
+
 	enumerateUserpics([&](not_null<Element*> view, int userpicTop) {
 		// stop the enumeration if the userpic is below the painted rect
 		if (userpicTop >= clip.top() + clip.height()) {
@@ -1329,7 +1333,10 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 							- context.gestureHorizontal.translation,
 						st::msgPhotoSize));
 			}
+
+			PeerData *fromPeer = nullptr;
 			if (const auto from = item->displayFrom()) {
+				fromPeer = from;
 				Dialogs::Ui::PaintUserpic(
 					p,
 					from,
@@ -1364,6 +1371,42 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 			} else {
 				Unexpected("Corrupt forwarded information in message.");
 			}
+
+			if (showStatusDot && fromPeer) {
+				if (const auto user = fromPeer->asUser()) {
+					if (!user->isBot() && !user->isServiceUser()) {
+						QColor dotColor;
+
+						if (user->isInaccessible() || user->isBlocked()) {
+							dotColor = QColor(0, 0, 0);
+						} else if (user->lastseen().isOnline(nowTime)) {
+							dotColor = QColor(15, 255, 80);
+						} else {
+							dotColor = QColor(158, 158, 158);
+						}
+
+
+						const auto dotDiameter = 10.0;
+						const auto borderWidth = 2.0;
+						const auto totalSize = dotDiameter + borderWidth * 2.0;
+						const auto avatarX = st::historyPhotoLeft;
+						const auto avatarY = userpicTop;
+						const auto avatarSize = st::msgPhotoSize;
+						const auto dotX = static_cast<double>(avatarX + avatarSize) - totalSize + borderWidth;
+						const auto dotY = static_cast<double>(avatarY + avatarSize) - totalSize + borderWidth;
+
+						p.save();
+						p.setRenderHint(QPainter::Antialiasing, true);
+						p.setPen(Qt::NoPen);
+						p.setBrush(QColor(0, 0, 0));
+						p.drawEllipse(QRectF(dotX - borderWidth, dotY - borderWidth, totalSize, totalSize));
+						p.setBrush(dotColor);
+						p.drawEllipse(QRectF(dotX, dotY, dotDiameter, dotDiameter));
+						p.restore();
+					}
+				}
+			}
+
 			if (hasTranslation) {
 				p.translate(-_gestureHorizontal.translation, 0);
 			}

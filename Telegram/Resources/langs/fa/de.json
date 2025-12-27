@@ -90,6 +90,8 @@
   "fa_pack_owner": "Besitzer des Rudels",
   "fa_hide_blocked_user_messages": "Nachrichten von blockierten Benutzern ausblenden",
   "fa_hide_blocked_user_messages_desc": "Nachrichten von blockierten Benutzern werden mit Spoilern ausgeblendet und Medien werden nicht automatisch heruntergeladen.",
+  "fa_show_status_dot": "Statuspunkt auf Avataren anzeigen",
+  "fa_show_status_dot_desc": "Zeigt einen Online-/Offline-Statusindikator auf Benutzeravataren in Chatnachrichten an. Grün für online, grau für offline/kürzlich gesehen, schwarz für gelöschte oder blockierte Benutzer.",
   "fa_restarting_in_seconds": "Neustart in 3 Sekunden...",
   "fa_context_menu": "Kontextmenü",
   "fa_context_menu_settings": "Verknüpfungssymbole verwenden",

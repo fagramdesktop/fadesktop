@@ -385,12 +385,13 @@ void Row::updateCornerBadgeShown(
 	const auto user = peer->asUser();
 	const auto now = user ? base::unixtime::now() : TimeId();
 	const auto channel = user ? nullptr : peer->asChannel();
+	const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
 	const auto nextLayer = [&] {
 		if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
 			return kNoneLayer;
 		} else if (hasUnreadBadgesAbove) {
 			return kNoneLayer;
-		} else if (user && Data::IsUserOnline(user, now)) {
+		} else if (user && Data::IsUserOnline(user, now) && !showStatusDot) {
 			return kTopLayer;
 		} else if (channel
 			&& (Data::ChannelHasActiveCall(channel)
@@ -689,6 +690,43 @@ void Row::paintUserpic(
 		context.st->padding.left() - framePadding,
 		context.st->padding.top() - framePadding,
 		_cornerBadgeUserpic->frame);
+
+	const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
+	if (showStatusDot && peer) {
+		if (const auto user = peer->asUser()) {
+			if (!user->isBot() && !user->isServiceUser()) {
+				const auto now = base::unixtime::now();
+
+				QColor dotColor;
+				if (user->isInaccessible() || user->isBlocked()) {
+					dotColor = QColor(0, 0, 0);
+				} else if (user->lastseen().isOnline(now)) {
+					dotColor = QColor(15, 255, 80);
+				} else {
+					dotColor = QColor(158, 158, 158);
+				}
+
+				const auto dotDiameter = 10.0;
+				const auto borderWidth = 2.0;
+				const auto totalSize = dotDiameter + borderWidth * 2.0;
+				const auto photoSize = context.st->photoSize;
+				const auto dotX = static_cast<double>(context.st->padding.left() + photoSize) - totalSize + borderWidth;
+				const auto dotY = static_cast<double>(context.st->padding.top() + photoSize) - totalSize + borderWidth;
+
+				p.save();
+				p.setRenderHint(QPainter::Antialiasing, true);
+				p.setPen(Qt::NoPen);
+
+				p.setBrush(QColor(0, 0, 0));
+				p.drawEllipse(QRectF(dotX - borderWidth, dotY - borderWidth, totalSize, totalSize));
+
+				p.setBrush(dotColor);
+				p.drawEllipse(QRectF(dotX, dotY, dotDiameter, dotDiameter));
+				p.restore();
+			}
+		}
+	}
+
 	const auto history = _id.history();
 	if (!history || history->peer->isUser() || subscribed) {
 		return;

@@ -90,6 +90,8 @@
   "fa_pack_owner": "Właściciel paczki",
   "fa_hide_blocked_user_messages": "Ukryj wiadomości zablokowanych użytkowników",
   "fa_hide_blocked_user_messages_desc": "Wiadomości od zablokowanych użytkowników będą ukryte za spoilerami, a media nie będą pobierane automatycznie.",
+  "fa_show_status_dot": "Pokaż kropkę statusu na awatarach",
+  "fa_show_status_dot_desc": "Wyświetla wskaźnik statusu online/offline na awatarach użytkowników w wiadomościach czatu. Zielony oznacza online, szary offline/ostatnio widziany, czarny usuniętych lub zablokowanych użytkowników.",
   "fa_restarting_in_seconds": "Ponowne uruchomienie za 3 sekundy...",
   "fa_context_menu": "Menu kontekstowe",
   "fa_context_menu_settings": "Używaj ikon skrótów",

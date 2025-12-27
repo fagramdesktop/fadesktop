@@ -133,6 +133,8 @@ namespace Settings {
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_discuss_button_desc")));
 		SettingsMenuJsonSwitch(fa_show_message_details, show_message_details);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_message_details_desc")));
+		SettingsMenuJsonSwitch(fa_show_status_dot, show_status_dot);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_status_dot_desc")));
 		RestartSettingsMenuJsonSwitch(fa_hide_all_chats_folder, hide_all_chats_folder);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_all_chats_folder_desc")));
 

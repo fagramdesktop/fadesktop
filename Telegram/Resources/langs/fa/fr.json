@@ -90,6 +90,8 @@
   "fa_pack_owner": "Propriétaire du pack",
   "fa_hide_blocked_user_messages": "Masquer les messages des utilisateurs bloqués",
   "fa_hide_blocked_user_messages_desc": "Les messages des utilisateurs bloqués seront masqués par des spoilers et les médias ne seront pas téléchargés automatiquement.",
+  "fa_show_status_dot": "Afficher le point de statut sur les avatars",
+  "fa_show_status_dot_desc": "Affiche un indicateur de statut en ligne/hors ligne sur les avatars des utilisateurs dans les messages. Vert pour en ligne, gris pour hors ligne/vu récemment, noir pour les utilisateurs supprimés ou bloqués.",
   "fa_restarting_in_seconds": "Redémarrage dans 3 secondes...",
   "fa_context_menu": "Menu contextuel",
   "fa_context_menu_settings": "Utiliser des icônes de raccourcis",

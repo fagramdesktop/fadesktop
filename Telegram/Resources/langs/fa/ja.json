@@ -90,6 +90,8 @@
   "fa_pack_owner": "パック所有者",
   "fa_hide_blocked_user_messages": "ブロックユーザーのメッセージを非表示",
   "fa_hide_blocked_user_messages_desc": "ブロックされたユーザーからのメッセージはスポイラーで隠され、メディアは自動ダウンロードされません。",
+  "fa_show_status_dot": "アバターにステータスドットを表示",
+  "fa_show_status_dot_desc": "チャットメッセージ内のユーザーアバターにオンライン/オフラインステータスインジケータを表示します。緑はオンライン、灰色はオフライン/最近見た、黒は削除またはブロックされたユーザーを示します。",
   "fa_restarting_in_seconds": "3秒後に再起動します...",
   "fa_context_menu": "コンテキストメニュー",
   "fa_context_menu_settings": "ショートカットアイコンを使用する",

@@ -9,8 +9,10 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #include "fa/settings/fa_settings.h"
 
+#include "base/unixtime.h"
 #include "core/file_location.h"
 #include "data/data_peer.h"
+#include "data/data_user.h"
 #include "data/data_photo.h"
 #include "data/data_photo_media.h"
 #include "data/data_file_origin.h"
@@ -188,6 +190,42 @@ void PaintUserpic(
 		videoUserpic->paintLeft(p, view, x, y, outerWidth, size, paused);
 	} else {
 		peer->paintUserpicLeft(p, view, x, y, outerWidth, size);
+	}
+
+	const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
+	if (showStatusDot) {
+		if (const auto user = peer->asUser()) {
+			if (!user->isBot() && !user->isServiceUser()) {
+				const auto now = base::unixtime::now();
+
+				QColor dotColor;
+
+				if (user->isInaccessible() || user->isBlocked()) {
+					dotColor = QColor(0, 0, 0);
+				} else if (user->lastseen().isOnline(now)) {
+					dotColor = QColor(15, 255, 80);
+				} else {
+					dotColor = QColor(158, 158, 158);
+				}
+
+				const auto dotDiameter = 10.0;
+				const auto borderWidth = 2.0;
+				const auto totalSize = dotDiameter + borderWidth * 2.0;
+				const auto dotX = static_cast<double>(x + size) - totalSize + borderWidth;
+				const auto dotY = static_cast<double>(y + size) - totalSize + borderWidth;
+
+				p.save();
+				p.setRenderHint(QPainter::Antialiasing, true);
+				p.setPen(Qt::NoPen);
+
+				p.setBrush(QColor(0, 0, 0));
+				p.drawEllipse(QRectF(dotX - borderWidth, dotY - borderWidth, totalSize, totalSize));
+
+				p.setBrush(dotColor);
+				p.drawEllipse(QRectF(dotX, dotY, dotDiameter, dotDiameter));
+				p.restore();
+			}
+		}
 	}
 }
 

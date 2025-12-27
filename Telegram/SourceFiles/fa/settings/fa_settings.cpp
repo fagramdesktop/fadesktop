@@ -222,6 +222,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "hide_blocked_user_messages", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "show_status_dot", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = true, }},
 	{ "context_menu_use_shortcuts", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},

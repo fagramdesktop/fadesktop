@@ -90,6 +90,8 @@
   "fa_pack_owner": "Pack owner",
   "fa_hide_blocked_user_messages": "Hide messages from blocked users",
   "fa_hide_blocked_user_messages_desc": "Messages from blocked users will be hidden with spoilers and media won't auto-download.",
+  "fa_show_status_dot": "Show Status Dot on Avatars",
+  "fa_show_status_dot_desc": "Displays an online/offline status indicator dot on user avatars in chat messages. Green for online, grey for offline/recently seen, black for deleted or blocked users.",
   "fa_restarting_in_seconds": "Restarting in 3 seconds...",
   "fa_context_menu": "Context Menu",
   "fa_context_menu_settings": "Use shortcuts icons",
