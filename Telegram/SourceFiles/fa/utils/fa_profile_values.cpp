@@ -11,6 +11,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include <QLocale>
 #include <QDateTime>
+#include <array>
 #include <vector>
 #include <algorithm>
 #include <cmath>
@@ -45,16 +46,15 @@ QString parseRegistrationTime(QString prefix, long long regTime) {
 	return prefix + monthYear;
 }
 
-QString findRegistrationTime(long long userId) {
-	// Telegram uses multiple Data Centers (DCs) with separate ID pools
-	// This causes non-sequential ID allocation - users registering on the same day
-	// can have IDs millions apart. We use k-NN with distance weighting to handle this.
-	struct UserData {
-		long long id;
-		long long registrationTime;
-	};
-	std::vector<UserData> userData = {
-		{1000000, 1380326400}, // 2013
+namespace {
+
+struct UserData {
+	long long id;
+	long long registrationTime;
+};
+
+const UserData kUserData[] = {
+	{1000000, 1380326400}, // 2013
 		{2768409, 1383264000},
 		{7679610, 1388448000},
 		{11538514, 1391212000}, // 2014
@@ -197,51 +197,53 @@ QString findRegistrationTime(long long userId) {
 		{8380915809, 1764979200}, // 2025-12-06
 		{8454563873, 1764979200}, // 2025-12-06
 		{8461412540, 1755628800}  // 2025-08-20
-	};
+};
 
-	// Sort
-	std::sort(userData.begin(), userData.end(), [](const UserData& a, const UserData& b) {
-		return a.id < b.id;
-	});
+constexpr size_t kUserDataSize = std::size(kUserData);
 
+} // namespace
+
+QString findRegistrationTime(long long userId) {
 	constexpr int k = 10;
-	std::vector<std::pair<long long, size_t>> distances;
-	
-	for (size_t i = 0; i < userData.size(); ++i) {
-		long long dist = std::abs(userId - userData[i].id);
-		distances.push_back({dist, i});
+
+	std::array<std::pair<long long, size_t>, kUserDataSize> distances;
+	for (size_t i = 0; i < kUserDataSize; ++i) {
+		distances[i] = {std::abs(userId - kUserData[i].id), i};
 	}
-	
-	std::sort(distances.begin(), distances.end());
-	
+
+	std::partial_sort(
+		distances.begin(),
+		distances.begin() + std::min(static_cast<size_t>(k), kUserDataSize),
+		distances.end());
+
 	double weightedSum = 0.0;
 	double weightTotal = 0.0;
-	
+
 	constexpr double scale = 100000000.0;
-	
-	for (int i = 0; i < std::min(k, static_cast<int>(distances.size())); ++i) {
+
+	for (int i = 0; i < std::min(k, static_cast<int>(kUserDataSize)); ++i) {
 		double scaledDist = static_cast<double>(distances[i].first) / scale + 0.01;
 		size_t idx = distances[i].second;
-		
+
 		double weight = 1.0 / (scaledDist * scaledDist * scaledDist * scaledDist);
-		
-		weightedSum += userData[idx].registrationTime * weight;
+
+		weightedSum += kUserData[idx].registrationTime * weight;
 		weightTotal += weight;
 	}
-	
+
 	long long avgTimestamp = static_cast<long long>(weightedSum / weightTotal);
-	
+
 	QString prefix = "~ ";
 	if (distances[0].first == 0) {
 		prefix = "";
-	} else if (userId < userData.front().id) {
+	} else if (userId < kUserData[0].id) {
 		prefix = "< ";
-		avgTimestamp = userData.front().registrationTime;
-	} else if (userId > userData.back().id) {
+		avgTimestamp = kUserData[0].registrationTime;
+	} else if (userId > kUserData[kUserDataSize - 1].id) {
 		prefix = "> ";
-		avgTimestamp = userData.back().registrationTime;
+		avgTimestamp = kUserData[kUserDataSize - 1].registrationTime;
 	}
-	
+
 	return parseRegistrationTime(prefix, avgTimestamp);
 }
 

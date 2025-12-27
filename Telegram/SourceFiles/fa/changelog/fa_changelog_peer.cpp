@@ -41,6 +41,9 @@ constexpr auto kChangelogPeerIdBase = 696969ULL;
 MsgId _nextLocalMsgId = MsgId(1);
 bool _storageLoaded = false;
 
+QJsonObject _cachedStorage;
+bool _storageCacheValid = false;
+
 QString StoragePath() {
 	return cWorkingDir() + u"tdata/fa-changelog-history.json"_q;
 }
@@ -52,9 +55,15 @@ bool EnsureStorageDirectory() {
 }
 
 QJsonObject ReadStorage() {
+	if (_storageCacheValid) {
+		return _cachedStorage;
+	}
+
 	QFile file(StoragePath());
 	if (!file.exists()) {
-		return QJsonObject();
+		_cachedStorage = QJsonObject();
+		_storageCacheValid = true;
+		return _cachedStorage;
 	}
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
 		return QJsonObject();
@@ -67,7 +76,10 @@ QJsonObject ReadStorage() {
 	if (error.error != QJsonParseError::NoError || !doc.isObject()) {
 		return QJsonObject();
 	}
-	return doc.object();
+
+	_cachedStorage = doc.object();
+	_storageCacheValid = true;
+	return _cachedStorage;
 }
 
 void WriteStorage(const QJsonObject &root) {
@@ -80,6 +92,9 @@ void WriteStorage(const QJsonObject &root) {
 	const auto doc = QJsonDocument(root);
 	file.write(doc.toJson(QJsonDocument::Indented));
 	file.close();
+
+	_cachedStorage = root;
+	_storageCacheValid = true;
 }
 
 void UpdateNextMsgIdFromStorage() {

@@ -22,10 +22,27 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QDebug>
 
-std::unordered_map<ID, bool> state;
+namespace {
+
+constexpr size_t kMaxOnlineStateEntries = 100;
+std::unordered_map<ID, bool> onlineState;
+
+void pruneOnlineStateIfNeeded() {
+	if (onlineState.size() > kMaxOnlineStateEntries) {
+		auto it = onlineState.begin();
+		size_t toRemove = onlineState.size() / 2;
+		while (toRemove > 0 && it != onlineState.end()) {
+			it = onlineState.erase(it);
+			--toRemove;
+		}
+	}
+}
+
+} // namespace
 
 void markAsOnline(not_null<Main::Session*> session) {
-	state[session->userId().bare] = true;
+	pruneOnlineStateIfNeeded();
+	onlineState[session->userId().bare] = true;
 }
 
 // stole from ayugram

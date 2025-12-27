@@ -11,68 +11,98 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "base/parse_helper.h"
 #include "lang/lang_tag.h"
 
+#include <QHash>
+#include <QMutex>
+
 namespace FAlang {
-    const auto kDefaultLanguage = qsl("en");
+namespace {
 
-    QString langCode = kDefaultLanguage;
+const auto kDefaultLanguage = qsl("en");
 
-    std::unique_ptr<QFile> GetLangFile(bool useDefault) {
-        auto file = std::make_unique<QFile>(qsl(":/fa_lang/%1.json").arg(langCode));
-        if (!file->exists() || useDefault) {
-            file->setFileName(qsl(":/fa_lang/en.json"));
-        }
-        return file;
+QString langCode = kDefaultLanguage;
+
+QHash<QString, QString> translationsCache;
+QMutex cacheMutex;
+bool cacheLoaded = false;
+
+void LoadTranslationsCache() {
+    if (cacheLoaded) {
+        return;
     }
 
-    rpl::producer<QString> RplTranslate(const QString &key) {
-        auto translated = rpl::single(Translate(key));
-        return translated;
-    }
-
-    QString Translate(const QString &key) {
-        auto langFile = GetLangFile(false);
-        if (!langFile->open(QIODevice::ReadOnly | QIODevice::Text)) {
-            return key;
+    auto loadFromFile = [](const QString &path) -> QJsonObject {
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            return QJsonObject();
         }
-
-        QByteArray jsonData = langFile->readAll();
-        langFile->close();
+        QByteArray jsonData = file.readAll();
+        file.close();
 
         QJsonParseError parseError;
         QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &parseError);
-
-        if (parseError.error != QJsonParseError::NoError) {
-            langFile = GetLangFile(true);
-            if (!langFile->open(QIODevice::ReadOnly | QIODevice::Text)) {
-                return key;
-            }
-
-            jsonData = langFile->readAll();
-            langFile->close();
-
-            jsonDoc = QJsonDocument::fromJson(jsonData, &parseError);
-            if (parseError.error != QJsonParseError::NoError) {
-                return key;
-            }
+        if (parseError.error != QJsonParseError::NoError || !jsonDoc.isObject()) {
+            return QJsonObject();
         }
+        return jsonDoc.object();
+    };
 
-        QJsonObject jsonObj = jsonDoc.object();
-        QString translation = jsonObj.value(key).toString();
+    QJsonObject jsonObj = loadFromFile(qsl(":/fa_lang/%1.json").arg(langCode));
 
-        return translation.isEmpty() ? key : translation;
+    if (jsonObj.isEmpty() && langCode != kDefaultLanguage) {
+        jsonObj = loadFromFile(qsl(":/fa_lang/en.json"));
     }
 
-    void Load(const QString &baseLangCode, const QString &lang_code) {
-        QString mutableBaseLangCode = baseLangCode;
-        QString mutableLangCode = lang_code;
-
-        mutableBaseLangCode = mutableBaseLangCode.replace("-raw", "");
-        mutableLangCode = mutableLangCode.replace("-raw", "");
-
-        if (mutableLangCode.isEmpty()) {
-            langCode = mutableBaseLangCode;
-        } else {
-            langCode = mutableLangCode;
+    for (auto it = jsonObj.constBegin(); it != jsonObj.constEnd(); ++it) {
+        if (it.value().isString()) {
+            translationsCache.insert(it.key(), it.value().toString());
         }
     }
+
+    cacheLoaded = true;
+}
+
+void InvalidateCache() {
+    QMutexLocker locker(&cacheMutex);
+    translationsCache.clear();
+    cacheLoaded = false;
+}
+
+} // namespace
+
+rpl::producer<QString> RplTranslate(const QString &key) {
+    return rpl::single(Translate(key));
+}
+
+QString Translate(const QString &key) {
+    QMutexLocker locker(&cacheMutex);
+
+    if (!cacheLoaded) {
+        LoadTranslationsCache();
+    }
+
+    auto it = translationsCache.constFind(key);
+    if (it != translationsCache.constEnd() && !it.value().isEmpty()) {
+        return it.value();
+    }
+
+    return key;
+}
+
+void Load(const QString &baseLangCode, const QString &lang_code) {
+    QString mutableBaseLangCode = baseLangCode;
+    QString mutableLangCode = lang_code;
+
+    mutableBaseLangCode = mutableBaseLangCode.replace("-raw", "");
+    mutableLangCode = mutableLangCode.replace("-raw", "");
+
+    QString newLangCode = mutableLangCode.isEmpty()
+        ? mutableBaseLangCode
+        : mutableLangCode;
+
+    if (newLangCode != langCode) {
+        langCode = newLangCode;
+        InvalidateCache();
+    }
+}
+
 }
