@@ -716,10 +716,11 @@ void Row::paintUserpic(
 				p.save();
 				p.setRenderHint(QPainter::Antialiasing, true);
 				p.setPen(Qt::NoPen);
-
-				p.setBrush(QColor(0, 0, 0));
+				const auto borderColor = context.active
+					? st::dialogsBgActive->c
+					: st::dialogsBg->c;
+				p.setBrush(borderColor);
 				p.drawEllipse(QRectF(dotX - borderWidth, dotY - borderWidth, totalSize, totalSize));
-
 				p.setBrush(dotColor);
 				p.drawEllipse(QRectF(dotX, dotY, dotDiameter, dotDiameter));
 				p.restore();

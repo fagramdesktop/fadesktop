@@ -71,6 +71,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
+#include "styles/style_window.h"
 
 #include <QtWidgets/QApplication>
 #include <QtGui/QClipboard>
@@ -1146,7 +1147,7 @@ void InnerWidget::paintEvent(QPaintEvent *e) {
 								p.save();
 								p.setRenderHint(QPainter::Antialiasing, true);
 								p.setPen(Qt::NoPen);
-								p.setBrush(QColor(0, 0, 0));
+								p.setBrush(st::windowBg->c);
 								p.drawEllipse(QRectF(dotX - borderWidth, dotY - borderWidth, totalSize, totalSize));
 								p.setBrush(dotColor);
 								p.drawEllipse(QRectF(dotX, dotY, dotDiameter, dotDiameter));

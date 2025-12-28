@@ -115,6 +115,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "dialogs/ui/dialogs_video_userpic.h"
 #include "styles/style_chat.h"
 #include "styles/style_menu_icons.h"
+#include "styles/style_window.h"
 #include "styles/style_fa_styles.h"
 
 #include <QtGui/QClipboard>
@@ -1398,7 +1399,7 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 						p.save();
 						p.setRenderHint(QPainter::Antialiasing, true);
 						p.setPen(Qt::NoPen);
-						p.setBrush(QColor(0, 0, 0));
+						p.setBrush(st::windowBg->c);
 						p.drawEllipse(QRectF(dotX - borderWidth, dotY - borderWidth, totalSize, totalSize));
 						p.setBrush(dotColor);
 						p.drawEllipse(QRectF(dotX, dotY, dotDiameter, dotDiameter));
