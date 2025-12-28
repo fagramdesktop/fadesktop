@@ -8,6 +8,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #include <ui/boxes/single_choice_box.h>
 
+#include "base/call_delayed.h"
+
 #include "fa/settings/fa_settings.h"
 #include "fa/settings_menu/sections/fa_appearance.h"
 #include "fa/ui/previews.h"
@@ -107,22 +109,63 @@ namespace Settings {
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
 
+		const auto savedRoundness = container->lifetime().make_state<int>(
+			::FASettings::JsonSettings::GetInt("roundness"));
+		const auto inSetRoundness = container->lifetime().make_state<bool>(false);
+
 		const auto updateUserpicRoundnessLabel = [=](int value) {
     		const auto radius = QString::number(value);
     		userpicRoundnessLabel->setText(FAlang::Translate(QString("fa_rounding")).arg(radius));
     	};
-    	const auto updateUserpicRoundness = [=](int value) {
+		const auto valueFromRoundness = [](int roundness) {
+			return roundness / 50.0;
+		};
+    	const auto setRoundness = [=](int value, const auto &repeatSetRoundness) -> void {
+			if (*inSetRoundness) {
+				return;
+			}
+			*inSetRoundness = true;
+			const auto guard = gsl::finally([=] { *inSetRoundness = false; });
+
     		updateUserpicRoundnessLabel(value);
 			roundnessPreview->repaint();
-    		::FASettings::JsonSettings::Set("roundness", value);
-    		::FASettings::JsonSettings::Write();
+			userpicRoundnessSlider->setValue(valueFromRoundness(value));
+
+			if (value != *savedRoundness) {
+				const auto confirmed = crl::guard(userpicRoundnessSlider, [=] {
+					*savedRoundness = value;
+					::FASettings::JsonSettings::Set("roundness", value);
+					::FASettings::JsonSettings::Write();
+					::Core::Restart();
+				});
+				const auto cancelled = crl::guard(userpicRoundnessSlider, [=](Fn<void()> close) {
+					::FASettings::JsonSettings::Set("roundness", *savedRoundness);
+					base::call_delayed(
+						st::defaultSettingsSlider.duration,
+						userpicRoundnessSlider,
+						[=] { repeatSetRoundness(*savedRoundness, repeatSetRoundness); });
+					close();
+				});
+				controller->show(Ui::MakeConfirmBox({
+					.text = FAlang::RplTranslate(QString("fa_setting_need_restart")),
+					.confirmed = confirmed,
+					.cancelled = cancelled,
+					.confirmText = FAlang::RplTranslate(QString("fa_restart")),
+				}));
+			}
     	};
+		const auto updateUserpicRoundness = [=](int value) {
+			updateUserpicRoundnessLabel(value);
+			roundnessPreview->repaint();
+			::FASettings::JsonSettings::Set("roundness", value);
+		};
     	userpicRoundnessSlider->resize(st::settingsAudioVolumeSlider.seekSize);
     	userpicRoundnessSlider->setPseudoDiscrete(
 			51,
 			[](int val) { return val; },
 			::FASettings::JsonSettings::GetInt("roundness"),
-			updateUserpicRoundness);
+			updateUserpicRoundness,
+			[=](int value) { setRoundness(value, setRoundness); });
     	updateUserpicRoundnessLabel(::FASettings::JsonSettings::GetInt("roundness"));
         Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_rounding_desc")));
 		RestartSettingsMenuJsonSwitch(fa_use_default_rounding, use_default_rounding);
