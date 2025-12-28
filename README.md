@@ -83,6 +83,7 @@
 - Advanced forward options
 - Support tg://openmessage links
 - Support tg://chat?id= links
+- User status dot for online/offline activity
 
 </details>
 

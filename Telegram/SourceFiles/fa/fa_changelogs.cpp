@@ -61,6 +61,12 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			"- Fix overall behaviour of context menu shortcuts mode\n\n"
 			"@FAgramDesktop\n"
 		},
+		{
+			2001001,
+			"- Added user status dot for online/offline activity\n"
+			"- Some code optimizations\n\n"
+			"@FAgramDesktop\n"
+		},
 	};
 	return entries;
 }

@@ -1,3 +1,8 @@
+2.1.1 (28.12.25)
+
+- Added user status dot for online/offline activity
+- Some code optimizations
+
 2.1.0 (25.12.25)
 
 - Update tdesktop to v6.3.10.beta
