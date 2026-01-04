@@ -416,8 +416,8 @@ HistoryInner::HistoryInner(
 		mouseActionCancel();
 	}, lifetime());
 	session().data().viewRepaintRequest(
-	) | rpl::on_next([this](not_null<const Element*> view) {
-		repaintItem(view);
+	) | rpl::on_next([this](Data::RequestViewRepaint data) {
+		repaintItem(data.view, data.rect);
 	}, lifetime());
 	session().data().viewLayoutChanged(
 	) | rpl::filter([=](not_null<const Element*> view) {
@@ -727,6 +727,19 @@ void HistoryInner::repaintItem(const Element *view) {
 		if (const auto area = _reactionsManager->lookupEffectArea(id)) {
 			update(*area);
 		}
+	}
+}
+
+void HistoryInner::repaintItem(const Element *view, QRect rect) {
+	if (rect.isNull()) {
+		return repaintItem(view);
+	}
+	if (_widget->skipItemRepaint()) {
+		return;
+	}
+	const auto top = itemTop(view);
+	if (top >= 0) {
+		update(rect.translated(0, top));
 	}
 }
 
@@ -1077,6 +1090,7 @@ Ui::ChatPaintContext HistoryInner::preparePaintContext(
 		.visibleAreaPositionGlobal = visibleAreaPositionGlobal,
 		.visibleAreaTop = _visibleAreaTop,
 		.visibleAreaWidth = width(),
+		.visibleAreaHeight = _visibleAreaBottom - _visibleAreaTop,
 	});
 }
 

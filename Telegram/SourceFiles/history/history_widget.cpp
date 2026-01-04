@@ -99,6 +99,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "history/history_inner_widget.h"
 #include "history/history_item_components.h"
 #include "history/history_unread_things.h"
+#include "history/admin_log/history_admin_log_section.h"
 #include "history/view/controls/history_view_characters_limit.h"
 #include "history/view/controls/history_view_compose_search.h"
 #include "history/view/controls/history_view_forward_panel.h"
@@ -644,6 +645,17 @@ HistoryWidget::HistoryWidget(
 		if (item->mainView() == view
 			&& (history == _history || history == _migrated)) {
 			updateHistoryGeometry();
+		}
+	}, lifetime());
+
+	session().data().itemShowHighlightRequest(
+	) | rpl::on_next([=](not_null<HistoryItem*> item) {
+		const auto history = item->history();
+		if (history == _history || history == _migrated) {
+			if (item->mainView()) {
+				enqueueMessageHighlight({ item });
+				animatedScrollToItem(item->id);
+			}
 		}
 	}, lifetime());
 
@@ -2186,6 +2198,16 @@ void HistoryWidget::setupShortcuts() {
 				return false;
 			});
 		}
+		const auto channel = _peer ? _peer->asChannel() : nullptr;
+		const auto hasRecentActions = channel
+			&& (channel->hasAdminRights() || channel->amCreator());
+		if (hasRecentActions) {
+			request->check(Command::ShowAdminLog, 1) && request->handle([=] {
+				controller()->showSection(
+					std::make_shared<AdminLog::SectionMemento>(channel));
+				return true;
+			});
+		}
 		if (session().supportMode()) {
 			request->check(
 				Command::SupportToggleMuted
@@ -2223,7 +2245,21 @@ void HistoryWidget::setupDirectMessageButton() {
 			}
 		}
 	});
-	_directMessage->hide();
+	rpl::combine(
+		_muteUnmute->shownValue(),
+		_joinChannel->shownValue()
+	) | rpl::on_next([=](bool muteUnmute, bool joinChannel) {
+		const auto newParent = (muteUnmute && !joinChannel)
+			? _muteUnmute.data()
+			: (joinChannel && !muteUnmute)
+			? _joinChannel.data()
+			: nullptr;
+		if (newParent) {
+			_directMessage->setParent(newParent);
+			_directMessage->moveToLeft(0, 0);
+			refreshDirectMessageShown();
+		}
+	}, _directMessage->lifetime());
 }
 
 void HistoryWidget::pushReplyReturn(not_null<HistoryItem*> item) {

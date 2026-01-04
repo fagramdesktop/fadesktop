@@ -87,8 +87,6 @@ pathPrefixes = [
     'ThirdParty\\gyp',
 ] if win else [
     'ThirdParty/gyp',
-    'ThirdParty/yasm',
-    'ThirdParty/depot_tools',
 ]
 pathPrefix = ''
 for singlePrefix in pathPrefixes:
@@ -478,8 +476,7 @@ win:
         mingw-w64-x86_64-gperf ^
         mingw-w64-x86_64-nasm ^
         mingw-w64-x86_64-perl ^
-        mingw-w64-x86_64-pkgconf ^
-        mingw-w64-x86_64-yasm
+        mingw-w64-x86_64-pkgconf
 
     SET PATH=%PATH_BACKUP_%
 """, 'ThirdParty')
@@ -506,13 +503,6 @@ win:
     del jom.zip
 """, 'ThirdParty')
 
-stage('depot_tools', """
-mac:
-    git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-    cd depot_tools
-    ./update_depot_tools
-""", 'ThirdParty')
-
 if not mac or 'build-stackwalk' in options:
     stage('gyp', """
 win:
@@ -523,16 +513,7 @@ mac:
     python3 -m pip install \\
         --ignore-installed \\
         --target=$THIRDPARTY_DIR/gyp \\
-        git+https://chromium.googlesource.com/external/gyp@master
-""", 'ThirdParty')
-
-stage('yasm', """
-mac:
-    git clone https://github.com/yasm/yasm.git
-    cd yasm
-    git checkout 41762bea
-    ./autogen.sh
-    make $MAKE_THREADS_CNT
+        git+https://chromium.googlesource.com/external/gyp@master six
 """, 'ThirdParty')
 
 stage('lzma', """
@@ -1067,7 +1048,7 @@ stage('libjxl', """
 """) + """
 win:
     cmake . ^
-        -A %WIN32X64% ^
+        -A %WIN32X64% -T v143 ^
         -DCMAKE_INSTALL_PREFIX=%LIBS_DIR%/local ^
         -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded$<$<CONFIG:Debug>:Debug>" ^
         -DCMAKE_C_FLAGS="/DJXL_STATIC_DEFINE /DJXL_THREADS_STATIC_DEFINE /DJXL_CMS_STATIC_DEFINE" ^
@@ -1116,7 +1097,6 @@ depends:patches/build_libvpx_win.sh
 mac:
     find ../patches/libvpx -type f -print0 | sort -z | xargs -0 git apply
 
-depends:yasm/yasm
     ./configure --prefix=$USED_PREFIX \
     --target=arm64-darwin20-gcc \
     --disable-examples \
@@ -1223,7 +1203,6 @@ depends:patches/build_ffmpeg_win.sh
     SET PATH=%PATH_BACKUP_%
 mac:
     export PKG_CONFIG_PATH=$USED_PREFIX/lib/pkgconfig
-depends:yasm/yasm
 
     configureFFmpeg() {
         arch=$1
@@ -1391,7 +1370,7 @@ stage('openal-soft', """
 win:
     git checkout 291c0fdbbd
     cmake -B build . ^
-        -A %WIN32X64% ^
+        -A %WIN32X64% -T v143 ^
         -D LIBTYPE:STRING=STATIC ^
         -D FORCE_STATIC_VCRT=ON ^
         -D ALSOFT_UTILS=OFF ^

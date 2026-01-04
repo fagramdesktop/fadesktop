@@ -36,6 +36,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "history/view/history_view_subsection_tabs.h"
 #include "media/player/media_player_instance.h"
 #include "media/view/media_view_open_common.h"
+#include "data/components/gift_auctions.h"
 #include "data/components/recent_peers.h"
 #include "data/stickers/data_custom_emoji.h"
 #include "data/data_document_resolver.h"
@@ -3564,6 +3565,11 @@ HistoryView::PaintContext SessionController::preparePaintContext(
 		Ui::ChatPaintContextArgs &&args) {
 	const auto visibleAreaTopLocal = content()->mapFromGlobal(
 		args.visibleAreaPositionGlobal).y();
+	const auto area = QRect(
+		0,
+		args.visibleAreaTop,
+		args.visibleAreaWidth,
+		args.visibleAreaHeight);
 	const auto viewport = QRect(
 		0,
 		args.visibleAreaTop - visibleAreaTopLocal,
@@ -3572,6 +3578,7 @@ HistoryView::PaintContext SessionController::preparePaintContext(
 	return args.theme->preparePaintContext(
 		_chatStyle.get(),
 		viewport,
+		area,
 		args.clip,
 		isGifPausedAtLeastFor(GifPauseReason::Any));
 }
@@ -3653,10 +3660,29 @@ void SessionController::dropSubsectionTabs() {
 
 void SessionController::showStarGiftAuction(const QString &slug) {
 	_starGiftAuctionLifetime.destroy();
+
+	const auto requesting = _starGiftAuctionLifetime.make_state<
+		base::has_weak_ptr
+	>();
+	const auto guard = base::make_weak(requesting);
+	const auto weak = base::make_weak(this);
+	session().giftAuctions().resolveSlug(slug, [=](uint64 giftId) {
+		if (!guard || !weak) {
+			return;
+		}
+		_starGiftAuctionLifetime.destroy();
+		if (giftId) {
+			showStarGiftAuction(giftId);
+		}
+	});
+}
+
+void SessionController::showStarGiftAuction(uint64 giftId) {
+	_starGiftAuctionLifetime.destroy();
 	_starGiftAuctionLifetime = Ui::ShowStarGiftAuction(
 		this,
 		nullptr,
-		slug,
+		giftId,
 		[] {},
 		[=] { _starGiftAuctionLifetime.destroy(); });
 }

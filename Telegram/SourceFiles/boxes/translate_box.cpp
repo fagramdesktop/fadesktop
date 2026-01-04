@@ -237,37 +237,6 @@ void TranslateBox(
 				showText(TextWithEntities{ .text = result.translation });
 			});
 		});
-
-		//state->api.request(MTPmessages_TranslateText(
-		//	MTP_flags(flags),
-		//	msgId ? peer->input() : MTP_inputPeerEmpty(),
-		//	(msgId
-		//		? MTP_vector<MTPint>(1, MTP_int(msgId))
-		//		: MTPVector<MTPint>()),
-		//	(msgId
-		//		? MTPVector<MTPTextWithEntities>()
-		//		: MTP_vector<MTPTextWithEntities>(1, MTP_textWithEntities(
-		//			MTP_string(text.text),
-		//			Api::EntitiesToMTP(
-		//				&peer->session(),
-		//				text.entities,
-		//				Api::ConvertOption::SkipLocal)))),
-		//	MTP_string(to.twoLetterCode())
-		//)).done([=](const MTPmessages_TranslatedText &result) {
-		//	const auto &data = result.data();
-		//	const auto &list = data.vresult().v;
-		//	if (list.isEmpty()) {
-		//		showText(
-		//			tr::italic(tr::lng_translate_box_error(tr::now)));
-		//	} else {
-		//		showText(Api::ParseTextWithEntities(
-		//			&peer->session(),
-		//			list.front()));
-		//	}
-		//}).fail([=](const MTP::Error &error) {
-		//	showText(
-		//		tr::italic(tr::lng_translate_box_error(tr::now)));
-		//}).send();
 	};
 	state->to.value() | rpl::on_next(send, box->lifetime());
 
