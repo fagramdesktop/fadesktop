@@ -67,6 +67,12 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			"- Some code optimizations\n\n"
 			"@FAgramDesktop\n"
 		},
+		{
+			2001002,
+			"- Updated tdesktop to v6.4.0\n"
+			"- Fixed userpic rounding behaviour\n\n"
+			"@FAgramDesktop\n"
+		},
 	};
 	return entries;
 }

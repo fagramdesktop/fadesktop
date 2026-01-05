@@ -1,3 +1,8 @@
+2.1.2 (05.01.26)
+
+- Updated tdesktop to v6.4.0
+- Fixed userpic rounding behaviour
+
 2.1.1 (28.12.25)
 
 - Added user status dot for online/offline activity
