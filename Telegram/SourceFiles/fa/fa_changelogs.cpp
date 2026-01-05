@@ -73,6 +73,13 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			"- Fixed userpic rounding behaviour\n\n"
 			"@FAgramDesktop\n"
 		},
+		{
+			2001003,
+			"- Updated tdesktop to v6.4.1\n"
+			"- Added option to forward media/docs without caption\n"
+			"- Improved changelog peer chat implementation\n\n"
+			"@FAgramDesktop\n"
+		},
 	};
 	return entries;
 }
