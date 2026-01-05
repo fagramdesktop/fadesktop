@@ -9,6 +9,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #include "fa/settings/fa_settings.h"
 #include "fa/utils/telegram_helpers.h"
+#include "fa/changelog/fa_changelog_peer.h"
 
 #include "api/api_authorizations.h"
 #include "api/api_attached_stickers.h"
@@ -3216,6 +3217,10 @@ void ApiWrap::requestHistory(
 		MsgId messageId,
 		SliceType slice) {
 	const auto peer = history->peer;
+	if (peer->id == FA::Changelog::GetChangelogPeerId()) {
+		return;
+	}
+
 	const auto key = HistoryRequest{
 		peer,
 		messageId,

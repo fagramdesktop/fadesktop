@@ -12,6 +12,8 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "data/data_user.h"
 #include "data/data_peer.h"
 #include "data/data_histories.h"
+#include "data/data_history_messages.h"
+#include "data/data_msg_id.h"
 #include "data/data_types.h"
 #include "data/data_thread.h"
 #include "history/history.h"
@@ -295,6 +297,9 @@ void LoadStoredMessages(not_null<Main::Session*> session) {
 
 	const auto peerId = GetChangelogPeerId();
 
+	std::vector<MsgId> messageIds;
+	messageIds.reserve(messages.size());
+
 	for (const auto &stored : messages) {
 		if (history->owner().message(peerId, stored.id)) {
 			continue;
@@ -347,7 +352,15 @@ void LoadStoredMessages(not_null<Main::Session*> session) {
 				MTPint(),
 				MTPstring()),
 			localFlags,
-			NewMessageType::Last);
+			NewMessageType::Existing);
+
+		messageIds.push_back(stored.id);
+	}
+	if (!messageIds.empty()) {
+		history->messages().addSlice(
+			std::move(messageIds),
+			{ MsgId(0), ServerMaxMsgId },
+			std::nullopt);
 	}
 
 	session->data().sendHistoryChangeNotifications();
