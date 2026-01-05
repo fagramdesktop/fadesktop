@@ -187,8 +187,7 @@ void PeerListBox::prepare() {
 			_controller.get()),
 		st::boxScroll,
 		0,
-		0,
-		true /*alwaysKeepDimensionsToInner*/));
+		0));
 	content()->resizeToWidth(_controller->contentWidth());
 
 	_controller->setDelegate(this);

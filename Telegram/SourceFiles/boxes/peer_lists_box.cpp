@@ -150,8 +150,7 @@ void PeerListsBox::prepare() {
 		object_ptr<Ui::VerticalLayout>(this),
 		st::boxScroll,
 		0,
-		0,
-		true /*alwaysKeepDimensionsToInner*/);
+		0);
 	for (auto &list : _lists) {
 		const auto content = rows->add(object_ptr<PeerListContent>(
 			rows,

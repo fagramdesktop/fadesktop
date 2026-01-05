@@ -344,7 +344,8 @@ void LoadStoredMessages(not_null<Main::Session*> session) {
 				MTPint(),
 				MTPlong(),
 				MTPSuggestedPost(),
-				MTPint()),
+				MTPint(),
+				MTPstring()),
 			localFlags,
 			NewMessageType::Last);
 	}
@@ -427,7 +428,8 @@ not_null<HistoryItem*> AddChangelogMessage(
 			MTPint(),
 			MTPlong(),
 			MTPSuggestedPost(),
-			MTPint()),
+			MTPint(),
+			MTPstring()),
 		localFlags,
 		NewMessageType::Unread);
 
