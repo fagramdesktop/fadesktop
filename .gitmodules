@@ -64,9 +64,6 @@
 [submodule "Telegram/ThirdParty/tgcalls"]
 	path = Telegram/ThirdParty/tgcalls
 	url = https://github.com/TelegramMessenger/tgcalls.git
-[submodule "Telegram/lib_webview"]
-	path = Telegram/lib_webview
-	url = https://github.com/desktop-app/lib_webview.git
 [submodule "Telegram/ThirdParty/dispatch"]
 	path = Telegram/ThirdParty/dispatch
 	url = https://github.com/apple/swift-corelibs-libdispatch
@@ -97,3 +94,6 @@
 [submodule "cmake"]
 	path = cmake
 	url = https://github.com/burhancodes/cmake_helpers
+[submodule "Telegram/lib_webview"]
+	path = Telegram/lib_webview
+	url = https://github.com/desktop-app/lib_webview.git

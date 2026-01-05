@@ -180,7 +180,14 @@ void PeerListsBox::prepare() {
 	}
 	rows->resizeToWidth(firstController()->contentWidth());
 
-	setDimensions(firstController()->contentWidth(), st::boxMaxListHeight);
+	{
+		setDimensions(
+			firstController()->contentWidth(),
+			std::clamp(
+				rows->height(),
+				st::boxMaxListHeight,
+				st::boxMaxListHeight * 3));
+	}
 	if (_select) {
 		_select->finishAnimating();
 		Ui::SendPendingMoveResizeEvents(_select);
