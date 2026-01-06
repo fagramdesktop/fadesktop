@@ -103,6 +103,7 @@
   "fa_context_menu_forward_submenu_desc": "Affiche des options de transfert rapide (Transférer comme copie, Transférer vers Enregistrés) dans le menu contextuel",
   "fa_forward_with_author": "Transférer avec auteur",
   "fa_forward_as_copy": "Transférer comme copie",
+  "fa_forward_without_caption": "Transférer sans légende",
   "fa_forward_to_saved": "Transférer vers Messages enregistrés",
   "fa_forward_to_saved_as_copy": "Transférer vers Enregistrés comme copie",
   "fa_shortcut_button_size": "Taille du bouton : %1px",

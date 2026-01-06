@@ -103,6 +103,7 @@
   "fa_context_menu_forward_submenu_desc": "Gyors továbbítási lehetőségek megjelenítése (Továbbítás másolatként, Továbbítás Mentettekbe) a helyi menüben",
   "fa_forward_with_author": "Továbbítás szerzővel",
   "fa_forward_as_copy": "Továbbítás másolatként",
+  "fa_forward_without_caption": "Továbbítás felirat nélkül",
   "fa_forward_to_saved": "Továbbítás Mentett üzenetekbe",
   "fa_forward_to_saved_as_copy": "Továbbítás Mentettekbe másolatként",
   "fa_shortcut_button_size": "Gomb mérete: %1px",

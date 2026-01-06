@@ -432,6 +432,17 @@ bool AddForwardSelectedAction(
 			&st::menuIconCopy);
 
 		submenu->addAction(
+			FAlang::Translate("fa_forward_without_caption"),
+			[=] {
+				auto draft = Data::ForwardDraft{
+					.ids = ids,
+					.options = Data::ForwardOptions::NoNamesAndCaptions,
+				};
+				Window::ShowForwardMessagesBox(navigation, std::move(draft), callback);
+			},
+			&st::menuIconPhoto);
+
+		submenu->addAction(
 			FAlang::Translate("fa_forward_to_saved"),
 			[=] {
 				auto draft = Data::ForwardDraft{ .ids = ids };
@@ -531,6 +542,20 @@ bool AddForwardMessageAction(
 				}
 			},
 			&st::menuIconCopy);
+
+		submenu->addAction(
+			FAlang::Translate("fa_forward_without_caption"),
+			[=] {
+				const auto ids = getMessageIds();
+				if (!ids.empty()) {
+					auto draft = Data::ForwardDraft{
+						.ids = ids,
+						.options = Data::ForwardOptions::NoNamesAndCaptions,
+					};
+					Window::ShowForwardMessagesBox(navigation, std::move(draft));
+				}
+			},
+			&st::menuIconPhoto);
 
 		submenu->addAction(
 			FAlang::Translate("fa_forward_to_saved"),

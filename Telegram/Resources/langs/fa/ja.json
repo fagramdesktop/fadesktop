@@ -103,6 +103,7 @@
   "fa_context_menu_forward_submenu_desc": "コンテキストメニューにクイック転送オプション（コピーとして転送、保存済みに転送）を表示",
   "fa_forward_with_author": "作成者付きで転送",
   "fa_forward_as_copy": "コピーとして転送",
+  "fa_forward_without_caption": "キャプションなしで転送",
   "fa_forward_to_saved": "保存済みメッセージに転送",
   "fa_forward_to_saved_as_copy": "保存済みにコピーとして転送",
   "fa_shortcut_button_size": "ボタンサイズ: %1px",

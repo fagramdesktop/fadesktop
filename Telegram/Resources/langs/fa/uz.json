@@ -103,6 +103,7 @@
   "fa_context_menu_forward_submenu_desc": "Kontekst menyusida tezkor yo'naltirish variantlarini ko'rsatish (Nusxa sifatida yo'naltirish, Saqlanganga yo'naltirish)",
   "fa_forward_with_author": "Muallif bilan yo'naltirish",
   "fa_forward_as_copy": "Nusxa sifatida yo'naltirish",
+  "fa_forward_without_caption": "Yozuvsiz yo'naltirish",
   "fa_forward_to_saved": "Saqlangan xabarlarga yo'naltirish",
   "fa_forward_to_saved_as_copy": "Saqlanganga nusxa sifatida yo'naltirish",
   "fa_shortcut_button_size": "Tugma o'lchami: %1px",

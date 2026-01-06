@@ -103,6 +103,7 @@
   "fa_context_menu_forward_submenu_desc": "Shows quick forward options (Forward as Copy, Forward to Saved) in the context menu",
   "fa_forward_with_author": "Forward with Author",
   "fa_forward_as_copy": "Forward as Copy",
+  "fa_forward_without_caption": "Forward without captions",
   "fa_forward_to_saved": "Forward to Saved Messages",
   "fa_forward_to_saved_as_copy": "Forward to Saved as Copy",
   "fa_shortcut_button_size": "Button size: %1px",

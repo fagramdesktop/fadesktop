@@ -103,6 +103,7 @@
   "fa_context_menu_forward_submenu_desc": "Zeigt schnelle Weiterleitungsoptionen (Als Kopie weiterleiten, An Gespeicherte weiterleiten) im Kontextmenü",
   "fa_forward_with_author": "Mit Autor weiterleiten",
   "fa_forward_as_copy": "Als Kopie weiterleiten",
+  "fa_forward_without_caption": "Ohne Beschriftung weiterleiten",
   "fa_forward_to_saved": "An Gespeicherte Nachrichten weiterleiten",
   "fa_forward_to_saved_as_copy": "An Gespeicherte als Kopie weiterleiten",
   "fa_shortcut_button_size": "Schaltflächengröße: %1px",

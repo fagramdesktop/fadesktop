@@ -103,6 +103,7 @@
   "fa_context_menu_forward_submenu_desc": "Pokazuje szybkie opcje przekazywania (Przekaż jako kopię, Przekaż do Zapisanych) w menu kontekstowym",
   "fa_forward_with_author": "Przekaż z autorem",
   "fa_forward_as_copy": "Przekaż jako kopię",
+  "fa_forward_without_caption": "Przekaż bez podpisu",
   "fa_forward_to_saved": "Przekaż do Zapisanych wiadomości",
   "fa_forward_to_saved_as_copy": "Przekaż do Zapisanych jako kopię",
   "fa_shortcut_button_size": "Rozmiar przycisku: %1px",

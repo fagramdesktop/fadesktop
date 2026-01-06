@@ -3042,6 +3042,17 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						&st::menuIconCopy);
 
 					submenu->addAction(
+						FAlang::Translate("fa_forward_without_caption"),
+						[=] {
+							auto draft = Data::ForwardDraft{
+								.ids = ids,
+								.options = Data::ForwardOptions::NoNamesAndCaptions,
+							};
+							Window::ShowForwardMessagesBox(controller, std::move(draft), callback);
+						},
+						&st::menuIconPhoto);
+
+					submenu->addAction(
 						FAlang::Translate("fa_forward_to_saved"),
 						[=] {
 							auto draft = Data::ForwardDraft{ .ids = ids };
@@ -3111,6 +3122,17 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 								Window::ShowForwardMessagesBox(controller, std::move(draft));
 							},
 							&st::menuIconCopy);
+
+						submenu->addAction(
+							FAlang::Translate("fa_forward_without_caption"),
+							[=] {
+								auto draft = Data::ForwardDraft{
+									.ids = MessageIdsList{ 1, itemId },
+									.options = Data::ForwardOptions::NoNamesAndCaptions,
+								};
+								Window::ShowForwardMessagesBox(controller, std::move(draft));
+							},
+							&st::menuIconPhoto);
 
 						submenu->addAction(
 							FAlang::Translate("fa_forward_to_saved"),
@@ -3424,6 +3446,17 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						&st::menuIconCopy);
 
 					submenu->addAction(
+						FAlang::Translate("fa_forward_without_caption"),
+						[=] {
+							auto draft = Data::ForwardDraft{
+								.ids = ids,
+								.options = Data::ForwardOptions::NoNamesAndCaptions,
+							};
+							Window::ShowForwardMessagesBox(controller, std::move(draft), callback);
+						},
+						&st::menuIconPhoto);
+
+					submenu->addAction(
 						FAlang::Translate("fa_forward_to_saved"),
 						[=] {
 							auto draft = Data::ForwardDraft{ .ids = ids };
@@ -3501,6 +3534,20 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 								}
 							},
 							&st::menuIconCopy);
+
+						submenu->addAction(
+							FAlang::Translate("fa_forward_without_caption"),
+							[=] {
+								const auto ids = getGroupIds();
+								if (!ids.empty()) {
+									auto draft = Data::ForwardDraft{
+										.ids = ids,
+										.options = Data::ForwardOptions::NoNamesAndCaptions,
+									};
+									Window::ShowForwardMessagesBox(controller, std::move(draft));
+								}
+							},
+							&st::menuIconPhoto);
 
 						submenu->addAction(
 							FAlang::Translate("fa_forward_to_saved"),

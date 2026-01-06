@@ -103,6 +103,7 @@
   "fa_context_menu_forward_submenu_desc": "Mostra opzioni di inoltro rapido (Inoltra come copia, Inoltra ai Salvati) nel menu contestuale",
   "fa_forward_with_author": "Inoltra con autore",
   "fa_forward_as_copy": "Inoltra come copia",
+  "fa_forward_without_caption": "Inoltra senza didascalia",
   "fa_forward_to_saved": "Inoltra ai Messaggi Salvati",
   "fa_forward_to_saved_as_copy": "Inoltra ai Salvati come copia",
   "fa_shortcut_button_size": "Dimensione pulsante: %1px",

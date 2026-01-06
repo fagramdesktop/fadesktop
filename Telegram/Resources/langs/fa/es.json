@@ -103,6 +103,7 @@
   "fa_context_menu_forward_submenu_desc": "Muestra opciones rápidas de reenvío (Reenviar como copia, Reenviar a Guardados) en el menú contextual",
   "fa_forward_with_author": "Reenviar con autor",
   "fa_forward_as_copy": "Reenviar como copia",
+  "fa_forward_without_caption": "Reenviar sin subtítulo",
   "fa_forward_to_saved": "Reenviar a Mensajes Guardados",
   "fa_forward_to_saved_as_copy": "Reenviar a Guardados como copia",
   "fa_shortcut_button_size": "Tamaño del botón: %1px",

@@ -1299,6 +1299,17 @@ void ListWidget::showContextMenu(
 					&st::menuIconCopy);
 
 				submenu->addAction(
+					FAlang::Translate("fa_forward_without_caption"),
+					crl::guard(this, [=] {
+						auto draft = Data::ForwardDraft{
+							.ids = ids,
+							.options = Data::ForwardOptions::NoNamesAndCaptions,
+						};
+						Window::ShowForwardMessagesBox(controller, std::move(draft), callback);
+					}),
+					&st::menuIconPhoto);
+
+				submenu->addAction(
 					FAlang::Translate("fa_forward_to_saved"),
 					crl::guard(this, [=] {
 						auto draft = Data::ForwardDraft{ .ids = ids };

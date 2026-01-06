@@ -103,6 +103,7 @@
   "fa_context_menu_forward_submenu_desc": "Показує швидкі опції пересилання (Переслати як копію, Переслати в Збережені) в контекстному меню",
   "fa_forward_with_author": "Переслати з автором",
   "fa_forward_as_copy": "Переслати як копію",
+  "fa_forward_without_caption": "Переслати без підпису",
   "fa_forward_to_saved": "Переслати в Збережені повідомлення",
   "fa_forward_to_saved_as_copy": "Переслати в Збережені як копію",
   "fa_shortcut_button_size": "Розмір кнопки: %1px",

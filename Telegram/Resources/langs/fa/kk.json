@@ -103,6 +103,7 @@
   "fa_context_menu_forward_submenu_desc": "Контекстік мәзірде жылдам жіберу опцияларын көрсету (Көшірме ретінде жіберу, Сақталғанға жіберу)",
   "fa_forward_with_author": "Автормен бірге жіберу",
   "fa_forward_as_copy": "Көшірме ретінде жіберу",
+  "fa_forward_without_caption": "Жазусыз жіберу",
   "fa_forward_to_saved": "Сақталған хабарламаларға жіберу",
   "fa_forward_to_saved_as_copy": "Сақталғанға көшірме ретінде жіберу",
   "fa_shortcut_button_size": "Түйме өлшемі: %1px",
