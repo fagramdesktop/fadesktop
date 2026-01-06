@@ -1298,16 +1298,25 @@ void ListWidget::showContextMenu(
 					}),
 					&st::menuIconCopy);
 
-				submenu->addAction(
-					FAlang::Translate("fa_forward_without_caption"),
-					crl::guard(this, [=] {
-						auto draft = Data::ForwardDraft{
-							.ids = ids,
-							.options = Data::ForwardOptions::NoNamesAndCaptions,
-						};
-						Window::ShowForwardMessagesBox(controller, std::move(draft), callback);
-					}),
-					&st::menuIconPhoto);
+				const auto hasMediaWithCaption = ranges::any_of(
+					_selected,
+					[](const auto &pair) {
+						const auto item = pair.first;
+						return item->media() && item->media()->allowsEditCaption();
+					});
+
+				if (hasMediaWithCaption) {
+					submenu->addAction(
+						FAlang::Translate("fa_forward_without_caption"),
+						crl::guard(this, [=] {
+							auto draft = Data::ForwardDraft{
+								.ids = ids,
+								.options = Data::ForwardOptions::NoNamesAndCaptions,
+							};
+							Window::ShowForwardMessagesBox(controller, std::move(draft), callback);
+						}),
+						&st::menuIconFile);
+				}
 
 				submenu->addAction(
 					FAlang::Translate("fa_forward_to_saved"),

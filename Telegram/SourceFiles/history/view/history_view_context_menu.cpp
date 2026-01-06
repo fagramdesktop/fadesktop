@@ -399,6 +399,15 @@ bool AddForwardSelectedAction(
 
 	if (::FASettings::JsonSettings::GetBool("context_menu_forward_submenu")) {
 		const auto ids = ExtractIdsList(selectedItems);
+		const auto session = &navigation->session();
+		const auto hasMediaWithCaption = ranges::any_of(
+			selectedItems,
+			[&](const SelectedItem &selected) {
+				if (const auto item = session->data().message(selected.msgId)) {
+					return item->media() && item->media()->allowsEditCaption();
+				}
+				return false;
+			});
 
 		const auto forwardAction = menu->addAction(
 			tr::lng_context_forward_selected(tr::now),
@@ -408,7 +417,6 @@ bool AddForwardSelectedAction(
 			},
 			&st::menuIconForward);
 
-		// Dummy menu to show submenu arrow indicator
 		forwardAction->setMenu(Ui::CreateChild<QMenu>(menu->menu().get()));
 		const auto submenu = menu->ensureSubmenu(forwardAction, st::faContextMenu);
 
@@ -431,16 +439,18 @@ bool AddForwardSelectedAction(
 			},
 			&st::menuIconCopy);
 
-		submenu->addAction(
-			FAlang::Translate("fa_forward_without_caption"),
-			[=] {
-				auto draft = Data::ForwardDraft{
-					.ids = ids,
-					.options = Data::ForwardOptions::NoNamesAndCaptions,
-				};
-				Window::ShowForwardMessagesBox(navigation, std::move(draft), callback);
-			},
-			&st::menuIconPhoto);
+		if (hasMediaWithCaption) {
+			submenu->addAction(
+				FAlang::Translate("fa_forward_without_caption"),
+				[=] {
+					auto draft = Data::ForwardDraft{
+						.ids = ids,
+						.options = Data::ForwardOptions::NoNamesAndCaptions,
+					};
+					Window::ShowForwardMessagesBox(navigation, std::move(draft), callback);
+				},
+				&st::menuIconFile);
+		}
 
 		submenu->addAction(
 			FAlang::Translate("fa_forward_to_saved"),
@@ -518,7 +528,6 @@ bool AddForwardMessageAction(
 			},
 			&st::menuIconForward);
 
-		// Dummy menu to show submenu arrow indicator
 		forwardAction->setMenu(Ui::CreateChild<QMenu>(menu->menu().get()));
 		const auto submenu = menu->ensureSubmenu(forwardAction, st::faContextMenu);
 
@@ -543,19 +552,21 @@ bool AddForwardMessageAction(
 			},
 			&st::menuIconCopy);
 
-		submenu->addAction(
-			FAlang::Translate("fa_forward_without_caption"),
-			[=] {
-				const auto ids = getMessageIds();
-				if (!ids.empty()) {
-					auto draft = Data::ForwardDraft{
-						.ids = ids,
-						.options = Data::ForwardOptions::NoNamesAndCaptions,
-					};
-					Window::ShowForwardMessagesBox(navigation, std::move(draft));
-				}
-			},
-			&st::menuIconPhoto);
+		if (item->media() && item->media()->allowsEditCaption()) {
+			submenu->addAction(
+				FAlang::Translate("fa_forward_without_caption"),
+				[=] {
+					const auto ids = getMessageIds();
+					if (!ids.empty()) {
+						auto draft = Data::ForwardDraft{
+							.ids = ids,
+							.options = Data::ForwardOptions::NoNamesAndCaptions,
+						};
+						Window::ShowForwardMessagesBox(navigation, std::move(draft));
+					}
+				},
+				&st::menuIconFile);
+		}
 
 		submenu->addAction(
 			FAlang::Translate("fa_forward_to_saved"),
