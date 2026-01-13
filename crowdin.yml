@@ -1,2 +1,5 @@
 bundles:
   - 6
+files:
+  - source: /Telegram/Resources/langs/fa/en.json
+    translation: /Telegram/Resources/langs/fa/%two_letters_code%.json
