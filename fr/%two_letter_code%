@@ -1,0 +1,746 @@
+[
+    {
+        "identifier": "fa_client_preferences",
+        "source_string": "FAgram Preferences",
+        "translation": "Préférences FAgram",
+        "context": " -> fa_client_preferences",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_copy_id",
+        "source_string": "Copy ID",
+        "translation": "Copier l'ID",
+        "context": " -> fa_copy_id",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_id_copied",
+        "source_string": "ID copied",
+        "translation": "ID copié",
+        "context": " -> fa_id_copied",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_copy_registration_date",
+        "source_string": "Copy Registration date",
+        "translation": "Copier la date d'inscription",
+        "context": " -> fa_copy_registration_date",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_copy_callback_data",
+        "source_string": "Copy Callback data",
+        "translation": "Copier les données de callback",
+        "context": " -> fa_copy_callback_data",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_registration_date",
+        "source_string": "Registration date",
+        "translation": "Date d'inscription",
+        "context": " -> fa_registration_date",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_not_found",
+        "source_string": "Not found.",
+        "translation": "Non trouvé.",
+        "context": " -> fa_not_found",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_settings_change_after_restart",
+        "source_string": "^ This setting will be changed after restart of the client ^",
+        "translation": "^ Ce paramètre changera après le redémarrage du client ^",
+        "context": " -> fa_settings_change_after_restart",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_categories",
+        "source_string": "Categories",
+        "translation": "Catégories",
+        "context": " -> fa_categories",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_general",
+        "source_string": "General",
+        "translation": "Général",
+        "context": " -> fa_general",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_seconds_message",
+        "source_string": "Show Seconds of Message",
+        "translation": "Afficher les secondes des messages",
+        "context": " -> fa_show_seconds_message",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_disable_ads",
+        "source_string": "Disable ads",
+        "translation": "Désactiver les publicités",
+        "context": " -> fa_disable_ads",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_start_token",
+        "source_string": "Show Start Token in Bot",
+        "translation": "Afficher le jeton de démarrage lors du lancement du bot",
+        "context": " -> fa_show_start_token",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_peer_ids",
+        "source_string": "Show Peer IDs",
+        "translation": "Afficher l'ID du pair",
+        "context": " -> fa_show_peer_ids",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_dc_ids",
+        "source_string": "Show DC IDs in label of peer ids",
+        "translation": "Afficher l'ID DC sous l'ID du pair",
+        "context": " -> fa_show_dc_ids",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_id_in_botapi_type",
+        "source_string": "BotAPI IDs type",
+        "translation": "Type d'ID BotAPI",
+        "context": " -> fa_id_in_botapi_type",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_registration_date",
+        "source_string": "Show Registration Date",
+        "translation": "Afficher la date d'inscription",
+        "context": " -> fa_show_registration_date",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_phone_in_settings",
+        "source_string": "Hide Phone number in Settings",
+        "translation": "Masquer le numéro de téléphone dans les paramètres",
+        "context": " -> fa_hide_phone_in_settings",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_screenshot_mode",
+        "source_string": "Screenshot Mode",
+        "translation": "Mode capture d'écran",
+        "context": " -> fa_screenshot_mode",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_stories",
+        "source_string": "Hide Stories",
+        "translation": "Masquer les stories",
+        "context": " -> fa_hide_stories",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_mark_read_after_action",
+        "source_string": "β Read after action",
+        "translation": "β Marquer comme lu après action",
+        "context": " -> fa_mark_read_after_action",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_chats",
+        "source_string": "Chats",
+        "translation": "Discussions",
+        "context": " -> fa_chats",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_recent_stickers_hidden",
+        "source_string": "Recent stickers: Hidden",
+        "translation": "Autocollants récents: Masqués",
+        "context": " -> fa_recent_stickers_hidden",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_recent_stickers",
+        "source_string": "Recent stickers: %1",
+        "translation": "Autocollants récents: %1",
+        "context": " -> fa_recent_stickers",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_disable_custom_chat_background",
+        "source_string": "β Hide custom background of chat",
+        "translation": "β Masquer l'arrière-plan personnalisé",
+        "context": " -> fa_disable_custom_chat_background",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_open_webapp_button_chatlist",
+        "source_string": "Hide Open Webapp button",
+        "translation": "Masquer le bouton Ouvrir l'application web",
+        "context": " -> fa_hide_open_webapp_button_chatlist",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_all_chats_folder",
+        "source_string": "Hide All Chats folder",
+        "translation": "Masquer le dossier Toutes les discussions",
+        "context": " -> fa_hide_all_chats_folder",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_appearance",
+        "source_string": "Appearance",
+        "translation": "Apparence",
+        "context": " -> fa_appearance",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_rounding",
+        "source_string": "Rounding: %1",
+        "translation": "Arrondi: %1",
+        "context": " -> fa_rounding",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_use_default_rounding",
+        "source_string": "Use Default Rounding",
+        "translation": "Utiliser l'arrondi par défaut",
+        "context": " -> fa_use_default_rounding",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_other",
+        "source_string": "Other",
+        "translation": "Autre",
+        "context": " -> fa_other",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_update_client",
+        "source_string": "Update FAgram",
+        "translation": "Mettre à jour FAgram",
+        "context": " -> fa_update_client",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_restart_client",
+        "source_string": "Restart FAgram",
+        "translation": "Redémarrer FAgram",
+        "context": " -> fa_restart_client",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_quit_client",
+        "source_string": "Quit FAgram",
+        "translation": "Quitter FAgram",
+        "context": " -> fa_quit_client",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_debug_logs",
+        "source_string": "Logs",
+        "translation": "Journaux",
+        "context": " -> fa_debug_logs",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_debug_logs_on",
+        "source_string": "Logs on!",
+        "translation": "Journaux actifs!",
+        "context": " -> fa_debug_logs_on",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_debug_logs_off",
+        "source_string": "Logs off",
+        "translation": "Journaux désactivés",
+        "context": " -> fa_debug_logs_off",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_clean_debug_logs",
+        "source_string": "Clean Debug Logs",
+        "translation": "Nettoyer les journaux",
+        "context": " -> fa_clean_debug_logs",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_cleaning_debug_logs",
+        "source_string": "Cleaning...",
+        "translation": "Nettoyage…",
+        "context": " -> fa_cleaning_debug_logs",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_cleaned_debug_logs",
+        "source_string": "Debug Logs Cleaned!",
+        "translation": "Journaux nettoyés!",
+        "context": " -> fa_cleaned_debug_logs",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_logs_dir",
+        "source_string": "You can find the logs in the DebugLogs folder which is located next to FAgram",
+        "translation": "Vous pouvez trouver les journaux dans le dossier DebugLogs à côté de FAgram",
+        "context": " -> fa_logs_dir",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_links",
+        "source_string": "Links",
+        "translation": "Liens",
+        "context": " -> fa_links",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_channel",
+        "source_string": "Channel",
+        "translation": "Chaîne",
+        "context": " -> fa_channel",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_group",
+        "source_string": "Group",
+        "translation": "Discussion",
+        "context": " -> fa_group",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_beta",
+        "source_string": "Beta",
+        "translation": "Bêta",
+        "context": " -> fa_beta",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_source_code",
+        "source_string": "Source code",
+        "translation": "Code source",
+        "context": " -> fa_source_code",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_production_server",
+        "source_string": "Production Server (Standard)",
+        "translation": "Serveur de production (Par défaut)",
+        "context": " -> fa_production_server",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_test_server",
+        "source_string": "Test Server",
+        "translation": "Serveur de test",
+        "context": " -> fa_test_server",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_translation",
+        "source_string": "Translation",
+        "translation": "Traduction",
+        "context": " -> fa_translation",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_force_snow",
+        "source_string": "Force snow",
+        "translation": "Neige forcée",
+        "context": " -> fa_force_snow",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_local_tg_premium",
+        "source_string": "Local Telegram Premium",
+        "translation": "Telegram Premium local",
+        "context": " -> fa_local_tg_premium",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_message_details",
+        "source_string": "Show message's details",
+        "translation": "Afficher les détails du message",
+        "context": " -> fa_show_message_details",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_discuss_button",
+        "source_string": "Show discuss button",
+        "translation": "Afficher le bouton Discuter",
+        "context": " -> fa_show_discuss_button",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_setting_need_restart",
+        "source_string": "FAgram will restart in order to change this setting",
+        "translation": "FAgram redémarrera pour changer ce paramètre",
+        "context": " -> fa_setting_need_restart",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_restart",
+        "source_string": "Restart",
+        "translation": "Redémarrer",
+        "context": " -> fa_restart",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_discuss_button",
+        "source_string": "Discuss",
+        "translation": "Discuter",
+        "context": " -> fa_discuss_button",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_go_to_first_message",
+        "source_string": "To the beginning",
+        "translation": "Aller au début",
+        "context": " -> fa_go_to_first_message",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details",
+        "source_string": "Details",
+        "translation": "Détails",
+        "context": " -> fa_message_details",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_views",
+        "source_string": "Views",
+        "translation": "Vues",
+        "context": " -> fa_message_details_views",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_share",
+        "source_string": "Shares",
+        "translation": "Partagé",
+        "context": " -> fa_message_details_share",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_date",
+        "source_string": "Date",
+        "translation": "Date",
+        "context": " -> fa_message_details_date",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_edit_date",
+        "source_string": "Edited",
+        "translation": "Modifié",
+        "context": " -> fa_message_details_edit_date",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_forward_message_date",
+        "source_string": "Forward message",
+        "translation": "Message transféré",
+        "context": " -> fa_message_details_forward_message_date",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_filesize",
+        "source_string": "File size",
+        "translation": "Taille du fichier",
+        "context": " -> fa_message_details_filesize",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_filetype",
+        "source_string": "File type",
+        "translation": "Type de fichier",
+        "context": " -> fa_message_details_filetype",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_filename",
+        "source_string": "File name",
+        "translation": "Nom du fichier",
+        "context": " -> fa_message_details_filename",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_resolution",
+        "source_string": "Resolution",
+        "translation": "Résolution",
+        "context": " -> fa_message_details_resolution",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_datacenter",
+        "source_string": "Datacenter",
+        "translation": "Centre de données",
+        "context": " -> fa_message_details_datacenter",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_pack_owner",
+        "source_string": "Pack owner",
+        "translation": "Propriétaire du pack",
+        "context": " -> fa_pack_owner",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_seconds_message_desc",
+        "source_string": "Displays seconds in message timestamps for more precise timing",
+        "translation": "Affiche les secondes dans les horodatages des messages pour plus de précision",
+        "context": " -> fa_show_seconds_message_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_disable_ads_desc",
+        "source_string": "Removes sponsored messages and advertisements from channels",
+        "translation": "Supprime les messages sponsorisés et les publicités des chaînes",
+        "context": " -> fa_disable_ads_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_start_token_desc",
+        "source_string": "Shows the start parameter token when opening a bot via a deep link",
+        "translation": "Affiche le jeton du paramètre de démarrage lors de l'ouverture d'un bot via un lien profond",
+        "context": " -> fa_show_start_token_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_peer_ids_desc",
+        "source_string": "Displays numeric IDs for users, groups, and channels in their profiles",
+        "translation": "Affiche les IDs numériques des utilisateurs, groupes et chaînes dans leurs profils",
+        "context": " -> fa_show_peer_ids_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_dc_ids_desc",
+        "source_string": "Adds datacenter number next to peer IDs in profiles",
+        "translation": "Ajoute le numéro du centre de données à côté des IDs de pair dans les profils",
+        "context": " -> fa_show_dc_ids_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_id_in_botapi_type_desc",
+        "source_string": "Shows IDs in Bot API format instead of internal Telegram format",
+        "translation": "Affiche les IDs au format Bot API au lieu du format interne de Telegram",
+        "context": " -> fa_id_in_botapi_type_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_registration_date_desc",
+        "source_string": "Displays the account registration date in user profiles",
+        "translation": "Affiche la date d'inscription du compte dans les profils utilisateurs",
+        "context": " -> fa_show_registration_date_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_phone_number",
+        "source_string": "Hide phone numbers",
+        "translation": "Masquer les numéros de téléphone",
+        "context": " -> fa_hide_phone_number",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_phone_number_desc",
+        "source_string": "Hides phone numbers in settings and all profiles",
+        "translation": "Masque les numéros de téléphone dans les paramètres et tous les profils",
+        "context": " -> fa_hide_phone_number_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_screenshot_mode_desc",
+        "source_string": "Blurs sensitive information like names and avatars for privacy when taking screenshots",
+        "translation": "Floute les informations sensibles comme les noms et avatars pour la confidentialité des captures",
+        "context": " -> fa_screenshot_mode_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_stories_desc",
+        "source_string": "Completely hides the stories section from the chat list",
+        "translation": "Masque complètement la section des stories de la liste de discussions",
+        "context": " -> fa_hide_stories_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_local_tg_premium_desc",
+        "source_string": "Enables some premium-like visual features locally without actual subscription",
+        "translation": "Active certaines fonctionnalités visuelles similaires à Premium localement sans abonnement réel",
+        "context": " -> fa_local_tg_premium_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_recent_stickers_desc",
+        "source_string": "Controls the maximum number of recent stickers shown in the sticker panel",
+        "translation": "Contrôle le nombre maximum d'autocollants récemment utilisés affichés dans le panneau",
+        "context": " -> fa_recent_stickers_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_disable_custom_chat_background_desc",
+        "source_string": "Ignores custom chat backgrounds set by other users or channels",
+        "translation": "Ignore les arrière-plans de discussion personnalisés définis par d'autres utilisateurs ou chaînes",
+        "context": " -> fa_disable_custom_chat_background_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_open_webapp_button_chatlist_desc",
+        "source_string": "Hides the webapp launch button in the chat list for bots",
+        "translation": "Masque le bouton de lancement de webapp dans la liste de discussions pour les bots",
+        "context": " -> fa_hide_open_webapp_button_chatlist_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_all_chats_folder_desc",
+        "source_string": "Removes the 'All Chats' folder tab from the folder list",
+        "translation": "Supprime l'onglet Toutes les discussions de la liste des dossiers",
+        "context": " -> fa_hide_all_chats_folder_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_discuss_button_desc",
+        "source_string": "Adds a button to quickly jump to the linked discussion group in channels",
+        "translation": "Ajoute un bouton pour accéder rapidement au groupe de discussion lié dans les chaînes",
+        "context": " -> fa_show_discuss_button_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_message_details_desc",
+        "source_string": "Enables viewing detailed message information like views, shares, and edit dates",
+        "translation": "Permet de voir les informations détaillées du message comme les vues, partages et date d'édition",
+        "context": " -> fa_show_message_details_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_rounding_desc",
+        "source_string": "Adjusts the corner roundness of avatars and UI elements",
+        "translation": "Ajuste l'arrondi des coins des avatars et éléments d'interface",
+        "context": " -> fa_rounding_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_use_default_rounding_desc",
+        "source_string": "Resets avatar and UI corner rounding to Telegram's default values",
+        "translation": "Réinitialise l'arrondi des coins des avatars et de l'interface aux valeurs par défaut de Telegram",
+        "context": " -> fa_use_default_rounding_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_force_snow_desc",
+        "source_string": "Enables the winter snow animation effect regardless of the current season",
+        "translation": "Active l'effet d'animation de neige hivernale quelle que soit la saison actuelle",
+        "context": " -> fa_force_snow_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_blocked_user_messages",
+        "source_string": "Hide messages from blocked users",
+        "translation": "Masquer les messages des utilisateurs bloqués",
+        "context": " -> fa_hide_blocked_user_messages",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_blocked_user_messages_desc",
+        "source_string": "Messages from blocked users will be hidden as spoilers and media won't auto-download.",
+        "translation": "Les messages des utilisateurs bloqués seront affichés comme spoiler et les médias ne seront pas téléchargés automatiquement.",
+        "context": " -> fa_hide_blocked_user_messages_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_restarting_in_seconds",
+        "source_string": "Restarting in 3 seconds...",
+        "translation": "Redémarrage dans 3 secondes...",
+        "context": " -> fa_restarting_in_seconds",
+        "labels": "en.json",
+        "max_length": null
+    }
+]
