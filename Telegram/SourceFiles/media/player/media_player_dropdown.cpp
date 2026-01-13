@@ -50,7 +50,7 @@ constexpr auto kSpeedStickedValues
 class SpeedSliderItem final : public Ui::Menu::ItemBase {
 public:
 	SpeedSliderItem(
-		not_null<RpWidget*> parent,
+		not_null<Ui::Menu::Menu*> parent,
 		const style::MediaSpeedMenu &st,
 		rpl::producer<float64> value);
 
@@ -84,7 +84,7 @@ private:
 };
 
 SpeedSliderItem::SpeedSliderItem(
-	not_null<RpWidget*> parent,
+	not_null<Ui::Menu::Menu*> parent,
 	const style::MediaSpeedMenu &st,
 	rpl::producer<float64> value)
 : Ui::Menu::ItemBase(parent, st.dropdown.menu)
@@ -95,7 +95,7 @@ SpeedSliderItem::SpeedSliderItem(
 	+ st.dropdown.menu.itemStyle.font->height
 	+ st.sliderPadding.bottom())
 , _debounceTimer([=] { _debounced.fire(current()); }) {
-	initResizeHook(parent->sizeValue());
+	fitToMenuWidth();
 	enableMouseSelecting();
 	enableMouseSelecting(_slider.get());
 
@@ -677,7 +677,7 @@ void OrderController::fillMenu(not_null<Ui::DropdownMenu*> menu) {
 			Unexpected("Order mode in addOrderAction.");
 		}();
 		menu->addAction(base::make_unique_q<Ui::Menu::Action>(
-			menu,
+			menu->menu(),
 			(active
 				? st::mediaPlayerOrderMenuActive
 				: st::mediaPlayerOrderMenu),

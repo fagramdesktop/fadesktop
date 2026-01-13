@@ -2563,9 +2563,6 @@ void TopBar::setupStoryOutline(const QRect &geometry) {
 }
 
 void TopBar::updateStoryOutline(std::optional<QColor> edgeColor) {
-	if (width() <= 0) {
-		return;
-	}
 	const auto user = _peer->asUser();
 	const auto channel = _peer->asChannel();
 	if (!user && !channel) {

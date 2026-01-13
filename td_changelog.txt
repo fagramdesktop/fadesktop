@@ -1,3 +1,14 @@
+6.4.2 (08.01.25)
+
+- Fix non-closing popup menu items.
+- Fix crash in my profile section resize.
+- Fix some text glitches because of render optimizations.
+
+6.4.1 (05.01.25)
+
+- Fix context menu double activations.
+- Fix text rendering in animating bubbles.
+
 6.4 (03.01.25)
 
 - AI Summaries for posts in channels.

@@ -614,7 +614,7 @@ QString DateTooltipText(not_null<Element*> view) {
 				const auto parsed = base::unixtime::parse(
 					forwarded->savedFromDate);
 				if (parsed != view->dateTime()) {
-					dateText += '\n' + tr::lng_forwarded_saved_date(
+					dateText += '\n' + tr::lng_forwarded_forwarded_date(
 						tr::now,
 						lt_date,
 						locale.toString(parsed, format));
@@ -1247,8 +1247,8 @@ void Element::prepareCustomEmojiPaint(
 	}
 }
 
-void Element::repaint() const {
-	history()->owner().requestViewRepaint(this);
+void Element::repaint(QRect r) const {
+	history()->owner().requestViewRepaint(this, r);
 }
 
 void Element::paintHighlight(
@@ -1693,7 +1693,23 @@ void Element::validateText() {
 	}
 
 	// Albums may show text of a different item than the parent one.
+	// Media::itemForText may initialize data within the object.
 	_textItem = _media ? _media->itemForText() : item.get();
+
+	const auto &summary = item->summaryEntry();
+	const auto summaryShownWas = (_flags & Flag::SummaryShown) != 0;
+	const auto summaryShownNow = !summary.result.empty() && summary.shown;
+	const auto summaryShownChanged = (summaryShownWas != summaryShownNow);
+	if (summaryShownNow) {
+		_flags |= Flag::SummaryShown;
+		if (summaryShownChanged) {
+			setTextWithLinks(summary.result);
+		}
+		return;
+	} else {
+		_flags &= ~Flag::SummaryShown;
+	}
+
 	if (!_textItem) {
 		if (!_text.isEmpty()) {
 			setTextWithLinks({});

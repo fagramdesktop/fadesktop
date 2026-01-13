@@ -195,6 +195,7 @@ struct SectionShow {
 	bool forceTopicsList = false;
 	bool reapplyLocalDraft = false;
 	bool dropSameFromStack = false;
+	bool allowDuplicateInStack = false;
 	Origin origin;
 
 };

@@ -60,7 +60,7 @@ class Item final
 	, private ListDelegate
 	, private CornerButtonsDelegate {
 public:
-	Item(not_null<Ui::RpWidget*> parent, not_null<Data::Thread*> thread);
+	Item(not_null<Ui::Menu::Menu*> parent, not_null<Data::Thread*> thread);
 
 	[[nodiscard]] not_null<QAction*> action() const override;
 	[[nodiscard]] bool isEnabled() const override;
@@ -274,7 +274,7 @@ struct StatusFields {
 	});
 }
 
-Item::Item(not_null<Ui::RpWidget*> parent, not_null<Data::Thread*> thread)
+Item::Item(not_null<Ui::Menu::Menu*> parent, not_null<Data::Thread*> thread)
 : Ui::Menu::ItemBase(parent, st::previewMenu.menu)
 , _dummyAction(new QAction(parent))
 , _session(&thread->session())
@@ -966,7 +966,7 @@ ChatPreview MakeChatPreview(
 	};
 	const auto menu = result.menu.get();
 
-	auto action = base::make_unique_q<Item>(menu, thread);
+	auto action = base::make_unique_q<Item>(menu->menu(), thread);
 	result.actions = action->actions();
 	menu->addAction(std::move(action));
 	if (const auto topic = thread->asTopic()) {

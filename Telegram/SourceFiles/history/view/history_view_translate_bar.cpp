@@ -48,7 +48,7 @@ constexpr auto kToastDuration = 4 * crl::time(1000);
 class TwoTextAction final : public Ui::Menu::ItemBase {
 public:
 	TwoTextAction(
-		not_null<Ui::RpWidget*> parent,
+		not_null<Ui::Menu::Menu*> parent,
 		const style::Menu &st,
 		const QString &text1,
 		const QString &text2,
@@ -90,7 +90,7 @@ TextParseOptions MenuTextOptions = {
 };
 
 TwoTextAction::TwoTextAction(
-	not_null<Ui::RpWidget*> parent,
+	not_null<Ui::Menu::Menu*> parent,
 	const style::Menu &st,
 	const QString &text1,
 	const QString &text2,
@@ -98,7 +98,7 @@ TwoTextAction::TwoTextAction(
 	const style::icon *icon,
 	const style::icon *iconOver)
 : ItemBase(parent, st)
-, _dummyAction(new QAction(parent))
+, _dummyAction(Ui::CreateChild<QAction>(parent))
 , _st(st)
 , _icon(icon)
 , _iconOver(iconOver)
@@ -107,8 +107,8 @@ TwoTextAction::TwoTextAction(
 	+ _st.itemStyle.font->height
 	+ st::ttlItemTimerFont->height
 	+ st::ttlItemPadding.bottom()) {
-	initResizeHook(parent->sizeValue());
-	setClickedCallback(std::move(callback));
+	fitToMenuWidth();
+	setActionTriggered(std::move(callback));
 
 	paintRequest(
 	) | rpl::on_next([=] {
@@ -492,7 +492,7 @@ void TranslateBar::showMenu(base::unique_qptr<Ui::PopupMenu> menu) {
 		u"cocoon"_q);
 	cocoon->overrideEmojiUsesTextColor(true);
 	auto item = base::make_unique_q<Ui::Menu::MultilineAction>(
-		_menu,
+		_menu->menu(),
 		st::defaultMenu,
 		st::historyTranslateCocoonLabel,
 		QPoint(

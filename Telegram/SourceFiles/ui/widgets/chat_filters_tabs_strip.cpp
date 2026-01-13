@@ -164,11 +164,11 @@ void ShowFiltersListMenu(
 			? &st::mediaPlayerMenuCheck
 			: nullptr;
 		const auto action = Ui::Menu::CreateAction(
-			state->menu.get(),
+			state->menu->menu(),
 			text,
 			callback);
 		auto item = base::make_unique_q<Ui::Menu::Action>(
-			state->menu.get(),
+			state->menu->menu(),
 			state->menu->st().menu,
 			action,
 			icon,

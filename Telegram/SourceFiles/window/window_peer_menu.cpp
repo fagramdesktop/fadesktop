@@ -1468,12 +1468,30 @@ void Filler::addViewAsMessages() {
 		controller->showPeerHistory(peer->id);
 	};
 	auto to_instant = rpl::map_to(anim::type::instant);
+	auto make = [=](not_null<Ui::PopupMenu*> popupMenu) {
+		auto owned = base::make_unique_q<Ui::Menu::Action>(
+			popupMenu->menu(),
+			popupMenu->menu()->st(),
+			Ui::Menu::CreateAction(
+				popupMenu->menu(),
+				tr::lng_forum_view_as_messages(tr::now),
+				[=, weak = base::make_weak(popupMenu)] {
+					if (filterOutChatPreview()) {
+					} else {
+						open();
+						if (const auto strong = weak.get()) {
+							strong->hideMenu(false);
+						}
+					}
+				}),
+			&st::menuIconAsMessages,
+			&st::menuIconAsMessages);
+		owned->setPreventClose(true);
+		return owned;
+	};
 	_addAction({
-		.text = tr::lng_forum_view_as_messages(tr::now),
-		.handler = open,
-		.icon = &st::menuIconAsMessages,
-		.triggerFilter = filterOutChatPreview,
-		.hideRequests = parentHideRequests->events() | to_instant
+		.make = std::move(make),
+		.hideRequests = parentHideRequests->events() | to_instant,
 	});
 }
 
@@ -1745,7 +1763,8 @@ void Filler::addToggleFee() {
 			removeFee);
 	}, feeRemoved ? &st::menuIconEarn : &st::menuIconCancelFee);
 	_addAction({ .isSeparator = true });
-	_addAction({ .make = [=](not_null<Ui::RpWidget*> actionParent) {
+	_addAction({ .make = [=](not_null<Ui::PopupMenu*> menuParent) {
+		const auto actionParent = menuParent->menu();
 		auto helper = Ui::Text::CustomEmojiHelper();
 		const auto text = feeRemoved
 			? tr::lng_context_fee_free(
@@ -1764,7 +1783,7 @@ void Filler::addToggleFee() {
 					user->owner().commonStarsPerMessage(parent)
 				)),
 				tr::marked);
-		const auto action = new QAction(actionParent);
+		const auto action = Ui::CreateChild<QAction>(actionParent);
 		action->setDisabled(true);
 		auto result = base::make_unique_q<Ui::Menu::Action>(
 			actionParent,

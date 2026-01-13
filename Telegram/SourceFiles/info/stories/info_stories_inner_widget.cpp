@@ -291,6 +291,8 @@ void InnerWidget::setupTop() {
 }
 
 void InnerWidget::startTop() {
+	_albumsTabs = nullptr;
+	_albumsWrap = nullptr;
 	_top.create(this);
 	_top->show();
 	_topHeight = _top->heightValue();

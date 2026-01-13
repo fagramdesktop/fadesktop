@@ -81,6 +81,16 @@ namespace {
 
 constexpr auto kEmojiInteractionSeenDuration = 3 * crl::time(1000);
 
+class MenuToggleButton final : public Ui::IconButton {
+public:
+	using IconButton::IconButton;
+
+protected:
+	void contextMenuEvent(QContextMenuEvent *e) override {
+		Ui::AbstractButton::clicked(Qt::KeyboardModifiers(), Qt::LeftButton);
+	}
+};
+
 [[nodiscard]] inline bool HasGroupCallMenu(not_null<PeerData*> peer) {
 	return !peer->isUser()
 		&& !peer->groupCall()
@@ -131,7 +141,9 @@ TopBarWidget::TopBarWidget(
 , _groupCall(this, st::topBarGroupCall)
 , _search(this, st::topBarSearch)
 , _infoToggle(this, st::topBarInfo)
-, _menuToggle(this, st::topBarMenuToggle)
+, _menuToggle(
+	object_ptr<Ui::IconButton>::fromRaw(
+		Ui::CreateChild<MenuToggleButton>(this, st::topBarMenuToggle)))
 , _recentActions(this, st::topBarRecentActions)
 , _admins(this, st::topBarAdmins)
 , _titlePeerText(st::windowMinWidth / 3)

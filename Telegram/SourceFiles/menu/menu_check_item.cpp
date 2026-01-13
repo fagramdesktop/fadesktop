@@ -15,7 +15,7 @@ namespace Menu {
 void ItemWithCheck::init(bool checked) {
 	enableMouseSelecting();
 
-	AbstractButton::setDisabled(true);
+	ItemBase::setPreventClose(true);
 
 	_checkView = std::make_unique<Ui::CheckView>(st::defaultCheck, false);
 	_checkView->checkedChanges(
@@ -24,9 +24,9 @@ void ItemWithCheck::init(bool checked) {
 	}, lifetime());
 
 	_checkView->setChecked(checked, anim::type::normal);
-	ItemBase::setClickedCallback([=] {
+	ItemBase::clicks() | rpl::on_next([=] {
 		_checkView->setChecked(!_checkView->checked(), anim::type::normal);
-	});
+	}, lifetime());
 }
 
 not_null<Ui::CheckView*> ItemWithCheck::checkView() const {

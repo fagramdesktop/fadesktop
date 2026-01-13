@@ -1698,7 +1698,7 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 				st::historyHasCustomEmojiPosition,
 				std::move(text));
 			if (const auto n = _navigation) {
-				button->setClickedCallback([=] {
+				button->setActionTriggered([=] {
 					n->parentController()->show(PrepareShortInfoBox(by, n));
 				});
 			}

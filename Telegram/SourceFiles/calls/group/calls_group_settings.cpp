@@ -767,19 +767,21 @@ void SettingsBox(
 		Ui::AddSkip(layout);
 	}
 	if (rtmp) {
-		const auto volumeItem = layout->add(
-			object_ptr<MenuVolumeItem>(
-				layout,
-				st::groupCallVolumeSettings,
-				st::groupCallVolumeSettingsSlider,
-				call->otherParticipantStateValue(
-				) | rpl::filter([=](const Group::ParticipantState &data) {
-					return data.peer == peer;
-				}),
-				call->rtmpVolume(),
-				Group::kMaxVolume,
-				false,
-				st::groupCallVolumeSettingsPadding));
+		const auto fakeMenu = layout->add(object_ptr<Ui::Menu::Menu>(
+			layout,
+			st::groupCallVolumeSettings));
+		auto volumeItem = base::make_unique_q<MenuVolumeItem>(
+			fakeMenu,
+			st::groupCallVolumeSettings,
+			st::groupCallVolumeSettingsSlider,
+			call->otherParticipantStateValue(
+			) | rpl::filter([=](const Group::ParticipantState &data) {
+				return data.peer == peer;
+			}),
+			call->rtmpVolume(),
+			Group::kMaxVolume,
+			false,
+			st::groupCallVolumeSettingsPadding);
 
 		const auto toggleMute = crl::guard(layout, [=](bool m, bool local) {
 			if (call) {
@@ -809,6 +811,8 @@ void SettingsBox(
 		) | rpl::on_next([=](int volume) {
 			changeVolume(volume, true);
 		}, volumeItem->lifetime());
+
+		fakeMenu->addAction(std::move(volumeItem));
 	}
 
 	if (call->canManage()) {

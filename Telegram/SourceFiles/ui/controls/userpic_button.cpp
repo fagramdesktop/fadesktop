@@ -455,7 +455,7 @@ void UserpicButton::choosePhotoLocally() {
 auto UserpicButton::makeResetToOriginalAction()
 -> base::unique_qptr<Menu::ItemBase> {
 	auto item = base::make_unique_q<Menu::Action>(
-		_menu.get(),
+		_menu->menu(),
 		_menu->st().menu,
 		Menu::CreateAction(
 			_menu.get(),

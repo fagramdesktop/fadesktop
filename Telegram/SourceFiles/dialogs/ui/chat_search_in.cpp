@@ -95,12 +95,10 @@ Action::Action(
 , _height(st::dialogsSearchInHeight)
 , _icon(std::move(icon))
 , _checked(chosen) {
-	const auto parent = parentMenu->menu();
-
 	_text.setText(st::semiboldTextStyle, label);
 	_icon->subscribeToUpdates([=] { update(); });
 
-	initResizeHook(parent->sizeValue());
+	fitToMenuWidth();
 	resolveMinWidth();
 
 	paintRequest(
@@ -332,7 +330,7 @@ void ChatSearchIn::showMenu() {
 			tab.icon,
 			TabLabel(value, _peerTabType),
 			(value == active));
-		action->setClickedCallback([=] {
+		action->setActionTriggered([=] {
 			_active = value;
 		});
 		_menu->addAction(std::move(action));

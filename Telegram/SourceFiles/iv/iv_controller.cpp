@@ -65,11 +65,11 @@ class ItemZoom final
 	, public Ui::AbstractTooltipShower {
 public:
 	ItemZoom(
-		not_null<RpWidget*> parent,
+		not_null<Ui::PopupMenu*> parent,
 		const not_null<Delegate*> delegate,
 		const style::Menu &st)
 	: Ui::Menu::Action(
-		parent,
+		parent->menu(),
 		st,
 		Ui::CreateChild<QAction>(parent),
 		nullptr,

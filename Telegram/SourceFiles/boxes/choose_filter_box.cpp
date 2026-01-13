@@ -286,7 +286,7 @@ void FillChooseFilterMenu(
 		const auto contains = filter.contains(history);
 		const auto title = filter.title();
 		auto item = base::make_unique_q<FilterAction>(
-			menu.get(),
+			menu->menu(),
 			menu->st().menu,
 			Ui::Menu::CreateAction(
 				menu.get(),

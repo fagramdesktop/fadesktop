@@ -152,14 +152,14 @@ struct ResaleTabs {
 				not_null<const style::icon*> icon,
 				bool checked = false) {
 			auto action = base::make_unique_q<Ui::GiftResaleFilterAction>(
-				menu,
+				menu->menu(),
 				menu->st().menu,
 				TextWithEntities{ text },
 				Ui::Text::MarkedContext(),
 				QString(),
 				icon);
 			action->setChecked(checked);
-			action->setClickedCallback(std::move(callback));
+			action->setActionTriggered(std::move(callback));
 			menu->addAction(std::move(action));
 		};
 		auto context = Core::TextContext({ .session = &show->session() });
@@ -176,14 +176,14 @@ struct ResaleTabs {
 				QString data,
 				bool checked) {
 			auto action = base::make_unique_q<Ui::GiftResaleFilterAction>(
-				menu,
+				menu->menu(),
 				menu->st().menu,
 				std::move(text),
 				context,
 				data,
 				nullptr);
 			action->setChecked(checked);
-			action->setClickedCallback(std::move(callback));
+			action->setActionTriggered(std::move(callback));
 			menu->addAction(std::move(action));
 		};
 		const auto actionWithDocument = [=](

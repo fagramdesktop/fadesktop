@@ -175,7 +175,7 @@ void AddEmojiBuilderAction(
 	};
 	const auto state = menu->lifetime().make_state<State>(controller);
 	auto item = base::make_unique_q<Ui::Menu::Action>(
-		menu.get(),
+		menu->menu(),
 		menu->st().menu,
 		Ui::Menu::CreateAction(
 			menu.get(),

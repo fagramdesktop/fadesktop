@@ -376,6 +376,8 @@ ReplyFields ReplyFieldsFromMTP(
 		auto result = ReplyFields();
 		if (const auto peer = data.vreply_to_peer_id()) {
 			result.externalPeerId = peerFromMTP(*peer);
+		} else if (item->isAdminLogEntry()) {
+			result.externalPeerId = item->history()->peer->id;
 		}
 		const auto owner = &item->history()->owner();
 		if (const auto id = data.vreply_to_msg_id().value_or_empty()) {
