@@ -64,7 +64,6 @@ private:
 
 	const not_null<QAction*> _dummyAction;
 	const style::Menu &_st;
-	const int _shadowPadding;
 	rpl::variable<PeerData*> _peer;
 	rpl::variable<bool> _loaded;
 	Ui::PeerUserpicView _userpicView;

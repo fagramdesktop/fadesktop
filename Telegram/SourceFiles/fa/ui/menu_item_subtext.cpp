@@ -36,7 +36,7 @@ class ActionWithSubText : public Menu::ItemBase
 {
 public:
 	ActionWithSubText(
-		not_null<RpWidget*> parent,
+		not_null<Menu::Menu*> parent,
 		const style::Menu &st,
 		const style::icon &icon,
 		Fn<void()> callback,
@@ -87,7 +87,7 @@ TextParseOptions MenuTextOptions = {
 };
 
 ActionWithSubText::ActionWithSubText(
-	not_null<RpWidget*> parent,
+	not_null<Menu::Menu*> parent,
 	const style::Menu &st,
 	const style::icon &icon,
 	Fn<void()> callback,
@@ -103,8 +103,8 @@ ActionWithSubText::ActionWithSubText(
 		  + st::ttlItemTimerFont->height
 		  + st::ttlItemPadding.bottom()) {
 	setAcceptBoth(true);
-	initResizeHook(parent->sizeValue());
-	setClickedCallback(std::move(callback));
+	fitToMenuWidth();
+	setActionTriggered(std::move(callback));
 
 	paintRequest(
 	) | rpl::on_next([=]
@@ -235,7 +235,7 @@ void ActionStickerPackAuthor::searchAuthor(ID authorId) {
 				   }
 				   if (username.isEmpty() && !user) {
 					   _subText = QString(FAlang::Translate(QString("fa_not_found")));
-					   setClickedCallback(
+					   setActionTriggered(
 						   [=]
 						   {
 							   QGuiApplication::clipboard()->setText(QString::number(authorId));
@@ -268,7 +268,7 @@ void ActionStickerPackAuthor::searchAuthor(ID authorId) {
 					   }
 				   };
 
-				   setClickedCallback(callback);
+				   setActionTriggered(callback);
 
 				   _subText = QString(title);
 				   crl::on_main(

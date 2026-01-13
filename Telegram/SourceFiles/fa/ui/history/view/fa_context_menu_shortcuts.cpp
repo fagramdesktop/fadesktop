@@ -113,7 +113,7 @@ private:
 } // namespace
 
 ContextMenuShortcuts::ContextMenuShortcuts(
-	not_null<Ui::RpWidget*> parent,
+	not_null<Ui::Menu::Menu*> parent,
 	const style::Menu &st,
 	not_null<HistoryItem*> item,
 	not_null<Window::SessionController*> controller,
@@ -128,7 +128,7 @@ ContextMenuShortcuts::ContextMenuShortcuts(
 , _quote(std::move(quote))
 , _height(0) {
 	setAcceptBoth(true);
-	initResizeHook(parent->sizeValue());
+	fitToMenuWidth();
 	prepare();
 	enableMouseSelecting();
 }

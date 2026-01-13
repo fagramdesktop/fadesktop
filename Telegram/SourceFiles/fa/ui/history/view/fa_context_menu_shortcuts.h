@@ -18,6 +18,9 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 namespace Ui {
 class PopupMenu;
+namespace Menu {
+class Menu;
+} // namespace Menu
 } // namespace Ui
 
 namespace HistoryView {
@@ -67,7 +70,7 @@ struct ShortcutCallbacks {
 class ContextMenuShortcuts final : public Ui::Menu::ItemBase {
 public:
 	ContextMenuShortcuts(
-		not_null<Ui::RpWidget*> parent,
+		not_null<Ui::Menu::Menu*> parent,
 		const style::Menu &st,
 		not_null<HistoryItem*> item,
 		not_null<Window::SessionController*> controller,
