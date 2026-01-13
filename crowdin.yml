@@ -1,5 +1,6 @@
-preserve_hierarchy: true
-
+preserve_hierarchy: 1
 files:
   - source: /Telegram/Resources/langs/fa/en.json
     translation: /Telegram/Resources/langs/fa/%two_letter_code%.json
+bundles:
+  - 2
