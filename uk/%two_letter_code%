@@ -1,0 +1,746 @@
+[
+    {
+        "identifier": "fa_client_preferences",
+        "source_string": "FAgram Preferences",
+        "translation": "Налаштування FAgram",
+        "context": " -> fa_client_preferences",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_copy_id",
+        "source_string": "Copy ID",
+        "translation": "Копіювати ID",
+        "context": " -> fa_copy_id",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_id_copied",
+        "source_string": "ID copied",
+        "translation": "ID скопійовано",
+        "context": " -> fa_id_copied",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_copy_registration_date",
+        "source_string": "Copy Registration date",
+        "translation": "Копіювати дату реєстрації",
+        "context": " -> fa_copy_registration_date",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_copy_callback_data",
+        "source_string": "Copy Callback data",
+        "translation": "Копіювати дані зворотного виклику",
+        "context": " -> fa_copy_callback_data",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_registration_date",
+        "source_string": "Registration date",
+        "translation": "Дата реєстрації",
+        "context": " -> fa_registration_date",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_not_found",
+        "source_string": "Not found.",
+        "translation": "Не знайдено.",
+        "context": " -> fa_not_found",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_settings_change_after_restart",
+        "source_string": "^ This setting will be changed after restart of the client ^",
+        "translation": "^ Це налаштування зміниться після перезапуску клієнта ^",
+        "context": " -> fa_settings_change_after_restart",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_categories",
+        "source_string": "Categories",
+        "translation": "Категорії",
+        "context": " -> fa_categories",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_general",
+        "source_string": "General",
+        "translation": "Загальні",
+        "context": " -> fa_general",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_seconds_message",
+        "source_string": "Show Seconds of Message",
+        "translation": "Показувати секунди в повідомленнях",
+        "context": " -> fa_show_seconds_message",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_disable_ads",
+        "source_string": "Disable ads",
+        "translation": "Вимкнути рекламу",
+        "context": " -> fa_disable_ads",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_start_token",
+        "source_string": "Show Start Token in Bot",
+        "translation": "Показувати стартовий токен при запуску бота",
+        "context": " -> fa_show_start_token",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_peer_ids",
+        "source_string": "Show Peer IDs",
+        "translation": "Показувати ID партнера",
+        "context": " -> fa_show_peer_ids",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_dc_ids",
+        "source_string": "Show DC IDs in label of peer ids",
+        "translation": "Показувати DC ID під ID партнера",
+        "context": " -> fa_show_dc_ids",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_id_in_botapi_type",
+        "source_string": "BotAPI IDs type",
+        "translation": "Тип ID BotAPI",
+        "context": " -> fa_id_in_botapi_type",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_registration_date",
+        "source_string": "Show Registration Date",
+        "translation": "Показувати дату реєстрації",
+        "context": " -> fa_show_registration_date",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_phone_in_settings",
+        "source_string": "Hide Phone number in Settings",
+        "translation": "Приховати номер телефону в налаштуваннях",
+        "context": " -> fa_hide_phone_in_settings",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_screenshot_mode",
+        "source_string": "Screenshot Mode",
+        "translation": "Режим знімка екрана",
+        "context": " -> fa_screenshot_mode",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_stories",
+        "source_string": "Hide Stories",
+        "translation": "Приховати історії",
+        "context": " -> fa_hide_stories",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_mark_read_after_action",
+        "source_string": "β Read after action",
+        "translation": "β Позначити прочитаним після дії",
+        "context": " -> fa_mark_read_after_action",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_chats",
+        "source_string": "Chats",
+        "translation": "Чати",
+        "context": " -> fa_chats",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_recent_stickers_hidden",
+        "source_string": "Recent stickers: Hidden",
+        "translation": "Останні стікери: Приховано",
+        "context": " -> fa_recent_stickers_hidden",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_recent_stickers",
+        "source_string": "Recent stickers: %1",
+        "translation": "Останні стікери: %1",
+        "context": " -> fa_recent_stickers",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_disable_custom_chat_background",
+        "source_string": "β Hide custom background of chat",
+        "translation": "β Приховати власний фон чату",
+        "context": " -> fa_disable_custom_chat_background",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_open_webapp_button_chatlist",
+        "source_string": "Hide Open Webapp button",
+        "translation": "Приховати кнопку Відкрити веб-додаток",
+        "context": " -> fa_hide_open_webapp_button_chatlist",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_all_chats_folder",
+        "source_string": "Hide All Chats folder",
+        "translation": "Приховати папку Усі чати",
+        "context": " -> fa_hide_all_chats_folder",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_appearance",
+        "source_string": "Appearance",
+        "translation": "Зовнішній вигляд",
+        "context": " -> fa_appearance",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_rounding",
+        "source_string": "Rounding: %1",
+        "translation": "Заокруглення: %1",
+        "context": " -> fa_rounding",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_use_default_rounding",
+        "source_string": "Use Default Rounding",
+        "translation": "Використовувати стандартне заокруглення",
+        "context": " -> fa_use_default_rounding",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_other",
+        "source_string": "Other",
+        "translation": "Інше",
+        "context": " -> fa_other",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_update_client",
+        "source_string": "Update FAgram",
+        "translation": "Оновити FAgram",
+        "context": " -> fa_update_client",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_restart_client",
+        "source_string": "Restart FAgram",
+        "translation": "Перезапустити FAgram",
+        "context": " -> fa_restart_client",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_quit_client",
+        "source_string": "Quit FAgram",
+        "translation": "Вийти з FAgram",
+        "context": " -> fa_quit_client",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_debug_logs",
+        "source_string": "Logs",
+        "translation": "Журнали",
+        "context": " -> fa_debug_logs",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_debug_logs_on",
+        "source_string": "Logs on!",
+        "translation": "Журнали активні!",
+        "context": " -> fa_debug_logs_on",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_debug_logs_off",
+        "source_string": "Logs off",
+        "translation": "Журнали вимкнено",
+        "context": " -> fa_debug_logs_off",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_clean_debug_logs",
+        "source_string": "Clean Debug Logs",
+        "translation": "Очистити журнали",
+        "context": " -> fa_clean_debug_logs",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_cleaning_debug_logs",
+        "source_string": "Cleaning...",
+        "translation": "Очищення…",
+        "context": " -> fa_cleaning_debug_logs",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_cleaned_debug_logs",
+        "source_string": "Debug Logs Cleaned!",
+        "translation": "Журнали очищено!",
+        "context": " -> fa_cleaned_debug_logs",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_logs_dir",
+        "source_string": "You can find the logs in the DebugLogs folder which is located next to FAgram",
+        "translation": "Журнали можна знайти в папці DebugLogs поруч з FAgram",
+        "context": " -> fa_logs_dir",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_links",
+        "source_string": "Links",
+        "translation": "Посилання",
+        "context": " -> fa_links",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_channel",
+        "source_string": "Channel",
+        "translation": "Канал",
+        "context": " -> fa_channel",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_group",
+        "source_string": "Group",
+        "translation": "Чат",
+        "context": " -> fa_group",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_beta",
+        "source_string": "Beta",
+        "translation": "Бета",
+        "context": " -> fa_beta",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_source_code",
+        "source_string": "Source code",
+        "translation": "Вихідний код",
+        "context": " -> fa_source_code",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_production_server",
+        "source_string": "Production Server (Standard)",
+        "translation": "Робочий сервер (За замовчуванням)",
+        "context": " -> fa_production_server",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_test_server",
+        "source_string": "Test Server",
+        "translation": "Тестовий сервер",
+        "context": " -> fa_test_server",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_translation",
+        "source_string": "Translation",
+        "translation": "Переклад",
+        "context": " -> fa_translation",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_force_snow",
+        "source_string": "Force snow",
+        "translation": "Примусовий снігопад",
+        "context": " -> fa_force_snow",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_local_tg_premium",
+        "source_string": "Local Telegram Premium",
+        "translation": "Локальний Telegram Premium",
+        "context": " -> fa_local_tg_premium",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_message_details",
+        "source_string": "Show message's details",
+        "translation": "Показувати деталі повідомлення",
+        "context": " -> fa_show_message_details",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_discuss_button",
+        "source_string": "Show discuss button",
+        "translation": "Показувати кнопку Обговорення",
+        "context": " -> fa_show_discuss_button",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_setting_need_restart",
+        "source_string": "FAgram will restart in order to change this setting",
+        "translation": "FAgram буде перезапущено для зміни цього налаштування",
+        "context": " -> fa_setting_need_restart",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_restart",
+        "source_string": "Restart",
+        "translation": "Перезапустити",
+        "context": " -> fa_restart",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_discuss_button",
+        "source_string": "Discuss",
+        "translation": "Обговорити",
+        "context": " -> fa_discuss_button",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_go_to_first_message",
+        "source_string": "To the beginning",
+        "translation": "Перейти на початок",
+        "context": " -> fa_go_to_first_message",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details",
+        "source_string": "Details",
+        "translation": "Деталі",
+        "context": " -> fa_message_details",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_views",
+        "source_string": "Views",
+        "translation": "Перегляди",
+        "context": " -> fa_message_details_views",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_share",
+        "source_string": "Shares",
+        "translation": "Поширено",
+        "context": " -> fa_message_details_share",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_date",
+        "source_string": "Date",
+        "translation": "Дата",
+        "context": " -> fa_message_details_date",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_edit_date",
+        "source_string": "Edited",
+        "translation": "Відредаговано",
+        "context": " -> fa_message_details_edit_date",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_forward_message_date",
+        "source_string": "Forward message",
+        "translation": "Переслане повідомлення",
+        "context": " -> fa_message_details_forward_message_date",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_filesize",
+        "source_string": "File size",
+        "translation": "Розмір файлу",
+        "context": " -> fa_message_details_filesize",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_filetype",
+        "source_string": "File type",
+        "translation": "Тип файлу",
+        "context": " -> fa_message_details_filetype",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_filename",
+        "source_string": "File name",
+        "translation": "Назва файлу",
+        "context": " -> fa_message_details_filename",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_resolution",
+        "source_string": "Resolution",
+        "translation": "Роздільна здатність",
+        "context": " -> fa_message_details_resolution",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_message_details_datacenter",
+        "source_string": "Datacenter",
+        "translation": "Центр обробки даних",
+        "context": " -> fa_message_details_datacenter",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_pack_owner",
+        "source_string": "Pack owner",
+        "translation": "Власник набору",
+        "context": " -> fa_pack_owner",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_seconds_message_desc",
+        "source_string": "Displays seconds in message timestamps for more precise timing",
+        "translation": "Відображає секунди у мітках часу повідомлень для точнішого визначення часу",
+        "context": " -> fa_show_seconds_message_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_disable_ads_desc",
+        "source_string": "Removes sponsored messages and advertisements from channels",
+        "translation": "Видаляє спонсоровані повідомлення та рекламу з каналів",
+        "context": " -> fa_disable_ads_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_start_token_desc",
+        "source_string": "Shows the start parameter token when opening a bot via a deep link",
+        "translation": "Показує токен параметра запуску при відкритті бота через глибоке посилання",
+        "context": " -> fa_show_start_token_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_peer_ids_desc",
+        "source_string": "Displays numeric IDs for users, groups, and channels in their profiles",
+        "translation": "Відображає числові ID користувачів, груп та каналів у їхніх профілях",
+        "context": " -> fa_show_peer_ids_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_dc_ids_desc",
+        "source_string": "Adds datacenter number next to peer IDs in profiles",
+        "translation": "Додає номер центру обробки даних поруч з ID партнерів у профілях",
+        "context": " -> fa_show_dc_ids_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_id_in_botapi_type_desc",
+        "source_string": "Shows IDs in Bot API format instead of internal Telegram format",
+        "translation": "Відображає ID у форматі Bot API замість внутрішнього формату Telegram",
+        "context": " -> fa_id_in_botapi_type_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_registration_date_desc",
+        "source_string": "Displays the account registration date in user profiles",
+        "translation": "Відображає дату реєстрації облікового запису в профілях користувачів",
+        "context": " -> fa_show_registration_date_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_phone_number",
+        "source_string": "Hide phone numbers",
+        "translation": "Приховувати номери телефонів",
+        "context": " -> fa_hide_phone_number",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_phone_number_desc",
+        "source_string": "Hides phone numbers in settings and all profiles",
+        "translation": "Приховує номери телефонів у налаштуваннях та всіх профілях",
+        "context": " -> fa_hide_phone_number_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_screenshot_mode_desc",
+        "source_string": "Blurs sensitive information like names and avatars for privacy when taking screenshots",
+        "translation": "Розмиває конфіденційну інформацію, як імена та аватари, для приватності знімків екрана",
+        "context": " -> fa_screenshot_mode_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_stories_desc",
+        "source_string": "Completely hides the stories section from the chat list",
+        "translation": "Повністю приховує розділ історій зі списку чатів",
+        "context": " -> fa_hide_stories_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_local_tg_premium_desc",
+        "source_string": "Enables some premium-like visual features locally without actual subscription",
+        "translation": "Локально активує деякі візуальні функції, схожі на Premium, без реальної підписки",
+        "context": " -> fa_local_tg_premium_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_recent_stickers_desc",
+        "source_string": "Controls the maximum number of recent stickers shown in the sticker panel",
+        "translation": "Контролює максимальну кількість нещодавно використаних стікерів, що відображаються на панелі стікерів",
+        "context": " -> fa_recent_stickers_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_disable_custom_chat_background_desc",
+        "source_string": "Ignores custom chat backgrounds set by other users or channels",
+        "translation": "Ігнорує власні фони чатів, встановлені іншими користувачами або каналами",
+        "context": " -> fa_disable_custom_chat_background_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_open_webapp_button_chatlist_desc",
+        "source_string": "Hides the webapp launch button in the chat list for bots",
+        "translation": "Приховує кнопку запуску webapp у списку чатів для ботів",
+        "context": " -> fa_hide_open_webapp_button_chatlist_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_all_chats_folder_desc",
+        "source_string": "Removes the 'All Chats' folder tab from the folder list",
+        "translation": "Видаляє вкладку Усі чати зі списку папок",
+        "context": " -> fa_hide_all_chats_folder_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_discuss_button_desc",
+        "source_string": "Adds a button to quickly jump to the linked discussion group in channels",
+        "translation": "Додає кнопку для швидкого переходу до пов'язаної групи обговорення в каналах",
+        "context": " -> fa_show_discuss_button_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_show_message_details_desc",
+        "source_string": "Enables viewing detailed message information like views, shares, and edit dates",
+        "translation": "Дозволяє переглядати детальну інформацію про повідомлення, таку як перегляди, поширення та дата редагування",
+        "context": " -> fa_show_message_details_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_rounding_desc",
+        "source_string": "Adjusts the corner roundness of avatars and UI elements",
+        "translation": "Налаштовує заокруглення кутів аватарів та елементів інтерфейсу",
+        "context": " -> fa_rounding_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_use_default_rounding_desc",
+        "source_string": "Resets avatar and UI corner rounding to Telegram's default values",
+        "translation": "Скидає заокруглення кутів аватарів та інтерфейсу до стандартних значень Telegram",
+        "context": " -> fa_use_default_rounding_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_force_snow_desc",
+        "source_string": "Enables the winter snow animation effect regardless of the current season",
+        "translation": "Активує ефект анімації зимового снігу незалежно від поточної пори року",
+        "context": " -> fa_force_snow_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_blocked_user_messages",
+        "source_string": "Hide messages from blocked users",
+        "translation": "Приховувати повідомлення заблокованих користувачів",
+        "context": " -> fa_hide_blocked_user_messages",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_hide_blocked_user_messages_desc",
+        "source_string": "Messages from blocked users will be hidden as spoilers and media won't auto-download.",
+        "translation": "Повідомлення від заблокованих користувачів будуть показані як спойлер, а медіа не буде завантажуватися автоматично.",
+        "context": " -> fa_hide_blocked_user_messages_desc",
+        "labels": "en.json",
+        "max_length": null
+    },
+    {
+        "identifier": "fa_restarting_in_seconds",
+        "source_string": "Restarting in 3 seconds...",
+        "translation": "Перезапуск через 3 секунди...",
+        "context": " -> fa_restarting_in_seconds",
+        "labels": "en.json",
+        "max_length": null
+    }
+]
