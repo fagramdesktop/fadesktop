@@ -38,17 +38,6 @@ struct BuiltInChangelog {
 const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 	static const std::vector<BuiltInChangelog> entries = {
 	    {
-			2000009,
-			"- Updated to tdesktop v6.3.9\n"
-			"- New context menu shortcuts\n"
-			"- Service notifications for changelogs\n"
-			"- Reply in Private Chat\n"
-			"- Advanced forward options\n"
-			"- Support tg://openmessage links\n"
-			"- Fixed registration timestamps\n\n"
-			"@FAgramDesktop\n"
-		},
-	    {
 			2001000,
 			"- Updated to tdesktop v6.3.10.beta\n"
 			"- Added support for tg://chat?id= links, similar to tg://user?id=, but for groups and channels.\n"
@@ -80,6 +69,17 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			"- Improved changelog peer chat implementation\n\n"
 			"@FAgramDesktop\n"
 		},
+		{
+			2001004,
+			"- Updated tdesktop to v6.4.2\n"
+			"- New redesigned App icon\n"
+			"- Updated corwdin translations\n"
+			"- Added Turkish(tr) translation\n"
+			"- Removed old Beta channel links\n"
+			"- Fixed context menu shortcut icons mode\n\n"
+			"@FAgramDesktop\n"
+
+		}
 	};
 	return entries;
 }
