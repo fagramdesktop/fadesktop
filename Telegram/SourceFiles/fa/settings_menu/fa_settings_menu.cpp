@@ -108,8 +108,6 @@ namespace Settings {
 			{ &st::menuIconFile });
     }
 
-
-
 	void FA::SetupLinks(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller)
     {
     	AddSubsectionTitle(container, FAlang::RplTranslate(QString("fa_links")));
