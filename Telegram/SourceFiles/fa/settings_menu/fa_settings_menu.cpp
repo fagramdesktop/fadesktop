@@ -136,16 +136,6 @@ namespace Settings {
 
     	AddButtonWithLabel(
 			container,
-			FAlang::RplTranslate(QString("fa_beta")),
-			rpl::single(QString("@FAgramBeta")),
-			st::settingsButton,
-			{ &st::menuIconShowAll }
-		)->setClickedCallback([=] {
-			Core::App().openLocalUrl("tg://resolve?domain=FAgramBeta", {});
-		});
-
-    	AddButtonWithLabel(
-			container,
 			FAlang::RplTranslate(QString("fa_translation")),
 			rpl::single(QString("Crowdin")),
 			st::settingsButton,
