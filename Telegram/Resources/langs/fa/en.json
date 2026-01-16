@@ -36,6 +36,8 @@
   "fa_recent_stickers_hidden": "Recent stickers: Hidden",
   "fa_recent_stickers": "Recent stickers: %1",
   "fa_recent_stickers_desc": "Controls the maximum number of recent stickers shown in the sticker panel",
+  "fa_parse_markdown_hyperlink": "Parse Markdown Hyperlinks",
+  "fa_parse_markdown_hyperlink_desc": "Automatically converts [text](url) markdown syntax into clickable hyperlinks when sending messages",
   "fa_disable_custom_chat_background": "β Hide custom background of chat",
   "fa_disable_custom_chat_background_desc": "Ignores custom chat backgrounds set by other users or channels",
   "fa_hide_open_webapp_button_chatlist": "Hide Open Webapp button",

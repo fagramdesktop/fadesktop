@@ -8,6 +8,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "window/window_peer_menu.h"
 
 #include "fa/lang/fa_lang.h"
+#include "fa/utils/telegram_helpers.h"
 
 #include "base/call_delayed.h"
 #include "menu/menu_check_item.h"
@@ -2970,7 +2971,7 @@ base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
 	const auto field = comment->entity();
 	state->submit = [=](Api::SendOptions options) {
 		const auto peers = state->box->collectSelectedRows();
-		auto comment = field->getTextWithAppliedMarkdown();
+		auto comment = applyAutoParseMarkdownHyperlink(field->getTextWithAppliedMarkdown());
 		const auto checkPaid = [=] {
 			const auto withPaymentApproved = crl::guard(weak, [=](
 					int approved) {

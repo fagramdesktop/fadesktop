@@ -97,6 +97,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
 #include "mainwindow.h"
+#include "fa/utils/telegram_helpers.h"
 #include "styles/style_calls.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
@@ -1900,7 +1901,9 @@ void ComposeControls::showForGrab() {
 }
 
 TextWithTags ComposeControls::getTextWithAppliedMarkdown() const {
-	return _field->getTextWithAppliedMarkdown();
+	auto result = _field->getTextWithAppliedMarkdown();
+	// Apply auto-format markdown if enabled and no manual formatting was applied
+	return applyAutoParseMarkdownHyperlink(result);
 }
 
 void ComposeControls::clear() {

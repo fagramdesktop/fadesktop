@@ -8,6 +8,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "boxes/share_box.h"
 
 #include "fa/settings/fa_settings.h"
+#include "fa/utils/telegram_helpers.h"
 
 #include "api/api_premium.h"
 #include "base/random.h"
@@ -681,7 +682,7 @@ void ShareBox::submit(Api::SendOptions options) {
 	auto threads = _inner->selected();
 	const auto weak = base::make_weak(this);
 	const auto field = _comment->entity();
-	auto comment = field->getTextWithAppliedMarkdown();
+	auto comment = applyAutoParseMarkdownHyperlink(field->getTextWithAppliedMarkdown());
 	const auto checkPaid = [=] {
 		if (!_descriptor.countMessagesCallback) {
 			return true;

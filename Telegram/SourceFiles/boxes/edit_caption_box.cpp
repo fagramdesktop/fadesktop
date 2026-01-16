@@ -61,6 +61,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
+#include "fa/utils/telegram_helpers.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
@@ -1091,7 +1092,7 @@ void EditCaptionBox::save() {
 		return;
 	}
 
-	const auto textWithTags = _field->getTextWithAppliedMarkdown();
+	const auto textWithTags = applyAutoParseMarkdownHyperlink(_field->getTextWithAppliedMarkdown());
 	if (!validateLength(textWithTags.text)) {
 		return;
 	}

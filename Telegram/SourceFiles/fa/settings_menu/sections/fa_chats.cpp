@@ -123,6 +123,8 @@ namespace Settings {
 			updateRecentStickersLimitHeight);
 		updateRecentStickersLimitLabel(::FASettings::JsonSettings::GetInt("recent_stickers_limit"));
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_recent_stickers_desc")));
+		SettingsMenuJsonSwitch(fa_parse_markdown_hyperlink, auto_format_markdown);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_parse_markdown_hyperlink_desc")));
 		SettingsMenuJsonSwitch(fa_show_seconds_message, seconds_message);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_seconds_message_desc")));
 		SettingsMenuJsonSwitch(fa_disable_custom_chat_background, disable_custom_chat_background);
