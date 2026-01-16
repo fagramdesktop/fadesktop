@@ -1433,6 +1433,23 @@ void ListWidget::showContextMenu(
 						}),
 						&st::menuIconCopy);
 
+					if (item->media() && item->media()->allowsEditCaption()) {
+						submenu->addAction(
+							FAlang::Translate("fa_forward_without_caption"),
+							crl::guard(this, [=] {
+								if (globalId.sessionUniqueId == session->uniqueId()) {
+									if (const auto item = session->data().message(globalId.itemId)) {
+										auto draft = Data::ForwardDraft{
+											.ids = MessageIdsList{ 1, item->fullId() },
+											.options = Data::ForwardOptions::NoNamesAndCaptions,
+										};
+										Window::ShowForwardMessagesBox(controller, std::move(draft));
+									}
+								}
+							}),
+							&st::menuIconFile);
+					}
+
 					submenu->addAction(
 						FAlang::Translate("fa_forward_to_saved"),
 						crl::guard(this, [=] {
