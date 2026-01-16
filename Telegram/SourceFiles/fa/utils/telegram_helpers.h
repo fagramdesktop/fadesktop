@@ -90,3 +90,6 @@ void searchChannelById(ID channelId, Main::Session *session, const ChannelCallba
 // Blocked user message hiding feature
 [[nodiscard]] bool shouldHideBlockedUserMessage(PeerData *from);
 [[nodiscard]] TextWithEntities applyBlockedUserSpoiler(TextWithEntities text);
+
+// Auto-format markdown feature
+[[nodiscard]] TextWithTags applyAutoFormatMarkdown(const TextWithTags &textWithTags);

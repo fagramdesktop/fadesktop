@@ -9,6 +9,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 
 #include "fa/lang/fa_lang.h"
 #include "fa/settings/fa_settings.h"
+#include "fa/utils/telegram_helpers.h"
 
 #include "api/api_editing.h"
 #include "api/api_bot.h"
@@ -4556,7 +4557,7 @@ void HistoryWidget::windowIsVisibleChanged() {
 }
 
 TextWithEntities HistoryWidget::prepareTextForEditMsg() const {
-	const auto textWithTags = _field->getTextWithAppliedMarkdown();
+	const auto textWithTags = applyAutoFormatMarkdown(_field->getTextWithAppliedMarkdown());
 	const auto prepareFlags = Ui::ItemTextOptions(
 		_history,
 		session().user()).flags;
@@ -4810,7 +4811,7 @@ void HistoryWidget::send(Api::SendOptions options) {
 	}
 
 	auto message = Api::MessageToSend(prepareSendAction(options));
-	message.textWithTags = _field->getTextWithAppliedMarkdown();
+	message.textWithTags = applyAutoFormatMarkdown(_field->getTextWithAppliedMarkdown());
 	message.webPage = _preview->draft();
 
 	const auto ignoreSlowmodeCountdown = (options.scheduled != 0);
@@ -4875,7 +4876,7 @@ void HistoryWidget::sendScheduled(Api::SendOptions initialOptions) {
 	}
 	const auto ignoreSlowmodeCountdown = true;
 	if (showSendMessageError(
-			_field->getTextWithAppliedMarkdown(),
+			applyAutoFormatMarkdown(_field->getTextWithAppliedMarkdown()),
 			ignoreSlowmodeCountdown)) {
 		return;
 	}

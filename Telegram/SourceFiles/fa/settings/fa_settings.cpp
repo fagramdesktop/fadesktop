@@ -238,6 +238,11 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
 
+	//   Auto format markdown
+	{ "auto_format_markdown", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
+
 	//   Context menu shortcuts customization
 	{ "context_menu_shortcut_button_size", {
 		.type = SettingType::IntSetting,

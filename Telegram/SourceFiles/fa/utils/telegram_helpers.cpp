@@ -890,22 +890,16 @@ void searchChannelById(ID channelId, Main::Session *session, const ChannelCallba
 		return;
 	}
 
-	// First check if channel is already loaded
 	if (const auto channel = session->data().channelLoaded(ChannelId(channelId))) {
 		callback(channel);
 		return;
 	}
 
-	// Also check if it's a basic chat
 	if (const auto chat = session->data().chatLoaded(ChatId(channelId))) {
-		// Basic chats cannot be returned as ChannelData, but we can still try to show them
 		callback(nullptr);
 		return;
 	}
 
-	// Try to fetch the channel using MTPchannels_GetChannels
-	// Note: This requires an access hash, so we try with 0 which works for public channels
-	// or channels the user has interacted with
 	session->api().request(MTPchannels_GetChannels(
 		MTP_vector<MTPInputChannel>(
 			1,
@@ -938,7 +932,6 @@ TextWithEntities applyBlockedUserSpoiler(TextWithEntities text) {
 	const auto blockedPrefix = QString("[Blocked User Message]\n");
 	const auto originalLength = text.text.length();
 	
-	// Shift existing entities to account for prefix
 	for (auto &entity : text.entities) {
 		entity = EntityInText(
 			entity.type(),
@@ -947,17 +940,14 @@ TextWithEntities applyBlockedUserSpoiler(TextWithEntities text) {
 			entity.data());
 	}
 	
-	// Add bold for the prefix (without the newline)
 	text.entities.insert(
 		text.entities.begin(),
 		EntityInText(EntityType::Bold, 0, blockedPrefix.length() - 1));
 	
-	// Add spoiler for the original text
 	text.entities.insert(
 		text.entities.begin() + 1,
 		EntityInText(EntityType::Spoiler, blockedPrefix.length(), originalLength));
 	
-	// Add collapsed blockquote for the original text (using "1" for collapsed)
 	text.entities.insert(
 		text.entities.begin() + 2,
 		EntityInText(EntityType::Blockquote, blockedPrefix.length(), originalLength, u"1"_q));
@@ -965,4 +955,123 @@ TextWithEntities applyBlockedUserSpoiler(TextWithEntities text) {
 	text.text = blockedPrefix + text.text;
 	
 	return text;
+}
+
+TextWithTags applyAutoFormatMarkdown(const TextWithTags &textWithTags) {
+	if (!FASettings::JsonSettings::GetBool("auto_format_markdown")) {
+		return textWithTags;
+	}
+	
+	const auto &text = textWithTags.text;
+	if (text.isEmpty()) {
+		return textWithTags;
+	}
+	
+	struct FoundLink {
+		int startPos;
+		int endPos;
+		int textStart;
+		int textEnd;
+		QString url;
+	};
+	
+	std::vector<FoundLink> links;
+	int pos = 0;
+	
+	while (pos < text.length()) {
+		int bracketStart = text.indexOf('[', pos);
+		if (bracketStart < 0) break;
+		
+		int bracketEnd = text.indexOf(']', bracketStart + 1);
+		if (bracketEnd < 0) break;
+		
+		if (bracketEnd + 1 >= text.length() || text[bracketEnd + 1] != '(') {
+			pos = bracketStart + 1;
+			continue;
+		}
+		
+		int parenStart = bracketEnd + 1;
+		int parenEnd = text.indexOf(')', parenStart + 1);
+		if (parenEnd < 0) {
+			pos = bracketStart + 1;
+			continue;
+		}
+		
+		QString linkText = text.mid(bracketStart + 1, bracketEnd - bracketStart - 1);
+		QString url = text.mid(parenStart + 1, parenEnd - parenStart - 1).trimmed();
+		
+		const bool isValidUrl = url.contains('.') || url.contains(':');
+		if (!linkText.trimmed().isEmpty() && !url.isEmpty() && isValidUrl) {
+			links.push_back({
+				bracketStart,
+				parenEnd + 1,
+				bracketStart + 1,
+				bracketEnd,
+				url
+			});
+			pos = parenEnd + 1;
+		} else {
+			pos = bracketStart + 1;
+		}
+	}
+	
+	if (links.empty()) {
+		return textWithTags;
+	}
+	
+	TextWithTags result;
+	result.text.reserve(text.length());
+	result.tags.reserve(textWithTags.tags.size() + links.size());
+	
+	int lastPos = 0;
+	int removedChars = 0;
+	
+	auto existingTag = textWithTags.tags.begin();
+	const auto existingTagsEnd = textWithTags.tags.end();
+	
+	for (const auto &link : links) {
+		while (existingTag != existingTagsEnd
+			&& existingTag->offset + existingTag->length <= link.startPos) {
+			result.tags.push_back({
+				existingTag->offset - removedChars,
+				existingTag->length,
+				existingTag->id
+			});
+			++existingTag;
+		}
+		
+		if (link.startPos > lastPos) {
+			result.text.append(text.mid(lastPos, link.startPos - lastPos));
+		}
+		
+		const auto linkText = text.mid(link.textStart, link.textEnd - link.textStart);
+		const int tagOffset = result.text.length();
+		result.text.append(linkText);
+		
+		result.tags.push_back({
+			tagOffset,
+			linkText.length(),
+			link.url
+		});
+
+		const int syntaxLength = (link.endPos - link.startPos) - linkText.length();
+		removedChars += syntaxLength;
+		
+		lastPos = link.endPos;
+	}
+
+	while (existingTag != existingTagsEnd) {
+		result.tags.push_back({
+			existingTag->offset - removedChars,
+			existingTag->length,
+			existingTag->id
+		});
+		++existingTag;
+	}
+
+	if (lastPos < text.length()) {
+		result.text.append(text.mid(lastPos));
+	}
+	
+	return result;
 }
