@@ -36,6 +36,8 @@
   "fa_recent_stickers_hidden": "最近のスタンプ: 非表示",
   "fa_recent_stickers": "最近のスタンプ: %1",
   "fa_recent_stickers_desc": "スタンプパネルに表示される最近使用したスタンプの最大数を制御します",
+  "fa_parse_markdown_hyperlink": "Markdown ハイパーリンクを解析",
+  "fa_parse_markdown_hyperlink_desc": "メッセージ送信時に、[text](url) の Markdown 構文を自動的に解析し、クリック可能なハイパーリンクに変換します",
   "fa_disable_custom_chat_background": "β カスタムチャット背景を非表示",
   "fa_disable_custom_chat_background_desc": "他のユーザーやチャンネルが設定したカスタムチャット背景を無視します",
   "fa_hide_open_webapp_button_chatlist": "ウェブアプリを開くボタンを非表示",
