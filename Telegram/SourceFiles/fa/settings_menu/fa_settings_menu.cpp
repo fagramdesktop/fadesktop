@@ -13,6 +13,7 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include "fa/settings_menu/fa_settings_menu.h"
 #include "fa/settings_menu/sections/fa_general.h"
 #include "fa/settings_menu/sections/fa_chats.h"
+#include "fa/settings_menu/sections/fa_context_menu.h"
 #include "fa/settings_menu/sections/fa_appearance.h"
 #include "fa/settings_menu/sections/fa_logs.h"
 
@@ -99,6 +100,10 @@ namespace Settings {
 			FAChats::Id(),
 			{ &st::menuIconChatBubble });
     	addSection(
+			FAlang::RplTranslate(QString("fa_context_menu")),
+			FAContextMenu::Id(),
+			{ &st::menuIconSigned });
+    	addSection(
 			FAlang::RplTranslate(QString("fa_appearance")),
 			FAAppearance::Id(),
 			{ &st::menuIconPalette });
@@ -147,7 +152,7 @@ namespace Settings {
 			FAlang::RplTranslate(QString("fa_source_code")),
 			rpl::single(QString("Github")),
 			st::settingsButton,
-			{ &st::menuIconSigned }
+			{ &st::menuIconLink }
 		)->setClickedCallback([=] {
 			UrlClickHandler::Open("https://github.com/fagramdesktop/fadesktop");
 		});

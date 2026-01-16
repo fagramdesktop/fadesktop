@@ -786,6 +786,8 @@ PRIVATE
     fa/settings_menu/sections/fa_general.h
     fa/settings_menu/sections/fa_chats.cpp
     fa/settings_menu/sections/fa_chats.h
+    fa/settings_menu/sections/fa_context_menu.cpp
+    fa/settings_menu/sections/fa_context_menu.h
     fa/settings_menu/sections/fa_appearance.cpp
     fa/settings_menu/sections/fa_appearance.h
     fa/settings_menu/sections/fa_logs.cpp

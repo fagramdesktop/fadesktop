@@ -20,16 +20,16 @@ namespace Window {
 } // namespace Window
 
 namespace Settings {
-    class FAChats : public Section<FAChats> {
+    class FAContextMenu : public Section<FAContextMenu> {
     public:
-        FAChats(QWidget *parent, not_null<Window::SessionController *> controller);
+        FAContextMenu(QWidget *parent, not_null<Window::SessionController *> controller);
 
         [[nodiscard]] rpl::producer<QString> title() override;
 
     private:
-        void SetupChats(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller);
+        void SetupContextMenu(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller);
         
-        void SetupFAChats(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> null);
+        void SetupFAContextMenu(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> null);
         void setupContent(not_null<Window::SessionController *> controller);
     };
 
