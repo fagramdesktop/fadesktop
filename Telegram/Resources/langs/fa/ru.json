@@ -36,6 +36,8 @@
   "fa_recent_stickers_hidden": "Последние стикеры: Скрыто",
   "fa_recent_stickers": "Последние стикеры: %1",
   "fa_recent_stickers_desc": "Контролирует максимальное количество последних стикеров, отображаемых в панели стикеров",
+  "fa_parse_markdown_hyperlink": "Разбор гиперссылок Markdown",
+  "fa_parse_markdown_hyperlink_desc": "Автоматически преобразует синтаксис Markdown [текст](url) в кликабельные гиперссылки при отправке сообщений",
   "fa_disable_custom_chat_background": "β Скрыть кастомный фон чата",
   "fa_disable_custom_chat_background_desc": "Игнорирует пользовательские фоны чата, установленные другими пользователями или каналами",
   "fa_hide_open_webapp_button_chatlist": "Скрыть кнопку открытия WebApp",
