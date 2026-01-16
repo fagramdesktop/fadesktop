@@ -36,6 +36,8 @@
   "fa_recent_stickers_hidden": "Соңғы стикерлер: Жасырылған",
   "fa_recent_stickers": "Соңғы стикерлер: %1",
   "fa_recent_stickers_desc": "Стикер панелінде көрсетілетін соңғы пайдаланылған стикерлердің ең көп санын басқарады",
+  "fa_parse_markdown_hyperlink": "Markdown гиперсілтемелерін талдау",
+  "fa_parse_markdown_hyperlink_desc": "Хабарламаларды жіберу кезінде text\n markdown синтаксисін автоматты түрде басылатын гиперсілтемелерге айналдырады",
   "fa_disable_custom_chat_background": "β Реттелетін сөйлесу фонын жасыру",
   "fa_disable_custom_chat_background_desc": "Басқа пайдаланушылар немесе арналар орнатқан реттелетін сөйлесу фондарын елемейді",
   "fa_hide_open_webapp_button_chatlist": "Веб қосымшаны ашу түймесін жасыру",
