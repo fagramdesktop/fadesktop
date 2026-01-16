@@ -36,6 +36,8 @@
   "fa_recent_stickers_hidden": "Son çıkartmalar: Gizli",
   "fa_recent_stickers": "Son çıkartmalar: %1",
   "fa_recent_stickers_desc": "Çıkartma panelinde gösterilen son çıkartmaların maksimum sayısını kontrol eder",
+  "fa_parse_markdown_hyperlink": "Markdown Bağlantılarını Ayrıştır",
+  "fa_parse_markdown_hyperlink_desc": "Mesajlar gönderilirken [metin](url) markdown sözdizimini otomatik olarak tıklanabilir bağlantılara dönüştürür",
   "fa_disable_custom_chat_background": "β Sohbetin özel arka planını gizle",
   "fa_disable_custom_chat_background_desc": "Diğer kullanıcılar veya kanallar tarafından ayarlanan özel sohbet arka planlarını yoksayar",
   "fa_hide_open_webapp_button_chatlist": "WebApp Aç düğmesini gizle",

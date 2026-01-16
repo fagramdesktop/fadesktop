@@ -36,6 +36,8 @@
   "fa_recent_stickers_hidden": "Ostatnie naklejki: Ukryte",
   "fa_recent_stickers": "Ostatnie naklejki: %1",
   "fa_recent_stickers_desc": "Kontroluje maksymalną liczbę ostatnio używanych naklejek wyświetlanych w panelu naklejek",
+  "fa_parse_markdown_hyperlink": "Parsuj hiperłącza Markdown",
+  "fa_parse_markdown_hyperlink_desc": "Automatycznie konwertuje składnię Markdown [tekst](url) na klikalne hiperłącza podczas wysyłania wiadomości",
   "fa_disable_custom_chat_background": "β Ukryj niestandardowe tło czatu",
   "fa_disable_custom_chat_background_desc": "Ignoruje niestandardowe tła czatów ustawione przez innych użytkowników lub kanały",
   "fa_hide_open_webapp_button_chatlist": "Ukryj przycisk Otwórz aplikację webową",
