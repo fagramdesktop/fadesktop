@@ -36,6 +36,8 @@
   "fa_recent_stickers_hidden": "Letzte Sticker: Ausgeblendet",
   "fa_recent_stickers": "Letzte Sticker: %1",
   "fa_recent_stickers_desc": "Steuert die maximale Anzahl der letzten Sticker, die im Sticker-Panel angezeigt werden",
+  "fa_parse_markdown_hyperlink": "Markdown-Hyperlinks parsen",
+  "fa_parse_markdown_hyperlink_desc": "Konvertiert automatisch die Markdown-Syntax [Text](URL) in anklickbare Hyperlinks beim Senden von Nachrichten",
   "fa_disable_custom_chat_background": "β Benutzerdefinierten Chat-Hintergrund ausblenden",
   "fa_disable_custom_chat_background_desc": "Ignoriert benutzerdefinierte Chat-Hintergründe, die von anderen Benutzern oder Kanälen festgelegt wurden",
   "fa_hide_open_webapp_button_chatlist": "Schaltfläche „Web-App öffnen“ ausblenden",
