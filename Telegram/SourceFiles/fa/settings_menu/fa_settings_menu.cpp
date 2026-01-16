@@ -149,7 +149,7 @@ namespace Settings {
 			st::settingsButton,
 			{ &st::menuIconSigned }
 		)->setClickedCallback([=] {
-			UrlClickHandler::Open("https://github.com/burhancodes/fagramdesktop");
+			UrlClickHandler::Open("https://github.com/fagramdesktop/fadesktop");
 		});
     }
 

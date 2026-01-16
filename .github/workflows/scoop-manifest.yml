@@ -23,7 +23,7 @@ jobs:
       - name: Clone scoop manifest repository
         uses: actions/checkout@v6
         with:
-          repository: burhancodes/fagram-scoop
+          repository: fagramdesktop/fagram-scoop
           token: ${{ secrets.PAT }}
           path: fagram-scoop
           

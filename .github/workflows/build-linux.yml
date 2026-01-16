@@ -110,5 +110,5 @@ jobs:
         uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.PAT }}
-          repository: burhancodes/fagram-rpm
+          repository: fagramdesktop/fagram-rpm
           event-type: new-release

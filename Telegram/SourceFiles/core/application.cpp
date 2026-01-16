@@ -1119,7 +1119,7 @@ bool Application::openInternalUrl(const QString &url, QVariant context) {
 }
 
 QString Application::changelogLink() const {
-	const auto base = u"https://github.com/burhancodes/fagramdesktop/blob/dev/changelog.txt"_q;
+	const auto base = u"https://github.com/fagramdesktop/fadesktop/blob/dev/changelog.txt"_q;
 	
 	return base;
 }

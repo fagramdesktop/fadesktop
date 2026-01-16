@@ -1,6 +1,6 @@
 <div align="center">
 
-<img alt="Telegram" width="150x" src="https://github.com/burhancodes/fagramdesktop/blob/dev/Telegram/Resources/art/icon512@2x.png?raw=true">
+<img alt="Telegram" width="150x" src="https://github.com/fagramdesktop/fagramdesktop/blob/dev/Telegram/Resources/art/icon512@2x.png?raw=true">
 
 <h1>FAgram Desktop</h1>
 
@@ -92,17 +92,17 @@
 The latest version is available for
 
 - Windows (x64)
-    - [Portable/Installer](https://github.com/burhancodes/fagramdesktop/releases) 
+    - [Portable/Installer](https://github.com/fagramdesktop/fadesktop/releases) 
     - [Scoop package](https://scoop.sh/) (powershell)
         ```powershell
-        scoop bucket add fagram-scoop https://github.com/burhancodes/fagram-scoop
+        scoop bucket add fagram-scoop https://github.com/fagramdesktop/fagram-scoop
         scoop install fagram
         ```
 
 - Linux
     - [Arch/AUR](https://aur.archlinux.org/packages/fagram-bin)
     - [Fedora/RPM](https://copr.fedorainfracloud.org/coprs/burhanverse/fagram/)
-    - [Ubuntu/DEB](https://github.com/burhancodes/fagram-deb)
+    - [Ubuntu/DEB](https://github.com/fagramdesktop/fagram-deb)
 
 For detailed insturctions on how to install on linux [Click Here](https://burhanverse.eu.org/?article=fagram-desktop)
 
