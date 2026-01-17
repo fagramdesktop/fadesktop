@@ -9,6 +9,8 @@
   "fa_settings_change_after_restart": "^ この設定はクライアント再起動後に変更されます ^",
   "fa_categories": "カテゴリ",
   "fa_general": "一般",
+  "fa_enable_whats_new_chat": "Enable What's New! Chat",
+  "fa_enable_whats_new_chat_desc": "Shows the What's New! chat with FAgram changelog updates.",
   "fa_show_seconds_message": "メッセージに秒を表示",
   "fa_show_seconds_message_desc": "より正確な時間表示のため、メッセージのタイムスタンプに秒を表示します",
   "fa_disable_ads": "広告を無効化",
