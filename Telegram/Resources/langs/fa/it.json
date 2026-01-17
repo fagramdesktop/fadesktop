@@ -9,6 +9,8 @@
   "fa_settings_change_after_restart": "^ Questa impostazione cambierà dopo il riavvio del client ^",
   "fa_categories": "Categorie",
   "fa_general": "Generale",
+  "fa_enable_whats_new_chat": "Enable What's New! Chat",
+  "fa_enable_whats_new_chat_desc": "Shows the What's New! chat with FAgram changelog updates.",
   "fa_show_seconds_message": "Mostra secondi nei messaggi",
   "fa_show_seconds_message_desc": "Mostra i secondi nei timestamp dei messaggi per una maggiore precisione temporale",
   "fa_disable_ads": "Disabilita pubblicità",
