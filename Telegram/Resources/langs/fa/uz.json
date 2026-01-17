@@ -9,6 +9,8 @@
   "fa_settings_change_after_restart": "^ Bu sozlama mijoz qayta ishga tushirilgandan keyin o'zgaradi ^",
   "fa_categories": "Kategoriyalar",
   "fa_general": "Umumiy",
+  "fa_enable_whats_new_chat": "What's New! Chat-ni yoqish",
+  "fa_enable_whats_new_chat_desc": "FAgram’dagi yangilanishlar va o‘zgarishlar jurnalini ko‘rsatadigan “What's New!” chatini namoyish etadi.",
   "fa_show_seconds_message": "Xabarlarda soniyalarni ko'rsatish",
   "fa_show_seconds_message_desc": "Aniqroq vaqt ko'rsatish uchun xabar vaqt belgilarida soniyalarni ko'rsatadi",
   "fa_disable_ads": "Reklamalarni o'chirish",

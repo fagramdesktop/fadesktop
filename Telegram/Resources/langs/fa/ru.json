@@ -9,6 +9,8 @@
   "fa_settings_change_after_restart": "^ Эта настройка будет изменена после перезапуска клиента ^",
   "fa_categories": "Категории",
   "fa_general": "Общие",
+  "fa_enable_whats_new_chat": "Включить чат «Что нового!»",
+  "fa_enable_whats_new_chat_desc": "Показывает чат «Что нового!» с обновлениями журнала изменений FAgram.",
   "fa_show_seconds_message": "Показывать секунды в сообщениях",
   "fa_show_seconds_message_desc": "Отображает секунды во временных метках сообщений для более точного времени",
   "fa_disable_ads": "Отключить рекламу",

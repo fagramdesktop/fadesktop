@@ -9,6 +9,8 @@
   "fa_settings_change_after_restart": "^ Ez a beállítás a kliens újraindítása után változik ^",
   "fa_categories": "Kategóriák",
   "fa_general": "Általános",
+  "fa_enable_whats_new_chat": "Újdonságok! csevegés engedélyezése",
+  "fa_enable_whats_new_chat_desc": "Megjeleníti az Újdonságok! csevegést a FAgram változásnapló-frissítéseivel.",
   "fa_show_seconds_message": "Másodpercek megjelenítése az üzenetekben",
   "fa_show_seconds_message_desc": "Másodperceket jelenít meg az üzenet időbélyegekben a pontosabb időzítés érdekében",
   "fa_disable_ads": "Hirdetések letiltása",
