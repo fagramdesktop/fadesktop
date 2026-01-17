@@ -1,6 +1,6 @@
 <div align="center">
 
-<img alt="Telegram" width="150x" src="https://github.com/fagramdesktop/fagramdesktop/blob/dev/Telegram/Resources/art/icon512@2x.png?raw=true">
+<img alt="Telegram" width="150x" src="https://github.com/fagramdesktop/fadesktop/blob/dev/Telegram/Resources/art/icon512@2x.png?raw=true">
 
 <h1>FAgram Desktop</h1>
 
@@ -14,7 +14,6 @@
 
 <a href="https://t.me/FAgramDesktop"><img alt="Telegram" src="https://img.shields.io/badge/Telegram_Channel-0a0a0a?style=for-the-badge&logo=telegram"></a>
 <a href="https://t.me/FAgramChat"><img alt="Telegram" src="https://img.shields.io/badge/Telegram_Chat-0a0a0a?style=for-the-badge&logo=telegram"></a>
-<a href="https://github.com/FajoX1/fagramdesktop"><img alt="Original Repository" src="https://img.shields.io/badge/Original_Repo-0a0a0a?style=for-the-badge&logo=github"></a>
 
 <div align="center">
 

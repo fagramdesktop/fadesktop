@@ -22,27 +22,56 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QDebug>
 
+#include <list>
+#include <optional>
+
 namespace {
 
 constexpr size_t kMaxOnlineStateEntries = 100;
-std::unordered_map<ID, bool> onlineState;
 
-void pruneOnlineStateIfNeeded() {
-	if (onlineState.size() > kMaxOnlineStateEntries) {
-		auto it = onlineState.begin();
-		size_t toRemove = onlineState.size() / 2;
-		while (toRemove > 0 && it != onlineState.end()) {
-			it = onlineState.erase(it);
-			--toRemove;
+class OnlineStateLRUCache {
+public:
+	void put(ID key, bool value) {
+		auto it = _map.find(key);
+		if (it != _map.end()) {
+			_list.erase(it->second);
+			_list.push_front({key, value});
+			it->second = _list.begin();
+		} else {
+			if (_list.size() >= kMaxOnlineStateEntries) {
+				auto last = _list.back();
+				_map.erase(last.first);
+				_list.pop_back();
+			}
+			_list.push_front({key, value});
+			_map[key] = _list.begin();
 		}
 	}
-}
+
+	[[nodiscard]] std::optional<bool> get(ID key) {
+		auto it = _map.find(key);
+		if (it == _map.end()) {
+			return std::nullopt;
+		}
+		_list.splice(_list.begin(), _list, it->second);
+		return it->second->second;
+	}
+
+	[[nodiscard]] bool contains(ID key) const {
+		return _map.find(key) != _map.end();
+	}
+
+private:
+	std::list<std::pair<ID, bool>> _list;
+	std::unordered_map<ID, std::list<std::pair<ID, bool>>::iterator> _map;
+};
+
+OnlineStateLRUCache onlineStateCache;
 
 } // namespace
 
 void markAsOnline(not_null<Main::Session*> session) {
-	pruneOnlineStateIfNeeded();
-	onlineState[session->userId().bare] = true;
+	onlineStateCache.put(session->userId().bare, true);
 }
 
 // stole from ayugram

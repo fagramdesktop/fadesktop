@@ -30,10 +30,13 @@ https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
 #include <QtCore/QDir>
 #include <QtCore/QFileInfo>
 
+#include <set>
+
 namespace FA::Changelog {
 namespace {
 
 constexpr auto kChangelogPeerName = "What's New!";
+constexpr auto kMaxChangelogEntries = 15;
 
 constexpr auto kChangelogPeerIdShift = (0xFEULL << 32);
 constexpr auto kChangelogPeerIdBase = 696969ULL;
@@ -43,6 +46,11 @@ bool _storageLoaded = false;
 
 QJsonObject _cachedStorage;
 bool _storageCacheValid = false;
+
+void InvalidateStorageCache() {
+	_cachedStorage = QJsonObject();
+	_storageCacheValid = false;
+}
 
 QString StoragePath() {
 	return cWorkingDir() + u"tdata/fa-changelog-history.json"_q;
@@ -227,6 +235,37 @@ bool IsVersionStored(int version) {
 	return false;
 }
 
+void PruneOldChangelogEntries(QJsonArray &messages) {
+	if (messages.size() <= kMaxChangelogEntries) {
+		return;
+	}
+
+	std::vector<std::pair<qint64, int>> dateIndexPairs;
+	dateIndexPairs.reserve(messages.size());
+	for (int i = 0; i < messages.size(); ++i) {
+		if (messages[i].isObject()) {
+			const auto date = messages[i].toObject()["date"].toVariant().toLongLong();
+			dateIndexPairs.push_back({date, i});
+		}
+	}
+
+	std::sort(dateIndexPairs.begin(), dateIndexPairs.end());
+
+	const auto toRemove = messages.size() - kMaxChangelogEntries;
+	std::set<int> indicesToRemove;
+	for (size_t i = 0; i < toRemove && i < dateIndexPairs.size(); ++i) {
+		indicesToRemove.insert(dateIndexPairs[i].second);
+	}
+
+	QJsonArray prunedMessages;
+	for (int i = 0; i < messages.size(); ++i) {
+		if (indicesToRemove.find(i) == indicesToRemove.end()) {
+			prunedMessages.append(messages[i]);
+		}
+	}
+	messages = prunedMessages;
+}
+
 void SaveMessageToStorage(const StoredMessage &message) {
 	auto root = ReadStorage();
 	auto messages = root["messages"].toArray();
@@ -255,6 +294,8 @@ void SaveMessageToStorage(const StoredMessage &message) {
 	obj["date"] = qint64(message.date);
 	obj["unread"] = message.unread;
 	messages.append(obj);
+
+	PruneOldChangelogEntries(messages);
 
 	root["messages"] = messages;
 	WriteStorage(root);
