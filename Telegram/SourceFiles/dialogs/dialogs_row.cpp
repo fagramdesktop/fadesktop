@@ -698,7 +698,7 @@ void Row::paintUserpic(
 				const auto now = base::unixtime::now();
 
 				QColor dotColor;
-				if (user->isInaccessible() || user->isBlocked()) {
+				if (user->isInaccessible() || user->isBlocked() || (user->lastseen().isLongAgo() && !user->lastseen().isHiddenByMe())) {
 					dotColor = QColor(0, 0, 0);
 				} else if (user->lastseen().isOnline(now)) {
 					dotColor = QColor(15, 255, 80);
