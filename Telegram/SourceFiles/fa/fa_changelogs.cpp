@@ -128,6 +128,10 @@ Changelogs::Changelogs(not_null<Main::Session*> session, int oldVersion)
 
 std::unique_ptr<Changelogs> Changelogs::Create(
 		not_null<Main::Session*> session) {
+	if (!FASettings::JsonSettings::GetBool("enable_whats_new_chat")) {
+		return nullptr;
+	}
+
 	const auto oldVersion = FASettings::JsonSettings::GetInt(
 		"fa_last_changelog_version");
 

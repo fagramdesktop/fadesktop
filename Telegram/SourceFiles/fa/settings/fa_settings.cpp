@@ -155,6 +155,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "fa_last_changelog_version", {
 		.type = SettingType::IntSetting,
 		.defaultValue = 0, }},
+	{ "enable_whats_new_chat", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = true, }},
 
 	//   General
 	{ "debug_logs", {

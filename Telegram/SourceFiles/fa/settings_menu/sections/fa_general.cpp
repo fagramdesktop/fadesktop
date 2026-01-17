@@ -91,6 +91,8 @@ namespace Settings {
     void FAGeneral::SetupGeneral(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
         Ui::AddSubsectionTitle(container, FAlang::RplTranslate(QString("fa_general")));
 
+        RestartSettingsMenuJsonSwitch(fa_enable_whats_new_chat, enable_whats_new_chat);
+        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_enable_whats_new_chat_desc")));
         SettingsMenuJsonSwitch(fa_disable_ads, disable_ads);
         Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_disable_ads_desc")));
         SettingsMenuJsonSwitch(fa_show_start_token, show_start_token);
