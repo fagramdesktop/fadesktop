@@ -116,5 +116,7 @@
   "fa_shortcut_vertical_padding": "Függőleges térköz: %1px",
   "fa_shortcut_corner_radius": "Sarok lekerekítés: %1px",
   "fa_shortcut_customization_desc": "A helyi menü gyorsbillentyű gombjainak megjelenésének testreszabása",
-  "fa_reset_to_default": "Visszaállítás alapértelmezettre"
+  "fa_reset_to_default": "Visszaállítás alapértelmezettre",
+  "fa_hide_folder_tabs_titles": "Mappalapok címeinek elrejtése",
+  "fa_hide_folder_tabs_titles_desc": "Elrejti a mappalapok szöveges címkéit az oldalsávon, csak az ikonokat mutatva"
 }

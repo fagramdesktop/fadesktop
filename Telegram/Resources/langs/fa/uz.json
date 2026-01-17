@@ -116,5 +116,7 @@
   "fa_shortcut_vertical_padding": "Vertikal to'ldirish: %1px",
   "fa_shortcut_corner_radius": "Burchak radiusi: %1px",
   "fa_shortcut_customization_desc": "Kontekst menyusidagi yorliq tugmalarining ko'rinishini moslashtiring",
-  "fa_reset_to_default": "Standart holatga qaytarish"
+  "fa_reset_to_default": "Standart holatga qaytarish",
+  "fa_hide_folder_tabs_titles": "Papka yorliqlari nomlarini yashirish",
+  "fa_hide_folder_tabs_titles_desc": "Yon paneldagi papka belgilari ostidagi matn teglarini yashiradi, faqat belgilarni ko'rsatadi"
 }

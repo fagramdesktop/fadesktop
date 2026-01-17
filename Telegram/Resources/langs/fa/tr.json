@@ -116,5 +116,7 @@
   "fa_shortcut_vertical_padding": "Dikey dolgu: %1 piksel",
   "fa_shortcut_corner_radius": "Köşe yarıçapı: %1 piksel",
   "fa_shortcut_customization_desc": "İçerik menüsü kısayol düğmelerinin görünümünü özelleştirin",
-  "fa_reset_to_default": "Varsayılana sıfırla"
+  "fa_reset_to_default": "Varsayılana sıfırla",
+  "fa_hide_folder_tabs_titles": "Klasör sekme başlıklarını gizle",
+  "fa_hide_folder_tabs_titles_desc": "Kenar çubuğundaki klasör simgelerinin altındaki metin etiketlerini gizler, yalnızca simgeleri gösterir"
 }

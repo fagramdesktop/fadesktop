@@ -116,5 +116,7 @@
   "fa_shortcut_vertical_padding": "Padding verticale: %1px",
   "fa_shortcut_corner_radius": "Raggio angolo: %1px",
   "fa_shortcut_customization_desc": "Personalizza l'aspetto dei pulsanti scorciatoia nel menu contestuale",
-  "fa_reset_to_default": "Ripristina predefiniti"
+  "fa_reset_to_default": "Ripristina predefiniti",
+  "fa_hide_folder_tabs_titles": "Nascondi titoli delle schede cartelle",
+  "fa_hide_folder_tabs_titles_desc": "Nasconde le etichette di testo sotto le icone delle cartelle nella barra laterale, mostrando solo le icone"
 }

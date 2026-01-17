@@ -240,6 +240,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "context_menu_forward_submenu", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "hide_folder_tabs_titles", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 
 	//   Auto format markdown
 	{ "auto_format_markdown", {

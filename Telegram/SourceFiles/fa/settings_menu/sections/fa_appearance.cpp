@@ -178,6 +178,8 @@ namespace Settings {
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_phone_number_desc")));
 		RestartSettingsMenuJsonSwitch(fa_hide_stories, hide_stories);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_stories_desc")));
+		RestartSettingsMenuJsonSwitch(fa_hide_folder_tabs_titles, hide_folder_tabs_titles);
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_folder_tabs_titles_desc")));
     }
 
     void FAAppearance::SetupFAAppearance(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

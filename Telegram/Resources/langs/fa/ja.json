@@ -116,5 +116,7 @@
   "fa_shortcut_vertical_padding": "垂直パディング: %1px",
   "fa_shortcut_corner_radius": "角の丸み: %1px",
   "fa_shortcut_customization_desc": "コンテキストメニューのショートカットボタンの外観をカスタマイズ",
-  "fa_reset_to_default": "デフォルトに戻す"
+  "fa_reset_to_default": "デフォルトに戻す",
+  "fa_hide_folder_tabs_titles": "フォルダタブのタイトルを非表示",
+  "fa_hide_folder_tabs_titles_desc": "サイドバーのフォルダアイコンの下のテキストラベルを非表示にし、アイコンのみを表示します"
 }

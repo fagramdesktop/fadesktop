@@ -116,5 +116,7 @@
   "fa_shortcut_vertical_padding": "Odstęp pionowy: %1px",
   "fa_shortcut_corner_radius": "Promień zaokrąglenia: %1px",
   "fa_shortcut_customization_desc": "Dostosuj wygląd przycisków skrótów w menu kontekstowym",
-  "fa_reset_to_default": "Przywróć domyślne"
+  "fa_reset_to_default": "Przywróć domyślne",
+  "fa_hide_folder_tabs_titles": "Ukryj tytuły kart folderów",
+  "fa_hide_folder_tabs_titles_desc": "Ukrywa etykiety tekstowe pod ikonami folderów na pasku bocznym, pokazując tylko ikony"
 }

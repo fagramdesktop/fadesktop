@@ -116,5 +116,7 @@
   "fa_shortcut_vertical_padding": "Вертикальный отступ: %1px",
   "fa_shortcut_corner_radius": "Скругление углов: %1px",
   "fa_shortcut_customization_desc": "Настройте внешний вид кнопок быстрых действий в контекстном меню",
-  "fa_reset_to_default": "Сбросить по умолчанию"
+  "fa_reset_to_default": "Сбросить по умолчанию",
+  "fa_hide_folder_tabs_titles": "Скрыть названия вкладок папок",
+  "fa_hide_folder_tabs_titles_desc": "Скрывает текстовые надписи под значками папок в боковой панели, показывая только значки"
 }

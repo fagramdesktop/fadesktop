@@ -116,5 +116,7 @@
   "fa_shortcut_vertical_padding": "Тік шегініс: %1px",
   "fa_shortcut_corner_radius": "Бұрыш радиусы: %1px",
   "fa_shortcut_customization_desc": "Контекстік мәзір таңбашаларының түймелерінің сыртқы түрін реттеу",
-  "fa_reset_to_default": "Әдепкіге қайтару"
+  "fa_reset_to_default": "Әдепкіге қайтару",
+  "fa_hide_folder_tabs_titles": "Қапшық қойындыларының атауларын жасыру",
+  "fa_hide_folder_tabs_titles_desc": "Бүйірлік панельдегі қапшық белгішелерінің астындағы мәтіндік белгілерді жасырады, тек белгішелерді көрсетеді"
 }

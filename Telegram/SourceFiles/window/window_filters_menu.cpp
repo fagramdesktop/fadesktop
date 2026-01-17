@@ -170,6 +170,7 @@ void FiltersMenu::scrollToButton(not_null<Ui::RpWidget*> widget) {
 
 void FiltersMenu::refresh() {
 	bool hide_all_chats_folder = FASettings::JsonSettings::GetBool("hide_all_chats_folder");
+	bool hide_folder_tabs_titles = FASettings::JsonSettings::GetBool("hide_folder_tabs_titles");
 
 	const auto filters = &_session->session().data().chatsFilters();
 	if (!filters->has() || _ignoreRefresh) {
@@ -206,6 +207,7 @@ void FiltersMenu::refresh() {
 			filter.title(),
 			Ui::ComputeFilterIcon(filter));
 		button->setLocked(nextIsLocked);
+		button->setHideTitle(hide_folder_tabs_titles);
 		now.emplace(filter.id(), std::move(button));
 	}
 	_filters = std::move(now);
@@ -224,12 +226,15 @@ void FiltersMenu::refresh() {
 }
 
 void FiltersMenu::setupList() {
+	bool hide_folder_tabs_titles = FASettings::JsonSettings::GetBool("hide_folder_tabs_titles");
+
 	_list = _container->add(object_ptr<Ui::VerticalLayout>(_container));
 	_setup = prepareButton(
 		_container,
 		-1,
 		{ TextWithEntities{ tr::lng_filters_setup(tr::now) } },
 		Ui::FilterIcon::Edit);
+	_setup->setHideTitle(hide_folder_tabs_titles);
 	_reorder = std::make_unique<Ui::VerticalLayoutReorder>(_list, &_scroll);
 
 	_reorder->updates(

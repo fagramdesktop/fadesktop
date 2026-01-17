@@ -116,5 +116,7 @@
   "fa_shortcut_vertical_padding": "Vertikaler Abstand: %1px",
   "fa_shortcut_corner_radius": "Eckenrundung: %1px",
   "fa_shortcut_customization_desc": "Das Aussehen der Kontextmenü-Kurzbefehl-Schaltflächen anpassen",
-  "fa_reset_to_default": "Auf Standard zurücksetzen"
+  "fa_reset_to_default": "Auf Standard zurücksetzen",
+  "fa_hide_folder_tabs_titles": "Ordner-Tab-Titel ausblenden",
+  "fa_hide_folder_tabs_titles_desc": "Blendet die Textbeschriftungen unter den Ordnersymbolen in der Seitenleiste aus und zeigt nur die Symbole an"
 }

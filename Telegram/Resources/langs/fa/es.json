@@ -116,5 +116,7 @@
   "fa_shortcut_vertical_padding": "Relleno vertical: %1px",
   "fa_shortcut_corner_radius": "Radio de esquina: %1px",
   "fa_shortcut_customization_desc": "Personaliza la apariencia de los botones de acceso directo del menú contextual",
-  "fa_reset_to_default": "Restablecer por defecto"
+  "fa_reset_to_default": "Restablecer por defecto",
+  "fa_hide_folder_tabs_titles": "Ocultar títulos de pestañas de carpetas",
+  "fa_hide_folder_tabs_titles_desc": "Oculta las etiquetas de texto bajo los iconos de carpetas en la barra lateral, mostrando solo los iconos"
 }
