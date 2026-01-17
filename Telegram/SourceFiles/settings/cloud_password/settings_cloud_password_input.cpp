@@ -3,7 +3,7 @@ This file is part of FAgram Desktop,
 the unofficial desktop client based on Telegram Desktop.
 
 For license and copyright information please follow this link:
-https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
+https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "settings/cloud_password/settings_cloud_password_input.h"
 

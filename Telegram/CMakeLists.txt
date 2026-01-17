@@ -2,7 +2,7 @@
 # the unofficial Telegram client based on tgd.
 
 # For license and copyright information please follow this link:
-# https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
+# https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 add_executable(Telegram WIN32 MACOSX_BUNDLE)
 init_non_host_target(Telegram)

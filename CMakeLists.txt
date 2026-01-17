@@ -3,7 +3,7 @@
 # the unofficial Telegram client based on Telegram Desktop.
 
 # For license and copyright information please follow this link:
-# https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
+# https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 
 cmake_minimum_required(VERSION 3.25...3.31)

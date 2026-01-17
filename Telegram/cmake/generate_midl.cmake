@@ -2,7 +2,7 @@
 # the unofficial Telegram client based on tgd.
 
 # For license and copyright information please follow this link:
-# https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
+# https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 function(generate_midl target_name src_loc)
     set(gen_dst ${CMAKE_CURRENT_BINARY_DIR}/gen)

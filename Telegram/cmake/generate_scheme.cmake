@@ -2,7 +2,7 @@
 # the unofficial Telegram client based on tgd.
 
 # For license and copyright information please follow this link:
-# https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
+# https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 function(generate_scheme target_name script scheme_files)
     find_package(Python3 REQUIRED)

@@ -131,7 +131,7 @@ exit /b %errorlevel%
     echo the unofficial desktop client based on Telegram Desktop.
     echo.
     echo For license and copyright information please follow this link:
-    echo https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
+    echo https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
     echo */
   )> "SourceFiles\!Path!"
   exit /b

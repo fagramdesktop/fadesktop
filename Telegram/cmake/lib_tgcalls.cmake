@@ -2,7 +2,7 @@
 # the unofficial Telegram client based on tgd.
 
 # For license and copyright information please follow this link:
-# https://github.com/fajox1/fagramdesktop/blob/master/LEGAL
+# https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 add_library(lib_tgcalls STATIC)
 init_target(lib_tgcalls) # Can't use std::optional::value on macOS.
