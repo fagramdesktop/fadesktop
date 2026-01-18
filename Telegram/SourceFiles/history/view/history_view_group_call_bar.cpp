@@ -7,6 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "history/view/history_view_group_call_bar.h"
 
+#include "fa/settings/fa_settings.h"
 #include "data/data_channel.h"
 #include "data/data_user.h"
 #include "data/data_changes.h"
@@ -60,7 +61,15 @@ void GenerateUserpicsInRow(
 		q.setCompositionMode(QPainter::CompositionMode_Source);
 		q.setBrush(Qt::NoBrush);
 		q.setPen(pen);
-		q.drawEllipse(x, 0, single, single);
+
+		const auto useDefaultRounding = FASettings::JsonSettings::GetBool("use_default_rounding");
+		if (useDefaultRounding) {
+			q.drawEllipse(x, 0, single, single);
+		} else {
+			const auto roundness = FASettings::JsonSettings::GetInt("roundness");
+			const auto radius = single * roundness / 100.0;
+			q.drawRoundedRect(QRectF(x, 0, single, single), radius, radius);
+		}
 		x -= single - shift;
 	}
 }

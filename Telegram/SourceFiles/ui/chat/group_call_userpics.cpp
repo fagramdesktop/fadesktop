@@ -7,6 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "ui/chat/group_call_userpics.h"
 
+#include "fa/settings/fa_settings.h"
 #include "ui/paint/blobs.h"
 #include "ui/painter.h"
 #include "ui/power_saving.h"
@@ -273,7 +274,15 @@ void GroupCallUserpics::validateCache(Userpic &userpic) {
 			p.setCompositionMode(QPainter::CompositionMode_Source);
 			p.setBrush(Qt::transparent);
 			p.setPen(pen);
-			p.drawEllipse(skip - size + shift, skip, size, size);
+
+			const auto useDefaultRounding = FASettings::JsonSettings::GetBool("use_default_rounding");
+			if (useDefaultRounding) {
+				p.drawEllipse(skip - size + shift, skip, size, size);
+			} else {
+				const auto roundness = FASettings::JsonSettings::GetInt("roundness");
+				const auto radius = size * roundness / 100.0;
+				p.drawRoundedRect(QRectF(skip - size + shift, skip, size, size), radius, radius);
+			}
 		}
 	}
 }
