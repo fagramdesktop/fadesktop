@@ -155,10 +155,8 @@ namespace Settings {
 		}) | rpl::on_next([=](bool enabled) {
 			::FASettings::JsonSettings::Set("show_status_dot", enabled);
 			::FASettings::JsonSettings::Write();
-			onlineOnlyBtn->setVisible(enabled);
+			onlineOnlyBtn->setEnabled(enabled);
 		}, container->lifetime());
-
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_status_dot_desc")));
 
 		onlineOnlyBtn->toggleOn(
 			rpl::single(::FASettings::JsonSettings::GetBool("status_dot_online_only"))
@@ -169,8 +167,8 @@ namespace Settings {
 			::FASettings::JsonSettings::Set("status_dot_online_only", enabled);
 			::FASettings::JsonSettings::Write();
 		}, container->lifetime());
-		onlineOnlyBtn->setVisible(::FASettings::JsonSettings::GetBool("show_status_dot"));
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_status_dot_online_only_desc")));
+		onlineOnlyBtn->setEnabled(::FASettings::JsonSettings::GetBool("show_status_dot"));
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_status_dot_desc")));
 
 		RestartSettingsMenuJsonSwitch(fa_hide_all_chats_folder, hide_all_chats_folder);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_all_chats_folder_desc")));
