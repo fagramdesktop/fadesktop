@@ -1,3 +1,17 @@
+2.1.5 (18.01.26)
+
+- Added option to auto parse markdown hyperlinks
+- Added option to hide sidebar tab titles
+- Added option to show online status dot only
+- New category for context menu settings options
+- Now black dot shows for any user with "Last seen a long time ago" status
+- Show forward without captions option on single-item forward submenu
+- Updated userpic/avatar rounding to apply in group comments preview too
+- What's New! chat is now toggleable
+- Updated translations
+- Updated source URLs
+- Some code optimizations
+
 2.1.4 (14.01.26)
 
 - Updated tdesktop to v6.4.2

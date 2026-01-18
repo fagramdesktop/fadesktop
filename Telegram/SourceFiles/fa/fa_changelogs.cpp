@@ -37,19 +37,6 @@ struct BuiltInChangelog {
 
 const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 	static const std::vector<BuiltInChangelog> entries = {
-	    {
-			2001000,
-			"- Updated to tdesktop v6.3.10.beta\n"
-			"- Added support for tg://chat?id= links, similar to tg://user?id=, but for groups and channels.\n"
-			"- Use FAgram title on more UI-visible occurrences\n"
-			"- Removed TZ info from message time\n"
-			"- Fix quote & reply on context menu shortcuts mode\n"
-			"- Added support tg://openmessage?chat_id=\n"
-			"- Updated changelog service notification\n"
-			"- Fix disable ads on global search results\n"
-			"- Fix overall behaviour of context menu shortcuts mode\n\n"
-			"@FAgramDesktop\n"
-		},
 		{
 			2001001,
 			"- Added user status dot for online/offline activity\n"
@@ -79,7 +66,22 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			"- Fixed context menu shortcut icons mode\n\n"
 			"@FAgramDesktop\n"
 
-		}
+		},
+		{
+			2001005,
+			"- Added option to auto parse markdown hyperlinks\n"
+			"- Added option to hide sidebar tab titles\n"
+			"- Added option to show online status dot only\n"
+			"- New category for context menu settings options\n"
+			"- Now black dot shows for any user with 'Last seen a long time ago' status\n"
+			"- Show forward without captions option on single-item forward submenu\n"
+			"- Updated userpic/avatar rounding to apply in group comments preview too\n"
+			"- What's New! chat is now toggleable\n"
+			"- Updated translations\n"
+			"- Updated source URLs\n"
+			"- Some code optimizations\n\n"
+			"@FAgramDesktop\n"
+		},
 	};
 	return entries;
 }
