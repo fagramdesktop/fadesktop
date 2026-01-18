@@ -224,9 +224,9 @@ void PaintUserpic(
 				p.setRenderHint(QPainter::Antialiasing, true);
 				p.setPen(Qt::NoPen);
 				p.setBrush(st::dialogsBg->c);
-				p.drawEllipse(QRectF(dotX - borderWidth, dotY - borderWidth, totalSize, totalSize));
-				p.setBrush(dotColor);
-				p.drawEllipse(QRectF(dotX, dotY, dotDiameter, dotDiameter));
+					p.drawEllipse(QRectF(dotX - borderWidth, dotY - borderWidth, totalSize, totalSize));
+					p.setBrush(dotColor);
+					p.drawEllipse(QRectF(dotX, dotY, dotDiameter, dotDiameter));
 				p.restore();
 			}
 		}

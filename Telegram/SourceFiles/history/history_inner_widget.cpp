@@ -1404,7 +1404,6 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 								dotColor = QColor(158, 158, 158);
 							}
 
-
 							const auto dotDiameter = 10.0;
 							const auto borderWidth = 2.0;
 							const auto totalSize = dotDiameter + borderWidth * 2.0;
