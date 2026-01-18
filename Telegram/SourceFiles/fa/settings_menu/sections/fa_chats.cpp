@@ -135,8 +135,43 @@ namespace Settings {
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_discuss_button_desc")));
 		SettingsMenuJsonSwitch(fa_show_message_details, show_message_details);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_message_details_desc")));
-		SettingsMenuJsonSwitch(fa_show_status_dot, show_status_dot);
+
+		const auto statusDotBtn = container->add(object_ptr<Button>(
+			container,
+			FAlang::RplTranslate(QString("fa_show_status_dot")),
+			st::settingsButtonNoIcon
+		));
+		const auto onlineOnlyBtn = container->add(object_ptr<Button>(
+			container,
+			FAlang::RplTranslate(QString("fa_status_dot_online_only")),
+			st::settingsButtonNoIcon
+		));
+
+		statusDotBtn->toggleOn(
+			rpl::single(::FASettings::JsonSettings::GetBool("show_status_dot"))
+		)->toggledValue(
+		) | rpl::filter([](bool enabled) {
+			return (enabled != ::FASettings::JsonSettings::GetBool("show_status_dot"));
+		}) | rpl::on_next([=](bool enabled) {
+			::FASettings::JsonSettings::Set("show_status_dot", enabled);
+			::FASettings::JsonSettings::Write();
+			onlineOnlyBtn->setVisible(enabled);
+		}, container->lifetime());
+
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_status_dot_desc")));
+
+		onlineOnlyBtn->toggleOn(
+			rpl::single(::FASettings::JsonSettings::GetBool("status_dot_online_only"))
+		)->toggledValue(
+		) | rpl::filter([](bool enabled) {
+			return (enabled != ::FASettings::JsonSettings::GetBool("status_dot_online_only"));
+		}) | rpl::on_next([=](bool enabled) {
+			::FASettings::JsonSettings::Set("status_dot_online_only", enabled);
+			::FASettings::JsonSettings::Write();
+		}, container->lifetime());
+		onlineOnlyBtn->setVisible(::FASettings::JsonSettings::GetBool("show_status_dot"));
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_status_dot_online_only_desc")));
+
 		RestartSettingsMenuJsonSwitch(fa_hide_all_chats_folder, hide_all_chats_folder);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_all_chats_folder_desc")));
 

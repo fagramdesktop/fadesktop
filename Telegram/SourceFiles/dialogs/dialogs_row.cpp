@@ -386,12 +386,13 @@ void Row::updateCornerBadgeShown(
 	const auto now = user ? base::unixtime::now() : TimeId();
 	const auto channel = user ? nullptr : peer->asChannel();
 	const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
+	const auto onlineOnlyDot = FASettings::JsonSettings::GetBool("status_dot_online_only");
 	const auto nextLayer = [&] {
 		if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
 			return kNoneLayer;
 		} else if (hasUnreadBadgesAbove) {
 			return kNoneLayer;
-		} else if (user && Data::IsUserOnline(user, now) && !showStatusDot) {
+		} else if (user && Data::IsUserOnline(user, now) && (!showStatusDot || onlineOnlyDot)) {
 			return kTopLayer;
 		} else if (channel
 			&& (Data::ChannelHasActiveCall(channel)
@@ -692,15 +693,21 @@ void Row::paintUserpic(
 		_cornerBadgeUserpic->frame);
 
 	const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
+	const auto onlineOnlyDot = FASettings::JsonSettings::GetBool("status_dot_online_only");
 	if (showStatusDot && peer) {
 		if (const auto user = peer->asUser()) {
 			if (!user->isBot() && !user->isServiceUser()) {
 				const auto now = base::unixtime::now();
+				const auto isOnline = user->lastseen().isOnline(now);
+
+				if (onlineOnlyDot && !isOnline) {
+					return;
+				}
 
 				QColor dotColor;
 				if (user->isInaccessible() || user->isBlocked() || (user->lastseen().isLongAgo() && !user->lastseen().isHiddenByMe())) {
 					dotColor = QColor(0, 0, 0);
-				} else if (user->lastseen().isOnline(now)) {
+				} else if (isOnline) {
 					dotColor = QColor(15, 255, 80);
 				} else {
 					dotColor = QColor(158, 158, 158);

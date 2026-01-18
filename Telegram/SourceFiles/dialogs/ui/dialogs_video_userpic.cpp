@@ -193,16 +193,22 @@ void PaintUserpic(
 	}
 
 	const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
+	const auto onlineOnlyDot = FASettings::JsonSettings::GetBool("status_dot_online_only");
 	if (showStatusDot) {
 		if (const auto user = peer->asUser()) {
 			if (!user->isBot() && !user->isServiceUser()) {
 				const auto now = base::unixtime::now();
+				const auto isOnline = user->lastseen().isOnline(now);
+
+				if (onlineOnlyDot && !isOnline) {
+					return;
+				}
 
 				QColor dotColor;
 
 				if (user->isInaccessible() || user->isBlocked() || (user->lastseen().isLongAgo() && !user->lastseen().isHiddenByMe())) {
 					dotColor = QColor(0, 0, 0);
-				} else if (user->lastseen().isOnline(now)) {
+				} else if (isOnline) {
 					dotColor = QColor(15, 255, 80);
 				} else {
 					dotColor = QColor(158, 158, 158);

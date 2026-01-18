@@ -1323,6 +1323,7 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 	}
 
 	const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
+	const auto onlineOnlyDot = FASettings::JsonSettings::GetBool("status_dot_online_only");
 	const auto nowTime = showStatusDot ? base::unixtime::now() : TimeId(0);
 
 	enumerateUserpics([&](not_null<Element*> view, int userpicTop) {
@@ -1390,34 +1391,38 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 			if (showStatusDot && fromPeer) {
 				if (const auto user = fromPeer->asUser()) {
 					if (!user->isBot() && !user->isServiceUser()) {
-						QColor dotColor;
+						const auto isOnline = user->lastseen().isOnline(nowTime);
 
-						if (user->isInaccessible() || user->isBlocked() || (user->lastseen().isLongAgo() && !user->lastseen().isHiddenByMe())) {
-							dotColor = QColor(0, 0, 0);
-						} else if (user->lastseen().isOnline(nowTime)) {
-							dotColor = QColor(15, 255, 80);
-						} else {
-							dotColor = QColor(158, 158, 158);
+						if (!(onlineOnlyDot && !isOnline)) {
+							QColor dotColor;
+
+							if (user->isInaccessible() || user->isBlocked() || (user->lastseen().isLongAgo() && !user->lastseen().isHiddenByMe())) {
+								dotColor = QColor(0, 0, 0);
+							} else if (isOnline) {
+								dotColor = QColor(15, 255, 80);
+							} else {
+								dotColor = QColor(158, 158, 158);
+							}
+
+
+							const auto dotDiameter = 10.0;
+							const auto borderWidth = 2.0;
+							const auto totalSize = dotDiameter + borderWidth * 2.0;
+							const auto avatarX = st::historyPhotoLeft;
+							const auto avatarY = userpicTop;
+							const auto avatarSize = st::msgPhotoSize;
+							const auto dotX = static_cast<double>(avatarX + avatarSize) - totalSize + borderWidth;
+							const auto dotY = static_cast<double>(avatarY + avatarSize) - totalSize + borderWidth;
+
+							p.save();
+							p.setRenderHint(QPainter::Antialiasing, true);
+							p.setPen(Qt::NoPen);
+							p.setBrush(st::windowBg->c);
+							p.drawEllipse(QRectF(dotX - borderWidth, dotY - borderWidth, totalSize, totalSize));
+							p.setBrush(dotColor);
+							p.drawEllipse(QRectF(dotX, dotY, dotDiameter, dotDiameter));
+							p.restore();
 						}
-
-
-						const auto dotDiameter = 10.0;
-						const auto borderWidth = 2.0;
-						const auto totalSize = dotDiameter + borderWidth * 2.0;
-						const auto avatarX = st::historyPhotoLeft;
-						const auto avatarY = userpicTop;
-						const auto avatarSize = st::msgPhotoSize;
-						const auto dotX = static_cast<double>(avatarX + avatarSize) - totalSize + borderWidth;
-						const auto dotY = static_cast<double>(avatarY + avatarSize) - totalSize + borderWidth;
-
-						p.save();
-						p.setRenderHint(QPainter::Antialiasing, true);
-						p.setPen(Qt::NoPen);
-						p.setBrush(st::windowBg->c);
-						p.drawEllipse(QRectF(dotX - borderWidth, dotY - borderWidth, totalSize, totalSize));
-						p.setBrush(dotColor);
-						p.drawEllipse(QRectF(dotX, dotY, dotDiameter, dotDiameter));
-						p.restore();
 					}
 				}
 			}

@@ -228,6 +228,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "show_status_dot", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},
+	{ "status_dot_online_only", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 	{ "context_menu_use_shortcuts", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
