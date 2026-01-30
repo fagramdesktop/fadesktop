@@ -1696,6 +1696,20 @@ void Element::validateText() {
 	// Media::itemForText may initialize data within the object.
 	_textItem = _media ? _media->itemForText() : item.get();
 
+	const auto &summary = item->summaryEntry();
+	const auto summaryShownWas = (_flags & Flag::SummaryShown) != 0;
+	const auto summaryShownNow = !summary.result.empty() && summary.shown;
+	const auto summaryShownChanged = (summaryShownWas != summaryShownNow);
+	if (summaryShownNow) {
+		_flags |= Flag::SummaryShown;
+		if (summaryShownChanged) {
+			setTextWithLinks(summary.result);
+		}
+		return;
+	} else {
+		_flags &= ~Flag::SummaryShown;
+	}
+
 	if (!_textItem) {
 		if (!_text.isEmpty()) {
 			setTextWithLinks({});

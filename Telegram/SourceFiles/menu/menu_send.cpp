@@ -50,7 +50,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_session.h"
 #include "main/main_session.h"
 #include "apiwrap.h"
-#include "settings/settings_premium.h"
+#include "settings/sections/settings_premium.h"
 #include "window/themes/window_theme.h"
 #include "window/section_widget.h"
 #include "styles/style_chat.h"

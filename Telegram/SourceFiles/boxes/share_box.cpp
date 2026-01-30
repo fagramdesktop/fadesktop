@@ -36,7 +36,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/history_item_helpers.h"
 #include "history/view/history_view_element.h"
 #include "history/view/history_view_context_menu.h" // CopyPostLink.
-#include "settings/settings_premium.h"
+#include "settings/sections/settings_premium.h"
 #include "window/window_session_controller.h"
 #include "boxes/peer_list_controllers.h"
 #include "chat_helpers/emoji_suggestions_widget.h"
@@ -1316,6 +1316,12 @@ void ShareBox::Inner::updateUpon(const QPoint &pos) {
 	auto x = pos.x(), y = pos.y();
 	auto row = (y - _rowsTop) / _rowHeight;
 	auto column = qFloor((x - _rowsLeft) / _rowWidthReal);
+
+	if (column < 0 || column >= _columnCount) {
+		_upon = -1;
+		return;
+	}
+
 	auto left = _rowsLeft + qFloor(column * _rowWidthReal) + st::shareColumnSkip / 2;
 	auto top = _rowsTop + row * _rowHeight + st::sharePhotoTop;
 	auto xupon = (x >= left) && (x < left + (_rowWidth - st::shareColumnSkip));

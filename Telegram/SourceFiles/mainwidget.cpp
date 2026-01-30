@@ -70,6 +70,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "media/player/media_player_dropdown.h"
 #include "media/player/media_player_instance.h"
 #include "base/qthelp_regex.h"
+#include "base/options.h"
 #include "mtproto/mtproto_dc_options.h"
 #include "core/update_checker.h"
 #include "core/shortcuts.h"
@@ -88,7 +89,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
 #include "main/main_app_config.h"
-#include "settings/settings_premium.h"
+#include "settings/sections/settings_premium.h"
 #include "support/support_helper.h"
 #include "storage/storage_user_photos.h"
 #include "styles/style_dialogs.h"
@@ -106,7 +107,15 @@ void ClearBotStartToken(PeerData *peer) {
 	}
 }
 
+base::options::toggle ForceComposeSearchOneColumn({
+	.id = kForceComposeSearchOneColumn,
+	.name = "Force embedded search in chats",
+	.description = "Force in one-column mode the embedded search in chats.",
+});
+
 } // namespace
+
+const char kForceComposeSearchOneColumn[] = "force-compose-search-one-column";
 
 enum StackItemType {
 	HistoryStackItem,
@@ -784,7 +793,8 @@ void MainWidget::searchMessages(
 		return;
 	}
 	auto tags = Data::SearchTagsFromQuery(query);
-	if (_dialogs) {
+	if (_dialogs
+		&& (!ForceComposeSearchOneColumn.value() || !isOneColumn())) {
 		auto state = Dialogs::SearchState{
 			.inChat = ((tags.empty() || inChat.sublist())
 				? inChat
@@ -818,11 +828,11 @@ void MainWidget::searchMessages(
 			const auto account = not_null(&session().account());
 			if (const auto window = Core::App().windowFor(account)) {
 				if (const auto controller = window->sessionController()) {
+					controller->widget()->activate();
 					controller->content()->searchMessages(
 						query,
 						inChat,
 						searchFrom);
-					controller->widget()->activate();
 				}
 			}
 		}

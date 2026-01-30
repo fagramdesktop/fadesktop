@@ -31,7 +31,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 namespace Settings {
 namespace {
 
-class AwayMessage final : public BusinessSection<AwayMessage> {
+class AwayMessage final : public Section<AwayMessage> {
 public:
 	AwayMessage(
 		QWidget *parent,
@@ -190,7 +190,7 @@ void AddAwayScheduleSelector(
 AwayMessage::AwayMessage(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller)
-: BusinessSection(parent, controller) {
+: Section(parent, controller) {
 	setupContent(controller);
 }
 

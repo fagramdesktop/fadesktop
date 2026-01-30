@@ -33,7 +33,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/ui_utility.h"
 #include "boxes/filters/edit_filter_box.h"
 #include "boxes/premium_limits_box.h"
-#include "settings/settings_folders.h"
+#include "settings/sections/settings_folders.h"
 #include "storage/storage_media_prepare.h"
 #include "api/api_chat_filters.h"
 #include "apiwrap.h"
@@ -374,13 +374,13 @@ base::unique_qptr<Ui::SideBarButton> FiltersMenu::prepareButton(
 void FiltersMenu::openFiltersSettings() {
 	const auto filters = &_session->session().data().chatsFilters();
 	if (filters->suggestedLoaded()) {
-		_session->showSettings(Settings::Folders::Id());
+		_session->showSettings(Settings::FoldersId());
 	} else if (!_waitingSuggested) {
 		_waitingSuggested = true;
 		filters->requestSuggested();
 		filters->suggestedUpdated(
 		) | rpl::take(1) | rpl::on_next([=] {
-			_session->showSettings(Settings::Folders::Id());
+			_session->showSettings(Settings::FoldersId());
 		}, _outer.lifetime());
 	}
 }

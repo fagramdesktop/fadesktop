@@ -22,11 +22,24 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QStandardPaths>
+#include <QtCore/QLibraryInfo>
 
 namespace Core {
 namespace {
 
 uint64 InstallationTag = 0;
+
+base::options::toggle OptionHighDpiDownscale({
+	.id = kOptionHighDpiDownscale,
+	.name = "High DPI downscale",
+	.description = "Follow system interface scale settings exactly"
+		" (another approach, likely better quality).",
+	.scope = [] {
+		return !Platform::IsMac()
+			&& QLibraryInfo::version() >= QVersionNumber(6, 4);
+	},
+	.restartRequired = true,
+});
 
 base::options::toggle OptionFreeType({
 	.id = kOptionFreeType,
@@ -63,7 +76,7 @@ FilteredCommandLineArguments::FilteredCommandLineArguments(
 	}
 
 #if defined Q_OS_WIN || defined Q_OS_MAC
-	if (OptionFreeType.value()) {
+	if (OptionFreeType.value() || OptionHighDpiDownscale.value()) {
 		pushArgument("-platform");
 #ifdef Q_OS_WIN
 		pushArgument("windows:fontengine=freetype");
@@ -295,6 +308,7 @@ base::options::toggle OptionFractionalScalingEnabled({
 } // namespace
 
 const char kOptionFractionalScalingEnabled[] = "fractional-scaling-enabled";
+const char kOptionHighDpiDownscale[] = "high-dpi-downscale";
 const char kOptionFreeType[] = "freetype";
 
 Launcher *Launcher::InstanceSetter::Instance = nullptr;
@@ -346,7 +360,14 @@ void Launcher::initHighDpi() {
 	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
 #endif // Qt < 6.0.0
 
-	if (OptionFractionalScalingEnabled.value()) {
+	if (OptionHighDpiDownscale.value()) {
+		qputenv("QT_WIDGETS_HIGHDPI_DOWNSCALE", "1");
+		qputenv("QT_WIDGETS_RHI", "1");
+		qputenv("QT_WIDGETS_RHI_BACKEND", "opengl");
+	}
+
+	if (OptionFractionalScalingEnabled.value()
+			|| OptionHighDpiDownscale.value()) {
 		QApplication::setHighDpiScaleFactorRoundingPolicy(
 			Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 	} else {

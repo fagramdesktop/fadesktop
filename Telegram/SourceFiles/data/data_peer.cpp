@@ -557,7 +557,7 @@ void PeerData::paintUserpic(
 		p.restore();
 	}
 	if (context.shape == Ui::PeerUserpicShape::Auto) {
-		context.shape = isForum()
+		context.shape = (isForum() && !isBot())
 			? Ui::PeerUserpicShape::Forum
 			: isMonoforum()
 			? Ui::PeerUserpicShape::Monoforum
@@ -1434,7 +1434,7 @@ not_null<const PeerData*> PeerData::userpicPaintingPeer() const {
 }
 
 Ui::PeerUserpicShape PeerData::userpicShape() const {
-	return isForum()
+	return isForum() && !isBot()
 		? Ui::PeerUserpicShape::Forum
 		: isMonoforum()
 		? Ui::PeerUserpicShape::Monoforum

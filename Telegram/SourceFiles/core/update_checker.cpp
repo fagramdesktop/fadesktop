@@ -26,7 +26,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "info/info_controller.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
-#include "settings/settings_advanced.h"
+#include "settings/sections/settings_advanced.h"
 #include "settings/settings_intro.h"
 #include "ui/layers/box_content.h"
 
@@ -1659,7 +1659,7 @@ void UpdateApplication() {
 				controller->showSection(
 					std::make_shared<Info::Memento>(
 						Info::Settings::Tag{ controller->session().user() },
-						::Settings::Advanced::Id()),
+						::Settings::AdvancedId()),
 					Window::SectionShow());
 			} else {
 				window->widget()->showSpecialLayer(

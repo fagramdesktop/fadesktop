@@ -96,6 +96,8 @@ namespace FA {
 class Changelogs;
 } // namespace FA
 
+extern const char kForceComposeSearchOneColumn[];
+
 class MainWidget final
 	: public Ui::RpWidget
 	, private Media::Player::FloatDelegate {

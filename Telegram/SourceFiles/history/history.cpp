@@ -4019,6 +4019,11 @@ void History::clear(ClearType type, bool markEmpty) {
 	} else if (const auto channel = peer->asMegagroup()) {
 		channel->mgInfo->markupSenders.clear();
 	}
+	if (const auto forum = peer->forum()) {
+		forum->enumerateTopics([&](not_null<Data::ForumTopic*> topic) {
+			destroyMessagesByTopic(topic->rootId());
+		});
+	}
 
 	owner().notifyHistoryChangeDelayed(this);
 	owner().sendHistoryChangeNotifications();

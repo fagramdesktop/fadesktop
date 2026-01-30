@@ -23,7 +23,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/tooltip.h"
 #include "ui/ui_utility.h"
 #include "lang/lang_keys.h"
-#include "settings/settings_premium.h"
+#include "settings/sections/settings_premium.h"
 #include "window/window_session_controller.h"
 #include "styles/style_info.h"
 #include "styles/style_widgets.h"
