@@ -337,6 +337,13 @@ void BuildSectionButtons(SectionBuilder &builder) {
 	const auto controller = builder.controller();
 	const auto showOther = builder.showOther();
 
+	builder.addSectionButton({
+		.title = FAlang::RplTranslate(QString("fa_client_preferences")),
+		.targetSection = FA::Id(),
+		.icon = { &st::menuIconSettings },
+		.keywords = { u"fagram"_q, u"preferences"_q, u"fa"_q },
+	});
+
 	if (!session->supportMode()) {
 		builder.addSectionButton({
 			.title = tr::lng_settings_my_account(),
