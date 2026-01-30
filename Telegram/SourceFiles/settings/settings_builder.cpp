@@ -100,8 +100,11 @@ std::vector<SearchEntry> SearchRegistry::collectAll(
 	auto result = std::vector<SearchEntry>();
 	for (const auto &[sectionId, meta] : _sections) {
 		if (meta->parentId) {
+			const auto title = meta->customTitle
+				? meta->customTitle()
+				: (*meta->title)(tr::now);
 			result.push_back({
-				.title = (*meta->title)(tr::now),
+				.title = title,
 				.section = sectionId,
 				.icon = { meta->icon },
 			});
@@ -116,7 +119,14 @@ std::vector<SearchEntry> SearchRegistry::collectAll(
 
 QString SearchRegistry::sectionTitle(Type sectionId) const {
 	const auto it = _sections.find(sectionId);
-	return (it != _sections.end()) ? (*it->second->title)(tr::now) : QString();
+	if (it == _sections.end()) {
+		return QString();
+	}
+	const auto &meta = it->second;
+	if (meta->customTitle) {
+		return meta->customTitle();
+	}
+	return (*meta->title)(tr::now);
 }
 
 QString SearchRegistry::sectionPath(Type sectionId, bool parentsOnly) const {

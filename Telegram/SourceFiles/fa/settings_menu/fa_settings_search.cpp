@@ -33,6 +33,7 @@ const auto kFAMeta = BuildHelper({
 	.parentId = MainId(),
 	.title = &tr::lng_menu_settings,
 	.icon = &st::menuIconSettings,
+	.customTitle = [] { return FAlang::Translate(QString("fa_client_preferences")); },
 }, [](SectionBuilder &builder) {
 	builder.add(nullptr, [] {
 		return SearchEntry{
@@ -95,6 +96,7 @@ const auto kFAGeneralMeta = BuildHelper({
 	.parentId = FA::Id(),
 	.title = &tr::lng_menu_settings,
 	.icon = &st::menuIconShowAll,
+	.customTitle = [] { return FAlang::Translate(QString("fa_general")); },
 }, [](SectionBuilder &builder) {
 	builder.add(nullptr, [] {
 		return SearchEntry{
@@ -174,6 +176,7 @@ const auto kFAChatsMeta = BuildHelper({
 	.parentId = FA::Id(),
 	.title = &tr::lng_menu_settings,
 	.icon = &st::menuIconChatBubble,
+	.customTitle = [] { return FAlang::Translate(QString("fa_chats")); },
 }, [](SectionBuilder &builder) {
 	builder.add(nullptr, [] {
 		return SearchEntry{
@@ -281,6 +284,7 @@ const auto kFAAppearanceMeta = BuildHelper({
 	.parentId = FA::Id(),
 	.title = &tr::lng_menu_settings,
 	.icon = &st::menuIconPalette,
+	.customTitle = [] { return FAlang::Translate(QString("fa_appearance")); },
 }, [](SectionBuilder &builder) {
 	builder.add(nullptr, [] {
 		return SearchEntry{
@@ -351,6 +355,7 @@ const auto kFAContextMenuMeta = BuildHelper({
 	.parentId = FA::Id(),
 	.title = &tr::lng_menu_settings,
 	.icon = &st::menuIconSigned,
+	.customTitle = [] { return FAlang::Translate(QString("fa_context_menu")); },
 }, [](SectionBuilder &builder) {
 	builder.add(nullptr, [] {
 		return SearchEntry{
@@ -449,6 +454,7 @@ const auto kFALogsMeta = BuildHelper({
 	.parentId = FA::Id(),
 	.title = &tr::lng_menu_settings,
 	.icon = &st::menuIconFile,
+	.customTitle = [] { return FAlang::Translate(QString("fa_debug_logs")); },
 }, [](SectionBuilder &builder) {
 	builder.add(nullptr, [] {
 		return SearchEntry{

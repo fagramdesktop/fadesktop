@@ -86,6 +86,7 @@ struct SectionMeta {
 	Type parentId;
 	not_null<const tr::phrase<>*> title;
 	not_null<const style::icon*> icon;
+	Fn<QString()> customTitle; // FAlang support
 };
 
 class SearchRegistry {
