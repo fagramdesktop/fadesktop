@@ -5,13 +5,12 @@ the unofficial desktop client based on Telegram Desktop.
 For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
-#include "settings/settings_main.h"
 #include "fa/settings_menu/fa_settings_menu.h"
 
 #include "fa/lang/fa_lang.h"
 #include "fa/settings/fa_settings.h"
-#include "settings/sections/settings_main.h"
 
+#include "settings/sections/settings_main.h"
 #include "settings/settings_common_session.h"
 
 #include "api/api_cloud_password.h"
