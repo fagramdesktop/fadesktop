@@ -117,13 +117,6 @@ void TranslateBox(
 		msgId = 0;
 	}
 
-	using Flag = MTPmessages_TranslateText::Flag;
-	const auto flags = msgId
-		? (Flag::f_peer | Flag::f_id)
-		: !text.text.isEmpty()
-		? Flag::f_text
-		: Flag(0);
-
 	const auto &stLabel = st::aboutLabel;
 	const auto lineHeight = stLabel.style.lineHeight;
 

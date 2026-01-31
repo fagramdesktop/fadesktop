@@ -9,12 +9,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "settings/settings_type.h"
 
-namespace Window {
-class SessionController;
-} // namespace Window
-
 namespace Settings {
 
-[[nodiscard]] Type FoldersId();
+Type LocalPasscodeCreateId();
+Type LocalPasscodeCheckId();
+Type LocalPasscodeManageId();
 
 } // namespace Settings
