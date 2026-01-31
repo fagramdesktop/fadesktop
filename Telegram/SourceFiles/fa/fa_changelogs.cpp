@@ -82,6 +82,13 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			"- Some code optimizations\n\n"
 			"@FAgramDesktop\n"
 		},
+		{
+			2001006,
+			"- Updated tdesktop to v6.4.3.beta\n"
+			"- Support search in settings for FAgram Preferences\n"
+			"- Fixed copy selected text on context menu shortcut icons mode\n\n"
+			"@FAgramDesktop\n"
+		},
 	};
 	return entries;
 }

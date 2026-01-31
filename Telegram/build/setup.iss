@@ -1,6 +1,6 @@
 #define MyAppShortName "FAgram"
 #define MyAppName "FAgram Desktop"
-#define MyAppPublisher "Telegram FZ-LLC"
+#define MyAppPublisher "FAgramDesktop"
 #define MyAppURL "https://t.me/FAgramDesktop"
 #define MyAppExeName "fagram.exe"
 #define MyAppId "8F00A2B2-F423-454D-9748-64789C56203A"
