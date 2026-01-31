@@ -1079,7 +1079,7 @@ TextWithTags applyAutoParseMarkdownHyperlink(const TextWithTags &textWithTags) {
 		
 		result.tags.push_back({
 			tagOffset,
-			linkText.length(),
+			int(linkText.length()),
 			link.url
 		});
 

@@ -162,20 +162,6 @@ namespace Settings {
 
 		AddSubsectionTitle(container, rpl::single(QString("FAgram")));
 
-		const auto addSection = [&](
-				rpl::producer<QString> label,
-				Type type,
-				IconDescriptor &&descriptor) {
-			AddButtonWithIcon(
-				container,
-				std::move(label),
-				st::settingsButton,
-				std::move(descriptor)
-			)->addClickHandler([=] {
-				showOther(type);
-			});
-		};
-
     	AddButtonWithLabel(
 			container,
 			FAlang::RplTranslate(QString("fa_restart_client")),

@@ -47,7 +47,7 @@ bool _storageLoaded = false;
 QJsonObject _cachedStorage;
 bool _storageCacheValid = false;
 
-void InvalidateStorageCache() {
+[[maybe_unused]] void InvalidateStorageCache() {
 	_cachedStorage = QJsonObject();
 	_storageCacheValid = false;
 }
