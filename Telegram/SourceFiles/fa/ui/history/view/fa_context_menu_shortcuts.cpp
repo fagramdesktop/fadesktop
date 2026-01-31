@@ -233,7 +233,9 @@ void ContextMenuShortcuts::createButtons() {
 	}
 
 	// Copy or Edit
-	if (canCopy) {
+	const auto hasQuoteText = _quote && !_quote.highlight.quote.empty();
+	if (canCopy || hasQuoteText) {
+		const auto quoteText = _quote.highlight.quote;
 		addButton(
 			st::menuIconCopy,
 			[=] {
@@ -241,7 +243,12 @@ void ContextMenuShortcuts::createButtons() {
 					? _callbacks.showCopyRestriction(item)
 					: false;
 				if (!restricted) {
-					TextUtilities::SetClipboardText(item->clipboardText());
+					if (hasQuoteText) {
+						TextUtilities::SetClipboardText(
+							TextForMimeData::Rich(TextWithEntities{ quoteText }));
+					} else {
+						TextUtilities::SetClipboardText(item->clipboardText());
+					}
 				}
 			},
 			ShortcutType::Copy);
