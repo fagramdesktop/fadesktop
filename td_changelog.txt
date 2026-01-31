@@ -1,3 +1,9 @@
+6.4.4 beta (29.01.26)
+
+- Fix crash in topic group opening.
+- Show correct profile colors preview when edit.
+- Strip quote entities in media viewer.
+
 6.4.3 beta (28.01.26)
 
 - Search in Settings.
