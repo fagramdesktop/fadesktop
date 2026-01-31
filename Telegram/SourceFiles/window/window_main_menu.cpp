@@ -1010,6 +1010,9 @@ void MainMenu::setupSwipe() {
 		if (direction != Qt::LeftToRight) {
 			return Ui::Controls::SwipeHandlerFinishData();
 		}
+		if (_emojiStatusPanel && _emojiStatusPanel->hasFocus()) {
+			return Ui::Controls::SwipeHandlerFinishData();
+		}
 		return Ui::Controls::DefaultSwipeBackHandlerFinishData([=] {
 			closeLayer();
 		});
