@@ -1,0 +1,49 @@
+name: Build & Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tagname:
+        description: "Tag name for the release"
+        type: string
+        required: true
+      build_type:
+        description: "Build type"
+        type: choice
+        required: true
+        default: "ci"
+        options:
+          - ci
+          - rel
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-linux:
+    name: Build Linux
+    uses: ./.github/workflows/build-linux.yml
+    with:
+      tagname: ${{ inputs.tagname }}
+      build_type: ${{ inputs.build_type }}
+    secrets: inherit
+
+  build-windows:
+    name: Build Windows x64
+    uses: ./.github/workflows/win-release-x64.yml
+    with:
+      tagname: ${{ inputs.tagname }}
+      build_type: ${{ inputs.build_type }}
+    secrets: inherit
+
+  create-release:
+    name: Create Release
+    needs: [build-linux, build-windows]
+    if: inputs.build_type == 'rel'
+    uses: ./.github/workflows/release.yml
+    with:
+      tagname: ${{ inputs.tagname }}
+      linux_run_id: ${{ github.run_id }}
+      windows_run_id: ${{ github.run_id }}
+    secrets: inherit

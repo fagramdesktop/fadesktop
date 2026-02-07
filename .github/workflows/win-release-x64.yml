@@ -15,6 +15,17 @@ on:
         options:
           - ci
           - rel
+  workflow_call:
+    inputs:
+      tagname:
+        description: "tagname"
+        type: string
+        required: true
+      build_type:
+        description: "Build type"
+        type: string
+        required: true
+        default: "ci"
 
 jobs:
   prepare-libraries:
@@ -177,8 +188,8 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tagname }}" ]; then
-            echo "RELEASE_TAG=${{ github.event.inputs.tagname }}" >> $GITHUB_ENV
+          if [ -n "${{ inputs.tagname }}" ]; then
+            echo "RELEASE_TAG=${{ inputs.tagname }}" >> $GITHUB_ENV
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
           else
@@ -218,19 +229,6 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.TBUILD }}/${{ env.REPO_NAME }}/artifact/
 
-      - name: Upload portable release
-        if: env.UPLOAD_ARTIFACT == 'true' && github.event.inputs.build_type == 'rel'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: FAgram ${{ env.RELEASE_TAG }}
-          draft: false
-          prerelease: false
-          files: |
-            ${{ env.TBUILD }}/${{ env.REPO_NAME }}/artifact/FAgram_Win-x64_${{ env.RELEASE_TAG }}_portable.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
-
   build-installer:
     name: Build Windows x64 Installer
     needs: build-fagram
@@ -238,16 +236,7 @@ jobs:
     uses: ./.github/workflows/win-installer-x64.yml
     with:
       artifact_name: FAgram_Win-x64
-      release_tag: ${{ github.event.inputs.tagname }}
-      build_type: ${{ github.event.inputs.build_type }}
+      release_tag: ${{ inputs.tagname }}
+      build_type: ci
       run_id: ${{ github.run_id }}
-    secrets: inherit
-
-  update-scoop:
-    name: Update Scoop Manifest
-    needs: build-fagram
-    if: github.event.inputs.build_type == 'rel'
-    uses: ./.github/workflows/scoop-manifest.yml
-    with:
-      release_tag: ${{ github.event.inputs.tagname }}
     secrets: inherit

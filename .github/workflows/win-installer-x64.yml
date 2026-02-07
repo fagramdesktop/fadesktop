@@ -126,16 +126,3 @@ jobs:
         with:
           name: ${{ inputs.artifact_name }}_installer
           path: artifact/fagram-setup_Win-x64.${{ steps.version.outputs.app_version_str_full }}.exe
-
-      - name: Create Release
-        if: inputs.build_type == 'rel'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.release_tag }}
-          name: FAgram ${{ inputs.release_tag }}
-          draft: false
-          prerelease: false
-          files: |
-            artifact/fagram-setup_Win-x64.${{ steps.version.outputs.app_version_str_full }}.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
