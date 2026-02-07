@@ -2267,18 +2267,17 @@ void HistoryWidget::setupDirectMessageButton() {
 	});
 	rpl::combine(
 		_muteUnmute->shownValue(),
-		_joinChannel->shownValue()
-	) | rpl::on_next([=](bool muteUnmute, bool joinChannel) {
-		const auto newParent = (muteUnmute && !joinChannel)
+		_joinChannel->shownValue(),
+		_discuss->shownValue()
+	) | rpl::on_next([=](bool muteUnmute, bool joinChannel, bool discuss) {
+		const auto newParent = (muteUnmute && !joinChannel && !discuss)
 			? _muteUnmute.data()
 			: (joinChannel && !muteUnmute)
 			? _joinChannel.data()
-			: nullptr;
-		if (newParent) {
-			_directMessage->setParent(newParent);
-			_directMessage->moveToLeft(0, 0);
-			refreshDirectMessageShown();
-		}
+			: static_cast<QWidget*>(this);
+		_directMessage->setParent(newParent);
+		_directMessage->moveToLeft(0, 0);
+		refreshDirectMessageShown();
 	}, _directMessage->lifetime());
 }
 
