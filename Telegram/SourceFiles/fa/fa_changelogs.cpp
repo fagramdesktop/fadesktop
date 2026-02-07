@@ -38,25 +38,6 @@ struct BuiltInChangelog {
 const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 	static const std::vector<BuiltInChangelog> entries = {
 		{
-			2001001,
-			"- Added user status dot for online/offline activity\n"
-			"- Some code optimizations\n\n"
-			"@FAgramDesktop\n"
-		},
-		{
-			2001002,
-			"- Updated tdesktop to v6.4.0\n"
-			"- Fixed userpic rounding behaviour\n\n"
-			"@FAgramDesktop\n"
-		},
-		{
-			2001003,
-			"- Updated tdesktop to v6.4.1\n"
-			"- Added option to forward media/docs without caption\n"
-			"- Improved changelog peer chat implementation\n\n"
-			"@FAgramDesktop\n"
-		},
-		{
 			2001004,
 			"- Updated tdesktop to v6.4.2\n"
 			"- New redesigned App icon\n"
@@ -87,6 +68,12 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			"- Updated tdesktop to v6.4.4.beta\n"
 			"- Support search in settings for FAgram Preferences\n"
 			"- Fixed copy selected text on context menu shortcut icons mode\n\n"
+			"@FAgramDesktop\n"
+		},
+		{
+			2001007,
+			"- Updated tdesktop to v6.5.0\n"
+			"- Fixed DM button visibility in channels\n\n"
 			"@FAgramDesktop\n"
 		},
 	};

@@ -1,3 +1,8 @@
+2.1.7 (08.02.26)
+
+- Updated tdesktop to v6.5.0
+- Fixed DM button visibility in channels
+
 2.1.6 (31.01.26)
 
 - Updated tdesktop to v6.4.4.beta
