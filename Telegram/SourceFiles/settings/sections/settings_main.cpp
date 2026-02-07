@@ -143,7 +143,7 @@ Cover::Cover(
 , _user(user)
 , _badge(
 	this,
-	st::infoPeerBadge,
+	st::settingsCoverBadge,
 	&user->session(),
 	Info::Profile::BadgeContentForPeer(user),
 	&_emojiStatusPanel,
@@ -286,7 +286,7 @@ void Cover::refreshNameGeometry(int newWidth) {
 	const auto nameLeft = st::settingsNameLeft;
 	const auto nameTop = st::settingsNameTop;
 	const auto qrButtonWidth = (_qrButton && !_qrButton->isHidden())
-		? (_qrButton->width() + st::settingsNameLeft)
+		? (_qrButton->width() + st::infoProfileCover.rightSkip)
 		: 0;
 	auto nameWidth = newWidth
 		- nameLeft

@@ -66,6 +66,9 @@ PRIVATE
     boxes/peers/toggle_topics_box.cpp
     boxes/peers/toggle_topics_box.h
 
+    boxes/url_auth_box_content.cpp
+    boxes/url_auth_box_content.h
+
     calls/group/ui/calls_group_recording_box.cpp
     calls/group/ui/calls_group_recording_box.h
     calls/group/ui/calls_group_scheduled_labels.cpp

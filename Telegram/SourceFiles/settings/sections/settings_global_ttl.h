@@ -1,9 +1,9 @@
 /*
-This file is part of FAgram Desktop,
-the unofficial desktop client based on Telegram Desktop.
+This file is part of Telegram Desktop,
+the official desktop application for the Telegram messaging service.
 
 For license and copyright information please follow this link:
-https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
+https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 

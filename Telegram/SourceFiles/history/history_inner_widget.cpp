@@ -5277,6 +5277,12 @@ void HistoryInner::refreshAboutView(bool force) {
 			_aboutView->refreshRequests() | rpl::on_next([=] {
 				updateBotInfo();
 			}, _aboutView->lifetime());
+			_aboutView->destroyRequests() | rpl::on_next([=] {
+				crl::on_main(this, [=] {
+					refreshAboutView(true);
+					update();
+				});
+			}, _aboutView->lifetime());
 			_aboutView->sendIntroSticker() | rpl::start_to_stream(
 				_sendIntroSticker,
 				_aboutView->lifetime());

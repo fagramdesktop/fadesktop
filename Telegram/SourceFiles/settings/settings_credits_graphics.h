@@ -122,6 +122,7 @@ struct CreditsEntryBoxStyleOverrides {
 	const style::icon *share = nullptr;
 	const style::icon *theme = nullptr;
 	const style::icon *transfer = nullptr;
+	const style::icon *craft = nullptr;
 	const style::icon *wear = nullptr;
 	const style::icon *takeoff = nullptr;
 	const style::icon *resell = nullptr;
@@ -151,6 +152,10 @@ void GenericCreditsEntryBox(
 	const Data::CreditsHistoryEntry &e,
 	const Data::SubscriptionEntry &s,
 	CreditsEntryBoxStyleOverrides st = {});
+void GenericCreditsEntryBody(
+	not_null<Ui::GenericBox*> box,
+	std::shared_ptr<ChatHelpers::Show> show,
+	const Data::CreditsHistoryEntry &e);
 void GenericCreditsEntryBody(
 	not_null<Ui::GenericBox*> box,
 	std::shared_ptr<ChatHelpers::Show> show,
@@ -320,6 +325,7 @@ void AddMiniStars(
 void AddUniqueCloseMoreButton(
 	not_null<Ui::GenericBox*> box,
 	Settings::CreditsEntryBoxStyleOverrides st,
-	Fn<void(not_null<Ui::PopupMenu*>)> fillMenu = nullptr);
+	Fn<void(not_null<Ui::PopupMenu*>)> fillMenu = nullptr,
+	Fn<void()> launchCraft = nullptr);
 
 } // namespace Settings

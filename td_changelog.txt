@@ -1,3 +1,11 @@
+6.5 (06.02.26)
+
+- Leaving Groups to a New Admin.
+- Log In With Telegram.
+- Gift Crafting.
+- Colored Buttons for Bots.
+- Search in Settings.
+
 6.4.4 beta (29.01.26)
 
 - Fix crash in topic group opening.

@@ -164,14 +164,15 @@ TopBarWidget::TopBarWidget(
 	_delete->setWidthChangedCallback([=] { updateControlsGeometry(); });
 	_clear->setClickedCallback([=] { _clearSelection.fire({}); });
 	_call->setClickedCallback([=] { call({}); });
-	_call->setAcceptBoth();
+	_call->setAcceptBoth(true, true);
 	_call->addClickHandler([=](Qt::MouseButton button) {
 		if (button == Qt::RightButton) {
 			showCallMenu();
 		}
 	});
 	_groupCall->setClickedCallback([=] { groupCall(); });
-	_menuToggle->setClickedCallback([=] { showPeerMenu(); });
+	_menuToggle->addClickHandler([=](auto) { showPeerMenu(); });
+	_menuToggle->setAcceptBoth(true, true);
 	_infoToggle->setClickedCallback([=] { toggleInfoSection(); });
 
 	_recentActions->setClickedCallback([=]
@@ -415,11 +416,14 @@ void TopBarWidget::showPeerMenu() {
 		_menu = nullptr;
 	} else {
 		_menu->setForcedOrigin(Ui::PanelAnimation::Origin::TopRight);
-		_menu->popup(mapToGlobal(QPoint(
-			width()
-				+ st::topBarMenuPosition.x()
-				+ _menu->st().shadow.extend.right(),
-			st::topBarMenuPosition.y())));
+		_menu->popup(Ui::PopupMenu::ConstrainToParentScreen(
+			_menu,
+			mapToGlobal(
+				QPoint(
+					width()
+						+ st::topBarMenuPosition.x()
+						+ _menu->st().shadow.extend.right(),
+					st::topBarMenuPosition.y()))));
 	}
 }
 

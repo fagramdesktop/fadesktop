@@ -1501,6 +1501,11 @@ messageGiftIconSkip: 30px;
 newChatIcon: icon{{ "chat/new_topic", windowFgActive }};
 newChatIconPadding: margins(2px, 2px, 2px, 2px);
 
+newThreadAboutMaxWidth: 180px;
+newThreadAboutIconSkip: chatIntroTitleMargin.top;
+newThreadAboutIconOuter: 60px;
+newThreadAboutIcon: icon{{ "chat/new_thread-40x40", windowFgActive }};
+
 stakeBox: Box(defaultBox) {
 	buttonPadding: margins(24px, 12px, 24px, 24px);
 	buttonHeight: 42px;

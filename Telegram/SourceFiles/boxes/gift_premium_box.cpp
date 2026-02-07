@@ -65,6 +65,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/text/format_values.h"
 #include "ui/text/text_utilities.h"
 #include "ui/toast/toast.h"
+#include "ui/widgets/buttons.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/gradient_round_button.h"
 #include "ui/widgets/tooltip.h"
@@ -222,7 +223,7 @@ using SpinnerState = Data::GiftUpgradeSpinner::State;
 	const auto prefix = (use > 0) ? u"+"_q : QString();
 	const auto percent = Lang::FormatExactCountDecimal(use) + '%';
 	auto text = rpl::single(prefix + percent);
-	return MakeValueWithSmallButton(table, label, std::move(text));
+	return MakeValueWithSmallButton(table, label, std::move(text)).widget;
 }
 
 [[nodiscard]] object_ptr<Ui::RpWidget> MakeMinimumPriceValue(
@@ -241,7 +242,7 @@ using SpinnerState = Data::GiftUpgradeSpinner::State;
 			tr::bold(text.text),
 			lt_gift,
 			tr::bold(unique->title),
-			tr::marked));
+			tr::marked)).widget;
 }
 
 [[nodiscard]] object_ptr<Ui::RpWidget> MakeAveragePriceValue(
@@ -260,7 +261,7 @@ using SpinnerState = Data::GiftUpgradeSpinner::State;
 			tr::bold(text.text),
 			lt_gift,
 			tr::bold(unique->title),
-			tr::marked));
+			tr::marked)).widget;
 }
 
 [[nodiscard]] object_ptr<Ui::RpWidget> MakeAttributeValue(
@@ -273,13 +274,193 @@ using SpinnerState = Data::GiftUpgradeSpinner::State;
 		table->st().defaultValue);
 	label->setAttribute(Qt::WA_TransparentForMouseEvents);
 
-	const auto permille = attribute.rarityPermille;
-	auto text = rpl::single(QString::number(permille / 10.) + '%');
+	const auto permille = attribute.rarityPermille();
+	const auto rarity = attribute.rarityType();
+	auto text = rpl::single(Data::UniqueGiftAttributeText(attribute));
 
 	const auto handler = [=](not_null<Ui::RpWidget*> button) {
 		showTooltip(button, permille);
 	};
-	return MakeValueWithSmallButton(table, label, std::move(text), handler);
+	auto result = MakeValueWithSmallButton(
+		table,
+		label,
+		std::move(text),
+		handler);
+	if (rarity != Data::UniqueGiftRarity::Default) {
+		const auto colors = Data::UniqueGiftRarityBadgeColors(rarity);
+		result.button->setBrushOverride(colors.bg);
+		result.button->setTextFgOverride(colors.fg);
+		result.button->setRippleOverride(colors.bg);
+	}
+	return std::move(result.widget);
+}
+
+[[nodiscard]] object_ptr<Ui::RpWidget> MakeAttributeValue(
+		not_null<Ui::TableLayout*> table,
+		const Data::UniqueGiftAttribute &attribute,
+		Fn<void(not_null<Ui::RpWidget*>, int)> showTooltip,
+		std::shared_ptr<Data::GiftUpgradeSpinner> spinner,
+		std::vector<Data::UniqueGiftAttribute> spinning,
+		SpinnerState finishedState) {
+	if (!spinner) {
+		return MakeAttributeValue(table, attribute, showTooltip);
+	}
+	auto result = object_ptr<Ui::RpWidget>(table);
+	const auto raw = result.get();
+
+	struct Row {
+		Data::UniqueGiftAttribute attribute;
+		object_ptr<Ui::RpWidget> widget;
+		QImage frame;
+	};
+	struct State {
+		int wasIndex = 0;
+		int nowIndex = 0;
+		std::vector<Row> rows;
+		Ui::Animations::Simple animation;
+		QImage fading;
+		Fn<void()> repaint;
+		bool finished = false;
+	};
+	const auto state = raw->lifetime().make_state<State>();
+	state->repaint = [=] { raw->update(); };
+
+	const auto margin = st::giveawayGiftCodeValueMargin;
+	const auto startWithin = [=] {
+		Expects(!state->rows.empty());
+
+		state->wasIndex = state->nowIndex;
+		state->nowIndex = (state->nowIndex + 1) % state->rows.size();
+		state->animation.start(state->repaint, 0., 1., kSpinDuration);
+	};
+	const auto startToTarget = [=] {
+		if (state->nowIndex != 0) {
+			state->wasIndex = state->nowIndex;
+			state->nowIndex = 0;
+			state->animation.start(
+				state->repaint,
+				0.,
+				1.,
+				kSpinDuration * 3,
+				anim::easeOutCubic);
+		}
+	};
+
+	const auto add = [&](const Data::UniqueGiftAttribute &value) {
+		if (state->rows.size() >= kSpinnerRows) {
+			return false;
+		}
+		const auto already = ranges::contains(
+			state->rows,
+			value,
+			&Row::attribute);
+		if (!already) {
+			state->rows.push_back(Row{
+				.attribute = value,
+				.widget = MakeAttributeValue(table, value, showTooltip),
+			});
+			const auto widget = state->rows.back().widget.get();
+			widget->setParent(raw);
+			widget->hide();
+		}
+		return true;
+	};
+	add(attribute);
+	for (const auto &item : spinning) {
+		if (!add(item)) {
+			break;
+		}
+	}
+
+	raw->widthValue() | rpl::on_next([=](int width) {
+		auto height = 0;
+		const auto inner = width - margin.left() - margin.right();
+		if (inner > 0) {
+			for (const auto &row : state->rows) {
+				row.widget->resizeToWidth(inner);
+				row.widget->move(margin.left(), margin.top());
+				height = std::max(height, row.widget->height());
+			}
+		}
+		raw->resize(width, margin.top() + height + margin.bottom());
+		crl::on_main(raw, [=] {
+			for (const auto &row : state->rows) {
+				Ui::SendPendingMoveResizeEvents(row.widget.get());
+			}
+		});
+	}, raw->lifetime());
+
+	style::PaletteChanged() | rpl::on_next([=] {
+		for (auto &row : state->rows) {
+			row.frame = QImage();
+		}
+		state->fading = QImage();
+	}, raw->lifetime());
+
+	raw->paintOn([=](QPainter &p) {
+		if (state->finished) {
+			return;
+		}
+		auto progress = state->animation.value(1.);
+		if (progress >= 1.) {
+			const auto ending = (spinner->state.current() >= finishedState);
+			if (ending) {
+				startToTarget();
+			} else {
+				startWithin();
+			}
+			progress = state->animation.value(1.);
+			if (ending && progress >= 1.) {
+				state->rows.front().widget->show();
+				state->finished = true;
+				return;
+			}
+		}
+		const auto ratio = style::DevicePixelRatio();
+		const auto h = raw->height();
+		if (state->fading.height() != h * ratio) {
+			state->fading = QImage(
+				QSize(1, h) * ratio,
+				QImage::Format_ARGB32_Premultiplied);
+			state->fading.setDevicePixelRatio(ratio);
+			state->fading.fill(Qt::transparent);
+			auto q = QPainter(&state->fading);
+			auto brush = QLinearGradient(0, 0, 0, margin.top());
+			brush.setStops({
+				{ 0., anim::with_alpha(st::boxBg->c, 1.) },
+				{ 1., anim::with_alpha(st::boxBg->c, 0.) },
+			});
+			q.fillRect(0, 0, 1, margin.top(), brush);
+			brush.setStart(0, h);
+			brush.setFinalStop(0, h - margin.bottom());
+			q.fillRect(0, h - margin.bottom(), 1, margin.bottom(), brush);
+		}
+		auto &was = state->rows[state->wasIndex];
+		auto &now = state->rows[state->nowIndex];
+		const auto validate = [&](Row &row) {
+			const auto size = row.widget->size();
+			if (row.frame.size() != size * ratio) {
+				row.frame = Ui::GrabWidgetToImage(row.widget.get());
+			}
+		};
+		validate(was);
+		validate(now);
+		const auto t = progress * (margin.top() + was.widget->height());
+		const auto b = progress * (now.widget->height() + margin.bottom());
+		p.drawImage(
+			margin.left(),
+			margin.top() - int(base::SafeRound(t)),
+			was.frame);
+		p.drawImage(
+			margin.left(),
+			raw->height() - int(base::SafeRound(b)),
+			now.frame);
+		p.drawImage(raw->rect(), state->fading);
+	});
+
+	startWithin();
+
+	return result;
 }
 
 [[nodiscard]] object_ptr<Ui::RpWidget> MakeAttributeValue(
@@ -500,7 +681,7 @@ void AddUniqueGiftPropertyRows(
 	const auto showRarity = [=](Data::GiftAttributeId id) {
 		return [=](
 				not_null<Ui::RpWidget*> widget,
-				int rarity) {
+				int rarityPermille) {
 			initVariants();
 
 			const auto weak = base::make_weak(widget);
@@ -517,10 +698,11 @@ void AddUniqueGiftPropertyRows(
 						id.type,
 						unique));
 				} else if (const auto widget = weak.get()) {
-					const auto percent = QString::number(rarity / 10.) + '%';
+					const auto percent = Data::UniqueGiftAttributeText(
+						{ .rarityValue = rarityPermille });
 					showTooltip(widget, tr::lng_gift_unique_rarity(
 						lt_percent,
-						rpl::single(TextWithEntities{ percent }),
+						rpl::single(tr::marked(percent)),
 						tr::marked));
 				}
 			});
@@ -615,7 +797,7 @@ void AddUniqueGiftPropertyRows(
 		table,
 		label.release(),
 		std::move(text),
-		handler);
+		handler).widget;
 }
 
 [[nodiscard]] object_ptr<Ui::RpWidget> MakeUniqueGiftValueValue(
@@ -673,7 +855,7 @@ void AddUniqueGiftPropertyRows(
 		table,
 		label,
 		tr::lng_gift_unique_value_learn_more(),
-		handler);
+		handler).widget;
 }
 
 void AddTable(
@@ -1628,7 +1810,7 @@ void AddStarGiftTable(
 			tr::lng_credits_box_history_entry_peer_in(),
 			MakePeerTableValue(table, show, peerId, send, handler),
 			st::giveawayGiftCodePeerMargin);
-	} else if (!entry.soldOutInfo) {
+	} else if (!entry.soldOutInfo && !giftToSelf) {
 		AddTableRow(
 			table,
 			tr::lng_credits_box_history_entry_peer_in(),

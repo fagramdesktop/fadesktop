@@ -453,7 +453,7 @@ void SubsectionTabs::startFillingSlider(
 						).append(' ').append(peer->shortName()),
 					});
 				}
-			// } else if (item.thread->peer()->isBot()) {
+			// } else if (Data::IsBotCanManageTopics(item.thread->peer())) {
 			// 	sections.push_back({
 			// 		.text = { tr::lng_bot_new_chat(tr::now) },
 			// 	});

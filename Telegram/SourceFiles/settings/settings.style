@@ -214,6 +214,9 @@ settingsInfoPeerBadge: InfoPeerBadge {
 	premiumFg: dialogsVerifiedIconBg;
 	sizeTag: 0; // Normal
 }
+settingsCoverBadge: InfoPeerBadge(infoPeerBadge) {
+	position: point(4px, 2px);
+}
 
 settingsBio: InputField(defaultInputField) {
 	textBg: transparent;

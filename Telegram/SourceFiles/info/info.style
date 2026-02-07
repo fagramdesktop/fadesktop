@@ -602,13 +602,14 @@ infoRatingDeductedBadge: RoundButton(customEmojiTextBadge) {
 
 infoProfileInaccessibleUserpic: icon {{ "info/inaccessible_userpic", historyPeerUserpicFg }};
 
+infoVerifiedCheck: icon {{ "profile_verified_check", profileVerifiedCheckFg }};
 infoVerifiedCheckPosition: point(4px, 0px);
 infoVerifiedStar: icon {{ "profile_verified_star", profileVerifiedCheckBg }};
 infoPremiumStar: icon {{ "profile_premium", profileVerifiedCheckBg }};
 
 infoPeerBadge: InfoPeerBadge {
 	verified: infoVerifiedStar;
-	verifiedCheck: icon {{ "profile_verified_check", profileVerifiedCheckFg }};
+	verifiedCheck: infoVerifiedCheck;
 	premium: infoPremiumStar;
 	premiumFg: profileVerifiedCheckBg;
 	position: infoVerifiedCheckPosition;

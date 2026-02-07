@@ -437,14 +437,14 @@ void SendCreditsBox(
 	};
 
 	const auto button = box->addButton(rpl::single(QString()), [=] {
-		const auto weak = base::make_weak(box.get());
 		Settings::MaybeRequestBalanceIncrease(
 			Main::MakeSessionShow(box->uiShow(), session),
 			form->invoice.credits,
 			SmallBalanceSourceFromForm(form),
 			[=](Settings::SmallBalanceResult result) {
 				if (result == Settings::SmallBalanceResult::Cancelled) {
-				} else if (result == Settings::SmallBalanceResult::Success) {
+				} else if (result == Settings::SmallBalanceResult::Success
+					|| result == Settings::SmallBalanceResult::Already) {
 					sendStars();
 				} else {
 					sent(result);

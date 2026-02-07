@@ -67,4 +67,4 @@ settings.local.json
 !.cursor/rules/
 
 # AI work folder (session-specific, not for version control)
-docs/ai/work/
+.ai

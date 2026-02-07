@@ -816,14 +816,6 @@ void CreateModerateMessagesBox(
 				return result;
 			}();
 
-			Ui::AddSubsectionTitle(
-				inner,
-				rpl::conditional(
-					rpl::single(isSingle),
-					tr::lng_restrict_users_part_single_header(),
-					tr::lng_restrict_users_part_header(
-						lt_count,
-						rpl::single(participants.size()) | tr::to_count())));
 			auto [checkboxes, getRestrictions, changes, highlightWidget] = CreateEditRestrictions(
 				box,
 				prepareFlags,
@@ -836,6 +828,14 @@ void CreateModerateMessagesBox(
 			Ui::AddSkip(container);
 			Ui::AddDivider(container);
 			Ui::AddSkip(container);
+			Ui::AddSubsectionTitle(
+				container,
+				rpl::conditional(
+					rpl::single(isSingle),
+					tr::lng_restrict_users_part_single_header(),
+					tr::lng_restrict_users_part_header(
+						lt_count,
+						rpl::single(participants.size()) | tr::to_count())));
 			container->add(std::move(checkboxes));
 		}
 

@@ -1197,8 +1197,9 @@ bool PeerData::changeColorCollectible(
 
 bool PeerData::changeColor(
 		const tl::conditional<MTPPeerColor> &cloudColor) {
-	const auto changed1 = cloudColor
-		? changeColorIndex(Data::ColorIndexFromColor(cloudColor))
+	const auto maybeColorIndex = Data::ColorIndexFromColor(cloudColor);
+	const auto changed1 = maybeColorIndex
+		? changeColorIndex(*maybeColorIndex)
 		: clearColorIndex();
 	const auto changed2 = changeBackgroundEmojiId(
 		Data::BackgroundEmojiIdFromColor(cloudColor));
@@ -1208,8 +1209,9 @@ bool PeerData::changeColor(
 
 bool PeerData::changeColorProfile(
 		const tl::conditional<MTPPeerColor> &cloudColor) {
-	const auto changed1 = cloudColor
-		? changeColorProfileIndex(Data::ColorIndexFromColor(cloudColor))
+	const auto maybeColorIndex = Data::ColorIndexFromColor(cloudColor);
+	const auto changed1 = maybeColorIndex
+		? changeColorProfileIndex(*maybeColorIndex)
 		: clearColorProfileIndex();
 	const auto changed2 = changeProfileBackgroundEmojiId(
 		Data::BackgroundEmojiIdFromColor(cloudColor));
@@ -2498,17 +2500,22 @@ uint64 BackgroundEmojiIdFromColor(const MTPPeerColor *color) {
 	});
 }
 
-uint8 ColorIndexFromColor(const MTPPeerColor *color) {
+std::optional<uint8> ColorIndexFromColor(const MTPPeerColor *color) {
 	if (!color) {
-		return 0;
+		return std::nullopt;
 	}
-	return color->match([](const MTPDpeerColor &data) -> uint8 {
-		return data.vcolor().value_or_empty();
-	}, [](const MTPDpeerColorCollectible &data) -> uint8 {
-		return 0;
-	}, [](const MTPDinputPeerColorCollectible &) -> uint8 {
-		return 0;
+	return color->match([](const MTPDpeerColor &d) -> std::optional<uint8> {
+		return d.vcolor() ? std::make_optional(d.vcolor()->v) : std::nullopt;
+	}, [](const auto &) -> std::optional<uint8> {
+		return std::nullopt;
 	});
+}
+
+bool IsBotCanManageTopics(not_null<PeerData*> peer) {
+	if (const auto user = peer->asUser()) {
+		return user->botInfo && user->botInfo->canManageTopics;
+	}
+	return false;
 }
 
 } // namespace Data

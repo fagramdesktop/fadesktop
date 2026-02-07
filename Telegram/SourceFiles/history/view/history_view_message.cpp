@@ -601,7 +601,7 @@ QSize Message::performCountOptimalSize() {
 		auto mediaOnBottom = (mediaDisplayed && media->isBubbleBottom()) || check || (entry/* && entry->isBubbleBottom()*/);
 		auto mediaOnTop = (mediaDisplayed && media->isBubbleTop()) || (entry && entry->isBubbleTop());
 		maxWidth = textualWidth;
-		if (context() == Context::Replies && item->isDiscussionPost()) {
+		if (isCommentsRootView()) {
 			maxWidth = std::max(maxWidth, st::msgMaxWidth);
 		}
 		minHeight = withVisibleText ? text().minHeight() : 0;
@@ -999,7 +999,8 @@ void Message::draw(Painter &p, const PaintContext &context) const {
 			context.st,
 			messageRounding,
 			g.width(),
-			context.clip.translated(-keyboardPosition));
+			context.clip.translated(-keyboardPosition),
+			context.paused);
 		p.translate(-keyboardPosition);
 	}
 
@@ -2315,7 +2316,7 @@ bool Message::hasFromPhoto() const {
 			return true;
 		} else if (item->isEmpty()
 			|| item->isFakeAboutView()
-			|| (context() == Context::Replies && item->isDiscussionPost())) {
+			|| isCommentsRootView()) {
 			return false;
 		}
 		const auto mode = delegate()->elementChatMode();
@@ -3727,7 +3728,7 @@ int Message::minWidthForMedia() const {
 
 bool Message::hasFastReply() const {
 	if (context() == Context::Replies) {
-		if (data()->isDiscussionPost()) {
+		if (isCommentsRootView()) {
 			return false;
 		}
 	} else if (context() != Context::History) {
@@ -4257,10 +4258,16 @@ QRect Message::innerGeometry() const {
 	return result;
 }
 
+bool Message::isCommentsRootView() const {
+	return context() == Context::Replies
+		&& data()->isDiscussionPost()
+		&& !data()->history()->isForum();
+}
+
 QRect Message::countGeometry() const {
 	const auto item = data();
 	const auto centeredView = item->isFakeAboutView()
-		|| (context() == Context::Replies && item->isDiscussionPost());
+		|| isCommentsRootView();
 	const auto media = this->media();
 	const auto mediaWidth = (media && media->isDisplayed())
 		? media->width()
@@ -4326,7 +4333,7 @@ Ui::BubbleRounding Message::countMessageRounding() const {
 		|| (media && media->skipBubbleTail())
 		|| (keyboard != nullptr)
 		|| item->isFakeAboutView()
-		|| (context() == Context::Replies && item->isDiscussionPost());
+		|| isCommentsRootView();
 	const auto right = hasRightLayout();
 	using Corner = Ui::BubbleCornerRounding;
 	return Ui::BubbleRounding{
@@ -4399,7 +4406,7 @@ int Message::resizeContentGetHeight(int newWidth) {
 
 	// This code duplicates countGeometry() but also resizes media.
 	const auto centeredView = item->isFakeAboutView()
-		|| (context() == Context::Replies && item->isDiscussionPost());
+		|| isCommentsRootView();
 	const auto useMoreSpace = (delegate()->elementChatMode()
 		== ElementChatMode::Narrow);
 	const auto wideSkip = useMoreSpace
