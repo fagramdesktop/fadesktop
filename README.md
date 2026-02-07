@@ -83,6 +83,10 @@
 - Support tg://openmessage links
 - Support tg://chat?id= links
 - User status dot for online/offline activity
+- Show online status dot only
+- Forward media/docs without caption
+- Hide sidebar tab titles
+- Auto-parse markdown hyperlinks
 
 </details>
 
@@ -103,7 +107,7 @@ The latest version is available for
     - [Fedora/RPM](https://copr.fedorainfracloud.org/coprs/burhanverse/fagram/)
     - [Ubuntu/DEB](https://github.com/fagramdesktop/fagram-deb)
 
-For detailed insturctions on how to install on linux [Click Here](https://burhanverse.eu.org/?article=fagram-desktop)
+***For detailed instructions: [Click Here](https://burhanverse.eu.org/?article=fagram-desktop)***
 
 ## <h2 border="none"><img src="https://github.com/hikariatama/assets/raw/master/981-consultation-flat.webp" height="54" align="middle">Translation</h2>
 
