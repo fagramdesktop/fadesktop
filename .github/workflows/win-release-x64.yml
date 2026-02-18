@@ -26,6 +26,11 @@ on:
         type: string
         required: true
         default: "ci"
+      skip_upload:
+        description: "Skip Telegram upload"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   prepare-libraries:
@@ -240,3 +245,106 @@ jobs:
       build_type: ci
       run_id: ${{ github.run_id }}
     secrets: inherit
+
+  upload-telegram:
+    name: Upload to Telegram
+    needs: [build-fagram, build-installer]
+    if: ${{ !inputs.skip_upload && needs.build-installer.result == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            scripts/tgupload.py
+            Telegram/SourceFiles/fa/fa_version.h
+
+      - name: Extract TGD version
+        run: |
+          TGD_VERSION=$(grep 'AppTGDVersion' Telegram/SourceFiles/fa/fa_version.h | sed 's/.*"\(.*\)".*/\1/')
+          echo "TGD_VERSION=$TGD_VERSION" >> $GITHUB_ENV
+
+      - name: Generate changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        run: |
+          REPO="${{ github.repository }}"
+          RUN_ID="${{ github.run_id }}"
+
+          RUN_INFO=$(curl -s -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID")
+
+          HEAD_SHA=$(echo "$RUN_INFO" | jq -r '.head_sha')
+          BRANCH=$(echo "$RUN_INFO" | jq -r '.head_branch')
+          WORKFLOW_ID=$(echo "$RUN_INFO" | jq -r '.workflow_id')
+
+          if [ "${{ inputs.build_type }}" = "rel" ]; then
+            PREV_TAG=$(curl -s -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$REPO/releases/latest" | jq -r '.tag_name // empty')
+            if [ -n "$PREV_TAG" ]; then
+              COMPARE=$(curl -s -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer $GITHUB_TOKEN" \
+                "https://api.github.com/repos/$REPO/compare/$PREV_TAG...$HEAD_SHA")
+              CHANGELOG=$(echo "$COMPARE" | jq -r '[.commits[].commit.message | split("\n")[0]] | map("• " + .) | join("\n")')
+            fi
+          else
+            LAST_SHA=$(curl -s -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$REPO/actions/workflows/$WORKFLOW_ID/runs?status=completed&conclusion=success&branch=$BRANCH&per_page=2" \
+              | jq -r --arg head "$HEAD_SHA" '[.workflow_runs[] | select(.head_sha != $head)][0].head_sha // empty')
+            if [ -n "$LAST_SHA" ]; then
+              COMPARE=$(curl -s -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer $GITHUB_TOKEN" \
+                "https://api.github.com/repos/$REPO/compare/$LAST_SHA...$HEAD_SHA")
+              CHANGELOG=$(echo "$COMPARE" | jq -r '[.commits[].commit.message | split("\n")[0]] | map("• " + .) | join("\n")')
+            fi
+          fi
+
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="No new changes"
+          fi
+          CHANGELOG=$(echo "$CHANGELOG" | head -15)
+          echo "CHANGELOG<<CHANGELOG_EOF" >> $GITHUB_ENV
+          echo "$CHANGELOG" >> $GITHUB_ENV
+          echo "CHANGELOG_EOF" >> $GITHUB_ENV
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyrofork tgcrypto
+
+      - name: Download Windows portable artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: FAgram_Win-x64
+          path: artifacts/windows
+
+      - name: Download Windows installer artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: FAgram_Win-x64_installer
+          path: artifacts/windows-installer
+
+      - name: Upload Windows builds to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          API_ID: ${{ secrets.API_ID_CONFIG }}
+          API_HASH: ${{ secrets.API_HASH_CONFIG }}
+        run: |
+          WIN_PORTABLE=$(find artifacts/windows -name "FAgram_Win-x64_*_portable.zip" | head -1)
+          WIN_INSTALLER=$(find artifacts/windows-installer -name "fagram-setup_Win-x64.*.exe" | head -1)
+          python3 scripts/tgupload.py --files "$WIN_PORTABLE" "$WIN_INSTALLER" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
+          <b>FAgram Windows x64 ${{ inputs.tagname }}</b>
+          TGD Base: <code>${{ env.TGD_VERSION }}</code>
+          Build Type: <code>${{ inputs.build_type }}</code>
+          Branch: <code>${{ github.ref_name }}</code>
+
+          <blockquote expandable>${{ env.CHANGELOG }}</blockquote>
+          EOF
+          )"

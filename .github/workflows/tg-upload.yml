@@ -1,97 +1,24 @@
-name: Build Linux
+name: Upload to Telegram
 
 on:
-  workflow_dispatch:
-    inputs:
-      tagname:
-        description: "tagname"
-        type: string
-        required: true
-      build_type:
-        description: "Build type"
-        type: choice
-        required: true
-        default: "ci"
-        options:
-          - ci
-          - rel
   workflow_call:
     inputs:
       tagname:
-        description: "tagname"
+        description: "Release tag name"
+        type: string
+        required: true
+      run_id:
+        description: "Workflow run ID to download artifacts from"
         type: string
         required: true
       build_type:
-        description: "Build type"
+        description: "Build type (ci or rel)"
         type: string
         required: true
-        default: "ci"
-      skip_upload:
-        description: "Skip Telegram upload"
-        type: boolean
-        required: false
-        default: false
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    outputs:
-      tagname: ${{ steps.tagname.outputs.tagname }}
-      run_id: ${{ github.run_id }}
-    env:
-      IMAGE_TAG: fagram:build
-
-    steps:
-      - name: Set TAGNAME
-        id: tagname
-        run: |
-          if [ -n "${{ inputs.tagname }}" ]; then
-            TAGNAME="${{ inputs.tagname }}"
-          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            TAGNAME="${GITHUB_REF#refs/tags/}"
-          else
-            TAGNAME="${{ github.ref_name }}"
-          fi
-          echo "TAGNAME=$TAGNAME" >> $GITHUB_ENV
-          echo "tagname=$TAGNAME" >> $GITHUB_OUTPUT
-
-      - name: Clone.
-        uses: actions/checkout@v6
-        with:
-          submodules: recursive
-
-      - name: Pull Docker IMG
-        run: |
-          docker pull ghcr.io/telegramdesktop/tdesktop/centos_env
-          docker tag ghcr.io/telegramdesktop/tdesktop/centos_env $IMAGE_TAG
-
-      - name: Configure & Build FAgram with CMake
-        run: |
-          docker run --rm \
-          -u $(id -u) \
-          -v $PWD:/usr/src/tdesktop \
-          $IMAGE_TAG \
-          /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
-          -D CMAKE_CONFIGURATION_TYPES=Release \
-          -D CMAKE_INSTALL_PREFIX="/usr" \
-          -D TDESKTOP_API_ID=${{ secrets.API_ID_CONFIG }} \
-          -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }}
-
-      - name: Create Tar
-        run: |
-          cd out/install
-          tar -czvf fagram-${{ env.TAGNAME }}.tar.gz usr
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: fagram-${{ env.TAGNAME }}
-          path: out/install/fagram-${{ env.TAGNAME }}.tar.gz
-
-  upload-telegram:
-    name: Upload to Telegram
-    needs: build
-    if: ${{ !inputs.skip_upload }}
+  upload:
+    name: Upload Artifacts to Telegram
     runs-on: ubuntu-latest
 
     steps:
@@ -103,6 +30,7 @@ jobs:
             Telegram/SourceFiles/fa/fa_version.h
 
       - name: Extract TGD version
+        id: tgd_version
         run: |
           TGD_VERSION=$(grep 'AppTGDVersion' Telegram/SourceFiles/fa/fa_version.h | sed 's/.*"\(.*\)".*/\1/')
           echo "TGD_VERSION=$TGD_VERSION" >> $GITHUB_ENV
@@ -112,7 +40,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT }}
         run: |
           REPO="${{ github.repository }}"
-          RUN_ID="${{ github.run_id }}"
+          RUN_ID="${{ inputs.run_id }}"
 
           RUN_INFO=$(curl -s -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
@@ -166,6 +94,33 @@ jobs:
         with:
           name: fagram-${{ inputs.tagname }}
           path: artifacts/linux
+          github-token: ${{ secrets.PAT }}
+          run-id: ${{ inputs.run_id }}
+
+      - name: Download Windows portable artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: FAgram_Win-x64
+          path: artifacts/windows
+          github-token: ${{ secrets.PAT }}
+          run-id: ${{ inputs.run_id }}
+
+      - name: Download Windows installer artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: FAgram_Win-x64_installer
+          path: artifacts/windows-installer
+          github-token: ${{ secrets.PAT }}
+          run-id: ${{ inputs.run_id }}
+
+      - name: List artifacts
+        run: |
+          echo "=== Linux artifacts ==="
+          ls -la artifacts/linux/
+          echo "=== Windows artifacts ==="
+          ls -la artifacts/windows/
+          echo "=== Windows installer artifacts ==="
+          ls -la artifacts/windows-installer/
 
       - name: Upload Linux artifact to Telegram
         env:
@@ -176,6 +131,24 @@ jobs:
           LINUX_FILE=$(find artifacts/linux -name "fagram-*.tar.gz" | head -1)
           python3 scripts/tgupload.py "$LINUX_FILE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
           <b>FAgram Linux ${{ inputs.tagname }}</b>
+          TGD Base: <code>${{ env.TGD_VERSION }}</code>
+          Build Type: <code>${{ inputs.build_type }}</code>
+          Branch: <code>${{ github.ref_name }}</code>
+
+          <blockquote expandable>${{ env.CHANGELOG }}</blockquote>
+          EOF
+          )"
+
+      - name: Upload Windows builds to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          API_ID: ${{ secrets.API_ID_CONFIG }}
+          API_HASH: ${{ secrets.API_HASH_CONFIG }}
+        run: |
+          WIN_PORTABLE=$(find artifacts/windows -name "FAgram_Win-x64_*_portable.zip" | head -1)
+          WIN_INSTALLER=$(find artifacts/windows-installer -name "fagram-setup_Win-x64.*.exe" | head -1)
+          python3 scripts/tgupload.py --files "$WIN_PORTABLE" "$WIN_INSTALLER" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
+          <b>FAgram Windows x64 ${{ inputs.tagname }}</b>
           TGD Base: <code>${{ env.TGD_VERSION }}</code>
           Build Type: <code>${{ inputs.build_type }}</code>
           Branch: <code>${{ github.ref_name }}</code>
