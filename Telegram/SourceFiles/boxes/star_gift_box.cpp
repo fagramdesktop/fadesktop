@@ -146,18 +146,6 @@ constexpr auto kUpgradeDoneToastDuration = 4 * crl::time(1000);
 constexpr auto kGiftsPreloadTimeout = 3 * crl::time(1000);
 constexpr auto kResellPriceCacheLifetime = 60 * crl::time(1000);
 
-constexpr auto kSpinnerBackdrops = 6;
-constexpr auto kSpinnerPatterns = 6;
-constexpr auto kSpinnerModels = 6;
-
-constexpr auto kBackdropSpinDuration = crl::time(300);
-constexpr auto kBackdropStopsAt = crl::time(2.5 * 1000);
-constexpr auto kPatternSpinDuration = crl::time(600);
-constexpr auto kPatternStopsAt = crl::time(4 * 1000);
-constexpr auto kModelSpinDuration = crl::time(160);
-constexpr auto kModelStopsAt = crl::time(5.5 * 1000);
-constexpr auto kModelScaleFrom = 0.7;
-
 using namespace HistoryView;
 using namespace Info::PeerGifts;
 
@@ -2527,17 +2515,20 @@ void AttachGiftSenderBadge(
 		not_null<GenericBox*> box,
 		std::shared_ptr<ChatHelpers::Show> show,
 		not_null<PeerData*> from,
-		const QDateTime &date) {
+		const QDateTime &date,
+		bool crafted) {
 	const auto parent = box->getDelegate()->outerContainer();
 
 	const auto dateText = tr::bold(langDayOfMonth(date.date()));
 	const auto badge = CreateChild<FlatLabel>(
 		parent,
 		(from->isSelf()
-			? tr::lng_gift_unique_sender_you(
-				lt_date,
-				rpl::single(dateText),
-				tr::marked)
+			? (crafted
+				? tr::lng_gift_unique_crafter_you
+				: tr::lng_gift_unique_sender_you)(
+					lt_date,
+					rpl::single(dateText),
+					tr::marked)
 			: tr::lng_gift_unique_sender(
 				lt_from,
 				rpl::single(tr::link(tr::bold(from->shortName()), 1)),

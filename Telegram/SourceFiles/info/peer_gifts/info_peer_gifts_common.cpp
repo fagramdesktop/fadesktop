@@ -1300,6 +1300,10 @@ QImage &Delegate::craftUnavailableFrameCache(
 	if (!ranges::contains(_craftUnavailables, weak)) {
 		_craftUnavailables.push_back(weak);
 	}
+	if (!_craftUnavailableTimer) {
+		_craftUnavailableTimer = std::make_unique<base::Timer>(
+			[=] { updateCraftUnavailables(); });
+	}
 	if (!_craftUnavailableTimer->isActive()
 		|| _craftUnavailableUntil > until) {
 		_craftUnavailableUntil = until;
@@ -1311,6 +1315,8 @@ QImage &Delegate::craftUnavailableFrameCache(
 }
 
 void Delegate::updateCraftUnavailables() {
+	Expects(_craftUnavailableTimer != nullptr);
+
 	_craftUnavailableTimer->cancel();
 	_craftUnavailableUntil = 0;
 
