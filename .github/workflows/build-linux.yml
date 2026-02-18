@@ -82,3 +82,44 @@ jobs:
         with:
           name: fagram-${{ env.TAGNAME }}
           path: out/install/fagram-${{ env.TAGNAME }}.tar.gz
+
+  upload-telegram:
+    name: Upload to Telegram
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            scripts/tgupload.py
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyrofork tgcrypto
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: fagram-${{ inputs.tagname }}
+          path: artifacts/linux
+
+      - name: Upload Linux artifact to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          API_ID: ${{ secrets.API_ID_CONFIG }}
+          API_HASH: ${{ secrets.API_HASH_CONFIG }}
+        run: |
+          LINUX_FILE=$(find artifacts/linux -name "fagram-*.tar.gz" | head -1)
+          python3 scripts/tgupload.py "$LINUX_FILE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
+          **FAgram Linux ${{ inputs.tagname }}**
+          Build Type: \`${{ inputs.build_type }}\`
+          Branch: \`${{ github.ref_name }}\`
+          Run ID: \`${{ github.run_id }}\`
+          EOF
+          )"

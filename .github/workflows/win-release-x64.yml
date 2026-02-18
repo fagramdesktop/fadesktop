@@ -240,3 +240,66 @@ jobs:
       build_type: ci
       run_id: ${{ github.run_id }}
     secrets: inherit
+
+  upload-telegram:
+    name: Upload to Telegram
+    needs: [build-fagram, build-installer]
+    if: always() && needs.build-installer.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            scripts/tgupload.py
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyrofork tgcrypto
+
+      - name: Download Windows portable artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: FAgram_Win-x64
+          path: artifacts/windows
+
+      - name: Download Windows installer artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: FAgram_Win-x64_installer
+          path: artifacts/windows-installer
+
+      - name: Upload Windows portable to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          API_ID: ${{ secrets.API_ID_CONFIG }}
+          API_HASH: ${{ secrets.API_HASH_CONFIG }}
+        run: |
+          WIN_PORTABLE=$(find artifacts/windows -name "FAgram_Win-x64_*_portable.zip" | head -1)
+          python3 scripts/tgupload.py "$WIN_PORTABLE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
+          **FAgram Windows x64 Portable ${{ inputs.tagname }}**
+          Build Type: \`${{ inputs.build_type }}\`
+          Branch: \`${{ github.ref_name }}\`
+          Run ID: \`${{ github.run_id }}\`
+          EOF
+          )"
+
+      - name: Upload Windows installer to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          API_ID: ${{ secrets.API_ID_CONFIG }}
+          API_HASH: ${{ secrets.API_HASH_CONFIG }}
+        run: |
+          WIN_INSTALLER=$(find artifacts/windows-installer -name "fagram-setup_Win-x64.*.exe" | head -1)
+          python3 scripts/tgupload.py "$WIN_INSTALLER" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
+          **FAgram Windows x64 Installer ${{ inputs.tagname }}**
+          Build Type: \`${{ inputs.build_type }}\`
+          Branch: \`${{ github.ref_name }}\`
+          Run ID: \`${{ github.run_id }}\`
+          EOF
+          )"

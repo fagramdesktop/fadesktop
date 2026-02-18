@@ -1,0 +1,115 @@
+name: Upload to Telegram
+
+on:
+  workflow_call:
+    inputs:
+      tagname:
+        description: "Release tag name"
+        type: string
+        required: true
+      run_id:
+        description: "Workflow run ID to download artifacts from"
+        type: string
+        required: true
+      build_type:
+        description: "Build type (ci or rel)"
+        type: string
+        required: true
+
+jobs:
+  upload:
+    name: Upload Artifacts to Telegram
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            scripts/tgupload.py
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyrofork tgcrypto
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: fagram-${{ inputs.tagname }}
+          path: artifacts/linux
+          github-token: ${{ secrets.PAT }}
+          run-id: ${{ inputs.run_id }}
+
+      - name: Download Windows portable artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: FAgram_Win-x64
+          path: artifacts/windows
+          github-token: ${{ secrets.PAT }}
+          run-id: ${{ inputs.run_id }}
+
+      - name: Download Windows installer artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: FAgram_Win-x64_installer
+          path: artifacts/windows-installer
+          github-token: ${{ secrets.PAT }}
+          run-id: ${{ inputs.run_id }}
+
+      - name: List artifacts
+        run: |
+          echo "=== Linux artifacts ==="
+          ls -la artifacts/linux/
+          echo "=== Windows artifacts ==="
+          ls -la artifacts/windows/
+          echo "=== Windows installer artifacts ==="
+          ls -la artifacts/windows-installer/
+
+      - name: Upload Linux artifact to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          API_ID: ${{ secrets.API_ID_CONFIG }}
+          API_HASH: ${{ secrets.API_HASH_CONFIG }}
+        run: |
+          LINUX_FILE=$(find artifacts/linux -name "fagram-*.tar.gz" | head -1)
+          python3 scripts/tgupload.py "$LINUX_FILE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
+          **FAgram Linux ${{ inputs.tagname }}**
+          Build Type: \`${{ inputs.build_type }}\`
+          Branch: \`${{ github.ref_name }}\`
+          Run ID: \`${{ inputs.run_id }}\`
+          EOF
+          )"
+
+      - name: Upload Windows portable to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          API_ID: ${{ secrets.API_ID_CONFIG }}
+          API_HASH: ${{ secrets.API_HASH_CONFIG }}
+        run: |
+          WIN_PORTABLE=$(find artifacts/windows -name "FAgram_Win-x64_*_portable.zip" | head -1)
+          python3 scripts/tgupload.py "$WIN_PORTABLE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
+          **FAgram Windows x64 Portable ${{ inputs.tagname }}**
+          Build Type: \`${{ inputs.build_type }}\`
+          Branch: \`${{ github.ref_name }}\`
+          Run ID: \`${{ inputs.run_id }}\`
+          EOF
+          )"
+
+      - name: Upload Windows installer to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          API_ID: ${{ secrets.API_ID_CONFIG }}
+          API_HASH: ${{ secrets.API_HASH_CONFIG }}
+        run: |
+          WIN_INSTALLER=$(find artifacts/windows-installer -name "fagram-setup_Win-x64.*.exe" | head -1)
+          python3 scripts/tgupload.py "$WIN_INSTALLER" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
+          **FAgram Windows x64 Installer ${{ inputs.tagname }}**
+          Build Type: \`${{ inputs.build_type }}\`
+          Branch: \`${{ github.ref_name }}\`
+          Run ID: \`${{ inputs.run_id }}\`
+          EOF
+          )"
