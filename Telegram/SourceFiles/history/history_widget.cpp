@@ -3567,6 +3567,7 @@ void HistoryWidget::updateControlsVisibility() {
 		_botStart->hide();
 		_joinChannel->hide();
 		_muteUnmute->hide();
+		_discuss->hide();
 		_reportMessages->hide();
 		_send->show();
 		updateSendButtonType();
