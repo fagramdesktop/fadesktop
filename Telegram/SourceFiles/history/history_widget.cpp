@@ -2252,10 +2252,7 @@ void HistoryWidget::setupDirectMessageButton() {
 	_directMessage = Ui::CreateChild<Ui::IconButton>(
 		this,
 		st::historyDirectMessage);
-		_directMessage->setAccessibleName(tr::lng_profile_direct_messages(tr::now));
-	widthValue() | rpl::on_next([=](int width) {
-		_directMessage->moveToLeft(0, 0, width);
-	}, _directMessage->lifetime());
+	_directMessage->setAccessibleName(tr::lng_profile_direct_messages(tr::now));
 	_directMessage->setClickedCallback([=] {
 		if (const auto channel = _peer ? _peer->asChannel() : nullptr) {
 			if (channel->invitePeekExpires()) {
@@ -2268,19 +2265,7 @@ void HistoryWidget::setupDirectMessageButton() {
 			}
 		}
 	});
-	rpl::combine(
-		_muteUnmute->shownValue(),
-		_joinChannel->shownValue()
-	) | rpl::on_next([=](bool muteUnmute, bool joinChannel) {
-		const auto newParent = (muteUnmute && !joinChannel)
-			? _muteUnmute.data()
-			: (joinChannel && !muteUnmute)
-			? _joinChannel.data()
-			: static_cast<QWidget*>(this);
-		_directMessage->setParent(newParent);
-		_directMessage->moveToLeft(0, 0);
-		refreshDirectMessageShown();
-	}, _directMessage->lifetime());
+	_directMessage->hide();
 }
 
 void HistoryWidget::pushReplyReturn(not_null<HistoryItem*> item) {
