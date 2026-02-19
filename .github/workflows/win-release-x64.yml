@@ -253,6 +253,12 @@ jobs:
         with:
           sparse-checkout: |
             scripts/tgupload.py
+            Telegram/SourceFiles/fa/fa_version.h
+
+      - name: Extract TGD version
+        run: |
+          TGD_VERSION=$(grep 'AppTGDVersion' Telegram/SourceFiles/fa/fa_version.h | sed 's/.*"\(.*\)".*/\1/')
+          echo "TGD_VERSION=$TGD_VERSION" >> $GITHUB_ENV
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -283,6 +289,7 @@ jobs:
           WIN_PORTABLE=$(find artifacts/windows -name "FAgram_Win-x64_*_portable.zip" | head -1)
           python3 scripts/tgupload.py "$WIN_PORTABLE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
           **FAgram Windows x64 Portable ${{ inputs.tagname }}**
+          TGD Base: \`${{ env.TGD_VERSION }}\`
           Build Type: \`${{ inputs.build_type }}\`
           Branch: \`${{ github.ref_name }}\`
           Run ID: \`${{ github.run_id }}\`
@@ -298,6 +305,7 @@ jobs:
           WIN_INSTALLER=$(find artifacts/windows-installer -name "fagram-setup_Win-x64.*.exe" | head -1)
           python3 scripts/tgupload.py "$WIN_INSTALLER" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
           **FAgram Windows x64 Installer ${{ inputs.tagname }}**
+          TGD Base: \`${{ env.TGD_VERSION }}\`
           Build Type: \`${{ inputs.build_type }}\`
           Branch: \`${{ github.ref_name }}\`
           Run ID: \`${{ github.run_id }}\`
