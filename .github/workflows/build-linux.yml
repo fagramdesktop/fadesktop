@@ -26,6 +26,11 @@ on:
         type: string
         required: true
         default: "ci"
+      skip_upload:
+        description: "Skip Telegram upload"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   build:
@@ -86,6 +91,7 @@ jobs:
   upload-telegram:
     name: Upload to Telegram
     needs: build
+    if: ${{ !inputs.skip_upload }}
     runs-on: ubuntu-latest
 
     steps:

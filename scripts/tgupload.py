@@ -35,11 +35,12 @@ async def upload_single(file, chat_id_list, caption):
 async def upload_group(files, chat_id_list, caption):
     async with app:
         media = []
+        last_index = len(files) - 1
         for i, file in enumerate(files):
             media.append(InputMediaDocument(
                 media=file,
-                caption=caption if i == 0 else None,
-                parse_mode=enums.ParseMode.MARKDOWN if i == 0 else None,
+                caption=caption if i == last_index else None,
+                parse_mode=enums.ParseMode.MARKDOWN if i == last_index else None,
             ))
         for chat_id in chat_id_list:
             await app.send_media_group(chat_id=chat_id, media=media)

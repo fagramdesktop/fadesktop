@@ -27,6 +27,7 @@ jobs:
     with:
       tagname: ${{ inputs.tagname }}
       build_type: ${{ inputs.build_type }}
+      skip_upload: true
     secrets: inherit
 
   build-windows:
@@ -35,6 +36,7 @@ jobs:
     with:
       tagname: ${{ inputs.tagname }}
       build_type: ${{ inputs.build_type }}
+      skip_upload: true
     secrets: inherit
 
   upload-telegram:

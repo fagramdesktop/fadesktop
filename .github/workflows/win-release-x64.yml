@@ -26,6 +26,11 @@ on:
         type: string
         required: true
         default: "ci"
+      skip_upload:
+        description: "Skip Telegram upload"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   prepare-libraries:
@@ -244,7 +249,7 @@ jobs:
   upload-telegram:
     name: Upload to Telegram
     needs: [build-fagram, build-installer]
-    if: always() && needs.build-installer.result == 'success'
+    if: ${{ !inputs.skip_upload && needs.build-installer.result == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
