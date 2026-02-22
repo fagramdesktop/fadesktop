@@ -10,7 +10,7 @@
   <Identity Name="FAgram.FAgramDesktop"
     ProcessorArchitecture="ARCHITECTURE"
     Publisher="CN=536BC709-8EE1-4478-AF22-F0F0F26FF64A"
-    Version="2.1.7.0" />
+    Version="2.1.8.0" />
   <Properties>
     <DisplayName>FAgram Desktop</DisplayName>
     <PublisherDisplayName>Burhanverse</PublisherDisplayName>
