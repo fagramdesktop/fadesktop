@@ -38,17 +38,6 @@ struct BuiltInChangelog {
 const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 	static const std::vector<BuiltInChangelog> entries = {
 		{
-			2001004,
-			"- Updated tdesktop to v6.4.2\n"
-			"- New redesigned App icon\n"
-			"- Updated corwdin translations\n"
-			"- Added Turkish(tr) translation\n"
-			"- Removed old Beta channel links\n"
-			"- Fixed context menu shortcut icons mode\n\n"
-			"@FAgramDesktop\n"
-
-		},
-		{
 			2001005,
 			"- Added option to auto parse markdown hyperlinks\n"
 			"- Added option to hide sidebar tab titles\n"
@@ -74,6 +63,12 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			2001007,
 			"- Updated tdesktop to v6.5.0\n"
 			"- Fixed DM button visibility in channels\n\n"
+			"@FAgramDesktop\n"
+		},
+		{
+			2001008,
+			"- Updated tdesktop to v6.5.1\n"
+			"- Fixed some UI related bugs\n\n"
 			"@FAgramDesktop\n"
 		},
 	};

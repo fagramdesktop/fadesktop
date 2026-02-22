@@ -1,3 +1,8 @@
+2.1.8 (22.02.26)
+
+- Updated tdesktop to v6.5.1
+- Fixed some UI related bugs
+ 
 2.1.7 (08.02.26)
 
 - Updated tdesktop to v6.5.0
