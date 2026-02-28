@@ -8,6 +8,7 @@ body:
         Thanks for reporting issues of FAgram Desktop!
 
         To make it easier for us to help you please enter detailed information below.
+        Make sure this issue is related to FAgram Desktop and not to Telegram Desktop, which is the base of FAgram. If you want to report an issue related to Telegram Desktop, please report it in the [Telegram Desktop repository](https://github.com/telegramdesktop/tdesktop/issues).
   - type: textarea
     attributes:
       label: Steps to reproduce
@@ -52,11 +53,7 @@ body:
       label: Installation source
       multiple: false
       options:
-        - Static binary from official website
-        - Microsoft Store
-        - Mac App Store
-        - Flatpak
-        - Snap
+        - Static binary from GitHub
         - Other (unofficial) source
     validations:
       required: true
@@ -73,6 +70,5 @@ body:
       label: Logs
       description: >
         You can find log.txt using the `viewlogs`
-        [cheat code](https://github.com/fajox1/fagramdesktop/wiki/Cheat-Codes).
       placeholder: Insert log.txt here (if necessary)
       render: shell
