@@ -180,7 +180,7 @@ namespace Settings {
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_stories_desc")));
 		RestartSettingsMenuJsonSwitch(fa_hide_folder_tabs_titles, hide_folder_tabs_titles);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_folder_tabs_titles_desc")));
-		RestartSettingsMenuJsonSwitch(fa_use_tdesktop_themes, use_tdesktop_themes);
+		SettingsMenuJsonSwitch(fa_use_tdesktop_themes, use_tdesktop_themes);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_use_tdesktop_themes_desc")));
     }
 

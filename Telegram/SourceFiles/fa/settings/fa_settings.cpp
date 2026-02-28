@@ -246,6 +246,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "hide_folder_tabs_titles", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "use_tdesktop_themes", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 
 	//   Auto format markdown
 	{ "auto_format_markdown", {
