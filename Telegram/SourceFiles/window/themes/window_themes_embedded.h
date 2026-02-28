@@ -19,6 +19,8 @@ enum class EmbeddedType {
 	Default,
 	Night,
 	NightGreen,
+	TdBlue,
+	TdNight,
 };
 
 struct EmbeddedScheme {

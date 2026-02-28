@@ -2308,7 +2308,9 @@ void SetupDefaultThemes(
 	const auto apply = [=](const Scheme &scheme) {
 		const auto isNight = [](const Scheme &scheme) {
 			const auto type = scheme.type;
-			return (type != Type::DayBlue) && (type != Type::Default);
+			return (type != Type::DayBlue)
+				&& (type != Type::Default)
+				&& (type != Type::TdBlue);
 		};
 		const auto currentlyIsCustom = (chosen() == Type(-1))
 			&& !Background()->themeObject().cloud.id;

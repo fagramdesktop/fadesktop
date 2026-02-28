@@ -18,7 +18,7 @@ namespace Window {
 namespace Theme {
 namespace {
 
-constexpr auto kMaxAccentColors = 3;
+constexpr auto kMaxAccentColors = 5;
 constexpr auto kDayBaseFile = ":/gui/Google Day.tdesktop-theme"_cs;
 constexpr auto kNightBaseFile = ":/gui/Google Dark.tdesktop-theme"_cs;
 
@@ -134,6 +134,9 @@ style::colorizer ColorizerFrom(
 	case EmbeddedType::DayBlue:
 		result.lightnessMax = 160;
 		break;
+	case EmbeddedType::TdBlue:
+		result.lightnessMax = 160;
+		break;
 	case EmbeddedType::Night:
 		result.keepContrast = base::flat_map<QLatin1String, Pair>{ {
 			//{ qstr("windowFgActive"), Pair{ cColor("5288c1"), cColor("17212b") } }, // windowBgActive
@@ -148,6 +151,22 @@ style::colorizer ColorizerFrom(
 			{ qstr("historyFileOutIconFgSelected"), Pair{ cColor("58abf3"), cColor("2e70a5") } }, // msgFileOutBgSelected, msgOutBgSelected
 			{ qstr("historyFileOutRadialFg"), Pair{ cColor("4c9ce2"), cColor("2b5278") } }, // msgFileOutBg, msgOutBg
 			{ qstr("historyFileOutRadialFgSelected"), Pair{ cColor("58abf3"), cColor("2e70a5") } }, // msgFileOutBgSelected, msgOutBgSelected
+		} };
+		result.lightnessMin = 64;
+		break;
+	case EmbeddedType::TdNight:
+		result.keepContrast = base::flat_map<QLatin1String, Pair>{ {
+			{ qstr("activeButtonFg"), Pair{ cColor("2f6ea5"), cColor("17212b") } },
+			{ qstr("profileVerifiedCheckFg"), Pair{ cColor("5288c1"), cColor("17212b") } },
+			{ qstr("overviewCheckFgActive"), Pair{ cColor("5288c1"), cColor("17212b") } },
+			{ qstr("historyFileInIconFg"), Pair{ cColor("3f96d0"), cColor("182533") } },
+			{ qstr("historyFileInIconFgSelected"), Pair{ cColor("6ab4f4"), cColor("2e70a5") } },
+			{ qstr("historyFileInRadialFg"), Pair{ cColor("3f96d0"), cColor("182533") } },
+			{ qstr("historyFileInRadialFgSelected"), Pair{ cColor("6ab4f4"), cColor("2e70a5") } },
+			{ qstr("historyFileOutIconFg"), Pair{ cColor("4c9ce2"), cColor("2b5278") } },
+			{ qstr("historyFileOutIconFgSelected"), Pair{ cColor("58abf3"), cColor("2e70a5") } },
+			{ qstr("historyFileOutRadialFg"), Pair{ cColor("4c9ce2"), cColor("2b5278") } },
+			{ qstr("historyFileOutRadialFgSelected"), Pair{ cColor("58abf3"), cColor("2e70a5") } },
 		} };
 		result.lightnessMin = 64;
 		break;
@@ -269,6 +288,28 @@ std::vector<EmbeddedScheme> EmbeddedThemes() {
 			":/gui/night-green.tdesktop-theme",
 			qColor("3fc1b0")
 		},
+		EmbeddedScheme{
+			EmbeddedType::TdBlue,
+			qColor("7ec4ea"),
+			qColor("d7f0ff"),
+			qColor("ffffff"),
+			qColor("d7f0ff"),
+			qColor("ffffff"),
+			name(tr::lng_settings_theme_default_day),
+			":/gui/day-blue.tdesktop-theme",
+			qColor("40a7e3")
+		},
+		EmbeddedScheme{
+			EmbeddedType::TdNight,
+			qColor("485761"),
+			qColor("5ca7d4"),
+			qColor("6b808d"),
+			qColor("6b808d"),
+			qColor("5ca7d4"),
+			name(tr::lng_settings_theme_default_night),
+			":/gui/night.tdesktop-theme",
+			qColor("5288c1")
+		},
 	};
 }
 
@@ -320,6 +361,28 @@ std::vector<QColor> DefaultAccentColors(EmbeddedType type) {
 			qColor("d27570"),
 			qColor("7b8799"),
 			qColor("cbac67"),
+		};
+	case EmbeddedType::TdBlue:
+		return {
+			qColor("45bce7"),
+			qColor("52b440"),
+			qColor("d46c99"),
+			qColor("df8a49"),
+			qColor("9978c8"),
+			qColor("c55245"),
+			qColor("687b98"),
+			qColor("dea922"),
+		};
+	case EmbeddedType::TdNight:
+		return {
+			qColor("58bfe8"),
+			qColor("466f42"),
+			qColor("aa6084"),
+			qColor("a46d3c"),
+			qColor("917bbd"),
+			qColor("ab5149"),
+			qColor("697b97"),
+			qColor("9b834b"),
 		};
 	}
 	Unexpected("Type in Window::Theme::AccentColors.");
@@ -409,6 +472,8 @@ bool AccentColors::setFromSerialized(const QByteArray &serialized) {
 		case EmbeddedType::Night:
 		case EmbeddedType::Default:
 		case EmbeddedType::NightGreen:
+		case EmbeddedType::TdBlue:
+		case EmbeddedType::TdNight:
 			data.emplace(uncheckedType, color);
 			break;
 		default:
