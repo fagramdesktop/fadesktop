@@ -119,5 +119,7 @@
   "fa_shortcut_customization_desc": "Customize the appearance of context menu shortcut buttons",
   "fa_reset_to_default": "Reset to default",
   "fa_hide_folder_tabs_titles": "Hide folder tabs titles",
-  "fa_hide_folder_tabs_titles_desc": "Hides the text labels under folder icons in the sidebar, showing only the icons"
+  "fa_hide_folder_tabs_titles_desc": "Hides the text labels under folder icons in the sidebar, showing only the icons",
+  "fa_use_tdesktop_themes": "Use Default TDesktop Themes",
+  "fa_use_tdesktop_themes_desc": "Replaces Material You themes (Day/Tinted) with the original Telegram Desktop themes (Day Blue/Night)"
 }

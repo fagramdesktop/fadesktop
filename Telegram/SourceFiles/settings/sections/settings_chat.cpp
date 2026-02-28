@@ -90,6 +90,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include <QAction>
 
+#include "fa/settings/fa_settings.h"
+
 namespace Settings {
 namespace {
 
@@ -97,6 +99,23 @@ using namespace Builder;
 
 const auto kSchemesList = Window::Theme::EmbeddedThemes();
 constexpr auto kCustomColorButtonParts = 7;
+
+[[nodiscard]] std::vector<Window::Theme::EmbeddedScheme> FilteredSchemesList() {
+	using Type = Window::Theme::EmbeddedType;
+	const auto useTd = FASettings::JsonSettings::GetBool("use_tdesktop_themes");
+	auto result = std::vector<Window::Theme::EmbeddedScheme>();
+	for (const auto &scheme : kSchemesList) {
+		const auto type = scheme.type;
+		if (useTd && (type == Type::DayBlue || type == Type::Night)) {
+			continue;
+		}
+		if (!useTd && (type == Type::TdBlue || type == Type::TdNight)) {
+			continue;
+		}
+		result.push_back(scheme);
+	}
+	return result;
+}
 
 class ColorsPalette final {
 public:
@@ -2291,7 +2310,9 @@ void SetupDefaultThemes(
 		container.get(),
 		container.get());
 
-	const auto chosen = [] {
+	const auto filteredSchemes = container->lifetime().make_state<std::vector<Scheme>>(FilteredSchemesList());
+
+	const auto chosen = [=] {
 		const auto &object = Background()->themeObject();
 		if (object.cloud.id) {
 			return Type(-1);
@@ -2336,7 +2357,7 @@ void SetupDefaultThemes(
 
 	auto checks = base::flat_map<Type,not_null<Check*>>();
 	auto buttons = ranges::views::all(
-		kSchemesList
+		*filteredSchemes
 	) | ranges::views::transform([&](const Scheme &scheme) {
 		auto check = std::make_unique<Check>(
 			ColorsFromScheme(scheme),
@@ -2369,8 +2390,8 @@ void SetupDefaultThemes(
 
 		const auto &colors = Core::App().settings().themesAccentColors();
 		const auto i = checks.find(type);
-		const auto scheme = ranges::find(kSchemesList, type, &Scheme::type);
-		if (scheme == end(kSchemesList)) {
+		const auto scheme = ranges::find(*filteredSchemes, type, &Scheme::type);
+		if (scheme == end(*filteredSchemes)) {
 			return;
 		}
 		if (i != end(checks)) {
@@ -2384,16 +2405,16 @@ void SetupDefaultThemes(
 	};
 	group->setChangedCallback([=](Type type) {
 		const auto scheme = ranges::find(
-			kSchemesList,
+			*filteredSchemes,
 			type,
 			&Scheme::type);
-		if (scheme != end(kSchemesList)) {
+		if (scheme != end(*filteredSchemes)) {
 			apply(*scheme);
 		} else {
 			group->setValue(chosen());
 		}
 	});
-	for (const auto &scheme : kSchemesList) {
+	for (const auto &scheme : *filteredSchemes) {
 		refreshColorizer(scheme.type);
 	}
 
@@ -2460,8 +2481,8 @@ void SetupDefaultThemes(
 			return;
 		}
 		const auto type = chosen();
-		const auto scheme = ranges::find(kSchemesList, type, &Scheme::type);
-		if (scheme == end(kSchemesList)) {
+		const auto scheme = ranges::find(*filteredSchemes, type, &Scheme::type);
+		if (scheme == end(*filteredSchemes)) {
 			return;
 		}
 		auto &colors = Core::App().settings().themesAccentColors();
