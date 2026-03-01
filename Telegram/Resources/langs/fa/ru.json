@@ -120,9 +120,11 @@
   "fa_reset_to_default": "Сбросить по умолчанию",
   "fa_hide_folder_tabs_titles": "Скрыть названия вкладок папок",
   "fa_hide_folder_tabs_titles_desc": "Скрывает текстовые надписи под значками папок в боковой панели, показывая только значки",
-  "fa_share_settings_to_chat": "Поделиться настройками",
-  "fa_share_settings": "Экспортировать настройки",
-  "fa_import_config_confirm": "Применить настройки из этого файла? Текущие настройки будут заменены.",
-  "fa_import_config_restart": "Настройки успешно применены. Перезапустить сейчас, чтобы применить все изменения?",
-  "fa_import_config_apply": "Применить"
+  "fa_use_tdesktop_themes": "Use Default TDesktop Themes",
+  "fa_use_tdesktop_themes_desc": "Replaces Material You themes (Day/Tinted) with the original Telegram Desktop themes (Day Blue/Night)",
+  "fa_share_settings_to_chat": "Share Settings",
+  "fa_share_settings": "Export Settings",
+  "fa_import_config_confirm": "Do you want to apply settings from this file? Your current settings will be replaced.",
+  "fa_import_config_restart": "Settings applied successfully. Restart now to apply all changes?",
+  "fa_import_config_apply": "Apply"
 }
