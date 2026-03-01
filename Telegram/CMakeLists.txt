@@ -801,8 +801,8 @@ PRIVATE
     fa/utils/fa_profile_values.h
     fa/settings_menu/fa_settings_menu.cpp
     fa/settings_menu/fa_settings_menu.h
-    fa/settings_menu/fa_settings_search.cpp
-    fa/settings_menu/fa_settings_search.h
+    fa/settings_menu/fa_settings_builder.cpp
+    fa/settings_menu/fa_settings_builder.h
     fa/settings/fa_settings.cpp
     fa/settings/fa_settings.h
     fa/settings_menu/sections/fa_general.cpp

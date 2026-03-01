@@ -6,7 +6,7 @@ For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 
-#include "fa/settings_menu/fa_settings_search.h"
+#include "fa/settings_menu/fa_settings_builder.h"
 
 #include "fa/settings_menu/fa_settings_menu.h"
 #include "fa/settings_menu/sections/fa_general.h"
