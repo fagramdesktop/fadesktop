@@ -18,6 +18,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_document_media.h"
 #include "data/data_file_click_handler.h"
 #include "data/data_session.h"
+#include "fa/settings/fa_settings.h"
+#include "fa/lang/fa_lang.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/view/media/history_view_gif.h"
@@ -240,7 +242,33 @@ void ResolveDocument(
 		return false;
 	};
 	const auto &location = document->location(true);
-	if (document->isTheme() && media->loaded(true)) {
+	if (document->isFaConfig() && media->loaded(true)) {
+		auto bytes = media->bytes();
+		if (bytes.isEmpty() && !location.isEmpty() && location.accessEnable()) {
+			auto f = QFile(location.name());
+			if (f.open(QIODevice::ReadOnly)) {
+				bytes = f.readAll();
+			}
+			location.accessDisable();
+		}
+		if (!bytes.isEmpty() && controller) {
+			controller->show(Ui::MakeConfirmBox({
+				.text = FAlang::Translate("fa_import_config_confirm"),
+				.confirmed = [=, data = bytes](Fn<void()> close) {
+					close();
+					if (FASettings::JsonSettings::ImportSettingsFromJson(data)) {
+						controller->show(Ui::MakeConfirmBox({
+							.text = FAlang::Translate("fa_import_config_restart"),
+							.confirmed = [] { Core::Restart(); },
+							.confirmText = tr::lng_settings_restart_now(),
+							.cancelText = tr::lng_settings_restart_later(),
+						}));
+					}
+				},
+				.confirmText = FAlang::RplTranslate("fa_import_config_apply"),
+			}));
+		}
+	} else if (document->isTheme() && media->loaded(true)) {
 		showDocument();
 		location.accessDisable();
 	} else if (media->canBePlayed(item)) {
@@ -259,7 +287,7 @@ void ResolveDocument(
 		}
 	} else {
 		document->saveFromDataSilent();
-		if (!openImageInApp()) {
+		if (!openImageInApp() && !document->isFaConfig()) {
 			if (!document->filepath(true).isEmpty()) {
 				LaunchWithWarning(location.name(), item);
 			} else if (document->status == FileReady

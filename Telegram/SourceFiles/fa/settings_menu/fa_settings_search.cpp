@@ -88,6 +88,33 @@ const auto kFAMeta = BuildHelper({
 			.icon = { &st::menuIconFile },
 		};
 	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
+			.id = u"fa/share-settings"_q,
+			.title = FAlang::Translate(QString("fa_share_settings_to_chat")),
+			.keywords = { u"fagram"_q, u"share"_q, u"settings"_q, u"export"_q, u"send"_q, u"chat"_q },
+			.icon = { &st::menuIconShare },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
+			.id = u"fa/export-settings"_q,
+			.title = FAlang::Translate(QString("fa_share_settings")),
+			.keywords = { u"fagram"_q, u"export"_q, u"settings"_q, u"save"_q, u"file"_q, u"faconfig"_q },
+			.icon = { &st::menuIconExport },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
+			.id = u"fa/restart"_q,
+			.title = FAlang::Translate(QString("fa_restart")),
+			.keywords = { u"fagram"_q, u"restart"_q, u"reboot"_q, u"reload"_q },
+			.icon = { &st::menuIconRestore },
+		};
+	});
 });
 
 // FA General

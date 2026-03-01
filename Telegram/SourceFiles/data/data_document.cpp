@@ -1749,6 +1749,10 @@ bool DocumentData::isTheme() const {
 				|| _nameType == Core::NameType::ThemeFile));
 }
 
+bool DocumentData::isFaConfig() const {
+	return _filename.endsWith(u".faconfig"_q, Qt::CaseInsensitive);
+}
+
 bool DocumentData::isSong() const {
 	return (type == SongDocument);
 }

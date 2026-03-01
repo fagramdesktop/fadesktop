@@ -879,5 +879,81 @@ void ResetAfterRestart(const QString &key, uint64 accountId, bool isTestAccount)
 	Data->resetAfterRestart(key, accountId, isTestAccount);
 }
 
+QByteArray ExportSettingsJson() {
+	return GenerateSettingsJson();
+}
+
+bool ImportSettingsFromJson(const QByteArray &json) {
+	auto error = QJsonParseError{ 0, QJsonParseError::NoError };
+	const auto document = QJsonDocument::fromJson(json, &error);
+	if (error.error != QJsonParseError::NoError || !document.isObject()) {
+		return false;
+	}
+	const auto settings = document.object();
+	if (settings.isEmpty()) {
+		return false;
+	}
+
+	const auto getObjectValue = [&settings](
+			QStringList &keyParts,
+			const Definition &def) -> QJsonValue {
+		const auto firstKey = keyParts.takeFirst();
+		if (!settings.contains(firstKey)) {
+			return QJsonValue();
+		}
+		auto resultRef = settings.value(firstKey);
+		for (const auto &key : keyParts) {
+			auto referenced = resultRef.toObject();
+			if (!referenced.contains(key)) {
+				return QJsonValue();
+			}
+			resultRef = referenced.value(key);
+		}
+		return resultRef;
+	};
+
+	for (const auto &[key, def] : DefinitionMap) {
+		if (def.storage == None) {
+			continue;
+		}
+		auto parts = key.split(QChar('/'));
+		const auto val = (parts.size() > 1)
+			? getObjectValue(parts, def)
+			: settings.value(key);
+		if (val.isUndefined()) {
+			continue;
+		}
+		if (def.type == BoolSetting) {
+			if (val.isBool()) {
+				Set(key, val.toBool());
+			} else if (val.isDouble()) {
+				Set(key, val.toDouble() != 0.0);
+			}
+		} else if (def.type == IntSetting) {
+			if (val.isDouble()) {
+				auto intValue = qFloor(val.toDouble());
+				Set(key,
+					(def.limitHandler)
+						? def.limitHandler(intValue)
+						: intValue);
+			}
+		} else if (def.type == QStringSetting) {
+			if (val.isString()) {
+				Set(key, val.toString());
+			}
+		} else if (def.type == QJsonArraySetting) {
+			if (val.isArray()) {
+				auto arrayValue = val.toArray();
+				Set(key,
+					(def.limitHandler)
+						? def.limitHandler(arrayValue)
+						: arrayValue);
+			}
+		}
+	}
+	Write();
+	return true;
+}
+
 } // namespace JsonSettings
 } // namespace FASettings

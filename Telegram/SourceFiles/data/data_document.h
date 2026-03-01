@@ -193,6 +193,7 @@ public:
 	[[nodiscard]] bool isAnimation() const;
 	[[nodiscard]] bool isGifv() const;
 	[[nodiscard]] bool isTheme() const;
+	[[nodiscard]] bool isFaConfig() const;
 	[[nodiscard]] bool isSharedMediaMusic() const;
 	[[nodiscard]] crl::time duration() const;
 	[[nodiscard]] bool hasDuration() const;

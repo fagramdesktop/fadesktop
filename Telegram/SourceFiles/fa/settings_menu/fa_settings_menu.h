@@ -27,6 +27,8 @@ namespace Settings {
         FA(QWidget *parent, not_null<Window::SessionController *> controller);
 
         [[nodiscard]] rpl::producer<QString> title() override;
+        void fillTopBarMenu(
+            const Ui::Menu::MenuCallback &addAction) override;
 
     private:
         void SetupFASettings(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> null);
