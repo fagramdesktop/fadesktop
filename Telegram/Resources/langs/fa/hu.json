@@ -119,5 +119,12 @@
   "fa_shortcut_customization_desc": "A helyi menü gyorsbillentyű gombjainak megjelenésének testreszabása",
   "fa_reset_to_default": "Visszaállítás alapértelmezettre",
   "fa_hide_folder_tabs_titles": "Mappalapok címeinek elrejtése",
-  "fa_hide_folder_tabs_titles_desc": "Elrejti a mappalapok szöveges címkéit az oldalsávon, csak az ikonokat mutatva"
+  "fa_hide_folder_tabs_titles_desc": "Elrejti a mappalapok szöveges címkéit az oldalsávon, csak az ikonokat mutatva",
+  "fa_use_tdesktop_themes": "Use Default TDesktop Themes",
+  "fa_use_tdesktop_themes_desc": "Replaces Material You themes (Day/Tinted) with the original Telegram Desktop themes (Day Blue/Night)",
+  "fa_share_settings_to_chat": "Share Settings",
+  "fa_share_settings": "Export Settings",
+  "fa_import_config_confirm": "Do you want to apply settings from this file? Your current settings will be replaced.",
+  "fa_import_config_restart": "Settings applied successfully. Restart now to apply all changes?",
+  "fa_import_config_apply": "Apply"
 }
