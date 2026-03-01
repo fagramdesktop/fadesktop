@@ -348,6 +348,15 @@ const auto kFAAppearanceMeta = BuildHelper({
 			.icon = { &st::menuIconPalette },
 		};
 	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
+			.id = u"fa/appearance/use-tdesktop-themes"_q,
+			.title = FAlang::Translate(QString("fa_use_tdesktop_themes")),
+			.keywords = { u"tdesktop"_q, u"themes"_q, u"theme"_q, u"default"_q, },
+			.icon = { &st::menuIconPalette },
+		};
+	});
 });
 // FA Context Menu
 const auto kFAContextMenuMeta = BuildHelper({
