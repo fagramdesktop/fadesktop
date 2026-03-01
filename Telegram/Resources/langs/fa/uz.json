@@ -119,5 +119,12 @@
   "fa_shortcut_customization_desc": "Kontekst menyusidagi yorliq tugmalarining ko'rinishini moslashtiring",
   "fa_reset_to_default": "Standart holatga qaytarish",
   "fa_hide_folder_tabs_titles": "Papka yorliqlari nomlarini yashirish",
-  "fa_hide_folder_tabs_titles_desc": "Yon paneldagi papka belgilari ostidagi matn teglarini yashiradi, faqat belgilarni ko'rsatadi"
+  "fa_hide_folder_tabs_titles_desc": "Yon paneldagi papka belgilari ostidagi matn teglarini yashiradi, faqat belgilarni ko'rsatadi",
+  "fa_use_tdesktop_themes": "Use Default TDesktop Themes",
+  "fa_use_tdesktop_themes_desc": "Replaces Material You themes (Day/Tinted) with the original Telegram Desktop themes (Day Blue/Night)",
+  "fa_share_settings_to_chat": "Share Settings",
+  "fa_share_settings": "Export Settings",
+  "fa_import_config_confirm": "Do you want to apply settings from this file? Your current settings will be replaced.",
+  "fa_import_config_restart": "Settings applied successfully. Restart now to apply all changes?",
+  "fa_import_config_apply": "Apply"
 }
