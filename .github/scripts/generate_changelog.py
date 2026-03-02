@@ -188,7 +188,7 @@ header p {{ opacity: .85; margin-top: 4px; font-size: 12px; }}
   display: block;
   opacity: 0;
   transition: opacity .15s;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 16 16'%3E%3Cpath fill='%23168acd' d='M7.775 3.275a.75.75 0 0 0 1.06 1.06l1.25-1.25a2 2 0 1 1 2.83 2.83l-2.5 2.5a2 2 0 0 1-2.83 0 .75.75 0 0 0-1.06 1.06 3.5 3.5 0 0 0 4.95 0l2.5-2.5a3.5 3.5 0 0 0-4.95-4.95l-1.25 1.25zm-4.69 9.64a2 2 0 0 1 0-2.83l2.5-2.5a2 2 0 0 1 2.83 0 .75.75 0 0 0 1.06-1.06 3.5 3.5 0 0 0-4.95 0l-2.5 2.5a3.5 3.5 0 0 0 4.95 4.95l1.25-1.25a.75.75 0 0 0-1.06-1.06l-1.25 1.25a2 2 0 0 1-2.83 0z'/%3E%3C/svg%3E") 0 center / 18px no-repeat;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 16 16'%3E%3Cpath fill='%23FF5858' d='M7.775 3.275a.75.75 0 0 0 1.06 1.06l1.25-1.25a2 2 0 1 1 2.83 2.83l-2.5 2.5a2 2 0 0 1-2.83 0 .75.75 0 0 0-1.06 1.06 3.5 3.5 0 0 0 4.95 0l2.5-2.5a3.5 3.5 0 0 0-4.95-4.95l-1.25 1.25zm-4.69 9.64a2 2 0 0 1 0-2.83l2.5-2.5a2 2 0 0 1 2.83 0 .75.75 0 0 0 1.06-1.06 3.5 3.5 0 0 0-4.95 0l-2.5 2.5a3.5 3.5 0 0 0 4.95 4.95l1.25-1.25a.75.75 0 0 0-1.06-1.06l-1.25 1.25a2 2 0 0 1-2.83 0z'/%3E%3C/svg%3E") 0 center / 18px no-repeat;
   cursor: pointer;
 }}
 .entry h2:hover .anchor {{ opacity: .6; }}
@@ -217,7 +217,7 @@ header p {{ opacity: .85; margin-top: 4px; font-size: 12px; }}
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #009be1;
+  background: #FF5858;
 }}
 .entry p {{
   margin: 4px 0;
@@ -231,7 +231,7 @@ footer {{
   font-size: 11px;
   color: #999;
 }}
-footer a {{ color: #168acd; text-decoration: none; }}
+footer a {{ color: #FF5858; text-decoration: none; }}
 footer a:hover {{ text-decoration: underline; }}
 </style>
 </head>
