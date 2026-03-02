@@ -727,10 +727,12 @@ void GiftButton::paint(QPainter &p, float64 craftProgress) {
 	const auto onsale = unique && unique->starsForResale && small();
 	const auto requirePremium = stargift
 		&& !stargift->userpic
+		&& !stargift->resale
 		&& !stargift->info.unique
 		&& stargift->info.requirePremium;
 	const auto auction = stargift
 		&& !stargift->userpic
+		&& !stargift->resale
 		&& !stargift->info.unique
 		&& stargift->info.auction();
 	const auto hidden = stargift && stargift->hidden;
@@ -927,7 +929,7 @@ void GiftButton::paint(QPainter &p, float64 craftProgress) {
 			return GiftBadge{
 				.text = (onsale
 					? tr::lng_gift_stars_on_sale(tr::now)
-					: (unique && (data.resale || pinned))
+					: (unique && (data.resale || pinned || data.mine))
 					? ('#' + Lang::FormatCountDecimal(unique->number))
 					: data.resale
 					? tr::lng_gift_stars_resale(tr::now)

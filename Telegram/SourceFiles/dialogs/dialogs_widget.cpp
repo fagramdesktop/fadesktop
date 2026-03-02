@@ -29,6 +29,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/view/history_view_requests_bar.h"
 #include "history/view/history_view_top_bar_widget.h"
 #include "boxes/peers/edit_peer_requests_box.h"
+#include "boxes/choose_filter_box.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/chat_filters_tabs_strip.h"
@@ -556,6 +557,20 @@ Widget::Widget(
 	_search->submits(
 	) | rpl::on_next([=] { submit(); }, _search->lifetime());
 
+	_search->setMimeDataHook([=](
+			not_null<const QMimeData*> data,
+			Ui::InputField::MimeAction action) {
+		if (data->hasFormat(u"application/x-telegram-dialog"_q)) {
+			if (const auto history = HistoryFromMimeData(data, &session())) {
+				if (action != Ui::InputField::MimeAction::Check) {
+					controller->searchInChat(history);
+				}
+				return true;
+			}
+		}
+		return false;
+	});
+
 	QObject::connect(
 		_search->rawTextEdit().get(),
 		&QTextEdit::cursorPositionChanged,
@@ -578,14 +593,20 @@ Widget::Widget(
 	_cancelSearch->setClickedCallback([=] {
 		cancelSearch({ .jumpBackToSearchedChat = true });
 	});
+	_cancelSearch->setAccessibleName(tr::lng_sr_cancel_search(tr::now));
 	_jumpToDate->entity()->setClickedCallback([=] { showCalendar(); });
+	_jumpToDate->entity()->setAccessibleName(
+		tr::lng_sr_search_date(tr::now));
 	_chooseFromUser->entity()->setClickedCallback([=] { showSearchFrom(); });
+	_chooseFromUser->entity()->setAccessibleName(
+		tr::lng_search_messages_from(tr::now));
 	rpl::single(rpl::empty) | rpl::then(
 		session().domain().local().localPasscodeChanged()
 	) | rpl::on_next([=] {
 		updateLockUnlockVisibility();
 	}, lifetime());
 	const auto lockUnlock = _lockUnlock->entity();
+	lockUnlock->setAccessibleName(tr::lng_shortcuts_lock(tr::now));
 	lockUnlock->setClickedCallback([=] {
 		lockUnlock->setIconOverride(
 			&st::dialogsUnlockIcon,
@@ -600,6 +621,7 @@ Widget::Widget(
 		setupStories();
 	}
 
+	_searchForNarrowLayout->setAccessibleName(tr::lng_dlg_filter(tr::now));
 	_searchForNarrowLayout->setClickedCallback([=] {
 		_search->setFocusFast();
 		if (_childList) {
@@ -1038,6 +1060,7 @@ void Widget::scrollToDefaultChecked(bool verytop) {
 
 void Widget::setupScrollUpButton() {
 	_scrollToTop->setClickedCallback([=] { scrollToDefaultChecked(); });
+	_scrollToTop->setAccessibleName(tr::lng_sr_scroll_to_top(tr::now));
 	trackScroll(_scrollToTop);
 	trackScroll(this);
 	updateScrollUpVisibility();
@@ -3331,6 +3354,11 @@ void Widget::updateCancelSearch() {
 		|| (!_searchState.inChat
 			&& (_searchHasFocus || _searchSuggestionsLocked));
 	_cancelSearch->toggle(shown, anim::type::normal);
+	if (_searchState.inChat) {
+		_cancelSearch->setAccessibleName(shown
+			? tr::lng_sr_clear_search(tr::now)
+			: tr::lng_sr_cancel_search(tr::now));
+	}
 }
 
 QString Widget::validateSearchQuery() {
@@ -3728,7 +3756,7 @@ void Widget::clearSearchCache(bool clearPosts) {
 
 void Widget::showCalendar() {
 	if (_searchState.inChat) {
-		controller()->showCalendar(_searchState.inChat, QDate());
+		controller()->showCalendar({ _searchState.inChat });
 	}
 }
 

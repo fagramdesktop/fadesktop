@@ -1098,7 +1098,8 @@ void Application::checkStartUrls() {
 				iv().showTonSite(url.toString(), {});
 				return false;
 			} else if (_lastActivePrimaryWindow) {
-				return !openLocalUrl(url.toString(), {});
+				const auto local = TryConvertUrlToLocal(url.toString());
+				return !openLocalUrl(local, {});
 			}
 			return true;
 		}) | ranges::to<QList<QUrl>>;
@@ -1134,9 +1135,7 @@ bool Application::openInternalUrl(const QString &url, QVariant context) {
 }
 
 QString Application::changelogLink() const {
-	const auto base = u"https://github.com/fagramdesktop/fadesktop/blob/dev/changelog.txt"_q;
-	
-	return base;
+	return u"https://fagramdesktop.github.io/fadesktop/changelog/"_q;
 }
 
 bool Application::openCustomUrl(

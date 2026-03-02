@@ -14,16 +14,18 @@
     </categories>
     <developer id="org.fateam"><name>FAteam</name></developer>
     <url type="homepage">https://t.me/FAgramDesktop/</url>
-    <url type="bugtracker">https://github.com/fajox1/fagramdesktop/issues</url>
+    <url type="faq">https://github.com/fagramdesktop/fadesktop</url>
+    <url type="bugtracker">https://github.com/fagramdesktop/fadesktop/issues</url>
     <url type="translate">https://translations.telegram.org/</url>
-    <url type="contribute">https://github.com/fajox1/fagramdesktop/blob/dev/.github/CONTRIBUTING.md</url>
+    <url type="vcs-browser">https://github.com/fagramdesktop/fadesktop</url>
+    <url type="contribute">https://github.com/fagramdesktop/fadesktop/blob/dev/.github/CONTRIBUTING.md</url>
     <branding>
         <color type="primary" scheme_preference="light">#edf0f2</color>
         <color type="primary" scheme_preference="dark">#2d363f</color>
     </branding>
     <screenshots>
       <screenshot type="default">
-        <image>https://raw.githubusercontent.com/fajox1/fagram/dev/docs/assets/preview.png</image>
+        <image>https://raw.githubusercontent.com/fagramdesktop/fadesktop/dev/docs/assets/preview.png</image>
       </screenshot>
       <screenshot>
         <image>https://raw.githubusercontent.com/telegramdesktop/tdesktop/dev/docs/assets/slide.01.jpg</image>

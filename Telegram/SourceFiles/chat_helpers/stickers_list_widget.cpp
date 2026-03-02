@@ -9,6 +9,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "fa/settings/fa_settings.h"
 
+#include "base/options.h"
 #include "base/timer_rpl.h"
 #include "core/application.h"
 #include "data/data_document.h"
@@ -72,11 +73,19 @@ using Data::StickersPack;
 using Data::StickersSetThumbnailView;
 using SetFlag = Data::StickersSetFlag;
 
+base::options::toggle OptionUnlimitedRecentStickers({
+	.id = kOptionUnlimitedRecentStickers,
+	.name = "Unlimited recent stickers",
+	.description = "Display as much recent stickers as the server provides",
+});
+
 [[nodiscard]] bool SetInMyList(Data::StickersSetFlags flags) {
 	return (flags & SetFlag::Installed) && !(flags & SetFlag::Archived);
 }
 
 } // namespace
+
+const char kOptionUnlimitedRecentStickers[] = "unlimited-recent-stickers";
 
 struct StickersListWidget::Sticker {
 	not_null<DocumentData*> document;
@@ -2551,9 +2560,11 @@ auto StickersListWidget::collectRecentStickers() -> std::vector<Sticker> {
 	_custom.reserve(cloudCount + recent.size() + customCount);
 
 	auto add = [&](not_null<DocumentData*> document, bool custom) {
-		int recent_stickers_limit = FASettings::JsonSettings::GetInt("recent_stickers_limit");
-		if (result.size() >= recent_stickers_limit) {
-			return;
+		if (!OptionUnlimitedRecentStickers.value()) {
+			const auto limit = FASettings::JsonSettings::GetInt("recent_stickers_limit");
+			if (result.size() >= limit) {
+				return;
+			}
 		}
 		const auto i = ranges::find(result, document, &Sticker::document);
 		if (i != end(result)) {

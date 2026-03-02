@@ -13,92 +13,67 @@ If `$ARGUMENTS` is provided, it's the task description. If empty, ask the user w
 
 ## Overview
 
-The workflow produces `.ai/<feature-name>/` containing:
-- `context.md` - Gathered codebase context relevant to the task
-- `plan.md` - Detailed implementation plan with phases
-- `review1.md`, `review2.md`, `review3.md` - Code review documents (up to 3 iterations)
+The workflow is organized around **projects**. Each project lives in `.ai/<project-name>/` and can contain multiple sequential **tasks** (labeled `a`, `b`, `c`, ... `z`).
 
-Then spawns implementation agents to execute each phase, verifies the build, and runs up to 3 review-fix iterations to improve code quality.
+Project structure:
+```
+.ai/<project-name>/
+  about.md              # Single source of truth for the entire project
+  a/                    # First task
+    context.md          # Gathered codebase context for this task
+    plan.md             # Implementation plan
+    review1.md          # Code review documents (up to 3)
+    review2.md
+    review3.md
+  b/                    # Follow-up task
+    context.md
+    plan.md
+    review1.md
+  c/                    # Another follow-up task
+    ...
+```
+
+- `about.md` is the project-level blueprint — a single comprehensive document describing what this project does and how it works, written as if everything is already fully implemented. It contains no temporal state ("current state", "pending changes", "not yet implemented"). It is **rewritten** (not appended to) each time a new task starts, incorporating the new task's changes as if they were always part of the design.
+- Each task folder (`a/`, `b/`, ...) contains self-contained files for that task. The task's `context.md` carries all task-specific information: what specifically needs to change, the delta from the current codebase, gathered file references and code patterns. Planning, implementation, and review agents only read the current task's folder.
 
 ## Phase 0: Setup
 
-1. Understand the task from `$ARGUMENTS` or ask the user.
-2. **Follow-up detection:** Check if `$ARGUMENTS` starts with a task name (the first word/token before any whitespace or newline). Look for `.ai/<that-name>/` directory:
-   - If `.ai/<that-name>/` exists AND contains both `context.md` and `plan.md`, this is a **follow-up task**. Read both files. The rest of `$ARGUMENTS` (after the task name) is the follow-up task description describing what additional changes are needed.
-   - If no matching directory exists, this is a **new task** - proceed normally.
-3. For new tasks: check existing folders in `.ai/` to pick a unique short name (1-2 lowercase words, hyphen-separated) and create `.ai/<feature-name>/`.
-4. For follow-up tasks: the folder already exists, skip creation.
+**Record the current time now** (using `Get-Date` in PowerShell or equivalent) and store it as `$START_TIME`. You will use this at the end to display total elapsed time.
 
-### Follow-up Task Flow
+⚠️ **CRITICAL: Follow-up detection MUST happen FIRST, before anything else.**
 
-When a follow-up task is detected (existing `.ai/<name>/` with `context.md` and `plan.md`):
+### Step 0a: Follow-up detection (MANDATORY — do this BEFORE understanding the task)
 
-1. Skip Phase 1 (Context Gathering) - context already exists.
-2. Skip Phase 2 (Planning) - original plan already exists.
-3. Go directly to **Phase 2F (Follow-up Planning)** instead of Phase 3.
+Extract the first word/token from `$ARGUMENTS` (everything before the first space or newline). Call it `FIRST_TOKEN`.
 
-**Phase 2F: Follow-up Planning**
+Then run these TWO commands using the Bash tool, IN PARALLEL, right now:
+1. `ls .ai/` — to see all existing project names
+2. `ls .ai/<FIRST_TOKEN>/about.md` — to check if this specific project exists
 
-Spawn an agent (Task tool, subagent_type=`general-purpose`) with this prompt:
+**Evaluate the results:**
+- If command 2 **succeeds** (the file exists): this is a **follow-up task**. The project name is `FIRST_TOKEN`. The task description is everything in `$ARGUMENTS` AFTER `FIRST_TOKEN` (strip leading whitespace).
+- If command 2 **fails** (file not found): this is a **new project**. The full `$ARGUMENTS` is the task description.
 
-```
-You are a planning agent for a follow-up task on an existing implementation.
+**Do NOT proceed to step 0b until you have run these commands and determined follow-up vs new.**
 
-Read these files:
-- .ai/<feature-name>/context.md - Previously gathered codebase context
-- .ai/<feature-name>/plan.md - Previous implementation plan (already completed)
+### Step 0b: Project setup
 
-Then read the source files referenced in context.md and plan.md to understand what was already implemented.
+**For new projects:**
+- Using the list from command 1, pick a unique short name (1-2 lowercase words, hyphen-separated) that doesn't collide with existing projects.
+- Create `.ai/<project-name>/` and `.ai/<project-name>/a/`.
+- Set current task letter = `a`.
 
-FOLLOW-UP TASK: <paste the follow-up task description here>
+**For follow-up tasks:**
+- Scan `.ai/<project-name>/` for existing task folders (`a/`, `b/`, ...). Find the latest one (highest letter).
+- The previous task letter = that highest letter.
+- The new task letter = next letter in sequence.
+- Create `.ai/<project-name>/<new-letter>/`.
 
-The previous plan was already implemented and tested. Now there are follow-up changes needed.
-
-YOUR JOB:
-1. Understand what was already done from plan.md (look at the completed phases).
-2. Read the actual source files to see the current state of the code.
-3. If context.md needs updates for the follow-up task (new files relevant, new patterns needed), update it with additional sections marked "## Follow-up Context (iteration 2)" or similar.
-4. Create a NEW follow-up plan. Update plan.md by:
-   - Keep the existing content as history (do NOT delete it)
-   - Add a new section at the end:
-
-   ---
-   ## Follow-up Task
-   <description>
-
-   ## Follow-up Approach
-   <high-level description>
-
-   ## Follow-up Files to Modify
-   <list>
-
-   ## Follow-up Implementation Steps
-
-   ### Phase F1: <name>
-   1. <specific step>
-   2. ...
-
-   ### Phase F2: <name> (if needed)
-   ...
-
-   ## Follow-up Status
-   Phases: <N>
-   - [ ] Phase F1: <name>
-   - [ ] Phase F2: <name> (if applicable)
-   - [ ] Build verification
-   - [ ] Code review
-   Assessed: yes
-
-Use /ultrathink to reason carefully. The follow-up plan should be self-contained enough that an implementation agent can execute it by reading context.md and the updated plan.md.
-```
-
-After this agent completes, read `plan.md` to verify the follow-up plan was written. Then proceed to Phase 4 (Implementation), using the follow-up phases (F1, F2, etc.) instead of the original phases.
-
-### New Task Flow
-
-When this is a new task (no existing folder), proceed with Phases 1-5 as described below.
+Then proceed to Phase 1 (Context Gathering) in both cases. Follow-up tasks do NOT skip context gathering — they go through a modified version of it.
 
 ## Phase 1: Context Gathering
+
+### For New Projects (task letter = `a`)
 
 Spawn an agent (Task tool, subagent_type=`general-purpose`) with this prompt structure:
 
@@ -107,10 +82,10 @@ You are a context-gathering agent for a large C++ codebase (Telegram Desktop).
 
 TASK: <paste the user's task description here>
 
-YOUR JOB: Read CLAUDE.md, inspect the codebase, find ALL files and code relevant to this task, and write a comprehensive context document.
+YOUR JOB: Read AGENTS.md, inspect the codebase, find ALL files and code relevant to this task, and write two documents.
 
 Steps:
-1. Read CLAUDE.md for project conventions and build instructions.
+1. Read AGENTS.md for project conventions and build instructions.
 2. Search the codebase for files, classes, functions, and patterns related to the task.
 3. Read all potentially relevant files. Be thorough - read more rather than less.
 4. For each relevant file, note:
@@ -123,9 +98,23 @@ Steps:
 7. Check .style files if the task involves UI.
 8. Check lang.strings if the task involves user-visible text.
 
-Write your findings to: .ai/<feature-name>/context.md
+Write TWO files:
 
-The context.md should contain:
+### File 1: .ai/<project-name>/about.md
+
+NOTE: This file is NOT used by any agent in the current task. It exists solely as a starting point for a FUTURE follow-up task's context gatherer. No planning, implementation, or review agent will ever read it. Only the context-gathering agent of the next follow-up task reads about.md (together with the latest context.md) to produce a fresh context.md for that next task.
+
+Write it as if the project is already fully implemented and working. It should contain:
+- **Project**: What this project does (feature description, goals, scope)
+- **Architecture**: High-level architectural decisions, which modules are involved, how they interact
+- **Key Design Decisions**: Important choices made about the approach
+- **Relevant Codebase Areas**: Which parts of the codebase this project touches, key types and APIs involved
+
+Do NOT include temporal state like "Current State", "Pending Changes", "Not yet implemented", "TODO", or any other framing that distinguishes between "done" and "not done". Describe the project as a complete, coherent whole — as if everything is already working. This is a project overview, not a status tracker. Task-specific work belongs exclusively in context.md.
+
+### File 2: .ai/<project-name>/a/context.md
+
+This is the task-specific implementation context. This is the PRIMARY document — all downstream agents (planning, implementation, review) will read ONLY this file. It must be completely self-contained. It should contain:
 - **Task Description**: The full task restated clearly
 - **Relevant Files**: Every file path with line ranges and descriptions of what's there
 - **Key Code Patterns**: How similar things are done in the codebase (with code snippets)
@@ -139,7 +128,69 @@ The context.md should contain:
 Be extremely thorough. Another agent with NO prior context will read this file and must be able to understand everything needed to implement the task.
 ```
 
-After this agent completes, read `context.md` to verify it was written properly.
+After this agent completes, read both `about.md` and `a/context.md` to verify they were written properly.
+
+### For Follow-up Tasks (task letter = `b`, `c`, ...)
+
+Spawn an agent (Task tool, subagent_type=`general-purpose`) with this prompt structure:
+
+```
+You are a context-gathering agent for a follow-up task on an existing project in a large C++ codebase (Telegram Desktop).
+
+NEW TASK: <paste the follow-up task description here>
+
+YOUR JOB: Read the existing project state, gather any additional context needed, and produce fresh documents for the new task.
+
+Steps:
+1. Read AGENTS.md for project conventions and build instructions.
+2. Read .ai/<project-name>/about.md — this is the project-level blueprint describing everything done so far.
+3. Read .ai/<project-name>/<previous-letter>/context.md — this is the previous task's gathered context.
+4. Understand what has already been implemented by reading the actual source files referenced in about.md and the previous context.
+5. Based on the NEW TASK description, search the codebase for any ADDITIONAL files, classes, functions, and patterns that are relevant to the new task but not already covered.
+6. Read all newly relevant files thoroughly.
+
+Write TWO files:
+
+### File 1: .ai/<project-name>/about.md (REWRITE)
+
+NOTE: This file is NOT used by any agent in the current task. It exists solely as a starting point for a FUTURE follow-up task's context gatherer. No planning, implementation, or review agent will ever read it. You are rewriting it now so that the next follow-up has an accurate project overview to start from.
+
+REWRITE this file (not append). The new about.md must be a single coherent document that describes the project as if everything — including this new task's changes — is already fully implemented and working.
+
+It should incorporate:
+- Everything from the old about.md that is still accurate and relevant
+- The new task's functionality described as part of the project (not as "changes to make")
+- Any changed design decisions or architectural updates from the new task requirements
+
+It should NOT contain:
+- Any temporal state: "Current State", "Pending Changes", "TODO", "Not yet implemented"
+- History of how requirements changed between tasks
+- References to "the old approach" vs "the new approach"
+- Task-by-task changelog or timeline
+- Any distinction between "what was done before" and "what this task adds"
+- Information that contradicts the new task requirements (if the new task changes direction, the about.md should reflect the NEW direction as if it was always the plan)
+
+Think of about.md as "the complete description of what this project does and how it works." Someone reading it should understand the full project as a finished product, without knowing it went through multiple tasks.
+
+### File 2: .ai/<project-name>/<new-letter>/context.md
+
+This is the PRIMARY document — all downstream agents (planning, implementation, review) will read ONLY this file. It must be completely self-contained. about.md will NOT be available to them.
+
+It should contain:
+- **Task Description**: The new task restated clearly, with enough project background (from about.md and previous context.md) that an implementation agent can understand it without reading any other .ai/ files
+- **Relevant Files**: Every file path with line ranges relevant to THIS task (including files modified by previous tasks and any newly relevant files)
+- **Key Code Patterns**: How similar things are done in the codebase
+- **Data Structures**: Relevant types, structs, classes
+- **API Methods**: Any TL schema methods involved
+- **UI Styles**: Any relevant style definitions
+- **Localization**: Any relevant string keys
+- **Build Info**: Build command and any special notes
+- **Reference Implementations**: Similar features that can serve as templates
+
+Be extremely thorough. Another agent with NO prior context will read ONLY this file and must be able to understand everything needed to implement the new task. Do NOT assume the reader has seen about.md or any previous task files. The context.md is the single source of truth for all downstream agents — it must include all relevant project background, not just the delta.
+```
+
+After this agent completes, read both `about.md` and `<new-letter>/context.md` to verify they were written properly.
 
 ## Phase 2: Planning
 
@@ -149,12 +200,12 @@ Spawn an agent (Task tool, subagent_type=`general-purpose`) with this prompt str
 You are a planning agent. You must create a detailed implementation plan.
 
 Read these files:
-- .ai/<feature-name>/context.md - Contains all gathered context
+- .ai/<project-name>/<letter>/context.md - Contains all gathered context for this task
 - Then read the specific source files referenced in context.md to understand the code deeply.
 
-Use /ultrathink to reason carefully about the implementation approach.
+Think carefully about the implementation approach.
 
-Create a detailed plan in: .ai/<feature-name>/plan.md
+Create a detailed plan in: .ai/<project-name>/<letter>/plan.md
 
 The plan.md should contain:
 
@@ -209,15 +260,15 @@ Spawn an agent (Task tool, subagent_type=`general-purpose`) with this prompt str
 You are a plan assessment agent. Review and refine an implementation plan.
 
 Read these files:
-- .ai/<feature-name>/context.md
-- .ai/<feature-name>/plan.md
+- .ai/<project-name>/<letter>/context.md
+- .ai/<project-name>/<letter>/plan.md
 - Then read the actual source files referenced to verify the plan makes sense.
 
-Use /ultrathink to assess the plan:
+Carefully assess the plan:
 
 1. **Correctness**: Are the file paths and line references accurate? Does the plan reference real functions and types?
 2. **Completeness**: Are there missing steps? Edge cases not handled?
-3. **Code quality**: Will the plan minimize code duplication? Does it follow existing codebase patterns from CLAUDE.md?
+3. **Code quality**: Will the plan minimize code duplication? Does it follow existing codebase patterns from AGENTS.md?
 4. **Design**: Could the approach be improved? Are there better patterns already used in the codebase?
 5. **Phase sizing**: Each phase should be implementable by a single agent in one session. If a phase has more than ~8-10 substantive code changes, split it further.
 
@@ -244,8 +295,8 @@ For each phase in the plan that is not yet marked as done, spawn an implementati
 You are an implementation agent working on phase <N> of an implementation plan.
 
 Read these files first:
-- .ai/<feature-name>/context.md - Full codebase context
-- .ai/<feature-name>/plan.md - Implementation plan
+- .ai/<project-name>/<letter>/context.md - Full codebase context
+- .ai/<project-name>/<letter>/plan.md - Implementation plan
 
 Then read the source files you'll be modifying.
 
@@ -254,7 +305,7 @@ YOUR TASK: Implement ONLY Phase <N> from the plan:
 
 Rules:
 - Follow the plan precisely
-- Follow CLAUDE.md coding conventions (no comments except complex algorithms, use auto, empty line before closing brace, etc.)
+- Follow AGENTS.md coding conventions (no comments except complex algorithms, use auto, empty line before closing brace, etc.)
 - Do NOT modify .ai/ files except to update the Status section in plan.md
 - When done, update plan.md Status section: change `- [ ] Phase <N>: ...` to `- [x] Phase <N>: ...`
 - Do NOT work on other phases
@@ -277,24 +328,24 @@ Spawn a build verification agent (Task tool, subagent_type=`general-purpose`):
 You are a build verification agent.
 
 Read these files:
-- .ai/<feature-name>/context.md
-- .ai/<feature-name>/plan.md
+- .ai/<project-name>/<letter>/context.md
+- .ai/<project-name>/<letter>/plan.md
 
 The implementation is complete. Your job is to build the project and fix any build errors.
 
 Steps:
-1. Run: cmake --build "c:\Telegram\tdesktop\out" --config Debug --target Telegram
+1. Run (from repository root): cmake --build ./out --config Debug --target Telegram
 2. If the build succeeds, update plan.md: change `- [ ] Build verification` to `- [x] Build verification`
 3. If the build fails:
    a. Read the error messages carefully
    b. Read the relevant source files
-   c. Fix the errors in accordance with the plan and CLAUDE.md conventions
+   c. Fix the errors in accordance with the plan and AGENTS.md conventions
    d. Rebuild and repeat until the build passes
    e. Update plan.md status when done
 
 Rules:
 - Only fix build errors, do not refactor or improve code
-- Follow CLAUDE.md conventions
+- Follow AGENTS.md conventions
 - If build fails with file-locked errors (C1041, LNK1104), STOP and report - do not retry
 
 When finished, report the build result.
@@ -332,17 +383,17 @@ Spawn an agent (Task tool, subagent_type=`general-purpose`):
 You are a code review agent for Telegram Desktop (C++ / Qt).
 
 Read these files:
-- .ai/<feature-name>/context.md - Codebase context
-- .ai/<feature-name>/plan.md - Implementation plan
+- .ai/<project-name>/<letter>/context.md - Codebase context
+- .ai/<project-name>/<letter>/plan.md - Implementation plan
 - REVIEW.md - Style and formatting rules to enforce
 <if R > 1, also read:>
-- .ai/<feature-name>/review<R-1>.md - Previous review (to see what was already addressed)
+- .ai/<project-name>/<letter>/review<R-1>.md - Previous review (to see what was already addressed)
 
 Then run `git diff` to see all uncommitted changes made by the implementation. Implementation agents do not commit, so `git diff` shows exactly the current feature's changes.
 
 Then read the modified source files in full to understand changes in context.
 
-Use /ultrathink to perform a thorough code review.
+Perform a thorough code review.
 
 REVIEW CRITERIA (in order of importance):
 
@@ -360,7 +411,7 @@ REVIEW CRITERIA (in order of importance):
 
 7. **Module structure**: Only in exceptional cases — if a large amount of newly added code (hundreds of lines) is logically distinct from the rest of its host module, suggest extracting it into a new module. But do NOT suggest new modules lightly: every module adds significant build overhead due to PCH and heavy template usage. Only suggest this when the new code is both large enough AND logically separated enough to justify it. At the same time, don't let modules grow into multi-thousand-line monoliths either.
 
-8. **Style compliance**: Verify adherence to REVIEW.md rules (empty line before closing brace, operators at start of continuation lines, minimize type checks with direct cast instead of is+as, no if-with-initializer when simpler alternatives exist) and CLAUDE.md conventions (no unnecessary comments, `auto` usage, no hardcoded sizes — must use .style definitions), etc.
+8. **Style compliance**: Verify adherence to REVIEW.md rules (empty line before closing brace, operators at start of continuation lines, minimize type checks with direct cast instead of is+as, no if-with-initializer when simpler alternatives exist) and AGENTS.md conventions (no unnecessary comments, `auto` usage, no hardcoded sizes — must use .style definitions), etc.
 
 IMPORTANT GUIDELINES:
 - Review ONLY the changes made, not pre-existing code in the repository.
@@ -368,7 +419,7 @@ IMPORTANT GUIDELINES:
 - Don't suggest adding comments, docstrings, or type annotations — the codebase style avoids these.
 - Don't suggest error handling for impossible scenarios or over-engineering.
 
-Write your review to: .ai/<feature-name>/review<R>.md
+Write your review to: .ai/<project-name>/<letter>/review<R>.md
 
 The review document should contain:
 
@@ -409,9 +460,9 @@ Spawn an agent (Task tool, subagent_type=`general-purpose`):
 You are a review fix agent. You implement improvements identified during code review.
 
 Read these files:
-- .ai/<feature-name>/context.md - Codebase context
-- .ai/<feature-name>/plan.md - Original implementation plan
-- .ai/<feature-name>/review<R>.md - Code review with required changes
+- .ai/<project-name>/<letter>/context.md - Codebase context
+- .ai/<project-name>/<letter>/plan.md - Original implementation plan
+- .ai/<project-name>/<letter>/review<R>.md - Code review with required changes
 
 Then read the source files mentioned in the review.
 
@@ -423,13 +474,13 @@ For each issue in the review:
 3. Verify the change makes sense in context.
 
 After all changes are made:
-1. Build: cmake --build "c:\Telegram\tdesktop\out" --config Debug --target Telegram
+1. Build (from repository root): cmake --build ./out --config Debug --target Telegram
 2. If the build fails, fix build errors and rebuild until it passes.
 3. If build fails with file-locked errors (C1041, LNK1104), STOP and report - do not retry.
 
 Rules:
 - Implement exactly the changes from the review, nothing more.
-- Follow CLAUDE.md coding conventions.
+- Follow AGENTS.md coding conventions.
 - Do NOT modify .ai/ files.
 
 When finished, report what changes were made.
@@ -444,6 +495,8 @@ When all phases including build verification and code review are done:
 2. Show which files were modified/created.
 3. Note any issues encountered during implementation.
 4. Summarize code review iterations: how many rounds, what was found and fixed, or if it was approved on first pass.
+5. Calculate and display the total elapsed time since `$START_TIME` (format as `Xh Ym Zs`, omitting zero components — e.g. `12m 34s` or `1h 5m 12s`).
+6. Remind the user of the project name so they can use `/task <project-name> <follow-up description>` for follow-up changes.
 
 ## Error Handling
 
