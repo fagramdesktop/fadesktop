@@ -87,6 +87,7 @@
 - Forward media/docs without caption
 - Hide sidebar tab titles
 - Auto-parse markdown hyperlinks
+- Import/Export FAsettings
 
 </details>
 

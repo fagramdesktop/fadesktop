@@ -1,3 +1,12 @@
+2.1.9 (02.03.26)
+
+- Updated tdesktop to v6.6.0
+- Updated solar icons
+- Added option to use default Telegram Desktop themes
+- Added option to export/import/share FAsettings
+- Updated translations
+- Bug fixes
+
 2.1.8 (22.02.26)
 
 - Updated tdesktop to v6.5.1

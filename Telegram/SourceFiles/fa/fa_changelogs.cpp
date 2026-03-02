@@ -71,6 +71,16 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			"- Fixed some UI related bugs\n\n"
 			"@FAgramDesktop\n"
 		},
+		{
+			2001009,
+			"- Updated tdesktop to v6.6.0\n"
+			"- Updated solar icons\n"
+			"- Added option to use default Telegram Desktop themes\n"
+			"- Added option to export/import/share FAsettings\n"
+			"- Updated translations\n"
+			"- Bug fixes\n\n"
+			"@FAgramDesktop\n"
+		},
 	};
 	return entries;
 }
