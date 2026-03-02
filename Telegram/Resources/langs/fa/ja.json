@@ -119,5 +119,12 @@
   "fa_shortcut_customization_desc": "コンテキストメニューのショートカットボタンの外観をカスタマイズ",
   "fa_reset_to_default": "デフォルトに戻す",
   "fa_hide_folder_tabs_titles": "フォルダタブのタイトルを非表示",
-  "fa_hide_folder_tabs_titles_desc": "サイドバーのフォルダアイコンの下のテキストラベルを非表示にし、アイコンのみを表示します"
+  "fa_hide_folder_tabs_titles_desc": "サイドバーのフォルダアイコンの下のテキストラベルを非表示にし、アイコンのみを表示します",
+  "fa_use_tdesktop_themes": "TDesktopのデフォルトテーマを使用",
+  "fa_use_tdesktop_themes_desc": "Material Youテーマ（Day/Tinted）を、Telegram Desktopオリジナルのテーマ（Day Blue/Night）に置き換えます",
+  "fa_share_settings_to_chat": "設定をチャットに共有",
+  "fa_share_settings": "設定をエクスポート",
+  "fa_import_config_confirm": "このファイルの設定を適用しますか？現在の設定は上書きされます。",
+  "fa_import_config_restart": "設定が正常に適用されました。すべての変更を反映するために、今すぐ再起動しますか？",
+  "fa_import_config_apply": "適用"
 }

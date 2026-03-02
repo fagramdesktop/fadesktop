@@ -119,5 +119,12 @@
   "fa_shortcut_customization_desc": "Das Aussehen der Kontextmenü-Kurzbefehl-Schaltflächen anpassen",
   "fa_reset_to_default": "Auf Standard zurücksetzen",
   "fa_hide_folder_tabs_titles": "Ordner-Tab-Titel ausblenden",
-  "fa_hide_folder_tabs_titles_desc": "Blendet die Textbeschriftungen unter den Ordnersymbolen in der Seitenleiste aus und zeigt nur die Symbole an"
+  "fa_hide_folder_tabs_titles_desc": "Blendet die Textbeschriftungen unter den Ordnersymbolen in der Seitenleiste aus und zeigt nur die Symbole an",
+  "fa_use_tdesktop_themes": "Standard TDesktop-Themes verwenden",
+  "fa_use_tdesktop_themes_desc": "Ersetzt Material You-Themes (Hell/Getönt) durch die ursprünglichen Telegram Desktop-Themes (Tag Blau/Nacht)",
+  "fa_share_settings_to_chat": "Einstellungen teilen",
+  "fa_share_settings": "Einstellungen exportieren",
+  "fa_import_config_confirm": "Möchtest du die Einstellungen aus dieser Datei anwenden? Deine aktuellen Einstellungen werden überschrieben.",
+  "fa_import_config_restart": "Einstellungen erfolgreich angewendet. Jetzt neu starten, um alle Änderungen zu übernehmen?",
+  "fa_import_config_apply": "Anwenden"
 }

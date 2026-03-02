@@ -119,5 +119,12 @@
   "fa_shortcut_customization_desc": "A helyi menü gyorsbillentyű gombjainak megjelenésének testreszabása",
   "fa_reset_to_default": "Visszaállítás alapértelmezettre",
   "fa_hide_folder_tabs_titles": "Mappalapok címeinek elrejtése",
-  "fa_hide_folder_tabs_titles_desc": "Elrejti a mappalapok szöveges címkéit az oldalsávon, csak az ikonokat mutatva"
+  "fa_hide_folder_tabs_titles_desc": "Elrejti a mappalapok szöveges címkéit az oldalsávon, csak az ikonokat mutatva",
+  "fa_use_tdesktop_themes": "Alapértelmezett TDesktop témák használata",
+  "fa_use_tdesktop_themes_desc": "Lecseréli a Material You témákat (Nappali/Színezett) az eredeti Telegram Desktop témákra (Nappali kék/Éjszakai)",
+  "fa_share_settings_to_chat": "Beállítások megosztása",
+  "fa_share_settings": "Beállítások exportálása",
+  "fa_import_config_confirm": "Szeretné alkalmazni a fájlban található beállításokat? A jelenlegi beállításai felülírásra kerülnek.",
+  "fa_import_config_restart": "Beállítások sikeresen alkalmazva. Újraindítja az alkalmazást a változtatások érvénybe léptetéséhez?",
+  "fa_import_config_apply": "Alkalmaz"
 }

@@ -119,5 +119,12 @@
   "fa_shortcut_customization_desc": "Personnaliser l’apparence des boutons de raccourci du menu contextuel",
   "fa_reset_to_default": "Réinitialiser aux valeurs par défaut",
   "fa_hide_folder_tabs_titles": "Masquer les titres des onglets de dossiers",
-  "fa_hide_folder_tabs_titles_desc": "Masque les étiquettes de texte sous les icônes de dossiers dans la barre latérale, affichant uniquement les icônes"
+  "fa_hide_folder_tabs_titles_desc": "Masque les étiquettes de texte sous les icônes de dossiers dans la barre latérale, affichant uniquement les icônes",
+  "fa_use_tdesktop_themes": "Utiliser les thèmes TDesktop par défaut",
+  "fa_use_tdesktop_themes_desc": "Remplace les thèmes Material You (Jour/Teinté) par les thèmes originaux de Telegram Desktop (Jour Bleu/Nuit)",
+  "fa_share_settings_to_chat": "Partager les paramètres",
+  "fa_share_settings": "Exporter les paramètres",
+  "fa_import_config_confirm": "Voulez-vous appliquer les paramètres de ce fichier ? Vos paramètres actuels seront remplacés.",
+  "fa_import_config_restart": "Paramètres appliqués avec succès. Redémarrer maintenant pour appliquer tous les changements ?",
+  "fa_import_config_apply": "Appliquer"
 }
