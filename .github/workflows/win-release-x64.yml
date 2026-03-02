@@ -155,13 +155,13 @@ jobs:
           path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}
 
       - name: Download Libraries
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: libraries-x64
           path: ${{ env.TBUILD }}/Libraries
 
       - name: Download ThirdParty
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: thirdparty-x64
           path: ${{ env.TBUILD }}/ThirdParty
@@ -320,13 +320,13 @@ jobs:
         run: pip install pyrofork tgcrypto
 
       - name: Download Windows portable artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: FAgram_Win-x64
           path: artifacts/windows
 
       - name: Download Windows installer artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: FAgram_Win-x64_installer
           path: artifacts/windows-installer

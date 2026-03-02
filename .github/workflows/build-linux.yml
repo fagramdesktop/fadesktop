@@ -162,7 +162,7 @@ jobs:
         run: pip install pyrofork tgcrypto
 
       - name: Download Linux artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: fagram-${{ inputs.tagname }}
           path: artifacts/linux

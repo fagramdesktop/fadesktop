@@ -74,7 +74,7 @@ jobs:
           echo "app_version_str_full=${APP_VERSION_STR}.0" >> $GITHUB_OUTPUT
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact_name }}
           path: artifact
