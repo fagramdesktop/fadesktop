@@ -90,7 +90,7 @@ jobs:
         run: pip install pyrofork tgcrypto
 
       - name: Download Linux artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: fagram-${{ inputs.tagname }}
           path: artifacts/linux
@@ -98,7 +98,7 @@ jobs:
           run-id: ${{ inputs.run_id }}
 
       - name: Download Windows portable artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: FAgram_Win-x64
           path: artifacts/windows
@@ -106,7 +106,7 @@ jobs:
           run-id: ${{ inputs.run_id }}
 
       - name: Download Windows installer artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: FAgram_Win-x64_installer
           path: artifacts/windows-installer
