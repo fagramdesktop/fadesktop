@@ -58,7 +58,7 @@ jobs:
               COMPARE=$(curl -s -H "Accept: application/vnd.github+json" \
                 -H "Authorization: Bearer $GITHUB_TOKEN" \
                 "https://api.github.com/repos/$REPO/compare/$PREV_TAG...$HEAD_SHA")
-              CHANGELOG=$(echo "$COMPARE" | jq -r '[.commits[].commit.message | split("\n")[0]] | map("• " + .) | join("\n")')
+              CHANGELOG=$(echo "$COMPARE" | jq -r '[.commits[] | select(.author.login == "Burhanverse" or .committer.login == "Burhanverse") | .commit.message | split("\n")[0]] | map("• " + .) | join("\n")')
             fi
           else
             LAST_SHA=$(curl -s -H "Accept: application/vnd.github+json" \
@@ -69,7 +69,7 @@ jobs:
               COMPARE=$(curl -s -H "Accept: application/vnd.github+json" \
                 -H "Authorization: Bearer $GITHUB_TOKEN" \
                 "https://api.github.com/repos/$REPO/compare/$LAST_SHA...$HEAD_SHA")
-              CHANGELOG=$(echo "$COMPARE" | jq -r '[.commits[].commit.message | split("\n")[0]] | map("• " + .) | join("\n")')
+              CHANGELOG=$(echo "$COMPARE" | jq -r '[.commits[] | select(.author.login == "Burhanverse" or .committer.login == "Burhanverse") | .commit.message | split("\n")[0]] | map("• " + .) | join("\n")')
             fi
           fi
 

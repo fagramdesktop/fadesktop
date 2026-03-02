@@ -1,4 +1,4 @@
-name: Release Build for Windows x64
+name: Build Windows x64
 
 on:
   workflow_dispatch:
@@ -55,11 +55,6 @@ jobs:
         shell: bash
         run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
 
-      - uses: ilammy/msvc-dev-cmd@v1.13.0
-        name: Native Tools Command Prompt
-        with:
-          arch: x64
-
       - name: Clone repository
         uses: actions/checkout@v6
         with:
@@ -69,9 +64,24 @@ jobs:
       - name: Set up environment paths
         shell: bash
         run: |
-          echo "CACHE_KEY=$(sha256sum $TBUILD/$REPO_NAME/$PREPARE_PATH | awk '{ print $1 }')" >> $GITHUB_ENV
+          DOCPATH=$TBUILD/$REPO_NAME/docs/building-win.md
+          SDK=$(grep "SDK version" $DOCPATH | sed -r 's/.*with \*\*([0-9.]+)\*\* SDK version.*/\1/')
+          echo "SDK=$SDK" >> $GITHUB_ENV
+
+          sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/${_Zi}//' "$PROGRAMFILES"/CMake/share/cmake*/Modules/Platform/Windows-MSVC.cmake
+
+          echo "$(sha256sum $TBUILD/$REPO_NAME/$PREPARE_PATH | awk '{ print $1 }')" >> CACHE_KEY.txt
+          echo "$SDK" >> CACHE_KEY.txt
+          echo "CACHE_KEY=$(sha256sum CACHE_KEY.txt | awk '{ print $1 }')" >> $GITHUB_ENV
+
           git config --global user.email "you@example.com"
           git config --global user.name "Sample"
+
+      - uses: ilammy/msvc-dev-cmd@v1.13.0
+        name: Native Tools Command Prompt
+        with:
+          arch: x64
+          sdk: ${{ env.SDK }}
 
       - name: NuGet sources
         run: |
@@ -84,7 +94,11 @@ jobs:
           GYP_MSVS_VERSION: 2022
         run: |
           cd %TBUILD%
-          %REPO_NAME%\Telegram\build\prepare\win.bat silent
+          %REPO_NAME%\Telegram\build\prepare\win.bat skip-release silent qt6
+
+      - name: Free up some disk space.
+        shell: bash
+        run: find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' ')' -type f ')' -o -empty ')' -delete
 
       - name: Clean up build intermediates
         run: |
@@ -143,16 +157,26 @@ jobs:
         shell: bash
         run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
 
-      - uses: ilammy/msvc-dev-cmd@v1.13.0
-        name: Native Tools Command Prompt
-        with:
-          arch: x64
-
       - name: Clone repository
         uses: actions/checkout@v6
         with:
           submodules: recursive
           path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}
+
+      - name: Set up environment paths
+        shell: bash
+        run: |
+          DOCPATH=$TBUILD/$REPO_NAME/docs/building-win.md
+          SDK=$(grep "SDK version" $DOCPATH | sed -r 's/.*with \*\*([0-9.]+)\*\* SDK version.*/\1/')
+          echo "SDK=$SDK" >> $GITHUB_ENV
+
+          sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/${_Zi}//' "$PROGRAMFILES"/CMake/share/cmake*/Modules/Platform/Windows-MSVC.cmake
+
+      - uses: ilammy/msvc-dev-cmd@v1.13.0
+        name: Native Tools Command Prompt
+        with:
+          arch: x64
+          sdk: ${{ env.SDK }}
 
       - name: Download Libraries
         uses: actions/download-artifact@v8
@@ -180,12 +204,14 @@ jobs:
           cd %TBUILD%\%REPO_NAME%\Telegram
           call configure.bat ^
           %TDESKTOP_BUILD_ARCH% ^
+          qt6 ^
           %TDESKTOP_BUILD_API% ^
           -D CMAKE_C_FLAGS="/bigobj /WX-" ^
           -D CMAKE_CXX_FLAGS="/bigobj /WX-" ^
-          -D DESKTOP_APP_DISABLE_AUTOUPDATE=NO ^
-          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF ^
-          -D DESKTOP_APP_NO_PDB=ON
+          -D CMAKE_CONFIGURATION_TYPES=Release ^
+          -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT= ^
+          -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
+          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF
 
           cmake --build ..\out --config Release --parallel
 
@@ -288,7 +314,7 @@ jobs:
               COMPARE=$(curl -s -H "Accept: application/vnd.github+json" \
                 -H "Authorization: Bearer $GITHUB_TOKEN" \
                 "https://api.github.com/repos/$REPO/compare/$PREV_TAG...$HEAD_SHA")
-              CHANGELOG=$(echo "$COMPARE" | jq -r '[.commits[].commit.message | split("\n")[0]] | map("• " + .) | join("\n")')
+              CHANGELOG=$(echo "$COMPARE" | jq -r '[.commits[] | select(.author.login == "Burhanverse" or .committer.login == "Burhanverse") | .commit.message | split("\n")[0]] | map("• " + .) | join("\n")')
             fi
           else
             LAST_SHA=$(curl -s -H "Accept: application/vnd.github+json" \
@@ -299,7 +325,7 @@ jobs:
               COMPARE=$(curl -s -H "Accept: application/vnd.github+json" \
                 -H "Authorization: Bearer $GITHUB_TOKEN" \
                 "https://api.github.com/repos/$REPO/compare/$LAST_SHA...$HEAD_SHA")
-              CHANGELOG=$(echo "$COMPARE" | jq -r '[.commits[].commit.message | split("\n")[0]] | map("• " + .) | join("\n")')
+              CHANGELOG=$(echo "$COMPARE" | jq -r '[.commits[] | select(.author.login == "Burhanverse" or .committer.login == "Burhanverse") | .commit.message | split("\n")[0]] | map("• " + .) | join("\n")')
             fi
           fi
 
