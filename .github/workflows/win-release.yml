@@ -116,7 +116,7 @@ jobs:
           mkdir artifact
           move %OUT%\* artifact\
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         name: Upload Release Artifacts
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
         with:
