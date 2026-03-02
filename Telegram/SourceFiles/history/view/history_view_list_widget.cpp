@@ -529,6 +529,16 @@ ListWidget::ListWidget(
 		}, lifetime());
 	}
 
+	if (_replyButtonManager) {
+		Core::App().settings().cornerReplyValue(
+		) | rpl::on_next([=](bool value) {
+			_useCornerReply = value;
+			if (!value) {
+				_replyButtonManager->updateButton({});
+			}
+		}, lifetime());
+	}
+
 	_delegate->listChatWideValue(
 	) | rpl::on_next([=](bool wide) {
 		_isChatWide = wide;
@@ -3674,6 +3684,9 @@ ReplyButton::ButtonParameters ListWidget::replyButtonParameters(
 		not_null<const Element*> view,
 		QPoint position,
 		const TextState &replyState) const {
+	if (!_useCornerReply) {
+		return {};
+	}
 	const auto top = itemTop(view);
 	if (top < 0
 		|| _mouseAction == MouseAction::Dragging

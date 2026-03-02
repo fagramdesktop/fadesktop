@@ -1,3 +1,10 @@
+6.6.1 (02.03.26)
+
+- Fix crash in legacy groups members list.
+- Fix display of member tags in legacy groups.
+- Make fast reply button appear instantly.
+- Allow hiding fast reply button.
+
 6.6 (01.03.26)
 
 - Member Tags in groups.

@@ -16,7 +16,7 @@ namespace HistoryView::ReplyButton {
 namespace {
 
 constexpr auto kToggleDuration = crl::time(120);
-constexpr auto kButtonShowDelay = crl::time(300);
+constexpr auto kButtonShowDelay = crl::time(0);
 constexpr auto kButtonHideDelay = crl::time(300);
 
 [[nodiscard]] float64 ScaleForState(ButtonState state) {
@@ -344,7 +344,11 @@ void Manager::removeStaleButtons() {
 }
 
 void Manager::clearAppearAnimations() {
-	_buttonHiding.clear();
+	for (const auto &button : base::take(_buttonHiding)) {
+		if (!button->isHidden()) {
+			button->repaint();
+		}
+	}
 }
 
 } // namespace HistoryView::ReplyButton

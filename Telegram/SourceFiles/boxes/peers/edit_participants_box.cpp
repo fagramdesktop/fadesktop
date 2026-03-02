@@ -307,9 +307,11 @@ Fn<void(
 		if (const auto chat = peer->asChatNotMigrated()) {
 			const auto saveChatAdmin = [&](bool isAdmin) {
 				SaveChatAdmin(show, chat, user, isAdmin, done, onFail);
+				if (rank) {
+					SaveMemberRank(show, chat, user, *rank, [] {}, [] {});
+				}
 			};
-			if (newRights.flags == chat->defaultAdminRights(user).flags
-				&& (!rank.has_value() || rank->isEmpty())) {
+			if (newRights.flags == chat->defaultAdminRights(user).flags) {
 				saveChatAdmin(true);
 			} else if (!newRights.flags) {
 				saveChatAdmin(false);
@@ -598,6 +600,9 @@ void ParticipantsAdditionalData::fillFromChat(not_null<ChatData*> chat) {
 	}
 	_members = chat->participants;
 	_admins = chat->admins;
+	for (const auto &[uid, rank] : chat->memberRanks) {
+		_memberRanks[chat->owner().user(uid)] = rank;
+	}
 }
 
 void ParticipantsAdditionalData::fillFromChannel(
@@ -2379,7 +2384,7 @@ auto ParticipantsBoxController::computeType(
 	} break;
 	}
 
-	if (user && !channel->isBroadcast()) {
+	if (user && !_peer->isBroadcast()) {
 		const auto isSelf = user->isSelf();
 		const auto canEditSelf = isSelf
 			&& !_peer->amRestricted(ChatRestriction::EditRank);

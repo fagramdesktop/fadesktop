@@ -463,6 +463,14 @@ HistoryInner::HistoryInner(
 		}
 	}, lifetime());
 
+	Core::App().settings().cornerReplyValue(
+	) | rpl::on_next([=](bool value) {
+		_useCornerReply = value;
+		if (!value) {
+			_replyButtonManager->updateButton({});
+		}
+	}, lifetime());
+
 	controller->adaptive().chatWideValue(
 	) | rpl::on_next([=](bool wide) {
 		_isChatWide = wide;
@@ -4880,6 +4888,9 @@ auto HistoryInner::replyButtonParameters(
 	QPoint position,
 	const HistoryView::TextState &replyState) const
 -> HistoryView::ReplyButton::ButtonParameters {
+	if (!_useCornerReply) {
+		return {};
+	}
 	const auto top = itemTop(view);
 	if (top < 0
 		|| _mouseAction == MouseAction::Dragging

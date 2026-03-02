@@ -68,6 +68,10 @@ public:
 	[[nodiscard]] float64 currentScale() const;
 	[[nodiscard]] float64 currentOpacity() const;
 
+	void repaint() const {
+		_update(_geometry);
+	}
+
 private:
 	void updateGeometry(Fn<void(QRect)> update);
 	void applyState(ButtonState state, Fn<void(QRect)> update);

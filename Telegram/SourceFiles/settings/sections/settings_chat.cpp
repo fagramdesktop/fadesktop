@@ -1068,6 +1068,17 @@ void BuildMessagesSection(SectionBuilder &builder) {
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
+			.id = u"chat/corner-reply"_q,
+			.title = tr::lng_settings_chat_corner_reply(tr::now),
+			.keywords = { u"corner"_q, u"reply"_q },
+			.checkIcon = Core::App().settings().cornerReply()
+				? SearchEntryCheckIcon::Checked
+				: SearchEntryCheckIcon::Unchecked,
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
 			.id = u"chat/corner-reaction"_q,
 			.title = tr::lng_settings_chat_corner_reaction(tr::now),
 			.keywords = { u"corner"_q, u"reaction"_q },
@@ -1747,6 +1758,25 @@ void SetupMessages(
 	}
 
 	Ui::AddSkip(inner, st::settingsSendTypeSkip);
+
+	const auto cornerReply = inner->add(
+		object_ptr<Ui::Checkbox>(
+			inner,
+			tr::lng_settings_chat_corner_reply(tr::now),
+			Core::App().settings().cornerReply(),
+			st::settingsCheckbox),
+		st::settingsCheckboxPadding);
+	cornerReply->checkedChanges(
+	) | rpl::on_next([=](bool checked) {
+		Core::App().settings().setCornerReply(checked);
+		Core::App().saveSettingsDelayed();
+	}, inner->lifetime());
+	if (highlights) {
+		highlights->push_back({ u"chat/corner-reply"_q, {
+			cornerReply,
+			{ .radius = st::boxRadius },
+		} });
+	}
 
 	const auto cornerReaction = inner->add(
 		object_ptr<Ui::Checkbox>(

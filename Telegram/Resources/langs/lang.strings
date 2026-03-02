@@ -669,6 +669,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_settings_send_cmdenter" = "Send with Cmd+Enter";
 "lng_settings_chat_quick_action_reply" = "Reply with double click";
 "lng_settings_chat_quick_action_react" = "Send reaction with double click";
+"lng_settings_chat_corner_reply" = "Reply button on messages";
 "lng_settings_chat_corner_reaction" = "Reaction button on messages";
 
 "lng_settings_shortcuts" = "Keyboard shortcuts";
