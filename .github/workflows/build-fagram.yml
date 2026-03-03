@@ -49,6 +49,15 @@ jobs:
       build_type: ${{ inputs.build_type }}
     secrets: inherit
 
+  generate-changelog:
+    name: Changelog
+    needs: [build-linux, build-windows]
+    if: inputs.build_type == 'rel'
+    uses: ./.github/workflows/changelog.yml
+    with:
+      tagname: ${{ inputs.tagname }}
+    secrets: inherit
+
   create-release:
     name: Create Release
     needs: [build-linux, build-windows]
