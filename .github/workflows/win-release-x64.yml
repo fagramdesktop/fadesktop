@@ -50,6 +50,7 @@ jobs:
           mkdir %userprofile%\TBuild\Libraries
           mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
           echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
+          echo LibrariesPath=%GITHUB_WORKSPACE%\TBuild\Libraries\win64>>%GITHUB_ENV%
 
       - name: Get repository name
         shell: bash
@@ -65,7 +66,7 @@ jobs:
         shell: bash
         run: |
           DOCPATH=$TBUILD/$REPO_NAME/docs/building-win.md
-          SDK=$(grep "SDK version" $DOCPATH | sed -r 's/.*with \*\*([0-9.]+)\*\* SDK version.*/\1/')
+          SDK="$(grep "SDK version" $DOCPATH | sed -r 's/.*\*\*(.*)\*\* SDK version.*/\1/')"
           echo "SDK=$SDK" >> $GITHUB_ENV
 
           sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/${_Zi}//' "$PROGRAMFILES"/CMake/share/cmake*/Modules/Platform/Windows-MSVC.cmake
@@ -94,18 +95,13 @@ jobs:
           GYP_MSVS_VERSION: 2022
         run: |
           cd %TBUILD%
-          %REPO_NAME%\Telegram\build\prepare\win.bat skip-release silent qt6
-
-      - name: Free up some disk space.
-        shell: bash
-        run: find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' ')' -type f ')' -o -empty ')' -delete
+          %REPO_NAME%\Telegram\build\prepare\win.bat silent
 
       - name: Clean up build intermediates
         run: |
           cd %TBUILD%
           del /S /Q Libraries\*.pdb 2>nul
           del /S /Q Libraries\*.pch 2>nul
-          del /S /Q Libraries\*.obj 2>nul
           del /S /Q Libraries\*.ilk 2>nul
           del /S /Q Libraries\*.exp 2>nul
           del /S /Q Libraries\*.log 2>nul
@@ -152,6 +148,7 @@ jobs:
           mkdir %userprofile%\TBuild\ThirdParty
           mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
           echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
+          echo LibrariesPath=%GITHUB_WORKSPACE%\TBuild\Libraries\win64>>%GITHUB_ENV%
 
       - name: Get repository name
         shell: bash
@@ -167,7 +164,7 @@ jobs:
         shell: bash
         run: |
           DOCPATH=$TBUILD/$REPO_NAME/docs/building-win.md
-          SDK=$(grep "SDK version" $DOCPATH | sed -r 's/.*with \*\*([0-9.]+)\*\* SDK version.*/\1/')
+          SDK="$(grep "SDK version" $DOCPATH | sed -r 's/.*\*\*(.*)\*\* SDK version.*/\1/')"
           echo "SDK=$SDK" >> $GITHUB_ENV
 
           sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/${_Zi}//' "$PROGRAMFILES"/CMake/share/cmake*/Modules/Platform/Windows-MSVC.cmake
@@ -204,7 +201,6 @@ jobs:
           cd %TBUILD%\%REPO_NAME%\Telegram
           call configure.bat ^
           %TDESKTOP_BUILD_ARCH% ^
-          qt6 ^
           %TDESKTOP_BUILD_API% ^
           -D CMAKE_C_FLAGS="/bigobj /WX-" ^
           -D CMAKE_CXX_FLAGS="/bigobj /WX-" ^
