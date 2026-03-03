@@ -76,6 +76,7 @@ jobs:
           -D CMAKE_INSTALL_PREFIX="/usr" \
           -D CMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
           -D CMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
+          -D HAVE_EGL=TRUE \
           -D TDESKTOP_API_ID=${{ secrets.API_ID_CONFIG }} \
           -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }}
 
