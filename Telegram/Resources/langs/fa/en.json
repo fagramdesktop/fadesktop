@@ -126,5 +126,7 @@
   "fa_share_settings": "Export Settings",
   "fa_import_config_confirm": "Do you want to apply settings from this file? Your current settings will be replaced.",
   "fa_import_config_restart": "Settings applied successfully. Restart now to apply all changes?",
-  "fa_import_config_apply": "Apply"
+  "fa_import_config_apply": "Apply",
+  "fa_kick_user": "Kick User",
+  "fa_unban_user": "Unban User"
 }

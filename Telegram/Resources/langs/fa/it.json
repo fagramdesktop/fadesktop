@@ -126,5 +126,7 @@
   "fa_share_settings": "Esporta impostazioni",
   "fa_import_config_confirm": "Vuoi applicare le impostazioni da questo file? Le tue impostazioni attuali verranno sostituite.",
   "fa_import_config_restart": "Impostazioni applicate con successo. Riavviare ora per applicare tutte le modifiche?",
-  "fa_import_config_apply": "Applica"
+  "fa_import_config_apply": "Applica",
+  "fa_kick_user": "Espelli utente",
+  "fa_unban_user": "Riammetti utente"
 }

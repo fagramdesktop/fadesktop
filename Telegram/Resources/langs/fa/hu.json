@@ -126,5 +126,7 @@
   "fa_share_settings": "Beállítások exportálása",
   "fa_import_config_confirm": "Szeretné alkalmazni a fájlban található beállításokat? A jelenlegi beállításai felülírásra kerülnek.",
   "fa_import_config_restart": "Beállítások sikeresen alkalmazva. Újraindítja az alkalmazást a változtatások érvénybe léptetéséhez?",
-  "fa_import_config_apply": "Alkalmaz"
+  "fa_import_config_apply": "Alkalmaz",
+  "fa_kick_user": "Felhasználó kirúgása",
+  "fa_unban_user": "Felhasználó kitiltásának feloldása"
 }

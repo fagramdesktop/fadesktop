@@ -126,5 +126,7 @@
   "fa_share_settings": "設定をエクスポート",
   "fa_import_config_confirm": "このファイルの設定を適用しますか？現在の設定は上書きされます。",
   "fa_import_config_restart": "設定が正常に適用されました。すべての変更を反映するために、今すぐ再起動しますか？",
-  "fa_import_config_apply": "適用"
+  "fa_import_config_apply": "適用",
+  "fa_kick_user": "ユーザーをキック",
+  "fa_unban_user": "ユーザーのBAN解除"
 }

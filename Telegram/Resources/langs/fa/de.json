@@ -126,5 +126,7 @@
   "fa_share_settings": "Einstellungen exportieren",
   "fa_import_config_confirm": "Möchtest du die Einstellungen aus dieser Datei anwenden? Deine aktuellen Einstellungen werden überschrieben.",
   "fa_import_config_restart": "Einstellungen erfolgreich angewendet. Jetzt neu starten, um alle Änderungen zu übernehmen?",
-  "fa_import_config_apply": "Anwenden"
+  "fa_import_config_apply": "Anwenden",
+  "fa_kick_user": "Benutzer kicken",
+  "fa_unban_user": "Benutzer entbannen"
 }

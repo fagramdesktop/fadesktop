@@ -4083,6 +4083,17 @@ void FillSenderUserpicMenu(
 			const auto chat = groupPeer->asChat();
 			const auto megagroup = groupPeer->asMegagroup();
 
+			const auto isMember = [&] {
+				if (chat) {
+					return chat->participants.contains(user);
+				} else if (megagroup && megagroup->mgInfo) {
+					return base::contains(
+						megagroup->mgInfo->lastParticipants,
+						not_null{ user });
+				}
+				return false;
+			}();
+
 			const auto canEditTarget = [&] {
 				if (chat) {
 					if (peerToUser(user->id) == chat->creator) {
@@ -4102,7 +4113,9 @@ void FillSenderUserpicMenu(
 				}
 				return false;
 			}();
-			if (groupPeer->canManageRanks() && canEditTarget) {
+			if (isMember
+				&& groupPeer->canManageRanks()
+				&& canEditTarget) {
 				const auto currentRank = LookupMemberRank(
 					groupPeer,
 					user);
@@ -4130,7 +4143,7 @@ void FillSenderUserpicMenu(
 			const auto canRestrictInChannel = megagroup
 				&& megagroup->canRestrictParticipant(peer);
 
-			if (canRestrictInChat || canRestrictInChannel) {
+			if (isMember && (canRestrictInChat || canRestrictInChannel)) {
 				addAction({ .isSeparator = true });
 
 				addAction({
@@ -4149,6 +4162,30 @@ void FillSenderUserpicMenu(
 					},
 					.icon = &st::menuIconRemove,
 				});
+
+				if (megagroup) {
+					addAction({
+						.text = FAlang::Translate(QString("fa_kick_user")),
+						.handler = [=] {
+							const auto rights = ChannelData::KickedRestrictedRights(peer);
+							megagroup->session().api().request(MTPchannels_EditBanned(
+								megagroup->inputChannel(),
+								peer->input(),
+								RestrictionsToMTP(rights)
+							)).done([=](const MTPUpdates &result) {
+								megagroup->session().api().applyUpdates(result);
+								megagroup->session().api().request(MTPchannels_EditBanned(
+									megagroup->inputChannel(),
+									peer->input(),
+									MTP_chatBannedRights(MTP_flags(0), MTP_int(0))
+								)).done([=](const MTPUpdates &result) {
+									megagroup->session().api().applyUpdates(result);
+								}).send();
+							}).send();
+						},
+						.icon = &st::menuIconRemove,
+					});
+				}
 
 				if (megagroup
 					&& megagroup->isMegagroup()
@@ -4188,7 +4225,35 @@ void FillSenderUserpicMenu(
 				});
 			}
 
-			if (megagroup && megagroup->canAddAdmins()) {
+			if (!isMember && (canRestrictInChat || canRestrictInChannel)) {
+				addAction({ .isSeparator = true });
+
+				if (megagroup) {
+					addAction(
+						FAlang::Translate(QString("fa_unban_user")),
+						[=] {
+							megagroup->session().api().chatParticipants().unblock(
+								megagroup,
+								peer);
+						},
+						&st::menuIconUnblock);
+				}
+
+				addAction(
+					tr::lng_context_add_to_group(tr::now),
+					[=] {
+						const auto show = controller->uiShow();
+						groupPeer->session().api().chatParticipants().add(
+							show,
+							groupPeer,
+							{ user },
+							false,
+							nullptr);
+					},
+					&st::menuIconInvite);
+			}
+
+			if (isMember && megagroup && megagroup->canAddAdmins()) {
 				const auto isAdmin = megagroup->mgInfo
 					&& megagroup->mgInfo->lastAdmins.contains(user);
 				if (isAdmin) {

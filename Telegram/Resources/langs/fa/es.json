@@ -126,5 +126,7 @@
   "fa_share_settings": "Exportar ajustes",
   "fa_import_config_confirm": "¿Quieres aplicar los ajustes de este archivo? Se reemplazarán tus ajustes actuales.",
   "fa_import_config_restart": "Ajustes aplicados correctamente. ¿Reiniciar ahora para aplicar todos los cambios?",
-  "fa_import_config_apply": "Aplicar"
+  "fa_import_config_apply": "Aplicar",
+  "fa_kick_user": "Expulsar usuario",
+  "fa_unban_user": "Desbanear usuario"
 }
