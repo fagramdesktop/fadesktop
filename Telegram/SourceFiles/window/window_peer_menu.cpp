@@ -46,6 +46,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "boxes/peers/add_participants_box.h"
 #include "boxes/peers/edit_forum_topic_box.h"
 #include "boxes/peers/edit_contact_box.h"
+#include "boxes/peers/edit_participant_box.h"
 #include "boxes/peers/prepare_short_info_box.h"
 #include "calls/calls_instance.h"
 #include "inline_bots/bot_attach_web_view.h" // InlineBots::PeerType.
@@ -4028,10 +4029,62 @@ void FillSenderUserpicMenu(
 		}, &st::menuIconSearch);
 	}
 
+	addAction({ .isSeparator = true });
+
+	addAction(FAlang::Translate(QString("fa_copy_id")), [=] {
+		const auto idText = QString::number(peer->id.value);
+		QGuiApplication::clipboard()->setText(idText);
+		controller->showToast(FAlang::Translate(QString("fa_id_copied")));
+	}, &st::menuIconCopy);
+
+	if (!username.isEmpty()) {
+		addAction(tr::lng_context_copy_mention(tr::now), [=] {
+			QGuiApplication::clipboard()->setText('@' + username);
+			controller->showToast(tr::lng_username_copied(tr::now));
+		}, &st::menuIconCopy);
+	}
+
 	if (const auto user = peer->asUser()) {
-		if (groupPeer) {
+		if (!user->isInaccessible()
+			&& !user->isSelf()
+			&& !user->isRepliesChat()
+			&& !user->isVerifyCodes()) {
+			const auto blockText = user->isBlocked()
+				? ((user->isBot() && !user->isSupport())
+					? tr::lng_profile_restart_bot(tr::now)
+					: tr::lng_profile_unblock_user(tr::now))
+				: ((user->isBot() && !user->isSupport())
+					? tr::lng_profile_block_bot(tr::now)
+					: tr::lng_profile_block_user(tr::now));
+			addAction(blockText, [=] {
+				const auto show = controller->uiShow();
+				if (show->showFrozenError()) {
+					return;
+				} else if (user->isBlocked()) {
+					PeerMenuUnblockUserWithBotRestart(show, user);
+				} else if (user->isBot()) {
+					user->session().api().blockedPeers().block(user);
+				} else {
+					controller->show(Box(
+						PeerMenuBlockUserBox,
+						&controller->window(),
+						user,
+						v::null,
+						v::null));
+				}
+			}, !user->isBlocked()
+				? &st::menuIconBlock
+				: user->isBot()
+				? &st::menuIconRestartBot
+				: &st::menuIconUnblock);
+		}
+
+		if (groupPeer && !user->isSelf()) {
+			const auto chat = groupPeer->asChat();
+			const auto megagroup = groupPeer->asMegagroup();
+
 			const auto canEditTarget = [&] {
-				if (const auto chat = groupPeer->asChat()) {
+				if (chat) {
 					if (peerToUser(user->id) == chat->creator) {
 						return chat->amCreator();
 					}
@@ -4039,17 +4092,17 @@ void FillSenderUserpicMenu(
 						return chat->amCreator();
 					}
 					return true;
-				} else if (const auto channel = groupPeer->asChannel()) {
-					if (channel->mgInfo
-					&& (channel->mgInfo->lastAdmins.contains(user)
-						|| channel->mgInfo->creator == user)) {
-					return channel->canEditAdmin(user);
-				}
-				return true;
+				} else if (megagroup) {
+					if (megagroup->mgInfo
+						&& (megagroup->mgInfo->lastAdmins.contains(user)
+							|| megagroup->mgInfo->creator == user)) {
+						return megagroup->canEditAdmin(user);
+					}
+					return true;
 				}
 				return false;
 			}();
-			if (groupPeer->canManageRanks() && canEditTarget && !user->isSelf()) {
+			if (groupPeer->canManageRanks() && canEditTarget) {
 				const auto currentRank = LookupMemberRank(
 					groupPeer,
 					user);
@@ -4068,6 +4121,91 @@ void FillSenderUserpicMenu(
 							nullptr));
 					},
 					&st::menuIconEdit);
+			}
+
+			const auto canRestrictInChat = chat
+				&& (chat->amCreator()
+					|| (chat->canBanMembers()
+						&& !chat->admins.contains(user)));
+			const auto canRestrictInChannel = megagroup
+				&& megagroup->canRestrictParticipant(peer);
+
+			if (canRestrictInChat || canRestrictInChannel) {
+				addAction({ .isSeparator = true });
+
+				addAction({
+					.text = tr::lng_context_remove_from_group(tr::now),
+					.handler = [=] {
+						if (chat) {
+							chat->session().api().chatParticipants().kick(
+								chat,
+								peer);
+						} else if (megagroup) {
+							megagroup->session().api().chatParticipants().kick(
+								megagroup,
+								peer,
+								ChatRestrictionsInfo());
+						}
+					},
+					.icon = &st::menuIconRemove,
+				});
+
+				if (megagroup
+					&& megagroup->isMegagroup()
+					&& !megagroup->isGigagroup()) {
+					addAction(
+						tr::lng_context_restrict_user(tr::now),
+						[=] {
+							controller->show(
+								Box<EditRestrictedBox>(
+									megagroup,
+									user,
+									false,
+									ChatRestrictionsInfo(),
+									QString(),
+									nullptr,
+									0));
+						},
+						&st::menuIconPermissions);
+				}
+
+				addAction({
+					.text = tr::lng_context_ban_user(tr::now),
+					.handler = [=] {
+						if (chat) {
+							chat->session().api().chatParticipants().kick(
+								chat,
+								peer);
+						} else if (megagroup) {
+							megagroup->session().api().chatParticipants().kick(
+								megagroup,
+								peer,
+								{ megagroup->restrictions(), 0 });
+						}
+					},
+					.icon = &st::menuIconBlockAttention,
+					.isAttention = true,
+				});
+			}
+
+			if (megagroup && megagroup->canAddAdmins()) {
+				const auto isAdmin = megagroup->mgInfo
+					&& megagroup->mgInfo->lastAdmins.contains(user);
+				if (isAdmin) {
+					addAction(
+						tr::lng_context_edit_permissions(tr::now),
+						[=] {
+							controller->show(
+								Box<EditAdminBox>(
+									megagroup,
+									user,
+									ChatAdminRightsInfo(),
+									QString(),
+									0,
+									nullptr));
+						},
+						&st::menuIconAdmin);
+				}
 			}
 		}
 	}
