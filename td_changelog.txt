@@ -1,3 +1,9 @@
+6.6.2 (03.03.26)
+
+- Fix editing of media files.
+- Fix admin rights in legacy groups for tag editing.
+- Fix opening emoji packs from custom emoji click.
+
 6.6.1 (02.03.26)
 
 - Fix crash in legacy groups members list.

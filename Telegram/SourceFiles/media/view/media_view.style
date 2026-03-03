@@ -1103,10 +1103,12 @@ storiesStealthStyle: StealthBoxStyle {
 
 storiesViewsPosition: point(4px, 29px);
 storiesViewsIcon: icon{{ "mediaview/views", storiesComposeGrayText }};
+storiesViewsIconTop: 11px;
 storiesViewsText: FlatLabel(defaultFlatLabel) {
 	textFg: storiesComposeGrayText;
 }
 storiesViewsTextPosition: point(26px, 14px);
+storiesChannelReactionsTextTop: 16px;
 
 storiesLikesPosition: point(0px, 29px);
 storiesLikesIcon: icon {{ "chat/input_like", storiesComposeWhiteText }};

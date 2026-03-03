@@ -3236,7 +3236,7 @@ base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
 	const auto sendMenuType = [=] {
 		const auto selected = state->box->collectSelectedRows();
 		const auto hasPaid = [&] {
-			for (const auto peer : selected) {
+			for (const auto &peer : selected) {
 				if (peer->starsPerMessageChecked()) {
 					return true;
 				}

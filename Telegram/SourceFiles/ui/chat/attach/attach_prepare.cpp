@@ -42,9 +42,7 @@ struct GroupRange {
 	using Type = PreparedFile::Type;
 	return (type == Type::Music)
 		? (groupFiles ? AlbumType::Music : AlbumType::None)
-		: (type == Type::Video)
-		? (groupFiles ? AlbumType::PhotoVideo : AlbumType::None)
-		: (type == Type::Photo)
+		: (type == Type::Video || type == Type::Photo)
 		? ((groupFiles && sendImagesAsPhotos)
 			? AlbumType::PhotoVideo
 			: (groupFiles && !sendImagesAsPhotos)
@@ -173,7 +171,9 @@ bool CanBeInAlbumType(PreparedFile::Type type, AlbumType album) {
 	case AlbumType::Music:
 		return (type == Type::Music);
 	case AlbumType::File:
-		return (type == Type::Photo) || (type == Type::File);
+		return (type == Type::Photo)
+			|| (type == Type::Video)
+			|| (type == Type::File);
 	}
 	Unexpected("AlbumType in CanBeInAlbumType.");
 }

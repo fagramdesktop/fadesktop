@@ -4985,6 +4985,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_context_seen_watched_none" = "Nobody Listened";
 "lng_context_seen_reacted#one" = "{count} Reacted";
 "lng_context_seen_reacted#other" = "{count} Reacted";
+"lng_context_seen_reactions_count#one" = "{count} Reaction";
+"lng_context_seen_reactions_count#other" = "{count} Reactions";
 "lng_context_seen_reacted_none" = "Nobody Reacted";
 "lng_context_seen_reacted_all" = "Show All Reactions";
 "lng_context_sent_by" = "Sent by {user}";

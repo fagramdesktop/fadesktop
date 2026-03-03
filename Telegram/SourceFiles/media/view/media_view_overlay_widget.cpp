@@ -3787,6 +3787,9 @@ void OverlayWidget::displayPhoto(
 	if (photoChanged) {
 		_showRecognitionResults = false;
 		_recognitionResult = {};
+		_recognitionPendingSessionUniqueId = 0;
+		_recognitionPendingPhotoId = 0;
+		_recognitionRetryOnLarge = false;
 	}
 
 	refreshMediaViewer();
@@ -3796,41 +3799,7 @@ void OverlayWidget::displayPhoto(
 		initStreaming();
 	}
 
-	if (!_stories && Platform::TextRecognition::IsAvailable()) {
-		const auto cache = RecognitionCache();
-		const auto id = RecognitionId{
-			.sessionUniqueId = _session->uniqueId(),
-			.photoId = _photo->id,
-		};
-		if (const auto cached = cache->find(id)
-			; cached != cache->end()) {
-			_recognitionResult = cached->second;
-			updateControls();
-		} else {
-			const auto weak = base::make_weak(_widget);
-			const auto photoMedia = _photoMedia;
-			crl::async([=] {
-				const auto image = photoMedia->image(
-					Data::PhotoSize::Large);
-				if (!image) {
-					return;
-				}
-				const auto original = image->original();
-				if (original.isNull()) {
-					return;
-				}
-				auto result = Platform::TextRecognition::RecognizeText(
-					original);
-				crl::on_main(weak, [=, result = std::move(result)]() mutable {
-					const auto cache = RecognitionCache();
-					_recognitionResult = std::move(result);
-					auto &cached = (*cache)[id];
-					cached = _recognitionResult;
-					updateControls();
-				});
-			});
-		}
-	}
+	tryStartTextRecognition();
 
 	initSponsoredButton();
 
@@ -3896,6 +3865,9 @@ void OverlayWidget::displayDocument(
 	if (documentChanged) {
 		_showRecognitionResults = false;
 		_recognitionResult = {};
+		_recognitionPendingSessionUniqueId = 0;
+		_recognitionPendingPhotoId = 0;
+		_recognitionRetryOnLarge = false;
 	}
 
 	_touchbarDisplay.fire(TouchBarItemType::None);
@@ -5159,6 +5131,85 @@ void OverlayWidget::validatePhotoCurrentImage() {
 	if (_staticContent.isNull()) {
 		_photoMedia->wanted(Data::PhotoSize::Small, fileOrigin());
 	}
+	if (_recognitionRetryOnLarge) {
+		if (const auto image = _photoMedia->image(Data::PhotoSize::Large)
+			; image && !image->original().isNull()) {
+			tryStartTextRecognition();
+		}
+	}
+}
+
+void OverlayWidget::tryStartTextRecognition() {
+	if (_stories
+		|| !_session
+		|| !_photo
+		|| !_photoMedia
+		|| !Platform::TextRecognition::IsAvailable()) {
+		return;
+	}
+	const auto cache = RecognitionCache();
+	if (!cache) {
+		return;
+	}
+	const auto id = RecognitionId{
+		.sessionUniqueId = _session->uniqueId(),
+		.photoId = _photo->id,
+	};
+	if (const auto cached = cache->find(id); cached != cache->end()) {
+		_recognitionRetryOnLarge = false;
+		const auto changed = (_recognitionResult.success != cached->second.success)
+			|| (_recognitionResult.items.size() != cached->second.items.size());
+		_recognitionResult = cached->second;
+		if (changed) {
+			updateControls();
+		}
+		return;
+	}
+	if (_recognitionPendingSessionUniqueId == id.sessionUniqueId
+		&& _recognitionPendingPhotoId == id.photoId) {
+		_recognitionRetryOnLarge = false;
+		return;
+	}
+	_photoMedia->wanted(Data::PhotoSize::Large, fileOrigin());
+	const auto image = _photoMedia->image(Data::PhotoSize::Large);
+	if (!image) {
+		_recognitionRetryOnLarge = true;
+		return;
+	}
+	const auto original = image->original();
+	if (original.isNull()) {
+		_recognitionRetryOnLarge = true;
+		return;
+	}
+	_recognitionRetryOnLarge = false;
+	_recognitionPendingSessionUniqueId = id.sessionUniqueId;
+	_recognitionPendingPhotoId = id.photoId;
+	const auto weak = base::make_weak(_widget);
+	crl::async([=] {
+		auto result = Platform::TextRecognition::RecognizeText(original);
+		crl::on_main(weak, [=, result = std::move(result)]() mutable {
+			const auto cache = RecognitionCache();
+			if (!cache) {
+				return;
+			}
+			const auto pendingMatches = (_recognitionPendingSessionUniqueId
+				== id.sessionUniqueId)
+				&& (_recognitionPendingPhotoId == id.photoId);
+			if (pendingMatches) {
+				_recognitionPendingSessionUniqueId = 0;
+				_recognitionPendingPhotoId = 0;
+			}
+			(*cache)[id] = result;
+			if (!_session
+				|| !_photo
+				|| (_session->uniqueId() != id.sessionUniqueId)
+				|| (_photo->id != id.photoId)) {
+				return;
+			}
+			_recognitionResult = std::move(result);
+			updateControls();
+		});
+	});
 }
 
 Ui::GL::ChosenRenderer OverlayWidget::chooseRenderer(
@@ -6953,6 +7004,9 @@ void OverlayWidget::clearBeforeHide() {
 
 void OverlayWidget::clearAfterHide() {
 	_recognitionResult = {};
+	_recognitionPendingSessionUniqueId = 0;
+	_recognitionPendingPhotoId = 0;
+	_recognitionRetryOnLarge = false;
 	_body->hide();
 	clearStreaming();
 	destroyThemePreview();

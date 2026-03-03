@@ -115,7 +115,11 @@ constexpr auto kChangesDebounceTimeout = crl::time(1000);
 	return Ui::AlbumType();
 }
 
-[[nodiscard]] bool CanBeCompressed(Ui::AlbumType type) {
+[[nodiscard]] bool CanToggleCompressed(Ui::AlbumType type) {
+	return (type == Ui::AlbumType::None);
+}
+
+[[nodiscard]] bool AlbumTypeCompressed(Ui::AlbumType type) {
 	return (type == Ui::AlbumType::None)
 		|| (type == Ui::AlbumType::PhotoVideo);
 }
@@ -258,6 +262,8 @@ EditCaptionBox::EditCaptionBox(
 , _saved(std::move(saved)) {
 	Expects(!_initialList.files.empty());
 	Expects(item->allowsEditMedia());
+
+	_asFile = !AlbumTypeCompressed(_albumType);
 
 	_mediaEditManager.start(item, spoilered, invertCaption);
 
@@ -459,7 +465,8 @@ void EditCaptionBox::rebuildPreview() {
 		const auto photo = media->photo();
 		const auto document = media->document();
 		_isPhoto = (photo != nullptr);
-		if (photo || document->isVideoFile() || document->isAnimation()) {
+		_isVideo = (document != nullptr) && document->isVideoFile();
+		if (_isPhoto || _isVideo || document->isAnimation()) {
 			const auto media = Ui::CreateChild<Ui::ItemSingleMediaPreview>(
 				this,
 				st::defaultComposeControls,
@@ -477,20 +484,18 @@ void EditCaptionBox::rebuildPreview() {
 		}
 	} else {
 		const auto &file = _preparedList.files.front();
-		const auto isVideoFile = file.isVideoFile();
+		_isVideo = file.isVideoFile();
 		const auto media = Ui::SingleMediaPreview::Create(
 			this,
 			st::defaultComposeControls,
 			gifPaused,
 			file,
 			[=](Ui::AttachActionType type) {
-				return (type != Ui::AttachActionType::EditCover)
-					|| isVideoFile;
+				return (type != Ui::AttachActionType::EditCover) || _isVideo;
 			},
 			Ui::AttachControls::Type::EditOnly);
 		_isPhoto = (media && media->isPhoto());
-		const auto withCheckbox = _isPhoto && CanBeCompressed(_albumType);
-		if (media && (!withCheckbox || !_asFile)) {
+		if (media && !_asFile) {
 			media->spoileredChanges(
 			) | rpl::on_next([=](bool spoilered) {
 				_mediaEditManager.apply({ .type = spoilered
@@ -668,9 +673,9 @@ void EditCaptionBox::setupControls() {
 	auto hintLabelToggleOn = _previewRebuilds.events_starting_with(
 		{}
 	) | rpl::map([=] {
-		return _controller->session().settings().photoEditorHintShown()
-			? (_isPhoto && !_asFile)
-			: false;
+		return _isPhoto
+			&& !_asFile
+			&& _controller->session().settings().photoEditorHintShown();
 	});
 
 	_controls->add(object_ptr<Ui::SlideWrap<Ui::FlatLabel>>(
@@ -686,21 +691,21 @@ void EditCaptionBox::setupControls() {
 		this,
 		object_ptr<Ui::Checkbox>(
 			this,
-			tr::lng_send_compressed_one(tr::now),
-			true,
+			tr::lng_send_as_documents_one(tr::now),
+			_asFile,
 			st::defaultBoxCheckbox),
 		st::editMediaCheckboxMargins)
 	)->toggleOn(
 		_previewRebuilds.events_starting_with({}) | rpl::map([=] {
-			return _isPhoto
-				&& CanBeCompressed(_albumType)
+			return (_isPhoto || _isVideo)
+				&& CanToggleCompressed(_albumType)
 				&& !_preparedList.files.empty();
 		}),
 		anim::type::instant
 	)->entity()->checkedChanges(
 	) | rpl::on_next([&](bool checked) {
 		applyChanges();
-		_asFile = !checked;
+		_asFile = checked;
 		rebuildPreview();
 	}, _controls->lifetime());
 
@@ -1126,11 +1131,12 @@ void EditCaptionBox::save() {
 			applyChanges();
 		}
 
+		const auto compressed = CanToggleCompressed(_albumType)
+			? (!_asFile)
+			: AlbumTypeCompressed(_albumType);
 		_controller->session().api().editMedia(
 			std::move(_preparedList),
-			(_isPhoto && !_asFile && CanBeCompressed(_albumType))
-				? SendMediaType::Photo
-				: SendMediaType::File,
+			(compressed ? SendMediaType::Photo : SendMediaType::File),
 			_field->getTextWithAppliedMarkdown(),
 			action);
 		closeAfterSave();

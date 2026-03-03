@@ -514,6 +514,7 @@ private:
 
 	void validatePhotoImage(Image *image, bool blurred);
 	void validatePhotoCurrentImage();
+	void tryStartTextRecognition();
 
 	[[nodiscard]] bool hasCopyMediaRestriction(
 		bool skipPremiumCheck = false) const;
@@ -765,6 +766,9 @@ private:
 	int _verticalWheelDelta = 0;
 
 	Platform::TextRecognition::Result _recognitionResult;
+	uint64 _recognitionPendingSessionUniqueId = 0;
+	PhotoId _recognitionPendingPhotoId = 0;
+	bool _recognitionRetryOnLarge = false;
 	bool _showRecognitionResults = false;
 	Ui::Animations::Simple _recognitionAnimation;
 

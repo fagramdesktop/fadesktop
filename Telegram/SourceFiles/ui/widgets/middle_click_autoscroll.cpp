@@ -15,6 +15,7 @@ namespace Ui {
 namespace {
 
 constexpr auto kDelay = 15;
+constexpr auto kHoldToToggleThreshold = crl::time(220);
 
 [[nodiscard]] int Deadzone() {
 	return std::max(1, int(std::lround(style::ConvertFloatScale(6.))));
@@ -106,6 +107,27 @@ MiddleClickAutoscroll::MiddleClickAutoscroll(
 , _timer([=] { onTimer(); }) {
 }
 
+void MiddleClickAutoscroll::toggleOrBeginHold(const QPoint &globalPosition) {
+	if (_active) {
+		stop();
+		return;
+	}
+	_middlePressed = true;
+	_middlePressedAt = crl::now();
+	start(globalPosition);
+}
+
+bool MiddleClickAutoscroll::finishHold(Qt::MouseButton button) {
+	if (!_middlePressed || (button != Qt::MiddleButton)) {
+		return false;
+	}
+	_middlePressed = false;
+	if ((crl::now() - _middlePressedAt) >= kHoldToToggleThreshold) {
+		stop();
+	}
+	return true;
+}
+
 void MiddleClickAutoscroll::start(const QPoint &globalPosition) {
 	if (_active) {
 		stop();
@@ -121,6 +143,7 @@ void MiddleClickAutoscroll::stop() {
 	if (!_active) {
 		return;
 	}
+	_middlePressed = false;
 	_active = false;
 	_timer.cancel();
 	if (_restoreCursor) {

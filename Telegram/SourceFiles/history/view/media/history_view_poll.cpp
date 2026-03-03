@@ -911,7 +911,7 @@ void Poll::paintRecentVoters(
 	pen.setWidth(st::lineWidth);
 
 	auto created = false;
-	for (auto &recent : _recentVoters) {
+	for (const auto &recent : ranges::views::reverse(_recentVoters)) {
 		const auto was = !recent.userpic.null();
 		bool use_default_rounding = FASettings::JsonSettings::GetBool("use_default_rounding");
 		recent.peer->paintUserpic(p, recent.userpic, x, y, size);
