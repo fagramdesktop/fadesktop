@@ -4083,17 +4083,6 @@ void FillSenderUserpicMenu(
 			const auto chat = groupPeer->asChat();
 			const auto megagroup = groupPeer->asMegagroup();
 
-			const auto isMember = [&] {
-				if (chat) {
-					return chat->participants.contains(user);
-				} else if (megagroup && megagroup->mgInfo) {
-					return base::contains(
-						megagroup->mgInfo->lastParticipants,
-						not_null{ user });
-				}
-				return false;
-			}();
-
 			const auto canEditTarget = [&] {
 				if (chat) {
 					if (peerToUser(user->id) == chat->creator) {
@@ -4113,9 +4102,7 @@ void FillSenderUserpicMenu(
 				}
 				return false;
 			}();
-			if (isMember
-				&& groupPeer->canManageRanks()
-				&& canEditTarget) {
+			if (groupPeer->canManageRanks() && canEditTarget) {
 				const auto currentRank = LookupMemberRank(
 					groupPeer,
 					user);
@@ -4143,7 +4130,7 @@ void FillSenderUserpicMenu(
 			const auto canRestrictInChannel = megagroup
 				&& megagroup->canRestrictParticipant(peer);
 
-			if (isMember && (canRestrictInChat || canRestrictInChannel)) {
+			if (canRestrictInChat || canRestrictInChannel) {
 				addAction({ .isSeparator = true });
 
 				addAction({
@@ -4223,10 +4210,6 @@ void FillSenderUserpicMenu(
 					.icon = &st::menuIconBlockAttention,
 					.isAttention = true,
 				});
-			}
-
-			if (!isMember && (canRestrictInChat || canRestrictInChannel)) {
-				addAction({ .isSeparator = true });
 
 				if (megagroup) {
 					addAction(
@@ -4238,22 +4221,9 @@ void FillSenderUserpicMenu(
 						},
 						&st::menuIconUnblock);
 				}
-
-				addAction(
-					tr::lng_context_add_to_group(tr::now),
-					[=] {
-						const auto show = controller->uiShow();
-						groupPeer->session().api().chatParticipants().add(
-							show,
-							groupPeer,
-							{ user },
-							false,
-							nullptr);
-					},
-					&st::menuIconInvite);
 			}
 
-			if (isMember && megagroup && megagroup->canAddAdmins()) {
+			if (megagroup && megagroup->canAddAdmins()) {
 				const auto isAdmin = megagroup->mgInfo
 					&& megagroup->mgInfo->lastAdmins.contains(user);
 				if (isAdmin) {
