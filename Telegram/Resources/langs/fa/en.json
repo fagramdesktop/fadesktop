@@ -128,5 +128,6 @@
   "fa_import_config_restart": "Settings applied successfully. Restart now to apply all changes?",
   "fa_import_config_apply": "Apply",
   "fa_kick_user": "Kick User",
-  "fa_unban_user": "Unban User"
+  "fa_unban_user": "Unban User",
+  "fa_reply_in_private_chat": "Reply in Private Chat"
 }

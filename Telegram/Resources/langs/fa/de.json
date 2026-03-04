@@ -128,5 +128,6 @@
   "fa_import_config_restart": "Einstellungen erfolgreich angewendet. Jetzt neu starten, um alle Änderungen zu übernehmen?",
   "fa_import_config_apply": "Anwenden",
   "fa_kick_user": "Benutzer kicken",
-  "fa_unban_user": "Benutzer entbannen"
+  "fa_unban_user": "Benutzer entbannen",
+  "fa_reply_in_private_chat": "Im privaten Chat antworten"
 }

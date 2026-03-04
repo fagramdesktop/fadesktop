@@ -127,5 +127,6 @@
   "fa_import_config_restart": "Sozlamalar muvaffaqiyatli qo'llanildi. Barcha o'zgarishlar kuchga kirishi uchun ilovani qayta ishga tushirasizmi?",
   "fa_import_config_apply": "Qo'llash",
   "fa_kick_user": "Foydalanuvchini chiqarish",
-  "fa_unban_user": "Foydalanuvchini taqiqdan chiqarish"
+  "fa_unban_user": "Foydalanuvchini taqiqdan chiqarish",
+  "fa_reply_in_private_chat": "Shaxsiy chatda javob berish"
 }

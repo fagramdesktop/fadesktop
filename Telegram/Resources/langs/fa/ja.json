@@ -128,5 +128,6 @@
   "fa_import_config_restart": "設定が正常に適用されました。すべての変更を反映するために、今すぐ再起動しますか？",
   "fa_import_config_apply": "適用",
   "fa_kick_user": "ユーザーをキック",
-  "fa_unban_user": "ユーザーのBAN解除"
+  "fa_unban_user": "ユーザーのBAN解除",
+  "fa_reply_in_private_chat": "プライベートチャットで返信"
 }

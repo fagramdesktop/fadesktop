@@ -7,6 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "fa/ui/history/view/fa_reply_in_private.h"
 
+#include "fa/lang/fa_lang.h"
 #include "fa/settings/fa_settings.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
@@ -16,7 +17,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/history_item.h"
 #include "history/view/history_view_context_menu.h"
 #include "history/view/history_view_list_widget.h"
-#include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "ui/widgets/popup_menu.h"
 #include "window/window_session_controller.h"
@@ -123,7 +123,7 @@ bool AddReplyInPrivateChatAction(
 	const auto controller = list->controller();
 
 	menu->addAction(
-		tr::lng_reply_in_private_chat(tr::now),
+		FAlang::Translate("fa_reply_in_private_chat"),
 		[=] {
 			ReplyInPrivateChat(
 				controller,

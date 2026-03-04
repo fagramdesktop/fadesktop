@@ -3017,7 +3017,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		const auto quote = selected.highlight.quote;
 		const auto quoteOffset = selected.highlight.quoteOffset;
 		_menu->addAction(
-			tr::lng_reply_in_private_chat(tr::now),
+			FAlang::Translate("fa_reply_in_private_chat"),
 			[=, controller = _controller] {
 				const auto history = user->owner().history(user);
 				auto reply = FullReplyTo{

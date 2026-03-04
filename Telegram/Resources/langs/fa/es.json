@@ -128,5 +128,6 @@
   "fa_import_config_restart": "Ajustes aplicados correctamente. ¿Reiniciar ahora para aplicar todos los cambios?",
   "fa_import_config_apply": "Aplicar",
   "fa_kick_user": "Expulsar usuario",
-  "fa_unban_user": "Desbanear usuario"
+  "fa_unban_user": "Desbanear usuario",
+  "fa_reply_in_private_chat": "Responder en chat privado"
 }

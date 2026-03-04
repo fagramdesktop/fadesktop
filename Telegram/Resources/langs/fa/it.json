@@ -128,5 +128,6 @@
   "fa_import_config_restart": "Impostazioni applicate con successo. Riavviare ora per applicare tutte le modifiche?",
   "fa_import_config_apply": "Applica",
   "fa_kick_user": "Espelli utente",
-  "fa_unban_user": "Riammetti utente"
+  "fa_unban_user": "Riammetti utente",
+  "fa_reply_in_private_chat": "Rispondi in chat privata"
 }
