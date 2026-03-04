@@ -216,17 +216,17 @@ namespace Settings {
     	AddButtonWithLabel(
 			container,
 			FAlang::RplTranslate(QString("fa_translation")),
-			rpl::single(QString("Crowdin")),
+			rpl::single(QString("GitHub Localization")),
 			st::settingsButton,
 			{ &st::menuIconTranslate }
 		)->setClickedCallback([=] {
-			UrlClickHandler::Open("https://crowdin.com/project/fagramdesktop");
+			UrlClickHandler::Open("https://github.com/fagramdesktop/localization");
 		});
 
     	AddButtonWithLabel(
 			container,
 			FAlang::RplTranslate(QString("fa_source_code")),
-			rpl::single(QString("Github")),
+			rpl::single(QString("GitHub")),
 			st::settingsButton,
 			{ &st::menuIconLink }
 		)->setClickedCallback([=] {

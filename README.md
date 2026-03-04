@@ -114,7 +114,7 @@ The latest version is available for
 
 > You can help to translate FAgram.
 
-* <h3><b><a href="https://crowdin.com/project/fagramdesktop">Crowdin</a></b></h3>
+* <h3><b><a href="https://github.com/fagramdesktop/localization">GitHub Localization</a></b></h3>
 
 ## <h2><img src="https://github.com/hikariatama/assets/raw/master/1312-micro-sd-card-flat.webp" height="50" align="middle"> Third-party</h2>
 
@@ -144,7 +144,7 @@ The latest version is available for
 
 ## <h2><img src="https://github.com/hikariatama/assets/raw/master/1326-command-window-line-flat.webp" height="50" align="middle"> Build instructions</h2>
 
-* Windows [32-bit](docs/building-win.md) [(64-bit)](docs/building-win-x64.md)
+* [Windows](docs/building-win.md)
 * [macOS](docs/building-mac.md)
 * [GNU/Linux using Docker][linux_build]
 
@@ -169,8 +169,7 @@ The latest version is available for
 [license]: LICENSE
 [win]: https://t.me/FAgramDesktop
 [linux]: https://t.me/FAgramDesktop
-[win32_build]: docs/building-win.md
-[win64_build]: docs/building-win64.md
+[win_build]: docs/building-win.md
 [mac_build]: docs/building-mac.md
 [linux_build]: docs/building-linux.md
 [features]: docs/features.md
