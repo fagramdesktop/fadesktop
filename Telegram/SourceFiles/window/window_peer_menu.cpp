@@ -4133,23 +4133,6 @@ void FillSenderUserpicMenu(
 			if (canRestrictInChat || canRestrictInChannel) {
 				addAction({ .isSeparator = true });
 
-				addAction({
-					.text = tr::lng_context_remove_from_group(tr::now),
-					.handler = [=] {
-						if (chat) {
-							chat->session().api().chatParticipants().kick(
-								chat,
-								peer);
-						} else if (megagroup) {
-							megagroup->session().api().chatParticipants().kick(
-								megagroup,
-								peer,
-								ChatRestrictionsInfo());
-						}
-					},
-					.icon = &st::menuIconRemove,
-				});
-
 				if (megagroup) {
 					addAction({
 						.text = FAlang::Translate(QString("fa_kick_user")),
