@@ -267,7 +267,7 @@ void Folder::paintUserpic(
 		int size,
 		const style::color *overrideBg,
 		const style::color *overrideFg) const {
-	bool use_default_rounding = FASettings::JsonSettings::GetInt("use_default_rounding");
+	bool use_default_rounding = FASettings::JsonSettings::GetBool("use_default_rounding");
 
 	p.setPen(Qt::NoPen);
 	p.setBrush(overrideBg ? *overrideBg : st::historyPeerArchiveUserpicBg);

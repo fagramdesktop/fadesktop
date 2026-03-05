@@ -334,7 +334,8 @@ void SetDebugEnabled(bool enabled) {
 }
 
 bool DebugEnabled() {
-	return FASettings::JsonSettings::GetBool("debug_logs");
+	return DebugModeEnabled
+		|| FASettings::JsonSettings::GetBool("debug_logs");
 }
 
 bool WritingEntry() {

@@ -162,17 +162,22 @@ bool ResolveUser(
 		return true;
 	}
 
+	const auto weak = base::make_weak(controller);
 	searchById(userId,
 			   &controller->session(),
 			   [=](const QString &title, UserData *data)
 			   {
+				   const auto strong = weak.get();
+				   if (!strong) {
+					   return;
+				   }
 				   if (data) {
-					   controller->showPeerInfo(data);
+					   strong->showPeerInfo(data);
 					   return;
 				   }
 
 				   Core::App().hideMediaView();
-				   controller->showToast(FAlang::Translate(QString("fa_not_found")), 500);
+				   strong->showToast(FAlang::Translate(QString("fa_not_found")), 500);
 			   });
 
 	return true;
@@ -191,9 +196,14 @@ bool ResolveUserChat(
 		return false;
 	}
 
+	const auto weak = base::make_weak(controller);
 	const auto openChat = [=](not_null<PeerData*> peer) {
-		controller->showPeerHistory(peer);
-		controller->window().activate();
+		const auto strong = weak.get();
+		if (!strong) {
+			return;
+		}
+		strong->showPeerHistory(peer);
+		strong->window().activate();
 	};
 
 	const auto peer = controller->session().data().peerLoaded(peerFromUser(UserId(userId)));
@@ -211,8 +221,12 @@ bool ResolveUserChat(
 				return;
 			}
 
+			const auto strong = weak.get();
+			if (!strong) {
+				return;
+			}
 			Core::App().hideMediaView();
-			controller->showToast(FAlang::Translate(QString("fa_not_found")), 500);
+			strong->showToast(FAlang::Translate(QString("fa_not_found")), 500);
 		});
 
 	return true;
@@ -233,8 +247,13 @@ bool ResolveChat(
 		return false;
 	}
 
+	const auto weak = base::make_weak(controller);
 	const auto showPeer = [=](not_null<PeerData*> peer) {
-		controller->showPeerInfo(peer);
+		const auto strong = weak.get();
+		if (!strong) {
+			return;
+		}
+		strong->showPeerInfo(peer);
 	};
 
 	if (const auto channel = controller->session().data().channelLoaded(ChannelId(chatId))) {
@@ -250,13 +269,17 @@ bool ResolveChat(
 	searchChannelById(chatId,
 		&controller->session(),
 		[=](ChannelData *data) {
+			const auto strong = weak.get();
+			if (!strong) {
+				return;
+			}
 			if (data) {
-				controller->showPeerInfo(data);
+				strong->showPeerInfo(data);
 				return;
 			}
 
 			Core::App().hideMediaView();
-			controller->showToast(FAlang::Translate(QString("fa_not_found")), 500);
+			strong->showToast(FAlang::Translate(QString("fa_not_found")), 500);
 		});
 
 	return true;
@@ -275,9 +298,14 @@ bool ResolveChatOpen(
 		return false;
 	}
 
+	const auto weak = base::make_weak(controller);
 	const auto openChat = [=](not_null<PeerData*> peer) {
-		controller->showPeerHistory(peer);
-		controller->window().activate();
+		const auto strong = weak.get();
+		if (!strong) {
+			return;
+		}
+		strong->showPeerHistory(peer);
+		strong->window().activate();
 	};
 
 	if (const auto channel = controller->session().data().channelLoaded(ChannelId(chatId))) {
@@ -293,13 +321,17 @@ bool ResolveChatOpen(
 	searchChannelById(chatId,
 		&controller->session(),
 		[=](ChannelData *data) {
+			const auto strong = weak.get();
+			if (!strong) {
+				return;
+			}
 			if (data) {
 				openChat(data);
 				return;
 			}
 
 			Core::App().hideMediaView();
-			controller->showToast(FAlang::Translate(QString("fa_not_found")), 500);
+			strong->showToast(FAlang::Translate(QString("fa_not_found")), 500);
 		});
 
 	return true;

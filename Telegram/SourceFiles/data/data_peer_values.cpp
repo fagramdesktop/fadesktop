@@ -406,12 +406,19 @@ rpl::producer<bool> PeerPremiumValue(not_null<PeerData*> peer) {
 }
 
 rpl::producer<bool> AmPremiumValue(not_null<Main::Session*> session) {
-	bool local_premium = FASettings::JsonSettings::GetBool("local_premium");
-	if (local_premium) {
-		return rpl::single(true);
-	}
-
-	return PeerPremiumValue(session->user());
+	auto localPremium = rpl::single(
+		FASettings::JsonSettings::GetBool("local_premium")
+	) | rpl::then(
+		FASettings::JsonSettings::Events("local_premium") | rpl::map([](const QString &) {
+			return FASettings::JsonSettings::GetBool("local_premium");
+		})
+	);
+	return rpl::combine(
+		std::move(localPremium),
+		PeerPremiumValue(session->user())
+	) | rpl::map([](bool local, bool actual) {
+		return local || actual;
+	}) | rpl::distinct_until_changed();
 }
 
 TimeId SortByOnlineValue(not_null<UserData*> user, TimeId now) {

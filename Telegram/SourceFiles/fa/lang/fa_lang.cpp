@@ -99,9 +99,11 @@ void Load(const QString &baseLangCode, const QString &lang_code) {
         ? mutableBaseLangCode
         : mutableLangCode;
 
+    QMutexLocker locker(&cacheMutex);
     if (newLangCode != langCode) {
         langCode = newLangCode;
-        InvalidateCache();
+        translationsCache.clear();
+        cacheLoaded = false;
     }
 }
 

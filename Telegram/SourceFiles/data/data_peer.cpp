@@ -556,20 +556,7 @@ void PeerData::paintUserpic(
 		p.drawImage(x, y, image);
 		p.restore();
 	}
-	if (context.shape == Ui::PeerUserpicShape::Auto) {
-		context.shape = (isForum() && !isBot())
-			? Ui::PeerUserpicShape::Forum
-			: isMonoforum()
-			? Ui::PeerUserpicShape::Monoforum
-			: Ui::PeerUserpicShape::Circle;
-	}
-	Ui::ValidateUserpicCache(
-		view,
-		shouldLoad ? cloud : nullptr,
-		shouldLoad ? nullptr : ensureEmptyUserpic().get(),
-		size * ratio,
-		context.shape);
-	p.drawImage(QRect(context.position, QSize(size, size)), view.cached);
+	return;
 }
 
 void PeerData::loadUserpic() {
@@ -1484,7 +1471,7 @@ const QString &PeerData::topBarNameText() const {
 		if (!_fakeName.isEmpty()) {
 			return _fakeName;
 		}
-		return _fakeName.append(isUser()
+		_fakeName = QString(isUser()
 			? (asUser()->isBot() ? "Bot " : "User ")
 			: isBroadcast()
 			? "Channel "
@@ -1493,7 +1480,8 @@ const QString &PeerData::topBarNameText() const {
 			: isMegagroup()
 			? "Group "
 			: "Chat ")
-			.append(QString::number(_randomNumber));
+			+ QString::number(_randomNumber);
+		return _fakeName;
 	}
 	return _name;
 }
@@ -1516,7 +1504,7 @@ const QString &PeerData::screenshotModeName() const {
 	if (!_fakeName.isEmpty()) {
 		return _fakeName;
 	}
-	return _fakeName.append(isUser()
+	_fakeName = QString(isUser()
 		? (asUser()->isBot() ? "Bot " : "User ")
 		: isBroadcast()
 		? "Channel "
@@ -1525,7 +1513,8 @@ const QString &PeerData::screenshotModeName() const {
 		: isMegagroup()
 		? "Group "
 		: "Chat ")
-		.append(QString::number(_randomNumber));
+		+ QString::number(_randomNumber);
+	return _fakeName;
 }
 
 namespace {
@@ -1569,7 +1558,7 @@ const QString &PeerData::name() const {
 		if (!_fakeName.isEmpty()) {
 			return _fakeName;
 		}
-		return _fakeName.append(isUser()
+		_fakeName = QString(isUser()
 				? (asUser()->isBot() ? "Bot " : "User ")
 				: isBroadcast()
 				? "Channel "
@@ -1578,7 +1567,8 @@ const QString &PeerData::name() const {
 				: isMegagroup()
 				? "Group "
 				: "Chat ")
-			.append(QString::number(_randomNumber));
+			+ QString::number(_randomNumber);
+		return _fakeName;
 	}
 	return _name;
 }
@@ -1602,7 +1592,7 @@ const QString &PeerData::shortName() const {
 			if (!_fakeName.isEmpty()) {
 				return _fakeName;
 			}
-			return _fakeName.append(isUser()
+			_fakeName = QString(isUser()
 					? (asUser()->isBot() ? "Bot " : "User ")
 					: isBroadcast()
 					? "Channel "
@@ -1611,7 +1601,8 @@ const QString &PeerData::shortName() const {
 					: isMegagroup()
 					? "Group "
 					: "Chat ")
-				.append(QString::number(_randomNumber));
+				+ QString::number(_randomNumber);
+			return _fakeName;
 		}
 	}
 	if (const auto user = asUser()) {

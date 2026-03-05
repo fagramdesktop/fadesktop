@@ -246,11 +246,10 @@ void ActionStickerPackAuthor::searchAuthor(ID authorId) {
 							   }
 						   });
 
-					   crl::on_main(
-						   [=]
+					   crl::on_main(crl::guard(pointer, [=]
 						   {
 							   update();
-						   });
+						   }));
 					   return;
 				   }
 
@@ -271,11 +270,10 @@ void ActionStickerPackAuthor::searchAuthor(ID authorId) {
 				   setActionTriggered(callback);
 
 				   _subText = QString(title);
-				   crl::on_main(
-					   [=]
+				   crl::on_main(crl::guard(pointer, [=]
 					   {
 						   update();
-					   });
+					   }));
 			   });
 }
 

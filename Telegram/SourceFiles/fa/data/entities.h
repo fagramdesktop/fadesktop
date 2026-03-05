@@ -12,7 +12,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include <string>
 
-#define ID long long
+using ID = long long;
 
 template<typename TableName>
 class FAMessageBase
