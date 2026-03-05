@@ -88,6 +88,7 @@
 - Hide sidebar tab titles
 - Auto-parse markdown hyperlinks
 - Import/Export FAsettings
+- Extended peer menu options
 
 </details>
 

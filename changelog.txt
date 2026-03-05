@@ -1,3 +1,10 @@
+2.2.0 (05.03.26)
+
+- Updated tdesktop to v6.6.2
+- Extended peer menu options
+- Fixed FAlang translation implementation
+- Bug fixes
+
 2.1.9 (02.03.26)
 
 - Updated tdesktop to v6.6.0
