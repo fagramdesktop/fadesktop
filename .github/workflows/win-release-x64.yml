@@ -15,6 +15,10 @@ on:
         options:
           - ci
           - rel
+      libs_run_id:
+        description: "Run ID to reuse libraries from (skip rebuild)"
+        type: string
+        required: false
   workflow_call:
     inputs:
       tagname:
@@ -31,10 +35,15 @@ on:
         type: boolean
         required: false
         default: false
+      libs_run_id:
+        description: "Run ID to reuse libraries from (skip rebuild)"
+        type: string
+        required: false
 
 jobs:
   prepare-libraries:
     name: Prepare Libraries
+    if: ${{ !inputs.libs_run_id }}
     runs-on: windows-latest
 
     env:
@@ -113,7 +122,7 @@ jobs:
         with:
           name: libraries-x64
           path: ${{ env.TBUILD }}/Libraries
-          retention-days: 1
+          retention-days: 90
           compression-level: 1
 
       - name: Upload ThirdParty
@@ -121,13 +130,14 @@ jobs:
         with:
           name: thirdparty-x64
           path: ${{ env.TBUILD }}/ThirdParty
-          retention-days: 1
+          retention-days: 90
           compression-level: 1
 
   build-fagram:
     name: Build FAgram Desktop
     runs-on: windows-latest
     needs: prepare-libraries
+    if: ${{ !cancelled() && (needs.prepare-libraries.result == 'success' || needs.prepare-libraries.result == 'skipped') }}
 
     outputs:
       app_version_str: ${{ steps.version.outputs.app_version_str }}
@@ -180,12 +190,16 @@ jobs:
         with:
           name: libraries-x64
           path: ${{ env.TBUILD }}/Libraries
+          run-id: ${{ inputs.libs_run_id || github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download ThirdParty
         uses: actions/download-artifact@v8
         with:
           name: thirdparty-x64
           path: ${{ env.TBUILD }}/ThirdParty
+          run-id: ${{ inputs.libs_run_id || github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Configuration
         shell: bash
@@ -207,6 +221,8 @@ jobs:
           -D CMAKE_CONFIGURATION_TYPES=Release ^
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT= ^
           -D CMAKE_LINKER_TYPE=LLD ^
+          -D CMAKE_EXE_LINKER_FLAGS="/FORCE:MULTIPLE" ^
+          -D CMAKE_SHARED_LINKER_FLAGS="/FORCE:MULTIPLE" ^
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF
 

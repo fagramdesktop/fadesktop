@@ -15,6 +15,10 @@ on:
         options:
           - ci
           - rel
+      libs_run_id:
+        description: "Run ID to reuse Windows libraries from (skip rebuild)"
+        type: string
+        required: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -37,6 +41,7 @@ jobs:
       tagname: ${{ inputs.tagname }}
       build_type: ${{ inputs.build_type }}
       skip_upload: true
+      libs_run_id: ${{ inputs.libs_run_id }}
     secrets: inherit
 
   upload-telegram:
