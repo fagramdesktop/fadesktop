@@ -74,18 +74,18 @@ QString getIpDC(int dc_id, bool test);
 
 void cleanDebugLogs();
 
-bool is_me(ID userId);
+bool is_me(FaID userId);
 
 void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item);
 
-ID getUserIdFromPackId(uint64 id);
+FaID getUserIdFromPackId(uint64 id);
 QString formatDateTime(const QDateTime &date);
 QString getLocalizedAt();
 
-void searchById(ID userId, Main::Session *session, bool retry, const Callback &callback);
-void searchById(ID userId, Main::Session *session, const Callback &callback);
+void searchById(FaID userId, Main::Session *session, bool retry, const Callback &callback);
+void searchById(FaID userId, Main::Session *session, const Callback &callback);
 
-void searchChannelById(ID channelId, Main::Session *session, const ChannelCallback &callback);
+void searchChannelById(FaID channelId, Main::Session *session, const ChannelCallback &callback);
 
 // Blocked user message hiding feature
 [[nodiscard]] bool shouldHideBlockedUserMessage(PeerData *from);

@@ -12,32 +12,32 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include <string>
 
-using ID = long long;
+using FaID = long long;
 
 template<typename TableName>
 class FAMessageBase
 {
 public:
-	ID fakeId;
-	ID userId;
-	ID dialogId;
-	ID groupedId;
-	ID peerId;
-	ID fromId;
-	ID topicId;
+	FaID fakeId;
+	FaID userId;
+	FaID dialogId;
+	FaID groupedId;
+	FaID peerId;
+	FaID fromId;
+	FaID topicId;
 	int messageId;
 	int date;
 	int flags;
 	int editDate;
 	int views;
 	int fwdFlags;
-	ID fwdFromId;
+	FaID fwdFromId;
 	std::string fwdName;
 	int fwdDate;
 	std::string fwdPostAuthor;
 	int replyFlags;
 	int replyMessageId;
-	ID replyPeerId;
+	FaID replyPeerId;
 	int replyTopId;
 	bool replyForumTopic;
 	std::vector<char> replySerialized;
@@ -60,9 +60,9 @@ using EditedMessage = FAMessageBase<struct EditedMessageTag>;
 class SpyMessageRead
 {
 public:
-	ID fakeId;
-	ID userId;
-	ID dialogId;
+	FaID fakeId;
+	FaID userId;
+	FaID dialogId;
 	int messageId;
 	int entityCreateDate;
 };
@@ -70,9 +70,9 @@ public:
 class SpyMessageContentsRead
 {
 public:
-	ID fakeId;
-	ID userId;
-	ID dialogId;
+	FaID fakeId;
+	FaID userId;
+	FaID dialogId;
 	int messageId;
 	int entityCreateDate;
 };

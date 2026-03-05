@@ -31,7 +31,7 @@ constexpr size_t kMaxOnlineStateEntries = 100;
 
 class OnlineStateLRUCache {
 public:
-	void put(ID key, bool value) {
+	void put(FaID key, bool value) {
 		auto it = _map.find(key);
 		if (it != _map.end()) {
 			_list.erase(it->second);
@@ -48,7 +48,7 @@ public:
 		}
 	}
 
-	[[nodiscard]] std::optional<bool> get(ID key) {
+	[[nodiscard]] std::optional<bool> get(FaID key) {
 		auto it = _map.find(key);
 		if (it == _map.end()) {
 			return std::nullopt;
@@ -57,13 +57,13 @@ public:
 		return it->second->second;
 	}
 
-	[[nodiscard]] bool contains(ID key) const {
+	[[nodiscard]] bool contains(FaID key) const {
 		return _map.find(key) != _map.end();
 	}
 
 private:
-	std::list<std::pair<ID, bool>> _list;
-	std::unordered_map<ID, std::list<std::pair<ID, bool>>::iterator> _map;
+	std::list<std::pair<FaID, bool>> _list;
+	std::unordered_map<FaID, std::list<std::pair<FaID, bool>>::iterator> _map;
 };
 
 OnlineStateLRUCache onlineStateCache;
@@ -349,7 +349,7 @@ void cleanDebugLogs() {
     return;
 }
 
-bool is_me(ID userId) {
+bool is_me(FaID userId) {
     for (const auto &accountWithIndex : Core::App().domain().accounts()) {
         if (const auto *account = accountWithIndex.account.get()) {
             if (const auto *session = account->maybeSession()) {
@@ -679,7 +679,7 @@ void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 }
 
 
-ID getUserIdFromPackId(uint64 id) {
+FaID getUserIdFromPackId(uint64 id) {
 	auto ownerId = id >> 32;
 	if ((id >> 16 & 0xff) == 0x3f) {
 		ownerId |= 0x80000000;
@@ -711,7 +711,7 @@ QString getLocalizedAt() {
 }
 
 // thx ayugram
-void resolveUser(ID userId, const QString &username, Main::Session *session, const Callback &callback) {
+void resolveUser(FaID userId, const QString &username, Main::Session *session, const Callback &callback) {
 	auto normalized = username.trimmed().toLower();
 	if (normalized.isEmpty()) {
 		callback(QString(), nullptr);
@@ -839,7 +839,7 @@ void searchUser(long long userId, Main::Session *session, bool searchUserFlag, c
 				continue;
 			}
 
-			ID id = 0; // 🆔
+			FaID id = 0; // 🆔
 			QString title; // 🏷
 			QString username; // 📧
 
@@ -889,7 +889,7 @@ void searchUser(long long userId, Main::Session *session, bool searchUserFlag, c
 }
 
 // thx ayugram
-void searchById(ID userId, Main::Session *session, const Callback &callback) {
+void searchById(FaID userId, Main::Session *session, const Callback &callback) {
 	if (userId == 0 || !session) {
 		callback(QString(), nullptr);
 		return;
@@ -913,7 +913,7 @@ void searchById(ID userId, Main::Session *session, const Callback &callback) {
 			   });
 }
 
-void searchChannelById(ID channelId, Main::Session *session, const ChannelCallback &callback) {
+void searchChannelById(FaID channelId, Main::Session *session, const ChannelCallback &callback) {
 	if (channelId == 0 || !session) {
 		callback(nullptr);
 		return;

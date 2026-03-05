@@ -71,12 +71,12 @@ protected:
 class ActionStickerPackAuthor final : public ActionWithSubText, public base::has_weak_ptr
 {
 public:
-	ActionStickerPackAuthor(not_null<Menu::Menu*> menu, not_null<Main::Session*> session, ID authorId);
+	ActionStickerPackAuthor(not_null<Menu::Menu*> menu, not_null<Main::Session*> session, FaID authorId);
 
 private:
 	not_null<Main::Session*> _session;
 
-	void searchAuthor(ID authorId);
+	void searchAuthor(FaID authorId);
 };
 
 TextParseOptions MenuTextOptions = {
@@ -210,7 +210,7 @@ void ActionWithSubText::handleKeyPress(not_null<QKeyEvent*> e) {
 
 ActionStickerPackAuthor::ActionStickerPackAuthor(not_null<Menu::Menu*> menu,
 												 not_null<Main::Session*> session,
-												 ID authorId)
+												 FaID authorId)
 	: ActionWithSubText(menu,
 						menu->st(),
 						st::menuIconStickers,
@@ -223,7 +223,7 @@ ActionStickerPackAuthor::ActionStickerPackAuthor(not_null<Menu::Menu*> menu,
 	searchAuthor(authorId);
 }
 
-void ActionStickerPackAuthor::searchAuthor(ID authorId) {
+void ActionStickerPackAuthor::searchAuthor(FaID authorId) {
 	const auto pointer = base::make_weak(this);
 	searchById(authorId,
 			   _session,
@@ -304,7 +304,7 @@ base::unique_qptr<Menu::ItemBase> ContextActionWithSubText(
 base::unique_qptr<Menu::ItemBase> ContextActionStickerAuthor(
 	not_null<Menu::Menu*> menu,
 	not_null<Main::Session*> session,
-	ID authorId) {
+	FaID authorId) {
 	return base::make_unique_q<ActionStickerPackAuthor>(menu, session, authorId);
 }
 
