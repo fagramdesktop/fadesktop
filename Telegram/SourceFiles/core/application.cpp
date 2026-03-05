@@ -267,7 +267,7 @@ void Application::run() {
 	FAlang::Load(Lang::GetInstance().baseId(), Lang::GetInstance().id());
 
 	Lang::GetInstance().updated(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		FAlang::Load(Lang::GetInstance().baseId(), Lang::GetInstance().id());
 	}, _lifetime);
 
