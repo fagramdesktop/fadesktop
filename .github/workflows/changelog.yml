@@ -3,6 +3,11 @@ name: Changelog
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      tagname:
+        description: "Tag name for the release"
+        type: string
+        required: false
 
 permissions:
   contents: read
