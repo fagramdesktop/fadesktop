@@ -159,10 +159,10 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install pyrofork tgcrypto
+        run: pip install kurigram tgcrypto
 
       - name: Download Linux artifact
         uses: actions/download-artifact@v8
