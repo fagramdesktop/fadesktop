@@ -86,6 +86,7 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			"- Updated tdesktop to v6.6.2\n"
 			"- Extended peer menu options\n"
 			"- Fixed FAlang translation implementation\n"
+			"- Updated FAgram codebase\n"
 			"- Bug fixes\n\n"
 			"@FAgramDesktop\n"
 		},

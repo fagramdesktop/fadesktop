@@ -3,6 +3,7 @@
 - Updated tdesktop to v6.6.2
 - Extended peer menu options
 - Fixed FAlang translation implementation
+- Updated FAgram codebase
 - Bug fixes
 
 2.1.9 (02.03.26)
