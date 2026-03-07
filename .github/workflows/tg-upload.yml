@@ -1,6 +1,24 @@
 name: Upload to Telegram
 
 on:
+  workflow_dispatch:
+    inputs:
+      tagname:
+        description: "Release tag name"
+        type: string
+        required: true
+      run_id:
+        description: "Workflow run ID to download artifacts from"
+        type: string
+        required: true
+      build_type:
+        description: "Build type (ci or rel)"
+        type: choice
+        required: true
+        default: "ci"
+        options:
+          - ci
+          - rel
   workflow_call:
     inputs:
       tagname:
