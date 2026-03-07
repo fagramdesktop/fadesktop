@@ -8,11 +8,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #pragma once
 
-#include <QtCore/QString>
-
 namespace FAIcons {
 
-[[nodiscard]] QString MiconPath(const QString &name);
-[[nodiscard]] bool UseCustomIconPack();
+void InitIconPack();
 
 } // namespace FAIcons

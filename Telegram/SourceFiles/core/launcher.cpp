@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/launcher.h"
 
 #include "fa/settings/fa_settings.h"
+#include "fa/utils/fa_icon_pack.h"
 #include "platform/platform_launcher.h"
 #include "platform/platform_specific.h"
 #include "base/options.h"
@@ -390,6 +391,7 @@ int Launcher::exec() {
 	Logs::start();
 	base::options::init(cWorkingDir() + "tdata/experimental_options.json");
 	FASettings::JsonSettings::Load();
+	FAIcons::InitIconPack();
 
 	// Must be called after options are inited.
 	initHighDpi();

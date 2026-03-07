@@ -1914,7 +1914,6 @@ PRIVATE
     qrc/telegram/picker.qrc
     qrc/telegram/telegram.qrc
     qrc/telegram/sounds.qrc
-    qrc/fa_micons.qrc
     winrc/Telegram.rc
     winrc/Telegram.manifest
     langs/lang.strings

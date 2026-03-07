@@ -9,23 +9,14 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/utils/fa_icon_pack.h"
 
 #include "fa/settings/fa_settings.h"
-
-#include <QtCore/QFile>
+#include "ui/style/style_core_icon.h"
 
 namespace FAIcons {
 
-bool UseCustomIconPack() {
-	return FASettings::JsonSettings::GetBool("use_custom_icon_pack");
-}
-
-QString MiconPath(const QString &name) {
-	if (UseCustomIconPack()) {
-		const auto custom = u":/fa/micons/"_q + name;
-		if (QFile::exists(custom)) {
-			return custom;
-		}
+void InitIconPack() {
+	if (FASettings::JsonSettings::GetBool("use_custom_icon_pack")) {
+		style::internal::SetUseIconOverride(true);
 	}
-	return u":/icons/"_q + name;
 }
 
 } // namespace FAIcons
