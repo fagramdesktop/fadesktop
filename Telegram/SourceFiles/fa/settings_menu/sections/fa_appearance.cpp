@@ -182,6 +182,28 @@ namespace Settings {
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_folder_tabs_titles_desc")));
 		SettingsMenuJsonSwitch(fa_use_tdesktop_themes, use_tdesktop_themes);
 		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_use_tdesktop_themes_desc")));
+		container->add(object_ptr<Button>(
+			container,
+			FAlang::RplTranslate(QString("fa_use_custom_icon_pack")),
+			st::settingsButtonNoIcon
+		))->toggleOn(
+			rpl::single(::FASettings::JsonSettings::GetBool("use_custom_icon_pack"))
+		)->toggledValue(
+		) | rpl::filter([](bool enabled) {
+			return (enabled != ::FASettings::JsonSettings::GetBool("use_custom_icon_pack"));
+		}) | rpl::on_next([=](bool enabled) {
+			::FASettings::JsonSettings::Set("use_custom_icon_pack", enabled);
+			::FASettings::JsonSettings::Write();
+			controller->show(Ui::MakeConfirmBox({
+				.text = FAlang::RplTranslate(QString("fa_icon_pack_restart_prompt")),
+				.confirmed = [=] {
+					::Core::Restart();
+				},
+				.confirmText = FAlang::RplTranslate(QString("fa_icon_pack_restart_now")),
+				.cancelText = FAlang::RplTranslate(QString("fa_icon_pack_restart_later")),
+			}));
+		}, container->lifetime());
+		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_use_custom_icon_pack_desc")));
     }
 
     void FAAppearance::SetupFAAppearance(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

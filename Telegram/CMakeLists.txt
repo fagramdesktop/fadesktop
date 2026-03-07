@@ -805,6 +805,8 @@ PRIVATE
     fa/utils/telegram_helpers.h
     fa/utils/fa_profile_values.cpp
     fa/utils/fa_profile_values.h
+    fa/utils/fa_icon_pack.cpp
+    fa/utils/fa_icon_pack.h
     fa/settings_menu/fa_settings_menu.cpp
     fa/settings_menu/fa_settings_menu.h
     fa/settings_menu/fa_settings_builder.cpp
@@ -1912,6 +1914,7 @@ PRIVATE
     qrc/telegram/picker.qrc
     qrc/telegram/telegram.qrc
     qrc/telegram/sounds.qrc
+    qrc/fa_micons.qrc
     winrc/Telegram.rc
     winrc/Telegram.manifest
     langs/lang.strings
