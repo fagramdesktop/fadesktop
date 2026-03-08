@@ -88,7 +88,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $modulesDir
           
           # Download from NuGet package (official Microsoft source)
-          $nugetUrl = "https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.614.1"
+          $nugetUrl = "https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.619.1"
           $tempZip = "$env:TEMP\d3d12.zip"
           $tempExtract = "$env:TEMP\d3d12"
           
