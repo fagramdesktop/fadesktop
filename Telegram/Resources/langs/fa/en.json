@@ -124,7 +124,7 @@
   "fa_use_tdesktop_themes_desc": "Replaces Material You themes (Day/Tinted) with the original Telegram Desktop themes (Day Blue/Night)",
   "fa_use_custom_icon_pack": "Use Material Icons",
   "fa_use_custom_icon_pack_desc": "Replaces the default icons with the Material Icons. Requires restart.",
-  "fa_icon_pack_restart_prompt": "Restart required to apply changes. Restart now?",
+  "fa_icon_pack_restart_prompt": "Restart to apply changes?",
   "fa_icon_pack_restart_now": "Restart Now",
   "fa_icon_pack_restart_later": "Later",
   "fa_share_settings_to_chat": "Share Settings",

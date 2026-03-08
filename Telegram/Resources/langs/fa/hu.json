@@ -129,5 +129,10 @@
   "fa_import_config_apply": "Alkalmaz",
   "fa_kick_user": "Felhasználó kirúgása",
   "fa_unban_user": "Felhasználó kitiltásának feloldása",
-  "fa_reply_in_private_chat": "Válasz privát csevegésben"
+  "fa_reply_in_private_chat": "Válasz privát csevegésben",
+  "fa_use_custom_icon_pack": "Material Icons használata",
+  "fa_use_custom_icon_pack_desc": "Lecseréli az alapértelmezett ikonokat Material Icons-ra. Újraindítást igényel.",
+  "fa_icon_pack_restart_prompt": "Újraindítja a változtatások alkalmazásához?",
+  "fa_icon_pack_restart_now": "Újraindítás most",
+  "fa_icon_pack_restart_later": "Később"
 }

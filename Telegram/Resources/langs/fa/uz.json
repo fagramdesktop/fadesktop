@@ -119,6 +119,7 @@
   "fa_shortcut_customization_desc": "Kontekst menyusidagi yorliq tugmalarining ko'rinishini moslashtiring",
   "fa_reset_to_default": "Standart holatga qaytarish",
   "fa_hide_folder_tabs_titles": "Papka yorliqlari nomlarini yashirish",
+  "fa_hide_folder_tabs_titles_desc": "Yon panelda papka piktogrammalari ostidagi matnli yorliqlarni yashiradi va faqat piktogrammalarni ko'rsatadi",
   "fa_use_tdesktop_themes": "TDesktop standart mavzularidan foydalanish",
   "fa_use_tdesktop_themes_desc": "Material You (Kunduzgi/Rangli) mavzularini Telegram Desktop'ning original (Day Blue/Night) mavzulariga almashtiradi",
   "fa_share_settings_to_chat": "Sozlamalarni ulashish",
@@ -128,5 +129,10 @@
   "fa_import_config_apply": "Qo'llash",
   "fa_kick_user": "Foydalanuvchini chiqarish",
   "fa_unban_user": "Foydalanuvchini taqiqdan chiqarish",
-  "fa_reply_in_private_chat": "Shaxsiy chatda javob berish"
+  "fa_reply_in_private_chat": "Shaxsiy chatda javob berish",
+  "fa_use_custom_icon_pack": "Material Icons dan foydalanish",
+  "fa_use_custom_icon_pack_desc": "Standart piktogrammalarni Material Icons ga almashtiradi. Qayta ishga tushirish talab qilinadi.",
+  "fa_icon_pack_restart_prompt": "O'zgarishlarni qo'llash uchun qayta ishga tushirilsinmi?",
+  "fa_icon_pack_restart_now": "Hozir qayta ishga tushirish",
+  "fa_icon_pack_restart_later": "Keyinroq"
 }

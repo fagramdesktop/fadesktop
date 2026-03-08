@@ -129,5 +129,10 @@
   "fa_import_config_apply": "Aplicar",
   "fa_kick_user": "Expulsar usuario",
   "fa_unban_user": "Desbanear usuario",
-  "fa_reply_in_private_chat": "Responder en chat privado"
+  "fa_reply_in_private_chat": "Responder en chat privado",
+  "fa_use_custom_icon_pack": "Usar Material Icons",
+  "fa_use_custom_icon_pack_desc": "Reemplaza los iconos predeterminados por los Material Icons. Requiere reinicio.",
+  "fa_icon_pack_restart_prompt": "¿Reiniciar para aplicar los cambios?",
+  "fa_icon_pack_restart_now": "Reiniciar ahora",
+  "fa_icon_pack_restart_later": "Más tarde"
 }

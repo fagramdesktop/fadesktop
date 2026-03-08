@@ -129,5 +129,10 @@
   "fa_import_config_apply": "Anwenden",
   "fa_kick_user": "Benutzer kicken",
   "fa_unban_user": "Benutzer entbannen",
-  "fa_reply_in_private_chat": "Im privaten Chat antworten"
+  "fa_reply_in_private_chat": "Im privaten Chat antworten",
+  "fa_use_custom_icon_pack": "Material Icons verwenden",
+  "fa_use_custom_icon_pack_desc": "Ersetzt die Standard-Icons durch die Material Icons. Neustart erforderlich.",
+  "fa_icon_pack_restart_prompt": "Neustart durchführen, um Änderungen zu übernehmen?",
+  "fa_icon_pack_restart_now": "Jetzt neu starten",
+  "fa_icon_pack_restart_later": "Später"
 }

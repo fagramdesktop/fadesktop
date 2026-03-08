@@ -129,5 +129,10 @@
   "fa_import_config_apply": "Применить",
   "fa_kick_user": "Кикнуть пользователя",
   "fa_unban_user": "Разбанить пользователя",
-  "fa_reply_in_private_chat": "Ответить в личном чате"
+  "fa_reply_in_private_chat": "Ответить в личном чате",
+  "fa_use_custom_icon_pack": "Использовать Material Icons",
+  "fa_use_custom_icon_pack_desc": "Заменяет стандартные иконки на Material Icons. Требуется перезапуск.",
+  "fa_icon_pack_restart_prompt": "Перезапустить, чтобы применить изменения?",
+  "fa_icon_pack_restart_now": "Перезапустить сейчас",
+  "fa_icon_pack_restart_later": "Позже"
 }
