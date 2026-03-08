@@ -1,3 +1,10 @@
+2.2.1 (08.03.26)
+
+- Material Icons option
+- Updated translations
+- Fixed peer menu options
+- Bug fixes
+
 2.2.0 (05.03.26)
 
 - Updated tdesktop to v6.6.2

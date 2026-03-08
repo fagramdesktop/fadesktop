@@ -90,6 +90,14 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			"- Bug fixes\n\n"
 			"@FAgramDesktop\n"
 		},
+		{
+			2002001,
+			"- Material Icons option\n"
+			"- Updated translations\n"
+			"- Fixed peer menu options\n"
+			"- Bug fixes\n\n"
+			"@FAgramDesktop\n"
+		},
 	};
 	return entries;
 }
