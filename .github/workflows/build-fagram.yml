@@ -58,14 +58,14 @@ jobs:
     name: Changelog
     needs: [build-linux, build-windows]
     if: inputs.build_type == 'rel'
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    uses: ./.github/workflows/changelog.yml
-    with:
-      tagname: ${{ inputs.tagname }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger changelog workflow on dev branch
+        run: |
+          gh workflow run changelog.yml --ref dev
+        env:
+          GH_TOKEN: ${{ secrets.ARPAT }}
+          GH_REPO: ${{ github.repository }}
 
   create-release:
     name: Create Release
