@@ -4133,10 +4133,31 @@ void FillSenderUserpicMenu(
 			if (canRestrictInChat || canRestrictInChannel) {
 				addAction({ .isSeparator = true });
 
-				if (megagroup) {
-					addAction({
-						.text = FAlang::Translate(QString("fa_kick_user")),
-						.handler = [=] {
+				addAction({
+					.text = tr::lng_context_remove_from_group(tr::now),
+					.handler = [=] {
+						if (chat) {
+							chat->session().api().chatParticipants().kick(
+								chat,
+								peer);
+						} else if (megagroup) {
+							megagroup->session().api().chatParticipants().kick(
+								megagroup,
+								peer,
+								ChatRestrictionsInfo());
+						}
+					},
+					.icon = &st::menuIconRemove,
+				});
+
+				addAction({
+					.text = FAlang::Translate(QString("fa_kick_user")),
+					.handler = [=] {
+						if (chat) {
+							chat->session().api().chatParticipants().kick(
+								chat,
+								peer);
+						} else if (megagroup) {
 							const auto rights = ChannelData::KickedRestrictedRights(peer);
 							megagroup->session().api().request(MTPchannels_EditBanned(
 								megagroup->inputChannel(),
@@ -4152,16 +4173,16 @@ void FillSenderUserpicMenu(
 									megagroup->session().api().applyUpdates(result);
 								}).send();
 							}).send();
-						},
-						.icon = &st::menuIconRemove,
-					});
-				}
+						}
+					},
+					.icon = &st::menuIconRemove,
+				});
 
 				if (megagroup
 					&& megagroup->isMegagroup()
 					&& !megagroup->isGigagroup()) {
 					addAction(
-						tr::lng_context_restrict_user(tr::now),
+						tr::lng_rights_user_restrictions(tr::now),
 						[=] {
 							controller->show(
 								Box<EditRestrictedBox>(
