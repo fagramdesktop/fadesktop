@@ -11,7 +11,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "fa/ui/history/view/fa_context_menu_shortcuts.h"
 #include "fa/ui/history/view/fa_reply_in_private.h"
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 
 #include "api/api_attached_stickers.h"
 #include "api/api_editing.h"
@@ -421,7 +421,7 @@ bool AddForwardSelectedAction(
 		const auto submenu = menu->ensureSubmenu(forwardAction, st::faContextMenu);
 
 		submenu->addAction(
-			FAlang::Translate("fa_forward_with_author"),
+			fatr::fa_forward_with_author(fatr::now),
 			[=] {
 				auto idsCopy = ids;
 				Window::ShowForwardMessagesBox(navigation, std::move(idsCopy), callback);
@@ -429,7 +429,7 @@ bool AddForwardSelectedAction(
 			&st::menuIconForward);
 
 		submenu->addAction(
-			FAlang::Translate("fa_forward_as_copy"),
+			fatr::fa_forward_as_copy(fatr::now),
 			[=] {
 				auto draft = Data::ForwardDraft{
 					.ids = ids,
@@ -441,7 +441,7 @@ bool AddForwardSelectedAction(
 
 		if (hasMediaWithCaption) {
 			submenu->addAction(
-				FAlang::Translate("fa_forward_without_caption"),
+				fatr::fa_forward_without_caption(fatr::now),
 				[=] {
 					auto draft = Data::ForwardDraft{
 						.ids = ids,
@@ -453,7 +453,7 @@ bool AddForwardSelectedAction(
 		}
 
 		submenu->addAction(
-			FAlang::Translate("fa_forward_to_saved"),
+			fatr::fa_forward_to_saved(fatr::now),
 			[=] {
 				auto draft = Data::ForwardDraft{ .ids = ids };
 				Window::ForwardToSelf(navigation->uiShow(), draft);
@@ -462,7 +462,7 @@ bool AddForwardSelectedAction(
 			&st::menuIconSavedMessages);
 
 		submenu->addAction(
-			FAlang::Translate("fa_forward_to_saved_as_copy"),
+			fatr::fa_forward_to_saved_as_copy(fatr::now),
 			[=] {
 				auto draft = Data::ForwardDraft{
 					.ids = ids,
@@ -532,14 +532,14 @@ bool AddForwardMessageAction(
 		const auto submenu = menu->ensureSubmenu(forwardAction, st::faContextMenu);
 
 		submenu->addAction(
-			FAlang::Translate("fa_forward_with_author"),
+			fatr::fa_forward_with_author(fatr::now),
 			[=] {
 				Window::ShowForwardMessagesBox(navigation, getMessageIds());
 			},
 			&st::menuIconForward);
 
 		submenu->addAction(
-			FAlang::Translate("fa_forward_as_copy"),
+			fatr::fa_forward_as_copy(fatr::now),
 			[=] {
 				const auto ids = getMessageIds();
 				if (!ids.empty()) {
@@ -554,7 +554,7 @@ bool AddForwardMessageAction(
 
 		if (item->media() && item->media()->allowsEditCaption()) {
 			submenu->addAction(
-				FAlang::Translate("fa_forward_without_caption"),
+				fatr::fa_forward_without_caption(fatr::now),
 				[=] {
 					const auto ids = getMessageIds();
 					if (!ids.empty()) {
@@ -569,7 +569,7 @@ bool AddForwardMessageAction(
 		}
 
 		submenu->addAction(
-			FAlang::Translate("fa_forward_to_saved"),
+			fatr::fa_forward_to_saved(fatr::now),
 			[=] {
 				const auto ids = getMessageIds();
 				if (!ids.empty()) {
@@ -582,7 +582,7 @@ bool AddForwardMessageAction(
 			&st::menuIconSavedMessages);
 
 		submenu->addAction(
-			FAlang::Translate("fa_forward_to_saved_as_copy"),
+			fatr::fa_forward_to_saved_as_copy(fatr::now),
 			[=] {
 				const auto ids = getMessageIds();
 				if (!ids.empty()) {

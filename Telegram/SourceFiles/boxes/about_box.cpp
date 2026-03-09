@@ -4,7 +4,6 @@ the unofficial desktop application for the Telegram messaging service.
 */
 #include "boxes/about_box.h"
 
-#include "fa/lang/fa_lang.h"
 #include "fa/fa_version.h"
 
 #include "lang/lang_keys.h"

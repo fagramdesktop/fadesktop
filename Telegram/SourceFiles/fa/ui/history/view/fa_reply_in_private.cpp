@@ -7,7 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "fa/ui/history/view/fa_reply_in_private.h"
 
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 #include "fa/settings/fa_settings.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
@@ -123,7 +123,7 @@ bool AddReplyInPrivateChatAction(
 	const auto controller = list->controller();
 
 	menu->addAction(
-		FAlang::Translate("fa_reply_in_private_chat"),
+		fatr::fa_reply_in_private_chat(fatr::now),
 		[=] {
 			ReplyInPrivateChat(
 				controller,

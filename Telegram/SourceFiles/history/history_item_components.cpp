@@ -7,7 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "history/history_item_components.h"
 
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 
 #include "api/api_text_entities.h"
 #include "base/qt/qt_key_modifiers.h"
@@ -678,7 +678,7 @@ QString ReplyMarkupClickHandler::copyToClipboardContextItemText() const {
 	if (button) {
 		using Type = HistoryMessageMarkupButton::Type;
 		if (button->type == Type::Callback) {
-			return FAlang::Translate(QString("fa_copy_callback_data"));
+			return fatr::fa_copy_callback_data(fatr::now);
 		}
 		return tr::lng_context_copy_link(tr::now);
 	}

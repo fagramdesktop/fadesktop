@@ -7,7 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "window/window_peer_menu.h"
 
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 #include "fa/utils/telegram_helpers.h"
 
 #include "base/call_delayed.h"
@@ -925,7 +925,7 @@ void Filler::addBlockUser() {
 void Filler::addGoToFirstMessage()
 {
 	_addAction(
-		FAlang::Translate(QString("fa_go_to_first_message")),
+		fatr::fa_go_to_first_message(fatr::now),
 		GoToFirstMessageHandler(_controller, _peer),
 		&st::menuIconGoToBeginning);
 }
@@ -4031,10 +4031,10 @@ void FillSenderUserpicMenu(
 
 	addAction({ .isSeparator = true });
 
-	addAction(FAlang::Translate(QString("fa_copy_id")), [=] {
+	addAction(fatr::fa_copy_id(fatr::now), [=] {
 		const auto idText = QString::number(peer->id.value);
 		QGuiApplication::clipboard()->setText(idText);
-		controller->showToast(FAlang::Translate(QString("fa_id_copied")));
+		controller->showToast(fatr::fa_id_copied(fatr::now));
 	}, &st::menuIconCopy);
 
 	if (!username.isEmpty()) {
@@ -4151,7 +4151,7 @@ void FillSenderUserpicMenu(
 				});
 
 				addAction({
-					.text = FAlang::Translate(QString("fa_kick_user")),
+					.text = fatr::fa_kick_user(fatr::now),
 					.handler = [=] {
 						if (chat) {
 							chat->session().api().chatParticipants().kick(
@@ -4217,7 +4217,7 @@ void FillSenderUserpicMenu(
 
 				if (megagroup) {
 					addAction(
-						FAlang::Translate(QString("fa_unban_user")),
+						fatr::fa_unban_user(fatr::now),
 						[=] {
 							megagroup->session().api().chatParticipants().unblock(
 								megagroup,

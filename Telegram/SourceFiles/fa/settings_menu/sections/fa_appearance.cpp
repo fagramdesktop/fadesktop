@@ -14,7 +14,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings_menu/sections/fa_appearance.h"
 #include "fa/ui/previews.h"
 
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 
 #include "lang_auto.h"
 #include "mainwindow.h"
@@ -43,7 +43,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #define SettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
 	container, \
-    FAlang::RplTranslate(QString(#LangKey)), \
+    fatr::LangKey(), \
 	st::settingsButtonNoIcon \
 ))->toggleOn( \
 	rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
@@ -58,7 +58,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #define RestartSettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
     container, \
-    FAlang::RplTranslate(QString(#LangKey)), \
+    fatr::LangKey(), \
     st::settingsButtonNoIcon \
 ))->toggleOn( \
     rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
@@ -70,18 +70,18 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
     ::FASettings::JsonSettings::Set(#Option, enabled); \
     ::FASettings::JsonSettings::Write(); \
     controller->show(Ui::MakeConfirmBox({ \
-        .text = FAlang::RplTranslate(QString("fa_setting_need_restart")), \
+        .text = fatr::fa_setting_need_restart(), \
         .confirmed = [=] { \
             ::Core::Restart(); \
         }, \
-        .confirmText = FAlang::RplTranslate(QString("fa_restart")) \
+        .confirmText = fatr::fa_restart() \
     })); \
 }, container->lifetime());
 
 namespace Settings {
 
     rpl::producer<QString> FAAppearance::title() {
-        return FAlang::RplTranslate(QString("fa_appearance"));
+        return fatr::fa_appearance();
     }
 
     FAAppearance::FAAppearance(
@@ -92,7 +92,7 @@ namespace Settings {
     }
 
     void FAAppearance::SetupAppearance(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
-        Ui::AddSubsectionTitle(container, FAlang::RplTranslate(("fa_appearance")));
+        Ui::AddSubsectionTitle(container, fatr::fa_appearance());
 
 		const auto roundnessPreview = container->add(
 			object_ptr<RoundnessPreview>(container),
@@ -115,7 +115,7 @@ namespace Settings {
 
 		const auto updateUserpicRoundnessLabel = [=](int value) {
     		const auto radius = QString::number(value);
-    		userpicRoundnessLabel->setText(FAlang::Translate(QString("fa_rounding")).arg(radius));
+    		userpicRoundnessLabel->setText(fatr::fa_rounding(fatr::now).arg(radius));
     	};
 		const auto valueFromRoundness = [](int roundness) {
 			return roundness / 50.0;
@@ -147,10 +147,10 @@ namespace Settings {
 					close();
 				});
 				controller->show(Ui::MakeConfirmBox({
-					.text = FAlang::RplTranslate(QString("fa_setting_need_restart")),
+					.text = fatr::fa_setting_need_restart(),
 					.confirmed = confirmed,
 					.cancelled = cancelled,
-					.confirmText = FAlang::RplTranslate(QString("fa_restart")),
+					.confirmText = fatr::fa_restart(),
 				}));
 			}
     	};
@@ -167,24 +167,24 @@ namespace Settings {
 			updateUserpicRoundness,
 			[=](int value) { setRoundness(value, setRoundness); });
     	updateUserpicRoundnessLabel(::FASettings::JsonSettings::GetInt("roundness"));
-        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_rounding_desc")));
+        Ui::AddDividerText(container, fatr::fa_rounding_desc());
 		RestartSettingsMenuJsonSwitch(fa_use_default_rounding, use_default_rounding);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_use_default_rounding_desc")));
+		Ui::AddDividerText(container, fatr::fa_use_default_rounding_desc());
 		SettingsMenuJsonSwitch(fa_screenshot_mode, screenshot_mode);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_screenshot_mode_desc")));
+		Ui::AddDividerText(container, fatr::fa_screenshot_mode_desc());
 		SettingsMenuJsonSwitch(fa_force_snow, force_snow);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_force_snow_desc")));
+		Ui::AddDividerText(container, fatr::fa_force_snow_desc());
 		SettingsMenuJsonSwitch(fa_hide_phone_number, hide_phone_number);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_phone_number_desc")));
+		Ui::AddDividerText(container, fatr::fa_hide_phone_number_desc());
 		RestartSettingsMenuJsonSwitch(fa_hide_stories, hide_stories);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_stories_desc")));
+		Ui::AddDividerText(container, fatr::fa_hide_stories_desc());
 		RestartSettingsMenuJsonSwitch(fa_hide_folder_tabs_titles, hide_folder_tabs_titles);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_folder_tabs_titles_desc")));
+		Ui::AddDividerText(container, fatr::fa_hide_folder_tabs_titles_desc());
 		SettingsMenuJsonSwitch(fa_use_tdesktop_themes, use_tdesktop_themes);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_use_tdesktop_themes_desc")));
+		Ui::AddDividerText(container, fatr::fa_use_tdesktop_themes_desc());
 		container->add(object_ptr<Button>(
 			container,
-			FAlang::RplTranslate(QString("fa_use_custom_icon_pack")),
+			fatr::fa_use_custom_icon_pack(),
 			st::settingsButtonNoIcon
 		))->toggleOn(
 			rpl::single(::FASettings::JsonSettings::GetBool("use_custom_icon_pack"))
@@ -195,15 +195,15 @@ namespace Settings {
 			::FASettings::JsonSettings::Set("use_custom_icon_pack", enabled);
 			::FASettings::JsonSettings::Write();
 			controller->show(Ui::MakeConfirmBox({
-				.text = FAlang::RplTranslate(QString("fa_icon_pack_restart_prompt")),
+				.text = fatr::fa_icon_pack_restart_prompt(),
 				.confirmed = [=] {
 					::Core::Restart();
 				},
-				.confirmText = FAlang::RplTranslate(QString("fa_icon_pack_restart_now")),
-				.cancelText = FAlang::RplTranslate(QString("fa_icon_pack_restart_later")),
+				.confirmText = fatr::fa_icon_pack_restart_now(),
+				.cancelText = fatr::fa_icon_pack_restart_later(),
 			}));
 		}, container->lifetime());
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_use_custom_icon_pack_desc")));
+		Ui::AddDividerText(container, fatr::fa_use_custom_icon_pack_desc());
     }
 
     void FAAppearance::SetupFAAppearance(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

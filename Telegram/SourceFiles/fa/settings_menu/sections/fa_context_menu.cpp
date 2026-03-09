@@ -11,7 +11,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "fa/settings_menu/sections/fa_context_menu.h"
 
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 
 #include "lang_auto.h"
 #include "mainwindow.h"
@@ -43,7 +43,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #define SettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
 	container, \
-    FAlang::RplTranslate(QString(#LangKey)), \
+    fatr::LangKey(), \
 	st::settingsButtonNoIcon \
 ))->toggleOn( \
 	rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
@@ -59,7 +59,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 namespace Settings {
 
     rpl::producer<QString> FAContextMenu::title() {
-        return FAlang::RplTranslate(QString("fa_context_menu"));
+        return fatr::fa_context_menu();
     }
 
     FAContextMenu::FAContextMenu(
@@ -70,11 +70,11 @@ namespace Settings {
     }
 
     void FAContextMenu::SetupContextMenu(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
-		Ui::AddSubsectionTitle(container, FAlang::RplTranslate(QString("fa_context_menu")));
+		Ui::AddSubsectionTitle(container, fatr::fa_context_menu());
 
 		container->add(object_ptr<Button>(
 			container,
-			FAlang::RplTranslate(QString("fa_context_menu_settings")),
+			fatr::fa_context_menu_settings(),
 			st::settingsButtonNoIcon
 		))->toggleOn(
 			rpl::single(::FASettings::JsonSettings::GetBool("context_menu_use_shortcuts"))
@@ -88,7 +88,7 @@ namespace Settings {
 		}, container->lifetime());
 
 		SettingsMenuJsonSwitch(fa_context_menu_move_to_bottom, context_menu_shortcuts_at_bottom);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_context_menu_desc")));
+		Ui::AddDividerText(container, fatr::fa_context_menu_desc());
 
 		// Shortcut button size slider
 		const auto buttonSizeLabel = container->add(
@@ -102,7 +102,7 @@ namespace Settings {
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
 		const auto updateButtonSizeLabel = [=](int value) {
-			buttonSizeLabel->setText(FAlang::Translate(QString("fa_shortcut_button_size")).arg(value));
+			buttonSizeLabel->setText(fatr::fa_shortcut_button_size(fatr::now).arg(value));
 		};
 		const auto updateButtonSize = [=](int value) {
 			updateButtonSizeLabel(value);
@@ -146,7 +146,7 @@ namespace Settings {
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
 		const auto updateIconSizeLabel = [=](int value) {
-			iconSizeLabel->setText(FAlang::Translate(QString("fa_shortcut_icon_size")).arg(value));
+			iconSizeLabel->setText(fatr::fa_shortcut_icon_size(fatr::now).arg(value));
 		};
 		const auto updateIconSize = [=](int value) {
 			updateIconSizeLabel(value);
@@ -190,7 +190,7 @@ namespace Settings {
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
 		const auto updateSpacingLabel = [=](int value) {
-			spacingLabel->setText(FAlang::Translate(QString("fa_shortcut_spacing")).arg(value));
+			spacingLabel->setText(fatr::fa_shortcut_spacing(fatr::now).arg(value));
 		};
 		const auto updateSpacing = [=](int value) {
 			updateSpacingLabel(value);
@@ -234,7 +234,7 @@ namespace Settings {
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
 		const auto updateHPaddingLabel = [=](int value) {
-			hPaddingLabel->setText(FAlang::Translate(QString("fa_shortcut_horizontal_padding")).arg(value));
+			hPaddingLabel->setText(fatr::fa_shortcut_horizontal_padding(fatr::now).arg(value));
 		};
 		const auto updateHPadding = [=](int value) {
 			updateHPaddingLabel(value);
@@ -278,7 +278,7 @@ namespace Settings {
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
 		const auto updateVPaddingLabel = [=](int value) {
-			vPaddingLabel->setText(FAlang::Translate(QString("fa_shortcut_vertical_padding")).arg(value));
+			vPaddingLabel->setText(fatr::fa_shortcut_vertical_padding(fatr::now).arg(value));
 		};
 		const auto updateVPadding = [=](int value) {
 			updateVPaddingLabel(value);
@@ -322,7 +322,7 @@ namespace Settings {
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
 		const auto updateCornerRadiusLabel = [=](int value) {
-			cornerRadiusLabel->setText(FAlang::Translate(QString("fa_shortcut_corner_radius")).arg(value));
+			cornerRadiusLabel->setText(fatr::fa_shortcut_corner_radius(fatr::now).arg(value));
 		};
 		const auto updateCornerRadius = [=](int value) {
 			updateCornerRadiusLabel(value);
@@ -354,13 +354,13 @@ namespace Settings {
 			updateCornerRadius(defaultValue);
 		});
 
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_shortcut_customization_desc")));
+		Ui::AddDividerText(container, fatr::fa_shortcut_customization_desc());
 
 		SettingsMenuJsonSwitch(fa_context_menu_reply_in_private, context_menu_reply_in_private);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_context_menu_reply_in_private_desc")));
+		Ui::AddDividerText(container, fatr::fa_context_menu_reply_in_private_desc());
 
 		SettingsMenuJsonSwitch(fa_context_menu_forward_submenu, context_menu_forward_submenu);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_context_menu_forward_submenu_desc")));
+		Ui::AddDividerText(container, fatr::fa_context_menu_forward_submenu_desc());
     }
 
     void FAContextMenu::SetupFAContextMenu(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

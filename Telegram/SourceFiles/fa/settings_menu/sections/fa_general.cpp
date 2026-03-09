@@ -11,7 +11,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "fa/settings_menu/sections/fa_general.h"
 
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 
 #include "lang_auto.h"
 #include "mainwindow.h"
@@ -40,7 +40,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #define SettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
 	container, \
-    FAlang::RplTranslate(QString(#LangKey)), \
+    fatr::LangKey(), \
 	st::settingsButtonNoIcon \
 ))->toggleOn( \
 	rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
@@ -55,7 +55,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #define RestartSettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
     container, \
-    FAlang::RplTranslate(QString(#LangKey)), \
+    fatr::LangKey(), \
     st::settingsButtonNoIcon \
 ))->toggleOn( \
     rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
@@ -67,18 +67,18 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
     ::FASettings::JsonSettings::Set(#Option, enabled); \
     ::FASettings::JsonSettings::Write(); \
     controller->show(Ui::MakeConfirmBox({ \
-        .text = FAlang::RplTranslate(QString("fa_setting_need_restart")), \
+        .text = fatr::fa_setting_need_restart(), \
         .confirmed = [=] { \
             ::Core::Restart(); \
         }, \
-        .confirmText = FAlang::RplTranslate(QString("fa_restart")) \
+        .confirmText = fatr::fa_restart() \
     })); \
 }, container->lifetime());
 
 namespace Settings {
 
     rpl::producer<QString> FAGeneral::title() {
-        return FAlang::RplTranslate(QString("fa_general"));
+        return fatr::fa_general();
     }
 
     FAGeneral::FAGeneral(
@@ -89,24 +89,24 @@ namespace Settings {
     }
 
     void FAGeneral::SetupGeneral(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
-        Ui::AddSubsectionTitle(container, FAlang::RplTranslate(QString("fa_general")));
+        Ui::AddSubsectionTitle(container, fatr::fa_general());
 
         RestartSettingsMenuJsonSwitch(fa_enable_whats_new_chat, enable_whats_new_chat);
-        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_enable_whats_new_chat_desc")));
+        Ui::AddDividerText(container, fatr::fa_enable_whats_new_chat_desc());
         SettingsMenuJsonSwitch(fa_disable_ads, disable_ads);
-        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_disable_ads_desc")));
+        Ui::AddDividerText(container, fatr::fa_disable_ads_desc());
         SettingsMenuJsonSwitch(fa_show_start_token, show_start_token);
-        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_start_token_desc")));
+        Ui::AddDividerText(container, fatr::fa_show_start_token_desc());
         SettingsMenuJsonSwitch(fa_show_peer_ids, show_peer_id);
-        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_peer_ids_desc")));
+        Ui::AddDividerText(container, fatr::fa_show_peer_ids_desc());
         SettingsMenuJsonSwitch(fa_show_dc_ids, show_dc_id);
-        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_dc_ids_desc")));
+        Ui::AddDividerText(container, fatr::fa_show_dc_ids_desc());
         SettingsMenuJsonSwitch(fa_id_in_botapi_type, show_id_botapi);
-        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_id_in_botapi_type_desc")));
+        Ui::AddDividerText(container, fatr::fa_id_in_botapi_type_desc());
         SettingsMenuJsonSwitch(fa_local_tg_premium, local_premium);
-        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_local_tg_premium_desc")));
+        Ui::AddDividerText(container, fatr::fa_local_tg_premium_desc());
         SettingsMenuJsonSwitch(fa_show_registration_date, show_registration_date);
-        Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_registration_date_desc")));
+        Ui::AddDividerText(container, fatr::fa_show_registration_date_desc());
     }
 
     void FAGeneral::SetupFAGeneral(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

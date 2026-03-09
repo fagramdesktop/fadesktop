@@ -8,7 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "info/media/info_media_list_widget.h"
 
 #include "fa/settings/fa_settings.h"
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 
 #include "info/global_media/info_global_media_provider.h"
 #include "info/media/info_media_common.h"
@@ -1280,7 +1280,7 @@ void ListWidget::showContextMenu(
 				const auto submenu = _contextMenu->ensureSubmenu(forwardAction, st::faContextMenu);
 
 				submenu->addAction(
-					FAlang::Translate("fa_forward_with_author"),
+					fatr::fa_forward_with_author(fatr::now),
 					crl::guard(this, [=] {
 						auto idsCopy = ids;
 						Window::ShowForwardMessagesBox(controller, std::move(idsCopy), callback);
@@ -1288,7 +1288,7 @@ void ListWidget::showContextMenu(
 					&st::menuIconForward);
 
 				submenu->addAction(
-					FAlang::Translate("fa_forward_as_copy"),
+					fatr::fa_forward_as_copy(fatr::now),
 					crl::guard(this, [=] {
 						auto draft = Data::ForwardDraft{
 							.ids = ids,
@@ -1307,7 +1307,7 @@ void ListWidget::showContextMenu(
 
 				if (hasMediaWithCaption) {
 					submenu->addAction(
-						FAlang::Translate("fa_forward_without_caption"),
+						fatr::fa_forward_without_caption(fatr::now),
 						crl::guard(this, [=] {
 							auto draft = Data::ForwardDraft{
 								.ids = ids,
@@ -1319,7 +1319,7 @@ void ListWidget::showContextMenu(
 				}
 
 				submenu->addAction(
-					FAlang::Translate("fa_forward_to_saved"),
+					fatr::fa_forward_to_saved(fatr::now),
 					crl::guard(this, [=] {
 						auto draft = Data::ForwardDraft{ .ids = ids };
 						Window::ForwardToSelf(controller->parentController()->uiShow(), draft);
@@ -1328,7 +1328,7 @@ void ListWidget::showContextMenu(
 					&st::menuIconSavedMessages);
 
 				submenu->addAction(
-					FAlang::Translate("fa_forward_to_saved_as_copy"),
+					fatr::fa_forward_to_saved_as_copy(fatr::now),
 					crl::guard(this, [=] {
 						auto draft = Data::ForwardDraft{
 							.ids = ids,
@@ -1414,12 +1414,12 @@ void ListWidget::showContextMenu(
 					const auto submenu = _contextMenu->ensureSubmenu(forwardAction, st::faContextMenu);
 
 					submenu->addAction(
-						FAlang::Translate("fa_forward_with_author"),
+						fatr::fa_forward_with_author(fatr::now),
 						crl::guard(this, [=] { forwardItem(globalId); }),
 						&st::menuIconForward);
 
 					submenu->addAction(
-						FAlang::Translate("fa_forward_as_copy"),
+						fatr::fa_forward_as_copy(fatr::now),
 						crl::guard(this, [=] {
 							if (globalId.sessionUniqueId == session->uniqueId()) {
 								if (const auto item = session->data().message(globalId.itemId)) {
@@ -1435,7 +1435,7 @@ void ListWidget::showContextMenu(
 
 					if (item->media() && item->media()->allowsEditCaption()) {
 						submenu->addAction(
-							FAlang::Translate("fa_forward_without_caption"),
+							fatr::fa_forward_without_caption(fatr::now),
 							crl::guard(this, [=] {
 								if (globalId.sessionUniqueId == session->uniqueId()) {
 									if (const auto item = session->data().message(globalId.itemId)) {
@@ -1451,7 +1451,7 @@ void ListWidget::showContextMenu(
 					}
 
 					submenu->addAction(
-						FAlang::Translate("fa_forward_to_saved"),
+						fatr::fa_forward_to_saved(fatr::now),
 						crl::guard(this, [=] {
 							if (globalId.sessionUniqueId == session->uniqueId()) {
 								if (const auto item = session->data().message(globalId.itemId)) {
@@ -1463,7 +1463,7 @@ void ListWidget::showContextMenu(
 						&st::menuIconSavedMessages);
 
 					submenu->addAction(
-						FAlang::Translate("fa_forward_to_saved_as_copy"),
+						fatr::fa_forward_to_saved_as_copy(fatr::now),
 						crl::guard(this, [=] {
 							if (globalId.sessionUniqueId == session->uniqueId()) {
 								if (const auto item = session->data().message(globalId.itemId)) {

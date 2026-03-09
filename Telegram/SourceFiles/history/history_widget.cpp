@@ -7,7 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "history/history_widget.h"
 
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 #include "fa/settings/fa_settings.h"
 #include "fa/utils/telegram_helpers.h"
 
@@ -281,7 +281,7 @@ HistoryWidget::HistoryWidget(
 	st::historyComposeButton)
 , _discuss(
 	this,
-	FAlang::Translate("fa_discuss_button").toUpper(),
+	fatr::fa_discuss_button(fatr::now).toUpper(),
 	st::historyComposeButton)
 , _reportMessages(this, QString(), st::historyComposeButton)
 , _attachToggle(this, st::historyAttach)

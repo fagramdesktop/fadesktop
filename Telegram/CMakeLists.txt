@@ -36,6 +36,9 @@ include(cmake/td_scheme.cmake)
 include(cmake/td_tde2e.cmake)
 include(cmake/td_ui.cmake)
 include(cmake/generate_appstream_changelog.cmake)
+include(cmake/generate_fa_lang.cmake)
+
+generate_fa_lang(Telegram ${res_loc}/langs/fa/en.json)
 
 if (DESKTOP_APP_TEST_APPS)
     include(cmake/tests.cmake)

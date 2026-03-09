@@ -11,7 +11,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "fa/settings_menu/sections/fa_chats.h"
 
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 
 #include "lang_auto.h"
 #include "mainwindow.h"
@@ -43,7 +43,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #define SettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
 	container, \
-    FAlang::RplTranslate(QString(#LangKey)), \
+    fatr::LangKey(), \
 	st::settingsButtonNoIcon \
 ))->toggleOn( \
 	rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
@@ -58,7 +58,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #define RestartSettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
     container, \
-    FAlang::RplTranslate(QString(#LangKey)), \
+    fatr::LangKey(), \
     st::settingsButtonNoIcon \
 ))->toggleOn( \
     rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
@@ -70,18 +70,18 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
     ::FASettings::JsonSettings::Set(#Option, enabled); \
     ::FASettings::JsonSettings::Write(); \
     controller->show(Ui::MakeConfirmBox({ \
-        .text = FAlang::RplTranslate(QString("fa_setting_need_restart")), \
+        .text = fatr::fa_setting_need_restart(), \
         .confirmed = [=] { \
             ::Core::Restart(); \
         }, \
-        .confirmText = FAlang::RplTranslate(QString("fa_restart")) \
+        .confirmText = fatr::fa_restart() \
     })); \
 }, container->lifetime());
 
 namespace Settings {
 
     rpl::producer<QString> FAChats::title() {
-        return FAlang::RplTranslate(QString("fa_chats"));
+        return fatr::fa_chats();
     }
 
     FAChats::FAChats(
@@ -92,7 +92,7 @@ namespace Settings {
     }
 
     void FAChats::SetupChats(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
-        Ui::AddSubsectionTitle(container, FAlang::RplTranslate(QString("fa_chats")));
+        Ui::AddSubsectionTitle(container, fatr::fa_chats());
 
 		const auto recentStickersLimitLabel = container->add(
 			object_ptr<Ui::LabelSimple>(
@@ -107,8 +107,8 @@ namespace Settings {
 		const auto updateRecentStickersLimitLabel = [=](int value) {
 			recentStickersLimitLabel->setText(
 				(value == 0)
-					? FAlang::Translate(QString("fa_recent_stickers_hidden"))
-					: FAlang::Translate(QString("fa_recent_stickers")).arg(value) );
+					? fatr::fa_recent_stickers_hidden(fatr::now)
+					: fatr::fa_recent_stickers(fatr::now).arg(value) );
 		};
         const auto updateRecentStickersLimitHeight = [=](int value) {
 			updateRecentStickersLimitLabel(value);
@@ -122,28 +122,28 @@ namespace Settings {
 			::FASettings::JsonSettings::GetInt("recent_stickers_limit"),
 			updateRecentStickersLimitHeight);
 		updateRecentStickersLimitLabel(::FASettings::JsonSettings::GetInt("recent_stickers_limit"));
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_recent_stickers_desc")));
+		Ui::AddDividerText(container, fatr::fa_recent_stickers_desc());
 		SettingsMenuJsonSwitch(fa_parse_markdown_hyperlink, auto_format_markdown);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_parse_markdown_hyperlink_desc")));
+		Ui::AddDividerText(container, fatr::fa_parse_markdown_hyperlink_desc());
 		SettingsMenuJsonSwitch(fa_show_seconds_message, seconds_message);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_seconds_message_desc")));
+		Ui::AddDividerText(container, fatr::fa_show_seconds_message_desc());
 		SettingsMenuJsonSwitch(fa_disable_custom_chat_background, disable_custom_chat_background);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_disable_custom_chat_background_desc")));
+		Ui::AddDividerText(container, fatr::fa_disable_custom_chat_background_desc());
 		SettingsMenuJsonSwitch(fa_hide_open_webapp_button_chatlist, hide_open_webapp_button_chatlist);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_open_webapp_button_chatlist_desc")));
+		Ui::AddDividerText(container, fatr::fa_hide_open_webapp_button_chatlist_desc());
 		SettingsMenuJsonSwitch(fa_show_discuss_button, show_discuss_button);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_discuss_button_desc")));
+		Ui::AddDividerText(container, fatr::fa_show_discuss_button_desc());
 		SettingsMenuJsonSwitch(fa_show_message_details, show_message_details);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_show_message_details_desc")));
+		Ui::AddDividerText(container, fatr::fa_show_message_details_desc());
 
 		const auto statusDotBtn = container->add(object_ptr<Button>(
 			container,
-			FAlang::RplTranslate(QString("fa_show_status_dot")),
+			fatr::fa_show_status_dot(),
 			st::settingsButtonNoIcon
 		));
 		const auto onlineOnlyBtn = container->add(object_ptr<Button>(
 			container,
-			FAlang::RplTranslate(QString("fa_status_dot_online_only")),
+			fatr::fa_status_dot_online_only(),
 			st::settingsButtonNoIcon
 		));
 
@@ -168,14 +168,14 @@ namespace Settings {
 			::FASettings::JsonSettings::Write();
 		}, container->lifetime());
 		onlineOnlyBtn->setEnabled(::FASettings::JsonSettings::GetBool("show_status_dot"));
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_status_dot_desc")));
+		Ui::AddDividerText(container, fatr::fa_status_dot_desc());
 
 		RestartSettingsMenuJsonSwitch(fa_hide_all_chats_folder, hide_all_chats_folder);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_all_chats_folder_desc")));
+		Ui::AddDividerText(container, fatr::fa_hide_all_chats_folder_desc());
 
 		const auto hideBlockedBtn = container->add(object_ptr<Button>(
 			container,
-			FAlang::RplTranslate(QString("fa_hide_blocked_user_messages")),
+			fatr::fa_hide_blocked_user_messages(),
 			st::settingsButtonNoIcon
 		));
 		hideBlockedBtn->setColorOverride(QColor(255, 0, 0));
@@ -188,13 +188,13 @@ namespace Settings {
 			::FASettings::JsonSettings::Set("hide_blocked_user_messages", enabled);
 			::FASettings::JsonSettings::Write();
 
-			controller->showToast(FAlang::Translate(QString("fa_restarting_in_seconds")));
+			controller->showToast(fatr::fa_restarting_in_seconds(fatr::now));
 			base::call_delayed(crl::time(3000), container, [] {
 				::Core::Restart();
 			});
 		}, container->lifetime());
 
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_hide_blocked_user_messages_desc")));
+		Ui::AddDividerText(container, fatr::fa_hide_blocked_user_messages_desc());
     }
 
     void FAChats::SetupFAChats(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

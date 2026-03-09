@@ -10,7 +10,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "fa/utils/fa_profile_values.h"
 #include "fa/utils/telegram_helpers.h"
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 
 #include "api/api_blocked_peers.h"
 #include "api/api_chat_participants.h"
@@ -1749,13 +1749,13 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			auto idInfo = addInfoOneLine(
 					rpl::single(idLabel),
 					std::move(idDrawableText),
-					FAlang::Translate(QString("fa_copy_id"))
+					fatr::fa_copy_id(fatr::now)
 			);
 			idInfo.text->setClickHandlerFilter([=](auto &&...) {
 				const auto idText = IDString(user);
 				if (!idText.isEmpty()) {
 					QGuiApplication::clipboard()->setText(idText);
-					controller->showToast(FAlang::Translate(QString("fa_id_copied")));
+					controller->showToast(fatr::fa_id_copied(fatr::now));
 				}
 				return false;
 			});
@@ -1764,9 +1764,9 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		bool show_registration_date = FASettings::JsonSettings::GetBool("show_registration_date");
 		if (show_registration_date) {
 			auto idInfo = addInfoOneLine(
-					FAlang::RplTranslate(QString("fa_registration_date")),
+					fatr::fa_registration_date(),
 					std::move(RegistrationValue(user)),
-					FAlang::Translate(QString("fa_copy_registration_date"))
+					fatr::fa_copy_registration_date(fatr::now)
 			);
 		}
 	} else {
@@ -1858,13 +1858,13 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
             auto idInfo = addInfoOneLine(
                     idLabel,
                     std::move(idDrawableText),
-                    FAlang::Translate(QString("fa_copy_id"))
+                    fatr::fa_copy_id(fatr::now)
             );
             idInfo.text->setClickHandlerFilter([=](auto &&...) {
                 const auto idText = IDString(_peer);
                 if (!idText.isEmpty()) {
                     QGuiApplication::clipboard()->setText(idText);
-                    controller->showToast(FAlang::Translate(QString("fa_id_copied")));
+                    controller->showToast(fatr::fa_id_copied(fatr::now));
                 }
                 return false;
             });

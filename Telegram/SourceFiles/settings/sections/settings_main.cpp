@@ -7,7 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "fa/settings_menu/fa_settings_menu.h"
 
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 #include "fa/settings/fa_settings.h"
 
 #include "settings/sections/settings_main.h"
@@ -338,7 +338,7 @@ void BuildSectionButtons(SectionBuilder &builder) {
 	const auto showOther = builder.showOther();
 
 	builder.addSectionButton({
-		.title = FAlang::RplTranslate(QString("fa_client_preferences")),
+		.title = fatr::fa_client_preferences(),
 		.targetSection = FA::Id(),
 		.icon = { &st::menuIconSettings },
 		.keywords = { u"fagram"_q, u"preferences"_q, u"fa"_q },

@@ -9,7 +9,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <utility>
 
 #include "base/weak_ptr.h"
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 #include "fa/ui/menu_item_subtext.h"
 
 #include "mainwindow.h"
@@ -217,7 +217,7 @@ ActionStickerPackAuthor::ActionStickerPackAuthor(not_null<Menu::Menu*> menu,
 						[=]
 						{
 						},
-						FAlang::Translate(QString("fa_pack_owner")),
+						fatr::fa_pack_owner(fatr::now),
 						QString("...")),
 	  _session(session) {
 	searchAuthor(authorId);
@@ -234,14 +234,14 @@ void ActionStickerPackAuthor::searchAuthor(FaID authorId) {
 					   return;
 				   }
 				   if (username.isEmpty() && !user) {
-					   _subText = QString(FAlang::Translate(QString("fa_not_found")));
+					   _subText = QString(fatr::fa_not_found(fatr::now));
 					   setActionTriggered(
 						   [=]
 						   {
 							   QGuiApplication::clipboard()->setText(QString::number(authorId));
 							   if (const auto window = _session->tryResolveWindow()) {
 								   if (const auto mainWidget = window->widget()->sessionController()) {
-									   mainWidget->showToast(FAlang::Translate(QString("fa_id_copied")));
+									   mainWidget->showToast(fatr::fa_id_copied(fatr::now));
 								   }
 							   }
 						   });

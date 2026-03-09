@@ -19,7 +19,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_file_click_handler.h"
 #include "data/data_session.h"
 #include "fa/settings/fa_settings.h"
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/view/media/history_view_gif.h"
@@ -253,19 +253,19 @@ void ResolveDocument(
 		}
 		if (!bytes.isEmpty() && controller) {
 			controller->show(Ui::MakeConfirmBox({
-				.text = FAlang::Translate("fa_import_config_confirm"),
+				.text = fatr::fa_import_config_confirm(fatr::now),
 				.confirmed = [=, data = bytes](Fn<void()> close) {
 					close();
 					if (FASettings::JsonSettings::ImportSettingsFromJson(data)) {
 						controller->show(Ui::MakeConfirmBox({
-							.text = FAlang::Translate("fa_import_config_restart"),
+							.text = fatr::fa_import_config_restart(fatr::now),
 							.confirmed = [] { Core::Restart(); },
 							.confirmText = tr::lng_settings_restart_now(),
 							.cancelText = tr::lng_settings_restart_later(),
 						}));
 					}
 				},
-				.confirmText = FAlang::RplTranslate("fa_import_config_apply"),
+				.confirmText = fatr::fa_import_config_apply(),
 			}));
 		}
 	} else if (document->isTheme() && media->loaded(true)) {

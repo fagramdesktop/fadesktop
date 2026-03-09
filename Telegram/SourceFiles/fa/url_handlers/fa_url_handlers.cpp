@@ -15,7 +15,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/utils/telegram_helpers.h"
 
 #include "fa/settings/fa_settings.h"
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 
 #include "base/qthelp_url.h"
 
@@ -72,9 +72,9 @@ bool HandleCleanDebugLogs(
 	if (!controller) {
 		return false;
 	}
-	controller->showToast(FAlang::Translate(QString("fa_cleaning_debug_logs")), 500);
+	controller->showToast(fatr::fa_cleaning_debug_logs(fatr::now), 500);
 	cleanDebugLogs();
-	controller->showToast(FAlang::Translate(QString("fa_cleaned_debug_logs")), 1000);
+	controller->showToast(fatr::fa_cleaned_debug_logs(fatr::now), 1000);
 	return true;
 }
 
@@ -86,7 +86,7 @@ bool HandleNothing(
 	if (!controller) {
 		return false;
 	}
-	controller->showToast(FAlang::Translate(QString("fa_not_found")), 500);
+	controller->showToast(fatr::fa_not_found(fatr::now), 500);
 	return true;
 }
 
@@ -106,8 +106,8 @@ bool HandleSwitchDebugLogs(
 	FASettings::JsonSettings::Write();
 
 	QString message = debug_logs
-		? FAlang::Translate(QString("fa_debug_logs_off"))
-		: FAlang::Translate(QString("fa_debug_logs_on"));
+		? fatr::fa_debug_logs_off(fatr::now)
+		: fatr::fa_debug_logs_on(fatr::now);
 	controller->showToast(message, 1000);
 
 	return true;
@@ -177,7 +177,7 @@ bool ResolveUser(
 				   }
 
 				   Core::App().hideMediaView();
-				   strong->showToast(FAlang::Translate(QString("fa_not_found")), 500);
+				   strong->showToast(fatr::fa_not_found(fatr::now), 500);
 			   });
 
 	return true;
@@ -226,7 +226,7 @@ bool ResolveUserChat(
 				return;
 			}
 			Core::App().hideMediaView();
-			strong->showToast(FAlang::Translate(QString("fa_not_found")), 500);
+			strong->showToast(fatr::fa_not_found(fatr::now), 500);
 		});
 
 	return true;
@@ -279,7 +279,7 @@ bool ResolveChat(
 			}
 
 			Core::App().hideMediaView();
-			strong->showToast(FAlang::Translate(QString("fa_not_found")), 500);
+			strong->showToast(fatr::fa_not_found(fatr::now), 500);
 		});
 
 	return true;
@@ -331,7 +331,7 @@ bool ResolveChatOpen(
 			}
 
 			Core::App().hideMediaView();
-			strong->showToast(FAlang::Translate(QString("fa_not_found")), 500);
+			strong->showToast(fatr::fa_not_found(fatr::now), 500);
 		});
 
 	return true;

@@ -11,7 +11,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "fa/settings_menu/sections/fa_logs.h"
 
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 
 #include "lang_auto.h"
 #include "mainwindow.h"
@@ -39,7 +39,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #define SettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
 	container, \
-    FAlang::RplTranslate(QString(#LangKey)), \
+    fatr::LangKey(), \
 	st::settingsButtonNoIcon \
 ))->toggleOn( \
 	rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
@@ -55,7 +55,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 namespace Settings {
 
     rpl::producer<QString> FALogs::title() {
-        return FAlang::RplTranslate(QString("fa_debug_logs"));
+        return fatr::fa_debug_logs();
     }
 
     FALogs::FALogs(
@@ -66,11 +66,11 @@ namespace Settings {
     }
 
     void FALogs::SetupLogs(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
-        Ui::AddSubsectionTitle(container, FAlang::RplTranslate(QString("fa_debug_logs")));
+        Ui::AddSubsectionTitle(container, fatr::fa_debug_logs());
     	
     	AddButtonWithLabel(
 			container,
-			FAlang::RplTranslate(QString("fa_clean_debug_logs")),
+			fatr::fa_clean_debug_logs(),
 			rpl::single(QString("")),
 			st::settingsButton,
 			{ &st::menuIconClear }
@@ -81,7 +81,7 @@ namespace Settings {
 		SettingsMenuJsonSwitch(fa_debug_logs, debug_logs)
 
 		Ui::AddSkip(container);
-		Ui::AddDividerText(container, FAlang::RplTranslate(QString("fa_logs_dir")));
+		Ui::AddDividerText(container, fatr::fa_logs_dir());
     }
 
     void FALogs::SetupFALogs(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

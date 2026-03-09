@@ -8,7 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "telegram_helpers.h"
 
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 #include "fa/settings/fa_settings.h"
 
 #include "core/application.h"
@@ -535,7 +535,7 @@ void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 	const auto callback = Ui::Menu::CreateAddActionCallback(menu);
 
 	callback(Window::PeerMenuCallback::Args{
-		.text = FAlang::Translate(QString("fa_message_details")),
+		.text = fatr::fa_message_details(fatr::now),
 		.handler = nullptr,
 		.icon = &st::menuIconInfo,
 		.fillSubmenu = [&](not_null<Ui::PopupMenu*> menu2)
@@ -545,7 +545,7 @@ void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::menuIconShowInChat,
-						FAlang::Translate(QString("fa_message_details_views")),
+						fatr::fa_message_details_views(fatr::now),
 						messageViews
 					));
 				}
@@ -554,7 +554,7 @@ void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::menuIconViewReplies,
-						FAlang::Translate(QString("fa_message_details_share")),
+						fatr::fa_message_details_share(fatr::now),
 						messageForwards
 					));
 				}
@@ -572,7 +572,7 @@ void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 			menu2->addAction(Ui::ContextActionWithSubText(
 				menu2->menu(),
 				st::menuIconSchedule,
-				FAlang::Translate(QString("fa_message_details_date")),
+				fatr::fa_message_details_date(fatr::now),
 				formatDateTime(messageDate)
 			));
 
@@ -580,7 +580,7 @@ void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 				menu2->addAction(Ui::ContextActionWithSubText(
 					menu2->menu(),
 					st::menuIconEdit,
-					FAlang::Translate(QString("fa_message_details_edit_date")),
+					fatr::fa_message_details_edit_date(fatr::now),
 					formatDateTime(messageEditDate)
 				));
 			}
@@ -589,7 +589,7 @@ void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 				menu2->addAction(Ui::ContextActionWithSubText(
 					menu2->menu(),
 					st::menuIconTTL,
-					FAlang::Translate(QString("fa_message_details_forward_message_date")),
+					fatr::fa_message_details_forward_message_date(fatr::now),
 					formatDateTime(messageForwardedDate)
 				));
 			}
@@ -601,7 +601,7 @@ void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::menuIconDownload,
-						FAlang::Translate(QString("fa_message_details_filesize")),
+						fatr::fa_message_details_filesize(fatr::now),
 						mediaSize
 					));
 				}
@@ -612,7 +612,7 @@ void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::menuIconShowAll,
-						FAlang::Translate(QString("fa_message_details_filetype")),
+						fatr::fa_message_details_filetype(fatr::now),
 						mime.name()
 					));
 				}
@@ -623,7 +623,7 @@ void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::menuIconInfo,
-						FAlang::Translate(QString("fa_message_details_filename")),
+						fatr::fa_message_details_filename(fatr::now),
 						shortified,
 						[=]
 						{
@@ -636,7 +636,7 @@ void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::menuIconStats,
-						FAlang::Translate(QString("fa_message_details_resolution")),
+						fatr::fa_message_details_resolution(fatr::now),
 						mediaResolution
 					));
 				}
@@ -645,7 +645,7 @@ void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::menuIconBoosts,
-						FAlang::Translate(QString("fa_message_details_datacenter")),
+						fatr::fa_message_details_datacenter(fatr::now),
 						mediaDC
 					));
 				}

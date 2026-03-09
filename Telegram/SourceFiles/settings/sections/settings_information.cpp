@@ -7,7 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "settings/sections/settings_information.h"
 
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 #include "fa/settings/fa_settings.h"
 
 #include "settings/sections/settings_main.h"
@@ -1007,10 +1007,10 @@ not_null<Ui::SlideWrap<Ui::SettingsButton>*> AccountsList::setupAdd() {
 #endif // !_DEBUG
 		}
 		_contextMenu = base::make_unique_q<Ui::PopupMenu>(_outer);
-		_contextMenu->addAction(FAlang::Translate(QString("fa_production_server")), [=] {
+		_contextMenu->addAction(fatr::fa_production_server(fatr::now), [=] {
 			add(Environment::Production);
 		});
-		_contextMenu->addAction(FAlang::Translate(QString("fa_test_server")), [=] {
+		_contextMenu->addAction(fatr::fa_test_server(fatr::now), [=] {
 			add(Environment::Test);
 		});
 		_contextMenu->popup(QCursor::pos());

@@ -11,7 +11,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/utils/telegram_helpers.h"
 #include "fa/ui/history/view/fa_context_menu_shortcuts.h"
 #include "fa/ui/history/view/fa_reply_in_private.h"
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 
 
 #include "chat_helpers/stickers_emoji_pack.h"
@@ -3017,7 +3017,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		const auto quote = selected.highlight.quote;
 		const auto quoteOffset = selected.highlight.quoteOffset;
 		_menu->addAction(
-			FAlang::Translate("fa_reply_in_private_chat"),
+			fatr::fa_reply_in_private_chat(fatr::now),
 			[=, controller = _controller] {
 				const auto history = user->owner().history(user);
 				auto reply = FullReplyTo{
@@ -3149,7 +3149,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 					const auto submenu = _menu->ensureSubmenu(forwardAction, st::faContextMenu);
 
 					submenu->addAction(
-						FAlang::Translate("fa_forward_with_author"),
+						fatr::fa_forward_with_author(fatr::now),
 						[=] {
 							auto idsCopy = ids;
 							Window::ShowForwardMessagesBox(controller, std::move(idsCopy), callback);
@@ -3157,7 +3157,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						&st::menuIconForward);
 
 					submenu->addAction(
-						FAlang::Translate("fa_forward_as_copy"),
+						fatr::fa_forward_as_copy(fatr::now),
 						[=] {
 							auto draft = Data::ForwardDraft{
 								.ids = ids,
@@ -3176,7 +3176,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 
 					if (hasMediaWithCaption) {
 						submenu->addAction(
-							FAlang::Translate("fa_forward_without_caption"),
+							fatr::fa_forward_without_caption(fatr::now),
 							[=] {
 								auto draft = Data::ForwardDraft{
 									.ids = ids,
@@ -3188,7 +3188,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 					}
 
 					submenu->addAction(
-						FAlang::Translate("fa_forward_to_saved"),
+						fatr::fa_forward_to_saved(fatr::now),
 						[=] {
 							auto draft = Data::ForwardDraft{ .ids = ids };
 							Window::ForwardToSelf(controller->uiShow(), draft);
@@ -3197,7 +3197,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						&st::menuIconSavedMessages);
 
 					submenu->addAction(
-						FAlang::Translate("fa_forward_to_saved_as_copy"),
+						fatr::fa_forward_to_saved_as_copy(fatr::now),
 						[=] {
 							auto draft = Data::ForwardDraft{
 								.ids = ids,
@@ -3241,14 +3241,14 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						const auto submenu = _menu->ensureSubmenu(forwardAction, st::faContextMenu);
 
 						submenu->addAction(
-							FAlang::Translate("fa_forward_with_author"),
+							fatr::fa_forward_with_author(fatr::now),
 							[=] {
 								forwardItem(itemId);
 							},
 							&st::menuIconForward);
 
 						submenu->addAction(
-							FAlang::Translate("fa_forward_as_copy"),
+							fatr::fa_forward_as_copy(fatr::now),
 							[=] {
 								auto draft = Data::ForwardDraft{
 									.ids = MessageIdsList{ 1, itemId },
@@ -3260,7 +3260,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 
 						if (item->media() && item->media()->allowsEditCaption()) {
 							submenu->addAction(
-								FAlang::Translate("fa_forward_without_caption"),
+								fatr::fa_forward_without_caption(fatr::now),
 								[=] {
 									auto draft = Data::ForwardDraft{
 										.ids = MessageIdsList{ 1, itemId },
@@ -3272,7 +3272,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						}
 
 						submenu->addAction(
-							FAlang::Translate("fa_forward_to_saved"),
+							fatr::fa_forward_to_saved(fatr::now),
 							[=] {
 								auto draft = Data::ForwardDraft{ .ids = MessageIdsList{ 1, itemId } };
 								Window::ForwardToSelf(controller->uiShow(), draft);
@@ -3280,7 +3280,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 							&st::menuIconSavedMessages);
 
 						submenu->addAction(
-							FAlang::Translate("fa_forward_to_saved_as_copy"),
+							fatr::fa_forward_to_saved_as_copy(fatr::now),
 							[=] {
 								auto draft = Data::ForwardDraft{
 									.ids = MessageIdsList{ 1, itemId },
@@ -3564,7 +3564,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 					const auto submenu = _menu->ensureSubmenu(forwardAction, st::faContextMenu);
 
 					submenu->addAction(
-						FAlang::Translate("fa_forward_with_author"),
+						fatr::fa_forward_with_author(fatr::now),
 						[=] {
 							auto idsCopy = ids;
 							Window::ShowForwardMessagesBox(controller, std::move(idsCopy), callback);
@@ -3572,7 +3572,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						&st::menuIconForward);
 
 					submenu->addAction(
-						FAlang::Translate("fa_forward_as_copy"),
+						fatr::fa_forward_as_copy(fatr::now),
 						[=] {
 							auto draft = Data::ForwardDraft{
 								.ids = ids,
@@ -3591,7 +3591,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 
 					if (hasMediaWithCaption) {
 						submenu->addAction(
-							FAlang::Translate("fa_forward_without_caption"),
+							fatr::fa_forward_without_caption(fatr::now),
 							[=] {
 								auto draft = Data::ForwardDraft{
 									.ids = ids,
@@ -3603,7 +3603,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 					}
 
 					submenu->addAction(
-						FAlang::Translate("fa_forward_to_saved"),
+						fatr::fa_forward_to_saved(fatr::now),
 						[=] {
 							auto draft = Data::ForwardDraft{ .ids = ids };
 							Window::ForwardToSelf(controller->uiShow(), draft);
@@ -3612,7 +3612,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						&st::menuIconSavedMessages);
 
 					submenu->addAction(
-						FAlang::Translate("fa_forward_to_saved_as_copy"),
+						fatr::fa_forward_to_saved_as_copy(fatr::now),
 						[=] {
 							auto draft = Data::ForwardDraft{
 								.ids = ids,
@@ -3661,14 +3661,14 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						const auto submenu = _menu->ensureSubmenu(forwardAction, st::faContextMenu);
 
 						submenu->addAction(
-							FAlang::Translate("fa_forward_with_author"),
+							fatr::fa_forward_with_author(fatr::now),
 							[=] {
 								forwardAsGroup(itemId);
 							},
 							&st::menuIconForward);
 
 						submenu->addAction(
-							FAlang::Translate("fa_forward_as_copy"),
+							fatr::fa_forward_as_copy(fatr::now),
 							[=] {
 								const auto ids = getGroupIds();
 								if (!ids.empty()) {
@@ -3683,7 +3683,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 
 						if (item->media() && item->media()->allowsEditCaption()) {
 							submenu->addAction(
-								FAlang::Translate("fa_forward_without_caption"),
+								fatr::fa_forward_without_caption(fatr::now),
 								[=] {
 									const auto ids = getGroupIds();
 									if (!ids.empty()) {
@@ -3698,7 +3698,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						}
 
 						submenu->addAction(
-							FAlang::Translate("fa_forward_to_saved"),
+							fatr::fa_forward_to_saved(fatr::now),
 							[=] {
 								const auto ids = getGroupIds();
 								if (!ids.empty()) {
@@ -3709,7 +3709,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 							&st::menuIconSavedMessages);
 
 						submenu->addAction(
-							FAlang::Translate("fa_forward_to_saved_as_copy"),
+							fatr::fa_forward_to_saved_as_copy(fatr::now),
 							[=] {
 								const auto ids = getGroupIds();
 								if (!ids.empty()) {

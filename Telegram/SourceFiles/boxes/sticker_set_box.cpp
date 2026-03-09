@@ -7,7 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "boxes/sticker_set_box.h"
 
-#include "fa/lang/fa_lang.h"
+#include "fa_lang_auto.h"
 
 #include "api/api_common.h"
 #include "api/api_toggling_media.h"
@@ -834,7 +834,7 @@ void StickerSetBox::updateButtons() {
 						[=] { share(); closeBox(); },
 						&st::menuIconShare);
 					(*menu)->addAction(
-						FAlang::Translate(QString("fa_pack_owner")),
+						fatr::fa_pack_owner(fatr::now),
 						[=] { pack_owner(); closeBox(); },
 						&st::menuIconProfile);
 					(*menu)->popup(QCursor::pos());
@@ -889,7 +889,7 @@ void StickerSetBox::updateButtons() {
 							archive,
 							&st::menuIconArchive);
 						(*menu)->addAction(
-							FAlang::Translate(QString("fa_pack_owner")),
+							fatr::fa_pack_owner(fatr::now),
 							[=] { pack_owner(); closeBox(); },
 							&st::menuIconProfile);
 					}
