@@ -1,0 +1,117 @@
+name: Publish OTA Update
+
+on:
+  workflow_call:
+    inputs:
+      run_id:
+        description: "Run ID to download OTA artifacts from"
+        type: string
+        required: true
+
+jobs:
+  publish:
+    name: Publish OTA
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            Telegram/build/version
+
+      - name: Read version info
+        id: version
+        run: |
+          VERSION_FILE="Telegram/build/version"
+          APP_VERSION=$(grep 'AppVersion ' "$VERSION_FILE" | awk '{print $2}')
+          BETA=$(grep 'BetaChannel' "$VERSION_FILE" | awk '{print $2}')
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+          echo "IS_BETA=$BETA" >> $GITHUB_ENV
+
+      - name: Download Windows OTA artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ota-win64
+          path: ota-artifacts/win64
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download Linux OTA artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ota-linux
+          path: ota-artifacts/linux
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone OTA repo
+        run: |
+          git clone https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/ota.git ota-repo
+          cd ota-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish updates
+        run: |
+          WIN_FILE=$(find ota-artifacts/win64 -name "tx64upd*" | head -1)
+          LINUX_FILE=$(find ota-artifacts/linux -name "tlinuxupd*" | head -1)
+
+          if [ -z "$WIN_FILE" ]; then
+            echo "Error: Windows OTA file not found"
+            exit 1
+          fi
+          if [ -z "$LINUX_FILE" ]; then
+            echo "Error: Linux OTA file not found"
+            exit 1
+          fi
+
+          cp "$WIN_FILE" ota-repo/
+          cp "$LINUX_FILE" ota-repo/
+
+          WIN_NAME=$(basename "$WIN_FILE")
+          LINUX_NAME=$(basename "$LINUX_FILE")
+          CHANNEL="stable"
+          if [ "$IS_BETA" = "1" ]; then
+            CHANNEL="beta"
+          fi
+
+          cd ota-repo
+
+          python3 -c "
+          import json, os
+
+          manifest_path = 'current4'
+          manifest = {}
+          if os.path.isfile(manifest_path):
+              with open(manifest_path) as f:
+                  manifest = json.load(f)
+
+          version = '${{ env.APP_VERSION }}'
+          channel = '${CHANNEL}'
+
+          manifest.setdefault('win64', {})[channel] = {
+              'released': version,
+              'link': '/${WIN_NAME}',
+          }
+          manifest.setdefault('linux', {})[channel] = {
+              'released': version,
+              'link': '/${LINUX_NAME}',
+          }
+
+          with open(manifest_path, 'w') as f:
+              json.dump(manifest, f, indent=2, sort_keys=True)
+              f.write('\n')
+          "
+
+          git add "$WIN_NAME" "$LINUX_NAME" current4
+          git commit -m "Update to $(python3 -c "v=${{ env.APP_VERSION }}; print(f'{v//1000000}.{(v//1000)%1000}.{v%1000}')")"
+          git push origin main
+
+      - name: Summary
+        run: |
+          echo "### OTA Update Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Windows:** tx64upd${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Linux:** tlinuxupd${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY

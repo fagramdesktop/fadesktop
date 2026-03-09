@@ -60,6 +60,10 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Clone DesktopPrivate
+        run: |
+          git clone https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/DesktopPrivate.git $GITHUB_WORKSPACE/../DesktopPrivate
+
       - name: Pull Docker IMG
         run: |
           docker pull ghcr.io/telegramdesktop/tdesktop/centos_env
@@ -70,6 +74,7 @@ jobs:
           docker run --rm \
           -u $(id -u) \
           -v $PWD:/usr/src/tdesktop \
+          -v $GITHUB_WORKSPACE/../DesktopPrivate:/usr/src/DesktopPrivate \
           $IMAGE_TAG \
           /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
           -D CMAKE_CONFIGURATION_TYPES=Release \
@@ -78,7 +83,32 @@ jobs:
           -D CMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld -Wl,-z,muldefs" \
           -D HAVE_EGL=TRUE \
           -D TDESKTOP_API_ID=${{ secrets.API_ID_CONFIG }} \
-          -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }}
+          -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }} \
+          -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
+          -D DESKTOP_APP_BUILD_PACKER=ON
+
+      - name: Read version info
+        id: version
+        run: |
+          VERSION_FILE="Telegram/build/version"
+          APP_VERSION=$(grep 'AppVersion ' "$VERSION_FILE" | awk '{print $2}')
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+          echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Sign OTA update
+        run: |
+          PACKER=$(find out -name Packer -type f | head -1)
+          TELEGRAM=$(find out -name fagram -type f -not -path "*/install/*" | head -1)
+          if [ -z "$PACKER" ] || [ -z "$TELEGRAM" ]; then
+            echo "Error: Packer or Telegram binary not found"
+            find out -type f -name 'Packer' -o -name 'fagram'
+            exit 1
+          fi
+          docker run --rm \
+          -u $(id -u) \
+          -v $PWD:/usr/src/tdesktop \
+          $IMAGE_TAG \
+          /bin/bash -c "cd /usr/src/tdesktop && ./$PACKER -path ./$TELEGRAM -version $APP_VERSION"
 
       - name: Create Tar
         run: |
@@ -90,6 +120,12 @@ jobs:
         with:
           name: fagram-${{ env.TAGNAME }}
           path: out/install/fagram-${{ env.TAGNAME }}.tar.gz
+
+      - name: Upload OTA Update
+        uses: actions/upload-artifact@v7
+        with:
+          name: ota-linux
+          path: tlinuxupd${{ env.APP_VERSION }}
 
   upload-telegram:
     name: Upload to Telegram

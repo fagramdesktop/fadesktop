@@ -542,18 +542,7 @@ QString autoupdatePrefixFile() {
 const QString &readAutoupdatePrefixRaw() {
 	Expects(!Core::UpdaterDisabled());
 
-	const auto &result = AutoupdatePrefix();
-	if (!result.isEmpty()) {
-		return result;
-	}
-	QFile f(autoupdatePrefixFile());
-	if (f.open(QIODevice::ReadOnly)) {
-		const auto value = QString::fromUtf8(f.readAll());
-		if (!value.isEmpty()) {
-			return AutoupdatePrefix(value);
-		}
-	}
-	return AutoupdatePrefix("https://ota.fagram.app");
+	return AutoupdatePrefix("https://raw.githubusercontent.com/fagramdesktop/ota/main");
 }
 
 void writeAutoupdatePrefix(const QString &prefix) {

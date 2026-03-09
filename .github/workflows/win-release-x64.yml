@@ -170,6 +170,12 @@ jobs:
           submodules: recursive
           path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}
 
+      - name: Clone DesktopPrivate
+        run: |
+          git clone https://x-access-token:%PAT%@github.com/fagramdesktop/DesktopPrivate.git %TBUILD%\DesktopPrivate
+        env:
+          PAT: ${{ secrets.PAT }}
+
       - name: Set up environment paths
         shell: bash
         run: |
@@ -224,7 +230,8 @@ jobs:
           -D CMAKE_EXE_LINKER_FLAGS="/FORCE:MULTIPLE" ^
           -D CMAKE_SHARED_LINKER_FLAGS="/FORCE:MULTIPLE" ^
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
-          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF
+          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF ^
+          -D DESKTOP_APP_BUILD_PACKER=ON
 
           cmake --build ..\out --config Release --parallel
 
@@ -246,14 +253,23 @@ jobs:
         shell: bash
         run: |
           VERSION_FILE="$TBUILD/$REPO_NAME/Telegram/build/version"
+          APP_VERSION=$(grep 'AppVersion ' "$VERSION_FILE" | awk '{print $2}')
           APP_VERSION_STR=$(grep 'AppVersionStr ' "$VERSION_FILE" | awk '{print $2}')
           APP_VERSION_STR_SMALL=$(grep 'AppVersionStrSmall' "$VERSION_FILE" | awk '{print $2}')
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
           echo "APP_VERSION_STR=$APP_VERSION_STR" >> $GITHUB_ENV
           echo "APP_VERSION_STR_SMALL=$APP_VERSION_STR_SMALL" >> $GITHUB_ENV
           echo "APP_VERSION_STR_FULL=${APP_VERSION_STR}.0" >> $GITHUB_ENV
+          echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
           echo "app_version_str=$APP_VERSION_STR" >> $GITHUB_OUTPUT
           echo "app_version_str_small=$APP_VERSION_STR_SMALL" >> $GITHUB_OUTPUT
           echo "app_version_str_full=${APP_VERSION_STR}.0" >> $GITHUB_OUTPUT
+
+      - name: Sign OTA update
+        if: env.UPLOAD_ARTIFACT == 'true'
+        run: |
+          cd %TBUILD%\%REPO_NAME%\out\Release
+          Packer.exe -path fagram.exe -version %APP_VERSION% -target win64
 
       - name: Prepare artifacts
         if: env.UPLOAD_ARTIFACT == 'true'
@@ -261,10 +277,18 @@ jobs:
           cd %TBUILD%\%REPO_NAME%
           set OUT=%TBUILD%\%REPO_NAME%\out\Release
           if not exist artifact mkdir artifact
-          move %OUT%\*.exe artifact\
+          move %OUT%\fagram.exe artifact\
+          move %OUT%\Updater.exe artifact\
           copy Telegram\Resources\art\icon.ico artifact\
           cd artifact
           7z a -tzip FAgram_Win-x64_%RELEASE_TAG%_portable.zip *.exe icon.ico
+
+      - name: Prepare OTA artifact
+        if: env.UPLOAD_ARTIFACT == 'true'
+        run: |
+          cd %TBUILD%\%REPO_NAME%\out\Release
+          if not exist ota mkdir ota
+          move tx64upd%APP_VERSION% ota\
 
       - uses: actions/upload-artifact@v7
         name: Upload Release Artifacts
@@ -272,6 +296,13 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.TBUILD }}/${{ env.REPO_NAME }}/artifact/
+
+      - uses: actions/upload-artifact@v7
+        name: Upload OTA Update
+        if: env.UPLOAD_ARTIFACT == 'true'
+        with:
+          name: ota-win64
+          path: ${{ env.TBUILD }}/${{ env.REPO_NAME }}/out/Release/ota/
 
   build-installer:
     name: Build Windows x64 Installer
