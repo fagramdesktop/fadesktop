@@ -10,6 +10,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "fa/settings/fa_settings.h"
 #include "fa/settings_menu/sections/fa_general.h"
+#include "fa/settings_menu/fa_deeplink_context_menu.h"
 
 #include "fa_lang_auto.h"
 
@@ -38,42 +39,52 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "api/api_blocked_peers.h"
 #include "ui/widgets/continuous_sliders.h"
 
-#define SettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
-	container, \
-    fatr::LangKey(), \
-	st::settingsButtonNoIcon \
-))->toggleOn( \
-	rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-)->toggledValue( \
-) | rpl::filter([](bool enabled) { \
-	return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-}) | rpl::on_next([](bool enabled) { \
-	::FASettings::JsonSettings::Write(); \
-	::FASettings::JsonSettings::Set(#Option, enabled); \
-	::FASettings::JsonSettings::Write(); \
-}, container->lifetime());
+#define SettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
+	const auto _btn = container->add(object_ptr<Button>( \
+		container, \
+		fatr::LangKey(), \
+		st::settingsButtonNoIcon \
+	)); \
+	_btn->toggleOn( \
+		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
+	)->toggledValue( \
+	) | rpl::filter([](bool enabled) { \
+		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
+	}) | rpl::on_next([](bool enabled) { \
+		::FASettings::JsonSettings::Write(); \
+		::FASettings::JsonSettings::Set(#Option, enabled); \
+		::FASettings::JsonSettings::Write(); \
+	}, container->lifetime()); \
+	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
+		_btn, ControlId, controller); \
+} while (false)
 
-#define RestartSettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
-    container, \
-    fatr::LangKey(), \
-    st::settingsButtonNoIcon \
-))->toggleOn( \
-    rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-)->toggledValue( \
-) | rpl::filter([](bool enabled) { \
-    return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-}) | rpl::on_next([=](bool enabled) { \
-    ::FASettings::JsonSettings::Write(); \
-    ::FASettings::JsonSettings::Set(#Option, enabled); \
-    ::FASettings::JsonSettings::Write(); \
-    controller->show(Ui::MakeConfirmBox({ \
-        .text = fatr::fa_setting_need_restart(), \
-        .confirmed = [=] { \
-            ::Core::Restart(); \
-        }, \
-        .confirmText = fatr::fa_restart() \
-    })); \
-}, container->lifetime());
+#define RestartSettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
+	const auto _btn = container->add(object_ptr<Button>( \
+		container, \
+		fatr::LangKey(), \
+		st::settingsButtonNoIcon \
+	)); \
+	_btn->toggleOn( \
+		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
+	)->toggledValue( \
+	) | rpl::filter([](bool enabled) { \
+		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
+	}) | rpl::on_next([=](bool enabled) { \
+		::FASettings::JsonSettings::Write(); \
+		::FASettings::JsonSettings::Set(#Option, enabled); \
+		::FASettings::JsonSettings::Write(); \
+		controller->show(Ui::MakeConfirmBox({ \
+			.text = fatr::fa_setting_need_restart(), \
+			.confirmed = [=] { \
+				::Core::Restart(); \
+			}, \
+			.confirmText = fatr::fa_restart() \
+		})); \
+	}, container->lifetime()); \
+	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
+		_btn, ControlId, controller); \
+} while (false)
 
 namespace Settings {
 
@@ -91,21 +102,21 @@ namespace Settings {
     void FAGeneral::SetupGeneral(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
         Ui::AddSubsectionTitle(container, fatr::fa_general());
 
-        RestartSettingsMenuJsonSwitch(fa_enable_whats_new_chat, enable_whats_new_chat);
+        RestartSettingsMenuJsonSwitch(fa_enable_whats_new_chat, enable_whats_new_chat, u"fa/general/whats-new-chat"_q);
         Ui::AddDividerText(container, fatr::fa_enable_whats_new_chat_desc());
-        SettingsMenuJsonSwitch(fa_disable_ads, disable_ads);
+        SettingsMenuJsonSwitch(fa_disable_ads, disable_ads, u"fa/general/disable-ads"_q);
         Ui::AddDividerText(container, fatr::fa_disable_ads_desc());
-        SettingsMenuJsonSwitch(fa_show_start_token, show_start_token);
+        SettingsMenuJsonSwitch(fa_show_start_token, show_start_token, u"fa/general/start-token"_q);
         Ui::AddDividerText(container, fatr::fa_show_start_token_desc());
-        SettingsMenuJsonSwitch(fa_show_peer_ids, show_peer_id);
+        SettingsMenuJsonSwitch(fa_show_peer_ids, show_peer_id, u"fa/general/peer-ids"_q);
         Ui::AddDividerText(container, fatr::fa_show_peer_ids_desc());
-        SettingsMenuJsonSwitch(fa_show_dc_ids, show_dc_id);
+        SettingsMenuJsonSwitch(fa_show_dc_ids, show_dc_id, u"fa/general/dc-ids"_q);
         Ui::AddDividerText(container, fatr::fa_show_dc_ids_desc());
-        SettingsMenuJsonSwitch(fa_id_in_botapi_type, show_id_botapi);
+        SettingsMenuJsonSwitch(fa_id_in_botapi_type, show_id_botapi, u"fa/general/botapi-id"_q);
         Ui::AddDividerText(container, fatr::fa_id_in_botapi_type_desc());
-        SettingsMenuJsonSwitch(fa_local_tg_premium, local_premium);
+        SettingsMenuJsonSwitch(fa_local_tg_premium, local_premium, u"fa/general/local-premium"_q);
         Ui::AddDividerText(container, fatr::fa_local_tg_premium_desc());
-        SettingsMenuJsonSwitch(fa_show_registration_date, show_registration_date);
+        SettingsMenuJsonSwitch(fa_show_registration_date, show_registration_date, u"fa/general/registration-date"_q);
         Ui::AddDividerText(container, fatr::fa_show_registration_date_desc());
     }
 

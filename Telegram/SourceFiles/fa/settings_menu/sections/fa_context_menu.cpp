@@ -10,6 +10,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "fa/settings/fa_settings.h"
 #include "fa/settings_menu/sections/fa_context_menu.h"
+#include "fa/settings_menu/fa_deeplink_context_menu.h"
 
 #include "fa_lang_auto.h"
 
@@ -41,20 +42,25 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/buttons.h"
 #include "base/call_delayed.h"
 
-#define SettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
-	container, \
-    fatr::LangKey(), \
-	st::settingsButtonNoIcon \
-))->toggleOn( \
-	rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-)->toggledValue( \
-) | rpl::filter([](bool enabled) { \
-	return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-}) | rpl::on_next([](bool enabled) { \
-	::FASettings::JsonSettings::Write(); \
-	::FASettings::JsonSettings::Set(#Option, enabled); \
-	::FASettings::JsonSettings::Write(); \
-}, container->lifetime());
+#define SettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
+	const auto _btn = container->add(object_ptr<Button>( \
+		container, \
+		fatr::LangKey(), \
+		st::settingsButtonNoIcon \
+	)); \
+	_btn->toggleOn( \
+		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
+	)->toggledValue( \
+	) | rpl::filter([](bool enabled) { \
+		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
+	}) | rpl::on_next([](bool enabled) { \
+		::FASettings::JsonSettings::Write(); \
+		::FASettings::JsonSettings::Set(#Option, enabled); \
+		::FASettings::JsonSettings::Write(); \
+	}, container->lifetime()); \
+	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
+		_btn, ControlId, controller); \
+} while (false)
 
 namespace Settings {
 
@@ -72,11 +78,12 @@ namespace Settings {
     void FAContextMenu::SetupContextMenu(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
 		Ui::AddSubsectionTitle(container, fatr::fa_context_menu());
 
-		container->add(object_ptr<Button>(
+		const auto shortcutsBtn = container->add(object_ptr<Button>(
 			container,
 			fatr::fa_context_menu_settings(),
 			st::settingsButtonNoIcon
-		))->toggleOn(
+		));
+		shortcutsBtn->toggleOn(
 			rpl::single(::FASettings::JsonSettings::GetBool("context_menu_use_shortcuts"))
 		)->toggledValue(
 		) | rpl::filter([](bool enabled) {
@@ -86,8 +93,10 @@ namespace Settings {
 			::FASettings::JsonSettings::Set("context_menu_use_shortcuts", enabled);
 			::FASettings::JsonSettings::Write();
 		}, container->lifetime());
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			shortcutsBtn, u"fa/context-menu/shortcuts"_q, controller);
 
-		SettingsMenuJsonSwitch(fa_context_menu_move_to_bottom, context_menu_shortcuts_at_bottom);
+		SettingsMenuJsonSwitch(fa_context_menu_move_to_bottom, context_menu_shortcuts_at_bottom, u"fa/context-menu/shortcuts-bottom"_q);
 		Ui::AddDividerText(container, fatr::fa_context_menu_desc());
 
 		// Shortcut button size slider
@@ -356,10 +365,10 @@ namespace Settings {
 
 		Ui::AddDividerText(container, fatr::fa_shortcut_customization_desc());
 
-		SettingsMenuJsonSwitch(fa_context_menu_reply_in_private, context_menu_reply_in_private);
+		SettingsMenuJsonSwitch(fa_context_menu_reply_in_private, context_menu_reply_in_private, u"fa/context-menu/reply-private"_q);
 		Ui::AddDividerText(container, fatr::fa_context_menu_reply_in_private_desc());
 
-		SettingsMenuJsonSwitch(fa_context_menu_forward_submenu, context_menu_forward_submenu);
+		SettingsMenuJsonSwitch(fa_context_menu_forward_submenu, context_menu_forward_submenu, u"fa/context-menu/forward-submenu"_q);
 		Ui::AddDividerText(container, fatr::fa_context_menu_forward_submenu_desc());
     }
 

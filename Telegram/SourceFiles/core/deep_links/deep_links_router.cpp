@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/deep_links/deep_links_contacts.h"
 #include "core/deep_links/deep_links_new.h"
 #include "core/deep_links/deep_links_settings.h"
+#include "fa/deep_links/fa_deep_links.h"
 #include "core/application.h"
 #include "main/main_session.h"
 #include "ui/toast/toast.h"
@@ -71,6 +72,7 @@ Router::Router() {
 	RegisterContactsHandlers(*this);
 	RegisterChatsHandlers(*this);
 	RegisterNewHandlers(*this);
+	RegisterFAHandlers(*this);
 }
 
 void Router::add(const QString &section, Entry entry) {
@@ -130,16 +132,23 @@ Router::DispatchResult Router::handleSection(
 		}
 	}
 
+	const Entry *bestPrefix = nullptr;
 	for (const auto &entry : entries) {
 		if (!entry.path.isEmpty() && path.startsWith(entry.path + '/')) {
-			if (entry.requiresAuth && !ctx.controller) {
-				return { Result::NeedsAuth };
+			if (!bestPrefix
+				|| entry.path.size() > bestPrefix->path.size()) {
+				bestPrefix = &entry;
 			}
-			return {
-				executeAction(entry.action, ctx),
-				entry.skipActivation,
-			};
 		}
+	}
+	if (bestPrefix) {
+		if (bestPrefix->requiresAuth && !ctx.controller) {
+			return { Result::NeedsAuth };
+		}
+		return {
+			executeAction(bestPrefix->action, ctx),
+			bestPrefix->skipActivation,
+		};
 	}
 
 	return { Result::Unsupported };

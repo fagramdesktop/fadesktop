@@ -134,5 +134,6 @@
   "fa_use_custom_icon_pack_desc": "Заменяет стандартные иконки на Material Icons. Требуется перезапуск.",
   "fa_icon_pack_restart_prompt": "Перезапустить, чтобы применить изменения?",
   "fa_icon_pack_restart_now": "Перезапустить сейчас",
-  "fa_icon_pack_restart_later": "Позже"
+  "fa_icon_pack_restart_later": "Позже",
+  "fa_share": "Поделиться"
 }

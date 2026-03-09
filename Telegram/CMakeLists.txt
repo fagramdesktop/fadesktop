@@ -810,10 +810,14 @@ PRIVATE
     fa/utils/fa_profile_values.h
     fa/utils/fa_icon_pack.cpp
     fa/utils/fa_icon_pack.h
+    fa/deep_links/fa_deep_links.cpp
+    fa/deep_links/fa_deep_links.h
     fa/settings_menu/fa_settings_menu.cpp
     fa/settings_menu/fa_settings_menu.h
     fa/settings_menu/fa_settings_builder.cpp
     fa/settings_menu/fa_settings_builder.h
+    fa/settings_menu/fa_deeplink_context_menu.cpp
+    fa/settings_menu/fa_deeplink_context_menu.h
     fa/settings/fa_settings.cpp
     fa/settings/fa_settings.h
     fa/settings_menu/sections/fa_general.cpp

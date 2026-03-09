@@ -10,6 +10,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "fa/settings/fa_settings.h"
 #include "fa/settings_menu/sections/fa_chats.h"
+#include "fa/settings_menu/fa_deeplink_context_menu.h"
 
 #include "fa_lang_auto.h"
 
@@ -41,42 +42,52 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/buttons.h"
 #include "base/call_delayed.h"
 
-#define SettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
-	container, \
-    fatr::LangKey(), \
-	st::settingsButtonNoIcon \
-))->toggleOn( \
-	rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-)->toggledValue( \
-) | rpl::filter([](bool enabled) { \
-	return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-}) | rpl::on_next([](bool enabled) { \
-	::FASettings::JsonSettings::Write(); \
-	::FASettings::JsonSettings::Set(#Option, enabled); \
-	::FASettings::JsonSettings::Write(); \
-}, container->lifetime());
+#define SettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
+	const auto _btn = container->add(object_ptr<Button>( \
+		container, \
+		fatr::LangKey(), \
+		st::settingsButtonNoIcon \
+	)); \
+	_btn->toggleOn( \
+		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
+	)->toggledValue( \
+	) | rpl::filter([](bool enabled) { \
+		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
+	}) | rpl::on_next([](bool enabled) { \
+		::FASettings::JsonSettings::Write(); \
+		::FASettings::JsonSettings::Set(#Option, enabled); \
+		::FASettings::JsonSettings::Write(); \
+	}, container->lifetime()); \
+	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
+		_btn, ControlId, controller); \
+} while (false)
 
-#define RestartSettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
-    container, \
-    fatr::LangKey(), \
-    st::settingsButtonNoIcon \
-))->toggleOn( \
-    rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-)->toggledValue( \
-) | rpl::filter([](bool enabled) { \
-    return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-}) | rpl::on_next([=](bool enabled) { \
-    ::FASettings::JsonSettings::Write(); \
-    ::FASettings::JsonSettings::Set(#Option, enabled); \
-    ::FASettings::JsonSettings::Write(); \
-    controller->show(Ui::MakeConfirmBox({ \
-        .text = fatr::fa_setting_need_restart(), \
-        .confirmed = [=] { \
-            ::Core::Restart(); \
-        }, \
-        .confirmText = fatr::fa_restart() \
-    })); \
-}, container->lifetime());
+#define RestartSettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
+	const auto _btn = container->add(object_ptr<Button>( \
+		container, \
+		fatr::LangKey(), \
+		st::settingsButtonNoIcon \
+	)); \
+	_btn->toggleOn( \
+		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
+	)->toggledValue( \
+	) | rpl::filter([](bool enabled) { \
+		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
+	}) | rpl::on_next([=](bool enabled) { \
+		::FASettings::JsonSettings::Write(); \
+		::FASettings::JsonSettings::Set(#Option, enabled); \
+		::FASettings::JsonSettings::Write(); \
+		controller->show(Ui::MakeConfirmBox({ \
+			.text = fatr::fa_setting_need_restart(), \
+			.confirmed = [=] { \
+				::Core::Restart(); \
+			}, \
+			.confirmText = fatr::fa_restart() \
+		})); \
+	}, container->lifetime()); \
+	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
+		_btn, ControlId, controller); \
+} while (false)
 
 namespace Settings {
 
@@ -123,17 +134,17 @@ namespace Settings {
 			updateRecentStickersLimitHeight);
 		updateRecentStickersLimitLabel(::FASettings::JsonSettings::GetInt("recent_stickers_limit"));
 		Ui::AddDividerText(container, fatr::fa_recent_stickers_desc());
-		SettingsMenuJsonSwitch(fa_parse_markdown_hyperlink, auto_format_markdown);
+		SettingsMenuJsonSwitch(fa_parse_markdown_hyperlink, auto_format_markdown, u"fa/chats/markdown-hyperlink"_q);
 		Ui::AddDividerText(container, fatr::fa_parse_markdown_hyperlink_desc());
-		SettingsMenuJsonSwitch(fa_show_seconds_message, seconds_message);
+		SettingsMenuJsonSwitch(fa_show_seconds_message, seconds_message, u"fa/chats/seconds-message"_q);
 		Ui::AddDividerText(container, fatr::fa_show_seconds_message_desc());
-		SettingsMenuJsonSwitch(fa_disable_custom_chat_background, disable_custom_chat_background);
+		SettingsMenuJsonSwitch(fa_disable_custom_chat_background, disable_custom_chat_background, u"fa/chats/disable-custom-background"_q);
 		Ui::AddDividerText(container, fatr::fa_disable_custom_chat_background_desc());
-		SettingsMenuJsonSwitch(fa_hide_open_webapp_button_chatlist, hide_open_webapp_button_chatlist);
+		SettingsMenuJsonSwitch(fa_hide_open_webapp_button_chatlist, hide_open_webapp_button_chatlist, u"fa/chats/hide-webapp-button"_q);
 		Ui::AddDividerText(container, fatr::fa_hide_open_webapp_button_chatlist_desc());
-		SettingsMenuJsonSwitch(fa_show_discuss_button, show_discuss_button);
+		SettingsMenuJsonSwitch(fa_show_discuss_button, show_discuss_button, u"fa/chats/show-discuss-button"_q);
 		Ui::AddDividerText(container, fatr::fa_show_discuss_button_desc());
-		SettingsMenuJsonSwitch(fa_show_message_details, show_message_details);
+		SettingsMenuJsonSwitch(fa_show_message_details, show_message_details, u"fa/chats/message-details"_q);
 		Ui::AddDividerText(container, fatr::fa_show_message_details_desc());
 
 		const auto statusDotBtn = container->add(object_ptr<Button>(
@@ -157,6 +168,8 @@ namespace Settings {
 			::FASettings::JsonSettings::Write();
 			onlineOnlyBtn->setEnabled(enabled);
 		}, container->lifetime());
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			statusDotBtn, u"fa/chats/status-dot"_q, controller);
 
 		onlineOnlyBtn->toggleOn(
 			rpl::single(::FASettings::JsonSettings::GetBool("status_dot_online_only"))
@@ -168,9 +181,11 @@ namespace Settings {
 			::FASettings::JsonSettings::Write();
 		}, container->lifetime());
 		onlineOnlyBtn->setEnabled(::FASettings::JsonSettings::GetBool("show_status_dot"));
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			onlineOnlyBtn, u"fa/chats/status-dot-online"_q, controller);
 		Ui::AddDividerText(container, fatr::fa_status_dot_desc());
 
-		RestartSettingsMenuJsonSwitch(fa_hide_all_chats_folder, hide_all_chats_folder);
+		RestartSettingsMenuJsonSwitch(fa_hide_all_chats_folder, hide_all_chats_folder, u"fa/chats/hide-all-chats-folder"_q);
 		Ui::AddDividerText(container, fatr::fa_hide_all_chats_folder_desc());
 
 		const auto hideBlockedBtn = container->add(object_ptr<Button>(
@@ -193,6 +208,8 @@ namespace Settings {
 				::Core::Restart();
 			});
 		}, container->lifetime());
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			hideBlockedBtn, u"fa/chats/hide-blocked-messages"_q, controller);
 
 		Ui::AddDividerText(container, fatr::fa_hide_blocked_user_messages_desc());
     }
