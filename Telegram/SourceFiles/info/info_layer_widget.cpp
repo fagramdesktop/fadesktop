@@ -217,7 +217,7 @@ bool LayerWidget::takeToThirdSection() {
 	//// the third section, so that when we close it we won't
 	//// shrink the window size.
 	////
-	//// See https://github.com/fajox1/fagramdesktop/issues/4091
+	//// See https://github.com/fagramdesktop/fagramdesktop/issues/4091
 	//localCopy->session()().settings().setThirdSectionExtendedBy(0);
 
 	//localCopy->session()().settings().setThirdSectionInfoEnabled(true);

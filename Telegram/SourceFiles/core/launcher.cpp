@@ -342,9 +342,9 @@ void Launcher::init() {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	// fallback session management is useless for tdesktop since it doesn't have
 	// any "are you sure you want to close this window?" dialogs
-	// but it produces bugs like https://github.com/fajox1/fagramdesktop/issues/5022
-	// and https://github.com/fajox1/fagramdesktop/issues/7549
-	// and https://github.com/fajox1/fagramdesktop/issues/948
+	// but it produces bugs like https://github.com/fagramdesktop/fagramdesktop/issues/5022
+	// and https://github.com/fagramdesktop/fagramdesktop/issues/7549
+	// and https://github.com/fagramdesktop/fagramdesktop/issues/948
 	// more info: https://doc.qt.io/qt-5/qguiapplication.html#isFallbackSessionManagementEnabled
 	QApplication::setFallbackSessionManagementEnabled(false);
 #endif // Qt < 6.0.0

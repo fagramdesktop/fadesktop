@@ -22,7 +22,7 @@ Go to ***BuildPath*** and run
 
     sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
-    git clone --recursive https://github.com/fajox1/fagramdesktop.git tdesktop
+    git clone --recursive https://github.com/fagramdesktop/fagramdesktop.git tdesktop
     ./tdesktop/Telegram/build/prepare/mac.sh
 
 ### 💻 Building the project

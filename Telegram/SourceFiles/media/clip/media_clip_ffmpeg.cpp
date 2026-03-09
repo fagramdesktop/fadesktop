@@ -19,7 +19,7 @@ constexpr auto kSkipInvalidDataPackets = 10;
 constexpr auto kMaxInlineArea = 1280 * 720;
 constexpr auto kMaxSendingArea = 3840 * 2160; // usual 4K
 
-// See https://github.com/fajox1/fagramdesktop/issues/7225
+// See https://github.com/fagramdesktop/fagramdesktop/issues/7225
 constexpr auto kAlignImageBy = 64;
 
 void alignedImageBufferCleanupHandler(void *data) {

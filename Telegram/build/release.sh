@@ -14,7 +14,7 @@ if [ ! -d "$FullScriptPath/../../../DesktopPrivate" ]; then
   echo "This script is for building the production version of FAgram Desktop."
   echo ""
   echo "For building custom versions please visit the build instructions page at:"
-  echo "https://github.com/fajox1/fagramdesktop/#build-instructions"
+  echo "https://github.com/fagramdesktop/fagramdesktop/#build-instructions"
   exit
 fi
 

@@ -39,7 +39,7 @@ void _libdrm_so_tramp_resolve_all(void) __attribute__((weak));
 namespace FFmpeg {
 namespace {
 
-// See https://github.com/fajox1/fagramdesktop/issues/7225
+// See https://github.com/fagramdesktop/fagramdesktop/issues/7225
 constexpr auto kAlignImageBy = 64;
 constexpr auto kImageFormat = QImage::Format_ARGB32_Premultiplied;
 constexpr auto kMaxScaleByAspectRatio = 16;

@@ -40,7 +40,7 @@ FAgram Desktop is advancing quickly. It is therefore critical that you pull upst
 
 To pull in upstream changes:
 
-    git remote add upstream https://github.com/fajox1/fagramdesktop.git
+    git remote add upstream https://github.com/fagramdesktop/fagramdesktop.git
     git fetch upstream master
 
 Check the log to be sure that you actually want the changes, before merging:
@@ -113,7 +113,7 @@ Before you submit a pull request, please test your changes. Verify that FAgram D
 [help_fork_repo]: https://help.github.com/articles/fork-a-repo/
 [help_change_commit_message]: https://help.github.com/articles/changing-a-commit-message/
 [commit_message]: http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
-[pr]: https://github.com/fajox1/fagramdesktop/compare
-[build_instructions]: https://github.com/fajox1/fagramdesktop/blob/master/README.md#build-instructions
+[pr]: https://github.com/fagramdesktop/fagramdesktop/compare
+[build_instructions]: https://github.com/fagramdesktop/fagramdesktop/blob/master/README.md#build-instructions
 [closing-issues-via-commit-messages]: https://help.github.com/articles/closing-issues-via-commit-messages/
 [translate]: https://translations.telegram.org

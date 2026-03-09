@@ -30,7 +30,7 @@ using Cache::Database;
 
 [[nodiscard]] bool NoTimeLimit(qint32 storedLimitValue) {
 	// This is a workaround for a bug in storing the cache time limit.
-	// See https://github.com/fajox1/fagramdesktop/issues/5611
+	// See https://github.com/fagramdesktop/fagramdesktop/issues/5611
 	return !storedLimitValue
 		|| (storedLimitValue == qint32(std::numeric_limits<int32>::max()))
 		|| (storedLimitValue == qint32(std::numeric_limits<int64>::max()));

@@ -13,7 +13,7 @@ You will require **api_id** and **api_hash** to access the Telegram API servers.
 
 Install **[poetry](https://python-poetry.org)**, go to ***BuildPath*** and run
 
-    git clone --recursive https://github.com/fajox1/fagramdesktop.git tdesktop
+    git clone --recursive https://github.com/fagramdesktop/fagramdesktop.git tdesktop
     ./tdesktop/Telegram/build/prepare/linux.sh
 
 ### 💻 Building the project
@@ -43,7 +43,7 @@ Or, to create a **debug** build, run (also using [your **api_id** and **api_hash
 
 ### 💻 Visual Studio Code integration
 
-> Ensure you've followed the instruction up to the **[Clone source code and prepare libraries](https://github.com/fajox1/fagramdesktop/blob/dev/docs/building-linux.md#%EF%B8%8F-clone-source-code-and-prepare-libraries)** step at least.
+> Ensure you've followed the instruction up to the **[Clone source code and prepare libraries](https://github.com/fagramdesktop/fagramdesktop/blob/dev/docs/building-linux.md#%EF%B8%8F-clone-source-code-and-prepare-libraries)** step at least.
 
 Open the repository in Visual Studio Code, install the **[Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)** extension and add the following to `.vscode/settings.json` (using [your **api_id** and **api_hash**](#obtain-your-api-credentials)):
 

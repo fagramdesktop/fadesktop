@@ -43,7 +43,7 @@ Run both `Clone source code and prepare libraries` and `Build the project` secti
 
 In the initialized terminal, go to ***BuildPath*** and run
 
-    git clone --recursive https://github.com/fajox1/fagramdesktop.git tdesktop
+    git clone --recursive https://github.com/fagramdesktop/fagramdesktop.git tdesktop
     tdesktop\Telegram\build\prepare\win.bat
 
 ### 💻 Build the project

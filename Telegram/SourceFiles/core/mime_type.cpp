@@ -20,7 +20,7 @@ namespace {
 
 [[nodiscard]] bool IsImageFromFirefox(not_null<const QMimeData*> data) {
 	// See https://bugs.telegram.org/c/6765/public
-	// See https://github.com/fajox1/fagramdesktop/issues/10564
+	// See https://github.com/fagramdesktop/fagramdesktop/issues/10564
 	//
 	// Usually we prefer pasting from URLs list instead of pasting from
 	// image data, because sometimes a file is copied together with an

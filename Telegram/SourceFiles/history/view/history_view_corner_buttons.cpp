@@ -116,7 +116,7 @@ void CornerButtons::mentionsClick() {
 	const auto already = (_delegate->cornerButtonsCurrentId().msg == msgId);
 
 	// Mark mention voice/video message as read.
-	// See https://github.com/fajox1/fagramdesktop/issues/5623
+	// See https://github.com/fagramdesktop/fagramdesktop/issues/5623
 	if (msgId && already) {
 		if (const auto item = thread->owner().message(history->peer, msgId)) {
 			if (const auto media = item->media()) {
