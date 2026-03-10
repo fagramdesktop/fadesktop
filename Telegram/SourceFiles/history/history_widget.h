@@ -825,8 +825,6 @@ private:
 	object_ptr<Ui::FlatButton> _joinChannel;
 	object_ptr<Ui::FlatButton> _muteUnmute;
 	object_ptr<Ui::FlatButton> _discuss;
-	QPointer<Ui::IconButton> _giftToChannelIn;
-	QPointer<Ui::IconButton> _giftToChannelOut;
 	QPointer<Ui::IconButton> _giftToChannel;
 	QPointer<Ui::IconButton> _directMessage;
 	rpl::lifetime _directMessageLifetime;

@@ -2253,10 +2253,7 @@ void HistoryWidget::setupDirectMessageButton() {
 	_directMessage = Ui::CreateChild<Ui::IconButton>(
 		this,
 		st::historyDirectMessage);
-		_directMessage->setAccessibleName(tr::lng_profile_direct_messages(tr::now));
-	widthValue() | rpl::on_next([=](int width) {
-		_directMessage->moveToLeft(0, 0, width);
-	}, _directMessage->lifetime());
+	_directMessage->setAccessibleName(tr::lng_profile_direct_messages(tr::now));
 	_directMessage->setClickedCallback([=] {
 		if (const auto channel = _peer ? _peer->asChannel() : nullptr) {
 			if (channel->invitePeekExpires()) {
@@ -2269,19 +2266,7 @@ void HistoryWidget::setupDirectMessageButton() {
 			}
 		}
 	});
-	rpl::combine(
-		_muteUnmute->shownValue(),
-		_joinChannel->shownValue()
-	) | rpl::on_next([=](bool muteUnmute, bool joinChannel) {
-		const auto newParent = (muteUnmute && !joinChannel)
-			? _muteUnmute.data()
-			: (joinChannel && !muteUnmute)
-			? _joinChannel.data()
-			: static_cast<QWidget*>(this);
-		_directMessage->setParent(newParent);
-		_directMessage->moveToLeft(0, 0);
-		refreshDirectMessageShown();
-	}, _directMessage->lifetime());
+	_directMessage->hide();
 }
 
 void HistoryWidget::pushReplyReturn(not_null<HistoryItem*> item) {
@@ -3466,23 +3451,22 @@ void HistoryWidget::updateControlsVisibility() {
 			toggleOne(_unblock);
 		};
 
-		bool discuss_button = FASettings::JsonSettings::GetBool("show_discuss_button");
+		const auto discuss_button = FASettings::JsonSettings::GetBool("show_discuss_button");
 		
 		if (isChoosingTheme()) {
 			_chooseTheme->show();
 			setInnerFocus();
 			toggle(nullptr);
+			_discuss->hide();
 		} else if (isReportMessages()) {
 			toggle(_reportMessages);
+			_discuss->hide();
 		} else if (isBlocked()) {
 			toggle(_unblock);
+			_discuss->hide();
 		} else if (isJoinChannel()) {
 			toggle(_joinChannel);
 			_discuss->hide();
-			if (_joinChannel->isHidden()) {
-				_joinChannel->clearState();
-				_joinChannel->show();
-			}
 		} else if (isMuteUnmute()) {
 			if (hasDiscussionGroup() && discuss_button) {
 				if (_discuss->isHidden()) {
@@ -6280,25 +6264,28 @@ void HistoryWidget::moveFieldControls() {
 		_joinChannel->setGeometry(fullWidthButtonRect);
 	} else {
 		_muteUnmute->setGeometry(fullWidthButtonRect);
-		_muteUnmute->setTextMargins(QMargins());
 		_joinChannel->setGeometry(fullWidthButtonRect);
 		_reportMessages->setGeometry(fullWidthButtonRect);
 		
-		// Position icon buttons for full-width mute button
+		auto leftMargin = 0;
+		auto rightMargin = 0;
 		if (_giftToChannel && !_giftToChannel->isHidden()) {
+			rightMargin = st::historyGiftToChannel.width;
 			_giftToChannel->setGeometry(myrtlrect(
-				width() - st::historyGiftToChannel.width,
+				width() - rightMargin,
 				fullWidthButtonRect.y(),
-				st::historyGiftToChannel.width,
+				rightMargin,
 				fullWidthButtonRect.height()));
 		}
 		if (_directMessage && !_directMessage->isHidden()) {
+			leftMargin = st::historyDirectMessage.width;
 			_directMessage->setGeometry(myrtlrect(
 				0,
 				fullWidthButtonRect.y(),
-				st::historyDirectMessage.width,
+				leftMargin,
 				fullWidthButtonRect.height()));
 		}
+		_muteUnmute->setTextMargins({ leftMargin, 0, rightMargin, 0 });
 	}
 	if (_sendRestriction) {
 		_sendRestriction->setGeometry(fullWidthButtonRect);
