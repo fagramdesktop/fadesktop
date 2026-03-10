@@ -29,6 +29,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "storage/storage_account.h"
 #include "core/application.h"
 #include "core/core_settings.h"
+#include "fa/settings/fa_settings.h"
 #include "lang/lang_keys.h"
 #include "lottie/lottie_single_player.h"
 #include "media/clip/media_clip_reader.h"
@@ -1283,7 +1284,9 @@ bool FieldAutocomplete::Inner::chooseAtIndex(
 	} else if (!_mrows->empty()) {
 		if (index < _mrows->size()) {
 			const auto user = _mrows->at(index).user;
-			_mentionChosen.fire({ user, PrimaryUsername(user), method });
+			const auto mentionUsername = PrimaryUsername(user);
+			const auto addComma = !user->isBot();
+			_mentionChosen.fire({ user, mentionUsername, addComma, method });
 			return true;
 		}
 	} else if (!_hrows->empty()) {
@@ -1670,14 +1673,16 @@ void InitFieldAutocomplete(
 	raw->mentionChosen(
 	) | rpl::on_next([=](FieldAutocomplete::MentionChosen data) {
 		const auto user = data.user;
+		const auto suffix = data.addComma ? u","_q : QString();
 		const auto ctrlClick = base::IsCtrlPressed()
 			&& data.method == FieldAutocomplete::ChooseMethod::ByClick;
 		if (data.mention.isEmpty() || ctrlClick) {
-			field->insertTag(
-				user->firstName.isEmpty() ? user->name() : user->firstName,
-				PrepareMentionTag(user));
+			auto name = user->firstName.isEmpty()
+				? user->name()
+				: user->firstName;
+			field->insertTag(name, PrepareMentionTag(user), suffix);
 		} else {
-			field->insertTag('@' + data.mention);
+			field->insertTag('@' + data.mention, QString(), suffix);
 		}
 		if (data.method == FieldAutocompleteChooseMethod::ByTab) {
 			field->textCursor().insertText(" @");

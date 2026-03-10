@@ -92,6 +92,7 @@ public:
 	struct MentionChosen {
 		not_null<UserData*> user;
 		QString mention;
+		bool addComma = false;
 		ChooseMethod method = ChooseMethod::ByEnter;
 	};
 	struct HashtagChosen {
