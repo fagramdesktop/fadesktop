@@ -249,7 +249,7 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "use_tdesktop_themes", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
-	{ "use_custom_icon_pack", {
+	{ "use_material_icon_pack", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
 

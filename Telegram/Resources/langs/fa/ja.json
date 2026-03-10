@@ -130,8 +130,8 @@
   "fa_kick_user": "ユーザーをキック",
   "fa_unban_user": "ユーザーのBAN解除",
   "fa_reply_in_private_chat": "プライベートチャットで返信",
-  "fa_use_custom_icon_pack": "Material Iconsを使用",
-  "fa_use_custom_icon_pack_desc": "デフォルトのアイコンをMaterial Iconsに置き換えます。再起動が必要です。",
+  "fa_use_material_icon_pack": "Material Iconsを使用",
+  "fa_use_material_icon_pack_desc": "デフォルトのアイコンをMaterial Iconsに置き換えます。再起動が必要です。",
   "fa_icon_pack_restart_prompt": "変更を適用するために再起動しますか？",
   "fa_icon_pack_restart_now": "今すぐ再起動",
   "fa_icon_pack_restart_later": "後で"

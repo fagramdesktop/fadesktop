@@ -130,8 +130,8 @@
   "fa_kick_user": "Foydalanuvchini chiqarish",
   "fa_unban_user": "Foydalanuvchini taqiqdan chiqarish",
   "fa_reply_in_private_chat": "Shaxsiy chatda javob berish",
-  "fa_use_custom_icon_pack": "Material Icons dan foydalanish",
-  "fa_use_custom_icon_pack_desc": "Standart piktogrammalarni Material Icons ga almashtiradi. Qayta ishga tushirish talab qilinadi.",
+  "fa_use_material_icon_pack": "Material Icons dan foydalanish",
+  "fa_use_material_icon_pack_desc": "Standart piktogrammalarni Material Icons ga almashtiradi. Qayta ishga tushirish talab qilinadi.",
   "fa_icon_pack_restart_prompt": "O'zgarishlarni qo'llash uchun qayta ishga tushirilsinmi?",
   "fa_icon_pack_restart_now": "Hozir qayta ishga tushirish",
   "fa_icon_pack_restart_later": "Keyinroq"

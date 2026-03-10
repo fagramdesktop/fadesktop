@@ -130,8 +130,8 @@
   "fa_kick_user": "Kullanıcıyı at",
   "fa_unban_user": "Kullanıcının yasağını kaldır",
   "fa_reply_in_private_chat": "Özel Sohbette Yanıtla",
-  "fa_use_custom_icon_pack": "Material Icons Kullan",
-  "fa_use_custom_icon_pack_desc": "Varsayılan simgeleri Material Icons ile değiştirir. Yeniden başlatma gerektirir.",
+  "fa_use_material_icon_pack": "Material Icons Kullan",
+  "fa_use_material_icon_pack_desc": "Varsayılan simgeleri Material Icons ile değiştirir. Yeniden başlatma gerektirir.",
   "fa_icon_pack_restart_prompt": "Değişiklikleri uygulamak için yeniden başlatılsın mı?",
   "fa_icon_pack_restart_now": "Şimdi Yeniden Başlat",
   "fa_icon_pack_restart_later": "Daha Sonra"

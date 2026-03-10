@@ -384,6 +384,15 @@ const auto kFAAppearanceMeta = BuildHelper({
 			.icon = { &st::menuIconPalette },
 		};
 	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
+			.id = u"fa/appearance/material-icon-pack"_q,
+			.title = fatr::fa_use_material_icon_pack(fatr::now),
+			.keywords = { u"icon"_q, u"pack"_q, u"material"_q, u"icons"_q },
+			.icon = { &st::menuIconPalette },
+		};
+	});
 });
 // FA Context Menu
 const auto kFAContextMenuMeta = BuildHelper({

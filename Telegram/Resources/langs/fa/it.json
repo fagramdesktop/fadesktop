@@ -130,8 +130,8 @@
   "fa_kick_user": "Espelli utente",
   "fa_unban_user": "Riammetti utente",
   "fa_reply_in_private_chat": "Rispondi in chat privata",
-  "fa_use_custom_icon_pack": "Usa Material Icons",
-  "fa_use_custom_icon_pack_desc": "Sostituisce le icone predefinite con le Material Icons. Richiede il riavvio.",
+  "fa_use_material_icon_pack": "Usa Material Icons",
+  "fa_use_material_icon_pack_desc": "Sostituisce le icone predefinite con le Material Icons. Richiede il riavvio.",
   "fa_icon_pack_restart_prompt": "Riavviare per applicare le modifiche?",
   "fa_icon_pack_restart_now": "Riavvia ora",
   "fa_icon_pack_restart_later": "Più tardi"

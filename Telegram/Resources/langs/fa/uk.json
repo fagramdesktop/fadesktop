@@ -130,8 +130,8 @@
   "fa_kick_user": "Кікнути користувача",
   "fa_unban_user": "Розбанити користувача",
   "fa_reply_in_private_chat": "Відповісти в приватному чаті",
-  "fa_use_custom_icon_pack": "Використовувати Material Icons",
-  "fa_use_custom_icon_pack_desc": "Замінює стандартні іконки на Material Icons. Потрібен перезапуск.",
+  "fa_use_material_icon_pack": "Використовувати Material Icons",
+  "fa_use_material_icon_pack_desc": "Замінює стандартні іконки на Material Icons. Потрібен перезапуск.",
   "fa_icon_pack_restart_prompt": "Перезапустити, щоб застосувати зміни?",
   "fa_icon_pack_restart_now": "Перезапустити зараз",
   "fa_icon_pack_restart_later": "Пізніше"
