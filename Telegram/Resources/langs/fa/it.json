@@ -134,5 +134,6 @@
   "fa_use_material_icon_pack_desc": "Sostituisce le icone predefinite con le Material Icons. Richiede il riavvio.",
   "fa_icon_pack_restart_prompt": "Riavviare per applicare le modifiche?",
   "fa_icon_pack_restart_now": "Riavvia ora",
-  "fa_icon_pack_restart_later": "Più tardi"
+  "fa_icon_pack_restart_later": "Più tardi",
+  "fa_share": "Condividi"
 }

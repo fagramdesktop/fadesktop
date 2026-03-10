@@ -134,5 +134,6 @@
   "fa_use_material_icon_pack_desc": "Ersetzt die Standard-Icons durch die Material Icons. Neustart erforderlich.",
   "fa_icon_pack_restart_prompt": "Neustart durchführen, um Änderungen zu übernehmen?",
   "fa_icon_pack_restart_now": "Jetzt neu starten",
-  "fa_icon_pack_restart_later": "Später"
+  "fa_icon_pack_restart_later": "Später",
+  "fa_share": "Teilen"
 }

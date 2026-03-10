@@ -134,5 +134,6 @@
   "fa_use_material_icon_pack_desc": "Lecseréli az alapértelmezett ikonokat Material Icons-ra. Újraindítást igényel.",
   "fa_icon_pack_restart_prompt": "Újraindítja a változtatások alkalmazásához?",
   "fa_icon_pack_restart_now": "Újraindítás most",
-  "fa_icon_pack_restart_later": "Később"
+  "fa_icon_pack_restart_later": "Később",
+  "fa_share": "Megosztás"
 }

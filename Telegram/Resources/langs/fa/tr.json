@@ -134,5 +134,6 @@
   "fa_use_material_icon_pack_desc": "Varsayılan simgeleri Material Icons ile değiştirir. Yeniden başlatma gerektirir.",
   "fa_icon_pack_restart_prompt": "Değişiklikleri uygulamak için yeniden başlatılsın mı?",
   "fa_icon_pack_restart_now": "Şimdi Yeniden Başlat",
-  "fa_icon_pack_restart_later": "Daha Sonra"
+  "fa_icon_pack_restart_later": "Daha Sonra",
+  "fa_share": "Paylaş"
 }

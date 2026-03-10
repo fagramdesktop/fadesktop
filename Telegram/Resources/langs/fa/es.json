@@ -134,5 +134,6 @@
   "fa_use_material_icon_pack_desc": "Reemplaza los iconos predeterminados por los Material Icons. Requiere reinicio.",
   "fa_icon_pack_restart_prompt": "¿Reiniciar para aplicar los cambios?",
   "fa_icon_pack_restart_now": "Reiniciar ahora",
-  "fa_icon_pack_restart_later": "Más tarde"
+  "fa_icon_pack_restart_later": "Más tarde",
+  "fa_share": "Compartir"
 }

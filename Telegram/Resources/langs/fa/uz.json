@@ -134,5 +134,6 @@
   "fa_use_material_icon_pack_desc": "Standart piktogrammalarni Material Icons ga almashtiradi. Qayta ishga tushirish talab qilinadi.",
   "fa_icon_pack_restart_prompt": "O'zgarishlarni qo'llash uchun qayta ishga tushirilsinmi?",
   "fa_icon_pack_restart_now": "Hozir qayta ishga tushirish",
-  "fa_icon_pack_restart_later": "Keyinroq"
+  "fa_icon_pack_restart_later": "Keyinroq",
+  "fa_share": "Ulashish"
 }

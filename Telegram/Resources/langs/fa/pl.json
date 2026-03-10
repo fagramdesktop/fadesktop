@@ -134,5 +134,6 @@
   "fa_use_material_icon_pack_desc": "Zastępuje domyślne ikony ikonami Material. Wymaga ponownego uruchomienia.",
   "fa_icon_pack_restart_prompt": "Uruchomić ponownie, aby zastosować zmiany?",
   "fa_icon_pack_restart_now": "Uruchom ponownie teraz",
-  "fa_icon_pack_restart_later": "Później"
+  "fa_icon_pack_restart_later": "Później",
+  "fa_share": "Udostępnij"
 }

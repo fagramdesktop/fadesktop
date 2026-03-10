@@ -134,5 +134,6 @@
   "fa_use_material_icon_pack_desc": "Әдепкі белгішелерді Material Icons нұсқасына ауыстырады. Қайта іске қосуды қажет етеді.",
   "fa_icon_pack_restart_prompt": "Өзгерістерді қолдану үшін қайта іске қосу керек пе?",
   "fa_icon_pack_restart_now": "Қазір қайта іске қосу",
-  "fa_icon_pack_restart_later": "Кейінірек"
+  "fa_icon_pack_restart_later": "Кейінірек",
+  "fa_share": "Бөлісу"
 }

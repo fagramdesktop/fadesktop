@@ -134,5 +134,6 @@
   "fa_use_material_icon_pack_desc": "Remplace les icônes par défaut par les Material Icons. Nécessite un redémarrage.",
   "fa_icon_pack_restart_prompt": "Redémarrer pour appliquer les changements ?",
   "fa_icon_pack_restart_now": "Redémarrer maintenant",
-  "fa_icon_pack_restart_later": "Plus tard"
+  "fa_icon_pack_restart_later": "Plus tard",
+  "fa_share": "Partager"
 }
