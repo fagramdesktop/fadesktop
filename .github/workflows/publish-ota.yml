@@ -1,6 +1,12 @@
 name: Publish OTA Update
 
 on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Run ID to download OTA artifacts from"
+        type: string
+        required: true
   workflow_call:
     inputs:
       run_id:
