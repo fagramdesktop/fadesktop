@@ -227,6 +227,10 @@ void TranslateBox(
 				"auto",
 				to.twoLetterCode());
 			crl::on_main([=] {
+				if (result.isError) {
+					showText(TextWithEntities{ .text = result.errorText });
+					return;
+				}
 				showText(TextWithEntities{ .text = result.translation });
 			});
 		});

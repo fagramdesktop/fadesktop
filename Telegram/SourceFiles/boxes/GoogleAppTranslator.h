@@ -17,7 +17,6 @@ protected:
 private:
     explicit GoogleAppTranslator(QObject* parent = nullptr);
 
-    Result getResult(const QString& jsonData) const;
     QString sign(const QString& str);
     static int hash(const QString& input);
     static qint64 N(int i);

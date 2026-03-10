@@ -63,24 +63,24 @@ BaseTranslator::Result GoogleAppTranslator::translateImpl(const QString& query, 
             .data(queryText);
     }
 
-    QString response = http.request();
-    return getResult(response);
-}
+    QNetworkReply* reply = http.request();
 
-BaseTranslator::Result GoogleAppTranslator::getResult(const QString& jsonData) const {
-    QJsonDocument doc = QJsonDocument::fromJson(jsonData.toUtf8());
+    QByteArray data = reply->readAll();
+    reply->deleteLater();
+
+    QJsonDocument doc = QJsonDocument::fromJson(QString::fromUtf8(data).toUtf8());
     QJsonObject obj = doc.object();
 
     if (obj.contains("translation")) {
-        return { obj["translation"].toString(), obj["sourceLanguage"].toString() };
+        return Result{ .translation = obj["translation"].toString(), .sourceLanguage = obj["sourceLanguage"].toString() };
     }
 
     if (obj.contains("error")) {
         QJsonObject errorObj = obj["error"].toObject();
-        throw std::runtime_error(errorObj["message"].toString().toStdString());
+        return { true, errorObj["message"].toString() };
     }
 
-    throw std::runtime_error("Unexpected response: " + jsonData.toStdString());
+    return { true, "Unexpected response" };
 }
 
 QString GoogleAppTranslator::sign(const QString& str) {
