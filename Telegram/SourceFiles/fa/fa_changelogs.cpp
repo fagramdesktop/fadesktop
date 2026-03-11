@@ -98,6 +98,23 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			"- Bug fixes\n\n"
 			"@FAgramDesktop\n"
 		},
+		{
+			2002002,
+			"- Added deeplink support for FAsettings\n"
+			"e.g. fa://settings/appearance/material-icons\n"
+			"- OTA updates\n"
+			"- Updated translations\n"
+			"- Added comma after mention usernames\n"
+			"- Better error handling for translator\n"
+			"- FastShare option on chats/groups\n"
+			"- Updated material icons\n"
+			"- Refactored FAlang implementation\n"
+			"- Refactored discuss button implementation\n"
+			"- Removed recent stickers limit\n"
+			"Telegram now have unlimited recent stickers option in experimental settings\n"
+			"- Bug fixes\n\n"
+			"@FAgramDesktop\n"
+		},
 	};
 	return entries;
 }

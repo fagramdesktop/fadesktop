@@ -1,3 +1,17 @@
+2.2.2 (11.03.26)
+
+- Added deeplink support for FAsettings
+- OTA updates
+- Updated translations
+- Added comma after mention usernames
+- Better error handling for translator
+- FastShare option on chats/groups
+- Updated material icons
+- Refactored FAlang implementation
+- Refactored discuss button implementation
+- Removed recent stickers limit
+- Bug fixes
+
 2.2.1 (08.03.26)
 
 - Material Icons option

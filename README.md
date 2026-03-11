@@ -28,7 +28,6 @@
 
 - Button for moving to the first message of the chat
 - Seconds in time of message
-- Change recent stickers up to 100 in FAgram Preferences
 - Show start token in start of bot
 - Disable ads
 - Copy your phone number on tap in profile settings
@@ -90,6 +89,10 @@
 - Import/Export FAsettings
 - Extended peer menu options
 - Material Icons 
+- Deeplink support for FAsettings
+- OTA updates
+- Comma after mention usernames
+- FastShare option on chats/groups
 
 </details>
 
