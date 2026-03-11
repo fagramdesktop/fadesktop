@@ -132,5 +132,7 @@
   "fa_icon_pack_restart_prompt": "Redémarrer pour appliquer les changements ?",
   "fa_icon_pack_restart_now": "Redémarrer maintenant",
   "fa_icon_pack_restart_later": "Plus tard",
+  "fa_show_fastshare_in_chats": "Afficher le bouton Partager dans les discussions",
+  "fa_show_fastshare_in_chats_desc": "Affiche l'icône de partage rapide sur les messages dans les discussions privées et les groupes, pas seulement dans les chaînes",
   "fa_share": "Partager"
 }

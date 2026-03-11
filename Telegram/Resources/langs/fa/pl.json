@@ -132,5 +132,7 @@
   "fa_icon_pack_restart_prompt": "Uruchomić ponownie, aby zastosować zmiany?",
   "fa_icon_pack_restart_now": "Uruchom ponownie teraz",
   "fa_icon_pack_restart_later": "Później",
+  "fa_show_fastshare_in_chats": "Pokaż przycisk Udostępnij w czatach",
+  "fa_show_fastshare_in_chats_desc": "Wyświetla ikonę szybkiego udostępniania na wiadomościach w czatach prywatnych i grupach, nie tylko w kanałach",
   "fa_share": "Udostępnij"
 }

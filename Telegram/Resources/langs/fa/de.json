@@ -132,5 +132,7 @@
   "fa_icon_pack_restart_prompt": "Neustart durchführen, um Änderungen zu übernehmen?",
   "fa_icon_pack_restart_now": "Jetzt neu starten",
   "fa_icon_pack_restart_later": "Später",
+  "fa_show_fastshare_in_chats": "Teilen-Schaltfläche in Chats anzeigen",
+  "fa_show_fastshare_in_chats_desc": "Zeigt das Schnellteilen-Symbol bei Nachrichten in privaten Chats und Gruppen an, nicht nur in Kanälen",
   "fa_share": "Teilen"
 }

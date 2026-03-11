@@ -132,5 +132,7 @@
   "fa_icon_pack_restart_prompt": "¿Reiniciar para aplicar los cambios?",
   "fa_icon_pack_restart_now": "Reiniciar ahora",
   "fa_icon_pack_restart_later": "Más tarde",
+  "fa_show_fastshare_in_chats": "Mostrar botón Compartir en chats",
+  "fa_show_fastshare_in_chats_desc": "Muestra el icono de compartir rápido en mensajes de chats privados y grupos, no solo en canales",
   "fa_share": "Compartir"
 }

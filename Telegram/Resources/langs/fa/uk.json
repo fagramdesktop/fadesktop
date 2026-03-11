@@ -132,5 +132,7 @@
   "fa_icon_pack_restart_prompt": "Перезапустити, щоб застосувати зміни?",
   "fa_icon_pack_restart_now": "Перезапустити зараз",
   "fa_icon_pack_restart_later": "Пізніше",
+  "fa_show_fastshare_in_chats": "Показувати кнопку Поділитися в чатах",
+  "fa_show_fastshare_in_chats_desc": "Відображає значок швидкого поширення на повідомленнях у приватних чатах та групах, а не лише в каналах",
   "fa_share": "Поділитися"
 }

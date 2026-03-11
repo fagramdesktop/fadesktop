@@ -132,5 +132,7 @@
   "fa_icon_pack_restart_prompt": "変更を適用するために再起動しますか？",
   "fa_icon_pack_restart_now": "今すぐ再起動",
   "fa_icon_pack_restart_later": "後で",
+  "fa_show_fastshare_in_chats": "チャットで共有ボタンを表示",
+  "fa_show_fastshare_in_chats_desc": "チャンネルだけでなく、プライベートチャットやグループのメッセージにもクイック共有アイコンを表示します",
   "fa_share": "共有"
 }

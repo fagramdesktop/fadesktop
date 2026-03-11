@@ -132,5 +132,7 @@
   "fa_icon_pack_restart_prompt": "Değişiklikleri uygulamak için yeniden başlatılsın mı?",
   "fa_icon_pack_restart_now": "Şimdi Yeniden Başlat",
   "fa_icon_pack_restart_later": "Daha Sonra",
+  "fa_show_fastshare_in_chats": "Sohbetlerde Paylaş düğmesini göster",
+  "fa_show_fastshare_in_chats_desc": "Sadece kanallarda değil, özel sohbetlerdeki ve gruplardaki mesajlarda hızlı paylaşım simgesini gösterir",
   "fa_share": "Paylaş"
 }
