@@ -207,15 +207,6 @@ const auto kFAChatsMeta = BuildHelper({
 }, [](SectionBuilder &builder) {
 	builder.add(nullptr, [] {
 		return SearchEntry{
-			.id = u"fa/chats/recent-stickers"_q,
-			.title = fatr::fa_recent_stickers(fatr::now),
-			.keywords = { u"stickers"_q, u"recent"_q, u"limit"_q, u"hide"_q },
-			.icon = { &st::menuIconChatBubble },
-		};
-	});
-
-	builder.add(nullptr, [] {
-		return SearchEntry{
 			.id = u"fa/chats/markdown-hyperlink"_q,
 			.title = fatr::fa_parse_markdown_hyperlink(fatr::now),
 			.keywords = { u"markdown"_q, u"hyperlink"_q, u"link"_q, u"format"_q, u"parse"_q },

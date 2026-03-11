@@ -202,10 +202,6 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "local_premium", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
-	{ "recent_stickers_limit", {
-		.type = SettingType::IntSetting,
-		.defaultValue = 30,
-		.limitHandler = IntLimit(0, 100, 30), }},
 	{ "use_default_rounding", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},

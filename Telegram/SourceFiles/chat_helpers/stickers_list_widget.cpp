@@ -7,8 +7,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "chat_helpers/stickers_list_widget.h"
 
-#include "fa/settings/fa_settings.h"
-
 #include "base/options.h"
 #include "base/timer_rpl.h"
 #include "core/application.h"
@@ -2560,11 +2558,9 @@ auto StickersListWidget::collectRecentStickers() -> std::vector<Sticker> {
 	_custom.reserve(cloudCount + recent.size() + customCount);
 
 	auto add = [&](not_null<DocumentData*> document, bool custom) {
-		if (!OptionUnlimitedRecentStickers.value()) {
-			const auto limit = FASettings::JsonSettings::GetInt("recent_stickers_limit");
-			if (result.size() >= limit) {
-				return;
-			}
+		if (result.size() >= kRecentDisplayLimit
+			&& !OptionUnlimitedRecentStickers.value()) {
+			return;
 		}
 		const auto i = ranges::find(result, document, &Sticker::document);
 		if (i != end(result)) {

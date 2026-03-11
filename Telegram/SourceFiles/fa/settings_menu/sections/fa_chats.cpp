@@ -105,35 +105,6 @@ namespace Settings {
     void FAChats::SetupChats(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
         Ui::AddSubsectionTitle(container, fatr::fa_chats());
 
-		const auto recentStickersLimitLabel = container->add(
-			object_ptr<Ui::LabelSimple>(
-				container,
-				st::settingsAudioVolumeLabel),
-			st::settingsAudioVolumeLabelPadding);
-		const auto recentStickersLimitSlider = container->add(
-			object_ptr<Ui::MediaSlider>(
-				container,
-				st::settingsAudioVolumeSlider),
-			st::settingsAudioVolumeSliderPadding);
-		const auto updateRecentStickersLimitLabel = [=](int value) {
-			recentStickersLimitLabel->setText(
-				(value == 0)
-					? fatr::fa_recent_stickers_hidden(fatr::now)
-					: fatr::fa_recent_stickers(fatr::now).arg(value) );
-		};
-        const auto updateRecentStickersLimitHeight = [=](int value) {
-			updateRecentStickersLimitLabel(value);
-			::FASettings::JsonSettings::Set("recent_stickers_limit", value);
-			::FASettings::JsonSettings::Write();
-		};
-		recentStickersLimitSlider->resize(st::settingsAudioVolumeSlider.seekSize);
-		recentStickersLimitSlider->setPseudoDiscrete(
-			100+1,
-			[](int val) { return val; },
-			::FASettings::JsonSettings::GetInt("recent_stickers_limit"),
-			updateRecentStickersLimitHeight);
-		updateRecentStickersLimitLabel(::FASettings::JsonSettings::GetInt("recent_stickers_limit"));
-		Ui::AddDividerText(container, fatr::fa_recent_stickers_desc());
 		SettingsMenuJsonSwitch(fa_parse_markdown_hyperlink, auto_format_markdown, u"fa/chats/markdown-hyperlink"_q);
 		Ui::AddDividerText(container, fatr::fa_parse_markdown_hyperlink_desc());
 		SettingsMenuJsonSwitch(fa_show_seconds_message, seconds_message, u"fa/chats/seconds-message"_q);
