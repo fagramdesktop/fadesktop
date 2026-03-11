@@ -7,6 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "history/view/history_view_message.h"
 
+#include "fa/settings/fa_settings.h"
 #include "api/api_suggest_post.h"
 #include "api/api_transcribes.h"
 #include "base/qt/qt_key_modifiers.h"
@@ -3958,7 +3959,11 @@ bool Message::displayFastShare() const {
 	if (!item->allowsForward()) {
 		return false;
 	} else if (peer->isChannel()) {
-		return !peer->isMegagroup();
+		return !peer->isMegagroup()
+			|| FASettings::JsonSettings::GetBool("show_fastshare_in_chats");
+	} else if (FASettings::JsonSettings::GetBool("show_fastshare_in_chats")
+		&& (peer->isChat() || peer->asUser())) {
+		return true;
 	} else if (const auto user = peer->asUser()) {
 		if (const auto forwarded = item->Get<HistoryMessageForwarded>()) {
 			return !item->out()

@@ -132,5 +132,7 @@
   "fa_kick_user": "Kick User",
   "fa_unban_user": "Unban User",
   "fa_reply_in_private_chat": "Reply in Private Chat",
+  "fa_show_fastshare_in_chats": "Show Share Button in Chats",
+  "fa_show_fastshare_in_chats_desc": "Displays the quick share icon on messages in private chats and groups, not just channels",
   "fa_share": "Share"
 }

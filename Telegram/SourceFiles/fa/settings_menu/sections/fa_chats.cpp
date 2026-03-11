@@ -115,6 +115,8 @@ namespace Settings {
 		Ui::AddDividerText(container, fatr::fa_hide_open_webapp_button_chatlist_desc());
 		SettingsMenuJsonSwitch(fa_show_discuss_button, show_discuss_button, u"fa/chats/show-discuss-button"_q);
 		Ui::AddDividerText(container, fatr::fa_show_discuss_button_desc());
+		SettingsMenuJsonSwitch(fa_show_fastshare_in_chats, show_fastshare_in_chats, u"fa/chats/show-share-in-chats"_q);
+		Ui::AddDividerText(container, fatr::fa_show_fastshare_in_chats_desc());
 		SettingsMenuJsonSwitch(fa_show_message_details, show_message_details, u"fa/chats/message-details"_q);
 		Ui::AddDividerText(container, fatr::fa_show_message_details_desc());
 

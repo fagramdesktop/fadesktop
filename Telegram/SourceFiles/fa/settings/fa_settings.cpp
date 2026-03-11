@@ -208,6 +208,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "show_discuss_button", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},
+	{ "show_fastshare_in_chats", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 	{ "roundness", {
 		.type = SettingType::IntSetting,
 		.defaultValue = 50,

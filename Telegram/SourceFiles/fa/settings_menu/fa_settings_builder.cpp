@@ -252,6 +252,15 @@ const auto kFAChatsMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
+			.id = u"fa/chats/show-share-in-chats"_q,
+			.title = fatr::fa_show_fastshare_in_chats(fatr::now),
+			.keywords = { u"share"_q, u"forward"_q, u"button"_q, u"chats"_q, u"groups"_q },
+			.icon = { &st::menuIconChatBubble },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
 			.id = u"fa/chats/message-details"_q,
 			.title = fatr::fa_show_message_details(fatr::now),
 			.keywords = { u"message"_q, u"details"_q, u"info"_q },
