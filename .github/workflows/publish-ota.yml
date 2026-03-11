@@ -53,8 +53,9 @@ jobs:
 
       - name: Clone OTA repo
         run: |
-          git clone https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/ota.git ota-repo
-          cd ota-repo
+          mkdir ota-repo && cd ota-repo
+          git init
+          git remote add origin https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/ota.git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
@@ -88,14 +89,11 @@ jobs:
           import json, os
 
           manifest_path = 'current4'
-          manifest = {}
-          if os.path.isfile(manifest_path):
-              with open(manifest_path) as f:
-                  manifest = json.load(f)
 
           version = '${{ env.APP_VERSION }}'
           channel = '${CHANNEL}'
 
+          manifest = {}
           manifest.setdefault('win64', {})[channel] = {
               'released': version,
               'link': '/${WIN_NAME}',
@@ -112,7 +110,7 @@ jobs:
 
           git add "$WIN_NAME" "$LINUX_NAME" current4
           git commit -m "Update to $(python3 -c "v=${{ env.APP_VERSION }}; print(f'{v//1000000}.{(v//1000)%1000}.{v%1000}')")"
-          git push origin main
+          git push --force origin main
 
       - name: Summary
         run: |
