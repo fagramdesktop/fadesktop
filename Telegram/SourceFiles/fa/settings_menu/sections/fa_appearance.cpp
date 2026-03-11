@@ -215,6 +215,8 @@ namespace Settings {
 				.cancelText = fatr::fa_icon_pack_restart_later(),
 			}));
 		}, container->lifetime());
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			iconPackBtn, u"fa/appearance/material-icons"_q, controller);
 		Ui::AddDividerText(container, fatr::fa_use_material_icon_pack_desc());
     }
 

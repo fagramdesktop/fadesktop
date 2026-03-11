@@ -10,6 +10,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "fa/settings/fa_settings.h"
 #include "fa/settings_menu/sections/fa_logs.h"
+#include "fa/settings_menu/fa_deeplink_context_menu.h"
+#include "fa/utils/telegram_helpers.h"
 
 #include "fa_lang_auto.h"
 
@@ -37,20 +39,25 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "api/api_blocked_peers.h"
 #include "ui/widgets/continuous_sliders.h"
 
-#define SettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
-	container, \
-    fatr::LangKey(), \
-	st::settingsButtonNoIcon \
-))->toggleOn( \
-	rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-)->toggledValue( \
-) | rpl::filter([](bool enabled) { \
-	return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-}) | rpl::on_next([](bool enabled) { \
-	::FASettings::JsonSettings::Write(); \
-	::FASettings::JsonSettings::Set(#Option, enabled); \
-	::FASettings::JsonSettings::Write(); \
-}, container->lifetime());
+#define SettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
+	const auto _btn = container->add(object_ptr<Button>( \
+		container, \
+		fatr::LangKey(), \
+		st::settingsButtonNoIcon \
+	)); \
+	_btn->toggleOn( \
+		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
+	)->toggledValue( \
+	) | rpl::filter([](bool enabled) { \
+		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
+	}) | rpl::on_next([](bool enabled) { \
+		::FASettings::JsonSettings::Write(); \
+		::FASettings::JsonSettings::Set(#Option, enabled); \
+		::FASettings::JsonSettings::Write(); \
+	}, container->lifetime()); \
+	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
+		_btn, ControlId, controller); \
+} while (false)
 
 namespace Settings {
 
@@ -75,10 +82,12 @@ namespace Settings {
 			st::settingsButton,
 			{ &st::menuIconClear }
 		)->setClickedCallback([=] {
-			Core::App().openLocalUrl("tg://fa/clean_debug_logs", {});
+			controller->showToast(fatr::fa_cleaning_debug_logs(fatr::now), 500);
+			cleanDebugLogs();
+			controller->showToast(fatr::fa_cleaned_debug_logs(fatr::now), 1000);
 		});
 		
-		SettingsMenuJsonSwitch(fa_debug_logs, debug_logs)
+		SettingsMenuJsonSwitch(fa_debug_logs, debug_logs, u"fa/logs/debug-logs"_q);
 
 		Ui::AddSkip(container);
 		Ui::AddDividerText(container, fatr::fa_logs_dir());

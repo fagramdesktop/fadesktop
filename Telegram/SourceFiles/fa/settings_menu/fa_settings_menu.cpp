@@ -245,7 +245,7 @@ namespace Settings {
 			st::settingsButton,
 			{ &st::menuIconRemove }
 		)->setClickedCallback([=] {
-			Core::App().openLocalUrl("tg://fa/restart", {});
+			Core::Restart();
 		});
 
     	AddButtonWithLabel(
@@ -255,7 +255,7 @@ namespace Settings {
 			st::settingsButton,
 			{ &st::menuIconCancel }
 		)->setClickedCallback([=] {
-			Core::App().openLocalUrl("tg://fa/quit", {});
+			Core::Quit();
 		});
     }
 
