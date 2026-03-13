@@ -35,7 +35,7 @@ on:
 jobs:
   prepare-libraries:
     name: Prepare Libraries
-    runs-on: macos-14
+    runs-on: macos-latest
 
     steps:
       - name: Resolve paths
@@ -49,7 +49,9 @@ jobs:
       - name: Compute library cache key
         id: cache-key
         run: |
-          echo "key=mac-libraries-$(shasum Telegram/build/prepare/prepare.py | awk '{print $1}')" >> $GITHUB_OUTPUT
+          KEY_HASH=$(cat Telegram/build/prepare/prepare.py Telegram/build/prepare/mac.sh | shasum | awk '{print $1}')
+          SUBMODULES_HASH=$(git submodule status --recursive | shasum | awk '{print $1}')
+          echo "key=mac-libraries-${KEY_HASH}-${SUBMODULES_HASH}" >> $GITHUB_OUTPUT
 
       - name: Restore libraries cache
         id: cache-libs
@@ -65,12 +67,12 @@ jobs:
 
       - name: Build libraries
         if: steps.cache-libs.outputs.cache-hit != 'true'
-        run: python3 Telegram/build/prepare/mac.sh
+        run: bash Telegram/build/prepare/mac.sh
 
   build:
     name: Build macOS
     needs: prepare-libraries
-    runs-on: macos-14
+    runs-on: macos-latest
     outputs:
       tagname: ${{ steps.tagname.outputs.tagname }}
       run_id: ${{ github.run_id }}
@@ -98,13 +100,18 @@ jobs:
         run: echo "LIBS_PATH=$(cd $GITHUB_WORKSPACE && cd .. && pwd)/Libraries" >> $GITHUB_ENV
 
       - name: Clone DesktopPrivate
-        run: |
-          git clone https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/DesktopPrivate.git ${{ github.workspace }}/../DesktopPrivate
+        uses: actions/checkout@v6
+        with:
+          repository: fagramdesktop/DesktopPrivate
+          token: ${{ secrets.PAT }}
+          path: ${{ github.workspace }}/../DesktopPrivate
 
       - name: Compute library cache key
         id: cache-key
         run: |
-          echo "key=mac-libraries-$(shasum Telegram/build/prepare/prepare.py | awk '{print $1}')" >> $GITHUB_OUTPUT
+          KEY_HASH=$(cat Telegram/build/prepare/prepare.py Telegram/build/prepare/mac.sh | shasum | awk '{print $1}')
+          SUBMODULES_HASH=$(git submodule status --recursive | shasum | awk '{print $1}')
+          echo "key=mac-libraries-${KEY_HASH}-${SUBMODULES_HASH}" >> $GITHUB_OUTPUT
 
       - name: Restore libraries cache
         uses: actions/cache@v4
@@ -122,7 +129,7 @@ jobs:
             -D DESKTOP_APP_BUILD_PACKER=ON
 
       - name: Build Telegram
-        run: cmake --build out --config Debug --target Telegram
+        run: cmake --build out --config Release --target Telegram
 
       - name: Read version info
         run: |
@@ -132,7 +139,7 @@ jobs:
       - name: Package DMG
         run: |
           mkdir -p dmg_staging
-          cp -r out/Debug/Telegram.app dmg_staging/FAgram.app
+          cp -r out/Release/Telegram.app dmg_staging/FAgram.app
           ln -s /Applications dmg_staging/Applications
           hdiutil create \
             -volname "FAgram" \
