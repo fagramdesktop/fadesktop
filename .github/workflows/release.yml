@@ -118,7 +118,7 @@ jobs:
             artifacts/linux/fagram-${{ inputs.tagname }}.tar.gz
             artifacts/windows/FAgram_Win-x64_${{ inputs.tagname }}_portable.zip
             artifacts/windows-installer/*.exe
-            artifacts/mac/fagram-mac-${{ inputs.tagname }}.zip
+            artifacts/mac/fagram-mac-${{ inputs.tagname }}.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 

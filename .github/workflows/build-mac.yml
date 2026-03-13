@@ -129,16 +129,23 @@ jobs:
           APP_VERSION=$(grep 'AppVersion ' Telegram/build/version | awk '{print $2}')
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
 
-      - name: Package app
+      - name: Package DMG
         run: |
-          cd out/Debug
-          zip -r fagram-mac-${{ env.TAGNAME }}.zip Telegram.app
+          mkdir -p dmg_staging
+          cp -r out/Debug/Telegram.app dmg_staging/FAgram.app
+          ln -s /Applications dmg_staging/Applications
+          hdiutil create \
+            -volname "FAgram" \
+            -srcfolder dmg_staging \
+            -ov \
+            -format UDZO \
+            fagram-mac-${{ env.TAGNAME }}.dmg
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: fagram-mac-${{ env.TAGNAME }}
-          path: out/Debug/fagram-mac-${{ env.TAGNAME }}.zip
+          path: fagram-mac-${{ env.TAGNAME }}.dmg
 
   upload-telegram:
     name: Upload to Telegram
@@ -179,7 +186,7 @@ jobs:
           API_ID: ${{ secrets.API_ID_CONFIG }}
           API_HASH: ${{ secrets.API_HASH_CONFIG }}
         run: |
-          MAC_FILE=$(find artifacts/mac -name "fagram-mac-*.zip" | head -1)
+          MAC_FILE=$(find artifacts/mac -name "fagram-mac-*.dmg" | head -1)
           python3 scripts/tgupload.py "$MAC_FILE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
           <b>FAgram macOS ${{ inputs.tagname }}</b>
           TGD Base: <code>${{ env.TGD_VERSION }}</code>
