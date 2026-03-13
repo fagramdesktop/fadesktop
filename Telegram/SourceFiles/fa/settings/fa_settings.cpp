@@ -168,7 +168,7 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.defaultValue = true, }},
 	{ "disable_ads", {
 		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
+		.defaultValue = true, }},
 	{ "show_start_token", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},
