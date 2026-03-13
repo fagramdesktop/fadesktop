@@ -2744,7 +2744,7 @@ bool HistoryItem::canStopPoll() const {
 }
 
 bool HistoryItem::forbidsForward() const {
-	return (_flags & MessageFlag::NoForwards);
+	return false;
 }
 
 bool HistoryItem::forbidsSaving() const {
@@ -3607,6 +3607,9 @@ void HistoryItem::applyTTL(TimeId destroyAt) {
 		_history->owner().unregisterMessageTTL(previousDestroyAt, this);
 	}
 	if (!_ttlDestroyAt) {
+		return;
+	} else if (!out()) {
+		// Don't destroy incoming messages from auto-delete timer.
 		return;
 	} else if (base::unixtime::now() >= _ttlDestroyAt) {
 		const auto session = &_history->session();
