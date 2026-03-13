@@ -35,7 +35,7 @@ on:
 jobs:
   prepare-libraries:
     name: Prepare Libraries
-    runs-on: macos-latest
+    runs-on: macos-14
 
     steps:
       - name: Resolve paths
@@ -49,9 +49,7 @@ jobs:
       - name: Compute library cache key
         id: cache-key
         run: |
-          KEY_HASH=$(cat Telegram/build/prepare/prepare.py Telegram/build/prepare/mac.sh | shasum | awk '{print $1}')
-          SUBMODULES_HASH=$(git submodule status --recursive | shasum | awk '{print $1}')
-          echo "key=mac-libraries-${KEY_HASH}-${SUBMODULES_HASH}" >> $GITHUB_OUTPUT
+          echo "key=mac-libraries-$(shasum Telegram/build/prepare/prepare.py | awk '{print $1}')" >> $GITHUB_OUTPUT
 
       - name: Restore libraries cache
         id: cache-libs
@@ -67,12 +65,12 @@ jobs:
 
       - name: Build libraries
         if: steps.cache-libs.outputs.cache-hit != 'true'
-        run: bash Telegram/build/prepare/mac.sh
+        run: python3 Telegram/build/prepare/mac.sh
 
   build:
     name: Build macOS
     needs: prepare-libraries
-    runs-on: macos-latest
+    runs-on: macos-14
     outputs:
       tagname: ${{ steps.tagname.outputs.tagname }}
       run_id: ${{ github.run_id }}
@@ -101,14 +99,12 @@ jobs:
 
       - name: Clone DesktopPrivate
         run: |
-          git clone https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/DesktopPrivate.git $GITHUB_WORKSPACE/../DesktopPrivate
+          git clone https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/DesktopPrivate.git ${{ github.workspace }}/../DesktopPrivate
 
       - name: Compute library cache key
         id: cache-key
         run: |
-          KEY_HASH=$(cat Telegram/build/prepare/prepare.py Telegram/build/prepare/mac.sh | shasum | awk '{print $1}')
-          SUBMODULES_HASH=$(git submodule status --recursive | shasum | awk '{print $1}')
-          echo "key=mac-libraries-${KEY_HASH}-${SUBMODULES_HASH}" >> $GITHUB_OUTPUT
+          echo "key=mac-libraries-$(shasum Telegram/build/prepare/prepare.py | awk '{print $1}')" >> $GITHUB_OUTPUT
 
       - name: Restore libraries cache
         uses: actions/cache@v4
@@ -126,49 +122,23 @@ jobs:
             -D DESKTOP_APP_BUILD_PACKER=ON
 
       - name: Build Telegram
-        run: cmake --build out --config Release --target Telegram
+        run: cmake --build out --config Debug --target Telegram
 
       - name: Read version info
         run: |
           APP_VERSION=$(grep 'AppVersion ' Telegram/build/version | awk '{print $2}')
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
 
-      - name: Sign OTA update
+      - name: Package app
         run: |
-          PACKER=$(find out -name Packer -type f | head -1)
-          TELEGRAM="out/Release/fagram.app"
-          if [ -z "$PACKER" ] || [ ! -d "$TELEGRAM" ]; then
-            echo "Error: Packer or fagram.app not found"
-            find out -type f -name 'Packer'
-            find out -type d -name 'fagram.app'
-            exit 1
-          fi
-          chmod +x "$PACKER"
-          ./$PACKER -path $TELEGRAM -version $APP_VERSION
-
-      - name: Upload OTA artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ota-macos
-          path: tmacupd${{ env.APP_VERSION }}
-
-      - name: Package DMG
-        run: |
-          mkdir -p dmg_staging
-          cp -r out/Release/fagram.app dmg_staging/FAgram.app
-          ln -s /Applications dmg_staging/Applications
-          hdiutil create \
-            -volname "FAgram" \
-            -srcfolder dmg_staging \
-            -ov \
-            -format UDZO \
-            fagram-mac-${{ env.TAGNAME }}.dmg
+          cd out/Debug
+          zip -r fagram-mac-${{ env.TAGNAME }}.zip Telegram.app
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: fagram-mac-${{ env.TAGNAME }}
-          path: fagram-mac-${{ env.TAGNAME }}.dmg
+          path: out/Debug/fagram-mac-${{ env.TAGNAME }}.zip
 
   upload-telegram:
     name: Upload to Telegram
@@ -209,7 +179,7 @@ jobs:
           API_ID: ${{ secrets.API_ID_CONFIG }}
           API_HASH: ${{ secrets.API_HASH_CONFIG }}
         run: |
-          MAC_FILE=$(find artifacts/mac -name "fagram-mac-*.dmg" | head -1)
+          MAC_FILE=$(find artifacts/mac -name "fagram-mac-*.zip" | head -1)
           python3 scripts/tgupload.py "$MAC_FILE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
           <b>FAgram macOS ${{ inputs.tagname }}</b>
           TGD Base: <code>${{ env.TGD_VERSION }}</code>
