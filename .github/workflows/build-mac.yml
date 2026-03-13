@@ -1,0 +1,189 @@
+name: Build macOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      tagname:
+        description: "tagname"
+        type: string
+        required: true
+      build_type:
+        description: "Build type"
+        type: choice
+        required: true
+        default: "ci"
+        options:
+          - ci
+          - rel
+  workflow_call:
+    inputs:
+      tagname:
+        description: "tagname"
+        type: string
+        required: true
+      build_type:
+        description: "Build type"
+        type: string
+        required: true
+        default: "ci"
+      skip_upload:
+        description: "Skip Telegram upload"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  prepare-libraries:
+    name: Prepare Libraries
+    runs-on: macos-14
+
+    steps:
+      - name: Resolve paths
+        run: echo "LIBS_PATH=$(cd $GITHUB_WORKSPACE && cd .. && pwd)/Libraries" >> $GITHUB_ENV
+
+      - name: Clone repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Compute library cache key
+        id: cache-key
+        run: |
+          echo "key=mac-libraries-$(shasum Telegram/build/prepare/prepare.py | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Restore libraries cache
+        id: cache-libs
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.LIBS_PATH }}
+          key: ${{ steps.cache-key.outputs.key }}
+
+      - name: Install build tools
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        run: |
+          brew install automake cmake wget pkg-config gnu-tar ninja nasm meson
+
+      - name: Build libraries
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        run: python3 Telegram/build/prepare/mac.sh
+
+  build:
+    name: Build macOS
+    needs: prepare-libraries
+    runs-on: macos-14
+    outputs:
+      tagname: ${{ steps.tagname.outputs.tagname }}
+      run_id: ${{ github.run_id }}
+
+    steps:
+      - name: Set TAGNAME
+        id: tagname
+        run: |
+          if [ -n "${{ inputs.tagname }}" ]; then
+            TAGNAME="${{ inputs.tagname }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAGNAME="${GITHUB_REF#refs/tags/}"
+          else
+            TAGNAME="${{ github.ref_name }}"
+          fi
+          echo "TAGNAME=$TAGNAME" >> $GITHUB_ENV
+          echo "tagname=$TAGNAME" >> $GITHUB_OUTPUT
+
+      - name: Clone repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Resolve paths
+        run: echo "LIBS_PATH=$(cd $GITHUB_WORKSPACE && cd .. && pwd)/Libraries" >> $GITHUB_ENV
+
+      - name: Clone DesktopPrivate
+        run: |
+          git clone https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/DesktopPrivate.git ${{ github.workspace }}/../DesktopPrivate
+
+      - name: Compute library cache key
+        id: cache-key
+        run: |
+          echo "key=mac-libraries-$(shasum Telegram/build/prepare/prepare.py | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Restore libraries cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.LIBS_PATH }}
+          key: ${{ steps.cache-key.outputs.key }}
+
+      - name: Configure with CMake
+        run: |
+          cd Telegram
+          ./configure.sh \
+            -D TDESKTOP_API_ID=${{ secrets.API_ID_CONFIG }} \
+            -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }} \
+            -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
+            -D DESKTOP_APP_BUILD_PACKER=ON
+
+      - name: Build Telegram
+        run: cmake --build out --config Debug --target Telegram
+
+      - name: Read version info
+        run: |
+          APP_VERSION=$(grep 'AppVersion ' Telegram/build/version | awk '{print $2}')
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+
+      - name: Package app
+        run: |
+          cd out/Debug
+          zip -r fagram-mac-${{ env.TAGNAME }}.zip Telegram.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: fagram-mac-${{ env.TAGNAME }}
+          path: out/Debug/fagram-mac-${{ env.TAGNAME }}.zip
+
+  upload-telegram:
+    name: Upload to Telegram
+    needs: build
+    if: ${{ !inputs.skip_upload }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            scripts/tgupload.py
+            Telegram/SourceFiles/fa/fa_version.h
+
+      - name: Extract TGD version
+        run: |
+          TGD_VERSION=$(grep 'AppTGDVersion' Telegram/SourceFiles/fa/fa_version.h | sed 's/.*"\(.*\)".*/\1/')
+          echo "TGD_VERSION=$TGD_VERSION" >> $GITHUB_ENV
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install kurigram tgcrypto
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: fagram-mac-${{ inputs.tagname }}
+          path: artifacts/mac
+
+      - name: Upload macOS artifact to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          API_ID: ${{ secrets.API_ID_CONFIG }}
+          API_HASH: ${{ secrets.API_HASH_CONFIG }}
+        run: |
+          MAC_FILE=$(find artifacts/mac -name "fagram-mac-*.zip" | head -1)
+          python3 scripts/tgupload.py "$MAC_FILE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
+          <b>FAgram macOS ${{ inputs.tagname }}</b>
+          TGD Base: <code>${{ env.TGD_VERSION }}</code>
+          Build Type: <code>${{ inputs.build_type }}</code>
+          Branch: <code>${{ github.ref_name }}</code>
+          EOF
+          )"

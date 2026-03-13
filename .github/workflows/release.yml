@@ -29,6 +29,10 @@ on:
         description: "Windows build workflow run ID"
         type: string
         required: true
+      mac_run_id:
+        description: "macOS build workflow run ID"
+        type: string
+        required: false
 
 jobs:
   create-release:
@@ -66,6 +70,15 @@ jobs:
           github-token: ${{ secrets.PAT }}
           run-id: ${{ inputs.windows_run_id }}
 
+      - name: Download macOS artifact
+        if: ${{ inputs.mac_run_id != '' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: fagram-mac-${{ inputs.tagname }}
+          path: artifacts/mac
+          github-token: ${{ secrets.PAT }}
+          run-id: ${{ inputs.mac_run_id }}
+
       - name: List downloaded artifacts
         run: |
           echo "=== Linux artifacts ==="
@@ -74,6 +87,8 @@ jobs:
           ls -la artifacts/windows/
           echo "=== Windows installer artifacts ==="
           ls -la artifacts/windows-installer/
+          echo "=== macOS artifacts ==="
+          ls -la artifacts/mac/ 2>/dev/null || echo "(not present)"
 
       - name: Extract changelog for release
         run: |
@@ -103,6 +118,7 @@ jobs:
             artifacts/linux/fagram-${{ inputs.tagname }}.tar.gz
             artifacts/windows/FAgram_Win-x64_${{ inputs.tagname }}_portable.zip
             artifacts/windows-installer/*.exe
+            artifacts/mac/fagram-mac-${{ inputs.tagname }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
