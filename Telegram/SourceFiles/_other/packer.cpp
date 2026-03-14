@@ -280,12 +280,12 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	int32 resultSize = result.size();
+	int64 resultSize = result.size();
 	cout << "Compression start, size: " << resultSize << "\n";
 
 	QByteArray compressed, resultCheck;
 #if defined Q_OS_WIN && !defined PACKER_USE_PACKAGED // use Lzma SDK for win
-	const int32 hSigLen = 128, hShaLen = 20, hPropsLen = LZMA_PROPS_SIZE, hOriginalSizeLen = sizeof(int32), hSize = hSigLen + hShaLen + hPropsLen + hOriginalSizeLen; // header
+	const int32 hSigLen = 128, hShaLen = 20, hPropsLen = LZMA_PROPS_SIZE, hOriginalSizeLen = sizeof(int64), hSize = hSigLen + hShaLen + hPropsLen + hOriginalSizeLen; // header
 
 	compressed.resize(hSize + resultSize + 1024 * 1024); // rsa signature + sha1 + lzma props + max compressed size
 
@@ -308,9 +308,9 @@ int main(int argc, char *argv[])
 
 	cout << "Checking uncompressed..\n";
 
-	int32 resultCheckLen;
+	int64 resultCheckLen;
 	memcpy(&resultCheckLen, compressed.constData() + hSigLen + hShaLen + hPropsLen, hOriginalSizeLen);
-	if (resultCheckLen <= 0 || resultCheckLen > 1024 * 1024 * 1024) {
+	if (resultCheckLen <= 0 || resultCheckLen > 4000000000LL) {
 		cout << "Bad result len: " << resultCheckLen << "\n";
 		return -1;
 	}
@@ -328,7 +328,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 #else // use liblzma for others
-	const int32 hSigLen = 128, hShaLen = 20, hPropsLen = 0, hOriginalSizeLen = sizeof(int32), hSize = hSigLen + hShaLen + hOriginalSizeLen; // header
+	const int32 hSigLen = 128, hShaLen = 20, hPropsLen = 0, hOriginalSizeLen = sizeof(int64), hSize = hSigLen + hShaLen + hOriginalSizeLen; // header
 
 	compressed.resize(hSize + resultSize + 1024 * 1024); // rsa signature + sha1 + lzma props + max compressed size
 
@@ -376,9 +376,9 @@ int main(int argc, char *argv[])
 
 	cout << "Checking uncompressed..\n";
 
-	int32 resultCheckLen;
+	int64 resultCheckLen;
 	memcpy(&resultCheckLen, compressed.constData() + hSigLen + hShaLen, hOriginalSizeLen);
-	if (resultCheckLen <= 0 || resultCheckLen > 1024 * 1024 * 1024) {
+	if (resultCheckLen <= 0 || resultCheckLen > 4000000000LL) {
 		cout << "Bad result len: " << resultCheckLen << "\n";
 		return -1;
 	}
