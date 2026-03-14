@@ -13,6 +13,10 @@ on:
         description: "Run ID to download OTA artifacts from"
         type: string
         required: true
+      mac_run_id:
+        description: "macOS build run ID for OTA artifact (optional)"
+        type: string
+        required: false
 
 jobs:
   publish:
@@ -51,6 +55,16 @@ jobs:
           run-id: ${{ inputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Download macOS OTA artifact
+        if: ${{ inputs.mac_run_id != '' }}
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: ota-macos
+          path: ota-artifacts/macos
+          run-id: ${{ inputs.mac_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Clone OTA repo
         run: |
           mkdir ota-repo && cd ota-repo
@@ -63,6 +77,7 @@ jobs:
         run: |
           WIN_FILE=$(find ota-artifacts/win64 -name "tx64upd*" | head -1)
           LINUX_FILE=$(find ota-artifacts/linux -name "tlinuxupd*" | head -1)
+          MAC_FILE=$(find ota-artifacts/macos -name "tmacosupdx*" 2>/dev/null | head -1 || true)
 
           if [ -z "$WIN_FILE" ]; then
             echo "Error: Windows OTA file not found"
@@ -75,9 +90,11 @@ jobs:
 
           cp "$WIN_FILE" ota-repo/
           cp "$LINUX_FILE" ota-repo/
+          [ -n "$MAC_FILE" ] && cp "$MAC_FILE" ota-repo/
 
           WIN_NAME=$(basename "$WIN_FILE")
           LINUX_NAME=$(basename "$LINUX_FILE")
+          MAC_NAME=$([ -n "$MAC_FILE" ] && basename "$MAC_FILE" || true)
           CHANNEL="stable"
           if [ "$IS_BETA" = "1" ]; then
             CHANNEL="beta"
@@ -92,6 +109,7 @@ jobs:
 
           version = '${{ env.APP_VERSION }}'
           channel = '${CHANNEL}'
+          mac_name = '${MAC_NAME}'
 
           manifest = {}
           manifest.setdefault('win64', {})[channel] = {
@@ -102,13 +120,20 @@ jobs:
               'released': version,
               'link': '/${LINUX_NAME}',
           }
+          if mac_name:
+              manifest.setdefault('macos', {})[channel] = {
+                  'released': version,
+                  'link': '/' + mac_name,
+              }
 
           with open(manifest_path, 'w') as f:
               json.dump(manifest, f, indent=2, sort_keys=True)
               f.write('\n')
           "
 
-          git add "$WIN_NAME" "$LINUX_NAME" current4
+          GIT_ADD="$WIN_NAME $LINUX_NAME current4"
+          [ -n "$MAC_NAME" ] && GIT_ADD="$GIT_ADD $MAC_NAME"
+          git add $GIT_ADD
           git commit -m "Update to $(python3 -c "v=${{ env.APP_VERSION }}; print(f'{v//1000000}.{(v//1000)%1000}.{v%1000}')")"
           git push --force origin main
 

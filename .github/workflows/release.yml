@@ -15,6 +15,10 @@ on:
         description: "Windows build workflow run ID"
         type: string
         required: true
+      mac_run_id:
+        description: "macOS build workflow run ID"
+        type: string
+        required: false
   workflow_call:
     inputs:
       tagname:
@@ -29,6 +33,10 @@ on:
         description: "Windows build workflow run ID"
         type: string
         required: true
+      mac_run_id:
+        description: "macOS build workflow run ID"
+        type: string
+        required: false
 
 jobs:
   create-release:
@@ -66,6 +74,15 @@ jobs:
           github-token: ${{ secrets.PAT }}
           run-id: ${{ inputs.windows_run_id }}
 
+      - name: Download macOS artifact
+        if: ${{ inputs.mac_run_id != '' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: fagram-mac-${{ inputs.tagname }}
+          path: artifacts/mac
+          github-token: ${{ secrets.PAT }}
+          run-id: ${{ inputs.mac_run_id }}
+
       - name: List downloaded artifacts
         run: |
           echo "=== Linux artifacts ==="
@@ -74,6 +91,8 @@ jobs:
           ls -la artifacts/windows/
           echo "=== Windows installer artifacts ==="
           ls -la artifacts/windows-installer/
+          echo "=== macOS artifacts ==="
+          ls -la artifacts/mac/ 2>/dev/null || echo "(not present)"
 
       - name: Extract changelog for release
         run: |
@@ -91,6 +110,20 @@ jobs:
           echo "Release body:"
           cat body.txt
 
+      - name: Build release file list
+        id: release-files
+        run: |
+          FILES="artifacts/linux/fagram-${{ inputs.tagname }}.tar.gz
+          artifacts/windows/FAgram_Win-x64_${{ inputs.tagname }}_portable.zip
+          artifacts/windows-installer/*.exe"
+          if [ -n "${{ inputs.mac_run_id }}" ] && [ -f "artifacts/mac/fagram-mac-${{ inputs.tagname }}.dmg" ]; then
+            FILES="$FILES
+          artifacts/mac/fagram-mac-${{ inputs.tagname }}.dmg"
+          fi
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -99,10 +132,7 @@ jobs:
           draft: false
           prerelease: false
           body_path: body.txt
-          files: |
-            artifacts/linux/fagram-${{ inputs.tagname }}.tar.gz
-            artifacts/windows/FAgram_Win-x64_${{ inputs.tagname }}_portable.zip
-            artifacts/windows-installer/*.exe
+          files: ${{ steps.release-files.outputs.files }}
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
