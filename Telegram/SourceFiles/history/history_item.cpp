@@ -273,12 +273,7 @@ std::unique_ptr<Data::Media> HistoryItem::CreateMedia(
 		});
 	}, [&](const MTPDmessageMediaPhoto &media) -> Result {
 		const auto photo = media.vphoto();
-		if (media.vttl_seconds()) {
-			LOG(("App Error: "
-				"Unexpected MTPMessageMediaPhoto "
-				"with ttl_seconds in CreateMedia."));
-			return nullptr;
-		} else if (!photo) {
+		if (!photo) {
 			LOG(("API Error: "
 				"Got MTPMessageMediaPhoto "
 				"without photo and without ttl_seconds."));
@@ -294,12 +289,7 @@ std::unique_ptr<Data::Media> HistoryItem::CreateMedia(
 		});
 	}, [&](const MTPDmessageMediaDocument &media) -> Result {
 		const auto document = media.vdocument();
-		if (media.vttl_seconds() && media.is_video()) {
-			LOG(("App Error: "
-				"Unexpected MTPMessageMediaDocument "
-				"with ttl_seconds in CreateMedia."));
-			return nullptr;
-		} else if (!document) {
+		if (!document) {
 			LOG(("API Error: "
 				"Got MTPMessageMediaDocument "
 				"without document and without ttl_seconds."));
