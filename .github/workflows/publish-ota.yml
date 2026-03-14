@@ -77,7 +77,7 @@ jobs:
         run: |
           WIN_FILE=$(find ota-artifacts/win64 -name "tx64upd*" | head -1)
           LINUX_FILE=$(find ota-artifacts/linux -name "tlinuxupd*" | head -1)
-          MAC_FILE=$(find ota-artifacts/macos -name "tmacosupdx*" 2>/dev/null | head -1 || true)
+          MAC_FILE=$(find ota-artifacts/macos -name "tmacupd*" 2>/dev/null | head -1 || true)
 
           if [ -z "$WIN_FILE" ]; then
             echo "Error: Windows OTA file not found"
@@ -144,3 +144,4 @@ jobs:
           echo "- **Version:** ${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Windows:** tx64upd${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Linux:** tlinuxupd${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **macOS:** tmacupd${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY

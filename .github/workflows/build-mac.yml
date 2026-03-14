@@ -136,10 +136,29 @@ jobs:
           APP_VERSION=$(grep 'AppVersion ' Telegram/build/version | awk '{print $2}')
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
 
+      - name: Sign OTA update
+        run: |
+          PACKER=$(find out -name Packer -type f | head -1)
+          TELEGRAM="out/Release/fagram.app"
+          if [ -z "$PACKER" ] || [ ! -d "$TELEGRAM" ]; then
+            echo "Error: Packer or fagram.app not found"
+            find out -type f -name 'Packer'
+            find out -type d -name 'fagram.app'
+            exit 1
+          fi
+          chmod +x "$PACKER"
+          ./$PACKER -path $TELEGRAM -version $APP_VERSION
+
+      - name: Upload OTA artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ota-macos
+          path: tmacupd${{ env.APP_VERSION }}
+
       - name: Package DMG
         run: |
           mkdir -p dmg_staging
-          cp -r out/Release/Telegram.app dmg_staging/FAgram.app
+          cp -r out/Release/fagram.app dmg_staging/FAgram.app
           ln -s /Applications dmg_staging/Applications
           hdiutil create \
             -volname "FAgram" \
