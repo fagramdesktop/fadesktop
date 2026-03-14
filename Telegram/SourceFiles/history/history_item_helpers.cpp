@@ -944,7 +944,14 @@ MediaCheckResult CheckMessageMedia(const MTPMessageMedia &media) {
 	}, [](const MTPDmessageMediaPhoto &data) {
 		const auto photo = data.vphoto();
 		if (data.vttl_seconds()) {
-			return Result::HasUnsupportedTimeToLive;
+			if (!photo) {
+				return Result::Empty;
+			}
+			return photo->match([](const MTPDphoto &) {
+				return Result::Good;
+			}, [](const MTPDphotoEmpty &) {
+				return Result::Empty;
+			});
 		} else if (!photo) {
 			return Result::Empty;
 		}
@@ -956,9 +963,7 @@ MediaCheckResult CheckMessageMedia(const MTPMessageMedia &media) {
 	}, [](const MTPDmessageMediaDocument &data) {
 		const auto document = data.vdocument();
 		if (data.vttl_seconds()) {
-			if (data.is_video()) {
-				return Result::HasUnsupportedTimeToLive;
-			} else if (!document) {
+			if (!document) {
 				return Result::HasExpiredMediaTimeToLive;
 			}
 		} else if (!document) {
