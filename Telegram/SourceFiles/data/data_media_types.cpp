@@ -1350,7 +1350,7 @@ bool MediaFile::hasSpoiler() const {
 }
 
 crl::time MediaFile::ttlSeconds() const {
-	return _ttlSeconds;
+	return 0;
 }
 
 bool MediaFile::allowsForward() const {
