@@ -100,11 +100,8 @@ jobs:
         run: echo "LIBS_PATH=$(cd $GITHUB_WORKSPACE && cd .. && pwd)/Libraries" >> $GITHUB_ENV
 
       - name: Clone DesktopPrivate
-        uses: actions/checkout@v6
-        with:
-          repository: fagramdesktop/DesktopPrivate
-          token: ${{ secrets.PAT }}
-          path: ${{ github.workspace }}/../DesktopPrivate
+        run: |
+          git clone https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/DesktopPrivate.git $GITHUB_WORKSPACE/../DesktopPrivate
 
       - name: Compute library cache key
         id: cache-key
