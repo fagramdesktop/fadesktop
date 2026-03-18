@@ -340,6 +340,12 @@ public:
 	[[nodiscard]] bool canBeSummarized() const {
 		return _flags & MessageFlag::CanBeSummarized;
 	}
+	[[nodiscard]] bool faAntiDeleted() const {
+		return _flags & MessageFlag::FaAntiDeleted;
+	}
+	void setFaAntiDeleted() {
+		_flags |= MessageFlag::FaAntiDeleted;
+	}
 	[[nodiscard]] bool hasRealFromId() const;
 	[[nodiscard]] bool isPostHidingAuthor() const;
 	[[nodiscard]] bool isPostShowingAuthor() const;

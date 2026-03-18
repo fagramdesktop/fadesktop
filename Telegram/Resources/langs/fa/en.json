@@ -134,5 +134,8 @@
   "fa_reply_in_private_chat": "Reply in Private Chat",
   "fa_show_fastshare_in_chats": "Show Share Button in Chats",
   "fa_show_fastshare_in_chats_desc": "Displays the quick share icon on messages in private chats and groups, not just channels",
-  "fa_share": "Share"
+  "fa_share": "Share",
+  "fa_anti_delete_messages": "Anti-delete messages",
+  "fa_anti_delete_messages_desc": "Keeps messages from other users visible locally when they are deleted, marking them with a \"deleted\" badge",
+  "fa_deleted_badge": "deleted"
 }

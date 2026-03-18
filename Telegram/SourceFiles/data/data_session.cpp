@@ -2888,14 +2888,23 @@ void Session::processMessagesDeleted(
 		return;
 	}
 
+	const auto antiDelete = FASettings::JsonSettings::GetBool("anti_delete_messages");
 	auto historiesToCheck = base::flat_set<not_null<History*>>();
 	for (const auto &messageId : data) {
 		const auto i = list ? list->find(messageId.v) : Messages::iterator();
 		if (list && i != list->end()) {
-			const auto history = i->second->history();
-			i->second->destroy();
-			if (!history->chatListMessageKnown()) {
-				historiesToCheck.emplace(history);
+			const auto item = i->second.get();
+			const auto history = item->history();
+			if (antiDelete && !item->out()) {
+				item->setFaAntiDeleted();
+				session().changes().messageUpdated(
+					item,
+					Data::MessageUpdate::Flag::Edited);
+			} else {
+				item->destroy();
+				if (!history->chatListMessageKnown()) {
+					historiesToCheck.emplace(history);
+				}
 			}
 		} else if (affected) {
 			affected->unknownMessageDeleted(messageId.v);
@@ -2907,13 +2916,21 @@ void Session::processMessagesDeleted(
 }
 
 void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
+	const auto antiDelete = FASettings::JsonSettings::GetBool("anti_delete_messages");
 	auto historiesToCheck = base::flat_set<not_null<History*>>();
 	for (const auto &messageId : data) {
 		if (const auto item = nonChannelMessage(messageId.v)) {
 			const auto history = item->history();
-			item->destroy();
-			if (!history->chatListMessageKnown()) {
-				historiesToCheck.emplace(history);
+			if (antiDelete && !item->out()) {
+				item->setFaAntiDeleted();
+				session().changes().messageUpdated(
+					item,
+					Data::MessageUpdate::Flag::Edited);
+			} else {
+				item->destroy();
+				if (!history->chatListMessageKnown()) {
+					historiesToCheck.emplace(history);
+				}
 			}
 		}
 	}

@@ -8,6 +8,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "history/view/history_view_bottom_info.h"
 
+#include "fa/lang/fa_lang.h"
+
 #include "ui/chat/message_bubble.h"
 #include "ui/chat/chat_style.h"
 #include "ui/effects/reaction_fly_animation.h"
@@ -139,6 +141,7 @@ int BottomInfo::firstLineWidth() const {
 
 bool BottomInfo::isWide() const {
 	return (_data.flags & Data::Flag::Edited)
+		|| (_data.flags & Data::Flag::AntiDeleted)
 		|| _data.scheduleRepeatPeriod
 		|| !_data.author.isEmpty()
 		|| !_views.isEmpty()
@@ -449,6 +452,8 @@ void BottomInfo::layout() {
 void BottomInfo::layoutDateText() {
 	const auto edited = (_data.flags & Data::Flag::Edited)
 		? (tr::lng_edited(tr::now) + ' ')
+		: (_data.flags & Data::Flag::AntiDeleted)
+		? (FAlang::Translate(u"fa_deleted_badge"_q) + ' ')
 		: (_data.flags & Data::Flag::EstimateDate)
 		? (tr::lng_approximate(tr::now) + ' ')
 		: _data.scheduleRepeatPeriod
@@ -677,6 +682,9 @@ BottomInfo::Data BottomInfoDataFromMessage(not_null<Message*> message) {
 	}
 	if (item->awaitingVideoProcessing()) {
 		result.flags |= Flag::EstimateDate;
+	}
+	if (item->faAntiDeleted()) {
+		result.flags |= Flag::AntiDeleted;
 	}
 	if (item->isScheduled()) {
 		result.scheduleRepeatPeriod = item->scheduleRepeatPeriod();

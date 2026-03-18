@@ -251,6 +251,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "use_material_icon_pack", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "anti_delete_messages", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 
 	//   Auto format markdown
 	{ "auto_format_markdown", {
