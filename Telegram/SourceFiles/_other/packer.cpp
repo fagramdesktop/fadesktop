@@ -39,6 +39,7 @@ QString countAlphaVersionSignature(quint64 version);
 typedef unsigned char uchar;
 typedef unsigned int uint32;
 typedef signed int int32;
+typedef qint64 int64;
 
 namespace{
 
