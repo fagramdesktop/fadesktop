@@ -131,6 +131,14 @@ jobs:
           github-token: ${{ secrets.PAT }}
           run-id: ${{ inputs.run_id }}
 
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: fagram-mac-${{ inputs.tagname }}
+          path: artifacts/mac
+          github-token: ${{ secrets.PAT }}
+          run-id: ${{ inputs.run_id }}
+
       - name: List artifacts
         run: |
           echo "=== Linux artifacts ==="
@@ -139,6 +147,8 @@ jobs:
           ls -la artifacts/windows/
           echo "=== Windows installer artifacts ==="
           ls -la artifacts/windows-installer/
+          echo "=== macOS artifacts ==="
+          ls -la artifacts/mac/
 
       - name: Upload Linux artifact to Telegram
         env:
@@ -167,6 +177,23 @@ jobs:
           WIN_INSTALLER=$(find artifacts/windows-installer -name "fagram-setup_Win-x64.*.exe" | head -1)
           python3 scripts/tgupload.py --files "$WIN_PORTABLE" "$WIN_INSTALLER" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
           <b>FAgram Windows x64 ${{ inputs.tagname }}</b>
+          TGD Base: <code>${{ env.TGD_VERSION }}</code>
+          Build Type: <code>${{ inputs.build_type }}</code>
+          Branch: <code>${{ github.ref_name }}</code>
+
+          <blockquote expandable>${{ env.CHANGELOG }}</blockquote>
+          EOF
+          )"
+
+      - name: Upload macOS artifact to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          API_ID: ${{ secrets.API_ID_CONFIG }}
+          API_HASH: ${{ secrets.API_HASH_CONFIG }}
+        run: |
+          MAC_FILE=$(find artifacts/mac -name "fagram-mac-*.dmg" | head -1)
+          python3 scripts/tgupload.py "$MAC_FILE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
+          <b>FAgram macOS ${{ inputs.tagname }}</b>
           TGD Base: <code>${{ env.TGD_VERSION }}</code>
           Build Type: <code>${{ inputs.build_type }}</code>
           Branch: <code>${{ github.ref_name }}</code>
