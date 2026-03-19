@@ -14,6 +14,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings_menu/sections/fa_context_menu.h"
 #include "fa/settings_menu/sections/fa_appearance.h"
 #include "fa/settings_menu/sections/fa_logs.h"
+#include "fa/settings_menu/sections/fa_experimental.h"
 
 #include "fa_lang_auto.h"
 
@@ -516,6 +517,51 @@ const auto kFALogsMeta = BuildHelper({
 			.title = fatr::fa_debug_logs(fatr::now),
 			.keywords = { u"debug"_q, u"logs"_q, u"enable"_q, u"logging"_q },
 			.icon = { &st::menuIconFile },
+		};
+	});
+});
+
+// FA Experimental
+const auto kFAExperimentalMeta = BuildHelper({
+	.id = FAExperimental::Id(),
+	.parentId = FA::Id(),
+	.title = &tr::lng_menu_settings,
+	.icon = &st::menuIconDiscussion,
+	.customTitle = [] { return fatr::fa_experimental(fatr::now); },
+}, [](SectionBuilder &builder) {
+	builder.add(nullptr, [] {
+		return SearchEntry{
+			.id = u"fa/experimental/anti-delete-messages"_q,
+			.title = fatr::fa_anti_delete_messages(fatr::now),
+			.keywords = { u"anti"_q, u"delete"_q, u"messages"_q, u"keep"_q, u"preserve"_q },
+			.icon = { &st::menuIconDiscussion },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
+			.id = u"fa/experimental/remove-restrictions"_q,
+			.title = fatr::fa_remove_restrictions(fatr::now),
+			.keywords = { u"restrictions"_q, u"forward"_q, u"copy"_q, u"save"_q, u"bypass"_q },
+			.icon = { &st::menuIconDiscussion },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
+			.id = u"fa/experimental/show-view-once-media"_q,
+			.title = fatr::fa_show_view_once_media(fatr::now),
+			.keywords = { u"view once"_q, u"self destruct"_q, u"media"_q, u"photo"_q, u"video"_q },
+			.icon = { &st::menuIconDiscussion },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
+			.id = u"fa/experimental/suppress-auto-delete"_q,
+			.title = fatr::fa_suppress_auto_delete(fatr::now),
+			.keywords = { u"auto delete"_q, u"timer"_q, u"suppress"_q, u"prevent"_q },
+			.icon = { &st::menuIconDiscussion },
 		};
 	});
 });

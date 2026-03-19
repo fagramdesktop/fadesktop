@@ -830,6 +830,8 @@ PRIVATE
     fa/settings_menu/sections/fa_appearance.h
     fa/settings_menu/sections/fa_logs.cpp
     fa/settings_menu/sections/fa_logs.h
+    fa/settings_menu/sections/fa_experimental.cpp
+    fa/settings_menu/sections/fa_experimental.h
     fa/url_handlers/fa_url_handlers.cpp
     fa/url_handlers/fa_url_handlers.h
     fa/lang/fa_lang.cpp

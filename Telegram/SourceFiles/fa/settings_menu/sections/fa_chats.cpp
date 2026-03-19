@@ -117,14 +117,6 @@ namespace Settings {
 		Ui::AddDividerText(container, fatr::fa_show_discuss_button_desc());
 		SettingsMenuJsonSwitch(fa_show_fastshare_in_chats, show_fastshare_in_chats, u"fa/chats/show-share-in-chats"_q);
 		Ui::AddDividerText(container, fatr::fa_show_fastshare_in_chats_desc());
-		SettingsMenuJsonSwitch(fa_anti_delete_messages, anti_delete_messages, u"fa/chats/anti-delete-messages"_q);
-		Ui::AddDividerText(container, fatr::fa_anti_delete_messages_desc());
-		SettingsMenuJsonSwitch(fa_remove_restrictions, remove_restrictions, u"fa/chats/remove-restrictions"_q);
-		Ui::AddDividerText(container, fatr::fa_remove_restrictions_desc());
-		SettingsMenuJsonSwitch(fa_show_view_once_media, show_view_once_media, u"fa/chats/show-view-once-media"_q);
-		Ui::AddDividerText(container, fatr::fa_show_view_once_media_desc());
-		SettingsMenuJsonSwitch(fa_suppress_auto_delete, suppress_auto_delete, u"fa/chats/suppress-auto-delete"_q);
-		Ui::AddDividerText(container, fatr::fa_suppress_auto_delete_desc());
 		SettingsMenuJsonSwitch(fa_show_message_details, show_message_details, u"fa/chats/message-details"_q);
 		Ui::AddDividerText(container, fatr::fa_show_message_details_desc());
 
