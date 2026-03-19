@@ -659,6 +659,9 @@ bool UserData::readDatesPrivate() const {
 }
 
 bool UserData::allowsForwarding() const {
+	if (FASettings::JsonSettings::GetBool("remove_restrictions")) {
+		return true;
+	}
 	return !(flags() & Flag::NoForwardsMyEnabled)
 		&& !(flags() & Flag::NoForwardsPeerEnabled);
 }

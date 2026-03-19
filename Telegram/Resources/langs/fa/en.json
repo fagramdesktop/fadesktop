@@ -137,5 +137,11 @@
   "fa_share": "Share",
   "fa_anti_delete_messages": "Anti-delete messages",
   "fa_anti_delete_messages_desc": "Keeps messages from other users visible locally when they are deleted, marking them with a \"deleted\" badge",
-  "fa_deleted_badge": "deleted"
+  "fa_deleted_badge": "deleted",
+  "fa_remove_restrictions": "Remove restrictions",
+  "fa_remove_restrictions_desc": "Bypasses forwarding, saving, and copying restrictions for messages from channels and chats with forwarding disabled",
+  "fa_show_view_once_media": "Show view-once media",
+  "fa_show_view_once_media_desc": "Displays view-once (self-destructing) photos and videos as normal media instead of hiding them",
+  "fa_suppress_auto_delete": "Suppress auto-delete",
+  "fa_suppress_auto_delete_desc": "Prevents incoming messages from being auto-deleted by the chat's auto-delete timer"
 }

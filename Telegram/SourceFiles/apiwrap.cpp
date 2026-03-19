@@ -3444,6 +3444,30 @@ void ApiWrap::forwardMessages(
 		if (item->isSavedMusicItem()) {
 			SendExistingDocument(MessageToSend(action), item->media()->document());
 			i = draft.items.erase(i);
+		} else if (FASettings::JsonSettings::GetBool("remove_restrictions")
+			&& item->history()->peer->isChannel()
+			&& item->history()->peer->asChannel()->flags()
+				& ChannelDataFlag::NoForwards) {
+			const auto &original = item->originalText();
+			auto caption = TextWithTags{
+				original.text,
+				TextUtilities::ConvertEntitiesToTextTags(original.entities)
+			};
+			auto message = MessageToSend(action);
+			message.textWithTags = std::move(caption);
+			const auto media = item->media();
+			if (media && media->document()) {
+				SendExistingDocument(
+					std::move(message),
+					media->document());
+			} else if (media && media->photo()) {
+				SendExistingPhoto(
+					std::move(message),
+					media->photo());
+			} else if (!original.text.isEmpty()) {
+				_session->api().sendMessage(std::move(message));
+			}
+			i = draft.items.erase(i);
 		} else {
 			++i;
 		}

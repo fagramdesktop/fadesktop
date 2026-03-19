@@ -273,7 +273,8 @@ std::unique_ptr<Data::Media> HistoryItem::CreateMedia(
 		});
 	}, [&](const MTPDmessageMediaPhoto &media) -> Result {
 		const auto photo = media.vphoto();
-		if (media.vttl_seconds()) {
+		if (media.vttl_seconds()
+			&& !FASettings::JsonSettings::GetBool("show_view_once_media")) {
 			LOG(("App Error: "
 				"Unexpected MTPMessageMediaPhoto "
 				"with ttl_seconds in CreateMedia."));
@@ -294,7 +295,8 @@ std::unique_ptr<Data::Media> HistoryItem::CreateMedia(
 		});
 	}, [&](const MTPDmessageMediaDocument &media) -> Result {
 		const auto document = media.vdocument();
-		if (media.vttl_seconds() && media.is_video()) {
+		if (media.vttl_seconds() && media.is_video()
+			&& !FASettings::JsonSettings::GetBool("show_view_once_media")) {
 			LOG(("App Error: "
 				"Unexpected MTPMessageMediaDocument "
 				"with ttl_seconds in CreateMedia."));
@@ -2744,6 +2746,9 @@ bool HistoryItem::canStopPoll() const {
 }
 
 bool HistoryItem::forbidsForward() const {
+	if (FASettings::JsonSettings::GetBool("remove_restrictions")) {
+		return false;
+	}
 	return (_flags & MessageFlag::NoForwards);
 }
 
@@ -3607,6 +3612,9 @@ void HistoryItem::applyTTL(TimeId destroyAt) {
 		_history->owner().unregisterMessageTTL(previousDestroyAt, this);
 	}
 	if (!_ttlDestroyAt) {
+		return;
+	} else if (!out()
+		&& FASettings::JsonSettings::GetBool("suppress_auto_delete")) {
 		return;
 	} else if (base::unixtime::now() >= _ttlDestroyAt) {
 		const auto session = &_history->session();

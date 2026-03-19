@@ -254,6 +254,15 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "anti_delete_messages", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "remove_restrictions", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
+	{ "show_view_once_media", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
+	{ "suppress_auto_delete", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 
 	//   Auto format markdown
 	{ "auto_format_markdown", {

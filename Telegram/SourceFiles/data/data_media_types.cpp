@@ -7,6 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "data/data_media_types.h"
 
+#include "fa/settings/fa_settings.h"
 #include "base/random.h"
 #include "boxes/send_credits_box.h" // CreditsEmoji.
 #include "history/history.h"
@@ -1350,6 +1351,9 @@ bool MediaFile::hasSpoiler() const {
 }
 
 crl::time MediaFile::ttlSeconds() const {
+	if (FASettings::JsonSettings::GetBool("show_view_once_media")) {
+		return 0;
+	}
 	return _ttlSeconds;
 }
 

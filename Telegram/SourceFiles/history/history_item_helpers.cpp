@@ -7,6 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "history/history_item_helpers.h"
 
+#include "fa/settings/fa_settings.h"
 #include "api/api_text_entities.h"
 #include "boxes/premium_preview_box.h"
 #include "calls/calls_instance.h"
@@ -943,7 +944,8 @@ MediaCheckResult CheckMessageMedia(const MTPMessageMedia &media) {
 		});
 	}, [](const MTPDmessageMediaPhoto &data) {
 		const auto photo = data.vphoto();
-		if (data.vttl_seconds()) {
+		if (data.vttl_seconds()
+			&& !FASettings::JsonSettings::GetBool("show_view_once_media")) {
 			return Result::HasUnsupportedTimeToLive;
 		} else if (!photo) {
 			return Result::Empty;
@@ -956,7 +958,8 @@ MediaCheckResult CheckMessageMedia(const MTPMessageMedia &media) {
 	}, [](const MTPDmessageMediaDocument &data) {
 		const auto document = data.vdocument();
 		if (data.vttl_seconds()) {
-			if (data.is_video()) {
+			if (data.is_video()
+				&& !FASettings::JsonSettings::GetBool("show_view_once_media")) {
 				return Result::HasUnsupportedTimeToLive;
 			} else if (!document) {
 				return Result::HasExpiredMediaTimeToLive;

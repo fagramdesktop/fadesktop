@@ -7,6 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "data/data_channel.h"
 
+#include "fa/settings/fa_settings.h"
 #include "api/api_credits.h"
 #include "api/api_global_privacy.h"
 #include "api/api_statistics.h"
@@ -709,6 +710,9 @@ bool ChannelData::canAddAdmins() const {
 }
 
 bool ChannelData::allowsForwarding() const {
+	if (FASettings::JsonSettings::GetBool("remove_restrictions")) {
+		return true;
+	}
 	return !(flags() & Flag::NoForwards);
 }
 

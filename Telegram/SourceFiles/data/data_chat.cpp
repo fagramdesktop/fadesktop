@@ -7,6 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "data/data_chat.h"
 
+#include "fa/settings/fa_settings.h"
 #include "core/application.h"
 #include "data/data_user.h"
 #include "data/data_channel.h"
@@ -64,6 +65,9 @@ ChatAdminRightsInfo ChatData::defaultAdminRights(not_null<UserData*> user) {
 }
 
 bool ChatData::allowsForwarding() const {
+	if (FASettings::JsonSettings::GetBool("remove_restrictions")) {
+		return true;
+	}
 	return !(flags() & Flag::NoForwards);
 }
 
