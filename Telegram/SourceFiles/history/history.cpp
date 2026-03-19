@@ -514,6 +514,10 @@ not_null<HistoryItem*> History::createItem(
 	const auto result = message.match([&](const auto &data) {
 		return makeMessage(id, data, localFlags);
 	});
+	if (!result->out()
+		&& owner().isFaAntiDeletedMessage({ peer->id, id })) {
+		result->setFaAntiDeleted();
+	}
 	if (newMessage && result->out() && result->isRegular()) {
 		session().topPeers().increment(peer, result->date());
 		if (result->starsPaid()) {

@@ -86,10 +86,17 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "base/random.h"
 #include "spellcheck/spellcheck_highlight_syntax.h"
 
+#include <QtCore/QDataStream>
+
 namespace Data {
 namespace {
 
 constexpr auto kNextForUpgradeGiftTimeout = 5 * crl::time(1000);
+constexpr auto kFaAntiDeletedStorageLimit = 50000;
+constexpr auto kFaAntiDeletedStorageKey = Storage::Cache::Key{
+	0xFAD3000000000001ULL,
+	0x0000000000000001ULL,
+};
 
 using ViewElement = HistoryView::Element;
 
@@ -275,6 +282,17 @@ Session::Session(not_null<Main::Session*> session)
 	setupChannelLeavingViewer();
 	setupPeerNameViewer();
 	setupUserIsContactViewer();
+	loadFaAntiDeletedMessages();
+	if (!FASettings::JsonSettings::GetBool("anti_delete_messages")) {
+		purgeFaAntiDeletedMessages();
+	}
+
+	FASettings::JsonSettings::Events("anti_delete_messages"
+	) | rpl::on_next([=](const QString &) {
+		if (!FASettings::JsonSettings::GetBool("anti_delete_messages")) {
+			purgeFaAntiDeletedMessages();
+		}
+	}, _lifetime);
 
 	_chatsList.unreadStateChanges(
 	) | rpl::on_next([=] {
@@ -2897,6 +2915,7 @@ void Session::processMessagesDeleted(
 			const auto history = item->history();
 			if (antiDelete && !item->out()) {
 				item->setFaAntiDeleted();
+				markFaAntiDeletedMessage({ history->peer->id, item->id });
 				session().changes().messageUpdated(
 					item,
 					Data::MessageUpdate::Flag::Edited);
@@ -2907,6 +2926,9 @@ void Session::processMessagesDeleted(
 				}
 			}
 		} else if (affected) {
+			if (antiDelete) {
+				markFaAntiDeletedMessage({ affected->peer->id, messageId.v });
+			}
 			affected->unknownMessageDeleted(messageId.v);
 		}
 	}
@@ -2923,6 +2945,7 @@ void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
 			const auto history = item->history();
 			if (antiDelete && !item->out()) {
 				item->setFaAntiDeleted();
+				markFaAntiDeletedMessage({ history->peer->id, item->id });
 				session().changes().messageUpdated(
 					item,
 					Data::MessageUpdate::Flag::Edited);
@@ -2937,6 +2960,98 @@ void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
 	for (const auto &history : historiesToCheck) {
 		history->requestChatListMessage();
 	}
+}
+
+void Session::purgeFaAntiDeletedMessages() {
+	_faAntiDeletedMessages.clear();
+	saveFaAntiDeletedMessages();
+}
+
+void Session::loadFaAntiDeletedMessages() {
+	if (_faAntiDeletedLoadRequested) {
+		return;
+	}
+	_faAntiDeletedLoadRequested = true;
+	cache().get(kFaAntiDeletedStorageKey, [=](QByteArray value) {
+		if (value.isEmpty()) {
+			_faAntiDeletedLoaded = true;
+			return;
+		}
+		auto stream = QDataStream(value);
+		stream.setVersion(QDataStream::Qt_5_1);
+		quint32 count = 0;
+		stream >> count;
+		for (auto i = 0U; i != count && !stream.atEnd(); ++i) {
+			quint64 peerValue = 0;
+			qint64 msgValue = 0;
+			stream >> peerValue >> msgValue;
+			if (!IsServerMsgId(MsgId(msgValue))) {
+				continue;
+			}
+			_faAntiDeletedMessages.emplace(
+				PeerId(PeerIdHelper(peerValue)),
+				MsgId(msgValue));
+		}
+		if (!FASettings::JsonSettings::GetBool("anti_delete_messages")) {
+			purgeFaAntiDeletedMessages();
+			_faAntiDeletedLoaded = true;
+			return;
+		}
+		_faAntiDeletedLoaded = true;
+		for (const auto &[peerId, list] : _messages) {
+			for (const auto &[messageId, holder] : list) {
+				const auto item = holder.get();
+				if (!item
+					|| item->out()
+					|| item->faAntiDeleted()
+					|| !_faAntiDeletedMessages.contains({ peerId, messageId })) {
+					continue;
+				}
+				item->setFaAntiDeleted();
+				session().changes().messageUpdated(
+					item,
+					Data::MessageUpdate::Flag::Edited);
+			}
+		}
+	});
+}
+
+void Session::saveFaAntiDeletedMessages() {
+	auto bytes = QByteArray();
+	{
+		auto stream = QDataStream(&bytes, QIODevice::WriteOnly);
+		stream.setVersion(QDataStream::Qt_5_1);
+		stream << quint32(_faAntiDeletedMessages.size());
+		for (const auto &itemId : _faAntiDeletedMessages) {
+			stream << quint64(itemId.peer.value) << qint64(itemId.msg.bare);
+		}
+	}
+	cache().put(kFaAntiDeletedStorageKey, { std::move(bytes), 0 });
+}
+
+void Session::markFaAntiDeletedMessage(FullMsgId itemId) {
+	if (!itemId
+		|| !IsServerMsgId(itemId.msg)
+		|| !FASettings::JsonSettings::GetBool("anti_delete_messages")) {
+		return;
+	}
+	loadFaAntiDeletedMessages();
+	if (!_faAntiDeletedMessages.emplace(itemId).second) {
+		return;
+	}
+	while (_faAntiDeletedMessages.size() > kFaAntiDeletedStorageLimit) {
+		_faAntiDeletedMessages.erase(_faAntiDeletedMessages.begin());
+	}
+	saveFaAntiDeletedMessages();
+}
+
+bool Session::isFaAntiDeletedMessage(FullMsgId itemId) {
+	if (!itemId
+		|| !FASettings::JsonSettings::GetBool("anti_delete_messages")) {
+		return false;
+	}
+	loadFaAntiDeletedMessages();
+	return _faAntiDeletedMessages.contains(itemId);
 }
 
 void Session::removeDependencyMessage(not_null<HistoryItem*> item) {

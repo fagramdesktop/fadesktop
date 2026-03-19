@@ -553,6 +553,8 @@ public:
 	void processMessagesDeleted(
 		PeerId peerId,
 		const QVector<MTPint> &data);
+	void markFaAntiDeletedMessage(FullMsgId itemId);
+	[[nodiscard]] bool isFaAntiDeletedMessage(FullMsgId itemId);
 
 	[[nodiscard]] MsgId nextLocalMessageId();
 	[[nodiscard]] HistoryItem *message(
@@ -1098,6 +1100,9 @@ private:
 	void fillMentionUsers(
 		FullMsgId fullId,
 		const MTPVector<MTPMessageEntity> &entities);
+	void purgeFaAntiDeletedMessages();
+	void loadFaAntiDeletedMessages();
+	void saveFaAntiDeletedMessages();
 
 	const not_null<Main::Session*> _session;
 
@@ -1166,6 +1171,9 @@ private:
 
 	base::flat_map<uint64, FullMsgId> _messageByRandomId;
 	base::flat_map<uint64, SentData> _sentMessagesData;
+	bool _faAntiDeletedLoadRequested = false;
+	bool _faAntiDeletedLoaded = false;
+	base::flat_set<FullMsgId> _faAntiDeletedMessages;
 
 	base::Timer _selfDestructTimer;
 	std::vector<FullMsgId> _selfDestructItems;

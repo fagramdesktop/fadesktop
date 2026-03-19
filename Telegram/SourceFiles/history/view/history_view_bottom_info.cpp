@@ -450,10 +450,10 @@ void BottomInfo::layout() {
 }
 
 void BottomInfo::layoutDateText() {
-	const auto edited = (_data.flags & Data::Flag::Edited)
-		? (tr::lng_edited(tr::now) + ' ')
-		: (_data.flags & Data::Flag::AntiDeleted)
+	const auto edited = (_data.flags & Data::Flag::AntiDeleted)
 		? (FAlang::Translate(u"fa_deleted_badge"_q) + ' ')
+		: (_data.flags & Data::Flag::Edited)
+		? (tr::lng_edited(tr::now) + ' ')
 		: (_data.flags & Data::Flag::EstimateDate)
 		? (tr::lng_approximate(tr::now) + ' ')
 		: _data.scheduleRepeatPeriod
