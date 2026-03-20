@@ -3628,6 +3628,12 @@ void HistoryItem::applyTTL(TimeId destroyAt) {
 	}
 }
 
+void HistoryItem::refreshTTLState() {
+	if (_ttlDestroyAt) {
+		applyTTL(_ttlDestroyAt);
+	}
+}
+
 void HistoryItem::replaceBuyWithReceiptInMarkup() {
 	if (const auto markup = inlineReplyMarkup()) {
 		for (auto &row : markup->data.rows) {

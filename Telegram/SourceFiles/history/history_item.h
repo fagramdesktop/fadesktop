@@ -605,6 +605,7 @@ public:
 	[[nodiscard]] TimeId ttlDestroyAt() const {
 		return _ttlDestroyAt;
 	}
+	void refreshTTLState();
 
 	[[nodiscard]] int boostsApplied() const {
 		return _boostsApplied;

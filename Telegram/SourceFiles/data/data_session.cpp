@@ -294,6 +294,41 @@ Session::Session(not_null<Main::Session*> session)
 		}
 	}, _lifetime);
 
+	FASettings::JsonSettings::Events("suppress_auto_delete"
+	) | rpl::on_next([=](const QString &) {
+		for (const auto &[peerId, list] : _messages) {
+			for (const auto &[messageId, holder] : list) {
+				const auto item = holder.get();
+				if (!item || item->out()) {
+					continue;
+				}
+				item->refreshTTLState();
+			}
+		}
+	}, _lifetime);
+
+	const auto refreshAllLoadedItems = [=] {
+		for (const auto &[peerId, list] : _messages) {
+			for (const auto &[messageId, holder] : list) {
+				const auto item = holder.get();
+				if (!item) {
+					continue;
+				}
+				requestItemViewRefresh(item);
+			}
+		}
+	};
+
+	FASettings::JsonSettings::Events("show_view_once_media"
+	) | rpl::on_next([=](const QString &) {
+		refreshAllLoadedItems();
+	}, _lifetime);
+
+	FASettings::JsonSettings::Events("remove_restrictions"
+	) | rpl::on_next([=](const QString &) {
+		refreshAllLoadedItems();
+	}, _lifetime);
+
 	_chatsList.unreadStateChanges(
 	) | rpl::on_next([=] {
 		notifyUnreadBadgeChanged();
