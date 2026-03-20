@@ -296,8 +296,10 @@ Session::Session(not_null<Main::Session*> session)
 
 	FASettings::JsonSettings::Events("suppress_auto_delete"
 	) | rpl::on_next([=](const QString &) {
-		for (const auto &[peerId, list] : _messages) {
-			for (const auto &[messageId, holder] : list) {
+		for (const auto &peerEntry : _messages) {
+			const auto &list = peerEntry.second;
+			for (const auto &messageEntry : list) {
+				const auto &holder = messageEntry.second;
 				const auto item = holder.get();
 				if (!item || item->out()) {
 					continue;
@@ -308,8 +310,10 @@ Session::Session(not_null<Main::Session*> session)
 	}, _lifetime);
 
 	const auto refreshAllLoadedItems = [=] {
-		for (const auto &[peerId, list] : _messages) {
-			for (const auto &[messageId, holder] : list) {
+		for (const auto &peerEntry : _messages) {
+			const auto &list = peerEntry.second;
+			for (const auto &messageEntry : list) {
+				const auto &holder = messageEntry.second;
 				const auto item = holder.get();
 				if (!item) {
 					continue;
@@ -3009,7 +3013,6 @@ void Session::loadFaAntiDeletedMessages() {
 	_faAntiDeletedLoadRequested = true;
 	cache().get(kFaAntiDeletedStorageKey, [=](QByteArray value) {
 		if (value.isEmpty()) {
-			_faAntiDeletedLoaded = true;
 			return;
 		}
 		auto stream = QDataStream(value);
@@ -3029,10 +3032,8 @@ void Session::loadFaAntiDeletedMessages() {
 		}
 		if (!FASettings::JsonSettings::GetBool("anti_delete_messages")) {
 			purgeFaAntiDeletedMessages();
-			_faAntiDeletedLoaded = true;
 			return;
 		}
-		_faAntiDeletedLoaded = true;
 		for (const auto &[peerId, list] : _messages) {
 			for (const auto &[messageId, holder] : list) {
 				const auto item = holder.get();
@@ -3061,7 +3062,9 @@ void Session::saveFaAntiDeletedMessages() {
 			stream << quint64(itemId.peer.value) << qint64(itemId.msg.bare);
 		}
 	}
-	cache().put(kFaAntiDeletedStorageKey, { std::move(bytes), 0 });
+	cache().put(
+		kFaAntiDeletedStorageKey,
+		Storage::Cache::Database::TaggedValue(std::move(bytes), 0));
 }
 
 void Session::markFaAntiDeletedMessage(FullMsgId itemId) {

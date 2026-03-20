@@ -1172,7 +1172,6 @@ private:
 	base::flat_map<uint64, FullMsgId> _messageByRandomId;
 	base::flat_map<uint64, SentData> _sentMessagesData;
 	bool _faAntiDeletedLoadRequested = false;
-	bool _faAntiDeletedLoaded = false;
 	base::flat_set<FullMsgId> _faAntiDeletedMessages;
 
 	base::Timer _selfDestructTimer;
