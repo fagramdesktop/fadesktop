@@ -74,6 +74,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/application.h"
 #include "base/unixtime.h"
 #include "base/qt/qt_common_adapters.h"
+#include "fa/settings/fa_settings.h"
 #include "styles/style_dialogs.h"
 
 namespace {
@@ -642,8 +643,17 @@ void History::destroyMessagesByDates(TimeId minDate, TimeId maxDate) {
 			toDestroy.push_back(message.get());
 		}
 	}
+	const auto antiDelete = FASettings::JsonSettings::GetBool("anti_delete_messages");
 	for (const auto &item : toDestroy) {
-		item->destroy();
+		if (antiDelete && item->isRegular()) {
+			item->setFaAntiDeleted();
+			owner().markFaAntiDeletedMessage(item);
+			session().changes().messageUpdated(
+				item,
+				Data::MessageUpdate::Flag::Edited);
+		} else {
+			item->destroy();
+		}
 	}
 }
 
@@ -655,8 +665,17 @@ void History::destroyMessagesByTopic(MsgId topicRootId) {
 			toDestroy.push_back(message.get());
 		}
 	}
+	const auto antiDelete = FASettings::JsonSettings::GetBool("anti_delete_messages");
 	for (const auto &item : toDestroy) {
-		item->destroy();
+		if (antiDelete && item->isRegular()) {
+			item->setFaAntiDeleted();
+			owner().markFaAntiDeletedMessage(item);
+			session().changes().messageUpdated(
+				item,
+				Data::MessageUpdate::Flag::Edited);
+		} else {
+			item->destroy();
+		}
 	}
 }
 
@@ -669,8 +688,17 @@ void History::destroyMessagesBySublist(not_null<PeerData*> sublistPeer) {
 			toDestroy.push_back(message.get());
 		}
 	}
+	const auto antiDelete = FASettings::JsonSettings::GetBool("anti_delete_messages");
 	for (const auto &item : toDestroy) {
-		item->destroy();
+		if (antiDelete && item->isRegular()) {
+			item->setFaAntiDeleted();
+			owner().markFaAntiDeletedMessage(item);
+			session().changes().messageUpdated(
+				item,
+				Data::MessageUpdate::Flag::Edited);
+		} else {
+			item->destroy();
+		}
 	}
 }
 
@@ -4015,8 +4043,17 @@ void History::clear(ClearType type, bool markEmpty) {
 				local.emplace(item);
 			}
 		}
+		const auto antiDelete = FASettings::JsonSettings::GetBool("anti_delete_messages");
 		for (const auto &item : local) {
-			item->destroy();
+			if (antiDelete && item->isRegular()) {
+				item->setFaAntiDeleted();
+				owner().markFaAntiDeletedMessage(item);
+				session().changes().messageUpdated(
+					item,
+					Data::MessageUpdate::Flag::Edited);
+			} else {
+				item->destroy();
+			}
 		}
 		clearNotifications();
 		owner().notifyHistoryCleared(this);
@@ -4076,8 +4113,17 @@ void History::clearUpTill(MsgId availableMinId) {
 			remove.push_back(item.get());
 		}
 	}
+	const auto antiDelete = FASettings::JsonSettings::GetBool("anti_delete_messages");
 	for (const auto &item : remove) {
-		item->destroy();
+		if (antiDelete && item->isRegular()) {
+			item->setFaAntiDeleted();
+			owner().markFaAntiDeletedMessage(item);
+			session().changes().messageUpdated(
+				item,
+				Data::MessageUpdate::Flag::Edited);
+		} else {
+			item->destroy();
+		}
 	}
 	requestChatListMessage();
 }

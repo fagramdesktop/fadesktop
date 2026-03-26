@@ -1391,9 +1391,18 @@ void ApiWrap::deleteAllFromParticipant(
 	const auto ids = history
 		? history->collectMessagesFromParticipantToDelete(from)
 		: std::vector<MsgId>();
+	const auto antiDelete = FASettings::JsonSettings::GetBool("anti_delete_messages");
 	for (const auto &msgId : ids) {
 		if (const auto item = _session->data().message(channel->id, msgId)) {
-			item->destroy();
+			if (antiDelete && item->isRegular()) {
+				item->setFaAntiDeleted();
+				_session->data().markFaAntiDeletedMessage(item);
+				_session->changes().messageUpdated(
+					item,
+					Data::MessageUpdate::Flag::Edited);
+			} else {
+				item->destroy();
+			}
 		}
 	}
 

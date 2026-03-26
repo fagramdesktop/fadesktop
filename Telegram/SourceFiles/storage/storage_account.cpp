@@ -5,7 +5,10 @@ the unofficial desktop client based on Telegram Desktop.
 For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
+#include "fa/settings/fa_settings.h"
 #include "storage/storage_account.h"
+
+#include <limits>
 
 #include "storage/localstorage.h"
 #include "storage/storage_domain.h"
@@ -1842,6 +1845,10 @@ Cache::Database::Settings Account::cacheSettings() const {
 	result.totalSizeLimit = _cacheTotalSizeLimit;
 	result.totalTimeLimit = _cacheTotalTimeLimit;
 	result.maxDataSize = kMaxFileInMemory;
+	if (FASettings::JsonSettings::GetBool("anti_delete_messages")) {
+		result.totalSizeLimit = std::numeric_limits<qint64>::max();
+		result.totalTimeLimit = 0;
+	}
 	return result;
 }
 
@@ -1878,6 +1885,10 @@ Cache::Database::Settings Account::cacheBigFileSettings() const {
 	result.totalSizeLimit = _cacheBigFileTotalSizeLimit;
 	result.totalTimeLimit = _cacheBigFileTotalTimeLimit;
 	result.maxDataSize = kMaxFileInMemory;
+	if (FASettings::JsonSettings::GetBool("anti_delete_messages")) {
+		result.totalSizeLimit = std::numeric_limits<qint64>::max();
+		result.totalTimeLimit = 0;
+	}
 	return result;
 }
 

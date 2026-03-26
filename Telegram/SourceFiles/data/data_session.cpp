@@ -35,6 +35,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/view/history_view_element.h"
 #include "inline_bots/inline_bot_layout_item.h"
 #include "storage/storage_account.h"
+#include "storage/details/storage_file_utilities.h"
 #include "storage/storage_encrypted_file.h"
 #include "media/player/media_player_instance.h" // instance()->play()
 #include "media/audio/media_audio.h"
@@ -56,6 +57,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_channel.h"
 #include "data/data_chat.h"
 #include "data/data_user.h"
+#include "data/data_document.h"
 #include "data/data_file_origin.h"
 #include "data/data_download_manager.h"
 #include "data/data_web_page.h"
@@ -93,10 +95,189 @@ namespace {
 
 constexpr auto kNextForUpgradeGiftTimeout = 5 * crl::time(1000);
 constexpr auto kFaAntiDeletedStorageLimit = 50000;
-constexpr auto kFaAntiDeletedStorageKey = Storage::Cache::Key{
-	0xFAD3000000000001ULL,
-	0x0000000000000001ULL,
+constexpr auto kFaAntiDeletedStorageFileKey = Storage::FileKey(0xFAD3000000000001ULL);
+constexpr auto kFaAntiDeletedStorageMagic = quint32(0xFAD30003U);
+
+enum class FaAntiDeletedMediaKind : uchar {
+	None = 0,
+	Photo,
+	Sticker,
+	Gif,
+	Video,
+	RoundVideo,
+	Voice,
+	Audio,
+	File,
+	Poll,
+	Game,
+	Contact,
+	Location,
+	WebPage,
 };
+
+[[nodiscard]] QString FaAntiDeletedEncryptedBasePath(
+		not_null<Main::Session*> session) {
+	return session->local().cachePath();
+}
+
+[[nodiscard]] FaAntiDeletedMediaKind DetectFaAntiDeletedMediaKind(
+		not_null<HistoryItem*> item) {
+	const auto media = item->media();
+	if (!media) {
+		return FaAntiDeletedMediaKind::None;
+	}
+	if (const auto document = media->document()) {
+		if (document->sticker()) {
+			return FaAntiDeletedMediaKind::Sticker;
+		} else if (document->isGifv() || document->isAnimation()) {
+			return FaAntiDeletedMediaKind::Gif;
+		} else if (document->isVideoMessage()) {
+			return FaAntiDeletedMediaKind::RoundVideo;
+		} else if (document->isVoiceMessage()) {
+			return FaAntiDeletedMediaKind::Voice;
+		} else if (document->isVideoFile()) {
+			return FaAntiDeletedMediaKind::Video;
+		} else if (document->isAudioFile() || document->isSong()) {
+			return FaAntiDeletedMediaKind::Audio;
+		} else if (document->isImage()) {
+			return FaAntiDeletedMediaKind::Photo;
+		}
+		return FaAntiDeletedMediaKind::File;
+	}
+	if (media->photo()) {
+		return FaAntiDeletedMediaKind::Photo;
+	}
+	if (media->poll()) {
+		return FaAntiDeletedMediaKind::Poll;
+	}
+	if (media->game()) {
+		return FaAntiDeletedMediaKind::Game;
+	}
+	if (media->sharedContact()) {
+		return FaAntiDeletedMediaKind::Contact;
+	}
+	if (media->location()) {
+		return FaAntiDeletedMediaKind::Location;
+	}
+	if (media->webpage()) {
+		return FaAntiDeletedMediaKind::WebPage;
+	}
+	return FaAntiDeletedMediaKind::File;
+}
+
+[[nodiscard]] QString FaAntiDeletedPlaceholderFor(
+		FaAntiDeletedMediaKind kind,
+		bool hadMedia) {
+	switch (kind) {
+	case FaAntiDeletedMediaKind::Photo: return QString::fromUtf8("🗑 Deleted photo");
+	case FaAntiDeletedMediaKind::Sticker: return QString::fromUtf8("🗑 Deleted sticker");
+	case FaAntiDeletedMediaKind::Gif: return QString::fromUtf8("🗑 Deleted GIF");
+	case FaAntiDeletedMediaKind::Video: return QString::fromUtf8("🗑 Deleted video");
+	case FaAntiDeletedMediaKind::RoundVideo: return QString::fromUtf8("🗑 Deleted video message");
+	case FaAntiDeletedMediaKind::Voice: return QString::fromUtf8("🗑 Deleted voice message");
+	case FaAntiDeletedMediaKind::Audio: return QString::fromUtf8("🗑 Deleted audio");
+	case FaAntiDeletedMediaKind::File: return QString::fromUtf8("🗑 Deleted file");
+	case FaAntiDeletedMediaKind::Poll: return QString::fromUtf8("🗑 Deleted poll");
+	case FaAntiDeletedMediaKind::Game: return QString::fromUtf8("🗑 Deleted game");
+	case FaAntiDeletedMediaKind::Contact: return QString::fromUtf8("🗑 Deleted contact");
+	case FaAntiDeletedMediaKind::Location: return QString::fromUtf8("🗑 Deleted location");
+	case FaAntiDeletedMediaKind::WebPage: return QString::fromUtf8("🗑 Deleted link preview");
+	case FaAntiDeletedMediaKind::None: break;
+	}
+	return hadMedia
+		? QString::fromUtf8("🗑 Deleted media")
+		: QString();
+}
+
+void FaAntiDeletedReadFromBytes(
+		const QByteArray &bytes,
+		base::flat_set<FullMsgId> &result,
+		base::flat_map<FullMsgId, FaAntiDeletedSnapshot> &snapshots) {
+	if (bytes.isEmpty()) {
+		return;
+	}
+	auto stream = QDataStream(bytes);
+	stream.setVersion(QDataStream::Qt_5_1);
+	quint32 header = 0;
+	stream >> header;
+	if (header != kFaAntiDeletedStorageMagic) {
+		return;
+	}
+	quint32 count = 0;
+	stream >> count;
+	for (auto i = 0U; i != count && !stream.atEnd(); ++i) {
+		quint64 peerValue = 0;
+		qint64 msgValue = 0;
+		quint64 fromValue = 0;
+		qint32 dateValue = 0;
+		quint64 groupedId = 0;
+		qint64 topicRootId = 0;
+		QString text;
+		quint8 mediaKind = 0;
+		quint8 flags = 0;
+		stream >> peerValue
+			>> msgValue
+			>> fromValue
+			>> dateValue
+			>> groupedId
+			>> topicRootId
+			>> text
+			>> mediaKind
+			>> flags;
+		const auto fullId = FullMsgId(
+			PeerId(PeerIdHelper(peerValue)),
+			MsgId(msgValue));
+		if (!fullId || !IsServerMsgId(fullId.msg)) {
+			continue;
+		}
+		result.emplace(fullId);
+		auto snapshot = FaAntiDeletedSnapshot();
+		snapshot.from = PeerId(PeerIdHelper(fromValue));
+		snapshot.date = TimeId(dateValue);
+		snapshot.text = std::move(text);
+		snapshot.groupedId = groupedId;
+		snapshot.topicRootId = MsgId(topicRootId);
+		snapshot.mediaKind = mediaKind;
+		snapshot.hadMedia = (flags & 0x01) != 0;
+		if (snapshot.from
+			|| snapshot.date
+			|| !snapshot.text.isEmpty()
+			|| snapshot.groupedId
+			|| snapshot.topicRootId
+			|| snapshot.hadMedia) {
+			snapshots.emplace(fullId, std::move(snapshot));
+		}
+	}
+}
+
+[[nodiscard]] QByteArray FaAntiDeletedWriteToBytes(
+		const base::flat_set<FullMsgId> &items,
+		const base::flat_map<FullMsgId, FaAntiDeletedSnapshot> &snapshots) {
+	auto bytes = QByteArray();
+	{
+		auto stream = QDataStream(&bytes, QIODevice::WriteOnly);
+		stream.setVersion(QDataStream::Qt_5_1);
+		stream << kFaAntiDeletedStorageMagic;
+		stream << quint32(items.size());
+		for (const auto &itemId : items) {
+			const auto i = snapshots.find(itemId);
+			const auto &snapshot = (i != end(snapshots))
+				? i->second
+				: FaAntiDeletedSnapshot();
+			const auto flags = snapshot.hadMedia ? quint8(0x01) : quint8(0x00);
+			stream << quint64(itemId.peer.value)
+				<< qint64(itemId.msg.bare)
+				<< quint64(snapshot.from.value)
+				<< qint32(snapshot.date)
+				<< quint64(snapshot.groupedId)
+				<< qint64(snapshot.topicRootId.bare)
+				<< snapshot.text
+				<< quint8(snapshot.mediaKind)
+				<< flags;
+		}
+	}
+	return bytes;
+}
 
 using ViewElement = HistoryView::Element;
 
@@ -283,14 +464,34 @@ Session::Session(not_null<Main::Session*> session)
 	setupPeerNameViewer();
 	setupUserIsContactViewer();
 	loadFaAntiDeletedMessages();
-	if (!FASettings::JsonSettings::GetBool("anti_delete_messages")) {
-		purgeFaAntiDeletedMessages();
+	if (_faAntiDeletedLoaded && FASettings::JsonSettings::GetBool("anti_delete_messages")) {
+		applyFaAntiDeletedToLoadedMessages();
 	}
+	base::call_delayed(crl::time(1000), _session, [=] {
+		if (_faAntiDeletedLoaded || !FASettings::JsonSettings::GetBool("anti_delete_messages")) {
+			return;
+		}
+		loadFaAntiDeletedMessages();
+		if (_faAntiDeletedLoaded) {
+			applyFaAntiDeletedToLoadedMessages();
+		}
+	});
+	base::call_delayed(crl::time(5000), _session, [=] {
+		if (_faAntiDeletedLoaded || !FASettings::JsonSettings::GetBool("anti_delete_messages")) {
+			return;
+		}
+		loadFaAntiDeletedMessages();
+		if (_faAntiDeletedLoaded) {
+			applyFaAntiDeletedToLoadedMessages();
+		}
+	});
 
 	FASettings::JsonSettings::Events("anti_delete_messages"
 	) | rpl::on_next([=](const QString &) {
 		if (!FASettings::JsonSettings::GetBool("anti_delete_messages")) {
 			purgeFaAntiDeletedMessages();
+		} else if (_faAntiDeletedLoaded) {
+			applyFaAntiDeletedToLoadedMessages();
 		}
 	}, _lifetime);
 
@@ -2939,22 +3140,27 @@ void Session::checkFormattedDateUpdates() {
 void Session::processMessagesDeleted(
 		PeerId peerId,
 		const QVector<MTPint> &data) {
+	const auto antiDelete = FASettings::JsonSettings::GetBool("anti_delete_messages");
 	const auto list = messagesList(peerId);
 	const auto affected = historyLoaded(peerId);
 	if (!list && !affected) {
+		if (antiDelete) {
+			for (const auto &messageId : data) {
+				markFaAntiDeletedMessage({ peerId, messageId.v });
+			}
+		}
 		return;
 	}
 
-	const auto antiDelete = FASettings::JsonSettings::GetBool("anti_delete_messages");
 	auto historiesToCheck = base::flat_set<not_null<History*>>();
 	for (const auto &messageId : data) {
 		const auto i = list ? list->find(messageId.v) : Messages::iterator();
 		if (list && i != list->end()) {
 			const auto item = i->second.get();
 			const auto history = item->history();
-			if (antiDelete && !item->out()) {
+			if (antiDelete) {
 				item->setFaAntiDeleted();
-				markFaAntiDeletedMessage({ history->peer->id, item->id });
+				markFaAntiDeletedMessage(item);
 				session().changes().messageUpdated(
 					item,
 					Data::MessageUpdate::Flag::Edited);
@@ -2982,9 +3188,9 @@ void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
 	for (const auto &messageId : data) {
 		if (const auto item = nonChannelMessage(messageId.v)) {
 			const auto history = item->history();
-			if (antiDelete && !item->out()) {
+			if (antiDelete) {
 				item->setFaAntiDeleted();
-				markFaAntiDeletedMessage({ history->peer->id, item->id });
+				markFaAntiDeletedMessage(item);
 				session().changes().messageUpdated(
 					item,
 					Data::MessageUpdate::Flag::Edited);
@@ -3003,68 +3209,116 @@ void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
 
 void Session::purgeFaAntiDeletedMessages() {
 	_faAntiDeletedMessages.clear();
+	_faAntiDeletedSnapshots.clear();
+	Storage::details::ClearKey(
+		kFaAntiDeletedStorageFileKey,
+		FaAntiDeletedEncryptedBasePath(_session));
 	saveFaAntiDeletedMessages();
+}
+
+void Session::applyFaAntiDeletedToLoadedMessages() {
+	for (const auto &[peerId, list] : _messages) {
+		for (const auto &[messageId, holder] : list) {
+			const auto item = holder.get();
+			if (!item
+				|| item->out()
+				|| item->faAntiDeleted()
+				|| !_faAntiDeletedMessages.contains({ peerId, messageId })) {
+				continue;
+			}
+			item->setFaAntiDeleted();
+			session().changes().messageUpdated(
+				item,
+				Data::MessageUpdate::Flag::Edited);
+		}
+	}
+
+	for (const auto &[itemId, snapshot] : _faAntiDeletedSnapshots) {
+		if (!itemId
+			|| !IsServerMsgId(itemId.msg)
+			|| message(itemId)) {
+			continue;
+		}
+		const auto history = historyLoaded(itemId.peer);
+		if (!history) {
+			continue;
+		}
+		auto fields = HistoryItemCommonFields();
+		fields.id = itemId.msg;
+		fields.from = snapshot.from ? snapshot.from : itemId.peer;
+		fields.date = snapshot.date ? snapshot.date : base::unixtime::now();
+		fields.groupedId = snapshot.groupedId;
+		fields.replyTo.topicRootId = snapshot.topicRootId;
+		auto text = snapshot.text;
+		if (text.isEmpty()) {
+			text = FaAntiDeletedPlaceholderFor(
+				FaAntiDeletedMediaKind(snapshot.mediaKind),
+				snapshot.hadMedia);
+		}
+		const auto restored = history->addNewLocalMessage(
+			std::move(fields),
+			TextWithEntities{ text },
+			MTP_messageMediaEmpty());
+		restored->setFaAntiDeleted();
+		session().changes().messageUpdated(
+			restored,
+			Data::MessageUpdate::Flag::Edited);
+	}
 }
 
 void Session::loadFaAntiDeletedMessages() {
 	if (_faAntiDeletedLoadRequested) {
 		return;
 	}
+	const auto key = _session->local().peekLegacyLocalKey();
+	if (!key) {
+		return;
+	}
 	_faAntiDeletedLoadRequested = true;
-	cache().get(kFaAntiDeletedStorageKey, [=](QByteArray value) {
-		if (value.isEmpty()) {
-			return;
+	_faAntiDeletedLoaded = true;
+	auto encrypted = Storage::details::FileReadDescriptor();
+	if (Storage::details::ReadEncryptedFile(
+			encrypted,
+			kFaAntiDeletedStorageFileKey,
+			FaAntiDeletedEncryptedBasePath(_session),
+			key)) {
+		QByteArray bytes;
+		encrypted.stream >> bytes;
+		if (Storage::details::CheckStreamStatus(encrypted.stream)) {
+			FaAntiDeletedReadFromBytes(
+				bytes,
+				_faAntiDeletedMessages,
+				_faAntiDeletedSnapshots);
 		}
-		auto stream = QDataStream(value);
-		stream.setVersion(QDataStream::Qt_5_1);
-		quint32 count = 0;
-		stream >> count;
-		for (auto i = 0U; i != count && !stream.atEnd(); ++i) {
-			quint64 peerValue = 0;
-			qint64 msgValue = 0;
-			stream >> peerValue >> msgValue;
-			if (!IsServerMsgId(MsgId(msgValue))) {
-				continue;
-			}
-			_faAntiDeletedMessages.emplace(
-				PeerId(PeerIdHelper(peerValue)),
-				MsgId(msgValue));
-		}
-		if (!FASettings::JsonSettings::GetBool("anti_delete_messages")) {
-			purgeFaAntiDeletedMessages();
-			return;
-		}
-		for (const auto &[peerId, list] : _messages) {
-			for (const auto &[messageId, holder] : list) {
-				const auto item = holder.get();
-				if (!item
-					|| item->out()
-					|| item->faAntiDeleted()
-					|| !_faAntiDeletedMessages.contains({ peerId, messageId })) {
-					continue;
-				}
-				item->setFaAntiDeleted();
-				session().changes().messageUpdated(
-					item,
-					Data::MessageUpdate::Flag::Edited);
-			}
-		}
-	});
+	}
+	if (FASettings::JsonSettings::GetBool("anti_delete_messages")) {
+		applyFaAntiDeletedToLoadedMessages();
+		saveFaAntiDeletedMessages();
+	}
 }
 
 void Session::saveFaAntiDeletedMessages() {
-	auto bytes = QByteArray();
-	{
-		auto stream = QDataStream(&bytes, QIODevice::WriteOnly);
-		stream.setVersion(QDataStream::Qt_5_1);
-		stream << quint32(_faAntiDeletedMessages.size());
-		for (const auto &itemId : _faAntiDeletedMessages) {
-			stream << quint64(itemId.peer.value) << qint64(itemId.msg.bare);
+	const auto bytes = FaAntiDeletedWriteToBytes(
+		_faAntiDeletedMessages,
+		_faAntiDeletedSnapshots);
+	if (const auto key = _session->local().peekLegacyLocalKey()) {
+		if (_faAntiDeletedMessages.empty()) {
+			Storage::details::ClearKey(
+				kFaAntiDeletedStorageFileKey,
+				FaAntiDeletedEncryptedBasePath(_session));
+		} else {
+			auto encrypted = Storage::details::EncryptedDescriptor(bytes.size());
+			encrypted.stream << bytes;
+			auto file = Storage::details::FileWriteDescriptor(
+				kFaAntiDeletedStorageFileKey,
+				FaAntiDeletedEncryptedBasePath(_session));
+			file.writeEncrypted(encrypted, key);
 		}
 	}
-	cache().put(
-		kFaAntiDeletedStorageKey,
-		Storage::Cache::Database::TaggedValue(std::move(bytes), 0));
+
+	if (!_faAntiDeletedLoaded) {
+		return;
+	}
 }
 
 void Session::markFaAntiDeletedMessage(FullMsgId itemId) {
@@ -3074,11 +3328,51 @@ void Session::markFaAntiDeletedMessage(FullMsgId itemId) {
 		return;
 	}
 	loadFaAntiDeletedMessages();
-	if (!_faAntiDeletedMessages.emplace(itemId).second) {
+	auto changed = _faAntiDeletedMessages.emplace(itemId).second;
+	while (_faAntiDeletedMessages.size() > kFaAntiDeletedStorageLimit) {
+		const auto oldest = *_faAntiDeletedMessages.begin();
+		_faAntiDeletedMessages.erase(_faAntiDeletedMessages.begin());
+		_faAntiDeletedSnapshots.erase(oldest);
+		changed = true;
+	}
+	if (!changed) {
 		return;
 	}
+	saveFaAntiDeletedMessages();
+}
+
+void Session::markFaAntiDeletedMessage(not_null<HistoryItem*> item) {
+	const auto itemId = FullMsgId(item->history()->peer->id, item->id);
+	if (!itemId
+		|| !IsServerMsgId(itemId.msg)
+		|| !FASettings::JsonSettings::GetBool("anti_delete_messages")) {
+		return;
+	}
+	loadFaAntiDeletedMessages();
+	auto changed = _faAntiDeletedMessages.emplace(itemId).second;
+	auto snapshot = FaAntiDeletedSnapshot();
+	if (const auto from = item->from()) {
+		snapshot.from = from->id;
+	}
+	snapshot.date = item->date();
+	snapshot.text = item->originalText().text;
+	snapshot.groupedId = item->groupId();
+	snapshot.topicRootId = item->topicRootId();
+	snapshot.mediaKind = uchar(DetectFaAntiDeletedMediaKind(item));
+	snapshot.hadMedia = (snapshot.mediaKind != 0);
+	const auto i = _faAntiDeletedSnapshots.find(itemId);
+	if (i == end(_faAntiDeletedSnapshots) || i->second != snapshot) {
+		_faAntiDeletedSnapshots[itemId] = std::move(snapshot);
+		changed = true;
+	}
 	while (_faAntiDeletedMessages.size() > kFaAntiDeletedStorageLimit) {
+		const auto oldest = *_faAntiDeletedMessages.begin();
 		_faAntiDeletedMessages.erase(_faAntiDeletedMessages.begin());
+		_faAntiDeletedSnapshots.erase(oldest);
+		changed = true;
+	}
+	if (!changed) {
+		return;
 	}
 	saveFaAntiDeletedMessages();
 }

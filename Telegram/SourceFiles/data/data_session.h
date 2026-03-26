@@ -94,6 +94,20 @@ struct SublistReadTillUpdate {
 	bool out = false;
 };
 
+struct FaAntiDeletedSnapshot {
+	PeerId from = 0;
+	TimeId date = 0;
+	QString text;
+	uint64 groupedId = 0;
+	MsgId topicRootId = 0;
+	uchar mediaKind = 0;
+	bool hadMedia = false;
+
+	friend inline bool operator==(
+			const FaAntiDeletedSnapshot &,
+			const FaAntiDeletedSnapshot &) = default;
+};
+
 struct GiftUpdate {
 	enum class Action : uchar {
 		Save,
@@ -554,6 +568,7 @@ public:
 		PeerId peerId,
 		const QVector<MTPint> &data);
 	void markFaAntiDeletedMessage(FullMsgId itemId);
+	void markFaAntiDeletedMessage(not_null<HistoryItem*> item);
 	[[nodiscard]] bool isFaAntiDeletedMessage(FullMsgId itemId);
 
 	[[nodiscard]] MsgId nextLocalMessageId();
@@ -1100,6 +1115,7 @@ private:
 	void fillMentionUsers(
 		FullMsgId fullId,
 		const MTPVector<MTPMessageEntity> &entities);
+	void applyFaAntiDeletedToLoadedMessages();
 	void purgeFaAntiDeletedMessages();
 	void loadFaAntiDeletedMessages();
 	void saveFaAntiDeletedMessages();
@@ -1172,7 +1188,9 @@ private:
 	base::flat_map<uint64, FullMsgId> _messageByRandomId;
 	base::flat_map<uint64, SentData> _sentMessagesData;
 	bool _faAntiDeletedLoadRequested = false;
+	bool _faAntiDeletedLoaded = false;
 	base::flat_set<FullMsgId> _faAntiDeletedMessages;
+	base::flat_map<FullMsgId, FaAntiDeletedSnapshot> _faAntiDeletedSnapshots;
 
 	base::Timer _selfDestructTimer;
 	std::vector<FullMsgId> _selfDestructItems;
