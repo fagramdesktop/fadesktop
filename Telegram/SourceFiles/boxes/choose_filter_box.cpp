@@ -103,7 +103,7 @@ protected:
 				width()
 					- size.width()
 					- st::menuWithIcons.itemPadding.right()
-					- st::popupMenuWithIcons.shadow.extend.right(),
+					- st::popupMenuWithIcons.shadow.blurRadius,
 				(height() - size.height()) / 2,
 				_icon);
 		}
