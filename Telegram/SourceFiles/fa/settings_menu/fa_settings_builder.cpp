@@ -145,6 +145,15 @@ const auto kFAGeneralMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
+			.id = u"fa/general/disable-ai-text-editor"_q,
+			.title = fatr::fa_disable_ai_text_editor(fatr::now),
+			.keywords = { u"ai"_q, u"compose"_q, u"text"_q, u"editor"_q, u"disable"_q },
+			.icon = { &st::menuIconShowAll },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
 			.id = u"fa/general/start-token"_q,
 			.title = fatr::fa_show_start_token(fatr::now),
 			.keywords = { u"start"_q, u"token"_q, u"bot"_q, u"parameter"_q },

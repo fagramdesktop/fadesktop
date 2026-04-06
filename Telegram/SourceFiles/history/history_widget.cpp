@@ -6298,6 +6298,9 @@ bool HistoryWidget::fieldOrDisabledShown() const {
 }
 
 bool HistoryWidget::hasEnoughLinesForAi() const {
+	if (FASettings::JsonSettings::GetBool(u"disable_ai_text_editor"_q)) {
+		return false;
+	}
 	if (!_history
 		|| _voiceRecordBar->isActive()
 		|| session().appConfig().aiComposeStyles().empty()) {

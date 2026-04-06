@@ -106,6 +106,8 @@ namespace Settings {
         Ui::AddDividerText(container, fatr::fa_enable_whats_new_chat_desc());
         SettingsMenuJsonSwitch(fa_disable_ads, disable_ads, u"fa/general/disable-ads"_q);
         Ui::AddDividerText(container, fatr::fa_disable_ads_desc());
+		SettingsMenuJsonSwitch(fa_disable_ai_text_editor, disable_ai_text_editor, u"fa/general/disable-ai-text-editor"_q);
+		Ui::AddDividerText(container, fatr::fa_disable_ai_text_editor_desc());
         SettingsMenuJsonSwitch(fa_show_start_token, show_start_token, u"fa/general/start-token"_q);
         Ui::AddDividerText(container, fatr::fa_show_start_token_desc());
         SettingsMenuJsonSwitch(fa_show_peer_ids, show_peer_id, u"fa/general/peer-ids"_q);
