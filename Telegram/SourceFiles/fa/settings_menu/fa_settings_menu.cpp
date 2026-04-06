@@ -116,7 +116,6 @@ namespace Settings {
                     ctrl->session().api().sendFiles(
                         std::move(list),
                         SendMediaType::File,
-                        TextWithTags(),
                         nullptr,
                         action);
                     return true;
