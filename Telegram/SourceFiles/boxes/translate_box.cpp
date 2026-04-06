@@ -22,15 +22,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/boxes/choose_language_box.h"
 #include "ui/layers/generic_box.h"
 #include "ui/widgets/multi_select.h"
-#include "ui/wrap/fade_wrap.h"
-#include "ui/wrap/slide_wrap.h"
-#include "styles/style_boxes.h"
-#include "styles/style_chat_helpers.h"
-#include "styles/style_info.h" // inviteLinkListItem.
-#include "styles/style_layers.h"
+#include "ui/text/text_utilities.h"
 #include "GoogleAppTranslator.h"
-
-#include <QLocale>
 
 namespace Ui {
 namespace {
@@ -62,137 +55,36 @@ void TranslateBox(
 			msgId,
 			std::move(text)));
 
-	if (!IsServerMsgId(msgId)) {
-		msgId = 0;
-	}
-
-	const auto &stLabel = st::aboutLabel;
-	const auto lineHeight = stLabel.style.lineHeight;
-
-	Ui::AddSkip(container);
-	// Ui::AddSubsectionTitle(
-	// 	container,
-	// 	tr::lng_translate_box_original());
-
-	const auto animationsPaused = [] {
-		using Which = FlatLabel::WhichAnimationsPaused;
-		const auto emoji = On(PowerSaving::kEmojiChat);
-		const auto spoiler = On(PowerSaving::kChatSpoiler);
-		return emoji
-			? (spoiler ? Which::All : Which::CustomEmoji)
-			: (spoiler ? Which::Spoiler : Which::None);
-	};
-	const auto original = box->addRow(object_ptr<SlideWrap<FlatLabel>>(
-		box,
-		object_ptr<FlatLabel>(box, stLabel)));
-	{
-		if (hasCopyRestriction) {
-			original->entity()->setContextMenuHook([](auto&&) {
-			});
-		}
-		original->entity()->setAnimationsPausedCallback(animationsPaused);
-		original->entity()->setMarkedText(
-			text,
-			Core::TextContext({ .session = &peer->session() }));
-		original->setMinimalHeight(lineHeight);
-		original->hide(anim::type::instant);
-
-		const auto show = Ui::CreateChild<FadeWrap<ShowButton>>(
-			container.get(),
-			object_ptr<ShowButton>(container));
-		show->hide(anim::type::instant);
-		rpl::combine(
-			container->widthValue(),
-			original->geometryValue()
-		) | rpl::on_next([=](int width, const QRect &rect) {
-			show->moveToLeft(
-				width - show->width() - st::boxRowPadding.right(),
-				rect.y() + std::abs(lineHeight - show->height()) / 2);
-		}, show->lifetime());
-		original->entity()->heightValue(
-		) | rpl::filter([](int height) {
-			return height > 0;
-		}) | rpl::take(1) | rpl::on_next([=](int height) {
-			if (height > lineHeight) {
-				show->show(anim::type::instant);
-			}
-		}, show->lifetime());
-		show->toggleOn(show->entity()->clicks() | rpl::map_to(false));
-		original->toggleOn(show->entity()->clicks() | rpl::map_to(true));
-	}
-	Ui::AddSkip(container);
-	Ui::AddSkip(container);
-	Ui::AddDivider(container);
-	Ui::AddSkip(container);
-
-	{
-		const auto padding = st::defaultSubsectionTitlePadding;
-		const auto subtitle = Ui::AddSubsectionTitle(
-			container,
-			state->to.value() | rpl::map(LanguageName));
-
-		// Workaround.
-		state->to.value() | rpl::on_next([=] {
-			subtitle->resizeToWidth(container->width()
-				- padding.left()
-				- padding.right());
-		}, subtitle->lifetime());
-	}
-
-	const auto translated = box->addRow(object_ptr<SlideWrap<FlatLabel>>(
-		box,
-		object_ptr<FlatLabel>(box, stLabel)));
-	translated->entity()->setSelectable(!hasCopyRestriction);
-	translated->entity()->setAnimationsPausedCallback(animationsPaused);
-
-	constexpr auto kMaxLines = 3;
-	container->resizeToWidth(box->width());
-	const auto loading = box->addRow(object_ptr<SlideWrap<RpWidget>>(
-		box,
-		CreateLoadingTextWidget(
-			box,
-			st::aboutLabel.style,
-			std::min(original->entity()->height() / lineHeight, kMaxLines),
-			state->to.value() | rpl::map([=](LanguageId id) {
-				return id.locale().textDirection() == Qt::RightToLeft;
-			}))));
-
-	const auto showText = [=](TextWithEntities text) {
-		const auto label = translated->entity();
-		label->setMarkedText(
-			text,
-			Core::TextContext({ .session = &peer->session() }));
-		translated->show(anim::type::instant);
-		loading->hide(anim::type::instant);
-	};
-
-	const auto send = [=](LanguageId to) {
-		loading->show(anim::type::instant);
-		translated->hide(anim::type::instant);
-
-		crl::async([=] {
-			const auto result = GoogleAppTranslator::instance()->translate(
-				text.text,
-				"auto",
-				to.twoLetterCode());
-			crl::on_main([=] {
-				if (result.isError) {
-					showText(TextWithEntities{ .text = result.errorText });
-					return;
-				}
-				showText(TextWithEntities{ .text = result.translation });
-			});
-		});
-	};
-	state->to.value() | rpl::on_next(send, box->lifetime());
-
-	box->addLeftButton(tr::lng_settings_language(), [=] {
-		if (loading->toggled()) {
-			return;
-		}
-		box->uiShow()->showBox(ChooseTranslateToBox(
-			state->to.current(),
-			crl::guard(box, [=](LanguageId id) { state->to = id; })));
+	TranslateBoxContent(box, {
+		.text = request->text,
+		.hasCopyRestriction = hasCopyRestriction,
+		.textContext = Core::TextContext({ .session = &peer->session() }),
+		.to = state->to.value(),
+		.chooseTo = [=] {
+			box->uiShow()->showBox(ChooseTranslateToBox(
+				state->to.current(),
+				crl::guard(box, [=](LanguageId id) { state->to = id; })));
+		},
+		.request = [=](
+				LanguageId to,
+				Fn<void(TranslateBoxContentResult)> done) {
+			state->provider->request(
+				*request,
+				to,
+				[done = std::move(done)](TranslateProviderResult result) {
+					using ProviderError = TranslateProviderError;
+					using UiError = TranslateBoxContentError;
+					done(TranslateBoxContentResult{
+						.text = std::move(result.text),
+						.error = (result.error
+								== ProviderError::LocalLanguagePackMissing)
+							? UiError::LocalLanguagePackMissing
+							: (result.error == ProviderError::None)
+							? UiError::None
+							: UiError::Unknown,
+					});
+				});
+		},
 	});
 }
 
