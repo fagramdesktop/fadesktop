@@ -1,5 +1,8 @@
-2.2.2 (11.03.26)
+2.2.2 (06.04.26)
 
+- Updated tdesktop to v6.7.3
+- Added MacOS package
+- Option to diable AI editor
 - Added deeplink support for FAsettings
 - OTA updates
 - Updated translations

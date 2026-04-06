@@ -38,50 +38,6 @@ struct BuiltInChangelog {
 const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 	static const std::vector<BuiltInChangelog> entries = {
 		{
-			2001005,
-			"- Added option to auto parse markdown hyperlinks\n"
-			"- Added option to hide sidebar tab titles\n"
-			"- Added option to show online status dot only\n"
-			"- New category for context menu settings options\n"
-			"- Now black dot shows for any user with 'Last seen a long time ago' status\n"
-			"- Show forward without captions option on single-item forward submenu\n"
-			"- Updated userpic/avatar rounding to apply in group comments preview too\n"
-			"- What's New! chat is now toggleable\n"
-			"- Updated translations\n"
-			"- Updated source URLs\n"
-			"- Some code optimizations\n\n"
-			"@FAgramDesktop\n"
-		},
-		{
-			2001006,
-			"- Updated tdesktop to v6.4.4.beta\n"
-			"- Support search in settings for FAgram Preferences\n"
-			"- Fixed copy selected text on context menu shortcut icons mode\n\n"
-			"@FAgramDesktop\n"
-		},
-		{
-			2001007,
-			"- Updated tdesktop to v6.5.0\n"
-			"- Fixed DM button visibility in channels\n\n"
-			"@FAgramDesktop\n"
-		},
-		{
-			2001008,
-			"- Updated tdesktop to v6.5.1\n"
-			"- Fixed some UI related bugs\n\n"
-			"@FAgramDesktop\n"
-		},
-		{
-			2001009,
-			"- Updated tdesktop to v6.6.1\n"
-			"- Updated solar icons\n"
-			"- Added option to use default Telegram Desktop themes\n"
-			"- Added option to export/import/share FAsettings\n"
-			"- Updated translations\n"
-			"- Bug fixes\n\n"
-			"@FAgramDesktop\n"
-		},
-		{
 			2002000,
 			"- Updated tdesktop to v6.6.2\n"
 			"- Extended peer menu options\n"
@@ -100,6 +56,9 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 		},
 		{
 			2002002,
+			"- Updated tdesktop to v6.7.3\n"
+			"- Added MacOS package\n"
+			"- Option to disable AI editor\n"
 			"- Added deeplink support for FAsettings\n"
 			"e.g. fa://settings/appearance/material-icons\n"
 			"- OTA updates\n"
