@@ -318,7 +318,7 @@ void ShowReportSponsoredBox(
 			}
 			if (!result.options.empty()) {
 				show->show(Box([=](not_null<Ui::GenericBox*> box) {
-					box->setTitle(rpl::single(result.title));
+					box->setTitle(result.title);
 
 					for (const auto &option : result.options) {
 						const auto button = Ui::AddReportOptionButton(

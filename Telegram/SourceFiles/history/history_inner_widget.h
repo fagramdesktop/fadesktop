@@ -37,9 +37,11 @@ struct StateRequest;
 enum class CursorState : char;
 enum class PointState : char;
 enum class ElementChatMode : char;
+class ElementOverlayHost;
 class EmptyPainter;
 class Element;
 class TranslateTracker;
+class ReadMetricsTracker;
 struct PinnedId;
 struct SelectedQuote;
 class AboutView;
@@ -156,6 +158,13 @@ public:
 	void elementShowPollResults(
 		not_null<PollData*> poll,
 		FullMsgId context);
+	void elementShowAddPollOption(
+		not_null<HistoryView::Element*> view,
+		not_null<PollData*> poll,
+		FullMsgId context,
+		QRect optionRect);
+	void elementSubmitAddPollOption(FullMsgId context);
+	void hideElementOverlay();
 	void elementOpenPhoto(
 		not_null<PhotoData*> photo,
 		FullMsgId context);
@@ -258,6 +267,8 @@ protected:
 private:
 	void onTouchSelect();
 	void onTouchScrollTimer();
+	void markReadMetricsStale();
+	void registerReadMetricsActivity();
 
 	[[nodiscard]] static int SelectionViewOffset(
 		not_null<const HistoryInner*> inner,
@@ -499,6 +510,8 @@ private:
 	std::unique_ptr<HistoryView::AboutView> _aboutView;
 	std::unique_ptr<HistoryView::EmptyPainter> _emptyPainter;
 	std::unique_ptr<HistoryView::TranslateTracker> _translateTracker;
+	std::unique_ptr<HistoryView::ReadMetricsTracker> _readMetricsTracker;
+	bool _readMetricsStale = false;
 	rpl::event_stream<not_null<DocumentData*>> _sendIntroSticker;
 
 	mutable History *_curHistory = nullptr;
@@ -592,6 +605,9 @@ private:
 	int _scrollDateLastItemTop = 0;
 	ClickHandlerPtr _scrollDateLink;
 	ClickHandlerPtr _forumThreadBarLink;
+
+	[[nodiscard]] HistoryView::ElementOverlayHost &ensureOverlayHost();
+	std::unique_ptr<HistoryView::ElementOverlayHost> _overlayHost;
 
 };
 

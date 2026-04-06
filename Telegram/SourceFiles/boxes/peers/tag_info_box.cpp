@@ -495,8 +495,9 @@ void TagInfoBox(
 	const auto isAdmin = (selfRole != BadgeRole::User);
 	const auto canEditSelf = isAdmin
 		|| !peer->amRestricted(ChatRestriction::EditRank);
-
-	if (canEditSelf) {
+	const auto channel = peer->asChannel();
+	const auto inGroup = peer->isChat() || (channel && channel->amIn());
+	if (canEditSelf && inGroup) {
 		const auto currentRank = LookupCurrentRank(peer);
 		auto buttonText = currentRank.isEmpty()
 			? tr::lng_tag_info_add_my_tag()

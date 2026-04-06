@@ -12,9 +12,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_document.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
+#include "core/application.h"
+#include "core/core_settings.h"
 #include "core/file_utilities.h"
 #include "core/mime_type.h"
-#include "base/options.h"
 #include "base/unixtime.h"
 #include "base/random.h"
 #include "editor/scene/scene_item_sticker.h"
@@ -50,13 +51,6 @@ constexpr auto kPhotoUploadPartSize = 32 * 1024;
 constexpr auto kRecompressAfterBpp = 4;
 
 using Ui::ValidateThumbDimensions;
-
-base::options::toggle SendLargePhotos({
-	.id = kOptionSendLargePhotos,
-	.name = "Send large photos",
-	.description = "Increase the side limit on compressed images to 2560px.",
-});
-std::atomic<bool> SendLargePhotosAtomic/* = false*/;
 
 struct PreparedFileThumbnail {
 	uint64 id = 0;
@@ -206,20 +200,15 @@ struct PreparedFileThumbnail {
 	return result;
 }
 
-[[nodiscard]] int PhotoSideLimit(bool large) {
+} // namespace
+
+int PhotoSideLimit(bool large) {
 	return large ? 2560 : 1280;
 }
 
-[[nodiscard]] int PhotoSideLimitAtomic() {
-	return PhotoSideLimit(SendLargePhotosAtomic.load());
-}
-
-} // namespace
-
-const char kOptionSendLargePhotos[] = "send-large-photos";
-
 int PhotoSideLimit() {
-	return PhotoSideLimit(SendLargePhotos.value());
+	return PhotoSideLimit(
+		Core::App().settings().sendFilesWay().sendLargePhotos());
 }
 
 TaskQueue::TaskQueue(crl::time stopTimeoutMs) {
@@ -480,13 +469,12 @@ FileLoadTask::FileLoadTask(Args &&args)
 , _type(args.type)
 , _caption(std::move(args.caption))
 , _spoiler(args.spoiler)
-, _forceFile(args.forceFile) {
+, _forceFile(args.forceFile)
+, _sendLargePhotos(args.sendLargePhotos) {
 	Expects(_to.options.scheduled
 		|| _to.options.shortcutId
 		|| !_to.replaceMediaOf
 		|| IsServerMsgId(_to.replaceMediaOf));
-
-	SendLargePhotosAtomic = SendLargePhotos.value();
 }
 
 FileLoadTask::FileLoadTask(VoiceArgs &&args)
@@ -944,7 +932,7 @@ void FileLoadTask::process(ProcessArgs &&args) {
 				}
 				auto medium = (w > 320 || h > 320) ? fullimage.scaled(320, 320, Qt::KeepAspectRatio, Qt::SmoothTransformation) : fullimage;
 
-				const auto limit = PhotoSideLimitAtomic();
+				const auto limit = PhotoSideLimit(_sendLargePhotos);
 				const auto downscaled = (w > limit || h > limit);
 				auto full = downscaled ? fullimage.scaled(limit, limit, Qt::KeepAspectRatio, Qt::SmoothTransformation) : fullimage;
 				if (downscaled) {

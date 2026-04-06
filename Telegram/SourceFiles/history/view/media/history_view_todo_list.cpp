@@ -42,6 +42,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_todo_lists.h"
 #include "window/window_peer_menu.h"
 #include "styles/style_chat.h"
+#include "styles/style_polls.h"
 #include "styles/style_widgets.h"
 #include "styles/style_window.h"
 

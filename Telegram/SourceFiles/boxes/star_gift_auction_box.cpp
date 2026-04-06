@@ -70,6 +70,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_menu_icons.h"
 #include "styles/style_premium.h"
 #include "styles/style_settings.h"
+#include "styles/style_widgets.h"
 
 #include <QtWidgets/QApplication>
 #include <QtGui/QClipboard>
@@ -892,6 +893,8 @@ void AuctionBidBox(not_null<GenericBox*> box, AuctionBidBoxArgs &&args) {
 						lt_count,
 						perRound,
 						tr::rich),
+					.icon = &st::auctionBidToastIcon,
+					.iconPadding = st::auctionBidToast.padding,
 					.st = &st::auctionBidToast,
 					.attach = RectPart::Top,
 					.duration = kBidPlacedToastDuration,

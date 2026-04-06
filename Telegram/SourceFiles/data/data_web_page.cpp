@@ -180,6 +180,8 @@ WebPageType ParseWebPageType(
 		return WebPageType::GiftCollection;
 	} else if (type == u"telegram_auction"_q) {
 		return WebPageType::Auction;
+	} else if (type == u"telegram_newbot"_q) {
+		return WebPageType::NewBot;
 	} else if (hasIV) {
 		return WebPageType::ArticleWithIV;
 	} else {

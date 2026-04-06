@@ -70,6 +70,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/controls/stars_rating.h"
 #include "ui/controls/userpic_button.h"
 #include "ui/effects/animations.h"
+#include "ui/effects/upload_progress_overlay.h"
 #include "ui/effects/outline_segments.h"
 #include "ui/effects/round_checkbox.h"
 #include "ui/empty_userpic.h"
@@ -85,6 +86,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/labels.h"
 #include "ui/widgets/menu/menu_add_action_callback_factory.h"
 #include "ui/widgets/popup_menu.h"
+#include "ui/widgets/shadow.h"
 #include "ui/widgets/tooltip.h"
 #include "ui/wrap/fade_wrap.h"
 #include "window/themes/window_theme.h"
@@ -1119,6 +1121,7 @@ void TopBar::setupUserpicButton(
 				_peer->session().api().peerPhoto().upload(
 					_peer,
 					std::move(result));
+				startUploadOverlay();
 				break;
 			case ChosenType::Suggest:
 				_peer->session().api().peerPhoto().suggest(
@@ -1136,13 +1139,17 @@ void TopBar::setupUserpicButton(
 			: _peer->name();
 		const auto phrase = (type == ChosenType::Suggest)
 			? &tr::lng_profile_suggest_sure
-			: &tr::lng_profile_set_personal_sure;
+			: (user && !user->isSelf() && !_peer->isBot())
+			? &tr::lng_profile_set_personal_sure
+			: nullptr;
 		return Editor::EditorData{
-			.about = (*phrase)(
-				tr::now,
-				lt_user,
-				tr::bold(name),
-				tr::marked),
+			.about = (phrase
+				? (*phrase)(
+					tr::now,
+					lt_user,
+					tr::bold(name),
+					tr::marked)
+				: TextWithEntities()),
 			.confirm = ((type == ChosenType::Suggest)
 				? tr::lng_profile_suggest_button(tr::now)
 				: tr::lng_profile_set_photo_button(tr::now)),
@@ -1192,12 +1199,10 @@ void TopBar::setupUserpicButton(
 				this,
 				st::popupMenuWithIcons);
 
-			if (_hasStories) {
-				(*menu)->addAction(
-					tr::lng_profile_open_photo(tr::now),
-					openPhoto,
-					&st::menuIconPhoto);
-			}
+			(*menu)->addAction(
+				tr::lng_profile_open_photo(tr::now),
+				openPhoto,
+				&st::menuIconPhoto);
 
 			if (canReport()) {
 				(*menu)->addAction(
@@ -1277,7 +1282,9 @@ void TopBar::setupUserpicButton(
 				(*menu)->popup(QCursor::pos());
 			}
 		} else if (button == Qt::LeftButton) {
-			if (_topicIconView && _topic && _topic->iconId()) {
+			if (_uploadOverlay && _uploadOverlay->uploading()) {
+				_peer->session().api().peerPhoto().cancelUpload(_peer);
+			} else if (_topicIconView && _topic && _topic->iconId()) {
 				const auto document = _peer->owner().document(
 					_topic->iconId());
 				if (const auto sticker = document->sticker()) {
@@ -1316,6 +1323,46 @@ void TopBar::setupUserpicButton(
 			}
 		}
 	}, _userpicButton->lifetime());
+}
+
+void TopBar::startUploadOverlay() {
+	if (_uploadOverlay && _uploadOverlay->uploading()) {
+		return;
+	}
+	_waitingUserpicCloudLoad = true;
+	_uploadOverlay = std::make_unique<Ui::UploadProgressOverlay>(
+		this,
+		[=] { update(); });
+	_uploadOverlay->start();
+
+	_userpicButton->events(
+	) | rpl::filter([](not_null<QEvent*> e) {
+		return e->type() == QEvent::Enter
+			|| e->type() == QEvent::Leave;
+	}) | rpl::on_next([=](not_null<QEvent*> e) {
+		if (_uploadOverlay) {
+			_uploadOverlay->setOver(e->type() == QEvent::Enter);
+		}
+	}, _uploadLifetime);
+
+	const auto cleanup = [=] {
+		_uploadLifetime.destroy();
+		_uploadOverlay = nullptr;
+	};
+	_peer->session().api().peerPhoto().subscribeToUpload(
+		_peer,
+		_uploadLifetime,
+		{
+			.progress = [=](float64 value) {
+				_uploadOverlay->setProgress(value);
+			},
+			.done = [=] {
+				_uploadOverlay->stop(cleanup);
+			},
+			.failed = [=] {
+				_uploadOverlay->fail(cleanup);
+			},
+		});
 }
 
 void TopBar::setupUniqueBadgeTooltip() {
@@ -1735,7 +1782,11 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 		}
 	}
 	const auto key = _peer->userpicUniqueKey(_userpicView);
-	if (_userpicUniqueKey != key) {
+	const auto overlayActive = _uploadOverlay && _uploadOverlay->shown();
+	const auto awaitingCloud = _waitingUserpicCloudLoad
+		&& !_peer->userpicCloudImage(_userpicView);
+	if (!overlayActive && !awaitingCloud && _userpicUniqueKey != key) {
+		_waitingUserpicCloudLoad = false;
 		_userpicUniqueKey = key;
 		const auto fullSize = st::infoProfileTopBarPhotoSize;
 		const auto scaled = fullSize * style::DevicePixelRatio();
@@ -1770,6 +1821,15 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 		_cachedUserpic.setDevicePixelRatio(style::DevicePixelRatio());
 	}
 	p.drawImage(geometry, _cachedUserpic);
+	if (_uploadOverlay && _uploadOverlay->shown()) {
+		_uploadOverlay->paint(p, geometry, {
+			.lineWidth = st::defaultUserpicButton.uploadProgressLine,
+			.margin = st::defaultUserpicButton.uploadProgressMargin,
+			.progressFg = st::historyFileThumbRadialFg,
+			.overlayFg = st::songCoverOverlayFg,
+			.cancelIcon = &st::userpicUploadCancel,
+		});
+	}
 }
 
 void TopBar::paintEvent(QPaintEvent *e) {
@@ -1974,7 +2034,9 @@ void TopBar::showTopBarMenu(
 		? Ui::PopupMenu::ConstrainToParentScreen(
 			_peerMenu,
 			_actionMore->mapToGlobal(QPoint(
-				_actionMore->width() + _peerMenu->st().shadow.extend.right(),
+				_actionMore->width()
+					+ Ui::BoxShadow::ExtendFor(
+						_peerMenu->st().shadow).right(),
 				_actionMore->height() + st::infoProfileTopBarActionMenuSkip)))
 		: QCursor::pos());
 }

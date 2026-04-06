@@ -301,6 +301,15 @@ QMargins GroupedMedia::groupedPadding() const {
 		(normal.bottom() - grouped.bottom()) + addToBottom);
 }
 
+QRect GroupedMedia::groupItemRect(int index) const {
+	if (index >= 0 && index < int(_parts.size())) {
+		return _parts[index].geometry.translated(
+			0,
+			groupedPadding().top());
+	}
+	return {};
+}
+
 Media *GroupedMedia::lookupSpoilerTagMedia() const {
 	if (_parts.empty()) {
 		return nullptr;

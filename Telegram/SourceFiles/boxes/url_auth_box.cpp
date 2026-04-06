@@ -32,6 +32,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/toast/toast.h"
 #include "ui/widgets/menu/menu_action.h"
 #include "ui/widgets/popup_menu.h"
+#include "ui/widgets/shadow.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "styles/style_settings.h"
@@ -173,7 +174,8 @@ struct SwitchAccountResult {
 		state->menu->popup(
 			widget->mapToGlobal(
 				QPoint(
-					widget->width() + st.shadow.extend.right(),
+					widget->width()
+						+ Ui::BoxShadow::ExtendFor(st.shadow).right(),
 					widget->height())));
 	});
 	return {
@@ -396,11 +398,16 @@ void RequestButton(
 			}).send();
 		}
 	};
+	const auto displayName = request.is_is_app()
+		? (request.vverified_app_name()
+			? qs(*request.vverified_app_name())
+			: tr::lng_url_auth_unverified_app(tr::now))
+		: qs(request.vdomain());
 	*box = show->show(
 		Box(
 			Show,
 			url,
-			qs(request.vdomain()),
+			displayName,
 			session->user()->name(),
 			bot->firstName,
 			callback),
@@ -425,7 +432,12 @@ void RequestUrl(
 		: nullptr;
 	const auto requestPhone = request.is_request_phone_number();
 	const auto matchCodesFirst = request.is_match_codes_first();
-	const auto domain = qs(request.vdomain());
+	const auto isApp = request.is_is_app();
+	const auto domain = isApp
+		? (request.vverified_app_name()
+			? qs(*request.vverified_app_name())
+			: tr::lng_url_auth_unverified_app(tr::now))
+		: qs(request.vdomain());
 	const auto userIdHint = request.vuser_id_hint()
 		? peerToUser(peerFromUser(*request.vuser_id_hint()))
 		: UserId();
@@ -495,6 +507,9 @@ void RequestUrl(
 					return url;
 				});
 				finishWithUrl(to, accepted);
+				const auto domainWrapped = isApp
+					? tr::bold(domain)
+					: tr::link(domain);
 				show->showToast(Ui::Toast::Config{
 					.title = tr::lng_url_auth_phone_toast_good_title(tr::now),
 					.text = ((requestPhone && !sharePhone)
@@ -502,17 +517,20 @@ void RequestUrl(
 						: tr::lng_url_auth_phone_toast_good)(
 							tr::now,
 							lt_domain,
-							tr::link(domain),
+							domainWrapped,
 							tr::marked),
 					.duration = crl::time(4000),
 				});
 			}).fail([=] {
+				const auto domainWrapped = isApp
+					? tr::bold(domain)
+					: tr::link(domain);
 				show->showToast(Ui::Toast::Config{
 					.title = tr::lng_url_auth_phone_toast_bad_title(tr::now),
 					.text = tr::lng_url_auth_phone_toast_bad(
 						tr::now,
 						lt_domain,
-						tr::link(domain),
+						domainWrapped,
 						tr::marked),
 					.duration = crl::time(4000),
 				});
@@ -585,7 +603,10 @@ void RequestUrl(
 						Ui::ConfirmBoxArgs{
 							.text = tr::lng_url_auth_phone_sure_text(
 								lt_domain,
-								rpl::single(tr::bold(capitalized(domain))),
+								rpl::single(
+									tr::bold(isApp
+										? domain
+										: capitalized(domain))),
 								lt_phone,
 								PhoneValue(currentSession->user()),
 								tr::rich),
@@ -618,7 +639,8 @@ void RequestUrl(
 				region,
 				(matchCodesFirst
 					? (rpl::single(QStringList()) | rpl::type_erased)
-					: matchCodesShared->value()));
+					: matchCodesShared->value()),
+				isApp);
 
 			*accountResult = AddAccountsMenu(
 				box->verticalLayout(),
@@ -669,7 +691,8 @@ void RequestUrl(
 								tr::now)
 							: error.type());
 					}).send();
-				});
+				},
+				isApp);
 		}),
 		Ui::LayerOption::KeepOther);
 	matchCodesBox->boxClosing() | rpl::on_next([=] {

@@ -2309,11 +2309,30 @@ MediaPoll::~MediaPoll() {
 }
 
 std::unique_ptr<Media> MediaPoll::clone(not_null<HistoryItem*> parent) {
-	return std::make_unique<MediaPoll>(parent, _poll);
+	auto result = std::make_unique<MediaPoll>(parent, _poll);
+	result->_consumedText = _consumedText;
+	return result;
 }
 
 PollData *MediaPoll::poll() const {
 	return _poll;
+}
+
+Storage::SharedMediaTypesMask MediaPoll::sharedMediaTypes() const {
+	return Storage::SharedMediaTypesMask{}
+		.added(Storage::SharedMediaType::Poll);
+}
+
+ItemPreview MediaPoll::toPreview(ToPreviewOptions options) const {
+	const auto caption = (options.hideCaption || options.ignoreMessageText)
+		? TextWithEntities()
+		: Dialogs::Ui::DialogsPreviewText(options.translated
+			? parent()->translatedText()
+			: parent()->originalText());
+	const auto type = u"\xD83D\xDCCA "_q + _poll->question.text;
+	return {
+		.text = WithCaptionNotificationText(type, caption),
+	};
 }
 
 TextWithEntities MediaPoll::notificationText() const {
@@ -2330,6 +2349,9 @@ QString MediaPoll::pinnedTextSubstring() const {
 
 TextForMimeData MediaPoll::clipboardText() const {
 	auto result = TextWithEntities();
+	if (!_consumedText.text.isEmpty()) {
+		result.append(_consumedText).append(u"\n"_q);
+	}
 	result
 		.append(u"[ "_q)
 		.append(tr::lng_in_dlg_poll(tr::now))
@@ -2340,6 +2362,15 @@ TextForMimeData MediaPoll::clipboardText() const {
 		result.append(u"\n- "_q).append(answer.text);
 	}
 	return TextForMimeData::Rich(std::move(result));
+}
+
+bool MediaPoll::consumeMessageText(const TextWithEntities &text) {
+	_consumedText = text;
+	return true;
+}
+
+TextWithEntities MediaPoll::consumedMessageText() const {
+	return _consumedText;
 }
 
 bool MediaPoll::updateInlineResultMedia(const MTPMessageMedia &media) {
@@ -2354,7 +2385,7 @@ std::unique_ptr<HistoryView::Media> MediaPoll::createView(
 		not_null<HistoryView::Element*> message,
 		not_null<HistoryItem*> realParent,
 		HistoryView::Element *replacing) {
-	return std::make_unique<HistoryView::Poll>(message, _poll);
+	return std::make_unique<HistoryView::Poll>(message, _poll, _consumedText);
 }
 
 MediaTodoList::MediaTodoList(
@@ -2404,7 +2435,7 @@ TextForMimeData MediaTodoList::clipboardText() const {
 }
 
 bool MediaTodoList::allowsEdit() const {
-	return parent()->out();
+	return parent()->out() || parent()->history()->peer->isSelf();
 }
 
 bool MediaTodoList::updateInlineResultMedia(const MTPMessageMedia &media) {

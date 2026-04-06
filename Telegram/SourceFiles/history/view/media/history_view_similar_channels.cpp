@@ -33,6 +33,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/painter.h"
 #include "window/window_session_controller.h"
 #include "styles/style_chat.h"
+#include "styles/style_polls.h"
 
 namespace HistoryView {
 namespace {

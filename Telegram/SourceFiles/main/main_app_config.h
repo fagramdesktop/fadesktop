@@ -105,6 +105,7 @@ public:
 	[[nodiscard]] int giftResaleNanoTonThousandths() const;
 
 	[[nodiscard]] int pollOptionsLimit() const;
+	[[nodiscard]] int pollAnswerDeletePeriod() const;
 	[[nodiscard]] int todoListItemsLimit() const;
 	[[nodiscard]] int todoListTitleLimit() const;
 	[[nodiscard]] int todoListItemTextLimit() const;
@@ -136,6 +137,13 @@ public:
 	[[nodiscard]] int64 stakeDiceNanoTonMin() const;
 	[[nodiscard]] int64 stakeDiceNanoTonMax() const;
 	[[nodiscard]] std::vector<int64> stakeDiceNanoTonSuggested() const;
+
+	struct AiComposeStyle {
+		QString type;
+		DocumentId emojiId = 0;
+		QString title;
+	};
+	[[nodiscard]] std::vector<AiComposeStyle> aiComposeStyles() const;
 
 	using StarsColoring = Calls::Group::Ui::StarsColoring;
 	[[nodiscard]] std::vector<StarsColoring> groupCallColorings() const;
@@ -192,6 +200,7 @@ private:
 
 	std::vector<QString> _startRefPrefixes;
 
+	mutable std::optional<std::vector<AiComposeStyle>> _aiComposeStyles;
 	mutable std::vector<StarsColoring> _groupCallColorings;
 
 	crl::time _lastFrozenRefresh = 0;

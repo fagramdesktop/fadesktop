@@ -64,6 +64,8 @@ tr::phrase<> SharedMediaTitle(Type type) {
 		return tr::lng_media_type_links;
 	case Type::RoundFile:
 		return tr::lng_media_type_rounds;
+	case Type::Poll:
+		return tr::lng_media_type_polls;
 	}
 	Unexpected("Bad media type in Info::TitleValue()");
 }

@@ -332,7 +332,8 @@ void SendExistingPhoto(
 		return MTP_inputMediaPhoto(
 			MTP_flags(0),
 			photo->mtpInput(),
-			MTPint());
+			MTPint(), // ttl_seconds
+			MTPInputDocument()); // video
 	};
 	SendExistingMedia(
 		std::move(message),
@@ -613,7 +614,8 @@ void SendConfirmedFile(
 				MTP_flags(Flag::f_photo
 					| (file->spoiler ? Flag::f_spoiler : Flag())),
 				file->photo,
-				MTPint());
+				MTPint(), // ttl_seconds
+				MTPDocument()); // video
 		} else if (file->type == SendMediaType::File) {
 			using Flag = MTPDmessageMediaDocument::Flag;
 			return MTP_messageMediaDocument(

@@ -27,7 +27,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/text_utilities.h"
 #include "ui/toast/toast_widget.h"
 #include "ui/toast/toast.h"
-#include "ui/toast/toast_lottie_icon.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/widgets/tooltip.h"
@@ -227,30 +226,21 @@ void SelfForwardsTagger::showToast(
 		.textContext = Core::TextContext({
 			.session = &_controller->session(),
 		}),
+		.iconLottie = u"toast/saved_messages"_q,
+		.iconPadding = st::selfForwardsTaggerIconPadding,
 		.st = &st::selfForwardsTaggerToast,
 		.attach = RectPart::Top,
 		.infinite = true,
 	});
 	if (const auto strong = _toast.get()) {
-		const auto widget = strong->widget();
-		createLottieIcon(widget, u"toast/saved_messages"_q);
 		if (callback) {
-			QObject::connect(widget, &QObject::destroyed, callback);
+			QObject::connect(strong->widget(), &QObject::destroyed, callback);
 		}
 	} else if (callback) {
 		callback();
 	}
 }
 
-void SelfForwardsTagger::createLottieIcon(
-		not_null<QWidget*> widget,
-		const QString &name) {
-	Ui::AddLottieToToast(
-		widget,
-		st::selfForwardsTaggerToast,
-		st::selfForwardsTaggerIcon,
-		name);
-}
 
 void SelfForwardsTagger::showTaggedToast(DocumentId reaction) {
 	auto text = tr::lng_message_tagged_with(
@@ -271,6 +261,8 @@ void SelfForwardsTagger::showTaggedToast(DocumentId reaction) {
 		.textContext = Core::TextContext({
 			.session = &_controller->session(),
 		}),
+		.iconLottie = u"toast/tagged"_q,
+		.iconPadding = st::selfForwardsTaggerIconPadding,
 		.padding = rpl::single(QMargins(0, 0, rightSkip, 0)),
 		.st = &st,
 		.attach = RectPart::Top,
@@ -279,7 +271,6 @@ void SelfForwardsTagger::showTaggedToast(DocumentId reaction) {
 	});
 	if (const auto strong = _toast.get()) {
 		const auto widget = strong->widget();
-		createLottieIcon(widget, u"toast/tagged"_q);
 
 		const auto button = Ui::CreateChild<Ui::AbstractButton>(widget.get());
 		button->setClickedCallback([=] {
@@ -321,6 +312,8 @@ void SelfForwardsTagger::showChannelFilterToast(not_null<PeerData*> peer) {
 		: tr::lng_add_group_to_filter_selector(tr::now);
 	_toast = Ui::Toast::Show(_scroll, Ui::Toast::Config{
 		.text = { .text = toastText },
+		.iconLottie = u"toast/chats_filter_in"_q,
+		.iconPadding = st::selfForwardsTaggerIconPadding,
 		.st = &st::joinChatAddToFilterToast,
 		.attach = RectPart::Top,
 		.acceptinput = true,
@@ -328,7 +321,6 @@ void SelfForwardsTagger::showChannelFilterToast(not_null<PeerData*> peer) {
 	});
 	if (const auto strong = _toast.get()) {
 		const auto widget = strong->widget();
-		createLottieIcon(widget, u"toast/chats_filter_in"_q);
 		const auto rightButton = createRightButton(widget);
 		const auto history = peer->owner().history(peer);
 

@@ -584,6 +584,12 @@ void Forum::clearAllUnreadReactions() {
 	}
 }
 
+void Forum::clearAllUnreadPollVotes() {
+	for (const auto &[rootId, topic] : _topics) {
+		topic->unreadPollVotes().clear();
+	}
+}
+
 void Forum::enumerateTopics(Fn<void(not_null<ForumTopic*>)> action) const {
 	for (const auto &[rootId, topic] : _topics) {
 		action(topic.get());

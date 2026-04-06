@@ -51,7 +51,8 @@ namespace {
 		|| (type == Type::MusicFile)
 		|| (type == Type::Link)
 		|| (type == Type::RoundVoiceFile)
-		|| (type == Type::GIF);
+		|| (type == Type::GIF)
+		|| (type == Type::Poll);
 }
 
 [[nodiscard]] Window::SeparateId SeparateId(
@@ -111,6 +112,7 @@ tr::phrase<lngtag_count> MediaTextPhrase(Type type) {
 	case Type::MusicFile: return tr::lng_profile_songs;
 	case Type::Link: return tr::lng_profile_shared_links;
 	case Type::RoundVoiceFile: return tr::lng_profile_audios;
+	case Type::Poll: return tr::lng_profile_polls;
 	}
 	Unexpected("Type in MediaTextPhrase()");
 };

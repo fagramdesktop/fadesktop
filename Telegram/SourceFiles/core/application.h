@@ -329,6 +329,7 @@ public:
 	void handleAppActivated();
 	void handleAppDeactivated();
 	[[nodiscard]] rpl::producer<bool> appDeactivatedValue() const;
+	[[nodiscard]] rpl::producer<> inAppKeyPressed() const;
 
 	void materializeLocalDrafts();
 	[[nodiscard]] rpl::producer<> materializeLocalDraftsRequests() const;
@@ -432,6 +433,8 @@ private:
 	Window::Controller *_lastActiveWindow = nullptr;
 	Window::Controller *_lastActivePrimaryWindow = nullptr;
 	Window::Controller *_windowInSettings = nullptr;
+	bool _lastMouseIgnored = false;
+	bool _lastTouchProcessed = false;
 
 	std::unique_ptr<Media::View::OverlayWidget> _mediaView;
 	const std::unique_ptr<Lang::Instance> _langpack;
@@ -464,6 +467,7 @@ private:
 	base::flat_map<not_null<QWidget*>, LeaveFilter> _leaveFilters;
 
 	rpl::event_stream<Media::View::OpenRequest> _openInMediaViewRequests;
+	rpl::event_stream<> _inAppKeyPressed;
 
 	rpl::event_stream<> _materializeLocalDraftsRequests;
 

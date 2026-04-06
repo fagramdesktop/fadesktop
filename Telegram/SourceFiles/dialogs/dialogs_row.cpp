@@ -14,6 +14,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/effects/credits_graphics.h"
 #include "ui/effects/outline_segments.h"
 #include "ui/effects/ripple_animation.h"
+#include "ui/effects/ttl_icon.h"
 #include "ui/effects/round_checkbox.h"
 #include "ui/image/image_prepare.h"
 #include "ui/text/custom_emoji_text_badge.h"
@@ -136,30 +137,7 @@ constexpr auto kBlurRadius = 24;
 		- st::dialogsTTLBadgeInnerMargins;
 	const auto ttlText = Ui::FormatTTLTiny(ttl);
 
-	q.setFont(st::dialogsScamFont);
-	q.setPen(st::premiumButtonFg);
-	q.drawText(
-		innerRect,
-		(ttlText.size() > 2) ? ttlText.mid(0, 2) : ttlText,
-		style::al_center);
-
-	constexpr auto kPenWidth = 1.5;
-
-	const auto penWidth = style::ConvertScaleExact(kPenWidth);
-	auto pen = QPen(st::premiumButtonFg);
-	pen.setJoinStyle(Qt::RoundJoin);
-	pen.setCapStyle(Qt::RoundCap);
-	pen.setWidthF(penWidth);
-
-	q.setPen(pen);
-	q.setBrush(Qt::NoBrush);
-	q.drawArc(innerRect, arc::kQuarterLength, arc::kHalfLength);
-
-	q.setClipRect(innerRect
-		- QMargins(innerRect.width() / 2, -penWidth, -penWidth, -penWidth));
-	pen.setStyle(Qt::DotLine);
-	q.setPen(pen);
-	q.drawEllipse(innerRect);
+	Ui::PaintTimerIcon(q, innerRect, ttlText, st::premiumButtonFg->c);
 
 	return result;
 }

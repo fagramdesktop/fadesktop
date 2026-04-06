@@ -112,7 +112,8 @@ std::optional<MTPMessageReplyHeader> PrepareLogReply(
 					MTPstring(), // quote_text
 					MTPVector<MTPMessageEntity>(), // quote_entities
 					MTPint(), // quote_offset
-					MTPint()); // todo_item_id
+					MTPint(), // todo_item_id
+					MTPbytes()); // poll_option
 			}
 		}
 		return {};

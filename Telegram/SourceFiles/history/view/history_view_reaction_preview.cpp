@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/event_filter.h"
 #include "boxes/sticker_set_box.h"
 #include "data/data_document.h"
+#include "data/data_photo.h"
 #include "data/data_message_reactions.h"
 #include "data/data_session.h"
 #include "data/stickers/data_custom_emoji.h"
@@ -20,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/cached_special_layer_shadow_corners.h"
 #include "ui/effects/show_animation.h"
 #include "ui/widgets/buttons.h"
+#include "ui/widgets/dropdown_menu.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/shadow.h"
 #include "ui/painter.h"
@@ -31,6 +33,163 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_layers.h"
 
 namespace HistoryView {
+namespace {
+
+void SetupOverlayHideOnEscape(
+		not_null<Ui::AbstractButton*> clickable,
+		Fn<void()> hideAll) {
+	clickable->setClickedCallback(hideAll);
+	base::install_event_filter(QCoreApplication::instance(), [=](
+			not_null<QEvent*> e) {
+		if (e->type() == QEvent::KeyPress
+			&& clickable->window()->isActiveWindow()) {
+			const auto k = static_cast<QKeyEvent*>(e.get());
+			if (k->key() == Qt::Key_Escape) {
+				hideAll();
+				return base::EventFilterResult::Cancel;
+			}
+		}
+		return base::EventFilterResult::Continue;
+	}, clickable->lifetime());
+}
+
+struct PreviewOverlayState {
+	base::unique_qptr<Window::MediaPreviewWidget> mediaPreview;
+	base::unique_qptr<Ui::AbstractButton> clickable;
+	base::unique_qptr<Ui::DropdownMenu> menu;
+	base::unique_qptr<Ui::AbstractButton> background;
+	base::unique_qptr<Ui::FlatLabel> label;
+	Fn<void()> extraHide;
+	rpl::lifetime shutdownGuard;
+
+	void clear() {
+		shutdownGuard.destroy();
+		menu.reset();
+		background.reset();
+		label.reset();
+		mediaPreview.reset();
+		clickable.reset();
+	}
+};
+
+struct PreviewOverlay {
+	std::shared_ptr<PreviewOverlayState> state;
+	Fn<void()> hideAll;
+};
+
+template <typename MediaData>
+[[nodiscard]] PreviewOverlay CreatePreviewOverlay(
+		not_null<Window::SessionController*> controller,
+		FullMsgId origin,
+		MediaData media) {
+	const auto state = std::make_shared<PreviewOverlayState>();
+
+	const auto mainwidget = controller->widget()->bodyWidget();
+	state->mediaPreview = base::make_unique_q<Window::MediaPreviewWidget>(
+		mainwidget,
+		controller);
+	state->mediaPreview->setCustomDuration(st::defaultToggle.duration);
+	state->clickable = base::make_unique_q<Ui::AbstractButton>(mainwidget);
+	const auto hideAll = [=] {
+		state->clickable->setAttribute(Qt::WA_TransparentForMouseEvents);
+		state->mediaPreview->hidePreview();
+		if (state->extraHide) {
+			state->extraHide();
+		}
+		base::call_delayed(
+			st::defaultToggle.duration,
+			[=] { state->clear(); });
+	};
+	SetupOverlayHideOnEscape(state->clickable.get(), hideAll);
+	state->mediaPreview->showPreview(origin, media);
+	state->clickable->show();
+	const auto clickableRaw = state->clickable.get();
+
+	mainwidget->sizeValue(
+	) | rpl::skip(1) | rpl::on_next([=](QSize) {
+		hideAll();
+	}, clickableRaw->lifetime());
+
+	mainwidget->sizeValue() | rpl::on_next([=](QSize size) {
+		clickableRaw->setGeometry(Rect(size));
+		clickableRaw->raise();
+	}, clickableRaw->lifetime());
+
+	// Prevent running state destructor from within a child widget's
+	// destructor, which would trigger a double-delete through unique_qptr.
+	mainwidget->death() | rpl::on_next([s = state] {
+	}, state->shutdownGuard);
+
+	return { state, hideAll };
+}
+
+void SetupPreviewMenu(
+		not_null<Window::SessionController*> controller,
+		const PreviewOverlay &overlay,
+		Fn<void(not_null<Ui::DropdownMenu*>)> fillMenu) {
+	const auto &state = overlay.state;
+	const auto mainwidget = controller->widget()->bodyWidget();
+	if (fillMenu) {
+		state->mediaPreview->setHideEmoji(true);
+		state->menu = base::make_unique_q<Ui::DropdownMenu>(
+			mainwidget,
+			st::dropdownMenuWithIcons);
+		state->menu->setAutoHiding(false);
+		state->menu->setHiddenCallback(
+			crl::guard(state->clickable.get(), overlay.hideAll));
+		fillMenu(state->menu.get());
+	}
+	const auto menuRaw = state->menu.get();
+	state->extraHide = [=] {
+		if (menuRaw) {
+			menuRaw->hideAnimated();
+		}
+	};
+
+	const auto mediaPreviewRaw = state->mediaPreview.get();
+	mainwidget->sizeValue() | rpl::on_next([=](QSize size) {
+		mediaPreviewRaw->setGeometry(Rect(size));
+
+		if (menuRaw) {
+			const auto gap = st::defaultMenu.itemPadding.top();
+			const auto menuH = menuRaw->height();
+			const auto shift = -(gap + menuH) / 2;
+			mediaPreviewRaw->setContentShift(shift);
+
+			const auto menuX = (size.width() - menuRaw->width()) / 2;
+			const auto menuY = mediaPreviewRaw->contentBottom() + gap;
+			menuRaw->move(menuX, menuY);
+			menuRaw->showAnimated(Ui::PanelAnimation::Origin::TopLeft);
+			menuRaw->raise();
+		}
+	}, mediaPreviewRaw->lifetime());
+}
+
+} // namespace
+
+bool ShowStickerPreview(
+		not_null<Window::SessionController*> controller,
+		FullMsgId origin,
+		not_null<DocumentData*> document,
+		Fn<void(not_null<Ui::DropdownMenu*>)> fillMenu) {
+	SetupPreviewMenu(
+		controller,
+		CreatePreviewOverlay(controller, origin, document),
+		std::move(fillMenu));
+	return true;
+}
+
+bool ShowPhotoPreview(
+		not_null<Window::SessionController*> controller,
+		FullMsgId origin,
+		not_null<PhotoData*> photo,
+		Fn<void(not_null<Ui::DropdownMenu*>)> fillMenu) {
+	SetupPreviewMenu(
+		controller,
+		CreatePreviewOverlay(controller, origin, photo),
+		std::move(fillMenu));
+	return true;
+}
 
 bool ShowReactionPreview(
 		not_null<Window::SessionController*> controller,
@@ -48,58 +207,10 @@ bool ShowReactionPreview(
 	if (!document) {
 		return false;
 	}
-	struct State {
-		base::unique_qptr<Window::MediaPreviewWidget> mediaPreview;
-		base::unique_qptr<Ui::AbstractButton> clickable;
-		base::unique_qptr<Ui::AbstractButton> background;
-		base::unique_qptr<Ui::FlatLabel> label;
+	const auto overlay = CreatePreviewOverlay(controller, origin, document);
+	const auto &state = overlay.state;
 
-		void clear() {
-			mediaPreview.reset();
-			clickable.reset();
-			background.reset();
-			label.reset();
-		};
-
-	};
-	const auto state = std::make_shared<State>();
-
-	const auto mainwidget = controller->widget();
-	state->mediaPreview = base::make_unique_q<Window::MediaPreviewWidget>(
-		mainwidget,
-		controller);
-	state->mediaPreview->setCustomDuration(st::defaultToggle.duration);
-	state->clickable = base::make_unique_q<Ui::AbstractButton>(mainwidget);
-	const auto hideAll = [=] {
-		state->clickable->setAttribute(Qt::WA_TransparentForMouseEvents);
-		state->mediaPreview->hidePreview();
-		if (state->label && state->background) {
-			Ui::Animations::HideWidgets({
-				state->background.get(),
-				state->label.get(),
-			});
-		}
-		base::call_delayed(
-			st::defaultToggle.duration,
-			[=] { state->clear(); });
-	};
-	state->clickable->setClickedCallback(hideAll);
-	base::install_event_filter(QCoreApplication::instance(), [=](
-			not_null<QEvent*> e) {
-		if (e->type() == QEvent::KeyPress
-			&& state->clickable->window()->isActiveWindow()) {
-			const auto k = static_cast<QKeyEvent*>(e.get());
-			if (k->key() == Qt::Key_Escape) {
-				hideAll();
-				return base::EventFilterResult::Cancel;
-			}
-		}
-		return base::EventFilterResult::Continue;
-	}, state->clickable->lifetime());
-	state->mediaPreview->showPreview(origin, document);
-	state->clickable->show();
-	const auto mediaPreviewRaw = state->mediaPreview.get();
-	const auto clickableRaw = state->clickable.get();
+	const auto mainwidget = controller->widget()->bodyWidget();
 	const auto shadowExtend = st::boxRoundShadow.extend;
 
 	if (reactionId.custom() && document->sticker()) {
@@ -110,6 +221,7 @@ bool ShowReactionPreview(
 			state->background = base::make_unique_q<Ui::AbstractButton>(
 				mainwidget);
 			const auto show = controller->uiShow();
+			const auto hideAll = overlay.hideAll;
 			state->background->setClickedCallback([=] {
 				hideAll();
 				show->show(Box<StickerSetBox>(
@@ -153,12 +265,16 @@ bool ShowReactionPreview(
 	}
 	const auto backgroundRaw = state->background.get();
 	const auto labelRaw = state->label.get();
+	state->extraHide = [=] {
+		if (backgroundRaw && labelRaw) {
+			Ui::Animations::HideWidgets({
+				backgroundRaw,
+				labelRaw,
+			});
+		}
+	};
 
-	mainwidget->sizeValue() | rpl::on_next([=](QSize size) {
-		clickableRaw->setGeometry(Rect(size));
-		clickableRaw->raise();
-	}, clickableRaw->lifetime());
-
+	const auto mediaPreviewRaw = state->mediaPreview.get();
 	mainwidget->sizeValue() | rpl::on_next([=](QSize size) {
 		mediaPreviewRaw->setGeometry(Rect(size));
 
@@ -184,6 +300,81 @@ bool ShowReactionPreview(
 		}
 	}, mediaPreviewRaw->lifetime());
 	return true;
+}
+
+void ShowWidgetPreview(
+		not_null<Window::SessionController*> controller,
+		Fn<void(not_null<Ui::RpWidget*>)> setupContent,
+		Fn<void(not_null<Ui::DropdownMenu*>)> fillMenu) {
+	struct State {
+		base::unique_qptr<Ui::RpWidget> preview;
+		base::unique_qptr<Ui::AbstractButton> clickable;
+		base::unique_qptr<Ui::DropdownMenu> menu;
+	};
+	const auto state = std::make_shared<State>();
+	const auto mainwidget = controller->widget()->bodyWidget();
+
+	state->preview = base::make_unique_q<Ui::RpWidget>(mainwidget);
+	const auto previewRaw = state->preview.get();
+	setupContent(previewRaw);
+	previewRaw->setAttribute(Qt::WA_TransparentForMouseEvents);
+
+	state->clickable = base::make_unique_q<Ui::AbstractButton>(mainwidget);
+	state->clickable->paintOn([=](QPainter &p) {
+		p.fillRect(state->clickable->rect(), st::stickerPreviewBg);
+	});
+
+	const auto hideAll = [=] {
+		state->clickable->setAttribute(Qt::WA_TransparentForMouseEvents);
+		if (state->menu) {
+			state->menu->hideAnimated();
+		}
+		base::call_delayed(
+			st::defaultToggle.duration,
+			[s = state] {
+				s->preview.reset();
+				s->menu.reset();
+				s->clickable.reset();
+			});
+	};
+	SetupOverlayHideOnEscape(state->clickable.get(), hideAll);
+
+	state->menu = base::make_unique_q<Ui::DropdownMenu>(
+		mainwidget,
+		st::dropdownMenuWithIcons);
+	state->menu->setAutoHiding(false);
+	state->menu->setHiddenCallback(
+		crl::guard(state->clickable.get(), hideAll));
+	fillMenu(state->menu.get());
+
+	const auto menuRaw = state->menu.get();
+	state->clickable->show();
+	previewRaw->show();
+
+	mainwidget->sizeValue(
+	) | rpl::skip(1) | rpl::on_next([=](QSize) {
+		hideAll();
+	}, previewRaw->lifetime());
+
+	const auto fullW = previewRaw->width();
+	const auto fullH = previewRaw->height();
+
+	mainwidget->sizeValue() | rpl::on_next([=](QSize size) {
+		state->clickable->setGeometry(Rect(size));
+		state->clickable->raise();
+
+		const auto gap = st::defaultMenu.itemPadding.top();
+		const auto totalH = fullH + gap + menuRaw->height();
+		const auto previewY = (size.height() - totalH) / 2;
+		previewRaw->move((size.width() - fullW) / 2, previewY);
+		previewRaw->raise();
+
+		menuRaw->move(
+			(size.width() - menuRaw->width()) / 2,
+			previewY + fullH + gap);
+		menuRaw->showAnimated(Ui::PanelAnimation::Origin::TopLeft);
+		menuRaw->raise();
+	}, previewRaw->lifetime());
 }
 
 } // namespace HistoryView

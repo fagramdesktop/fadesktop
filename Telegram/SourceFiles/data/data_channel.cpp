@@ -458,8 +458,8 @@ void ChannelData::applyEditAdmin(
 			setMembersCount(membersCount() + 1);
 			if (user->isBot() && !mgInfo->bots.contains(user)) {
 				mgInfo->bots.insert(user);
-				if (mgInfo->botStatus != 0 && mgInfo->botStatus < 2) {
-					mgInfo->botStatus = 2;
+				if (mgInfo->botStatus == Data::BotStatus::NoBots) {
+					mgInfo->botStatus = Data::BotStatus::HasBots;
 				}
 			}
 		}
@@ -562,31 +562,29 @@ void ChannelData::applyEditBanned(
 					not_null{ user });
 				if (i != mgInfo->lastParticipants.end()) {
 					mgInfo->lastParticipants.erase(i);
-				}
-				if (membersCount() > 1) {
-					setMembersCount(membersCount() - 1);
+					if (membersCount() > 1) {
+						setMembersCount(membersCount() - 1);
+					} else {
+						mgInfo->lastParticipantsStatus |= MegagroupInfo::LastParticipantsCountOutdated;
+						mgInfo->lastParticipantsCount = 0;
+					}
 				} else {
 					mgInfo->lastParticipantsStatus |= MegagroupInfo::LastParticipantsCountOutdated;
-					mgInfo->lastParticipantsCount = 0;
-				}
-				setKickedCount(kickedCount() + 1);
-				if (mgInfo->bots.contains(user)) {
-					mgInfo->bots.remove(user);
-					if (mgInfo->bots.empty() && mgInfo->botStatus > 0) {
-						mgInfo->botStatus = -1;
-					}
 				}
 				flags |= UpdateFlag::Members;
 				owner().removeMegagroupParticipant(this, user);
+				setKickedCount(kickedCount() + 1);
+				if (mgInfo->bots.contains(user)) {
+					mgInfo->bots.remove(user);
+					if (mgInfo->bots.empty() && mgInfo->botStatus == Data::BotStatus::HasBots) {
+						mgInfo->botStatus = Data::BotStatus::NoBots;
+					}
+				}
 			}
 		}
 		Data::ChannelAdminChanges(this).remove(peerToUser(user->id));
 	} else if (!mgInfo) {
 		if (isKicked) {
-			if (user && membersCount() > 1) {
-				setMembersCount(membersCount() - 1);
-				flags |= UpdateFlag::Members;
-			}
 			setKickedCount(kickedCount() + 1);
 		}
 	}

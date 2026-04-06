@@ -93,7 +93,8 @@ MTPInputMedia PrepareUploadedPhoto(
 		info.file,
 		MTP_vector<MTPInputDocument>(
 			ranges::to<QVector<MTPInputDocument>>(info.attachedStickers)),
-		MTP_int(ttlSeconds));
+		MTP_int(ttlSeconds),
+		MTPInputDocument()); // video
 }
 
 MTPInputMedia PrepareUploadedDocument(

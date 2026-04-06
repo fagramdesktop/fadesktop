@@ -207,7 +207,8 @@ mtpRequestId SuggestMessageOrMedia(
 			inputMedia = MTP_inputMediaPhoto(
 				MTP_flags(0),
 				photo->mtpInput(),
-				MTPint()); // ttl_seconds
+				MTPint(), // ttl_seconds
+				MTPInputDocument()); // video
 		} else if (const auto document = wasMedia->document()) {
 			inputMedia = MTP_inputMediaDocument(
 				MTP_flags(0),
@@ -479,7 +480,8 @@ mtpRequestId EditTextMessage(
 				return MTP_inputMediaPhoto(
 					MTP_flags(flags),
 					photo->mtpInput(),
-					MTP_int(media->ttlSeconds()));
+					MTP_int(media->ttlSeconds()),
+					MTPInputDocument()); // video
 			};
 			takeFileReference = [=] { return photo->fileReference(); };
 		} else if (const auto document = media->document()) {

@@ -823,6 +823,10 @@ TextState Service::textState(QPoint point, StateRequest request) const {
 				result.link = done->lnk;
 			} else if (const auto append = item->Get<HistoryServiceTodoAppendTasks>()) {
 				result.link = append->lnk;
+			} else if (const auto pollAppend = item->Get<HistoryServicePollAppendAnswer>()) {
+				result.link = pollAppend->lnk;
+			} else if (const auto pollDelete = item->Get<HistoryServicePollDeleteAnswer>()) {
+				result.link = pollDelete->lnk;
 			} else if (const auto finish = item->Get<HistoryServiceSuggestFinish>()) {
 				result.link = finish->lnk;
 			} else if (media && data()->showSimilarChannels()) {

@@ -91,6 +91,7 @@ const style::InfoTopBar &TopBarStyle(Wrap wrap) {
 			case Type::Link: return tr::lng_media_selected_link;
 			case Type::RoundVoiceFile: return tr::lng_media_selected_audio;
 			case Type::PhotoVideo: return tr::lng_stories_row_count;
+			case Type::Poll: return tr::lng_media_selected_poll;
 			}
 			Unexpected("Type in TopBar::generateSelectedText()");
 		}()(tr::now, lt_count, count, Ui::StringWithNumbers::FromString);

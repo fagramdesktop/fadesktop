@@ -12,8 +12,12 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "ui/chat/attach/attach_send_files_way.h"
 #include "ui/image/image_prepare.h"
+#include "ui/painter.h"
 #include "ui/ui_utility.h"
 #include "core/mime_type.h"
+#include "styles/style_chat.h"
+#include "styles/style_chat_helpers.h"
+#include "styles/style_media_player.h"
 
 #include <QFileInfo>
 
@@ -21,6 +25,7 @@ namespace Ui {
 namespace {
 
 constexpr auto kMaxAlbumCount = 10;
+constexpr auto kStandardPhotoSideLimit = 1280;
 
 struct GroupRange {
 	int from = 0;
@@ -30,10 +35,70 @@ struct GroupRange {
 	[[nodiscard]] int size() const {
 		return till - from;
 	}
-	[[nodiscard]] bool sentWithCaption() const {
-		return (size() == 1) || (type == AlbumType::PhotoVideo);
-	}
 };
+
+struct HighQualityBadgeCache {
+	QRgb bg = 0;
+	QRgb fg = 0;
+	qreal ratio = 0.;
+	int width = 0;
+	int height = 0;
+	QImage image;
+};
+
+[[nodiscard]] const QImage &HighQualityBadgeImage(
+		const style::ComposeControls &st) {
+	static auto cache = HighQualityBadgeCache();
+	const auto text = u"HD"_q;
+	const auto &font = st::mediaPlayerSpeedButton.font;
+	const auto xpadding = style::ConvertScale(2.);
+	const auto ypadding = 0;
+	const auto stroke = style::ConvertScaleExact(1.);
+	const auto width = font->width(text);
+	const auto height = font->height;
+	const auto ratio = style::DevicePixelRatio();
+	const auto bg = st::roundedBg->c.rgba();
+	const auto fg = st::roundedFg->c.rgba();
+	if (cache.image.isNull()
+		|| (cache.bg != bg)
+		|| (cache.fg != fg)
+		|| (cache.ratio != ratio)
+		|| (cache.width != width)
+		|| (cache.height != height)) {
+		cache.bg = bg;
+		cache.fg = fg;
+		cache.ratio = ratio;
+		cache.width = width;
+		cache.height = height;
+		cache.image = QImage(
+			(width + 2 * xpadding + stroke) * ratio,
+			(height + 2 * ypadding + stroke) * ratio,
+			QImage::Format_ARGB32_Premultiplied);
+		cache.image.setDevicePixelRatio(ratio);
+		cache.image.fill(Qt::transparent);
+		auto painter = QPainter(&cache.image);
+		auto hq = PainterHighQualityEnabler(painter);
+		painter.setCompositionMode(QPainter::CompositionMode_Source);
+		painter.setPen(QPen(Qt::transparent, stroke));
+		painter.setBrush(st::roundedBg);
+		painter.setFont(font);
+		painter.drawRoundedRect(
+			QRectF(
+				0,
+				0,
+				width + 2 * xpadding + stroke,
+				height + 2 * ypadding + stroke),
+			height / 3.,
+			height / 3.);
+		painter.setPen(st::roundedFg);
+		painter.drawText(
+			QPointF(
+				xpadding + stroke / 2.,
+				ypadding + font->ascent + stroke / 2.),
+			text);
+	}
+	return cache.image;
+}
 
 [[nodiscard]] AlbumType GroupTypeForFile(
 		PreparedFile::Type type,
@@ -93,16 +158,6 @@ struct GroupRange {
 	return result;
 }
 
-[[nodiscard]] bool CaptionWillBeAttachedFromRanges(
-		const std::vector<GroupRange> &ranges,
-		int filesCount) {
-	const auto hasGroupedFileAlbum = ranges::any_of(ranges, [](const auto &r) {
-		return (r.size() > 1) && (r.type == AlbumType::File);
-	});
-	return ((filesCount > 1) && hasGroupedFileAlbum)
-		|| ((ranges.size() == 1) && ranges.front().sentWithCaption());
-}
-
 } // namespace
 
 PreparedFile::PreparedFile(const QString &path) : path(path) {
@@ -143,6 +198,14 @@ bool PreparedFile::isGifv() const {
 	return (type == PreparedFile::Type::Video)
 		&& v::is<Video>(information->media)
 		&& v::get<Video>(information->media).isGifv;
+}
+
+bool PreparedFile::canUseHighQualityPhoto() const {
+	return (type == PreparedFile::Type::Photo)
+		&& (information != nullptr)
+		&& !isSticker()
+		&& ((originalDimensions.width() > kStandardPhotoSideLimit)
+			|| (originalDimensions.height() > kStandardPhotoSideLimit));
 }
 
 AlbumType PreparedFile::albumType(bool sendImagesAsPhotos) const {
@@ -254,45 +317,33 @@ bool PreparedList::canBeSentInSlowmodeWith(const PreparedList &other) const {
 	return !hasNonGrouping && (!hasFiles || !hasVideos);
 }
 
-bool PreparedList::canAddCaption(bool sendingAlbum, bool compress) const {
-	if (!filesToProcess.empty()
-		|| files.empty()
-		|| files.size() > kMaxAlbumCount) {
+bool PreparedList::canAddCaption(bool compress) const {
+	if (files.empty()) {
 		return false;
 	}
-	if (files.size() == 1) {
-		Assert(files.front().information != nullptr);
-		const auto isSticker = (!compress
-				&& Core::IsMimeSticker(files.front().information->filemime))
-			|| files.front().path.endsWith(u".tgs"_q, Qt::CaseInsensitive);
-		return !isSticker;
-	} else if (!sendingAlbum) {
-		return false;
-	}
-	const auto hasFiles = ranges::contains(
-		files,
-		PreparedFile::Type::File,
-		&PreparedFile::type);
-	const auto hasMusic = ranges::contains(
-		files,
-		PreparedFile::Type::Music,
-		&PreparedFile::type);
-	const auto hasNotGrouped = ranges::contains(
-		files,
-		PreparedFile::Type::None,
-		&PreparedFile::type);
-	return !hasFiles && !hasMusic && !hasNotGrouped;
+	const auto &last = files.back();
+	const auto isSticker = last.path.endsWith(u".tgs"_q, Qt::CaseInsensitive)
+		|| (!compress
+			&& last.information
+			&& Core::IsMimeSticker(last.information->filemime));
+	return !isSticker;
 }
 
 bool PreparedList::canMoveCaption(bool sendingAlbum, bool compress) const {
-	if (!canAddCaption(sendingAlbum, compress)) {
+	if (!canAddCaption(compress)) {
 		return false;
-	} else if (files.size() != 1) {
-		return true;
+	} else if (files.size() > kMaxAlbumCount) {
+		return false;
+	} else if (!sendingAlbum || !compress) {
+		return (files.size() == 1);
 	}
-	const auto &file = files.front();
-	return (file.type == PreparedFile::Type::Video)
-		|| (file.type == PreparedFile::Type::Photo && compress);
+	for (const auto &file : files) {
+		if (file.type != PreparedFile::Type::Photo
+			&& file.type != PreparedFile::Type::Video) {
+			return false;
+		}
+	}
+	return true;
 }
 
 bool PreparedList::canChangePrice(bool sendingAlbum, bool compress) const {
@@ -357,51 +408,23 @@ bool PreparedList::hasSpoilerMenu(bool compress) const {
 	return allAreVideo || (allAreMedia && compress);
 }
 
-bool AttachCaptionToFirstAsFile(
-		const std::vector<PreparedGroup> &groups) {
-	auto filesCount = 0;
-	auto hasGroupedFileAlbum = false;
-	for (const auto &group : groups) {
-		filesCount += group.list.files.size();
-		hasGroupedFileAlbum = hasGroupedFileAlbum
-			|| ((group.list.files.size() > 1)
-			&& (group.type == AlbumType::File));
-	}
-	const auto result = (filesCount > 1) && hasGroupedFileAlbum;
-	return result;
-}
-
-bool CaptionWillBeAttached(const std::vector<PreparedGroup> &groups) {
-	return AttachCaptionToFirstAsFile(groups)
-		|| ((groups.size() == 1) && groups.front().sentWithCaption());
-}
-
-bool CaptionWillBeAttached(
-		const PreparedList &list,
-		SendFilesWay way,
-		bool slowmode) {
-	const auto ranges = GroupRanges(list.files, way, slowmode);
-	return CaptionWillBeAttachedFromRanges(ranges, int(list.files.size()));
+bool PreparedList::hasSendLargePhotosOption(bool compress) const {
+	return compress
+		&& ranges::any_of(files, &PreparedFile::canUseHighQualityPhoto);
 }
 
 std::shared_ptr<PreparedBundle> PrepareFilesBundle(
 		std::vector<PreparedGroup> groups,
 		SendFilesWay way,
-		TextWithTags caption,
 		bool ctrlShiftEnter) {
 	auto totalCount = 0;
 	for (const auto &group : groups) {
 		totalCount += group.list.files.size();
 	}
-	const auto captionAttached = CaptionWillBeAttached(groups);
-	const auto sendComment = !caption.text.isEmpty()
-		&& !captionAttached;
 	return std::make_shared<PreparedBundle>(PreparedBundle{
 		.groups = std::move(groups),
 		.way = way,
-		.caption = std::move(caption),
-		.totalCount = totalCount + (sendComment ? 1 : 0),
-		.sendComment = sendComment,
+		.totalCount = totalCount,
 		.ctrlShiftEnter = ctrlShiftEnter,
 	});
 }
@@ -474,6 +497,27 @@ QPixmap BlurredPreviewFromPixmap(QPixmap pixmap, RectParts corners) {
 		Blur(std::move(small), true),
 		image.size(),
 		{ .options = RoundOptions(ImageRoundRadius::Large, corners) }));
+}
+
+void PaintHighQualityBadge(
+		QPainter &p,
+		const style::ComposeControls &st,
+		QRect rect,
+		RectPart origin) {
+	const auto outerSkip = st.photoQualityBadgeOuterSkip;
+	const auto &badge = HighQualityBadgeImage(st);
+	const auto size = badge.size() / badge.devicePixelRatio();
+	const auto left = (origin == RectPart::TopLeft)
+		|| (origin == RectPart::BottomLeft);
+	const auto top = (origin == RectPart::TopLeft)
+		|| (origin == RectPart::TopRight);
+	const auto x = left
+		? (rect.x() + outerSkip)
+		: (rect.x() + rect.width() - size.width() - outerSkip);
+	const auto y = top
+		? (rect.y() + outerSkip)
+		: (rect.y() + rect.height() - size.height() - outerSkip);
+	p.drawImage(QPointF(x, y), badge);
 }
 
 } // namespace Ui

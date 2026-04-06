@@ -661,6 +661,7 @@ infoIconMediaGroup: icon {{ "info/info_common_groups", infoIconFg }};
 infoIconMediaChannel: icon {{ "menu/channel", infoIconFg, point(4px, 4px) }};
 infoIconMediaBot: icon {{ "menu/bot", infoIconFg, point(4px, 4px) }};
 infoIconMediaVoice: icon {{ "info/info_media_voice", infoIconFg }};
+infoIconMediaPoll: icon {{ "menu/create_poll", infoIconFg, point(4px, 4px) }};
 infoIconMediaStories: icon {{ "info/info_media_stories", infoIconFg }};
 infoIconMediaSaved: icon {{ "info/info_media_saved", infoIconFg }};
 infoIconMediaStoriesArchive: icon {{ "info/info_stories_archive", infoIconFg }};
@@ -677,6 +678,7 @@ infoIconLeave: icon {{ "info/info_leave", infoIconFg }};
 infoIconBlock: icon {{ "info/info_block", attentionButtonFg }};
 infoIconMembers: icon {{ "info/info_members", infoIconFg }};
 infoIconPrivacyPolicy: icon {{ "menu/2sv_off", infoIconFg, point(4px, 4px) }};
+infoIconSettings: icon {{ "menu/manage", infoIconFg, point(4px, 4px) }};
 infoInformationIconPosition: point(25px, 12px);
 infoNotificationsIconPosition: point(20px, 5px);
 infoSharedMediaButtonIconPosition: point(20px, 3px);
@@ -1072,6 +1074,7 @@ topBarInfo: IconButton(topBarSearch) {
 }
 topBarInfoActive: icon {{ "top_bar_profile", windowActiveTextFg }};
 topBarActionSkip: 10px;
+topBarActionButtonLargeRadius: 8px;
 
 topBarInfoButtonSize: size(52px, topBarHeight);
 topBarInfoButtonInnerSize: 42px;

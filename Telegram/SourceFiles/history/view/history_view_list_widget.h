@@ -66,8 +66,10 @@ namespace HistoryView {
 
 struct TextState;
 struct StateRequest;
+class ElementOverlayHost;
 class EmojiInteractions;
 class TranslateTracker;
+class ReadMetricsTracker;
 enum class CursorState : char;
 enum class PointState : char;
 enum class Context : char;
@@ -387,6 +389,8 @@ public:
 		bool forceAnotherChat = false);
 	[[nodiscard]] rpl::producer<FullMsgId> readMessageRequested() const;
 	[[nodiscard]] rpl::producer<FullMsgId> showMessageRequested() const;
+	void setInsertTextCallback(Fn<void(QString)> callback);
+	void insertTextAtCursor(const QString &text);
 	void replyNextMessage(FullMsgId fullId, bool next = true);
 
 	[[nodiscard]] Reactions::ButtonParameters reactionButtonParameters(
@@ -415,6 +419,13 @@ public:
 	void elementShowPollResults(
 		not_null<PollData*> poll,
 		FullMsgId context) override;
+	void elementShowAddPollOption(
+		not_null<Element*> view,
+		not_null<PollData*> poll,
+		FullMsgId context,
+		QRect optionRect) override;
+	void elementSubmitAddPollOption(FullMsgId context) override;
+	void hideElementOverlay();
 	void elementOpenPhoto(
 		not_null<PhotoData*> photo,
 		FullMsgId context) override;
@@ -541,6 +552,8 @@ private:
 
 	void onTouchSelect();
 	void onTouchScrollTimer();
+	void markReadMetricsStale();
+	void registerReadMetricsActivity();
 
 	void updateAroundPositionFromNearest(int nearestIndex);
 	void refreshRows(const Data::MessagesSlice &old);
@@ -599,7 +612,6 @@ private:
 	[[nodiscard]] Element *strictFindItemByY(int y) const;
 	[[nodiscard]] int findNearestItem(Data::MessagePosition position) const;
 	void viewReplaced(not_null<const Element*> was, Element *now);
-	[[nodiscard]] HistoryItemsList collectVisibleItems() const;
 
 	void checkMoveToOtherViewer();
 	void updateVisibleTopItem();
@@ -794,6 +806,8 @@ private:
 	std::unique_ptr<ReplyButton::Manager> _replyButtonManager;
 
 	std::unique_ptr<TranslateTracker> _translateTracker;
+	std::unique_ptr<ReadMetricsTracker> _readMetricsTracker;
+	bool _readMetricsStale = false;
 
 	int _minHeight = 0;
 	int _visibleTop = 0;
@@ -887,7 +901,11 @@ private:
 	rpl::event_stream<ReplyToMessageRequest> _requestedToReplyToMessage;
 	rpl::event_stream<FullMsgId> _requestedToReadMessage;
 	rpl::event_stream<FullMsgId> _requestedToShowMessage;
+	Fn<void(QString)> _insertTextCallback;
 	rpl::event_stream<not_null<QKeyEvent*>> _scrollKeyEvents;
+
+	[[nodiscard]] ElementOverlayHost &ensureOverlayHost();
+	std::unique_ptr<ElementOverlayHost> _overlayHost;
 
 	rpl::lifetime _viewerLifetime;
 

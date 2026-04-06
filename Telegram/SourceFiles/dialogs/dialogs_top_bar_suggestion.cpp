@@ -514,20 +514,9 @@ rpl::producer<Ui::SlideWrap<Ui::RpWidget>*> TopBarSuggestionValue(
 						}
 						widget->paintRequest() | rpl::on_next([=] {
 							auto p = QPainter(widget);
-							const auto regenerate = [&] {
-								if (s->userpics.isNull()) {
-									return true;
-								}
-								for (auto &entry : s->inRow) {
-									if (entry.uniqueKey
-										!= entry.peer->userpicUniqueKey(
-											entry.view)) {
-										return true;
-									}
-								}
-								return false;
-							}();
-							if (regenerate) {
+							if (HistoryView::NeedRegenerateUserpics(
+									s->userpics,
+									s->inRow)) {
 								const auto &st = st::historyCommentsUserpics;
 								HistoryView::GenerateUserpicsInRow(
 									s->userpics,

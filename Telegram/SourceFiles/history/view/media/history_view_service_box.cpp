@@ -26,6 +26,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/power_saving.h"
 #include "styles/style_chat.h"
 #include "styles/style_credits.h"
+#include "styles/style_polls.h"
 #include "styles/style_premium.h"
 #include "styles/style_layers.h"
 

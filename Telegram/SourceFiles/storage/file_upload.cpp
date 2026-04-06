@@ -976,7 +976,8 @@ void Uploader::uploadCoverAsPhoto(
 			MTP_flags(0),
 			cover.info.file,
 			MTP_vector<MTPInputDocument>(0),
-			MTP_int(0))
+			MTP_int(0),
+			MTPInputDocument()) // video
 	)).done([=](const MTPMessageMedia &result) {
 		result.match([&](const MTPDmessageMediaPhoto &data) {
 			const auto photo = data.vphoto();

@@ -117,7 +117,6 @@ private:
 	void share(const ProxyData &proxy, bool qr = false);
 	void saveDelayed();
 	void refreshChecker(Item &item);
-	void setupChecker(int id, const Checker &checker);
 
 	void replaceItemWith(
 		std::vector<Item>::iterator which,

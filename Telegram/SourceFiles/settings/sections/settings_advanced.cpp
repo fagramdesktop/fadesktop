@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/call_delayed.h"
 #include "base/platform/base_platform_custom_app_icon.h"
 #include "base/platform/base_platform_info.h"
+#include "base/screen_reader_state.h"
 #include "boxes/about_box.h"
 #include "boxes/auto_download_box.h"
 #include "boxes/connection_box.h"
@@ -52,6 +53,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/platform/ui_platform_window.h"
 #include "ui/power_saving.h"
 #include "ui/rp_widget.h"
+#include "ui/screen_reader_mode.h"
 #include "ui/text/format_values.h"
 #include "ui/ui_utility.h"
 #include "ui/vertical_list.h"
@@ -533,6 +535,22 @@ void BuildSystemIntegrationSection(SectionBuilder &builder) {
 			settings->setMacWarnBeforeQuit(checked);
 			Core::App().saveSettingsDelayed();
 		}, warnBeforeQuit->lifetime());
+	}
+
+	const auto systemReplace = builder.addCheckbox({
+		.id = u"advanced/system_text_replace"_q,
+		.title = tr::lng_settings_system_text_replace(),
+		.checked = settings->systemTextReplace(),
+		.keywords = { u"text"_q, u"replace"_q, u"system"_q },
+	});
+	if (systemReplace) {
+		systemReplace->checkedChanges(
+		) | rpl::filter([=](bool checked) {
+			return (checked != settings->systemTextReplace());
+		}) | rpl::on_next([=](bool checked) {
+			settings->setSystemTextReplace(checked);
+			Core::App().saveSettingsDelayed();
+		}, systemReplace->lifetime());
 	}
 
 #ifndef OS_MAC_STORE
@@ -1163,6 +1181,45 @@ void BuildExportSection(SectionBuilder &builder) {
 	});
 }
 
+void BuildScreenReaderSection(SectionBuilder &builder) {
+	const auto detected = base::ScreenReaderState::Instance()->active();
+	const auto disabled = Ui::ScreenReaderModeDisabled();
+	if (!detected || !disabled) {
+		return;
+	}
+
+	builder.addDivider();
+	builder.addSkip();
+	builder.addSubsectionTitle({
+		.id = u"advanced/screen_reader"_q,
+		.title = tr::lng_screen_reader_settings_title(),
+		.keywords = { u"screen reader"_q, u"accessibility"_q, u"voiceover"_q },
+	});
+
+	const auto toggle = builder.addButton({
+		.id = u"advanced/screen_reader_disable"_q,
+		.title = tr::lng_screen_reader_settings_disable(),
+		.st = &st::settingsButtonNoIcon,
+		.toggled = rpl::single(disabled),
+		.keywords = { u"screen reader"_q, u"accessibility"_q },
+	});
+
+	if (toggle) {
+		toggle->toggledValue(
+		) | rpl::filter([=](bool value) {
+			return (value != Ui::ScreenReaderModeDisabled());
+		}) | rpl::on_next([=](bool value) {
+			Core::App().settings().writePref<bool>(
+				Core::kScreenReaderModeDisabledKey,
+				value);
+			Core::App().saveSettingsDelayed();
+			Ui::SetScreenReaderModeDisabled(value);
+		}, toggle->lifetime());
+	}
+
+	builder.addSkip();
+}
+
 class Advanced : public Section<Advanced> {
 public:
 	Advanced(
@@ -1196,6 +1253,7 @@ const auto kMeta = BuildHelper({
 	BuildSystemIntegrationSection(builder);
 	BuildPerformanceSection(builder);
 	BuildSpellcheckerSection(builder);
+	BuildScreenReaderSection(builder);
 	if (autoUpdate) {
 		BuildUpdateSection(builder, false);
 	}

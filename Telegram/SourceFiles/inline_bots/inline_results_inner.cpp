@@ -455,7 +455,8 @@ ItemBase *Inner::layoutPrepareInlineResult(std::shared_ptr<Result> result) {
 		if (auto layout = ItemBase::createLayout(
 				this,
 				std::move(result),
-				_inlineWithThumb)) {
+				_inlineWithThumb,
+				_gallery)) {
 			it = _inlineLayouts.emplace(raw, std::move(layout)).first;
 			it->second->initDimensions();
 		} else {
@@ -555,6 +556,8 @@ int Inner::refreshInlineRows(PeerData *queryPeer, UserData *bot, const CacheEntr
 	clearSelection();
 
 	Assert(_inlineBot != 0);
+
+	_gallery = entry->gallery;
 
 	const auto count = int(entry->results.size());
 	const auto from = validateExistingInlineRows(entry->results);

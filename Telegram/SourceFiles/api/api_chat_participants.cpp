@@ -151,9 +151,8 @@ void ApplyLastList(
 			}
 			if (user->isBot()) {
 				channel->mgInfo->bots.insert(user);
-				if ((channel->mgInfo->botStatus != 0)
-					&& (channel->mgInfo->botStatus < 2)) {
-					channel->mgInfo->botStatus = 2;
+				if (channel->mgInfo->botStatus == Data::BotStatus::NoBots) {
+					channel->mgInfo->botStatus = Data::BotStatus::HasBots;
 				}
 			}
 			if (!p.rank().isEmpty()) {
@@ -189,7 +188,7 @@ void ApplyBotsList(
 		Members list) {
 	const auto history = channel->owner().historyLoaded(channel);
 	channel->mgInfo->bots.clear();
-	channel->mgInfo->botStatus = -1;
+	channel->mgInfo->botStatus = Data::BotStatus::NoBots;
 
 	auto needBotsInfos = false;
 	auto botStatus = channel->mgInfo->botStatus;
@@ -199,7 +198,7 @@ void ApplyBotsList(
 		const auto user = participant->asUser();
 		if (user && user->isBot()) {
 			channel->mgInfo->bots.insert(user);
-			botStatus = 2;// (botStatus > 0/* || !i.key()->botInfo->readsAllHistory*/) ? 2 : 1;
+			botStatus = Data::BotStatus::HasBots;
 			if (!user->botInfo->inited) {
 				needBotsInfos = true;
 			}
@@ -516,7 +515,7 @@ void ChatParticipants::requestBots(not_null<ChannelData*> channel) {
 		_botsRequests.remove(channel);
 		if (error.type() == u"CHANNEL_MONOFORUM_UNSUPPORTED"_q) {
 			channel->mgInfo->bots.clear();
-			channel->mgInfo->botStatus = -1;
+			channel->mgInfo->botStatus = Data::BotStatus::NoBots;
 			channel->session().changes().peerUpdated(
 				channel,
 				Data::PeerUpdate::Flag::FullInfo);

@@ -106,6 +106,12 @@ settingsPremiumIconEffects: icon {{ "settings/premium/effects", settingsIconFg }
 settingsPremiumIconChecklist: icon {{ "settings/premium/checklist", settingsIconFg }};
 settingsPremiumIconPeerColors: icon {{ "settings/premium/peer_colors-24x24", settingsIconFg }};
 settingsPremiumIconNoForwards: icon {{ "menu/share_off-24x24", settingsIconFg }};
+settingsPremiumIconAiCompose: icon{
+	{ size(24px, 24px), transparent },
+	{ "chat/ai_letters-20x20", settingsIconFg, point(2px, 2px) },
+	{ "chat/ai_star1-20x20", settingsIconFg, point(2px, 2px) },
+	{ "chat/ai_star2-20x20", settingsIconFg, point(2px, 2px) },
+};
 
 settingsStoriesIconOrder: icon {{ "settings/premium/stories_order", premiumButtonBg1 }};
 settingsStoriesIconStealth: icon {{ "menu/stealth", premiumButtonBg1 }};
@@ -196,13 +202,13 @@ settingLocalPasscodeDescriptionBottomSkip: 15px;
 settingLocalPasscodeIconPadding: margins(0px, 19px, 0px, 5px);
 settingLocalPasscodeButtonPadding: margins(0px, 19px, 0px, 35px);
 
-settingsInfoPhotoHeight: 161px;
+settingsInfoPhotoHeight: 162px;
 settingsInfoPhotoSize: 100px;
 settingsInfoPhoto: UserpicButton(defaultUserpicButton) {
 	size: size(settingsInfoPhotoSize, settingsInfoPhotoSize);
 	photoSize: settingsInfoPhotoSize;
 }
-settingsInfoPhotoTop: 0px;
+settingsInfoPhotoTop: 2px;
 settingsInfoPhotoSkip: 7px;
 settingsInfoNameSkip: -1px;
 settingsInfoUploadLeft: 6px;
@@ -327,6 +333,12 @@ settingsFilterIconSize: 74px;
 settingsFilterIconPadding: margins(0px, 17px, 0px, 5px);
 
 settingsFilterTagPreviewSkip: 14px;
+
+settingsFilterAddRecommended: RoundButton(defaultActiveButton) {
+	width: -32px;
+	height: 26px;
+	textTop: 4px;
+}
 
 settingsDeviceName: InputField(defaultInputField) {
 	textBg: transparent;
@@ -529,9 +541,6 @@ settingsPremiumUserTitle: FlatLabel(boxTitle) {
 	maxHeight: 0px;
 	align: align(top);
 }
-
-settingsPremiumLock: icon{{ "emoji/premium_lock", windowActiveTextFg, point(0px, 1px) }};
-settingsPremiumLockSkip: 3px;
 
 settingsBlockedListSubtitleAddPadding: margins(0px, 1px, 0px, -4px);
 settingsBlockedListIconPadding: margins(0px, 24px, 0px, 5px);
@@ -764,3 +773,36 @@ settingsAgeVerifyTitle: FlatLabel(boxTitle) {
 settingsAgeVerifyIcon: icon {{ "settings/filled_verify_age-48x48", windowFgActive }};
 settingsAgeVerifyIconPadding: margins(16px, 16px, 16px, 16px);
 settingsAgeVerifyIconMargin: margins(0px, 24px, 0px, 14px);
+
+DetailedSettingsButtonStyle {
+	button: SettingsButton;
+	description: FlatLabel;
+	iconRadius: pixels;
+	iconPadding: pixels;
+	iconForegroundPadding: pixels;
+	descriptionTopSkip: pixels;
+	descriptionBottomSkip: pixels;
+	descriptionRightSkip: pixels;
+}
+
+detailedSettingsButtonStyle: DetailedSettingsButtonStyle {
+	button: SettingsButton(settingsButtonNoIconLocked) {
+		style: defaultTextStyle;
+		textBg: transparent;
+		textBgOver: transparent;
+		padding: margins(68px, 8px, 22px, 8px);
+		iconLeft: 17px;
+	}
+	description: FlatLabel(defaultFlatLabel) {
+		textFg: windowSubTextFg;
+	}
+	iconRadius: 10px;
+	iconPadding: 6px;
+	iconForegroundPadding: 3px;
+	descriptionTopSkip: 0px;
+	descriptionBottomSkip: 8px;
+	descriptionRightSkip: 4px;
+}
+
+settingsToastStarIcon: icon {{ "toast/star", toastFg }};
+

@@ -30,6 +30,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "mtproto/mtproto_config.h"
 #include "window/notifications_manager.h"
 #include "history/history.h"
+#include "history/history_item.h"
 #include "history/history_item_components.h"
 #include "history/view/media/history_view_media.h"
 #include "history/view/history_view_element.h"
@@ -569,9 +570,9 @@ not_null<UserData*> Session::processUser(const MTPUser &data) {
 		if (!hasStarsPerMessage) {
 			result->setStarsPerMessage(0);
 		}
+		result->setBotInfoVersion(data.vbot_info_version().value_or(-1));
 
 		if (!minimal) {
-			result->setBotInfoVersion(data.vbot_info_version().value_or(-1));
 			if (const auto info = result->botInfo.get()) {
 				info->readsAllHistory = data.is_bot_chat_history();
 				if (info->cantJoinGroups != data.is_bot_nochats()) {
@@ -585,10 +586,15 @@ not_null<UserData*> Session::processUser(const MTPUser &data) {
 				}
 				info->supportsAttachMenu = data.is_bot_attach_menu();
 				info->supportsBusiness = data.is_bot_business();
-				info->canEditInformation = data.is_bot_can_edit();
+				const auto canEditInformation = data.is_bot_can_edit();
+				if (info->canEditInformation != canEditInformation) {
+					info->canEditInformation = canEditInformation;
+					flags |= UpdateFlag::ManagedBot;
+				}
 				info->activeUsers = data.vbot_active_users().value_or_empty();
 				info->hasMainApp = data.is_bot_has_main_app();
 				info->userCreatesTopics = data.is_bot_forum_can_manage_topics();
+				info->canManageBots = data.is_bot_can_manage_bots();
 			}
 		}
 
@@ -2016,6 +2022,14 @@ void Session::requestItemRepaint(not_null<const HistoryItem*> item, QRect r) {
 
 rpl::producer<not_null<const HistoryItem*>> Session::itemRepaintRequest() const {
 	return _itemRepaintRequest.events();
+}
+
+void Session::requestDrawToReply(DrawToReplyRequest request) {
+	_drawToReplyRequests.fire_copy(std::move(request));
+}
+
+rpl::producer<DrawToReplyRequest> Session::drawToReplyRequests() const {
+	return _drawToReplyRequests.events();
 }
 
 void Session::requestViewRepaint(not_null<const ViewElement*> view, QRect r) {
@@ -4343,6 +4357,34 @@ not_null<PollData*> Session::poll(PollId id) {
 	return i->second.get();
 }
 
+HistoryItem *Session::findItemForPoll(PollId id) const {
+	const auto i = _polls.find(id);
+	if (i == _polls.end()) {
+		return nullptr;
+	}
+	const auto j = _pollViews.find(i->second.get());
+	if (j == _pollViews.end() || j->second.empty()) {
+		return nullptr;
+	}
+	return j->second.front()->data();
+}
+
+std::vector<not_null<PeerData*>> Session::pollRecentVoters(PollId id) const {
+	auto result = std::vector<not_null<PeerData*>>();
+	const auto i = _polls.find(id);
+	if (i == _polls.end()) {
+		return result;
+	}
+	for (const auto &answer : i->second->answers) {
+		for (const auto &voter : answer.recentVoters) {
+			if (!ranges::contains(result, voter)) {
+				result.push_back(voter);
+			}
+		}
+	}
+	return result;
+}
+
 not_null<PollData*> Session::processPoll(const MTPPoll &data) {
 	return data.match([&](const MTPDpoll &data) {
 		const auto id = data.vid().v;
@@ -4361,6 +4403,36 @@ not_null<PollData*> Session::processPoll(const MTPPoll &data) {
 
 not_null<PollData*> Session::processPoll(const MTPDmessageMediaPoll &data) {
 	const auto result = processPoll(data.vpoll());
+	auto media = PollMedia();
+	if (const auto attached = data.vattached_media()) {
+		attached->match([&](const MTPDmessageMediaPhoto &data) {
+			const auto photo = data.vphoto();
+			if (photo && photo->type() == mtpc_photo) {
+				media.photo = processPhoto(*photo);
+			}
+		}, [&](const MTPDmessageMediaDocument &data) {
+			const auto document = data.vdocument();
+			if (document && document->type() == mtpc_document) {
+				media.document = processDocument(*document);
+			}
+		}, [&](const MTPDmessageMediaGeo &data) {
+			data.vgeo().match([&](const MTPDgeoPoint &point) {
+				media.geo = LocationPoint(point);
+			}, [](const MTPDgeoPointEmpty &) {
+			});
+		}, [&](const MTPDmessageMediaVenue &data) {
+			data.vgeo().match([&](const MTPDgeoPoint &point) {
+				media.geo = LocationPoint(point);
+			}, [](const MTPDgeoPointEmpty &) {
+			});
+		}, [](const auto &) {
+		});
+	}
+	if (result->attachedMedia != media) {
+		result->attachedMedia = media;
+		++result->version;
+		notifyPollUpdateDelayed(result);
+	}
 	const auto changed = result->applyResults(data.vresults());
 	if (changed) {
 		notifyPollUpdateDelayed(result);
@@ -4428,7 +4500,9 @@ void Session::checkPollsClosings() {
 		}
 	}
 	if (closest) {
-		_pollsClosingTimer.callOnce((closest - now) * crl::time(1000));
+		constexpr auto kMaxTimeout = 24 * 3600 * crl::time(1000);
+		_pollsClosingTimer.callOnce(
+			std::min((closest - now) * crl::time(1000), kMaxTimeout));
 	} else {
 		_pollsClosingTimer.cancel();
 	}
@@ -4446,6 +4520,23 @@ void Session::applyUpdate(const MTPDupdateMessagePoll &update) {
 	}();
 	if (updated && updated->applyResults(update.vresults())) {
 		notifyPollUpdateDelayed(updated);
+	}
+	if (const auto tlPeer = update.vpeer()) {
+		const auto peer = peerFromMTP(*tlPeer);
+		if (const auto history = historyLoaded(peer)) {
+			histories().requestDialogEntry(history);
+		}
+	} else if (updated) {
+		if (const auto i = _pollViews.find(updated)
+			; i != _pollViews.end()) {
+			for (const auto &view : i->second) {
+				if (view->data()->hasUnreadPollVote()) {
+					histories().requestDialogEntry(
+						view->data()->history());
+					break;
+				}
+			}
+		}
 	}
 }
 
@@ -4890,6 +4981,7 @@ void Session::sendWebPageGamePollTodoListNotifications() {
 		}
 	}
 	for (const auto &poll : base::take(_pollsUpdated)) {
+		_pollUpdates.fire_copy(poll);
 		if (const auto i = _pollViews.find(poll); i != _pollViews.end()) {
 			resize.insert(end(resize), begin(i->second), end(i->second));
 		}
@@ -4907,6 +4999,10 @@ void Session::sendWebPageGamePollTodoListNotifications() {
 
 rpl::producer<not_null<WebPageData*>> Session::webPageUpdates() const {
 	return _webpageUpdates.events();
+}
+
+rpl::producer<not_null<PollData*>> Session::pollUpdates() const {
+	return _pollUpdates.events();
 }
 
 void Session::channelDifferenceTooLong(not_null<ChannelData*> channel) {

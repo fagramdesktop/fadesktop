@@ -91,6 +91,7 @@ public:
 
 	void clearAllUnreadMentions();
 	void clearAllUnreadReactions();
+	void clearAllUnreadPollVotes();
 	void enumerateTopics(Fn<void(not_null<ForumTopic*>)> action) const;
 
 	void listMessageChanged(HistoryItem *from, HistoryItem *to);

@@ -346,7 +346,7 @@ void EditorBlock::activateRow(const Row &row) {
 			});
 			box->addButton(tr::lng_settings_save(), save);
 			box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
-			box->setTitle(rpl::single(name));
+			box->setTitle(name);
 			box->setWidth(editor->width());
 
 			_context->colorEditor.box = box;

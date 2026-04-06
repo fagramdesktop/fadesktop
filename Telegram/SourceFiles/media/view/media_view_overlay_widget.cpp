@@ -10,6 +10,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "apiwrap.h"
 #include "api/api_attached_stickers.h"
 #include "api/api_peer_photo.h"
+#include "api/api_polls.h"
 #include "base/qt/qt_common_adapters.h"
 #include "base/timer_rpl.h"
 #include "lang/lang_keys.h"
@@ -62,6 +63,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/history.h"
 #include "history/history_item_helpers.h"
 #include "history/view/media/history_view_media.h"
+#include "history/view/history_view_group_call_bar.h"
 #include "history/view/reactions/history_view_reactions_selector.h"
 #include "data/components/sponsored_messages.h"
 #include "data/data_group_call.h"
@@ -76,6 +78,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_document_resolver.h"
 #include "data/data_file_click_handler.h"
 #include "data/data_download_manager.h"
+#include "data/data_poll.h"
 #include "window/themes/window_theme_preview.h"
 #include "window/window_peer_menu.h"
 #include "window/window_controller.h"
@@ -96,8 +99,11 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_media_view.h"
 #include "styles/style_calls.h"
 #include "styles/style_chat.h"
+#include "styles/style_chat_helpers.h"
 #include "styles/style_menu_icons.h"
 #include "platform/platform_text_recognition.h"
+
+#include <QGraphicsOpacityEffect>
 
 #ifdef Q_OS_MAC
 #include "platform/mac/touchbar/mac_touchbar_media_view.h"
@@ -249,6 +255,43 @@ QWidget *PipDelegate::pipParentWidget() {
 		ints += add;
 	}
 	return false;
+}
+
+[[nodiscard]] std::optional<WebPageCollage::Item> PollInputMediaItem(
+		const PollMedia &media) {
+	if (media.photo) {
+		return WebPageCollage::Item(media.photo);
+	} else if (media.document && !media.document->sticker()) {
+		return WebPageCollage::Item(media.document);
+	}
+	return std::nullopt;
+}
+
+[[nodiscard]] std::optional<WebPageCollage::Item> PollAnswerMediaItem(
+		const PollAnswer &answer) {
+	return PollInputMediaItem(answer.media);
+}
+
+[[nodiscard]] bool IsPollAnswerMediaItem(
+		not_null<PollData*> poll,
+		const WebPageCollage::Item &item) {
+	return ranges::any_of(poll->answers, [&](const PollAnswer &answer) {
+		const auto candidate = PollAnswerMediaItem(answer);
+		return candidate && (*candidate == item);
+	});
+}
+
+[[nodiscard]] std::optional<WebPageCollage> PollAnswersCollage(
+		not_null<PollData*> poll) {
+	auto result = WebPageCollage();
+	for (const auto &answer : poll->answers) {
+		if (const auto item = PollAnswerMediaItem(answer)) {
+			result.items.push_back(*item);
+		}
+	}
+	return result.items.empty()
+		? std::nullopt
+		: std::make_optional(std::move(result));
 }
 
 } // namespace
@@ -980,7 +1023,7 @@ void OverlayWidget::savePosition() {
 		realPosition.maximized = 1;
 		realPosition.moncrc = 0;
 		DEBUG_LOG(("Viewer Pos: Saving maximized position."));
-	} else if (!_wasWindowedMode && !Platform::IsMac()) {
+	} else if (!_wasWindowedMode) {
 		return;
 	} else {
 		auto r = _normalGeometry = _window->body()->mapToGlobal(
@@ -1452,6 +1495,10 @@ void OverlayWidget::updateControls() {
 	_saveVisible = computeSaveButtonVisible();
 	_shareVisible = story && story->canShare();
 	_rotateVisible = !_themePreviewShown && !story;
+	_drawVisible = _drawButtonEnabled
+		&& !_themePreviewShown
+		&& !story
+		&& (_photo || (_document && _document->isImage()));
 	_recognizeVisible = _recognitionResult.success
 		&& !_recognitionResult.items.empty();
 	const auto navRect = [&](int i) {
@@ -1482,6 +1529,12 @@ void OverlayWidget::updateControls() {
 	_saveNavOver = style::centerrect(_saveNav, overRect);
 	_saveNavIcon = style::centerrect(_saveNav, st::mediaviewSave);
 	if (_saveVisible) {
+		++index;
+	}
+	_drawNav = navRect(index);
+	_drawNavOver = style::centerrect(_drawNav, overRect);
+	_drawNavIcon = style::centerrect(_drawNav, st::mediaviewDraw);
+	if (_drawVisible) {
 		++index;
 	}
 	_recognizeNav = navRect(index);
@@ -1561,8 +1614,30 @@ void OverlayWidget::resizeCenteredControls() {
 
 	refreshClipControllerGeometry();
 	refreshSponsoredButtonGeometry();
+	refreshVoteButton();
+	refreshPollVotersWidget();
+	refreshVoteButtonGeometry();
+	refreshPollVotersWidgetGeometry();
 	refreshCaptionGeometry();
 	refreshSponsoredButtonWidth();
+
+	_pollUpdateLifetime.destroy();
+	if (currentPollAnswer()) {
+		const auto media = _message ? _message->media() : nullptr;
+		const auto poll = media ? media->poll() : nullptr;
+		if (poll && _session) {
+			_session->data().pollUpdates(
+			) | rpl::filter([=](not_null<PollData*> updated) {
+				return updated == poll;
+			}) | rpl::on_next([=] {
+				refreshVoteButton();
+				refreshPollVotersWidget();
+				refreshVoteButtonGeometry();
+				refreshPollVotersWidgetGeometry();
+				refreshCaptionGeometry();
+			}, _pollUpdateLifetime);
+		}
+	}
 }
 
 void OverlayWidget::refreshCaptionGeometry() {
@@ -1589,6 +1664,10 @@ void OverlayWidget::refreshCaptionGeometry() {
 		? (_y + _h)
 		: _sponsoredButton
 		? (_sponsoredButton->y() - st::mediaviewCaptionMargin.height())
+		: _voteButton
+		? (_voteButton->y() - st::mediaviewCaptionMargin.height())
+		: _pollVotersWidget
+		? (_pollVotersWidget->y() - st::mediaviewCaptionMargin.height())
 		: (_streamed && _streamed->controls)
 		? (_streamed->controls->y() - st::mediaviewCaptionMargin.height())
 		: _groupThumbs
@@ -1667,6 +1746,184 @@ void OverlayWidget::refreshSponsoredButtonWidth() {
 		_sponsoredButton->y());
 }
 
+const PollAnswer *OverlayWidget::currentPollAnswer() const {
+	if (!_message || !_session) {
+		return nullptr;
+	}
+	const auto media = _message->media();
+	if (!media) {
+		return nullptr;
+	}
+	const auto poll = media->poll();
+	if (!poll || (!_photo && !_document)) {
+		return nullptr;
+	}
+	const auto current = _photo
+		? WebPageCollage::Item(_photo)
+		: WebPageCollage::Item(_document);
+	for (const auto &answer : poll->answers) {
+		const auto candidate = PollAnswerMediaItem(answer);
+		if (candidate && (*candidate == current)) {
+			return &answer;
+		}
+	}
+	return nullptr;
+}
+
+void OverlayWidget::refreshVoteButton() {
+	const auto answer = currentPollAnswer();
+	const auto media = _message ? _message->media() : nullptr;
+	const auto poll = media ? media->poll() : nullptr;
+	const auto show = answer
+		&& poll
+		&& !answer->chosen
+		&& !poll->closed()
+		&& !poll->voted()
+		&& poll->sendingVotes.empty();
+	if (!show) {
+		if (_voteButton) {
+			_voteButton.destroy();
+		}
+		return;
+	}
+	if (!_voteButton) {
+		using TextTransform = Ui::RoundButton::TextTransform;
+		_voteButton.create(
+			_body,
+			tr::lng_polls_submit_votes(),
+			st::mediaviewVoteButton);
+		_voteButton->setTextTransform(TextTransform::NoTransform);
+		const auto effect = Ui::CreateChild<QGraphicsOpacityEffect>(
+			_voteButton.data());
+		effect->setOpacity(_controlsOpacity.current());
+		_voteButton->setGraphicsEffect(effect);
+		_voteButton->setClickedCallback([=] {
+			if (!_session) {
+				return;
+			}
+			const auto current = currentPollAnswer();
+			if (!current) {
+				return;
+			}
+			_session->api().polls().sendVotes(
+				_message->fullId(),
+				{ current->option });
+			_voteButton.destroy();
+			refreshCaptionGeometry();
+		});
+	}
+	_voteButton->show();
+}
+
+void OverlayWidget::refreshVoteButtonGeometry() {
+	if (!_voteButton) {
+		return;
+	}
+	const auto controllerBottom = (_groupThumbs && !_fullScreenVideo)
+		? _groupThumbsTop
+		: height();
+	_voteButton->moveToLeft(
+		(width() - _voteButton->width()) / 2,
+		controllerBottom
+			- ((_streamed && _streamed->controls)
+				? (_streamed->controls->height()
+					+ st::mediaviewCaptionPadding.bottom())
+				: 0)
+			- _voteButton->height()
+			- st::mediaviewVoteButtonMargin);
+}
+
+void OverlayWidget::refreshPollVotersWidget() {
+	const auto answer = currentPollAnswer();
+	const auto show = answer
+		&& (answer->votes > 0)
+		&& !_voteButton;
+	if (!show) {
+		_pollVotersWidget.destroy();
+		return;
+	}
+
+	_pollVotersWidget.destroy();
+	_pollVotersWidget.create(_body);
+
+	const auto effect = Ui::CreateChild<QGraphicsOpacityEffect>(
+		_pollVotersWidget.data());
+	effect->setOpacity(_controlsOpacity.current());
+	_pollVotersWidget->setGraphicsEffect(effect);
+
+	auto prepared = HistoryView::PrepareUserpicsInRow(
+		answer->recentVoters,
+		st::mediaviewPollVotersUserpics,
+		3);
+
+	const auto votesText = tr::lng_polls_votes_count(
+		tr::now,
+		lt_count,
+		answer->votes);
+	const auto &font = st::semiboldFont;
+	const auto textWidth = font->width(votesText);
+
+	const auto userpicsWidth = prepared.width;
+	const auto spacing = (userpicsWidth > 0)
+		? st::mediaviewPollVotersSpacing
+		: 0;
+	const auto &padding = st::mediaviewPollVotersPadding;
+	const auto widgetWidth = padding.left()
+		+ userpicsWidth
+		+ spacing
+		+ textWidth
+		+ padding.right();
+	const auto widgetHeight = st::mediaviewVoteButton.height;
+
+	_pollVotersWidget->resize(widgetWidth, widgetHeight);
+
+	const auto userpicSize = st::mediaviewPollVotersUserpics.size;
+	const auto raw = _pollVotersWidget.data();
+	raw->paintRequest() | rpl::on_next([=,
+			image = std::move(prepared.image)] {
+		auto p = QPainter(raw);
+		auto hq = PainterHighQualityEnabler(p);
+
+		const auto radius = st::mediaviewCaptionRadius;
+		p.setPen(Qt::NoPen);
+		p.setBrush(st::mediaviewCaptionBg);
+		p.drawRoundedRect(raw->rect(), radius, radius);
+
+		auto left = padding.left();
+
+		if (!image.isNull()) {
+			const auto top = (widgetHeight - userpicSize) / 2;
+			p.drawImage(left, top, image);
+			left += userpicsWidth + spacing;
+		}
+
+		p.setFont(font);
+		p.setPen(st::mediaviewCaptionFg);
+		const auto textTop = (widgetHeight + font->ascent - font->descent) / 2;
+		p.drawText(left, textTop, votesText);
+	}, raw->lifetime());
+
+	_pollVotersWidget->show();
+}
+
+void OverlayWidget::refreshPollVotersWidgetGeometry() {
+	if (!_pollVotersWidget) {
+		return;
+	}
+	const auto controllerBottom = (_groupThumbs && !_fullScreenVideo)
+		? _groupThumbsTop
+		: height();
+	_pollVotersWidget->moveToLeft(
+		(width() - _pollVotersWidget->width()) / 2,
+		controllerBottom
+			- ((_streamed && _streamed->controls)
+				? (_streamed->controls->height()
+					+ st::mediaviewCaptionPadding.bottom())
+				: 0)
+			- _pollVotersWidget->height()
+			- st::mediaviewVoteButtonMargin);
+}
+
 void OverlayWidget::fillContextMenuActions(
 		const Ui::Menu::MenuCallback &addAction) {
 	if (_message && _message->isSponsored()) {
@@ -1693,6 +1950,21 @@ void OverlayWidget::fillContextMenuActions(
 			tr::lng_context_to_msg(tr::now),
 			[=] { toMessage(); },
 			&st::mediaMenuIconShowInChat);
+	}
+	if (currentPollAnswer()) {
+		const auto media = _message ? _message->media() : nullptr;
+		const auto poll = media ? media->poll() : nullptr;
+		if (poll
+			&& !poll->closed()
+			&& !poll->quiz()
+			&& !poll->revotingDisabled()) {
+			const auto itemId = _message->fullId();
+			addAction(tr::lng_polls_retract(tr::now), [=] {
+				if (_session) {
+					_session->api().polls().sendVotes(itemId, {});
+				}
+			}, &st::mediaMenuIconRetractVote);
+		}
 	}
 	if (story && story->peer()->isSelf()) {
 		const auto inProfile = story->inProfile();
@@ -1992,6 +2264,24 @@ bool OverlayWidget::updateControlsAnimation(crl::time now) {
 			Qt::WA_TransparentForMouseEvents,
 			value < 1);
 	}
+	if (_voteButton) {
+		const auto value = _controlsOpacity.current();
+		if (const auto e = _voteButton->graphicsEffect()) {
+			static_cast<QGraphicsOpacityEffect*>(e)->setOpacity(value);
+		}
+		_voteButton->setAttribute(
+			Qt::WA_TransparentForMouseEvents,
+			value < 1);
+	}
+	if (_pollVotersWidget) {
+		const auto value = _controlsOpacity.current();
+		if (const auto e = _pollVotersWidget->graphicsEffect()) {
+			static_cast<QGraphicsOpacityEffect*>(e)->setOpacity(value);
+		}
+		_pollVotersWidget->setAttribute(
+			Qt::WA_TransparentForMouseEvents,
+			value < 1);
+	}
 	_helper->setControlsOpacity(_controlsOpacity.current());
 	const auto content = finalContentRect();
 	const auto siblingType = (_over == Over::LeftStories)
@@ -2004,6 +2294,10 @@ bool OverlayWidget::updateControlsAnimation(crl::time now) {
 		+ (_over == Over::Share ? _shareNavOver : _shareNavIcon)
 		+ (_over == Over::Rotate ? _rotateNavOver : _rotateNavIcon)
 		+ (_over == Over::More ? _moreNavOver : _moreNavIcon)
+		+ (_over == Over::Draw ? _drawNavOver : _drawNavIcon)
+		+ (_over == Over::Recognize
+			? _recognizeNavOver
+			: _recognizeNavIcon)
 		+ ((_stories
 			&& (_over == Over::LeftStories || _over == Over::RightStories))
 			? _stories->sibling(siblingType).layout.geometry
@@ -2278,7 +2572,7 @@ bool OverlayWidget::radialAnimationCallback(crl::time now) {
 		update(radialRect());
 	}
 	const auto ready = _document && _documentMedia->loaded();
-	const auto streamVideo = ready && _documentMedia->canBePlayed(_message);
+	const auto streamVideo = ready && _documentMedia->canBePlayed();
 	const auto tryOpenImage = ready
 		&& (_document->size < Images::kReadBytesLimit);
 	if (ready && ((tryOpenImage && !_radial.animating()) || streamVideo)) {
@@ -2562,7 +2856,7 @@ void OverlayWidget::toggleFullScreen(bool fullscreen) {
 }
 
 void OverlayWidget::activateControls() {
-	if (!_menu && !_mousePressed && !_stories) {
+	if (!_menu && !_mousePressed && !_touchMove && !_stories) {
 		_controlsHideTimer.callOnce(st::mediaviewWaitHide);
 	}
 	if (_fullScreenVideo) {
@@ -2592,7 +2886,8 @@ void OverlayWidget::hideControls(bool force) {
 				&& _streamed->controls
 				&& _streamed->controls->hasMenu())
 			|| _menu
-			|| _mousePressed) {
+			|| _mousePressed
+			|| _touchMove) {
 			return;
 		}
 	}
@@ -2798,7 +3093,8 @@ void OverlayWidget::handleDocumentClick() {
 			_document,
 			_message,
 			_topicRootId,
-			_monoforumPeerId);
+			_monoforumPeerId,
+			_drawButtonEnabled);
 		if (_document && _document->loading() && !_radial.animating()) {
 			_radial.start(_documentMedia->progress());
 		}
@@ -2947,7 +3243,7 @@ void OverlayWidget::downloadMedia() {
 void OverlayWidget::saveCancel() {
 	if (_document && _document->loading()) {
 		_document->cancel();
-		if (_documentMedia->canBePlayed(_message)) {
+		if (_documentMedia->canBePlayed()) {
 			redisplayContent();
 		}
 	}
@@ -3077,6 +3373,25 @@ void OverlayWidget::recognize() {
 		st::widgetFadeDuration);
 }
 
+void OverlayWidget::draw() {
+	if (!_session) {
+		return;
+	}
+	const auto photoId = _photo ? _photo->id : PhotoId();
+	const auto documentId = (_document && _document->isImage())
+		? _document->id
+		: DocumentId();
+	if (!photoId && !documentId) {
+		return;
+	}
+	_session->data().requestDrawToReply({
+		_message ? _message->fullId() : FullMsgId(),
+		photoId,
+		documentId,
+	});
+	close();
+}
+
 void OverlayWidget::copyMedia() {
 	if (showCopyMediaRestriction()) {
 		return;
@@ -3130,6 +3445,19 @@ auto OverlayWidget::sharedMediaType() const
 		if (const auto media = _message->media()) {
 			if (media->webpage() || media->invoice()) {
 				return std::nullopt;
+			} else if (const auto poll = media->poll()) {
+				const auto isPollMedia = [&](const auto &item) {
+					return IsPollAnswerMediaItem(poll, item)
+						|| (PollInputMediaItem(poll->solutionMedia)
+							== item);
+				};
+				if ((_photo
+						&& isPollMedia(WebPageCollage::Item(_photo)))
+					|| (_document
+						&& isPollMedia(
+							WebPageCollage::Item(_document)))) {
+					return std::nullopt;
+				}
 			}
 		}
 		if (_photo) {
@@ -3366,6 +3694,18 @@ std::optional<OverlayWidget::CollageKey> OverlayWidget::collageKey() const {
 						return _document;
 					}
 				}
+			} else if (const auto poll = media->poll()) {
+				if (_photo
+					&& IsPollAnswerMediaItem(
+						poll,
+						WebPageCollage::Item(_photo))) {
+					return _photo;
+				} else if (_document
+					&& IsPollAnswerMediaItem(
+						poll,
+						WebPageCollage::Item(_document))) {
+					return _document;
+				}
 			}
 		}
 	}
@@ -3409,6 +3749,8 @@ void OverlayWidget::validateCollage() {
 							data.items.push_back(document);
 						}
 					}
+				} else if (const auto poll = media->poll()) {
+					_collageData = PollAnswersCollage(poll);
 				}
 			}
 		}
@@ -3465,6 +3807,22 @@ void OverlayWidget::refreshCaption() {
 							.append(media->webpage()->description);
 					}
 					return TextWithEntities();
+				} else if (const auto poll = media->poll()) {
+					const auto current = _photo
+						? WebPageCollage::Item(_photo)
+						: WebPageCollage::Item(_document);
+					for (const auto &answer : poll->answers) {
+						const auto candidate = PollAnswerMediaItem(answer);
+						if (candidate && (*candidate == current)) {
+							return answer.text;
+						}
+					}
+					const auto solution = PollInputMediaItem(
+						poll->solutionMedia);
+					if (solution && (*solution == current)) {
+						return poll->solution;
+					}
+					return TextWithEntities();
 				}
 			}
 			return _message->translatedText();
@@ -3472,6 +3830,10 @@ void OverlayWidget::refreshCaption() {
 		return TextWithEntities();
 	}());
 	if (caption.text.isEmpty()) {
+		if (_streamed && _streamed->controls) {
+			_streamed->controls->setTimestamps({});
+			refreshClipControllerGeometry();
+		}
 		return;
 	}
 
@@ -3495,11 +3857,13 @@ void OverlayWidget::refreshCaption() {
 			: &_message->history()->session()),
 		.repaint = captionRepaint,
 	});
+	auto captionText = base.isEmpty()
+		? caption
+		: AddTimestampLinks(caption, duration, base);
+	refreshTimestampDividers(captionText, duration);
 	_caption.setMarkedText(
 		st::mediaviewCaptionStyle,
-		(base.isEmpty()
-			? caption
-			: AddTimestampLinks(caption, duration, base)),
+		std::move(captionText),
 		(_message
 			? Ui::ItemTextOptions(_message)
 			: Ui::ItemTextDefaultOptions()),
@@ -3510,6 +3874,57 @@ void OverlayWidget::refreshCaption() {
 			return (weak != nullptr);
 		});
 	}
+}
+
+void OverlayWidget::refreshTimestampDividers(
+		const TextWithEntities &caption,
+		TimeId duration) {
+	if (!_streamed || !_streamed->controls || duration <= 0) {
+		return;
+	}
+	using Data = PlaybackControls::TimestampData;
+	auto timestamps = std::vector<Data>();
+	for (const auto &entity : caption.entities) {
+		if (entity.type() != EntityType::CustomUrl
+			|| !entity.data().startsWith(
+				u"internal:media_timestamp"_q)) {
+			continue;
+		}
+		const auto tPos = entity.data().lastIndexOf(u"&t="_q);
+		if (tPos < 0) {
+			continue;
+		}
+		auto ok = false;
+		const auto time = entity.data().mid(tPos + 3).toInt(&ok);
+		if (!ok || time < 0 || time > duration) {
+			continue;
+		}
+		const auto offset = entity.offset();
+		const auto atLineStart = (offset == 0)
+			|| (caption.text[offset - 1] == '\n');
+		auto label = QString();
+		if (atLineStart) {
+			const auto entityEnd = offset + entity.length();
+			const auto nl = caption.text.indexOf('\n', entityEnd);
+			const auto lineEnd = (nl >= 0)
+				? nl
+				: caption.text.size();
+			label = caption.text.mid(
+				entityEnd,
+				lineEnd - entityEnd).trimmed();
+			if (label.startsWith(u"- "_q)) {
+				label = label.mid(2).trimmed();
+			} else if (label.startsWith(u"-"_q)) {
+				label = label.mid(1).trimmed();
+			}
+		}
+		timestamps.push_back({
+			.position = float64(time) / duration,
+			.label = std::move(label),
+		});
+	}
+	_streamed->controls->setTimestamps(std::move(timestamps));
+	refreshClipControllerGeometry();
 }
 
 void OverlayWidget::refreshGroupThumbs() {
@@ -3675,6 +4090,7 @@ void OverlayWidget::show(OpenRequest request) {
 	const auto contextItem = request.item();
 	const auto contextPeer = request.peer();
 	const auto contextTopicRootId = request.topicRootId();
+	_drawButtonEnabled = request.showDrawButton();
 	if (!request.continueStreaming() && !request.startTime() && !_reShow) {
 		if (_message && (_message == contextItem)) {
 			return close();
@@ -3885,7 +4301,7 @@ void OverlayWidget::displayDocument(
 			}
 		} else {
 			initSponsoredButton();
-			if (_documentMedia->canBePlayed(_message)
+			if (_documentMedia->canBePlayed()
 				&& initStreaming(startStreaming)) {
 			} else if (_document->isVideoFile()) {
 				_documentMedia->automaticLoad(fileOrigin(), _message);
@@ -4094,7 +4510,7 @@ void OverlayWidget::showAndActivate() {
 }
 
 bool OverlayWidget::canInitStreaming() const {
-	return (_document && _documentMedia->canBePlayed(_message))
+	return (_document && _documentMedia->canBePlayed())
 		|| (_photo && _photo->videoCanBePlayed());
 }
 
@@ -4540,9 +4956,11 @@ void OverlayWidget::refreshClipControllerGeometry() {
 	const auto controllerWidth = std::min(
 		st::mediaviewControllerSize.width(),
 		width() - 2 * skip);
-	_streamed->controls->resize(
-		controllerWidth,
-		st::mediaviewControllerSize.height());
+	const auto controllerHeight = st::mediaviewControllerSize.height()
+		+ (_streamed->controls->hasTimestamps()
+			? st::mediaviewTimestampLabelHeight
+			: 0);
+	_streamed->controls->resize(controllerWidth, controllerHeight);
 	_streamed->controls->move(
 		(width() - controllerWidth) / 2,
 		(controllerBottom // Duplicated in recountSkipTop().
@@ -4817,11 +5235,17 @@ void OverlayWidget::applyVideoQuality(VideoQuality value) {
 	}
 	_streamingStartPaused = _streamedQualityChangeFinished
 		|| (_streamed && _streamed->instance.player().paused());
+	const auto wasFullScreen = _fullScreenVideo;
 	clearStreaming();
 	const auto time = _streamedPosition;
 	const auto startStreaming = StartStreaming(false, time);
 	if (!canInitStreaming() || !initStreaming(startStreaming)) {
 		redisplayContent();
+	} else if (_fullScreenVideo != wasFullScreen) {
+		_fullScreenVideo = wasFullScreen;
+		if (_streamed->controls) {
+			_streamed->controls->setInFullScreen(_fullScreenVideo);
+		}
 	}
 }
 
@@ -5616,6 +6040,12 @@ void OverlayWidget::paintControls(
 			_moreNavIcon,
 			st::mediaviewMore },
 		{
+			Over::Draw,
+			_drawVisible,
+			_drawNavOver,
+			_drawNavIcon,
+			st::mediaviewDraw },
+		{
 			Over::Recognize,
 			_recognizeVisible,
 			_recognizeNavOver,
@@ -6240,7 +6670,7 @@ void OverlayWidget::preloadData(int delta) {
 			const auto &[i, ok] = documents.emplace(
 				(*document)->createMediaView());
 			(*i)->thumbnailWanted(fileOrigin(entity));
-			if (!(*i)->canBePlayed(entity.item)) {
+			if (!(*i)->canBePlayed()) {
 				(*i)->automaticLoad(fileOrigin(entity), entity.item);
 			}
 		}
@@ -6277,6 +6707,7 @@ void OverlayWidget::handleMousePress(
 				|| _over == Over::Save
 				|| _over == Over::Share
 				|| _over == Over::Rotate
+				|| _over == Over::Draw
 				|| _over == Over::Recognize
 				|| _over == Over::Icon
 				|| _over == Over::More
@@ -6434,6 +6865,7 @@ void OverlayWidget::updateOverRect(Over state) {
 	case Over::Save: update(_saveNavOver); break;
 	case Over::Share: update(_shareNavOver); break;
 	case Over::Rotate: update(_rotateNavOver); break;
+	case Over::Draw: update(_drawNavOver); break;
 	case Over::Icon: update(_docIconRect); break;
 	case Over::Header: update(_headerNav); break;
 	case Over::More: update(_moreNavOver); break;
@@ -6572,6 +7004,8 @@ void OverlayWidget::updateOver(QPoint pos) {
 		updateOverState(Over::Icon);
 	} else if (_moreNav.contains(pos)) {
 		updateOverState(Over::More);
+	} else if (_drawVisible && _drawNav.contains(pos)) {
+		updateOverState(Over::Draw);
 	} else if (_recognizeVisible && _recognizeNav.contains(pos)) {
 		updateOverState(Over::Recognize);
 	} else if (contentShown() && finalContentRect().contains(pos)) {
@@ -6670,6 +7104,8 @@ void OverlayWidget::handleMouseRelease(
 		handleDocumentClick();
 	} else if (_over == Over::More && _down == Over::More) {
 		InvokeQueued(_widget, [=] { showDropdown(); });
+	} else if (_over == Over::Draw && _down == Over::Draw) {
+		draw();
 	} else if (_over == Over::Recognize && _down == Over::Recognize) {
 		recognize();
 	} else if (_over == Over::Video && _down == Over::Video) {
@@ -6773,8 +7209,8 @@ bool OverlayWidget::handleTouchEvent(not_null<QTouchEvent*> e) {
 		return false;
 	} else if (e->type() == QEvent::TouchBegin
 		&& !e->touchPoints().isEmpty()
-		&& _body->childAt(
-			_body->mapFromGlobal(
+		&& _widget->childAt(
+			_widget->mapFromGlobal(
 				e->touchPoints().cbegin()->screenPos().toPoint()))) {
 		return false;
 	}
@@ -6787,6 +7223,7 @@ bool OverlayWidget::handleTouchEvent(not_null<QTouchEvent*> e) {
 		_touchPress = true;
 		_touchMove = _touchRightButton = false;
 		_touchStart = e->touchPoints().cbegin()->screenPos().toPoint();
+		activateControls();
 	} break;
 
 	case QEvent::TouchUpdate: {
@@ -6796,6 +7233,7 @@ bool OverlayWidget::handleTouchEvent(not_null<QTouchEvent*> e) {
 		if (!_touchMove && (e->touchPoints().cbegin()->screenPos().toPoint() - _touchStart).manhattanLength() >= QApplication::startDragDistance()) {
 			_touchMove = true;
 		}
+		activateControls();
 	} break;
 
 	case QEvent::TouchEnd: {
@@ -6833,6 +7271,7 @@ bool OverlayWidget::handleTouchEvent(not_null<QTouchEvent*> e) {
 		_touchTimer.cancel();
 	} break;
 	}
+	e->accept();
 	return true;
 }
 
@@ -6999,6 +7438,9 @@ void OverlayWidget::clearBeforeHide() {
 	_groupThumbs = nullptr;
 	_groupThumbsRect = QRect();
 	_sponsoredButton = nullptr;
+	_voteButton.destroy();
+	_pollVotersWidget.destroy();
+	_pollUpdateLifetime.destroy();
 	_showRecognitionResults = false;
 }
 
@@ -7013,6 +7455,8 @@ void OverlayWidget::clearAfterHide() {
 	_radial.stop();
 	_staticContent = QImage();
 	_themePreview = nullptr;
+	_voteButton.destroyDelayed();
+	_pollVotersWidget.destroyDelayed();
 	_themeApply.destroyDelayed();
 	_themeCancel.destroyDelayed();
 	_themeShare.destroyDelayed();

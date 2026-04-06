@@ -16,6 +16,7 @@ add_subdirectory(lib_spellcheck)
 add_subdirectory(lib_storage)
 add_subdirectory(lib_lottie)
 add_subdirectory(lib_qr)
+add_subdirectory(lib_translate)
 add_subdirectory(lib_webrtc)
 add_subdirectory(lib_webview)
 add_subdirectory(codegen)
@@ -35,6 +36,7 @@ include(cmake/td_mtproto.cmake)
 include(cmake/td_scheme.cmake)
 include(cmake/td_tde2e.cmake)
 include(cmake/td_ui.cmake)
+include(cmake/telegram_apple_swift_runtime.cmake)
 include(cmake/generate_appstream_changelog.cmake)
 include(cmake/generate_fa_lang.cmake)
 
@@ -81,6 +83,7 @@ PRIVATE
     desktop-app::lib_storage
     desktop-app::lib_lottie
     desktop-app::lib_qr
+    desktop-app::lib_translate
     desktop-app::lib_webview
     desktop-app::lib_ffmpeg
     desktop-app::lib_stripe
@@ -96,6 +99,8 @@ PRIVATE
     desktop-app::external_openal
     desktop-app::external_xxhash
 )
+
+telegram_add_apple_swift_runtime(Telegram)
 
 target_precompile_headers(Telegram PRIVATE $<$<COMPILE_LANGUAGE:CXX,OBJCXX>:${src_loc}/stdafx.h>)
 nice_target_sources(Telegram ${src_loc}
@@ -128,6 +133,8 @@ PRIVATE
     api/api_common.h
     api/api_confirm_phone.cpp
     api/api_confirm_phone.h
+    api/api_compose_with_ai.cpp
+    api/api_compose_with_ai.h
     api/api_credits.cpp
     api/api_credits.h
     api/api_credits_history_entry.cpp
@@ -161,6 +168,10 @@ PRIVATE
     api/api_premium.h
     api/api_premium_option.cpp
     api/api_premium_option.h
+    api/api_reactions_notify_settings.cpp
+    api/api_reactions_notify_settings.h
+    api/api_read_metrics.cpp
+    api/api_read_metrics.h
     api/api_report.cpp
     api/api_report.h
     api/api_ringtones.cpp
@@ -221,6 +232,8 @@ PRIVATE
     boxes/peers/channel_ownership_transfer.h
     boxes/peers/choose_peer_box.cpp
     boxes/peers/choose_peer_box.h
+    boxes/peers/create_managed_bot_box.cpp
+    boxes/peers/create_managed_bot_box.h
     boxes/peers/edit_contact_box.cpp
     boxes/peers/edit_contact_box.h
     boxes/peers/edit_forum_topic_box.cpp
@@ -366,6 +379,8 @@ PRIVATE
     boxes/stickers_box.h
     boxes/transfer_gift_box.cpp
     boxes/transfer_gift_box.h
+    boxes/compose_ai_box.cpp
+    boxes/compose_ai_box.h
     boxes/translate_box.cpp
     boxes/translate_box.h
     boxes/BaseTranslator.h
@@ -492,6 +507,7 @@ PRIVATE
     chat_helpers/ttl_media_layer_widget.h
     core/application.cpp
     core/application.h
+    core/cached_webview_availability.h
     core/bank_card_click_handler.cpp
     core/bank_card_click_handler.h
     core/base_integration.cpp
@@ -680,6 +696,8 @@ PRIVATE
     data/data_photo_media.h
     data/data_poll.cpp
     data/data_poll.h
+    data/data_poll_messages.cpp
+    data/data_poll_messages.h
     data/data_premium_limits.cpp
     data/data_premium_limits.h
     data/data_pts_waiter.cpp
@@ -856,6 +874,10 @@ PRIVATE
     history/admin_log/history_admin_log_section.cpp
     history/admin_log/history_admin_log_section.h
     history/view/controls/compose_controls_common.h
+    history/view/controls/history_view_compose_ai_button.cpp
+    history/view/controls/history_view_compose_ai_button.h
+    history/view/controls/history_view_compose_ai_tooltip.cpp
+    history/view/controls/history_view_compose_ai_tooltip.h
     history/view/controls/history_view_compose_controls.cpp
     history/view/controls/history_view_compose_controls.h
     history/view/controls/history_view_compose_media_edit_manager.cpp
@@ -918,6 +940,8 @@ PRIVATE
     history/view/media/history_view_photo.h
     history/view/media/history_view_poll.cpp
     history/view/media/history_view_poll.h
+    history/view/media/menu/history_view_poll_menu.cpp
+    history/view/media/menu/history_view_poll_menu.h
     history/view/media/history_view_premium_gift.cpp
     history/view/media/history_view_premium_gift.h
     history/view/media/history_view_save_document_action.cpp
@@ -977,6 +1001,12 @@ PRIVATE
     history/view/history_view_corner_buttons.h
     history/view/history_view_cursor_state.cpp
     history/view/history_view_cursor_state.h
+    history/view/history_view_draw_to_reply.cpp
+    history/view/history_view_draw_to_reply.h
+    history/view/history_view_add_poll_option.cpp
+    history/view/history_view_add_poll_option.h
+    history/view/history_view_element_overlay.cpp
+    history/view/history_view_element_overlay.h
     history/view/history_view_element.cpp
     history/view/history_view_element.h
     history/view/history_view_emoji_interactions.cpp
@@ -1007,6 +1037,8 @@ PRIVATE
     history/view/history_view_quick_action.h
     history/view/history_view_reaction_preview.cpp
     history/view/history_view_reaction_preview.h
+    history/view/history_view_read_metrics_tracker.cpp
+    history/view/history_view_read_metrics_tracker.h
     history/view/history_view_reply.cpp
     history/view/history_view_reply.h
     history/view/history_view_reply_button.cpp
@@ -1139,6 +1171,8 @@ PRIVATE
     info/peer_gifts/info_peer_gifts_common.h
     info/peer_gifts/info_peer_gifts_widget.cpp
     info/peer_gifts/info_peer_gifts_widget.h
+    info/polls/info_polls_list_widget.cpp
+    info/polls/info_polls_list_widget.h
     info/polls/info_polls_results_inner_widget.cpp
     info/polls/info_polls_results_inner_widget.h
     info/polls/info_polls_results_widget.cpp
@@ -1280,6 +1314,12 @@ PRIVATE
     lang/lang_numbers_animation.h
     lang/lang_translator.cpp
     lang/lang_translator.h
+    lang/translate_mtproto_provider.cpp
+    lang/translate_mtproto_provider.h
+    lang/translate_provider.cpp
+    lang/translate_provider.h
+    lang/translate_url_provider.cpp
+    lang/translate_url_provider.h
     layout/layout_document_generic_preview.cpp
     layout/layout_document_generic_preview.h
     layout/layout_item_base.cpp
@@ -1302,6 +1342,8 @@ PRIVATE
     main/session/session_show.h
     media/audio/media_audio.cpp
     media/audio/media_audio.h
+    media/audio/media_audio_edit.cpp
+    media/audio/media_audio_edit.h
     media/audio/media_audio_capture.cpp
     media/audio/media_audio_capture.h
     media/audio/media_audio_capture_common.h
@@ -1321,6 +1363,8 @@ PRIVATE
     media/player/media_player_float.h
     media/player/media_player_instance.cpp
     media/player/media_player_instance.h
+    media/player/media_player_listen_tracker.cpp
+    media/player/media_player_listen_tracker.h
     media/player/media_player_panel.cpp
     media/player/media_player_panel.h
     media/player/media_player_volume_controller.cpp
@@ -1409,6 +1453,8 @@ PRIVATE
     media/system_media_controls_manager.cpp
     menu/menu_antispam_validator.cpp
     menu/menu_antispam_validator.h
+    menu/menu_dock.cpp
+    menu/menu_dock.h
     menu/menu_item_download_files.cpp
     menu/menu_item_download_files.h
     menu/menu_item_rate_transcribe_session.cpp
@@ -1451,6 +1497,8 @@ PRIVATE
     overview/overview_layout.cpp
     overview/overview_layout.h
     overview/overview_layout_delegate.h
+    poll/poll_media_upload.cpp
+    poll/poll_media_upload.h
     passport/passport_encryption.cpp
     passport/passport_encryption.h
     passport/passport_form_controller.cpp
@@ -1492,6 +1540,8 @@ PRIVATE
     platform/linux/overlay_widget_linux.h
     platform/linux/specific_linux.cpp
     platform/linux/specific_linux.h
+    platform/linux/translate_provider_linux.cpp
+    platform/linux/translate_provider_linux.h
     platform/linux/tray_linux.cpp
     platform/linux/tray_linux.h
     platform/linux/webauthn_linux.cpp
@@ -1512,8 +1562,10 @@ PRIVATE
     platform/mac/specific_mac.h
     platform/mac/specific_mac_p.mm
     platform/mac/specific_mac_p.h
-    platform/mac/tray_mac.mm
+    platform/mac/translate_provider_mac.h
+    platform/mac/translate_provider_mac.mm
     platform/mac/tray_mac.h
+    platform/mac/tray_mac.mm
     platform/mac/webauthn_mac.mm
     platform/mac/window_title_mac.mm
     platform/mac/touchbar/items/mac_formatter_item.h
@@ -1547,6 +1599,7 @@ PRIVATE
     platform/win/overlay_widget_win.h
     platform/win/specific_win.cpp
     platform/win/specific_win.h
+    platform/win/translate_provider_win.h
     platform/win/tray_win.cpp
     platform/win/tray_win.h
     platform/win/webauthn_win.cpp
@@ -1567,6 +1620,7 @@ PRIVATE
     platform/platform_overlay_widget.cpp
     platform/platform_overlay_widget.h
     platform/platform_specific.h
+    platform/platform_translate_provider.h
     platform/platform_tray.h
     platform/platform_webauthn.h
     platform/platform_window_title.h
@@ -1630,6 +1684,8 @@ PRIVATE
     settings/settings_codes.h
     settings/settings_common_session.cpp
     settings/settings_common_session.h
+    settings/detailed_settings_button.cpp
+    settings/detailed_settings_button.h
     settings/sections/settings_credits.cpp
     settings/sections/settings_credits.h
     settings/settings_credits_graphics.cpp
@@ -1658,6 +1714,8 @@ PRIVATE
     settings/sections/settings_notifications.h
     settings/sections/settings_privacy_security.cpp
     settings/sections/settings_privacy_security.h
+    settings/sections/settings_notifications_reactions.cpp
+    settings/sections/settings_notifications_reactions.h
     settings/sections/settings_notifications_type.cpp
     settings/sections/settings_notifications_type.h
     settings/sections/settings_passkeys.cpp
@@ -1745,6 +1803,8 @@ PRIVATE
     ui/chat/choose_theme_controller.h
     ui/chat/sponsored_message_bar.cpp
     ui/chat/sponsored_message_bar.h
+    ui/controls/compose_ai_button_factory.cpp
+    ui/controls/compose_ai_button_factory.h
     ui/controls/emoji_button_factory.cpp
     ui/controls/emoji_button_factory.h
     ui/controls/location_picker.cpp
@@ -1774,8 +1834,6 @@ PRIVATE
     ui/image/image_location_factory.h
     ui/text/format_song_document_name.cpp
     ui/text/format_song_document_name.h
-    ui/toast/toast_lottie_icon.cpp
-    ui/toast/toast_lottie_icon.h
     ui/widgets/expandable_peer_list.cpp
     ui/widgets/expandable_peer_list.h
     ui/widgets/chat_filters_tabs_strip.cpp

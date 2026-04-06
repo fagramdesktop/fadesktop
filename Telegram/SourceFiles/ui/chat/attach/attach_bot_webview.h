@@ -79,6 +79,11 @@ struct SendPreparedMessageRequest {
 	Fn<void(QString)> callback;
 };
 
+struct RequestChatRequest {
+	QString requestId;
+	Fn<void(QString)> callback;
+};
+
 class Delegate {
 public:
 	[[nodiscard]] virtual Webview::ThemeParams botThemeParams() = 0;
@@ -111,6 +116,7 @@ public:
 	virtual void botDownloadFile(DownloadFileRequest request) = 0;
 	virtual void botSendPreparedMessage(
 		SendPreparedMessageRequest request) = 0;
+	virtual void botRequestChat(RequestChatRequest request) = 0;
 	virtual void botVerifyAge(int age) = 0;
 	virtual void botOpenPrivacyPolicy() = 0;
 	virtual void botClose() = 0;
@@ -176,6 +182,7 @@ private:
 	void sendDataMessage(const QJsonObject &args);
 	void switchInlineQueryMessage(const QJsonObject &args);
 	void processSendMessageRequest(const QJsonObject &args);
+	void processRequestChat(const QJsonObject &args);
 	void processEmojiStatusRequest(const QJsonObject &args);
 	void processEmojiStatusAccessRequest();
 	void processStorageSaveKey(const QJsonObject &args);

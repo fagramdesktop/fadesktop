@@ -585,7 +585,7 @@ void FieldAutocomplete::updateFiltered(bool resetScroll) {
 			bots.emplace(_user, &_user->botInfo->commands);
 		} else if (_channel && _channel->isMegagroup()) {
 			if (_channel->mgInfo->bots.empty()) {
-				if (!_channel->mgInfo->botStatus) {
+				if (_channel->mgInfo->botStatus == Data::BotStatus::Unknown) {
 					_channel->session().api().chatParticipants().requestBots(
 						_channel);
 				}
@@ -615,7 +615,7 @@ void FieldAutocomplete::updateFiltered(bool resetScroll) {
 				};
 			};
 			brows.reserve(cnt);
-			int32 botStatus = _chat ? _chat->botStatus : ((_channel && _channel->isMegagroup()) ? _channel->mgInfo->botStatus : -1);
+			const auto botStatus = _chat ? _chat->botStatus : ((_channel && _channel->isMegagroup()) ? _channel->mgInfo->botStatus : Data::BotStatus::NoBots);
 			if (_chat) {
 				for (const auto &user : _chat->lastAuthors) {
 					if (!user->isBot()) {
@@ -627,7 +627,7 @@ void FieldAutocomplete::updateFiltered(bool resetScroll) {
 					}
 					for (const auto &command : *i->second) {
 						if (!listAllSuggestions) {
-							auto toFilter = (hasUsername || botStatus == 0 || botStatus == 2)
+							auto toFilter = (hasUsername || botStatus != Data::BotStatus::NoBots)
 								? command.command + '@' + PrimaryUsername(user)
 								: command.command;
 							if (!toFilter.startsWith(_filter, Qt::CaseInsensitive)/* || toFilter.size() == _filter.size()*/) {
@@ -645,8 +645,7 @@ void FieldAutocomplete::updateFiltered(bool resetScroll) {
 					for (const auto &command : *i->second) {
 						if (!listAllSuggestions) {
 							const auto toFilter = (hasUsername
-									|| botStatus == 0
-									|| botStatus == 2)
+									|| botStatus != Data::BotStatus::NoBots)
 								? command.command + '@' + PrimaryUsername(user)
 								: command.command;
 							if (!toFilter.startsWith(_filter, Qt::CaseInsensitive)/* || toFilter.size() == _filter.size()*/) continue;
@@ -1131,8 +1130,8 @@ void FieldAutocomplete::Inner::paintEvent(QPaintEvent *e) {
 				}
 
 				auto toHighlight = row.command;
-				int32 botStatus = _parent->chat() ? _parent->chat()->botStatus : ((_parent->channel() && _parent->channel()->isMegagroup()) ? _parent->channel()->mgInfo->botStatus : -1);
-				if (hasUsername || botStatus == 0 || botStatus == 2) {
+				const auto botStatus = _parent->chat() ? _parent->chat()->botStatus : ((_parent->channel() && _parent->channel()->isMegagroup()) ? _parent->channel()->mgInfo->botStatus : Data::BotStatus::NoBots);
+				if (hasUsername || botStatus != Data::BotStatus::NoBots) {
 					toHighlight += '@' + PrimaryUsername(user);
 				}
 				user->loadUserpic();
@@ -1302,10 +1301,9 @@ bool FieldAutocomplete::Inner::chooseAtIndex(
 				? _parent->chat()->botStatus
 				: ((_parent->channel() && _parent->channel()->isMegagroup())
 					? _parent->channel()->mgInfo->botStatus
-					: -1);
+					: Data::BotStatus::NoBots);
 
-			const auto insertUsername = (botStatus == 0
-				|| botStatus == 2
+			const auto insertUsername = (botStatus != Data::BotStatus::NoBots
 				|| _parent->filter().indexOf('@') > 0);
 			const auto commandString = QString("/%1%2").arg(
 				command,

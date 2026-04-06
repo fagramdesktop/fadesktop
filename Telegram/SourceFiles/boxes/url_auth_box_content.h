@@ -58,7 +58,8 @@ void ShowMatchCodesBox(
 	Fn<std::shared_ptr<Ui::DynamicImage>(QString)> emojiImageFactory,
 	const QString &domain,
 	const QStringList &codes,
-	Fn<void(QString)> callback);
+	Fn<void(QString)> callback,
+	bool isApp = false);
 
 void Show(
 	not_null<Ui::GenericBox*> box,
@@ -80,6 +81,7 @@ void ShowDetails(
 	const QString &platform,
 	const QString &ip,
 	const QString &region,
-	rpl::producer<QStringList> matchCodes = rpl::single(QStringList()));
+	rpl::producer<QStringList> matchCodes = rpl::single(QStringList()),
+	bool isApp = false);
 
 } // namespace UrlAuthBox

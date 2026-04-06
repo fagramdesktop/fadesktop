@@ -461,7 +461,8 @@ void FillCreditOptions(
 		rpl::producer<> showFinishes,
 		rpl::producer<QString> subtitle,
 		std::vector<Data::CreditTopupOption> preloadedTopupOptions,
-		bool dark) {
+		bool dark,
+		PeerId spendPurposePeerId) {
 	const auto options = container->add(
 		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
 			container,
@@ -655,6 +656,7 @@ void FillCreditOptions(
 					.amount = option.amount,
 					.extended = option.extended,
 					.giftPeerId = PeerId(option.giftBarePeerId),
+					.spendPurposePeerId = spendPurposePeerId,
 				};
 
 				const auto weak = base::make_weak(button);
@@ -3177,6 +3179,40 @@ void SmallBalanceBox(
 			}));
 	}();
 
+	const auto peerIfBotOrChannel = [owner](PeerId id) -> PeerId {
+		if (!id) {
+			return PeerId();
+		}
+		const auto peer = owner->peer(id);
+		if (const auto broadcast = peer->monoforumBroadcast()) {
+			return broadcast->id;
+		} else if (!peer->isBot() && !peer->isChannel()) {
+			return PeerId();
+		}
+		return id;
+	};
+	const auto purposePeerId = v::match(source, [](SmallBalanceBot value) {
+		return value.botId ? peerFromUser(value.botId) : PeerId();
+	}, [](SmallBalanceReaction value) {
+		return value.channelId ? peerFromChannel(value.channelId) : PeerId();
+	}, [=](SmallBalanceVideoStream value) {
+		return peerIfBotOrChannel(value.streamerId);
+	}, [](SmallBalanceSubscription) {
+		return PeerId();
+	}, [](SmallBalanceDeepLink) {
+		return PeerId();
+	}, [](SmallBalanceStarGift) {
+		return PeerId();
+	}, [=](SmallBalanceForMessage value) {
+		return peerIfBotOrChannel(value.recipientId);
+	}, [=](SmallBalanceForSuggest value) {
+		return peerIfBotOrChannel(value.recipientId);
+	}, [](SmallBalanceForOffer) {
+		return PeerId();
+	}, [](SmallBalanceForSearch) {
+		return PeerId();
+	});
+
 	FillCreditOptions(
 		show,
 		box->verticalLayout(),
@@ -3186,7 +3222,8 @@ void SmallBalanceBox(
 		box->showFinishes(),
 		tr::lng_credits_summary_options_subtitle(),
 		{},
-		dark);
+		dark,
+		purposePeerId);
 
 	content->setMaximumHeight(st::creditsLowBalancePremiumCoverHeight);
 	content->setMinimumHeight(st::infoLayerTopBarHeight);

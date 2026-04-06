@@ -300,6 +300,8 @@ private:
 		Ui::BotWebView::CustomMethodRequest request) override;
 	void botSendPreparedMessage(
 		Ui::BotWebView::SendPreparedMessageRequest request) override;
+	void botRequestChat(
+		Ui::BotWebView::RequestChatRequest request) override;
 	void botSetEmojiStatus(
 		Ui::BotWebView::SetEmojiStatusRequest request) override;
 	void botDownloadFile(

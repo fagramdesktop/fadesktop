@@ -1501,6 +1501,14 @@ auto HtmlWriter::Wrap::pushMessage(
 				+ "&quot;");
 		}
 		return serviceFrom + " added tasks: " + tasks.join(", ");
+	}, [&](const ActionPollAppendAnswer &data) {
+		return serviceFrom + " added &quot;"
+			+ data.option
+			+ "&quot; to the poll.";
+	}, [&](const ActionPollDeleteAnswer &data) {
+		return serviceFrom + " removed &quot;"
+			+ data.option
+			+ "&quot; from the poll.";
 	}, [&](const ActionSuggestedPostApproval &data) {
 		return serviceFrom
 			+ (data.rejected ? " rejected " : " approved ")
@@ -1571,6 +1579,10 @@ auto HtmlWriter::Wrap::pushMessage(
 			+ " made "
 			+ peers.wrapUserName(data.newCreatorId)
 			+ " the new main admin of the group";
+	}, [&](const ActionManagedBotCreated &data) {
+		return serviceFrom
+			+ " created a bot "
+			+ peers.wrapUserName(data.botId);
 	}, [](v::null_t) { return QByteArray(); });
 
 	if (!serviceText.isEmpty()) {

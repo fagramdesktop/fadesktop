@@ -40,6 +40,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "mtproto/mtproto_config.h"
 #include "core/application.h"
 #include "core/click_handler_types.h"
+#include "window/notifications_manager.h"
 #include "window/window_session_controller.h"
 #include "window/main_window.h" // Window::LogoNoMargin.
 #include "ui/image/image.h"
@@ -2359,6 +2360,7 @@ void PeerData::setIsBlocked(bool is) {
 			}
 		}
 		session().changes().peerUpdated(this, UpdateFlag::IsBlocked);
+		Core::App().notifications().checkDelayed();
 	}
 }
 

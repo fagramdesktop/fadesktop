@@ -359,10 +359,11 @@ int Selector::effectPreviewHeight() const {
 	if (_listMode != ChatHelpers::EmojiListMode::MessageEffects) {
 		return 0;
 	}
-	return st::previewMenu.shadow.extend.top()
+	const auto extend = Ui::BoxShadow::ExtendFor(st::previewMenu.shadow);
+	return extend.top()
 		+ HistoryView::Sticker::MessageEffectSize().height()
 		+ st::effectPreviewSend.height
-		+ st::previewMenu.shadow.extend.bottom();
+		+ extend.bottom();
 }
 
 QMargins Selector::marginsForShadow() const {
@@ -802,7 +803,7 @@ void Selector::paintNonTransparentExpandRect(
 		inner.y() + inner.height(),
 		inner.width(),
 		st::lineWidth,
-		st::defaultPopupMenu.shadow.fallback);
+		st::defaultPopupMenu.shadowFallback);
 }
 
 void Selector::paintExpanded(QPainter &p) {
@@ -1247,7 +1248,7 @@ bool AdjustMenuGeometryForSelector(
 		selector->effectPreviewHeight());
 	const auto willBeHeightWithoutBottomPadding = fullTop
 		+ height
-		- menu->st().shadow.extend.top();
+		- Ui::BoxShadow::ExtendFor(menu->st().shadow).top();
 	const auto additionalPaddingBottom
 		= (willBeHeightWithoutBottomPadding >= minimalHeight
 			? 0

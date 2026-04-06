@@ -124,8 +124,8 @@ public:
 		PeerId monoforumPeerId,
 		MsgId msgId);
 
-	[[nodiscard]] bool verticalSubsectionTabs(PeerId peerId) const;
-	void setVerticalSubsectionTabs(PeerId peerId, bool vertical);
+	[[nodiscard]] qint32 subsectionTabsMode(PeerId peerId) const;
+	void setSubsectionTabsMode(PeerId peerId, qint32 mode);
 
 	[[nodiscard]] bool dialogsFiltersEnabled() const {
 		return _dialogsFiltersEnabled;
@@ -211,7 +211,7 @@ private:
 	rpl::variable<bool> _archiveInMainMenu = false;
 	rpl::variable<bool> _skipArchiveInSearch = false;
 	base::flat_map<ThreadId, MsgId> _hiddenPinnedMessages;
-	base::flat_set<PeerId> _verticalSubsectionTabs;
+	base::flat_map<PeerId, qint32> _subsectionTabsModes;
 	base::flat_map<Data::DefaultNotify, ushort> _ringtoneDefaultVolumes;
 	base::flat_map<ThreadId, ushort> _ringtoneVolumes;
 	bool _dialogsFiltersEnabled = false;

@@ -60,6 +60,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/peer/color_sample.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/buttons.h"
+#include "ui/widgets/pill_tabs.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/color_contrast.h"
 #include "ui/painter.h"
@@ -1493,111 +1494,30 @@ void AddGiftSelector(
 
 Fn<void(int)> CreateTabsWidget(
 		not_null<Ui::VerticalLayout*> container,
-		const std::vector<QString> &tabs,
+		const std::vector<QString> &labels,
 		const std::vector<Fn<void()>> &callbacks) {
-	struct State {
-		int activeTab = 0;
-		Ui::Animations::Simple animation;
-		float64 animatedPosition = 0.;
-		std::vector<int> tabWidths;
-	};
-	const auto tabsContainer = container->add(
-		object_ptr<Ui::RpWidget>(container),
+	const auto tabs = container->add(
+		object_ptr<Ui::PillTabs>(
+			container,
+			labels,
+			0,
+			st::giftBoxPillTabs),
 		st::boxRowPadding,
 		style::al_top);
-	const auto state = tabsContainer->lifetime().make_state<State>();
-	const auto height = st::semiboldFont->height * 1.5;
 
-	auto totalWidth = 0;
-	state->tabWidths.reserve(tabs.size());
-	for (const auto &text : tabs) {
-		const auto width = st::semiboldFont->width(text) + height * 2;
-		state->tabWidths.push_back(width);
-		totalWidth += width;
-	}
-
-	tabsContainer->resize(totalWidth, height);
-	tabsContainer->setMaximumWidth(tabsContainer->width());
-
-	const auto switchTo = [=](int i) {
-		if (state->activeTab != i && i >= 0 && i < state->tabWidths.size()) {
-			auto targetPosition = 0.;
-			for (auto j = 0; j < i; ++j) {
-				targetPosition += state->tabWidths[j];
-			}
-			state->animation.stop();
-			state->animation.start(
-				[=](float64 v) {
-					state->animatedPosition = v;
-					tabsContainer->update();
-				},
-				state->animatedPosition,
-				targetPosition,
-				400,
-				anim::easeOutQuint);
-			state->activeTab = i;
+	tabs->activeIndexChanges(
+	) | rpl::on_next([=](int index) {
+		if (index >= 0 && index < int(callbacks.size()) && callbacks[index]) {
+			callbacks[index]();
 		}
-		if (i < callbacks.size() && callbacks[i]) {
-			callbacks[i]();
+	}, tabs->lifetime());
+
+	return [=](int index) {
+		tabs->setActiveIndex(index);
+		if (index >= 0 && index < int(callbacks.size()) && callbacks[index]) {
+			callbacks[index]();
 		}
 	};
-
-	auto left = 0;
-	for (auto i = 0; i < tabs.size(); ++i) {
-		const auto tabButton = Ui::CreateChild<Ui::AbstractButton>(
-			tabsContainer);
-		tabButton->setGeometry(left, 0, state->tabWidths[i], height);
-		tabButton->setClickedCallback([=] { switchTo(i); });
-		left += state->tabWidths[i];
-	}
-
-	const auto penWidth = st::lineWidth * 2;
-
-	tabsContainer->paintRequest() | rpl::on_next([=] {
-		auto p = QPainter(tabsContainer);
-		auto hq = PainterHighQualityEnabler(p);
-		const auto r = tabsContainer->rect();
-		auto pen = QPen(st::giftBoxTabBgActive);
-		pen.setWidthF(penWidth);
-		p.setPen(pen);
-		const auto halfPen = penWidth / 2;
-		p.drawRoundedRect(
-			QRectF(
-				halfPen,
-				halfPen,
-				r.width() - penWidth,
-				r.height() - penWidth),
-			height / 2,
-			height / 2);
-		p.setFont(st::semiboldFont);
-
-		const auto animatedLeft = state->animatedPosition;
-		const auto activeWidth = state->tabWidths[state->activeTab];
-		p.setBrush(st::giftBoxTabBgActive);
-		p.setPen(Qt::NoPen);
-		p.drawRoundedRect(
-			QRect(animatedLeft, 0, activeWidth, height),
-			height / 2,
-			height / 2);
-
-		auto left = 0;
-		for (auto i = 0; i < tabs.size(); ++i) {
-			auto textPen = QPen(state->activeTab == i
-				? st::giftBoxTabFgActive
-				: st::giftBoxTabFg);
-			textPen.setWidthF(penWidth);
-			p.setPen(textPen);
-			p.drawText(
-				QRect(left, 0, state->tabWidths[i], height),
-				tabs[i],
-				style::al_center);
-			left += state->tabWidths[i];
-		}
-	}, tabsContainer->lifetime());
-
-	state->animatedPosition = 0.;
-
-	return switchTo;
 }
 
 not_null<Info::Profile::TopBar*> CreateProfilePreview(

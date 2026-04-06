@@ -321,6 +321,18 @@ void UserData::setPersonalChannel(ChannelId channelId, MsgId messageId) {
 	}
 }
 
+UserId UserData::botManagerId() const {
+	return _botManagerId;
+}
+
+void UserData::setBotManagerId(UserId managerId) {
+	const auto changed = (_botManagerId != managerId);
+	_botManagerId = managerId;
+	if (changed) {
+		session().changes().peerUpdated(this, UpdateFlag::ManagedBot);
+	}
+}
+
 MTPInputUser UserData::inputUser() const {
 	const auto item = isLoaded() ? nullptr : owner().messageWithPeer(id);
 	if (item) {
@@ -1005,6 +1017,7 @@ void ApplyUserUpdate(not_null<UserData*> user, const MTPDuserFull &update) {
 	user->setPersonalChannel(
 		update.vpersonal_channel_id().value_or_empty(),
 		update.vpersonal_channel_message().value_or_empty());
+	user->setBotManagerId(update.vbot_manager_id().value_or_empty());
 	if (user->isSelf()) {
 		user->owner().businessInfo().applyAwaySettings(
 			FromMTP(&user->owner(), update.vbusiness_away_message()));

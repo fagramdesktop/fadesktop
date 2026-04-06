@@ -50,6 +50,8 @@ public:
 
 	void textActionsUpdated() override;
 	void activationFromTopPanel() override;
+	void touchCounterIncrement() override;
+	int touchCounterNow() override;
 
 	bool screenIsLocked() override;
 
@@ -96,6 +98,9 @@ public:
 	QString phraseMinimize() override;
 	QString phraseMaximize() override;
 	QString phraseRestore() override;
+
+private:
+	int _touchCounter = 0;
 
 };
 

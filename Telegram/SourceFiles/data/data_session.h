@@ -141,6 +141,12 @@ struct RecentJoinChat {
 	PeerId joinedPeerId = 0;
 };
 
+struct DrawToReplyRequest {
+	FullMsgId messageId;
+	uint64 photoId = 0;
+	uint64 documentId = 0;
+};
+
 struct RequestViewRepaint {
 	not_null<const HistoryView::Element*> view;
 	QRect rect;
@@ -381,6 +387,8 @@ public:
 	[[nodiscard]] rpl::producer<GiftAuctionGot> giftAuctionGots() const;
 	void requestItemRepaint(not_null<const HistoryItem*> item, QRect r = QRect());
 	[[nodiscard]] rpl::producer<not_null<const HistoryItem*>> itemRepaintRequest() const;
+	void requestDrawToReply(DrawToReplyRequest request);
+	[[nodiscard]] rpl::producer<DrawToReplyRequest> drawToReplyRequests() const;
 	void requestViewRepaint(not_null<const ViewElement*> view, QRect r = QRect());
 	[[nodiscard]] rpl::producer<RequestViewRepaint> viewRepaintRequest() const;
 	void requestItemResize(not_null<const HistoryItem*> item);
@@ -749,6 +757,9 @@ public:
 		const MTPBotApp &data);
 
 	[[nodiscard]] not_null<PollData*> poll(PollId id);
+	[[nodiscard]] HistoryItem *findItemForPoll(PollId id) const;
+	[[nodiscard]] std::vector<not_null<PeerData*>> pollRecentVoters(
+		PollId id) const;
 	not_null<PollData*> processPoll(const MTPPoll &data);
 	not_null<PollData*> processPoll(const MTPDmessageMediaPoll &data);
 
@@ -841,6 +852,7 @@ public:
 	[[nodiscard]] bool hasPendingWebPageGamePollTodoListNotification() const;
 	void sendWebPageGamePollTodoListNotifications();
 	[[nodiscard]] rpl::producer<not_null<WebPageData*>> webPageUpdates() const;
+	[[nodiscard]] rpl::producer<not_null<PollData*>> pollUpdates() const;
 
 	void channelDifferenceTooLong(not_null<ChannelData*> channel);
 	[[nodiscard]] rpl::producer<not_null<ChannelData*>> channelDifferenceTooLong() const;
@@ -1128,6 +1140,7 @@ private:
 	rpl::event_stream<not_null<HistoryItem*>> _itemShowHighlightRequest;
 	rpl::event_stream<not_null<const HistoryItem*>> _itemViewRefreshRequest;
 	rpl::event_stream<not_null<HistoryItem*>> _itemTextRefreshRequest;
+	rpl::event_stream<DrawToReplyRequest> _drawToReplyRequests;
 	rpl::event_stream<not_null<HistoryItem*>> _itemDataChanges;
 	rpl::event_stream<not_null<const HistoryItem*>> _itemRemoved;
 	rpl::event_stream<not_null<const ViewElement*>> _viewRemoved;
@@ -1234,6 +1247,7 @@ private:
 	base::flat_set<not_null<TodoListData*>> _todoListsUpdated;
 
 	rpl::event_stream<not_null<WebPageData*>> _webpageUpdates;
+	rpl::event_stream<not_null<PollData*>> _pollUpdates;
 	rpl::event_stream<not_null<ChannelData*>> _channelDifferenceTooLong;
 	rpl::event_stream<not_null<DocumentData*>> _documentLoadProgress;
 	base::flat_set<not_null<ChannelData*>> _suggestToGigagroup;

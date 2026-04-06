@@ -260,12 +260,15 @@ public:
 	[[nodiscard]] bool mentionsMe() const;
 	[[nodiscard]] bool isUnreadMention() const;
 	[[nodiscard]] bool hasUnreadReaction() const;
+	[[nodiscard]] bool hasUnreadPollVote() const;
+	void setHasUnreadPollVote();
 	[[nodiscard]] bool hasUnwatchedEffect() const;
 	bool markEffectWatched();
 	[[nodiscard]] bool isUnreadMedia() const;
 	[[nodiscard]] bool isIncomingUnreadMedia() const;
 	[[nodiscard]] bool hasUnreadMediaFlag() const;
 	void markReactionsRead();
+	void markPollVotesRead();
 	void markMediaAndMentionRead();
 	bool markContentsRead(bool fromThisClient = false);
 	void setIsPinned(bool isPinned);
@@ -497,6 +500,8 @@ public:
 	[[nodiscard]] std::vector<Data::ReactionId> chosenReactions() const;
 	[[nodiscard]] Data::ReactionId lookupUnreadReaction(
 		not_null<UserData*> from) const;
+	[[nodiscard]] QByteArray lookupUnreadPollVote(
+		not_null<PeerData*> from) const;
 	[[nodiscard]] crl::time lastReactionsRefreshTime() const;
 
 	[[nodiscard]] bool reactionsAreTags() const;
@@ -715,6 +720,8 @@ private:
 		TimeId scheduleDate);
 	[[nodiscard]] PreparedServiceText prepareTodoCompletionsText();
 	[[nodiscard]] PreparedServiceText prepareTodoAppendTasksText();
+	[[nodiscard]] PreparedServiceText preparePollAppendAnswerText();
+	[[nodiscard]] PreparedServiceText preparePollDeleteAnswerText();
 
 	[[nodiscard]] PreparedServiceText composeTodoIncompleted(
 		not_null<HistoryServiceTodoCompletions*> done);

@@ -145,7 +145,7 @@ public:
 	base::flat_map<UserId, QString> memberRanks;
 
 	UserData *creator = nullptr; // nullptr means unknown
-	int botStatus = 0; // -1 - no bots, 0 - unknown, 1 - one bot, that sees all history, 2 - other
+	Data::BotStatus botStatus = Data::BotStatus::Unknown;
 	bool joinedMessageFound = false;
 	bool adminsLoaded = false;
 	StickerSetIdentifier stickerSet;

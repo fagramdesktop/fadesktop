@@ -209,12 +209,15 @@ QSize Photo::countOptimalSize() {
 	auto maxWidth = qMax(maxActualWidth, scaled.height());
 	auto minHeight = qMax(scaled.height(), st::minPhotoSize);
 	if (_parent->hasBubble()) {
+		const auto botTop = _parent->Get<FakeBotAboutTop>();
 		const auto captionMaxWidth = _parent->textualMaxWidth();
-		const auto maxWithCaption = qMin(st::msgMaxWidth, captionMaxWidth);
-		maxWidth = qMin(qMax(maxWidth, maxWithCaption), st::msgMaxWidth);
-		minHeight = adjustHeightForLessCrop(
-			dimensions,
-			{ maxWidth, minHeight });
+		if (botTop || !_parent->data()->isFakeAboutView()) {
+			const auto maxWithCaption = qMin(st::msgMaxWidth, captionMaxWidth);
+			maxWidth = qMin(qMax(maxWidth, maxWithCaption), st::msgMaxWidth);
+			minHeight = adjustHeightForLessCrop(
+				dimensions,
+				{ maxWidth, minHeight });
+		}
 	}
 	return { maxWidth, minHeight };
 }
@@ -247,11 +250,15 @@ QSize Photo::countCurrentSize(int newWidth) {
 		if (botTop) {
 			accumulate_max(captionMaxWidth, botTop->maxWidth);
 		}
-		const auto maxWithCaption = qMin(st::msgMaxWidth, captionMaxWidth);
-		newWidth = qMin(qMax(newWidth, maxWithCaption), thumbMaxWidth);
-		newHeight = adjustHeightForLessCrop(
-			dimensions,
-			{ newWidth, newHeight });
+		if (botTop || !_parent->data()->isFakeAboutView()) {
+			const auto maxWithCaption = qMin(
+				st::msgMaxWidth,
+				captionMaxWidth);
+			newWidth = qMin(qMax(newWidth, maxWithCaption), thumbMaxWidth);
+			newHeight = adjustHeightForLessCrop(
+				dimensions,
+				{ newWidth, newHeight });
+		}
 	}
 	if (newWidth >= maxWidth()) {
 		newHeight = qMin(newHeight, minHeight());
@@ -533,8 +540,8 @@ QImage Photo::prepareImageCacheWithLarge(QSize outer, Image *large) const {
 		blurred = thumbnail;
 	} else if (const auto small = _dataMedia->image(Size::Small)) {
 		blurred = small;
-	} else {
-		blurred = large;
+		} else {
+			blurred = large;
 	}
 	const auto resize = large
 		? ::Media::Streaming::DecideFrameResize(outer, large->size())
@@ -543,9 +550,9 @@ QImage Photo::prepareImageCacheWithLarge(QSize outer, Image *large) const {
 }
 
 void Photo::paintUserpicFrame(
-		Painter &p,
-		QPoint photoPosition,
-		bool markFrameShown) const {
+	Painter &p,
+	QPoint photoPosition,
+	bool markFrameShown) const {
 	const auto autoplay = _data->videoCanBePlayed()
 		&& videoAutoplayEnabled();
 	const auto startPlay = autoplay && !_streamed;
@@ -600,9 +607,9 @@ void Photo::paintUserpicFrame(
 }
 
 void Photo::paintUserpicFrame(
-		Painter &p,
-		const PaintContext &context,
-		QPoint photoPosition) const {
+	Painter &p,
+	const PaintContext &context,
+	QPoint photoPosition) const {
 	paintUserpicFrame(p, photoPosition, !context.paused);
 
 	if (_data->videoCanBePlayed() && !_streamed) {
@@ -632,6 +639,9 @@ void Photo::paintUserpicFrame(
 QSize Photo::photoSize() const {
 	if (_storyId) {
 		return { kStoryWidth, kStoryHeight };
+	} else if (_parent->data()->isFakeAboutView()
+		&& !_parent->Get<FakeBotAboutTop>()) {
+		return { st::managedBotImageWidth, st::managedBotImageHeight };
 	}
 	return QSize(_data->width(), _data->height());
 }

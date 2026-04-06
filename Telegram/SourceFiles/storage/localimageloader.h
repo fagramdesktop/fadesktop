@@ -24,8 +24,7 @@ constexpr auto kFileSizeLimit = 2'000 * int64(1024 * 1024);
 // Load files up to 4'000 MB.
 constexpr auto kFileSizePremiumLimit = 4'000 * int64(1024 * 1024);
 
-extern const char kOptionSendLargePhotos[];
-
+[[nodiscard]] int PhotoSideLimit(bool large);
 [[nodiscard]] int PhotoSideLimit();
 
 enum class SendMediaType {
@@ -232,6 +231,7 @@ public:
 		bool spoiler = false;
 		std::shared_ptr<SendingAlbum> album;
 		bool forceFile = false;
+		bool sendLargePhotos = false;
 		uint64 idOverride = 0;
 		QString displayName;
 	};
@@ -303,6 +303,7 @@ private:
 	TextWithTags _caption;
 	bool _spoiler = false;
 	bool _forceFile = false;
+	bool _sendLargePhotos = false;
 
 	std::shared_ptr<FilePrepareResult> _result;
 

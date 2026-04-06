@@ -372,7 +372,7 @@ void EditWebPageOptions(
 		Data::WebPageDraft draft,
 		Fn<void(Data::WebPageDraft)> done) {
 	show->show(Box([=](not_null<Ui::GenericBox*> box) {
-		box->setTitle(rpl::single(u"Link Preview"_q));
+		box->setTitle(u"Link Preview"_q);
 
 		struct State {
 			rpl::variable<Data::WebPageDraft> result;

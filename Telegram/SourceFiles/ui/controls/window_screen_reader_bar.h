@@ -7,18 +7,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
-class QWidget;
-
-namespace style {
-struct Toast;
-} // namespace style
+#include "base/object_ptr.h"
 
 namespace Ui {
+class RpWidget;
 
-void AddLottieToToast(
-	not_null<QWidget*> widget,
-	const style::Toast &st,
-	QSize iconSize,
-	const QString &name);
+[[nodiscard]] object_ptr<RpWidget> CreateScreenReaderBar(
+	not_null<QWidget*> parent,
+	Fn<void()> disableCallback);
 
 } // namespace Ui

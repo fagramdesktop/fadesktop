@@ -324,10 +324,16 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_sure_enable_socks" = "Are you sure you want to enable this proxy?\n\nServer: {server}\nPort: {port}\n\nYou can change your proxy server later in Settings > Advanced > Connection Type.";
 "lng_sure_enable" = "Enable";
 "lng_proxy_box_title" = "Enable proxy";
+"lng_proxy_box_table_title" = "Proxy Server";
+"lng_proxy_box_table_button" = "Connect Proxy";
+"lng_proxy_box_table_checking" = "Checking…";
+"lng_proxy_box_table_available" = "Available (ping: {ping} ms)";
+"lng_proxy_box_table_unavailable" = "Not Available";
 "lng_proxy_box_server" = "Server";
 "lng_proxy_box_port" = "Port";
 "lng_proxy_box_secret" = "Secret";
 "lng_proxy_box_status" = "Status";
+"lng_proxy_box_check_status" = "Check Status";
 "lng_proxy_box_username" = "Username";
 "lng_proxy_box_password" = "Password";
 "lng_proxy_invalid" = "The proxy link is invalid.";
@@ -564,6 +570,19 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_notification_private_chats" = "Private chats";
 "lng_notification_groups" = "Groups";
 "lng_notification_channels" = "Channels";
+"lng_notification_reactions" = "Reactions";
+"lng_notification_reactions_title" = "Notifications for reactions";
+"lng_notification_reactions_notify_about" = "Notify me about";
+"lng_notification_reactions_messages" = "Messages";
+"lng_notification_reactions_messages_full" = "Reactions to my messages";
+"lng_notification_reactions_poll_votes" = "Poll votes";
+"lng_notification_reactions_poll_votes_full" = "Votes in my polls";
+"lng_notification_reactions_from" = "Notify about reactions from";
+"lng_notification_reactions_from_nobody" = "Off";
+"lng_notification_reactions_from_contacts" = "From my contacts";
+"lng_notification_reactions_from_all" = "From everyone";
+"lng_notification_reactions_settings" = "Settings";
+"lng_notification_reactions_show_sender" = "Show sender's name";
 "lng_notification_click_to_change" = "Click here to change";
 "lng_notification_on" = "On, {exceptions}";
 "lng_notification_off" = "Off, {exceptions}";
@@ -610,6 +629,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_reaction_game" = "{reaction} to your game";
 "lng_reaction_invoice" = "{reaction} to your invoice";
 "lng_reaction_gif" = "{reaction} to your GIF";
+
+"lng_poll_vote_option" = "voted for \"{option}\" in your poll";
+"lng_poll_vote" = "voted in your poll \"{title}\"";
+"lng_poll_vote_notext" = "voted in your poll";
 
 "lng_effect_add_title" = "Add an animated effect";
 "lng_effect_stickers_title" = "Effects from stickers";
@@ -659,6 +682,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 "lng_settings_section_chat_settings" = "Chat Settings";
 "lng_settings_replace_emojis" = "Replace emoji automatically";
+"lng_settings_system_text_replace" = "System text replacements";
 "lng_settings_suggest_emoji" = "Suggest emoji replacements";
 "lng_settings_suggest_animated_emoji" = "Suggest animated emoji";
 "lng_settings_suggest_by_emoji" = "Suggest popular stickers by emoji";
@@ -830,6 +854,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_settings_theme_default_day" = "Default Day";
 "lng_settings_theme_default_night" = "Default Night";
 "lng_settings_theme_accent_title" = "Choose accent color";
+"lng_settings_theme_system_accent_color" = "System accent color";
 "lng_settings_data_storage" = "Data and storage";
 "lng_settings_information" = "Edit profile";
 "lng_settings_my_account" = "My Account";
@@ -1620,6 +1645,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_profile_photos#other" = "{count} photos";
 "lng_profile_gifs#one" = "{count} GIF";
 "lng_profile_gifs#other" = "{count} GIFs";
+"lng_profile_polls#one" = "{count} poll";
+"lng_profile_polls#other" = "{count} polls";
 "lng_profile_videos#one" = "{count} video";
 "lng_profile_videos#other" = "{count} videos";
 "lng_profile_songs#one" = "{count} audio file";
@@ -1788,6 +1815,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_media_type_files" = "Files";
 "lng_media_type_audios" = "Voice messages";
 "lng_media_type_links" = "Shared links";
+"lng_media_type_polls" = "Polls";
+"lng_polls_search_none" = "No polls found";
 "lng_media_type_rounds" = "Video messages";
 "lng_media_saved_music_your" = "Your playlist";
 "lng_media_saved_music_title" = "Playlist";
@@ -1816,6 +1845,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_media_selected_audio#other" = "{count} Voice messages";
 "lng_media_selected_link#one" = "{count} shared link";
 "lng_media_selected_link#other" = "{count} shared links";
+"lng_media_selected_poll#one" = "{count} Poll";
+"lng_media_selected_poll#other" = "{count} Polls";
 "lng_media_photo_empty" = "No photos here yet";
 "lng_media_gif_empty" = "No GIFs here yet";
 "lng_media_video_empty" = "No videos here yet";
@@ -2461,11 +2492,15 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_action_topic_created_inside" = "Topic created";
 "lng_action_topic_closed_inside" = "Topic closed";
 "lng_action_topic_reopened_inside" = "Topic reopened";
+"lng_action_topic_closed_inside_by" = "{from} closed the topic";
+"lng_action_topic_reopened_inside_by" = "{from} reopened the topic";
 "lng_action_topic_hidden_inside" = "Topic hidden";
 "lng_action_topic_unhidden_inside" = "Topic unhidden";
 "lng_action_topic_created" = "The topic \"{topic}\" was created";
 "lng_action_topic_closed" = "\"{topic}\" was closed";
 "lng_action_topic_reopened" = "\"{topic}\" was reopened";
+"lng_action_topic_closed_by" = "{from} closed \"{topic}\"";
+"lng_action_topic_reopened_by" = "{from} reopened \"{topic}\"";
 "lng_action_topic_hidden" = "\"{topic}\" was hidden";
 "lng_action_topic_unhidden" = "\"{topic}\" was unhidden";
 "lng_action_topic_placeholder" = "topic";
@@ -2521,6 +2556,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_action_todo_marked_not_done_self" = "You marked {tasks} as not done.";
 "lng_action_todo_added" = "{from} added {tasks} to the list.";
 "lng_action_todo_added_self" = "You added {tasks} to the list.";
+"lng_action_poll_added_answer" = "{from} added \"{option}\" to the poll.";
+"lng_action_poll_added_answer_self" = "You added \"{option}\" to the poll.";
+"lng_action_poll_deleted_answer" = "{from} removed \"{option}\" from the poll.";
+"lng_action_poll_deleted_answer_self" = "You removed \"{option}\" from the poll.";
 "lng_action_todo_tasks_fallback#one" = "task";
 "lng_action_todo_tasks_fallback#other" = "{count} tasks";
 "lng_action_todo_tasks_and_one" = "{tasks}, {task}";
@@ -2543,6 +2582,33 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_action_stake_game_lost_you" = "You lost {amount}";
 "lng_action_change_creator" = "{from} made {user} the new main admin of the group.";
 "lng_action_new_creator_pending" = "{user} will become the new main admin in 7 days if {from} does not return.";
+"lng_action_managed_bot_created" = "{from} created a bot {bot}.";
+
+"lng_create_bot_title" = "Create Bot";
+"lng_create_bot_subtitle" = "{bot} would like to create and manage a chatbot on your behalf.";
+"lng_create_bot_name_placeholder" = "Bot Name";
+"lng_create_bot_username_placeholder" = "Bot Username";
+"lng_create_bot_username_available" = "{username} is available.";
+"lng_create_bot_username_link" = "Link: {link}";
+"lng_create_bot_username_taken" = "This username is already taken.";
+"lng_create_bot_username_bad_symbols" = "Username can only contain a-z, 0-9, and underscores.";
+"lng_create_bot_username_too_short" = "Username must be at least 5 characters.";
+"lng_create_bot_button" = "Create";
+"lng_managed_bot_label" = "{icon} Created and managed by {bot}.";
+"lng_managed_bot_ready" = "**{name}** is ready!\n\nClick **Start** below to test your new chatbot. Its behavior is defined by **{parent}**.";
+"lng_managed_bot_created_title" = "{name} created!";
+"lng_managed_bot_created_text" = "{parent_name} will manage this bot for you.";
+"lng_managed_bot_edit_photo" = "You can edit your bot's profile picture {link}";
+"lng_managed_bot_edit_photo_link" = "here {arrow}";
+"lng_managed_bot_set_photo" = "Set Profile Photo";
+
+"lng_create_bot_no_manage" = "{bot} doesn't have Bot Management Mode enabled.";
+
+"lng_bots_create_limit#one" = "Subscribe to {link} to create up to {premium_count} bots, or delete one of your **{count}** bot via {bot}.";
+"lng_bots_create_limit#other" = "Subscribe to {link} to create up to {premium_count} bots, or delete one of your **{count}** bots via {bot}.";
+"lng_bots_create_limit_link" = "Premium";
+"lng_bots_create_limit_final#one" = "You can create up to **{count}** bot. Delete your current ones via {bot}.";
+"lng_bots_create_limit_final#other" = "You can create up to **{count}** bots. Delete your current ones via {bot}.";
 
 "lng_stake_game_title" = "Emoji Stake";
 "lng_stake_game_beta" = "Beta";
@@ -2946,6 +3012,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_premium_summary_about_gifts" = "Gifts are collectible items you can trade or showcase on your profile.";
 "lng_premium_summary_subtitle_no_forwards" = "Disable Sharing";
 "lng_premium_summary_about_no_forwards" = "Restrict forwarding, copying, and saving content from your private chats.";
+"lng_premium_summary_subtitle_ai_compose" = "AI Tools";
+"lng_premium_summary_about_ai_compose" = "Transform your messages and entire chats in your preferred style and language.";
 "lng_premium_summary_bottom_subtitle" = "About Telegram Premium";
 "lng_premium_summary_bottom_about" = "While the free version of Telegram already gives its users more than any other messaging application, **Telegram Premium** pushes its capabilities even further.\n\n**Telegram Premium** is a paid option, because most Premium Features require additional expenses from Telegram to third parties such as data center providers and server manufacturers. Contributions from **Telegram Premium** users allow us to cover such costs and also help Telegram stay free for everyone.";
 "lng_premium_summary_button" = "Subscribe for {cost} per month";
@@ -4131,9 +4199,12 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_gift_resale_date" = "Date";
 "lng_gift_resale_count#one" = "{count} gift in resale";
 "lng_gift_resale_count#other" = "{count} gifts in resale";
+"lng_gift_resale_count_none" = "No listings";
 "lng_gift_resale_sort_price" = "Sort by Price";
 "lng_gift_resale_sort_date" = "Sort by Date";
 "lng_gift_resale_sort_number" = "Sort by Number";
+"lng_gift_resale_all_listings" = "All Listings";
+"lng_gift_resale_stars_only" = "For Stars Only";
 "lng_gift_resale_filter_all" = "Select All";
 "lng_gift_resale_model" = "Model";
 "lng_gift_resale_models#one" = "{count} Model";
@@ -4144,8 +4215,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_gift_resale_symbol" = "Symbol";
 "lng_gift_resale_symbols#one" = "{count} Symbol";
 "lng_gift_resale_symbols#other" = "{count} Symbols";
-"lng_gift_resale_switch_to_ton" = "Switch to Ton";
-"lng_gift_resale_switch_to_stars" = "Switch to Stars";
+"lng_gift_resale_search_none" = "No gifts found for your search.";
 "lng_gift_resale_early" = "You will be able to resell this gift in {duration}.";
 "lng_gift_transfer_early" = "You will be able to transfer this gift in {duration}.";
 "lng_gift_resale_transfer_early_title" = "Try Later";
@@ -4725,6 +4795,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_url_auth_login_title" = "Log in to {domain}";
 "lng_url_auth_login_button" = "Log in";
 "lng_url_auth_site_access" = "This site will receive your **name**, **username** and **profile photo**.";
+"lng_url_auth_app_access" = "This app will receive your **name**, **username** and **profile photo**.";
+"lng_url_auth_unverified_app" = "Unverified App";
 "lng_url_auth_device_label" = "Device";
 "lng_url_auth_ip_label" = "IP Address";
 "lng_url_auth_login_attempt" = "This login attempt came from the device above.";
@@ -4891,6 +4963,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_context_mark_read_all_sure_2" = "**This action cannot be undone.**";
 "lng_context_mark_read_mentions_all" = "Mark all mentions as read";
 "lng_context_mark_read_reactions_all" = "Read all reactions";
+"lng_context_mark_read_poll_votes_all" = "Read all poll votes";
 "lng_context_archive_expand" = "Expand";
 "lng_context_archive_collapse" = "Collapse";
 "lng_context_archive_to_menu" = "Move to main menu";
@@ -4947,8 +5020,16 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_context_to_msg" = "Go To Message";
 "lng_context_reply_msg" = "Reply";
 "lng_context_quote_and_reply" = "Quote & Reply";
+"lng_context_reply_with_timecode" = "Reply with timecode";
 "lng_context_reply_to_task" = "Reply to Task";
+"lng_context_reply_to_poll_option" = "Reply to Option";
+"lng_context_copy_poll_option" = "Copy Option";
+"lng_context_copy_poll_option_link" = "Copy Option Link";
+"lng_context_delete_poll_option" = "Delete Item";
+"lng_context_poll_message_tab" = "Poll";
+"lng_context_poll_option_tab" = "Option";
 "lng_context_edit_msg" = "Edit";
+"lng_context_draw" = "Edit Image";
 "lng_context_add_factcheck" = "Add Fact Check";
 "lng_context_edit_factcheck" = "Edit Fact Check";
 "lng_context_add_offer" = "Add Offer";
@@ -5047,7 +5128,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_context_noforwards_info_mine" = "You disabled copying and forwarding in this chat.";
 
 "lng_context_spoiler_effect" = "Hide with Spoiler";
-"lng_context_disable_spoiler" = "Remove Spoiler";
 "lng_context_make_paid" = "Make This Content Paid";
 "lng_context_change_price" = "Change Price";
 "lng_context_edit_cover" = "Edit Cover";
@@ -5164,6 +5244,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_send_grouped" = "Group items";
 "lng_send_compressed_one" = "Compress the image";
 "lng_send_compressed" = "Compress images";
+"lng_send_high_quality" = "High Quality";
 "lng_send_as_documents_one" = "Send as a document";
 "lng_send_as_documents" = "Send as documents";
 "lng_send_media_invalid_files" = "Sorry, no valid files found.";
@@ -5188,6 +5269,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_preview_reply_to" = "Reply to {name}";
 "lng_preview_reply_to_quote" = "Reply to quote from {name}";
 "lng_preview_reply_to_task" = "Reply to task from {title}";
+"lng_preview_reply_to_poll_option" = "Reply to poll option from {title}";
 
 "lng_suggest_bar_title" = "Suggest a Post Below";
 "lng_suggest_bar_text" = "Click to offer a price for publishing.";
@@ -5788,6 +5870,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_group_call_screen_share_stop" = "Stop Sharing";
 "lng_group_call_screen_title" = "Screen {index}";
 "lng_group_call_screen_share_audio" = "Share System Audio";
+"lng_group_call_sharing_screen_options" = "Sharing Options";
+"lng_group_call_choose_source" = "Choose Source";
 "lng_group_call_unmute" = "Unmute";
 "lng_group_call_unmute_sub" = "Hold space bar to temporarily unmute.";
 "lng_group_call_you_are_live" = "You are Live";
@@ -6774,9 +6858,13 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_language_not_ready_link" = "translations platform";
 
 "lng_translate_box_error" = "Translate failed.";
+"lng_translate_box_error_language_pack_not_installed" = "Translation requires a local language pack. Download it in System Settings.";
 
 "lng_translate_settings_subtitle" = "Translate Messages";
 "lng_translate_settings_show" = "Show Translate Button";
+"lng_translate_settings_use_platform_mac" = "Use Apple Translations";
+"lng_translate_settings_use_platform_mac_about" = "Translation on macOS won't work until you download local language packs in System Settings.";
+"lng_translate_settings_use_platform_linux" = "Use KDE's Crow Translate";
 "lng_translate_settings_chat" = "Translate Entire Chats";
 "lng_translate_settings_choose" = "Do Not Translate";
 "lng_translate_settings_about" = "The 'Translate' button will appear in the context menu of messages containing text.";
@@ -6804,6 +6892,18 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_polls_answers_none" = "No answers";
 "lng_polls_submit_votes" = "Vote";
 "lng_polls_view_results" = "View results";
+"lng_polls_view_votes#one" = "View Votes ({count})";
+"lng_polls_view_votes#other" = "View Votes ({count})";
+"lng_polls_admin_votes#one" = "{count} vote {arrow}";
+"lng_polls_admin_votes#other" = "{count} votes {arrow}";
+"lng_polls_admin_back_vote" = "{arrow} Vote";
+"lng_polls_ends_in_days#one" = "ends in {count} day";
+"lng_polls_ends_in_days#other" = "ends in {count} days";
+"lng_polls_results_in_days#one" = "results in {count} day";
+"lng_polls_results_in_days#other" = "results in {count} days";
+"lng_polls_ends_in_time" = "ends in {time}";
+"lng_polls_results_in_time" = "results in {time}";
+"lng_polls_results_after_close" = "Results will appear after the poll ends.";
 "lng_polls_retract" = "Retract vote";
 "lng_polls_stop" = "Stop poll";
 "lng_polls_stop_warning" = "If you stop this poll now, nobody will be able to vote in it anymore. This action cannot be undone.";
@@ -6813,12 +6913,36 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_polls_create_title" = "New poll";
 "lng_polls_create_question" = "Question";
 "lng_polls_create_question_placeholder" = "Ask a question";
+"lng_polls_create_description_placeholder" = "Add Description (optional)";
 "lng_polls_create_options" = "Poll options";
 "lng_polls_create_option_add" = "Add an option...";
 "lng_polls_create_limit#one" = "You can add {count} more option.";
 "lng_polls_create_limit#other" = "You can add {count} more options.";
 "lng_polls_create_maximum" = "You have added the maximum number of options.";
 "lng_polls_create_settings" = "Settings";
+"lng_polls_create_show_who_voted" = "Show Who Voted";
+"lng_polls_create_show_who_voted_about" = "Display voter name on each option.";
+"lng_polls_create_allow_multiple_answers" = "Allow Multiple Answers";
+"lng_polls_create_allow_multiple_answers_about" = "Voters can select more than one option.";
+"lng_polls_create_allow_adding_options" = "Allow Adding Options";
+"lng_polls_create_allow_adding_options_about" = "Participants can suggest new options.";
+"lng_polls_create_allow_revoting" = "Allow Revoting";
+"lng_polls_create_allow_revoting_about" = "Voters can change their vote.";
+"lng_polls_create_shuffle_options" = "Shuffle Options";
+"lng_polls_create_shuffle_options_about" = "Answers appear in random order for each voter.";
+"lng_polls_create_set_correct_answer" = "Set Correct Answer";
+"lng_polls_create_set_correct_answer_about" = "Mark one option as the right answer.";
+"lng_polls_create_set_correct_answer_about_multi" = "Mark one or more options as the right answer.";
+"lng_polls_create_limit_duration" = "Limit Duration";
+"lng_polls_create_limit_duration_about" = "Automatically close the poll at a set time.";
+"lng_polls_create_poll_duration" = "Poll Duration";
+"lng_polls_create_poll_ends" = "Poll ends";
+"lng_polls_create_hide_results" = "Hide results";
+"lng_polls_create_hide_results_about" = "If you switch this on, results will appear only after the poll closes.";
+"lng_polls_create_duration_custom" = "Custom";
+"lng_polls_create_deadline_title" = "Deadline";
+"lng_polls_create_deadline_button" = "Set Deadline";
+"lng_polls_create_deadline_expired" = "The poll deadline has already passed. Please choose a new time.";
 "lng_polls_create_anonymous" = "Anonymous Voting";
 "lng_polls_create_multiple_choice" = "Multiple Answers";
 "lng_polls_create_quiz_mode" = "Quiz Mode";
@@ -6830,6 +6954,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_polls_solution_title" = "Explanation";
 "lng_polls_solution_placeholder" = "Add a Comment (Optional)";
 "lng_polls_solution_about" = "Users will see this comment after choosing a wrong answer, good for educational purposes.";
+"lng_polls_media_uploading_toast_title" = "Please wait";
+"lng_polls_media_uploading_toast" = "Poll media is still uploading...";
+"lng_polls_ends_toast" = "Results will appear after the poll ends.";
 
 "lng_polls_poll_results_title" = "Poll results";
 "lng_polls_quiz_results_title" = "Quiz results";
@@ -6837,6 +6964,15 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_polls_show_more#other" = "Show more ({count})";
 "lng_polls_votes_collapse" = "Collapse";
 "lng_polls_vote_yesterday" = "yesterday";
+"lng_polls_option_added_by" = "Added by {user}";
+"lng_polls_context_ends" = "Results will appear after the poll ends.";
+"lng_polls_add_option" = "Add an Option";
+"lng_polls_add_option_placeholder" = "Option text...";
+"lng_polls_max_options_reached" = "Maximum number of options reached.";
+"lng_polls_add_option_duplicate" = "This option already exists.";
+"lng_polls_add_option_closed" = "This poll has been closed.";
+"lng_polls_add_option_error" = "Could not add the option. Please try again.";
+"lng_polls_add_option_save" = "Save";
 
 "lng_todo_title" = "Checklist";
 "lng_todo_title_group" = "Group Checklist";
@@ -6872,6 +7008,13 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_outdated_title_bits" = "PLEASE SWITCH TO 64 BIT OPERATING SYSTEM.";
 "lng_outdated_soon" = "Otherwise, FAgram Desktop will stop updating on {date}.";
 "lng_outdated_now" = "So that FAgram Desktop can update to newer versions.";
+
+"lng_screen_reader_bar_text" = "Telegram is working in Screen Reader mode.";
+"lng_screen_reader_bar_disable" = "Disable";
+"lng_screen_reader_confirm_text" = "Telegram detected accessibility software is being used in your system and it is working in Screen Reader friendly mode.\n\nThis may result in unexpected changes to the way Telegram user interface works.\n\nIf you do not use Screen Reader software with Telegram, please disable this mode.";
+"lng_screen_reader_confirm_disable" = "Disable";
+"lng_screen_reader_settings_title" = "Screen reader";
+"lng_screen_reader_settings_disable" = "Disable screen reader mode";
 
 "lng_filters_all" = "All chats";
 "lng_filters_all_short" = "All";
@@ -7027,6 +7170,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_photo_editor_menu_flip" = "Flip";
 "lng_photo_editor_menu_duplicate" = "Duplicate";
 
+"lng_photo_editor_crop_original" = "Original";
+"lng_photo_editor_crop_square" = "Square";
+"lng_photo_editor_crop_free" = "Free";
+
 "lng_voice_speed_slow" = "Slow";
 "lng_voice_speed_normal" = "Normal";
 "lng_voice_speed_medium" = "Medium";
@@ -7056,6 +7203,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_view_button_call" = "Join call";
 "lng_view_button_storyalbum" = "View Album";
 "lng_view_button_collection" = "View Collection";
+"lng_view_button_newbot" = "Create Bot";
 
 "lng_sponsored_hide_ads" = "Hide";
 "lng_sponsored_title" = "What are sponsored messages?";
@@ -7655,6 +7803,41 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_new_window_tooltip_ctrl" = "Use Ctrl+Click to open in New Window.";
 "lng_new_window_tooltip_cmd" = "Use Cmd+Click to open in New Window.";
 
+"lng_rename_file" = "Rename file";
+
+"lng_sr_playback_order" = "Playback order";
+"lng_sr_player_close" = "Close media player";
+"lng_sr_group_call_menu" = "Video chat menu";
+"lng_sr_search_date" = "Search by date";
+"lng_sr_cancel_search" = "Cancel search";
+"lng_sr_clear_search" = "Clear search";
+"lng_sr_scroll_to_top" = "Scroll to top";
+"lng_sr_verified_badge" = "Verified";
+"lng_sr_bot_verified_badge" = "Verified Bot";
+"lng_sr_profile_menu" = "Profile menu";
+"lng_sr_close_panel" = "Close panel";
+
+"lng_ai_compose_title" = "AI Editor";
+"lng_ai_compose_apply" = "Apply";
+"lng_ai_compose_tab_translate" = "Translate";
+"lng_ai_compose_tab_style" = "Style";
+"lng_ai_compose_tab_fix" = "Fix";
+"lng_ai_compose_original" = "Original";
+"lng_ai_compose_result" = "Result";
+"lng_ai_compose_to_language" = "To {language}";
+"lng_ai_compose_name_style" = "{name} ({style})";
+"lng_ai_compose_style_neutral" = "Neutral";
+"lng_ai_compose_emojify" = "emojify";
+"lng_ai_compose_error" = "AI request failed.";
+"lng_ai_compose_tooltip" = "Rewrite, translate, or correct your text using AI.";
+"lng_ai_compose_flood_title" = "Daily limit reached";
+"lng_ai_compose_flood_text" = "Get {link} for **50x** more AI text transformations per day.";
+"lng_ai_compose_flood_link" = "Telegram Premium";
+"lng_ai_compose_increase_limit" = "Increase Limit";
+"lng_ai_compose_select_style" = "Select Style";
+"lng_ai_compose_apply_style" = "Apply Style";
+"lng_ai_compose_style_tooltip" = "Choose Style";
+
 // Wnd specific
 
 "lng_wnd_choose_program_menu" = "Choose Default Program...";
@@ -7720,19 +7903,5 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_mac_touchbar_favorite_stickers" = "Favorite stickers";
 
 "lng_mac_hold_to_quit" = "Hold {text} to Quit";
-
-"lng_rename_file" = "Rename file";
-
-"lng_sr_playback_order" = "Playback order";
-"lng_sr_player_close" = "Close media player";
-"lng_sr_group_call_menu" = "Video chat menu";
-"lng_sr_search_date" = "Search by date";
-"lng_sr_cancel_search" = "Cancel search";
-"lng_sr_clear_search" = "Clear search";
-"lng_sr_scroll_to_top" = "Scroll to top";
-"lng_sr_verified_badge" = "Verified";
-"lng_sr_bot_verified_badge" = "Verified Bot";
-"lng_sr_profile_menu" = "Profile menu";
-"lng_sr_close_panel" = "Close panel";
 
 // Keys finished

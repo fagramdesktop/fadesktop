@@ -46,7 +46,6 @@ QByteArray SessionSettings::serialize() const {
 		+ sizeof(qint32) * 3
 		+ _hiddenPinnedMessages.size() * (sizeof(quint64) * 4)
 		+ sizeof(qint32)
-		+ _verticalSubsectionTabs.size() * sizeof(quint64)
 		+ sizeof(qint32) // _ringtoneDefaultVolumes size
 		+ (_ringtoneDefaultVolumes.size()
 			* (0
@@ -69,6 +68,8 @@ QByteArray SessionSettings::serialize() const {
 	size += sizeof(qint32) // _moderateCommonGroups size
 		+ (_moderateCommonGroups.size() * sizeof(qint32));
 	size += sizeof(qint32);
+	size += sizeof(qint32)
+		+ _subsectionTabsModes.size() * (sizeof(quint64) + sizeof(qint32));
 
 	auto result = QByteArray();
 	result.reserve(size);
@@ -120,10 +121,7 @@ QByteArray SessionSettings::serialize() const {
 				<< SerializePeerId(key.monoforumPeerId)
 				<< qint64(value.bare);
 		}
-		stream << qint32(_verticalSubsectionTabs.size());
-		for (const auto &peerId : _verticalSubsectionTabs) {
-			stream << SerializePeerId(peerId);
-		}
+		stream << qint32(0);
 		stream << qint32(_ringtoneDefaultVolumes.size());
 		for (const auto &[key, value] : _ringtoneDefaultVolumes) {
 			stream << uint8_t(key) << ushort(value);
@@ -155,6 +153,10 @@ QByteArray SessionSettings::serialize() const {
 			stream << qint32(filterId);
 		}
 		stream << qint32(_disableSharingBoxShowsCount);
+		stream << qint32(_subsectionTabsModes.size());
+		for (const auto &[peerId, mode] : _subsectionTabsModes) {
+			stream << SerializePeerId(peerId) << qint32(mode);
+		}
 	}
 
 	Ensures(result.size() == size);
@@ -214,7 +216,7 @@ void SessionSettings::addFromSerialized(const QByteArray &serialized) {
 	std::vector<int> appDictionariesEnabled;
 	qint32 appAutoDownloadDictionaries = app.autoDownloadDictionaries() ? 1 : 0;
 	base::flat_map<ThreadId, MsgId> hiddenPinnedMessages;
-	base::flat_set<PeerId> verticalSubsectionTabs;
+	base::flat_map<PeerId, qint32> subsectionTabsModes;
 	qint32 dialogsFiltersEnabled = _dialogsFiltersEnabled ? 1 : 0;
 	qint32 supportAllSilent = _supportAllSilent ? 1 : 0;
 	qint32 photoEditorHintShowsCount = _photoEditorHintShowsCount;
@@ -547,7 +549,8 @@ void SessionSettings::addFromSerialized(const QByteArray &serialized) {
 						"Bad data for SessionSettings::addFromSerialized()"));
 					return;
 				}
-				verticalSubsectionTabs.emplace(DeserializePeerId(peerId));
+				subsectionTabsModes.emplace(
+					DeserializePeerId(peerId), qint32(1));
 			}
 		}
 	}
@@ -665,6 +668,24 @@ void SessionSettings::addFromSerialized(const QByteArray &serialized) {
 	if (!stream.atEnd()) {
 		stream >> disableSharingBoxShowsCount;
 	}
+	if (!stream.atEnd()) {
+		auto count = qint32(0);
+		stream >> count;
+		if (stream.status() == QDataStream::Ok) {
+			for (auto i = 0; i != count; ++i) {
+				auto peerId = quint64();
+				auto mode = qint32(0);
+				stream >> peerId >> mode;
+				if (stream.status() != QDataStream::Ok) {
+					LOG(("App Error: "
+						"Bad data for SessionSettings::addFromSerialized()"));
+					return;
+				}
+				subsectionTabsModes.emplace(
+					DeserializePeerId(peerId), mode);
+			}
+		}
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for SessionSettings::addFromSerialized()"));
@@ -711,7 +732,7 @@ void SessionSettings::addFromSerialized(const QByteArray &serialized) {
 	_mutePeriods = std::move(mutePeriods);
 	_lastNonPremiumLimitDownload = lastNonPremiumLimitDownload;
 	_lastNonPremiumLimitUpload = lastNonPremiumLimitUpload;
-	_verticalSubsectionTabs = std::move(verticalSubsectionTabs);
+	_subsectionTabsModes = std::move(subsectionTabsModes);
 	_ringtoneDefaultVolumes = std::move(ringtoneDefaultVolumes);
 	_ringtoneVolumes = std::move(ringtoneVolumes);
 	_ratedTranscriptions = std::move(ratedTranscriptions);
@@ -864,17 +885,18 @@ void SessionSettings::setHiddenPinnedMessageId(
 	}
 }
 
-bool SessionSettings::verticalSubsectionTabs(PeerId peerId) const {
-	return _verticalSubsectionTabs.contains(peerId);
+qint32 SessionSettings::subsectionTabsMode(PeerId peerId) const {
+	const auto i = _subsectionTabsModes.find(peerId);
+	return (i != end(_subsectionTabsModes)) ? i->second : 0;
 }
 
-void SessionSettings::setVerticalSubsectionTabs(
+void SessionSettings::setSubsectionTabsMode(
 		PeerId peerId,
-		bool vertical) {
-	if (vertical) {
-		_verticalSubsectionTabs.emplace(peerId);
+		qint32 mode) {
+	if (mode) {
+		_subsectionTabsModes[peerId] = mode;
 	} else {
-		_verticalSubsectionTabs.remove(peerId);
+		_subsectionTabsModes.remove(peerId);
 	}
 }
 

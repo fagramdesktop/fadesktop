@@ -257,7 +257,8 @@ void Transcribes::summarize(not_null<HistoryItem*> item) {
 			: MTP_flags(MTPmessages_summarizeText::Flag::f_to_lang),
 		item->history()->peer->input(),
 		MTP_int(item->id),
-		langCode.isEmpty() ? MTPstring() : MTP_string(langCode)
+		langCode.isEmpty() ? MTPstring() : MTP_string(langCode),
+		MTPstring() // tone
 	)).done([=](const MTPTextWithEntities &result) {
 		const auto &data = result.data();
 		auto &entry = _summaries[id];

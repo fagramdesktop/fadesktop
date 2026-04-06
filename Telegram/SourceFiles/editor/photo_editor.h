@@ -13,6 +13,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "editor/photo_editor_common.h"
 #include "editor/photo_editor_inner_common.h"
 
+#include <array>
+
 namespace Ui {
 class LayerWidget;
 class Show;
@@ -62,6 +64,8 @@ private:
 
 	base::unique_qptr<PhotoEditorContent> _content;
 	base::unique_qptr<PhotoEditorControls> _controls;
+	std::array<Brush, 5> _brushes;
+	Brush::Tool _brushTool = Brush::Tool::Pen;
 	const std::unique_ptr<ColorPicker> _colorPicker;
 
 	rpl::variable<PhotoEditorMode> _mode = PhotoEditorMode{

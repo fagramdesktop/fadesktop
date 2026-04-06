@@ -56,6 +56,8 @@ msgSelectionOffset: 30px;
 msgSelectionBottomSkip: 5px;
 
 itemRevealDuration: 150;
+middleClickAutoscrollSpeedScale: 30px;
+middleClickAutoscrollMaxSpeed: 7200px;
 
 historyReplyTop: 2px;
 historyReplyBottom: 2px;
@@ -149,6 +151,10 @@ priceTagTextPalette: TextPalette(defaultTextPalette) {
 	linkFg: creditsBg1;
 }
 fwdTextUserpicPadding: margins(0px, 1px, 3px, 0px);
+nameRippleRadius: 4px;
+nameRipplePadding: margins(3px, 1px, 3px, 1px);
+linkRippleRadius: 3px;
+linkRipplePadding: margins(3px, 0px, 3px, 0px);
 fwdTextStyle: TextStyle(semiboldTextStyle) {
 	linkUnderline: kLinkUnderlineNever;
 }
@@ -366,6 +372,10 @@ textMoreIconEmoji: IconEmoji {
 	icon: topicButtonArrow;
 	padding: margins(-2px, 5px, 0px, 0px);
 }
+textBackIconEmoji: IconEmoji {
+	icon: icon{{ "dialogs/dialogs_topic_arrow-flip_horizontal", historyReplyIconFg }};
+	padding: margins(0px, 5px, -2px, 0px);
+}
 
 msgBotKbIconPadding: 4px;
 msgBotKbUrlIcon: icon {{ "inline_button_url", msgBotKbIconFg }};
@@ -415,10 +425,9 @@ historyDiceToast: Toast(defaultToast) {
 historyInfoToast: Toast(defaultToast) {
 	minWidth: msgMinWidth;
 	maxWidth: 380px;
-	padding: margins(54px, 13px, 19px, 12px);
-	icon: icon {{ "toast_info", toastFg }};
-	iconPosition: point(13px, 13px);
+	padding: margins(13px, 13px, 19px, 12px);
 }
+historyInfoToastIcon: icon {{ "toast/info", toastFg }};
 
 bubbleRadiusSmall: roundRadiusLarge;
 bubbleRadiusLarge: 16px;
@@ -534,6 +543,8 @@ attachPreviewThumbLayout: HistoryFileLayout {
 	thumbSize: 64px;
 	thumbSkip: 10px;
 }
+attachPreviewCaptionTopOffset: 6px;
+attachPreviewCaptionRepaintMargin: margins(0px, 2px, 0px, 2px);
 
 msgFileMinWidth: 268px;
 msgFileTopMinus: 6px;
@@ -658,58 +669,6 @@ webPageAuctionTimerPadding: margins(8px, 4px, 8px, 4px);
 webPageAuctionTimeFont: font(11px);
 webPageAuctionSubtextFont: font(12px);
 webPageAuctionPreviewPadding: margins(10px, 30px, 10px, 5px);
-
-historyPollQuestionFont: semiboldFont;
-historyPollQuestionStyle: TextStyle(defaultTextStyle) {
-	font: historyPollQuestionFont;
-}
-historyPollAnswerStyle: defaultTextStyle;
-historyPollQuestionTop: 7px;
-historyPollSubtitleSkip: 4px;
-historyPollAnswerPadding: margins(32px, 10px, 0px, 10px);
-historyPollAnswersSkip: 2px;
-historyPollPercentFont: semiboldFont;
-historyPollPercentSkip: 5px;
-historyPollPercentTop: 0px;
-historyPollTotalVotesSkip: 5px;
-historyPollFillingMin: 4px;
-historyPollFillingHeight: 4px;
-historyPollFillingRadius: 1px;
-historyPollFillingBottom: 2px;
-historyPollFillingRight: 4px;
-historyPollRadio: Radio(defaultRadio) {
-	bg: transparent;
-	untoggledFg: checkboxFg;
-	toggledFg: windowBgActive;
-	diameter: 18px;
-	thickness: 2px;
-	skip: 65px; // * 0.1
-	duration: universalDuration;
-	rippleAreaPadding: 8px;
-}
-historyPollRadioOpacity: 0.7;
-historyPollRadioOpacityOver: 1.;
-historyPollDuration: 300;
-historyPollRadialAnimation: InfiniteRadialAnimation(defaultInfiniteRadialAnimation) {
-	thickness: 2px;
-	size: size(18px, 18px);
-}
-historyPollRippleOpacity: 0.3;
-historyPollRecentVotersSkip: 4px;
-historyPollRecentVoterSize: 18px;
-historyPollRecentVoterSkip: 13px;
-historyPollBottomButtonSkip: 15px;
-historyPollBottomButtonTop: 4px;
-historyPollChoiceRight: icon {{ "poll_choice_right", activeButtonFg }};
-historyPollChoiceWrong: icon {{ "poll_choice_wrong", activeButtonFg }};
-historyPollOutChoiceRight: icon {{ "poll_choice_right", historyFileOutIconFg }};
-historyPollOutChoiceRightSelected: icon {{ "poll_choice_right", historyFileOutIconFgSelected }};
-historyPollInChoiceRight: icon {{ "poll_choice_right", historyFileInIconFg }};
-historyPollInChoiceRightSelected: icon {{ "poll_choice_right", historyFileInIconFgSelected }};
-historyPollOutChosen: icon {{ "poll_select_check", historyFileOutIconFg }};
-historyPollOutChosenSelected: icon {{ "poll_select_check", historyFileOutIconFgSelected }};
-historyPollInChosen: icon {{ "poll_select_check", historyFileInIconFg }};
-historyPollInChosenSelected: icon {{ "poll_select_check", historyFileInIconFgSelected }};
 
 historyChecklistTaskPadding: margins(32px, 12px, 0px, 12px);
 historyChecklistCheckedTop: 4px;
@@ -848,6 +807,8 @@ popupMenuExpandedSeparator: PopupMenu(popupMenuWithIcons) {
 		separator: expandedMenuSeparator;
 	}
 }
+
+menuTimecodeFont: font(7px semibold);
 
 whoReadMenu: PopupMenu(popupMenuExpandedSeparator) {
 	scrollPadding: margins(0px, 6px, 0px, 4px);
@@ -1196,10 +1157,6 @@ previewMenu: PopupMenu(defaultPopupMenu) {
 	}
 	maxHeight: 420px;
 	radius: boxRadius;
-	shadow: boxRoundShadow;
-	animation: PanelAnimation(defaultPanelAnimation) {
-		shadow: boxRoundShadow;
-	}
 }
 previewTop: PeerListItem(defaultPeerListItem) {
 	height: 52px;
@@ -1368,7 +1325,12 @@ chatTabsToggle: IconButton(defaultIconButton) {
 	iconOver: icon {{ "top_bar_profile-flip_horizontal", menuIconFgOver }};
 	ripple: emptyRippleAnimation;
 }
-chatTabsToggleActive: icon {{ "top_bar_profile-flip_horizontal", windowActiveTextFg }};
+chatTabsToggleIconTop: icon {{ "chat/menu_sidebar2-24x24", menuIconFg }};
+chatTabsToggleIconTopOver: icon {{ "chat/menu_sidebar2-24x24", menuIconFgOver }};
+chatTabsToggleIconLeft: icon {{ "chat/menu_sidebar3-24x24", menuIconFg }};
+chatTabsToggleIconLeftOver: icon {{ "chat/menu_sidebar3-24x24", menuIconFgOver }};
+chatTabsToggleIconBottom: icon {{ "chat/menu_sidebar1-24x24", menuIconFg }};
+chatTabsToggleIconBottomOver: icon {{ "chat/menu_sidebar1-24x24", menuIconFgOver }};
 chatTabsScroll: ScrollArea(defaultScrollArea) {
 	barHidden: true;
 }
@@ -1538,6 +1500,10 @@ newThreadAboutIconSkip: chatIntroTitleMargin.top;
 newThreadAboutIconOuter: 60px;
 newThreadAboutIcon: icon{{ "chat/new_thread-40x40", windowFgActive }};
 
+managedBotCodeIcon: icon{{ "chat/code_tags", windowFg }};
+managedBotImageWidth: 280px;
+managedBotImageHeight: 140px;
+
 stakeBox: Box(defaultBox) {
 	buttonPadding: margins(24px, 12px, 24px, 24px);
 	buttonHeight: 42px;
@@ -1569,3 +1535,9 @@ stateChangeBadgeMargin: margins(0px, 1px, 0px, 0px);
 
 historySummaryHeaderIconSize: 30px;
 historySummaryHeaderIconSizeInner: 5px;
+
+toastCheckIcon: icon {{ "toast/check-36x36", toastFg }};
+toastCheckIconPadding: margins(12px, 8px, 12px, 8px);
+
+historySummaryStars: icon {{ "chat/summary_stars-24x24", msgServiceFg }};
+historySummaryArrows: icon {{ "chat/summary_arrows-24x24", msgServiceFg }};

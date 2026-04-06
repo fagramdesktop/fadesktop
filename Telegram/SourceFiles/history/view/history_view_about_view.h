@@ -53,6 +53,8 @@ private:
 		not_null<UserData*> user);
 	[[nodiscard]] AdminLog::OwnedItem makeBlocked();
 	[[nodiscard]] AdminLog::OwnedItem makeNewBotThread();
+	[[nodiscard]] AdminLog::OwnedItem makeManagedBotInfo(
+		not_null<UserData*> user);
 	void makeIntro(not_null<UserData*> user);
 	void setItem(AdminLog::OwnedItem item, DocumentData *sticker);
 	void setHelloChosen(not_null<DocumentData*> sticker);

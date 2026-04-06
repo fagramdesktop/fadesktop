@@ -179,7 +179,7 @@ public:
 	std::deque<not_null<UserData*>> lastAuthors;
 	base::flat_set<not_null<PeerData*>> markupSenders;
 	base::flat_map<UserId, QString> memberRanks;
-	int botStatus = 0; // -1 - no bots, 0 - unknown, 1 - one bot, that sees all history, 2 - other
+	Data::BotStatus botStatus = Data::BotStatus::Unknown;
 
 private:
 	Flags _flags;
