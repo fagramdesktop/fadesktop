@@ -15,6 +15,8 @@
   "fa_show_seconds_message_desc": "Daha hassas zamanlama için mesaj zaman damgalarında saniyeleri gösterir",
   "fa_disable_ads": "Reklamları devre dışı bırak",
   "fa_disable_ads_desc": "Sponsorlu mesajları ve reklamları kaldırır",
+  "fa_disable_ai_text_editor": "YZ Metin Düzenleyiciyi Devre Dışı Bırak",
+  "fa_disable_ai_text_editor_desc": "Sohbetlerde YZ metin düzenleyicisini devre dışı bırakır",
   "fa_show_start_token": "Bot'ta Başlatma Jetonunu Göster",
   "fa_show_start_token_desc": "Bir bot açarken başlangıç parametresi jetonunu gösterir",
   "fa_show_peer_ids": "Eş Kimliklerini Göster",

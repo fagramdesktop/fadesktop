@@ -15,6 +15,8 @@
   "fa_show_seconds_message_desc": "Wyświetla sekundy w znacznikach czasu wiadomości dla dokładniejszego pomiaru czasu",
   "fa_disable_ads": "Wyłącz reklamy",
   "fa_disable_ads_desc": "Usuwa wiadomości sponsorowane i reklamy",
+  "fa_disable_ai_text_editor": "Wyłącz edytor tekstu AI",
+  "fa_disable_ai_text_editor_desc": "Wyłącza edytor tekstu AI we wszystkich czatach",
   "fa_show_start_token": "Pokaż token startowy przy uruchomieniu bota",
   "fa_show_start_token_desc": "Pokazuje token parametru startowego przy otwieraniu bota",
   "fa_show_peer_ids": "Pokaż ID partnera",

@@ -15,6 +15,8 @@
   "fa_show_seconds_message_desc": "より正確な時間表示のため、メッセージのタイムスタンプに秒を表示します",
   "fa_disable_ads": "広告を無効化",
   "fa_disable_ads_desc": "スポンサーメッセージと広告を削除",
+  "fa_disable_ai_text_editor": "AIテキストエディタを無効にする",
+  "fa_disable_ai_text_editor_desc": "チャットでのAIテキストエディタを無効にする",
   "fa_show_start_token": "ボット起動時にスタートトークンを表示",
   "fa_show_start_token_desc": "ボットを開くときに開始パラメータトークンを表示",
   "fa_show_peer_ids": "ピアIDを表示",
