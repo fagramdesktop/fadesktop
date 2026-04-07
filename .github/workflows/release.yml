@@ -18,7 +18,7 @@ on:
       mac_run_id:
         description: "macOS build workflow run ID"
         type: string
-        required: false
+        required: true
   workflow_call:
     inputs:
       tagname:
@@ -36,7 +36,11 @@ on:
       mac_run_id:
         description: "macOS build workflow run ID"
         type: string
-        required: false
+        required: true
+
+permissions:
+  contents: write
+  actions: read
 
 jobs:
   create-release:

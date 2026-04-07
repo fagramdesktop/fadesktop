@@ -7,6 +7,10 @@ on:
         description: "Run ID to download OTA artifacts from"
         type: string
         required: true
+      mac_run_id:
+        description: "macOS build run ID for OTA artifact (optional)"
+        type: string
+        required: true
   workflow_call:
     inputs:
       run_id:
@@ -16,7 +20,7 @@ on:
       mac_run_id:
         description: "macOS build run ID for OTA artifact (optional)"
         type: string
-        required: false
+        required: true
 
 jobs:
   publish:
@@ -56,8 +60,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download macOS OTA artifact
-        if: ${{ inputs.mac_run_id != '' }}
-        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: ota-macos
@@ -69,6 +71,7 @@ jobs:
         run: |
           mkdir ota-repo && cd ota-repo
           git init
+          git lfs install --local
           git remote add origin https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/ota.git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -102,6 +105,10 @@ jobs:
 
           cd ota-repo
 
+          git lfs track "$WIN_NAME"
+          git lfs track "$LINUX_NAME"
+          [ -n "$MAC_NAME" ] && git lfs track "$MAC_NAME"
+
           python3 -c "
           import json, os
 
@@ -131,11 +138,15 @@ jobs:
               f.write('\n')
           "
 
-          GIT_ADD="$WIN_NAME $LINUX_NAME current4"
+          GIT_ADD="$WIN_NAME $LINUX_NAME current4 .gitattributes"
           [ -n "$MAC_NAME" ] && GIT_ADD="$GIT_ADD $MAC_NAME"
           git add $GIT_ADD
           git commit -m "Update to $(python3 -c "v=${{ env.APP_VERSION }}; print(f'{v//1000000}.{(v//1000)%1000}.{v%1000}')")"
-          git push --force origin main
+          OTA_BRANCH=$(git ls-remote --symref origin HEAD | sed -n 's#^ref: refs/heads/\([^[:space:]]*\)[[:space:]]\+HEAD$#\1#p')
+          if [ -z "$OTA_BRANCH" ]; then
+            OTA_BRANCH="main"
+          fi
+          git push --force origin "HEAD:$OTA_BRANCH"
 
       - name: Summary
         run: |
