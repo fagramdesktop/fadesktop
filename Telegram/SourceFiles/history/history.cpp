@@ -345,12 +345,14 @@ Data::Draft *History::createCloudDraft(
 			MessageCursor(),
 			Data::WebPageDraft()));
 		cloudDraft(topicRootId, monoforumPeerId)->date = TimeId(0);
+	} else {
+		auto existing = cloudDraft(topicRootId, monoforumPeerId);
 		if (!existing) {
 			auto reply = fromDraft->reply;
 			reply.topicRootId = topicRootId;
 			reply.monoforumPeerId = monoforumPeerId;
 			setCloudDraft(std::make_unique<Data::Draft>(
-
+				fromDraft->textWithTags,
 				reply,
 				fromDraft->suggest,
 				fromDraft->cursor,
@@ -364,15 +366,11 @@ Data::Draft *History::createCloudDraft(
 			existing->webpage = fromDraft->webpage;
 		}
 		existing->date = base::unixtime::now();
-
+		existing->reply.topicRootId = topicRootId;
 		existing->reply.monoforumPeerId = monoforumPeerId;
 		if (!suggestDraftAllowed()) {
 			existing->suggest = SuggestOptions();
 		}
-	}
-		}
-	}
-
 	}
 
 	return cloudDraft(topicRootId, monoforumPeerId);

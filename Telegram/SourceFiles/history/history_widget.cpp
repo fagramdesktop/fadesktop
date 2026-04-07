@@ -401,7 +401,8 @@ HistoryWidget::HistoryWidget(
 				MTP_vector<MTPTextWithEntities>(1, MTP_textWithEntities(
 					MTP_string(_field->getTextWithTags().text),
 					MTP_vector<MTPMessageEntity>())),
-				MTP_string(_history->translateOfferedFrom().twoLetterCode())
+				MTP_string(_history->translateOfferedFrom().twoLetterCode()),
+				MTP_string()
 			)).done([=](const MTPmessages_TranslatedText &result) {
 				setFieldText(
 					{ result.data().vresult().v[0].data().vtext().v, TextWithTags::Tags() },
@@ -9308,7 +9309,9 @@ bool HistoryWidget::cancelReplyOrSuggest(bool lastKeyboardUsed) {
 	return ok1 || ok2;
 }
 
-bool HistoryWidget::cancelReply(bool lastKeyboardUsed) {
+bool HistoryWidget::cancelReply(
+		bool lastKeyboardUsed,
+		bool keepHighlighterState) {
 	bool wasReply = false;
 	if (_replyTo) {
 		wasReply = true;
