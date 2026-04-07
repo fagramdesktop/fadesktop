@@ -490,7 +490,7 @@ void TriggerChangelogNotification(
 		not_null<HistoryItem*> item) {
 	Core::App().notifications().schedule(Data::ItemNotification{
 		.item = item,
-		.reactionSender = nullptr,
+		.reactionOrVoteSender = nullptr,
 		.type = Data::ItemNotificationType::Message,
 	});
 }
