@@ -96,6 +96,7 @@ jobs:
           echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
 
       - name: Sign OTA update
+        if: ${{ inputs.build_type == 'rel' }}
         run: |
           PACKER=$(find out -name Packer -type f | head -1)
           TELEGRAM=$(find out -name fagram -type f -not -path "*/install/*" | head -1)
@@ -122,6 +123,7 @@ jobs:
           path: out/install/fagram-${{ env.TAGNAME }}.tar.gz
 
       - name: Upload OTA Update
+        if: ${{ inputs.build_type == 'rel' }}
         uses: actions/upload-artifact@v7
         with:
           name: ota-linux

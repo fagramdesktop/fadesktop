@@ -266,7 +266,7 @@ jobs:
           echo "app_version_str_full=${APP_VERSION_STR}.0" >> $GITHUB_OUTPUT
 
       - name: Sign OTA update
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && inputs.build_type == 'rel'
         run: |
           cd %TBUILD%\%REPO_NAME%\out\Release
           Packer.exe -path fagram.exe -version %APP_VERSION% -target win64
@@ -284,7 +284,7 @@ jobs:
           7z a -tzip FAgram_Win-x64_%RELEASE_TAG%_portable.zip *.exe icon.ico
 
       - name: Prepare OTA artifact
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && inputs.build_type == 'rel'
         run: |
           cd %TBUILD%\%REPO_NAME%\out\Release
           if not exist ota mkdir ota
@@ -299,7 +299,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         name: Upload OTA Update
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && inputs.build_type == 'rel'
         with:
           name: ota-win64
           path: ${{ env.TBUILD }}/${{ env.REPO_NAME }}/out/Release/ota/

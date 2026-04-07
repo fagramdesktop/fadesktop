@@ -8,7 +8,7 @@
 
 </div>
 
-> ***✏️ Note: This is a maintained fork of FAgram Desktop. The original project by [FajoX1](https://github.com/FajoX1/fagramdesktop) has been discontinued. This fork under the [fagramdesktop](https://github.com/fagramdesktop) organization keeps the project up-to-date with upstream Telegram Desktop changes.***
+> ***✏️ Note: This fork continues FAgram Desktop. The original project by [FajoX1](https://github.com/FajoX1/fagramdesktop) has been discontinued.***
 
 > ***✏️ Source code is published under GPLv3 with OpenSSL exception, the license is available [here][license].***
 
