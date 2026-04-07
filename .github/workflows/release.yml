@@ -19,6 +19,10 @@ on:
         description: "macOS build workflow run ID"
         type: string
         required: false
+
+permissions:
+  contents: write
+  actions: read
   workflow_call:
     inputs:
       tagname:
