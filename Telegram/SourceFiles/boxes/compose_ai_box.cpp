@@ -26,6 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "settings/sections/settings_premium.h"
 #include "spellcheck/platform/platform_language.h"
+#include "ui/boxes/about_cocoon_box.h"
 #include "ui/boxes/choose_language_box.h"
 #include "ui/chat/chat_style.h"
 #include "ui/controls/labeled_emoji_tabs.h"
@@ -386,6 +387,7 @@ private:
 	void updatePinnedTabs(anim::type animated);
 	void cancelRequest();
 	void request();
+	void resetState(CardState state);
 	void applyResult(Api::ComposeWithAi::Result &&result);
 	void showError(const QString &error = {});
 	void notifyLoadingChanged();
@@ -1127,8 +1129,12 @@ void ComposeAiContent::updateTitles() {
 				? ToTitle(_to, currentTranslateStyleLabel())
 				: tr::lng_ai_compose_result(tr::now, tr::marked))
 			: tr::lng_ai_compose_original(tr::now, tr::marked));
+	const auto emojifyOnlyMode = !hasResult
+		&& (_mode == ComposeAiMode::Style)
+		&& (_styleIndex < 0);
 	_preview->setEmojifyVisible(
-		hasResult && (_mode != ComposeAiMode::Fix));
+		(hasResult && (_mode != ComposeAiMode::Fix))
+		|| emojifyOnlyMode);
 	_preview->setEmojifyChecked(_emojify);
 }
 
@@ -1154,15 +1160,13 @@ void ComposeAiContent::cancelRequest() {
 
 void ComposeAiContent::request() {
 	cancelRequest();
-	if (_mode == ComposeAiMode::Style && _styleIndex < 0) {
+	if (_mode == ComposeAiMode::Style && _styleIndex < 0 && !_emojify) {
+		if (_state != CardState::Waiting) {
+			resetState(CardState::Waiting);
+		}
 		return;
 	}
-	_state = CardState::Loading;
-	_result = {};
-	_preview->setState(CardState::Loading);
-	notifyLoadingChanged();
-	updateTitles();
-	notifyReadyChanged();
+	resetState(CardState::Loading);
 
 	auto request = Api::ComposeWithAi::Request{
 		.text = _original,
@@ -1174,7 +1178,9 @@ void ComposeAiContent::request() {
 		request.changeTone = currentTranslateStyle();
 		break;
 	case ComposeAiMode::Style:
-		request.changeTone = _stylesData[_styleIndex].id;
+		if (_styleIndex >= 0) {
+			request.changeTone = _stylesData[_styleIndex].id;
+		}
 		break;
 	case ComposeAiMode::Fix:
 		request.proofread = true;
@@ -1199,6 +1205,15 @@ void ComposeAiContent::request() {
 			weak->_requestId = 0;
 			weak->showError(error.type());
 		});
+}
+
+void ComposeAiContent::resetState(CardState state) {
+	_state = state;
+	_result = {};
+	_preview->setState(state);
+	notifyLoadingChanged();
+	updateTitles();
+	notifyReadyChanged();
 }
 
 void ComposeAiContent::applyResult(Api::ComposeWithAi::Result &&result) {
@@ -1397,8 +1412,11 @@ void ComposeAiBox(not_null<Ui::GenericBox*> box, ComposeAiBoxArgs &&args) {
 	box->setNoContentMargin(true);
 	box->setWidth(st::boxWideWidth);
 	const auto session = args.session;
-	box->addTopButton(st::boxTitleClose, [=] {
+	box->addTopButton(st::aiComposeBoxClose, [=] {
 		box->closeBox();
+	});
+	box->addTopButton(st::aiComposeBoxInfoButton, [=] {
+		box->uiShow()->show(Box(Ui::AboutCocoonBox));
 	});
 
 	const auto body = box->verticalLayout();
@@ -1493,8 +1511,11 @@ void ComposeAiBox(not_null<Ui::GenericBox*> box, ComposeAiBoxArgs &&args) {
 		}
 		*sendButton = nullptr;
 		box->clearButtons();
-		box->addTopButton(st::boxTitleClose, [=] {
+		box->addTopButton(st::aiComposeBoxClose, [=] {
 			box->closeBox();
+		});
+		box->addTopButton(st::aiComposeBoxInfoButton, [=] {
+			box->uiShow()->show(Box(Ui::AboutCocoonBox));
 		});
 
 		if (*premiumFlooded) {
@@ -1525,7 +1546,8 @@ void ComposeAiBox(not_null<Ui::GenericBox*> box, ComposeAiBoxArgs &&args) {
 				close();
 			});
 		} else if (content->mode() == ComposeAiMode::Style
-				&& !content->hasStyleSelection()) {
+				&& !content->hasStyleSelection()
+				&& !content->hasResult()) {
 			const auto btn = addApplyButton(
 				*boxStyleNoSend,
 				tr::lng_ai_compose_select_style(), nullptr);

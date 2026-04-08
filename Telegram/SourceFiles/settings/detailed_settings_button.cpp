@@ -16,6 +16,10 @@ DetailedSettingsButton::DetailedSettingsButton(
 , _style(rowStyle)
 , _title(0)
 , _description(0)
+, _toggle(std::make_unique<Ui::ToggleView>(
+	_style.button.toggle,
+	false,
+	[this] { rtlupdate(toggleRect()); }))
 , _iconForeground(icon.icon)
 , _iconBackground(icon.background)
 , _iconBackgroundBrush(std::move(icon.backgroundBrush)) {
@@ -38,10 +42,6 @@ DetailedSettingsButton::DetailedSettingsButton(
 			kDefaultTextOptions);
 		refreshLayout();
 	}, lifetime());
-	_toggle = std::make_unique<Ui::ToggleView>(
-		_style.button.toggle,
-		false,
-		[this] { rtlupdate(toggleRect()); });
 	addClickHandler([=] {
 		if (!_toggleLocked) {
 			_toggle->setChecked(!_toggle->checked(), anim::type::normal);

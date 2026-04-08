@@ -82,6 +82,20 @@ struct RightBadge : RuntimeComponent<RightBadge, Element> {
 	mutable QPoint lastPoint;
 };
 
+struct TextAppearing : RuntimeComponent<TextAppearing, Element> {
+	std::vector<Ui::Text::LineLayoutInfo> lines;
+	int textWidth = 0;
+	int shownLines = 0;
+	int revealedLineWidth = 0;
+	int shownWidth = 0;
+	int shownHeight = 0;
+	crl::time widthDuration = 0;
+	Ui::Animations::Simple widthAnimation;
+	Ui::Animations::Simple heightAnimation;
+	bool geometryValid = false;
+	bool heightStarted = false;
+};
+
 struct BottomRippleMask {
 	QImage image;
 	int shift = 0;
@@ -372,6 +386,11 @@ private:
 	[[nodiscard]] ClickHandlerPtr psaTooltipLink() const;
 	void psaTooltipToggled(bool shown) const;
 	void invalidateTextDependentCache() override;
+	void startTextAppearingWidthAnimation();
+	void startTextAppearingHeightAnimation();
+	void textAppearingTick();
+	void textAppearingHeightTick();
+	void tryAdvanceTextAppearing();
 
 	void refreshRightBadge();
 	[[nodiscard]] int rightBadgeWidth() const;

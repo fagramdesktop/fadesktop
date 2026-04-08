@@ -99,7 +99,8 @@ private:
 	void listMarkContentsRead(
 		const base::flat_set<not_null<HistoryItem*>> &items) override;
 	MessagesBarData listMessagesBar(
-		const std::vector<not_null<Element*>> &elements) override;
+		const std::vector<not_null<Element*>> &elements,
+		bool markLastAsRead) override;
 	void listContentRefreshed() override;
 	void listUpdateDateLink(
 		ClickHandlerPtr &link,
@@ -648,7 +649,8 @@ void Item::listMarkContentsRead(
 }
 
 MessagesBarData Item::listMessagesBar(
-		const std::vector<not_null<Element*>> &elements) {
+		const std::vector<not_null<Element*>> &elements,
+		bool markLastAsRead) {
 	if (elements.empty()) {
 		return {};
 	} else if (!_replies && !_sublist && !_history->unreadCount()) {

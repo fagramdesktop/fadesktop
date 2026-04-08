@@ -311,8 +311,6 @@ void ArchiveHintBox(
 			box,
 			tr::lng_archive_hint_button(),
 			st::defaultActiveButton);
-		button->setTextTransform(
-			Ui::RoundButton::TextTransform::NoTransform);
 		button->resizeToWidth(box->width()
 			- st.buttonPadding.left()
 			- st.buttonPadding.left());

@@ -242,6 +242,7 @@ struct State {
 		rpl::single(QString()),
 		st.box.button);
 	const auto raw = result.data();
+	raw->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
 
 	const auto label = Ui::CreateChild<Ui::FlatLabel>(
 		raw,

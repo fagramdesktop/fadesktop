@@ -904,7 +904,8 @@ void ApplyUserUpdate(not_null<UserData*> user, const MTPDuserFull &update) {
 			: Flag())
 		| (user->starsPerMessage() ? Flag::HasStarsPerMessage : Flag())
 		| Flag::MessageMoneyRestrictionsKnown
-		| Flag::RequiresPremiumToWrite;
+		| Flag::RequiresPremiumToWrite
+		| Flag::UnofficialSecurityRisk;
 	user->setFlags((user->flags() & ~mask)
 		| (update.is_phone_calls_private()
 			? Flag::PhoneCallsPrivate
@@ -920,6 +921,9 @@ void ApplyUserUpdate(not_null<UserData*> user, const MTPDuserFull &update) {
 		| Flag::MessageMoneyRestrictionsKnown
 		| (update.is_contact_require_premium()
 			? (Flag::RequiresPremiumToWrite | Flag::HasRequirePremiumToWrite)
+			: Flag())
+		| (update.is_unofficial_security_risk()
+			? Flag::UnofficialSecurityRisk
 			: Flag()));
 	user->setIsBlocked(update.is_blocked());
 	user->setCallsStatus(update.is_phone_calls_private()

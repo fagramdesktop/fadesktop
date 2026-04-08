@@ -186,9 +186,7 @@ FilterRowButton::FilterRowButton(
 	tr::lng_filters_recommended_add(),
 	st::settingsFilterAddRecommended)
 , _state(description.isEmpty() ? State::Normal : State::Suggested) {
-	_restore.setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
 	_restore.setFullRadius(true);
-	_add.setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
 	_add.setFullRadius(true);
 	setup(filter, description.isEmpty()
 		? ComputeCountString(session, filter)

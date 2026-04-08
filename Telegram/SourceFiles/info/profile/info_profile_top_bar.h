@@ -52,8 +52,6 @@ struct InfoPeerBadge;
 struct FlatLabel;
 } //namespace style
 
-class QGraphicsOpacityEffect;
-
 namespace Ui {
 class FlatLabel;
 class IconButton;
@@ -223,9 +221,8 @@ private:
 	object_ptr<Ui::FlatLabel> _status;
 	std::unique_ptr<StatusLabel> _statusLabel;
 	rpl::variable<int> _statusShift = 0;
-	object_ptr<Ui::RoundButton> _showLastSeen = { nullptr };
+	object_ptr<Ui::FadeWrap<Ui::RoundButton>> _showLastSeen = { nullptr };
 	object_ptr<Ui::RoundButton> _forumButton = { nullptr };
-	QGraphicsOpacityEffect *_showLastSeenOpacity = nullptr;
 
 	std::shared_ptr<style::FlatLabel> _statusSt;
 	std::shared_ptr<style::InfoPeerBadge> _botVerifySt;

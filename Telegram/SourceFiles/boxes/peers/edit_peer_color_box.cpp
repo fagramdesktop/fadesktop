@@ -1546,7 +1546,6 @@ not_null<Info::Profile::TopBar*> CreateProfilePreview(
 }
 
 void ProcessButton(not_null<Ui::RoundButton*> button) {
-	button->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
 	// Raise to be above right emoji from buttons.
 	crl::on_main(button, [=] { button->raise(); });
 }
@@ -2426,10 +2425,12 @@ void EditPeerColorBox(
 		buttonContainer,
 		tr::lng_settings_color_apply(),
 		box->getDelegate()->style().button);
+	profileButton->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
 	const auto nameButton = Ui::CreateChild<Ui::RoundButton>(
 		buttonContainer,
 		tr::lng_settings_color_apply(),
 		box->getDelegate()->style().button);
+	nameButton->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
 	rpl::combine(
 		buttonContainer->widthValue(),
 		profileButton->sizeValue(),

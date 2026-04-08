@@ -695,7 +695,6 @@ proxyApplyBoxSponsorMargin: margins(13px, 8px, 13px, 8px);
 proxyApplyBoxButton: RoundButton(defaultActiveButton) {
 	height: 38px;
 	textTop: 10px;
-	radius: 19px;
 	style: semiboldTextStyle;
 }
 proxyApplyBox: Box(defaultBox) {
@@ -1330,3 +1329,11 @@ aiComposeBoxWithSend: Box(aiComposeBox) {
 	buttonPadding: margins(16px, 12px, 66px, 12px);
 }
 aiComposeSendButtonSkip: 8px;
+aiComposeBoxClose: IconButton(boxTitleClose) {
+	ripple: defaultRippleAnimation;
+}
+aiComposeBoxInfoButton: IconButton(boxTitleClose) {
+	icon: icon {{ "menu/info", boxTitleCloseFg }};
+	iconOver: icon {{ "menu/info", boxTitleCloseFgOver }};
+	ripple: defaultRippleAnimation;
+}

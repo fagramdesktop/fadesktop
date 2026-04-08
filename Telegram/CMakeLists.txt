@@ -100,7 +100,9 @@ PRIVATE
     desktop-app::external_xxhash
 )
 
-telegram_add_apple_swift_runtime(Telegram)
+if (NOT DESKTOP_APP_DISABLE_SWIFT6)
+    telegram_add_apple_swift_runtime(Telegram)
+endif()
 
 target_precompile_headers(Telegram PRIVATE $<$<COMPILE_LANGUAGE:CXX,OBJCXX>:${src_loc}/stdafx.h>)
 nice_target_sources(Telegram ${src_loc}

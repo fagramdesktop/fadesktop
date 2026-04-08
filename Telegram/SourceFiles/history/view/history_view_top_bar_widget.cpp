@@ -152,6 +152,11 @@ TopBarWidget::TopBarWidget(
 , _onlineUpdater([=] { updateOnlineDisplay(); }) {
 	setAttribute(Qt::WA_OpaquePaintEvent);
 
+	_clear->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
+	_forward->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
+	_sendNow->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
+	_delete->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
+
 	Lang::Updated(
 	) | rpl::on_next([=] {
 		refreshLang();
@@ -1500,7 +1505,8 @@ void TopBarWidget::showSelected(SelectedState state) {
 			_delete->finishNumbersAnimation();
 		}
 	}
-	if (visibilityChanged) {
+	if (visibilityChanged
+		|| (!wasSelectedState && nowSelectedState)) {
 		updateControlsVisibility();
 	}
 	if (wasSelectedState != nowSelectedState && !_chooseForReportReason) {

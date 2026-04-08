@@ -24,6 +24,11 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 namespace Media {
 namespace View {
+namespace  {
+
+constexpr auto kEps = 0.005;
+
+} // namespace
 
 PlaybackControls::PlaybackControls(
 	QWidget *parent,
@@ -301,6 +306,26 @@ void PlaybackControls::setTimestamps(std::vector<TimestampData> timestamps) {
 
 bool PlaybackControls::hasTimestamps() const {
 	return _timestampLabel != nullptr;
+}
+
+auto PlaybackControls::nextTimestamp(float64 progress) const
+-> std::optional<TimestampData> {
+	for (const auto &ts : _timestamps) {
+		if (ts.position > progress + kEps) {
+			return ts;
+		}
+	}
+	return std::nullopt;
+}
+
+auto PlaybackControls::prevTimestamp(float64 progress) const
+-> std::optional<TimestampData> {
+	for (auto i = int(_timestamps.size()) - 1; i >= 0; --i) {
+		if (_timestamps[i].position < progress - kEps) {
+			return _timestamps[i];
+		}
+	}
+	return std::nullopt;
 }
 
 void PlaybackControls::updateTimestampLabel() {

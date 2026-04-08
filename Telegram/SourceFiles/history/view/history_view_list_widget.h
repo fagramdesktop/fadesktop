@@ -126,7 +126,8 @@ public:
 	virtual void listMarkContentsRead(
 		const base::flat_set<not_null<HistoryItem*>> &items) = 0;
 	virtual MessagesBarData listMessagesBar(
-		const std::vector<not_null<Element*>> &elements) = 0;
+		const std::vector<not_null<Element*>> &elements,
+		bool markLastAsRead) = 0;
 	virtual void listContentRefreshed() = 0;
 	virtual void listUpdateDateLink(
 		ClickHandlerPtr &link,
@@ -596,6 +597,7 @@ private:
 	void repaintItem(const Element *view, QRect rect);
 	void resizeItem(not_null<Element*> view);
 	void refreshItem(not_null<const Element*> view);
+	void viewHeightAdjusted(not_null<Element*> view);
 	void showItemHighlight(not_null<HistoryItem*> item);
 	void itemRemoved(not_null<const HistoryItem*> item);
 	QPoint mapPointToItem(QPoint point, const Element *view) const;
@@ -716,7 +718,7 @@ private:
 	TextSelection computeRenderSelection(
 		not_null<const SelectedMap*> selected,
 		not_null<const Element*> view) const;
-	void checkUnreadBarCreation();
+	void checkUnreadBarCreation(bool markLastAsRead = false);
 	void applyUpdatedScrollState();
 	void scrollToAnimationCallback(FullMsgId attachToId, int relativeTo);
 	void startItemRevealAnimations();

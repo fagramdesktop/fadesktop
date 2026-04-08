@@ -1506,6 +1506,38 @@ void History::applyServiceChanges(
 	});
 }
 
+void History::viewHeightAdjusted(not_null<Element*> view, int delta) {
+	if (view->data()->mainView() == view) {
+		mainViewHeightAdjusted(view, delta);
+	}
+	owner().notifyViewHeightAdjusted(view, delta);
+}
+
+void History::mainViewHeightAdjusted(not_null<Element*> view, int delta) {
+	const auto viewInBlock = view->indexInBlock();
+	if (viewInBlock < 0 || _width <= 0) {
+		return;
+	}
+	const auto block = view->block();
+	for (auto i = viewInBlock + 1, count = int(block->messages.size())
+		; i != count
+		; ++i) {
+		const auto view = block->messages[i].get();
+		view->setY(view->y() + delta);
+	}
+	block->resizeGetHeight(
+		_width,
+		HistoryBlock::ResizeRequest::ResizePending);
+	const auto blockInHistory = block->indexInHistory();
+	for (auto i = blockInHistory + 1, count = int(blocks.size())
+		; i != count
+		; ++i) {
+		const auto block = blocks[i].get();
+		block->setY(block->y() + delta);
+	}
+	_height += delta;
+}
+
 void History::mainViewRemoved(
 		not_null<HistoryBlock*> block,
 		not_null<HistoryView::Element*> view) {

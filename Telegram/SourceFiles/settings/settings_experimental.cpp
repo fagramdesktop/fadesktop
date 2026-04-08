@@ -19,6 +19,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/vertical_list.h"
 #include "ui/gl/gl_detection.h"
 #include "ui/chat/chat_style_radius.h"
+#include "ui/controls/compose_ai_button_factory.h"
 #include "base/options.h"
 #include "boxes/moderate_messages_box.h"
 #include "core/application.h"
@@ -233,6 +234,7 @@ void SetupExperimental(
 	addToggle(kModerateCommonGroups);
 	addToggle(kForceComposeSearchOneColumn);
 	addToggle(ChatHelpers::kOptionUnlimitedRecentStickers);
+	addToggle(Ui::kOptionHideAiButton);
 }
 
 } // namespace

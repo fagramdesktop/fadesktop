@@ -59,6 +59,7 @@ private:
 	void paintThemePreview(QRect outer) override;
 	void paintDocumentBubble(QRect outer, QRect icon) override;
 	void paintSaveMsg(QRect outer) override;
+	void paintChapter(QRect outer) override;
 	void paintControlsStart() override;
 	void paintControl(
 		Over control,
@@ -144,6 +145,7 @@ private:
 	Ui::GL::Image _documentBubbleImage;
 	Ui::GL::Image _themePreviewImage;
 	Ui::GL::Image _saveMsgImage;
+	Ui::GL::Image _chapterImage;
 	Ui::GL::Image _footerImage;
 	Ui::GL::Image _captionImage;
 	Ui::GL::Image _groupThumbsImage;

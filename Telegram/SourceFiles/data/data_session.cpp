@@ -2061,6 +2061,16 @@ rpl::producer<not_null<ViewElement*>> Session::viewResizeRequest() const {
 	return _viewResizeRequest.events();
 }
 
+void Session::notifyViewHeightAdjusted(
+		not_null<ViewElement*> view,
+		int delta) {
+	_viewHeightAdjusted.fire({ view, delta });
+}
+
+rpl::producer<Session::ViewHeightAdjusted> Session::viewHeightAdjusted() const {
+	return _viewHeightAdjusted.events();
+}
+
 void Session::requestItemShowHighlight(not_null<HistoryItem*> item) {
 	_itemShowHighlightRequest.fire_copy(item);
 }
@@ -2101,6 +2111,14 @@ void Session::requestItemTextRefresh(not_null<HistoryItem*> item) {
 	} else {
 		call(item);
 	}
+}
+
+void Session::requestItemTextRefreshStreaming(
+		not_null<HistoryItem*> item) {
+	enumerateItemViews(item, [&](not_null<ViewElement*> view) {
+		view->itemTextUpdatedStreaming();
+	});
+	requestItemResize(item);
 }
 
 void Session::registerRestricted(

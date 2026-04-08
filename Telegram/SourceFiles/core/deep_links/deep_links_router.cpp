@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/deep_links/deep_links_router.h"
 
+#include "base/qthelp_url.h"
 #include "core/deep_links/deep_links_chats.h"
 #include "core/deep_links/deep_links_contacts.h"
 #include "core/deep_links/deep_links_new.h"
@@ -34,7 +35,7 @@ Context ParseCommand(
 		for (const auto &pair : query.split('&')) {
 			const auto eq = pair.indexOf('=');
 			if (eq > 0) {
-				result.params[pair.left(eq).toLower()] = pair.mid(eq + 1);
+				result.params[pair.left(eq).toLower()] = qthelp::url_decode(pair.mid(eq + 1));
 			} else if (!pair.isEmpty()) {
 				result.params[pair.toLower()] = QString();
 			}

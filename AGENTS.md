@@ -287,6 +287,8 @@ auto margin = st::myWidgetMargin;
 auto iconSize = st::myWidgetIconSize;
 ```
 
+**Duration constants**: Animation durations should NOT go in `.style` files, this is a legacy approach. Prefer `constexpr auto kName = crl::time(N)` in an anonymous namespace in the relevant `.cpp` file.
+
 ### Usage in Code
 
 ```cpp

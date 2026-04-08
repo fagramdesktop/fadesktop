@@ -3113,7 +3113,8 @@ void ChatWidget::listMarkContentsRead(
 }
 
 MessagesBarData ChatWidget::listMessagesBar(
-		const std::vector<not_null<Element*>> &elements) {
+		const std::vector<not_null<Element*>> &elements,
+		bool markLastAsRead) {
 	if ((!_sublist && !_replies) || elements.empty()) {
 		return {};
 	}
@@ -3124,7 +3125,15 @@ MessagesBarData ChatWidget::listMessagesBar(
 	for (auto i = 0, count = int(elements.size()); i != count; ++i) {
 		const auto item = elements[i]->data();
 		if (item->isRegular() && item->id > till) {
-			if (item->out() || (_replies && !item->replyToId())) {
+			if (markLastAsRead
+				|| item->out()
+				|| (_replies && !item->replyToId())) {
+				if (markLastAsRead) {
+					if (item->isUnreadMention() && !item->isUnreadMedia()) {
+						session().api().markContentsRead(item);
+					}
+					item->markClientSideAsRead();
+				}
 				if (_replies) {
 					_replies->readTill(item);
 				} else {

@@ -724,8 +724,6 @@ void InnerWidget::refreshEmpty() {
 		) | rpl::map([](const QString &text) {
 			return Ui::Text::IconEmoji(&st::collectionAddIcon).append(text);
 		}));
-		button->setTextTransform(
-			Ui::RoundButton::TextTransform::NoTransform);
 		button->setClickedCallback([=] {
 			editAlbumStories(albumId);
 		});

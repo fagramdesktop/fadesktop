@@ -191,7 +191,6 @@ void GroupCallBar::refreshScheduledProcess() {
 				_inner.get(),
 				tr::lng_group_call_join(),
 				st::groupCallTopBarJoin);
-			_join->setTextTransform(RoundButton::TextTransform::NoTransform);
 			setupRightButton(_join.get());
 		}
 	} else if (!_scheduledProcess) {
@@ -201,6 +200,7 @@ void GroupCallBar::refreshScheduledProcess() {
 			_inner.get(),
 			_scheduledProcess->text(GroupCallScheduledLeft::Negative::Show),
 			st::groupCallTopBarOpen);
+		_open->setTextTransform(RoundButtonTextTransform::ToUpper);
 		setupRightButton(_open.get());
 		_open->widthValue(
 		) | rpl::on_next([=] {

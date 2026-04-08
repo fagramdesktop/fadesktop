@@ -76,7 +76,7 @@ using ProxyData = MTP::ProxyData;
 
 [[nodiscard]] QString ProxyDataToString(const ProxyData &proxy) {
 	using Type = ProxyData::Type;
-	return u"https://t.me/"_q
+	return u"tg://"_q
 		+ (proxy.type == Type::Socks5 ? "socks" : "proxy")
 		+ "?server=" + proxy.host + "&port=" + QString::number(proxy.port)
 		+ ((proxy.type == Type::Socks5 && !proxy.user.isEmpty())
@@ -153,9 +153,13 @@ void AddProxyFromClipboard(
 				const auto type = isSocks
 					? ProxyData::Type::Socks5
 					: ProxyData::Type::Mtproto;
-				const auto fields = url_parse_params(
+				auto fields = url_parse_params(
 					match->captured(1),
 					qthelp::UrlParamNameTransform::ToLower);
+				if (type == ProxyData::Type::Mtproto) {
+					auto &secret = fields[u"secret"_q];
+					secret.replace('+', '-').replace('/', '_');
+				}
 				const auto proxy = ProxyDataFromFields(type, fields);
 				if (!proxy) {
 					const auto status = proxy.status();
@@ -1672,6 +1676,7 @@ void ProxiesBoxController::ShowApplyConfirmation(
 				Local::writeSettings();
 				box->closeBox();
 			});
+		enableButton->setFullRadius(true);
 		box->events() | rpl::on_next([=](not_null<QEvent*> e) {
 			if ((e->type() != QEvent::KeyPress) || !enableButton) {
 				return;

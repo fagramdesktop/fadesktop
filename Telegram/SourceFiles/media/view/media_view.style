@@ -223,6 +223,19 @@ mediaviewSaveMsgHiding: 2500;
 mediaviewSaveMsgStyle: TextStyle(defaultTextStyle) {
 	font: font(16px);
 }
+mediaviewChapterPadding: margins(20px, 12px, 20px, 12px);
+mediaviewChapterFont: font(15px semibold);
+mediaviewChapterShowing: 200;
+mediaviewChapterShown: 1500;
+mediaviewChapterHiding: 400;
+mediaviewChapterArrowSize: 10px;
+mediaviewChapterArrowWidth: 6px;
+mediaviewChapterArrowShift: 16px;
+mediaviewChapterArrowGap: 12px;
+mediaviewChapterArrowSlide: 350;
+mediaviewChapterArrowPause: 1500;
+mediaviewChapterArrowFade: 300;
+
 mediaviewTextPalette: TextPalette(defaultTextPalette) {
 	linkFg: mediaviewTextLinkFg;
 	monoFg: mediaviewCaptionFg;

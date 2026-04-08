@@ -59,6 +59,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/painter.h"
 #include "ui/rect.h"
 #include "ui/power_saving.h"
+#include "ui/controls/compose_ai_button_factory.h"
 #include "ui/controls/emoji_button.h"
 #include "ui/controls/send_button.h"
 #include "ui/controls/send_as_button.h"
@@ -105,6 +106,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/history_drag_area.h"
 #include "history/history_inner_widget.h"
 #include "history/history_item_components.h"
+#include "history/history_streamed_drafts.h"
 #include "history/history_unread_things.h"
 #include "history/admin_log/history_admin_log_section.h"
 #include "history/view/controls/history_view_characters_limit.h"
@@ -656,6 +658,15 @@ HistoryWidget::HistoryWidget(
 		const auto item = view->data();
 		const auto history = item->history();
 		if (item->mainView() == view
+			&& (history == _history || history == _migrated)) {
+			updateHistoryGeometry();
+		}
+	}, lifetime());
+	session().data().viewHeightAdjusted(
+	) | rpl::on_next([=](Data::Session::ViewHeightAdjusted data) {
+		const auto item = data.view->data();
+		const auto history = item->history();
+		if (item->mainView() == data.view
 			&& (history == _history || history == _migrated)) {
 			updateHistoryGeometry();
 		}
@@ -3884,7 +3895,9 @@ void HistoryWidget::newItemAdded(not_null<HistoryItem*> item) {
 		}
 		return;
 	}
-	_itemRevealPending.emplace(item);
+	if (!item->history()->streamedDrafts().hasFor(item)) {
+		_itemRevealPending.emplace(item);
+	}
 }
 
 void HistoryWidget::maybeMarkReactionsRead(not_null<HistoryItem*> item) {
@@ -5932,8 +5945,6 @@ bool HistoryWidget::updateCmdStartShown() {
 			st::historyBotMenuButton);
 		orderWidgets();
 
-		_botMenu.button->setTextTransform(
-			Ui::RoundButton::TextTransform::NoTransform);
 		_botMenu.button->setFullRadius(true);
 		_botMenu.button->setClickedCallback([=] {
 			const auto user = _peer ? _peer->asUser() : nullptr;
@@ -6302,20 +6313,9 @@ bool HistoryWidget::hasEnoughLinesForAi() const {
 	if (FASettings::JsonSettings::GetBool(u"disable_ai_text_editor"_q)) {
 		return false;
 	}
-	if (!_history
-		|| _voiceRecordBar->isActive()
-		|| session().appConfig().aiComposeStyles().empty()) {
-		return false;
-	}
-	const auto &style = _field->st().style;
-	const auto lineHeight = style.lineHeight
-		? style.lineHeight
-		: style.font->height;
-	const auto margins = _field->fullTextMargins();
-	const auto contentHeight = _field->height()
-		- margins.top()
-		- margins.bottom();
-	return contentHeight >= (3 * lineHeight);
+	return _history
+		&& !_voiceRecordBar->isActive()
+		&& Ui::HasEnoughLinesForAi(&session(), _field);
 }
 
 void HistoryWidget::updateAiButtonVisibility() {

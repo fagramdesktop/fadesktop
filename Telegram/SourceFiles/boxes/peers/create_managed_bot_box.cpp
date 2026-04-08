@@ -125,6 +125,7 @@ void CreateManagedBotBox(
 		tr::lng_create_bot_username_placeholder(),
 		initialUsername,
 		QString());
+	username->setPlaceholderHidden(true);
 	username->setMaxLength(
 		Ui::EditPeer::kMaxUsernameLength - int(botSuffixText.size()));
 	usernameWrap->widthValue() | rpl::on_next([=](int width) {
@@ -133,6 +134,7 @@ void CreateManagedBotBox(
 	username->heightValue() | rpl::on_next([=](int height) {
 		usernameWrap->resize(usernameWrap->width(), height);
 	}, username->lifetime());
+	username->finishAnimating();
 
 	const auto botPrefix = Ui::CreateChild<Ui::FlatLabel>(
 		username,

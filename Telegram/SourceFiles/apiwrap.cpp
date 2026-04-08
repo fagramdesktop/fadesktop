@@ -2588,7 +2588,15 @@ void ApiWrap::refreshFileReference(
 			fail();
 		}
 	}, [&](Data::FileOriginPeerPhoto data) {
-		fail();
+		const auto peer = _session->data().peer(data.peerId);
+		if (const auto channel = peer->asChannel()) {
+			request(MTPchannels_GetFullChannel(
+				channel->inputChannel()));
+		} else if (const auto chat = peer->asChat()) {
+			request(MTPmessages_GetFullChat(chat->inputChat()));
+		} else {
+			fail();
+		}
 	}, [&](Data::FileOriginStickerSet data) {
 		const auto isRecentAttached
 			= (data.setId == Data::Stickers::CloudRecentAttachedSetId);

@@ -33,14 +33,17 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "apiwrap.h"
 #include "api/api_peer_photo.h"
 #include "lang/lang_keys.h"
+#include "ui/text/custom_emoji_helper.h"
 #include "ui/text/format_song_document_name.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/checkbox.h"
+#include "ui/widgets/labels.h"
 #include "ui/widgets/scroll_area.h"
 #include "ui/widgets/shadow.h"
 #include "ui/wrap/fade_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/wrap/slide_wrap.h"
+#include "ui/painter.h"
 #include "ui/vertical_list.h"
 #include "ui/ui_utility.h"
 #include "styles/style_info.h"
@@ -77,6 +80,68 @@ void AddAboutVerification(
 		}
 		inner->resizeToWidth(inner->width());
 	}, inner->lifetime());
+}
+
+void AddUnofficialSecurityRiskWarning(
+		not_null<Ui::VerticalLayout*> container,
+		not_null<UserData*> user) {
+	const auto content = container->add(
+		object_ptr<Ui::VerticalLayout>(container));
+	user->session().changes().peerFlagsValue(
+		user,
+		Data::PeerUpdate::Flag::FullInfo
+	) | rpl::on_next([=] {
+		while (content->count()) {
+			delete content->widgetAt(0);
+		}
+		if (user->unofficialSecurityRisk()) {
+			auto helper = Ui::Text::CustomEmojiHelper();
+			auto icon = helper.paletteDependent({
+				.factory = [] {
+					const auto s = st::infoSecurityRiskIconSize;
+					const auto ratio = style::DevicePixelRatio();
+					const auto rect = QRect(0, 0, s, s);
+					auto result = QImage(
+						rect.size() * ratio,
+						QImage::Format_ARGB32_Premultiplied);
+					result.setDevicePixelRatio(ratio);
+					result.fill(Qt::transparent);
+
+					auto p = QPainter(&result);
+					auto hq = PainterHighQualityEnabler(p);
+					p.setPen(Qt::NoPen);
+					p.setBrush(st::attentionButtonFg);
+					p.drawEllipse(rect);
+
+					p.setPen(st::windowFgActive);
+					p.setFont(st::semiboldFont);
+					p.drawText(rect, u"!"_q, style::al_center);
+
+					p.end();
+					return result;
+				},
+				.margin = st::infoSecurityRiskIconMargin,
+			});
+			auto label = object_ptr<Ui::FlatLabel>(
+				content,
+				tr::lng_profile_unofficial_warning(
+					lt_icon,
+					rpl::single(std::move(icon)),
+					lt_name,
+					rpl::single(TextWithEntities{ user->firstName }),
+					tr::marked),
+				st::defaultDividerLabel.label,
+				st::defaultPopupMenu,
+				helper.context([=] { content->update(); }));
+			content->add(object_ptr<Ui::DividerLabel>(
+				content,
+				std::move(label),
+				st::defaultBoxDividerLabelPadding,
+				st::defaultDividerLabel.bar,
+				RectPart::Top | RectPart::Bottom));
+		}
+		content->resizeToWidth(content->width());
+	}, content->lifetime());
 }
 
 } // namespace
@@ -125,6 +190,9 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 
 	auto result = object_ptr<Ui::VerticalLayout>(parent);
 	setupSavedMusic(result);
+	if (const auto user = _peer->asUser()) {
+		AddUnofficialSecurityRiskWarning(result.data(), user);
+	}
 	if (_topic && _topic->creating()) {
 		return result;
 	}

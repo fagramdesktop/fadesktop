@@ -146,6 +146,7 @@ void AddRecipient(not_null<Ui::GenericBox*> box, const TextWithEntities &t) {
 			rpl::single(QString()),
 			st::channelEarnHistoryRecipientButton),
 		style::al_top);
+	container->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
 	const auto label = Ui::CreateChild<Ui::FlatLabel>(
 		container,
 		rpl::single(t),
@@ -594,8 +595,6 @@ void InnerWidget::fill() {
 						container,
 						tr::lng_channel_earn_learn_close(),
 						st::defaultActiveButton);
-					button->setTextTransform(
-						Ui::RoundButton::TextTransform::NoTransform);
 					button->resizeToWidth(box->width()
 						- st.buttonPadding.left()
 						- st.buttonPadding.left());
@@ -887,6 +886,7 @@ void InnerWidget::fill() {
 				stButton),
 			st::boxRowPadding,
 			style::al_justify);
+		button->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
 
 		const auto label = Ui::CreateChild<Ui::FlatLabel>(
 			button,
@@ -1237,6 +1237,7 @@ void InnerWidget::fill() {
 								? tr::lng_channel_earn_history_out_button()
 								: tr::lng_box_ok(),
 							st::defaultActiveButton);
+						button->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
 						button->resizeToWidth(box->width()
 							- st.buttonPadding.left()
 							- st.buttonPadding.left());

@@ -201,7 +201,6 @@ PreviewWrap::PreviewWrap(
 			st::ttlMediaButton);
 		close->setFullRadius(true);
 		close->setClickedCallback(closeCallback);
-		close->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
 
 		rpl::combine(
 			sizeValue(),

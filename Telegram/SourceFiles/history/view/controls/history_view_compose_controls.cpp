@@ -92,6 +92,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/dropdown_menu.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/text/format_values.h"
+#include "ui/controls/compose_ai_button_factory.h"
 #include "ui/controls/emoji_button.h"
 #include "ui/controls/send_button.h"
 #include "ui/controls/send_as_button.h"
@@ -3080,7 +3081,6 @@ void SetupRestrictionView(
 			st->premiumRequired.button);
 		unlock->show();
 		unlock->setAttribute(Qt::WA_TransparentForMouseEvents);
-		unlock->setTextTransform(RoundButton::TextTransform::NoTransform);
 		unlock->setFullRadius(true);
 		return unlock;
 	};
@@ -3644,20 +3644,9 @@ bool ComposeControls::canSendAiComposeDirect() const {
 }
 
 bool ComposeControls::hasEnoughLinesForAi() const {
-	if (!_history
-		|| _recording.current()
-		|| session().appConfig().aiComposeStyles().empty()) {
-		return false;
-	}
-	const auto &style = _field->st().style;
-	const auto lineHeight = style.lineHeight
-		? style.lineHeight
-		: style.font->height;
-	const auto margins = _field->fullTextMargins();
-	const auto contentHeight = _field->height()
-		- margins.top()
-		- margins.bottom();
-	return contentHeight >= (3 * lineHeight);
+	return _history
+		&& !_recording.current()
+		&& Ui::HasEnoughLinesForAi(&session(), _field);
 }
 
 bool ComposeControls::updateBotCommandShown() {

@@ -130,7 +130,7 @@ enum class UserDataFlag : uint32 {
 	DiscardMinPhoto = (1 << 12),
 	Self = (1 << 13),
 	Premium = (1 << 14),
-	//CanReceiveGifts = (1 << 15),
+	UnofficialSecurityRisk = (1 << 15),
 	VoiceMessagesForbidden = (1 << 16),
 	PersonalPhoto = (1 << 17),
 	StoriesHidden = (1 << 18),
@@ -302,6 +302,10 @@ public:
 
 	[[nodiscard]] UserId botManagerId() const;
 	void setBotManagerId(UserId managerId);
+
+	[[nodiscard]] bool unofficialSecurityRisk() const {
+		return flags() & Flag::UnofficialSecurityRisk;
+	}
 
 	[[nodiscard]] MTPInputUser inputUser() const;
 

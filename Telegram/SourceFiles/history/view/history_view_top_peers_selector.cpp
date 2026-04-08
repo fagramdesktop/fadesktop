@@ -90,10 +90,11 @@ void ShowTopPeersSelector(
 	const auto contentHeight = int(
 		st::topPeersSelectorUserpicSize
 			* (1. + st::topPeersSelectorUserpicExpand));
-	const auto selectorWidth = contentWidth
-		+ 2 * st::topPeersSelectorPadding;
 	const auto selectorHeight = contentHeight
 		+ 2 * st::topPeersSelectorPadding;
+	const auto selectorWidth = (peers.size() == 1)
+		? selectorHeight
+		: (contentWidth + 2 * st::topPeersSelectorPadding);
 
 	struct State {
 		base::unique_qptr<Ui::PopupSelector> selector;
@@ -159,7 +160,10 @@ void ShowTopPeersSelector(
 					peers[info.index]->isSelf()
 						? tr::lng_saved_messages(tr::rich)
 						: NameValue(peers[info.index]) | rpl::map(tr::rich),
-					userpicsWidget->width(),
+					std::max(
+						userpicsWidget->width(),
+						st::topPeersSelectorImportantTooltipLabel.minWidth
+							+ st::lineWidth),
 					st::topPeersSelectorImportantTooltipLabel),
 				st::topPeersSelectorImportantTooltip.padding),
 			st::topPeersSelectorImportantTooltip);

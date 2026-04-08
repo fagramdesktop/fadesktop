@@ -101,6 +101,7 @@ callButtonLabel: FlatLabel(defaultFlatLabel) {
 	style: TextStyle(defaultTextStyle) {
 		font: font(11px);
 	}
+	maxHeight: 16px;
 }
 
 callAnswer: CallButton {

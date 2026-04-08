@@ -84,7 +84,8 @@ void TranscribeButton::setLoading(bool loading) {
 						item,
 						_lastPaintedPoint.isNull()
 							? QRect()
-							: QRect(_lastPaintedPoint, size()));
+							: (QRect(_lastPaintedPoint, size()))
+								+ Margins(st::lineWidth));
 				}
 			},
 			st::historyTranscribeRadialAnimation);
@@ -380,7 +381,7 @@ ClickHandlerPtr TranscribeButton::link() {
 		if (session->premium()) {
 			auto &transcribes = session->api().transcribes();
 			return summarize
-				? transcribes.toggleSummary(item, nullptr)
+				? transcribes.toggleSummary(item)
 				: transcribes.toggle(item);
 		}
 		const auto my = context.other.value<ClickHandlerContext>();
@@ -409,15 +410,7 @@ ClickHandlerPtr TranscribeButton::link() {
 				}
 			}
 			if (summarize) {
-				const auto weak = my.sessionWindow;
-				session->api().transcribes().toggleSummary(item, [=] {
-					if (const auto strong = weak.get()) {
-						Settings::ShowPremium(strong, u"summary"_q);
-						// ShowPremiumPreviewBox(
-						// 	strong,
-						// 	PremiumFeature::VoiceToText);
-					}
-				});
+				session->api().transcribes().toggleSummary(item);
 			} else {
 				session->api().transcribes().toggle(item);
 			}

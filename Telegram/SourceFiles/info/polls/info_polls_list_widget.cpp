@@ -106,8 +106,8 @@ private:
 	void listMarkContentsRead(
 		const base::flat_set<not_null<HistoryItem*>> &items) override;
 	HistoryView::MessagesBarData listMessagesBar(
-		const std::vector<not_null<HistoryView::Element*>> &elements)
-		override;
+		const std::vector<not_null<HistoryView::Element*>> &elements,
+		bool markLastAsRead) override;
 	void listContentRefreshed() override;
 	void listUpdateDateLink(
 		ClickHandlerPtr &link,
@@ -270,8 +270,6 @@ void ListWidget::Inner::setupHistory() {
 		_scroll.get(),
 		tr::lng_polls_create_title(),
 		st::defaultActiveButton);
-	_newPollButton->setTextTransform(
-		Ui::RoundButton::TextTransform::NoTransform);
 	_newPollButton->setFullRadius(true);
 	_newPollButton->setClickedCallback([=] {
 		Window::PeerMenuCreatePoll(
@@ -524,7 +522,8 @@ void ListWidget::Inner::listMarkContentsRead(
 }
 
 HistoryView::MessagesBarData ListWidget::Inner::listMessagesBar(
-		const std::vector<not_null<HistoryView::Element*>> &elements) {
+		const std::vector<not_null<HistoryView::Element*>> &elements,
+		bool markLastAsRead) {
 	return {};
 }
 

@@ -618,7 +618,7 @@ void AlbumPreview::mouseReleaseEvent(QMouseEvent *e) {
 	} else if (const auto thumb = base::take(_pressedThumb)) {
 		const auto was = _pressedButtonType;
 		const auto now = thumb->buttonTypeFromPoint(e->pos());
-		if (e->button() != Qt::RightButton && was == now) {
+		if (e->button() == Qt::LeftButton && was == now) {
 			thumbButtonsCallback(thumb, now);
 		}
 	}

@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/dropdown_menu.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/shadow.h"
+#include "ui/wrap/fade_wrap.h"
 #include "ui/painter.h"
 #include "ui/rect.h"
 #include "ui/text/text_utilities.h"
@@ -56,7 +57,7 @@ void SetupOverlayHideOnEscape(
 struct PreviewOverlayState {
 	base::unique_qptr<Window::MediaPreviewWidget> mediaPreview;
 	base::unique_qptr<Ui::AbstractButton> clickable;
-	base::unique_qptr<Ui::DropdownMenu> menu;
+	base::unique_qptr<Ui::FadeWrap<Ui::DropdownMenu>> menuWrap;
 	base::unique_qptr<Ui::AbstractButton> background;
 	base::unique_qptr<Ui::FlatLabel> label;
 	Fn<void()> extraHide;
@@ -64,7 +65,7 @@ struct PreviewOverlayState {
 
 	void clear() {
 		shutdownGuard.destroy();
-		menu.reset();
+		menuWrap.reset();
 		background.reset();
 		label.reset();
 		mediaPreview.reset();
@@ -131,18 +132,23 @@ void SetupPreviewMenu(
 	const auto mainwidget = controller->widget()->bodyWidget();
 	if (fillMenu) {
 		state->mediaPreview->setHideEmoji(true);
-		state->menu = base::make_unique_q<Ui::DropdownMenu>(
+		auto menu = object_ptr<Ui::DropdownMenu>(
 			mainwidget,
 			st::dropdownMenuWithIcons);
-		state->menu->setAutoHiding(false);
-		state->menu->setHiddenCallback(
+		menu->setAutoHiding(false);
+		menu->setHiddenCallback(
 			crl::guard(state->clickable.get(), overlay.hideAll));
-		fillMenu(state->menu.get());
+		fillMenu(menu.data());
+		state->menuWrap = base::make_unique_q<Ui::FadeWrap<Ui::DropdownMenu>>(
+			mainwidget,
+			std::move(menu));
+		state->menuWrap->setDuration(st::defaultToggle.duration);
+		state->menuWrap->hide(anim::type::instant);
 	}
-	const auto menuRaw = state->menu.get();
+	const auto wrapRaw = state->menuWrap.get();
 	state->extraHide = [=] {
-		if (menuRaw) {
-			menuRaw->hideAnimated();
+		if (wrapRaw) {
+			wrapRaw->hide(anim::type::normal);
 		}
 	};
 
@@ -150,7 +156,9 @@ void SetupPreviewMenu(
 	mainwidget->sizeValue() | rpl::on_next([=](QSize size) {
 		mediaPreviewRaw->setGeometry(Rect(size));
 
-		if (menuRaw) {
+		if (wrapRaw) {
+			const auto menuRaw = wrapRaw->entity();
+			menuRaw->showFast();
 			const auto gap = st::defaultMenu.itemPadding.top();
 			const auto menuH = menuRaw->height();
 			const auto shift = -(gap + menuH) / 2;
@@ -158,9 +166,9 @@ void SetupPreviewMenu(
 
 			const auto menuX = (size.width() - menuRaw->width()) / 2;
 			const auto menuY = mediaPreviewRaw->contentBottom() + gap;
-			menuRaw->move(menuX, menuY);
-			menuRaw->showAnimated(Ui::PanelAnimation::Origin::TopLeft);
-			menuRaw->raise();
+			wrapRaw->move(menuX, menuY);
+			wrapRaw->show(anim::type::normal);
+			wrapRaw->raise();
 		}
 	}, mediaPreviewRaw->lifetime());
 }
@@ -309,7 +317,7 @@ void ShowWidgetPreview(
 	struct State {
 		base::unique_qptr<Ui::RpWidget> preview;
 		base::unique_qptr<Ui::AbstractButton> clickable;
-		base::unique_qptr<Ui::DropdownMenu> menu;
+		base::unique_qptr<Ui::FadeWrap<Ui::DropdownMenu>> menuWrap;
 	};
 	const auto state = std::make_shared<State>();
 	const auto mainwidget = controller->widget()->bodyWidget();
@@ -326,28 +334,33 @@ void ShowWidgetPreview(
 
 	const auto hideAll = [=] {
 		state->clickable->setAttribute(Qt::WA_TransparentForMouseEvents);
-		if (state->menu) {
-			state->menu->hideAnimated();
+		if (state->menuWrap) {
+			state->menuWrap->hide(anim::type::normal);
 		}
 		base::call_delayed(
 			st::defaultToggle.duration,
 			[s = state] {
 				s->preview.reset();
-				s->menu.reset();
+				s->menuWrap.reset();
 				s->clickable.reset();
 			});
 	};
 	SetupOverlayHideOnEscape(state->clickable.get(), hideAll);
 
-	state->menu = base::make_unique_q<Ui::DropdownMenu>(
+	auto menu = object_ptr<Ui::DropdownMenu>(
 		mainwidget,
 		st::dropdownMenuWithIcons);
-	state->menu->setAutoHiding(false);
-	state->menu->setHiddenCallback(
+	menu->setAutoHiding(false);
+	menu->setHiddenCallback(
 		crl::guard(state->clickable.get(), hideAll));
-	fillMenu(state->menu.get());
+	fillMenu(menu.data());
+	state->menuWrap = base::make_unique_q<Ui::FadeWrap<Ui::DropdownMenu>>(
+		mainwidget,
+		std::move(menu));
+	state->menuWrap->setDuration(st::defaultToggle.duration);
+	state->menuWrap->hide(anim::type::instant);
 
-	const auto menuRaw = state->menu.get();
+	const auto wrapRaw = state->menuWrap.get();
 	state->clickable->show();
 	previewRaw->show();
 
@@ -363,17 +376,19 @@ void ShowWidgetPreview(
 		state->clickable->setGeometry(Rect(size));
 		state->clickable->raise();
 
+		const auto menuRaw = wrapRaw->entity();
+		menuRaw->showFast();
 		const auto gap = st::defaultMenu.itemPadding.top();
 		const auto totalH = fullH + gap + menuRaw->height();
 		const auto previewY = (size.height() - totalH) / 2;
 		previewRaw->move((size.width() - fullW) / 2, previewY);
 		previewRaw->raise();
 
-		menuRaw->move(
+		wrapRaw->move(
 			(size.width() - menuRaw->width()) / 2,
 			previewY + fullH + gap);
-		menuRaw->showAnimated(Ui::PanelAnimation::Origin::TopLeft);
-		menuRaw->raise();
+		wrapRaw->show(anim::type::normal);
+		wrapRaw->raise();
 	}, previewRaw->lifetime());
 }
 

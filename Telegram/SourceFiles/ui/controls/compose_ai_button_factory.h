@@ -23,6 +23,8 @@ class ComposeAiButton;
 
 namespace Ui {
 
+extern const char kOptionHideAiButton[];
+
 [[nodiscard]] bool HasEnoughLinesForAi(
 	not_null<Main::Session*> session,
 	not_null<Ui::InputField*> field);

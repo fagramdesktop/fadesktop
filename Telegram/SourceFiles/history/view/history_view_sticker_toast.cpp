@@ -202,7 +202,6 @@ void StickerToast::showWithTitle(const QString &title) {
 		widget.get(),
 		rpl::single(view),
 		st::historyPremiumViewSet);
-	button->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
 	button->show();
 	rpl::combine(
 		widget->sizeValue(),

@@ -455,7 +455,6 @@ void PasskeysNoneBox(
 				: tr::lng_settings_passkeys_none_button_unsupported(),
 			st::defaultActiveButton);
 		const auto createButton = button.data();
-		button->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
 		button->resizeToWidth(box->width()
 			- st.buttonPadding.left()
 			- st.buttonPadding.left());

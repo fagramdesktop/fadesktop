@@ -28,7 +28,8 @@ constexpr auto kRadialLoadingOffset = kNotchOffset + 4;
 constexpr auto kThemePreviewOffset = kRadialLoadingOffset + 4;
 constexpr auto kDocumentBubbleOffset = kThemePreviewOffset + 4;
 constexpr auto kSaveMsgOffset = kDocumentBubbleOffset + 4;
-constexpr auto kFooterOffset = kSaveMsgOffset + 4;
+constexpr auto kChapterOffset = kSaveMsgOffset + 4;
+constexpr auto kFooterOffset = kChapterOffset + 4;
 constexpr auto kCaptionOffset = kFooterOffset + 4;
 constexpr auto kGroupThumbsOffset = kCaptionOffset + 4;
 constexpr auto kControlsOffset = kGroupThumbsOffset + 4;
@@ -722,6 +723,13 @@ void OverlayWidget::RendererGL::paintSaveMsg(QRect outer) {
 		const auto newOuter = QRect(QPoint(), outer.size());
 		_owner->paintSaveMsgContent(p, newOuter, newOuter);
 	}, kSaveMsgOffset, true);
+}
+
+void OverlayWidget::RendererGL::paintChapter(QRect outer) {
+	paintUsingRaster(_chapterImage, outer, [&](Painter &&p) {
+		const auto newOuter = QRect(QPoint(), outer.size());
+		_owner->paintChapterContent(p, newOuter, newOuter);
+	}, kChapterOffset, true);
 }
 
 void OverlayWidget::RendererGL::paintControlsStart() {

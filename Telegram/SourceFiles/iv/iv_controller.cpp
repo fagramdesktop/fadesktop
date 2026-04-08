@@ -104,7 +104,6 @@ public:
 			tr::lng_background_reset_default(),
 			st::ivResetZoomLabel);
 		resetLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
-		reset->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
 		reset->setClickedCallback([this] {
 			_delegate->ivSetZoom(0);
 		});

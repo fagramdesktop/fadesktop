@@ -1,3 +1,22 @@
+6.7.5 (07.04.26)
+
+- Support for gradual appearing of bot reply messages.
+
+6.7.4 (07.04.26)
+
+- Add experimental option for "AI Tools" button.
+- Jump between markers with Alt+Arrows in video player.
+- Cocoon info button in AI Tools box.
+- Show warning for unofficial app builds.
+- Allow text emojify without selecting a style.
+- Accept also base64 (non-url) proxy secrets.
+- Use tg:// deeplinks for proxy share links.
+- Fix newbot deeplink parsing with trailing slash and unicode names.
+- Fix file reference refresh for user, group and channel photos.
+- Fix stale macOS tray icon colors after appearance switches.
+- Fix tooltip crash in top peers selector with small width.
+- Fix preserving markers after video quality switch in media view.
+
 6.7.3 (04.04.26)
 
 - Fix launch on older macOS versions.

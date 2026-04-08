@@ -395,11 +395,18 @@ public:
 	[[nodiscard]] rpl::producer<not_null<const HistoryItem*>> itemResizeRequest() const;
 	void requestViewResize(not_null<ViewElement*> view);
 	[[nodiscard]] rpl::producer<not_null<ViewElement*>> viewResizeRequest() const;
+	struct ViewHeightAdjusted {
+		not_null<ViewElement*> view;
+		int delta = 0;
+	};
+	void notifyViewHeightAdjusted(not_null<ViewElement*> view, int delta);
+	[[nodiscard]] rpl::producer<ViewHeightAdjusted> viewHeightAdjusted() const;
 	void requestItemShowHighlight(not_null<HistoryItem*> item);
 	[[nodiscard]] rpl::producer<not_null<HistoryItem*>> itemShowHighlightRequest() const;
 	void requestItemViewRefresh(not_null<const HistoryItem*> item);
 	[[nodiscard]] rpl::producer<not_null<const HistoryItem*>> itemViewRefreshRequest() const;
 	void requestItemTextRefresh(not_null<HistoryItem*> item);
+	void requestItemTextRefreshStreaming(not_null<HistoryItem*> item);
 	void requestUnreadReactionsAnimation(not_null<HistoryItem*> item);
 	void notifyHistoryUnloaded(not_null<const History*> history);
 	[[nodiscard]] rpl::producer<not_null<const History*>> historyUnloaded() const;
@@ -1137,6 +1144,7 @@ private:
 	rpl::event_stream<RequestViewRepaint> _viewRepaintRequest;
 	rpl::event_stream<not_null<const HistoryItem*>> _itemResizeRequest;
 	rpl::event_stream<not_null<ViewElement*>> _viewResizeRequest;
+	rpl::event_stream<ViewHeightAdjusted> _viewHeightAdjusted;
 	rpl::event_stream<not_null<HistoryItem*>> _itemShowHighlightRequest;
 	rpl::event_stream<not_null<const HistoryItem*>> _itemViewRefreshRequest;
 	rpl::event_stream<not_null<HistoryItem*>> _itemTextRefreshRequest;
