@@ -551,7 +551,7 @@ auto ChatThemeValueFromPeer(
 		const auto theme = resolved.theme.value_or(Data::CloudTheme());
 		auto paper = Data::WallPaper(0);
 		if (!disable_custom_chat_background) {
-			auto paper = resolved.paper
+			paper = resolved.paper
 				? resolved.paper->paper
 				: Data::WallPaper(0);
 		}
