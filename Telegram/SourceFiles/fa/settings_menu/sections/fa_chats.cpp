@@ -119,6 +119,8 @@ namespace Settings {
 		Ui::AddDividerText(container, fatr::fa_show_fastshare_in_chats_desc());
 		SettingsMenuJsonSwitch(fa_show_message_details, show_message_details, u"fa/chats/message-details"_q);
 		Ui::AddDividerText(container, fatr::fa_show_message_details_desc());
+		SettingsMenuJsonSwitch(fa_unlimited_pinned_chats, unlimited_pinned_chats, u"fa/chats/unlimited-pinned-chats"_q);
+		Ui::AddDividerText(container, fatr::fa_unlimited_pinned_chats_desc());
 
 		const auto statusDotBtn = container->add(object_ptr<Button>(
 			container,

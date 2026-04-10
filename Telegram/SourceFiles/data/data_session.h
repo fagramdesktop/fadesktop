@@ -1274,6 +1274,7 @@ private:
 		std::vector<not_null<ViewElement*>>> _views;
 
 	rpl::event_stream<> _pinnedDialogsOrderUpdated;
+	bool _localPinnedRestoredForCurrentLoad = false;
 
 	base::flat_set<not_null<ViewElement*>> _heavyViewParts;
 

@@ -205,6 +205,13 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "local_premium", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "unlimited_pinned_chats", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
+	{ "pinned_chat_order", {
+		.scope = SettingScope::Account,
+		.type = SettingType::QJsonArraySetting,
+		.defaultValue = QJsonArray(), }},
 	{ "use_default_rounding", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},

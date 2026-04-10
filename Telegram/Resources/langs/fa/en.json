@@ -49,6 +49,8 @@
   "fa_show_discuss_button_desc": "Adds a button to quickly jump to the linked discussion group in channels",
   "fa_show_message_details": "Show message's details",
   "fa_show_message_details_desc": "Enables viewing detailed message information",
+  "fa_unlimited_pinned_chats": "Unlimited pinned chats",
+  "fa_unlimited_pinned_chats_desc": "Raises the local pinned chats limit to 100 and saves pinned order on this device",
   "fa_appearance": "Appearance",
   "fa_rounding": "Rounding: %1",
   "fa_rounding_desc": "Adjusts the corner roundness of avatars",
