@@ -4446,10 +4446,11 @@ bool Message::displayFastShare() const {
 		return false;
 	} else if (peer->isChannel()) {
 		return !peer->isMegagroup()
-			|| FASettings::JsonSettings::GetBool("show_fastshare_in_chats");
+			|| (FASettings::JsonSettings::GetBool("show_fastshare_in_chats")
+				&& !hasOutLayout());
 	} else if (FASettings::JsonSettings::GetBool("show_fastshare_in_chats")
 		&& (peer->isChat() || peer->asUser())) {
-		return !item->out();
+		return !hasOutLayout();
 	} else if (const auto user = peer->asUser()) {
 		if (const auto forwarded = item->Get<HistoryMessageForwarded>()) {
 			return !item->out()
