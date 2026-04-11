@@ -49,6 +49,8 @@
   "fa_show_discuss_button_desc": "チャンネルでリンクされたディスカッショングループに素早くジャンプするボタンを追加します",
   "fa_show_message_details": "メッセージ詳細を表示",
   "fa_show_message_details_desc": "詳細なメッセージ情報の表示を有効化",
+  "fa_unlimited_pinned_chats": "ピン留めチャット無制限",
+  "fa_unlimited_pinned_chats_desc": "ローカルのピン留めチャットの上限を100に増やし、このデバイスにピン留め順序を保存します",
   "fa_appearance": "外観",
   "fa_rounding": "丸み: %1",
   "fa_rounding_desc": "アバターの角の丸みを調整",
