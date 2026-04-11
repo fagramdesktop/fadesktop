@@ -93,6 +93,8 @@
 - OTA updates
 - Comma after mention usernames
 - FastShare option on chats/groups
+- Disable AI editor
+- Unlimited local pinned chats
 
 </details>
 
@@ -112,6 +114,9 @@ The latest version is available for
     - [Arch/AUR](https://aur.archlinux.org/packages/fagram-bin)
     - [Fedora/RPM](https://copr.fedorainfracloud.org/coprs/burhanverse/fagram/)
     - [Ubuntu/DEB](https://github.com/fagramdesktop/fagram-deb)
+
+- MacOS
+    - [DMG package/GitHub Release](https://github.com/fagramdesktop/fadesktop/releases)
 
 ***For detailed instructions: [Click Here](https://burhanverse.eu.org/?article=fagram-desktop)***
 

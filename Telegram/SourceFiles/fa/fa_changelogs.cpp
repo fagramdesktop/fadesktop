@@ -38,23 +38,6 @@ struct BuiltInChangelog {
 const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 	static const std::vector<BuiltInChangelog> entries = {
 		{
-			2002000,
-			"- Updated tdesktop to v6.6.2\n"
-			"- Extended peer menu options\n"
-			"- Fixed FAlang translation implementation\n"
-			"- Updated FAgram codebase\n"
-			"- Bug fixes\n\n"
-			"@FAgramDesktop\n"
-		},
-		{
-			2002001,
-			"- Material Icons option\n"
-			"- Updated translations\n"
-			"- Fixed peer menu options\n"
-			"- Bug fixes\n\n"
-			"@FAgramDesktop\n"
-		},
-		{
 			2002002,
 			"- Updated tdesktop to v6.7.3\n"
 			"- Added MacOS package\n"
@@ -71,6 +54,15 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			"- Refactored discuss button implementation\n"
 			"- Removed recent stickers limit\n"
 			"Telegram now have unlimited recent stickers option in experimental settings\n"
+			"- Bug fixes\n\n"
+			"@FAgramDesktop\n"
+		},
+		{
+			2002003,
+			"- Updated tdesktop to v6.7.5\n"
+			"- Unimited local pinned chats support\n"
+			"- New Arabic translation\n"
+			"- Fixed ChatThemeValueFromPeer function\n"
 			"- Bug fixes\n\n"
 			"@FAgramDesktop\n"
 		},
