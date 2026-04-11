@@ -49,7 +49,7 @@ jobs:
       - name: Compute library cache key
         id: cache-key
         run: |
-          KEY_HASH=$(cat Telegram/build/prepare/prepare.py Telegram/build/prepare/mac.sh | shasum | awk '{print $1}')
+          KEY_HASH=$(cat Telegram/build/prepare/prepare.py Telegram/build/prepare/mac.sh Telegram/build/qt_version.py | shasum | awk '{print $1}')
           SUBMODULES_HASH=$(git submodule status --recursive | shasum | awk '{print $1}')
           echo "key=mac-libraries-${KEY_HASH}-${SUBMODULES_HASH}" >> $GITHUB_OUTPUT
 
@@ -106,7 +106,7 @@ jobs:
       - name: Compute library cache key
         id: cache-key
         run: |
-          KEY_HASH=$(cat Telegram/build/prepare/prepare.py Telegram/build/prepare/mac.sh | shasum | awk '{print $1}')
+          KEY_HASH=$(cat Telegram/build/prepare/prepare.py Telegram/build/prepare/mac.sh Telegram/build/qt_version.py | shasum | awk '{print $1}')
           SUBMODULES_HASH=$(git submodule status --recursive | shasum | awk '{print $1}')
           echo "key=mac-libraries-${KEY_HASH}-${SUBMODULES_HASH}" >> $GITHUB_OUTPUT
 
