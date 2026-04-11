@@ -266,6 +266,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "auto_format_markdown", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "add_comma_after_mention", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = true, }},
 
 	//   Context menu shortcuts customization
 	{ "context_menu_shortcut_button_size", {

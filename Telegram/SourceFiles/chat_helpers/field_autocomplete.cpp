@@ -1284,7 +1284,8 @@ bool FieldAutocomplete::Inner::chooseAtIndex(
 		if (index < _mrows->size()) {
 			const auto user = _mrows->at(index).user;
 			const auto mentionUsername = PrimaryUsername(user);
-			const auto addComma = !user->isBot();
+			const auto addComma = !user->isBot()
+				&& FASettings::JsonSettings::GetBool("add_comma_after_mention");
 			_mentionChosen.fire({ user, mentionUsername, addComma, method });
 			return true;
 		}

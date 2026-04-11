@@ -119,6 +119,8 @@ namespace Settings {
 		Ui::AddDividerText(container, fatr::fa_show_fastshare_in_chats_desc());
 		SettingsMenuJsonSwitch(fa_show_message_details, show_message_details, u"fa/chats/message-details"_q);
 		Ui::AddDividerText(container, fatr::fa_show_message_details_desc());
+		SettingsMenuJsonSwitch(fa_add_comma_after_mention, add_comma_after_mention, u"fa/chats/add-comma-after-mention"_q);
+		Ui::AddDividerText(container, fatr::fa_add_comma_after_mention_desc());
 		SettingsMenuJsonSwitch(fa_unlimited_pinned_chats, unlimited_pinned_chats, u"fa/chats/unlimited-pinned-chats"_q);
 		Ui::AddDividerText(container, fatr::fa_unlimited_pinned_chats_desc());
 
