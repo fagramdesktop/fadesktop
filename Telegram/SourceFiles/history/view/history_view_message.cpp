@@ -4449,7 +4449,7 @@ bool Message::displayFastShare() const {
 			|| FASettings::JsonSettings::GetBool("show_fastshare_in_chats");
 	} else if (FASettings::JsonSettings::GetBool("show_fastshare_in_chats")
 		&& (peer->isChat() || peer->asUser())) {
-		return true;
+		return !item->out();
 	} else if (const auto user = peer->asUser()) {
 		if (const auto forwarded = item->Get<HistoryMessageForwarded>()) {
 			return !item->out()
