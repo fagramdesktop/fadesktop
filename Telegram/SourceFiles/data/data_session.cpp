@@ -3003,6 +3003,9 @@ void Session::processMessagesDeleted(
 	for (const auto &messageId : data) {
 		const auto i = list ? list->find(messageId.v) : Messages::iterator();
 		if (list && i != list->end()) {
+			if (!i->second->out()) {
+				continue;
+			}
 			const auto history = i->second->history();
 			i->second->destroy();
 			if (!history->chatListMessageKnown()) {
@@ -3021,6 +3024,9 @@ void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
 	auto historiesToCheck = base::flat_set<not_null<History*>>();
 	for (const auto &messageId : data) {
 		if (const auto item = nonChannelMessage(messageId.v)) {
+			if (!item->out()) {
+				continue;
+			}
 			const auto history = item->history();
 			item->destroy();
 			if (!history->chatListMessageKnown()) {
