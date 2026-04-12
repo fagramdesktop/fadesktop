@@ -71,12 +71,20 @@ jobs:
         run: |
           mkdir ota-repo && cd ota-repo
           git init
-          git lfs install --local
           git remote add origin https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/ota.git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          OTA_BRANCH=$(git ls-remote --symref origin HEAD | sed -n 's#^ref: refs/heads/\([^[:space:]]*\)[[:space:]]\+HEAD$#\1#p')
+          if [ -z "$OTA_BRANCH" ]; then
+            OTA_BRANCH="main"
+          fi
+          git fetch --depth=1 origin "$OTA_BRANCH"
+          git checkout -B "$OTA_BRANCH" FETCH_HEAD
+          echo "OTA_BRANCH=$OTA_BRANCH" >> $GITHUB_ENV
 
       - name: Publish updates
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
           WIN_FILE=$(find ota-artifacts/win64 -name "tx64upd*" | head -1)
           LINUX_FILE=$(find ota-artifacts/linux -name "tlinuxupd*" | head -1)
@@ -103,56 +111,102 @@ jobs:
             CHANNEL="beta"
           fi
 
+          RELEASE_REPO="fagramdesktop/ota"
+          RELEASE_TAG="ota-v${APP_VERSION}"
+          if [ "$CHANNEL" = "beta" ]; then
+            RELEASE_TAG="${RELEASE_TAG}-beta"
+          fi
+
+          if ! gh release view "$RELEASE_TAG" --repo "$RELEASE_REPO" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --repo "$RELEASE_REPO" \
+              --title "OTA ${APP_VERSION} (${CHANNEL})" \
+              --notes "Automated OTA artifacts for version ${APP_VERSION} (${CHANNEL})."
+          fi
+
+          if [ -n "$MAC_FILE" ]; then
+            gh release upload "$RELEASE_TAG" \
+              "$WIN_FILE" \
+              "$LINUX_FILE" \
+              "$MAC_FILE" \
+              --repo "$RELEASE_REPO" \
+              --clobber
+          else
+            gh release upload "$RELEASE_TAG" \
+              "$WIN_FILE" \
+              "$LINUX_FILE" \
+              --repo "$RELEASE_REPO" \
+              --clobber
+          fi
+
           cd ota-repo
 
-          git lfs track "$WIN_NAME"
-          git lfs track "$LINUX_NAME"
-          [ -n "$MAC_NAME" ] && git lfs track "$MAC_NAME"
-
-          python3 -c "
-          import json, os
+          export APP_VERSION CHANNEL RELEASE_TAG WIN_NAME LINUX_NAME MAC_NAME
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
 
           manifest_path = 'current4'
+          version = os.environ['APP_VERSION']
+          channel = os.environ['CHANNEL']
+          release_tag = os.environ['RELEASE_TAG']
+          win_name = os.environ['WIN_NAME']
+          linux_name = os.environ['LINUX_NAME']
+          mac_name = os.environ.get('MAC_NAME', '')
 
-          version = '${{ env.APP_VERSION }}'
-          channel = '${CHANNEL}'
-          mac_name = '${MAC_NAME}'
-
+          base = f"https://github.com/fagramdesktop/ota/releases/download/{release_tag}"
           manifest = {}
+
+          existing = Path('current4')
+          if existing.exists():
+            try:
+              loaded = json.loads(existing.read_text())
+              if isinstance(loaded, dict):
+                manifest = loaded
+            except Exception:
+              manifest = {}
+
           manifest.setdefault('win64', {})[channel] = {
-              'released': version,
-              'link': '/${WIN_NAME}',
+            'released': version,
+            'link': f'{base}/{win_name}',
           }
           manifest.setdefault('linux', {})[channel] = {
-              'released': version,
-              'link': '/${LINUX_NAME}',
+            'released': version,
+            'link': f'{base}/{linux_name}',
           }
+
           if mac_name:
-              manifest.setdefault('macos', {})[channel] = {
-                  'released': version,
-                  'link': '/' + mac_name,
-              }
+            mac_entry = {
+              'released': version,
+              'link': f'{base}/{mac_name}',
+            }
+            manifest.setdefault('mac', {})[channel] = mac_entry
+            manifest.setdefault('armac', {})[channel] = dict(mac_entry)
 
           with open(manifest_path, 'w') as f:
-              json.dump(manifest, f, indent=2, sort_keys=True)
-              f.write('\n')
-          "
+            json.dump(manifest, f, indent=2, sort_keys=True)
+            f.write('\n')
+          PY
 
-          GIT_ADD="$WIN_NAME $LINUX_NAME current4 .gitattributes"
-          [ -n "$MAC_NAME" ] && GIT_ADD="$GIT_ADD $MAC_NAME"
-          git add $GIT_ADD
-          git commit -m "Update to $(python3 -c "v=${{ env.APP_VERSION }}; print(f'{v//1000000}.{(v//1000)%1000}.{v%1000}')")"
-          OTA_BRANCH=$(git ls-remote --symref origin HEAD | sed -n 's#^ref: refs/heads/\([^[:space:]]*\)[[:space:]]\+HEAD$#\1#p')
-          if [ -z "$OTA_BRANCH" ]; then
-            OTA_BRANCH="main"
+          git add current4
+          if git diff --cached --quiet; then
+            echo "No manifest changes to commit."
+          else
+            git commit -m "Update OTA manifest for ${APP_VERSION} (${CHANNEL})"
+            git push origin "$OTA_BRANCH"
           fi
-          git push --force origin "HEAD:$OTA_BRANCH"
 
       - name: Summary
         run: |
+          RELEASE_TAG="ota-v${APP_VERSION}"
+          if [ "$IS_BETA" = "1" ]; then
+            RELEASE_TAG="${RELEASE_TAG}-beta"
+          fi
           echo "### OTA Update Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version:** ${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Windows:** tx64upd${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Linux:** tlinuxupd${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **macOS:** tmacupd${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${APP_VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release tag:** ${RELEASE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Windows:** tx64upd${APP_VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Linux:** tlinuxupd${APP_VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "- **macOS:** tmacupd${APP_VERSION}" >> $GITHUB_STEP_SUMMARY
