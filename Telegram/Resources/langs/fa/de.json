@@ -49,6 +49,8 @@
   "fa_show_discuss_button_desc": "Fügt eine Schaltfläche hinzu, um schnell zur verknüpften Diskussionsgruppe in Kanälen zu springen",
   "fa_show_message_details": "Nachrichtendetails anzeigen",
   "fa_show_message_details_desc": "Ermöglicht die Anzeige detaillierter Nachrichteninformationen",
+  "fa_add_comma_after_mention": "Komma nach Erwähnung hinzufügen",
+  "fa_add_comma_after_mention_desc": "Fügt nach der Erwähnung von Benutzernamen automatisch ein Komma hinzu",
   "fa_unlimited_pinned_chats": "Unbegrenzte angeheftete Chats",
   "fa_unlimited_pinned_chats_desc": "Erhöht das lokale Limit für angeheftete Chats auf 100 und speichert die angeheftete Reihenfolge auf diesem Gerät",
   "fa_appearance": "Aussehen",

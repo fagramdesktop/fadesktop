@@ -49,6 +49,8 @@
   "fa_show_discuss_button_desc": "يضيف زرًا للانتقال بسرعة إلى مجموعة المناقشة المرتبطة في القنوات",
   "fa_show_message_details": "إظهار تفاصيل الرسالة",
   "fa_show_message_details_desc": "يتيح عرض معلومات تفصيلية عن الرسائل",
+  "fa_add_comma_after_mention": "إضافة فاصلة بعد الإشارة",
+  "fa_add_comma_after_mention_desc": "يضيف فاصلة تلقائيًا بعد الإشارة إلى أسماء المستخدمين",
   "fa_unlimited_pinned_chats": "دردشات مثبتة لا محدودة",
   "fa_unlimited_pinned_chats_desc": "يرفع الحد المحلي للدردشات المثبتة إلى 100 ويحفظ ترتيب التثبيت على هذا الجهاز",
   "fa_appearance": "المظهر",

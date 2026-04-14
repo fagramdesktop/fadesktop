@@ -49,6 +49,8 @@
   "fa_show_discuss_button_desc": "Añade un botón para saltar rápidamente al grupo de discusión enlazado en canales",
   "fa_show_message_details": "Mostrar detalles del mensaje",
   "fa_show_message_details_desc": "Permite ver información detallada del mensaje",
+  "fa_add_comma_after_mention": "Añadir coma tras mención",
+  "fa_add_comma_after_mention_desc": "Añade automáticamente una coma tras mencionar nombres de usuario",
   "fa_unlimited_pinned_chats": "Chats fijados ilimitados",
   "fa_unlimited_pinned_chats_desc": "Aumenta el límite local de chats fijados a 100 y guarda el orden fijado en este dispositivo",
   "fa_appearance": "Apariencia",

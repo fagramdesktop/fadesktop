@@ -49,6 +49,8 @@
   "fa_show_discuss_button_desc": "Kanallarda bog'langan muhokama guruhiga tez o'tish uchun tugma qo'shadi",
   "fa_show_message_details": "Xabar tafsilotlarini ko'rsatish",
   "fa_show_message_details_desc": "Xabar haqida batafsil ma'lumotni ko'rish imkonini beradi",
+  "fa_add_comma_after_mention": "Eslatilgandan keyin vergul qo'shish",
+  "fa_add_comma_after_mention_desc": "Foydalanuvchi ismlarini eslatib o'tgandan so'ng avtomatik ravishda vergul qo'shadi",
   "fa_unlimited_pinned_chats": "Cheklanmagan qadalgan chatlar",
   "fa_unlimited_pinned_chats_desc": "Mahalliy qadalgan chatlar chegarasini 100 gacha oshiradi va bu qurilmada qadalgan tartibni saqlaydi",
   "fa_appearance": "Tashqi ko'rinish",

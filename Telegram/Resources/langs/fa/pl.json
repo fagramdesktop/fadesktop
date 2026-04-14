@@ -49,6 +49,8 @@
   "fa_show_discuss_button_desc": "Dodaje przycisk do szybkiego przeskakiwania do powiązanej grupy dyskusyjnej w kanałach",
   "fa_show_message_details": "Pokaż szczegóły wiadomości",
   "fa_show_message_details_desc": "Umożliwia przeglądanie szczegółowych informacji o wiadomości",
+  "fa_add_comma_after_mention": "Dodaj przecinek po wspomnieniu",
+  "fa_add_comma_after_mention_desc": "Automatycznie dodaje przecinek po wspomnieniu nazw użytkowników",
   "fa_unlimited_pinned_chats": "Nielimitowane przypięte czaty",
   "fa_unlimited_pinned_chats_desc": "Zwiększa lokalny limit przypiętych czatów do 100 i zapisuje kolejność przypięcia na tym urządzeniu",
   "fa_appearance": "Wygląd",

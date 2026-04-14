@@ -49,6 +49,8 @@
   "fa_show_discuss_button_desc": "Kanallarda bağlantılı tartışma grubuna hızla atlamak için bir düğme ekler",
   "fa_show_message_details": "Mesaj ayrıntılarını göster",
   "fa_show_message_details_desc": "Ayrıntılı mesaj bilgilerini görüntülemeyi sağlar",
+  "fa_add_comma_after_mention": "Bahsetmeden sonra virgül ekle",
+  "fa_add_comma_after_mention_desc": "Kullanıcı adlarından bahsettikten sonra otomatik olarak virgül ekler",
   "fa_unlimited_pinned_chats": "Sınırsız sabitlenmiş sohbet",
   "fa_unlimited_pinned_chats_desc": "Yerel sabitlenmiş sohbet sınırını 100'e çıkarır ve sabitlenme sırasını bu cihaza kaydeder",
   "fa_appearance": "Görünüm",
