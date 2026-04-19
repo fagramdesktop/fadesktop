@@ -64,6 +64,7 @@ void SaveValidVideoInformation(
 	to.size = from.size;
 	to.cover = std::move(from.cover);
 	to.rotation = from.rotation;
+	to.fps = from.fps;
 	to.alpha = from.alpha;
 }
 

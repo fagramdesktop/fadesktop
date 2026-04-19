@@ -878,6 +878,7 @@ ChatBackgroundRects ComputeChatBackgroundRects(
 }
 
 QColor CountAverageColor(const QImage &image) {
+	Expects(!image.isNull());
 	Expects(image.format() == QImage::Format_ARGB32_Premultiplied
 		|| image.format() == QImage::Format_RGB32);
 

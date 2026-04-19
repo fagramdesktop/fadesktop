@@ -25,6 +25,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_photo.h"
 #include "data/data_chat.h"
 #include "data/data_channel.h"
+#include "data/data_chat_participant_status.h"
 #include "data/data_peer_values.h"
 #include "data/data_document.h"
 #include "data/data_session.h"
@@ -626,7 +627,7 @@ void ListWidget::openPhoto(not_null<PhotoData*> photo, FullMsgId id) {
 	};
 	_controller->parentController()->openPhoto(
 		photo,
-		{ id, topicRootId(), monoforumPeerId() },
+		{ id, topicRootId(), monoforumPeerId(), showDrawButton() },
 		_controller->storiesPeer() ? &context : nullptr);
 }
 
@@ -641,8 +642,19 @@ void ListWidget::openDocument(
 	_controller->parentController()->openDocument(
 		document,
 		showInMediaView,
-		{ id, topicRootId(), monoforumPeerId() },
+		{ id, topicRootId(), monoforumPeerId(), showDrawButton() },
 		_controller->storiesPeer() ? &context : nullptr);
+}
+
+bool ListWidget::showDrawButton() const {
+	if (const auto topic = _controller->key().topic()) {
+		return Data::CanSendAnyOf(topic, Data::FilesSendRestrictions());
+	} else if (const auto sublist = _controller->key().sublist()) {
+		return Data::CanSendAnyOf(sublist, Data::FilesSendRestrictions());
+	} else if (const auto peer = _controller->key().peer()) {
+		return Data::CanSendAnyOf(peer, Data::FilesSendRestrictions());
+	}
+	return false;
 }
 
 void ListWidget::trackSession(not_null<Main::Session*> session) {

@@ -78,6 +78,7 @@ void FillPollOptionPage(
 	not_null<Data::Session*> owner,
 	FullMsgId itemId,
 	const QByteArray &pollOption,
+	not_null<Window::SessionController*> controller,
 	Fn<void()> replyToOption = nullptr);
 
 void AttachPollOptionTabs(
@@ -132,6 +133,7 @@ enum class EmojiPacksSource {
 	Reaction,
 	Reactions,
 	Tag,
+	PollOption,
 };
 [[nodiscard]] std::vector<StickerSetIdentifier> CollectEmojiPacks(
 	not_null<HistoryItem*> item,

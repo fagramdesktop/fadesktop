@@ -49,6 +49,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/text/text_utilities.h"
 #include "ui/controls/delete_message_context_action.h"
 #include "ui/controls/who_reacted_context_action.h"
+#include "ui/dynamic_image.h"
+#include "ui/dynamic_thumbnails.h"
 #include "ui/boxes/edit_factcheck_box.h"
 #include "ui/boxes/report_box_graphics.h"
 #include "ui/painter.h"
@@ -1603,6 +1605,9 @@ void FillContextMenuItems(
 					[=] {
 						const auto tc = CurrentVoiceTimecode(msgId);
 						if (const auto strong = weak.get()) {
+							strong->replyToMessageRequestNotify(
+								{ .messageId = msgId },
+								base::IsCtrlPressed());
 							strong->insertTextAtCursor(
 								tc.value_or(*timecode));
 						}
@@ -1773,13 +1778,20 @@ base::unique_qptr<Ui::PopupMenu> FillContextMenu(
 	if (hasPollOption) {
 		const auto raw = result.get();
 		const auto owner = &item->history()->owner();
+		const auto controller = list->controller();
 		raw->stashContent([=](not_null<Ui::PopupMenu*> menu) {
-			FillPollOptionPage(menu, owner, itemId, pollOption, [=] {
-				list->replyToMessageRequestNotify({
-					.messageId = itemId,
-					.pollOption = pollOption,
-				}, base::IsCtrlPressed());
-			});
+			FillPollOptionPage(
+				menu,
+				owner,
+				itemId,
+				pollOption,
+				controller,
+				[=] {
+					list->replyToMessageRequestNotify({
+						.messageId = itemId,
+						.pollOption = pollOption,
+					}, base::IsCtrlPressed());
+				});
 		});
 	}
 	return result;
@@ -1865,6 +1877,7 @@ void FillPollOptionPage(
 		not_null<Data::Session*> owner,
 		FullMsgId itemId,
 		const QByteArray &pollOption,
+		not_null<Window::SessionController*> controller,
 		Fn<void()> replyToOption) {
 	const auto item = owner->message(itemId);
 	if (!item) {
@@ -1948,31 +1961,60 @@ void FillPollOptionPage(
 			},
 			&st::menuIconDelete);
 	}
-	if (a->addedBy) {
+	if (const auto addedBy = a->addedBy) {
 		menu->addSeparator(&st::expandedMenuSeparator);
-		auto view = Ui::PeerUserpicView();
-		auto userpic = PeerData::GenerateUserpicImage(
-			a->addedBy,
-			view,
-			st::defaultWhoRead.photoSize);
 		const auto date = a->addedDate
 			? Ui::FormatDateTime(
 				base::unixtime::parse(a->addedDate))
 			: QString();
-		menu->addAction(
-			base::make_unique_q<Ui::WhoReactedEntryAction>(
-				menu->menu(),
-				nullptr,
-				menu->menu()->st(),
-				Ui::WhoReactedEntryData{
-					.text = tr::lng_polls_option_added_by(
-						tr::now,
-						lt_user,
-						a->addedBy->shortName()),
-					.date = date,
-					.type = Ui::WhoReactedType::RefRecipient,
-					.userpic = std::move(userpic),
-				}));
+		auto action = base::make_unique_q<Ui::WhoReactedEntryAction>(
+			menu->menu(),
+			nullptr,
+			menu->menu()->st(),
+			Ui::WhoReactedEntryData());
+		const auto raw = action.get();
+		const auto thumbnail = Ui::MakeUserpicThumbnail(addedBy);
+		const auto size = st::defaultWhoRead.photoSize;
+		const auto refresh = [=] {
+			raw->setData({
+				.text = tr::lng_polls_option_added_by(
+					tr::now,
+					lt_user,
+					addedBy->shortName()),
+				.date = date,
+				.type = Ui::WhoReactedType::RefRecipient,
+				.userpic = thumbnail->image(size),
+				.callback = [=] { controller->showPeerInfo(addedBy); },
+			});
+		};
+		thumbnail->subscribeToUpdates(refresh);
+		refresh();
+		menu->lifetime().add([=] {
+			thumbnail->subscribeToUpdates(nullptr);
+		});
+		menu->addAction(std::move(action));
+	}
+	{
+		auto packIds = std::vector<StickerSetIdentifier>();
+		for (const auto &entity : a->text.entities) {
+			if (entity.type() == EntityType::CustomEmoji) {
+				const auto id = Data::ParseCustomEmojiData(entity.data());
+				if (const auto set = owner->document(id)->sticker()) {
+					if (set->set.id
+						&& !ranges::contains(
+							packIds,
+							set->set.id,
+							&StickerSetIdentifier::id)) {
+						packIds.push_back(set->set);
+					}
+				}
+			}
+		}
+		AddEmojiPacksAction(
+			menu,
+			std::move(packIds),
+			EmojiPacksSource::PollOption,
+			controller);
 	}
 }
 
@@ -2573,6 +2615,18 @@ void AddEmojiPacksAction(
 					count,
 					tr::rich)
 				: tr::lng_context_animated_reactions(
+					tr::now,
+					lt_name,
+					TextWithEntities{ name },
+					tr::rich);
+		case EmojiPacksSource::PollOption:
+			return name.text.isEmpty()
+				? tr::lng_context_animated_poll_option_many(
+					tr::now,
+					lt_count,
+					count,
+					tr::rich)
+				: tr::lng_context_animated_poll_option(
 					tr::now,
 					lt_name,
 					TextWithEntities{ name },

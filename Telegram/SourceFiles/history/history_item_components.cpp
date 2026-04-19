@@ -671,6 +671,11 @@ ReplyMarkupClickHandler::ReplyMarkupClickHandler(
 , _column(column) {
 }
 
+QString ReplyMarkupClickHandler::dragText() const {
+	const auto button = getUrlButton();
+	return button ? QString::fromUtf8(button->data) : QString();
+}
+
 // Copy to clipboard support.
 QString ReplyMarkupClickHandler::copyToClipboardText() const {
 	const auto button = getUrlButton();

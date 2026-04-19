@@ -35,6 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/popup_menu.h"
+#include "ui/text/text_utilities.h"
 #include "ui/toast/toast.h"
 #include "window/section_widget.h"
 #include "window/window_session_controller.h"
@@ -328,8 +329,13 @@ void AddPollOptionWidget::subscribeToPollUpdates() {
 }
 
 void AddPollOptionWidget::triggerSubmit() {
-	const auto text = _field->getLastText().trimmed();
-	if (text.isEmpty()) {
+	const auto textWithTags = _field->getTextWithAppliedMarkdown();
+	auto fullText = TextWithEntities{
+		textWithTags.text,
+		TextUtilities::ConvertTextTagsToEntities(textWithTags.tags),
+	};
+	TextUtilities::Trim(fullText);
+	if (fullText.text.isEmpty()) {
 		return;
 	}
 	if (int(_poll->answers.size())
@@ -345,7 +351,7 @@ void AddPollOptionWidget::triggerSubmit() {
 	const auto media = _mediaState ? _mediaState->media : PollMedia();
 	_session->api().polls().addAnswer(
 		_itemId,
-		{ text },
+		fullText,
 		media,
 		[=] { _submittedEvents.fire({}); },
 		[=](QString error) {

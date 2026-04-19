@@ -21,6 +21,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/view/history_view_fake_items.h"
 #include "lang/lang_keys.h"
 #include "boxes/premium_preview_box.h"
+#include "chat_helpers/emoji_list_widget.h"
+#include "chat_helpers/tabbed_selector.h"
 #include "main/main_session.h"
 #include "settings/sections/settings_premium.h"
 #include "ui/chat/chat_style.h"
@@ -39,6 +41,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "window/window_session_controller.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat.h"
+#include "styles/style_chat_helpers.h"
 #include "styles/style_layers.h"
 #include "styles/style_media_player.h" // mediaPlayerMenuCheck
 #include "styles/style_settings.h"
@@ -454,6 +457,56 @@ void ReactionsSettingsBox(
 
 	const auto container = box->verticalLayout();
 
+	box->setTitle(tr::lng_settings_chat_reactions_title());
+	box->setWidth(st::boxWideWidth);
+	box->addButton(tr::lng_settings_save(), [=] {
+		const auto &data = controller->session().data();
+		const auto selectedId = state->selectedId.current();
+		if (data.reactions().favoriteId() != selectedId) {
+			data.reactions().setFavorite(selectedId);
+		}
+		box->closeBox();
+	});
+	box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
+
+	if (controller->session().premium()) {
+		using Selector = ChatHelpers::TabbedSelector;
+		const auto selector = container->add(
+			object_ptr<Selector>(
+				container,
+				controller->uiShow(),
+				Window::GifPauseReason::Layer,
+				Selector::Mode::FullReactions),
+			style::margins());
+		selector->setAllowEmojiWithoutPremium(false);
+		selector->setRoundRadius(0);
+		selector->resize(st::boxWideWidth, st::emojiPanMinHeight);
+
+		const auto docToReaction = box->lifetime().make_state<
+			base::flat_map<DocumentId, Data::ReactionId>>();
+		auto recentIds = std::vector<DocumentId>();
+		for (const auto &r
+			: reactions.list(Data::Reactions::Type::Active)) {
+			const auto docId = r.selectAnimation->id;
+			recentIds.push_back(docId);
+			docToReaction->emplace(docId, r.id);
+		}
+		selector->provideRecentEmoji(
+			ChatHelpers::DocumentListToRecent(recentIds));
+
+		selector->customEmojiChosen(
+		) | rpl::on_next([=](ChatHelpers::FileChosen data) {
+			const auto docId = data.document->id;
+			const auto it = docToReaction->find(docId);
+			if (it != docToReaction->end()) {
+				state->selectedId = it->second;
+			} else {
+				state->selectedId = Data::ReactionId{ docId };
+			}
+		}, selector->lifetime());
+		return;
+	}
+
 	const auto check = Ui::CreateChild<Ui::RpWidget>(container.get());
 	check->resize(st::settingsReactionCornerSize);
 	check->setAttribute(Qt::WA_TransparentForMouseEvents);
@@ -528,16 +581,4 @@ void ReactionsSettingsBox(
 		}, firstCheckedButton->lifetime());
 	}
 	check->raise();
-
-	box->setTitle(tr::lng_settings_chat_reactions_title());
-	box->setWidth(st::boxWideWidth);
-	box->addButton(tr::lng_settings_save(), [=] {
-		const auto &data = controller->session().data();
-		const auto selectedId = state->selectedId.current();
-		if (data.reactions().favoriteId() != selectedId) {
-			data.reactions().setFavorite(selectedId);
-		}
-		box->closeBox();
-	});
-	box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
 }

@@ -29,6 +29,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/core_settings.h"
 #include "core/file_location.h"
 #include "data/components/recent_peers.h"
+#include "settings/settings_recent_searches.h"
 #include "data/components/top_peers.h"
 #include "data/stickers/data_stickers.h"
 #include "data/data_session.h"
@@ -3200,7 +3201,9 @@ void Account::writeSearchSuggestions() {
 
 	const auto top = _owner->session().topPeers().serialize();
 	const auto recent = _owner->session().recentPeers().serialize();
-	if (top.isEmpty() && recent.isEmpty()) {
+	const auto settingsSearches
+		= _owner->session().recentSettingsSearches().serialize();
+	if (top.isEmpty() && recent.isEmpty() && settingsSearches.isEmpty()) {
 		if (_searchSuggestionsKey) {
 			ClearKey(_searchSuggestionsKey, _basePath);
 			_searchSuggestionsKey = 0;
@@ -3213,9 +3216,10 @@ void Account::writeSearchSuggestions() {
 		writeMapQueued();
 	}
 	quint32 size = Serialize::bytearraySize(top)
-		+ Serialize::bytearraySize(recent);
+		+ Serialize::bytearraySize(recent)
+		+ Serialize::bytearraySize(settingsSearches);
 	EncryptedDescriptor data(size);
-	data.stream << top << recent;
+	data.stream << top << recent << settingsSearches;
 
 	FileWriteDescriptor file(_searchSuggestionsKey, _basePath);
 	file.writeEncrypted(data, _localKey);
@@ -3242,10 +3246,16 @@ void Account::readSearchSuggestions() {
 
 	auto top = QByteArray();
 	auto recent = QByteArray();
+	auto settingsSearches = QByteArray();
 	suggestions.stream >> top >> recent;
+	if (!suggestions.stream.atEnd()) {
+		suggestions.stream >> settingsSearches;
+	}
 	if (CheckStreamStatus(suggestions.stream)) {
 		_owner->session().topPeers().applyLocal(top);
 		_owner->session().recentPeers().applyLocal(recent);
+		_owner->session().recentSettingsSearches().applyLocal(
+			settingsSearches);
 	} else {
 		DEBUG_LOG(("Suggestions: Could not read content."));
 	}

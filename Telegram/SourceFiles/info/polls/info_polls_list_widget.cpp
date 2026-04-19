@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "data/data_poll_messages.h"
 #include "data/data_shared_media.h"
+#include "data/data_chat_participant_status.h"
 #include "data/data_peer.h"
 #include "data/data_session.h"
 #include "data/data_forum_topic.h"
@@ -266,6 +267,13 @@ void ListWidget::Inner::setupHistory() {
 		_scroll->keyPressEvent(e);
 	}, _scroll->lifetime());
 
+	const auto topic = _controller->topic();
+	const auto canCreate = topic
+		? Data::CanSend(topic, ChatRestriction::SendPolls)
+		: _history->peer->canCreatePolls();
+	if (!canCreate) {
+		return;
+	}
 	_newPollButton.create(
 		_scroll.get(),
 		tr::lng_polls_create_title(),

@@ -185,6 +185,7 @@ private:
 		rpl::lifetime &lifetime);
 
 	void setupSelectRestriction();
+	[[nodiscard]] bool showDrawButton() const;
 
 	[[nodiscard]] MsgId topicRootId() const;
 	[[nodiscard]] PeerId monoforumPeerId() const;

@@ -70,6 +70,7 @@ QByteArray SessionSettings::serialize() const {
 	size += sizeof(qint32);
 	size += sizeof(qint32)
 		+ _subsectionTabsModes.size() * (sizeof(quint64) + sizeof(qint32));
+	size += sizeof(qint32); // _phoneNumberHidden
 
 	auto result = QByteArray();
 	result.reserve(size);
@@ -157,6 +158,7 @@ QByteArray SessionSettings::serialize() const {
 		for (const auto &[peerId, mode] : _subsectionTabsModes) {
 			stream << SerializePeerId(peerId) << qint32(mode);
 		}
+		stream << qint32(_phoneNumberHidden ? 1 : 0);
 	}
 
 	Ensures(result.size() == size);
@@ -231,6 +233,7 @@ void SessionSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 setupEmailState = 0;
 	std::vector<int32> moderateCommonGroups;
 	qint32 disableSharingBoxShowsCount = 0;
+	qint32 phoneNumberHidden = 0;
 
 	stream >> versionTag;
 	if (versionTag == kVersionTag) {
@@ -686,6 +689,9 @@ void SessionSettings::addFromSerialized(const QByteArray &serialized) {
 			}
 		}
 	}
+	if (!stream.atEnd()) {
+		stream >> phoneNumberHidden;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for SessionSettings::addFromSerialized()"));
@@ -751,6 +757,7 @@ void SessionSettings::addFromSerialized(const QByteArray &serialized) {
 
 	_moderateCommonGroups = std::move(moderateCommonGroups);
 	_disableSharingBoxShowsCount = disableSharingBoxShowsCount;
+	_phoneNumberHidden = (phoneNumberHidden == 1);
 
 	if (version < 2) {
 		app.setLastSeenWarningSeen(appLastSeenWarningSeen == 1);

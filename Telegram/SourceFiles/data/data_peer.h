@@ -639,7 +639,7 @@ private:
 	mutable QString _fakeName;
 	mutable bool _previousMode = false;
 	mutable int _randomNumber = 0;
-	uint32 _nameVersion : 29 = 1;
+	uint32 _nameVersion : 16 = 1;
 	uint32 _sensitiveContent : 1 = 0;
 	uint32 _wallPaperOverriden : 1 = 0;
 	uint32 _checkedTrustedPayForMessage : 1 = 0;

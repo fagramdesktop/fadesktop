@@ -48,6 +48,8 @@ historyPollRadio: Radio(defaultRadio) {
 	rippleAreaPadding: 8px;
 }
 historyPollCheckboxRadius: 3px;
+historyPollReplyIcon: icon {{ "dialogs/dialogs_chatlist_poll-17x17", windowFg }};
+historyPollReplyIconSkip: 3px;
 historyPollRadioOpacity: 0.7;
 historyPollRadioOpacityOver: 1.;
 historyPollDuration: 300;

@@ -7,15 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #pragma once
 
-#include "ui/layers/box_content.h"
-
-class UserData;
 class ChannelData;
-
-namespace Info::Profile {
-class Badge;
-enum class BadgeType : uchar;
-} // namespace Info::Profile
 
 namespace Main {
 class Session;
@@ -24,14 +16,6 @@ class Session;
 namespace Window {
 class SessionController;
 } // namespace Window
-
-namespace Data {
-class PhotoMedia;
-} // namespace Data
-
-namespace Ui {
-class EmptyUserpic;
-} // namespace Ui
 
 namespace Api {
 
@@ -42,67 +26,3 @@ void CheckChatInvite(
 	Fn<void()> loaded = nullptr);
 
 } // namespace Api
-
-class ConfirmInviteBox final : public Ui::BoxContent {
-public:
-	ConfirmInviteBox(
-		QWidget*,
-		not_null<Main::Session*> session,
-		const MTPDchatInvite &data,
-		ChannelData *invitePeekChannel,
-		Fn<void()> submit);
-	~ConfirmInviteBox();
-
-protected:
-	void prepare() override;
-
-	void resizeEvent(QResizeEvent *e) override;
-	void paintEvent(QPaintEvent *e) override;
-
-private:
-	struct Participant;
-	struct ChatInvite {
-		QString title;
-		QString about;
-		PhotoData *photo = nullptr;
-		int participantsCount = 0;
-		std::vector<Participant> participants;
-		bool isPublic = false;
-		bool isChannel = false;
-		bool isMegagroup = false;
-		bool isBroadcast = false;
-		bool isRequestNeeded = false;
-		bool isFake = false;
-		bool isScam = false;
-		bool isVerified = false;
-	};
-	[[nodiscard]] static ChatInvite Parse(
-		not_null<Main::Session*> session,
-		const MTPDchatInvite &data);
-	[[nodiscard]] Info::Profile::BadgeType BadgeForInvite(
-		const ChatInvite &invite);
-
-	ConfirmInviteBox(
-		not_null<Main::Session*> session,
-		ChatInvite &&invite,
-		ChannelData *invitePeekChannel,
-		Fn<void()> submit);
-
-	const not_null<Main::Session*> _session;
-
-	Fn<void()> _submit;
-	object_ptr<Ui::FlatLabel> _title;
-	std::unique_ptr<Info::Profile::Badge> _badge;
-	object_ptr<Ui::FlatLabel> _status;
-	object_ptr<Ui::FlatLabel> _about;
-	object_ptr<Ui::FlatLabel> _aboutRequests;
-	std::shared_ptr<Data::PhotoMedia> _photo;
-	std::unique_ptr<Ui::EmptyUserpic> _photoEmpty;
-	std::vector<Participant> _participants;
-
-	bool _isChannel = false;
-	bool _requestApprove = false;
-
-	int _userWidth = 0;
-
-};

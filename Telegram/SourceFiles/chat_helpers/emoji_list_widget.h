@@ -301,11 +301,22 @@ private:
 	void appendPremiumSearchResults();
 	void appendLocalPackSearchResults();
 	void sendSearchRequest();
-	void sendSearchSetsRequest();
+	void sendSearchSetsRequest(const QString &query);
+	void requestSearchCloud(
+		const QString &query,
+		int offset,
+		bool fallbackToEmpty);
 	void cancelSearchRequest();
 	void toggleSearchLoading(bool loading);
-	void searchCloudResultsDone(const MTPmessages_FoundStickers &result);
-	void searchSetsResultsDone(const MTPmessages_FoundStickerSets &result);
+	void searchCloudResultsDone(
+		const QString &query,
+		int requestedOffset,
+		const MTPmessages_FoundStickers &result);
+	void loadMoreSearchCloud();
+	void checkPaginateSearchCloud(int visibleTop, int visibleBottom);
+	void searchSetsResultsDone(
+		const QString &query,
+		const MTPmessages_FoundStickerSets &result);
 	void showSearchResults();
 	void fillCloudSearchResults();
 	void fillCloudSearchSets();
@@ -484,6 +495,7 @@ private:
 	std::vector<RecentOne> _searchResults;
 	bool _searchMode = false;
 	std::map<QString, std::vector<DocumentId>> _searchCloudCache;
+	std::map<QString, int> _searchCloudNextOffset;
 	std::map<QString, std::vector<uint64>> _searchSetsCache;
 	std::vector<CustomSet> _searchSets;
 	QString _searchRequestQuery;

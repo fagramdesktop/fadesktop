@@ -409,7 +409,7 @@ void RequestButton(
 			url,
 			displayName,
 			session->user()->name(),
-			bot->firstName,
+			bot ? bot->firstName : QString(),
 			callback),
 		Ui::LayerOption::KeepOther);
 }

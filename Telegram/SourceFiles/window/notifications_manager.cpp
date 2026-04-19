@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "window/notifications_manager.h"
 
 #include "base/options.h"
+#include "base/platform/base_platform_info.h"
 #include "base/qt/qt_key_modifiers.h"
 #include "platform/platform_notifications_manager.h"
 #include "window/notifications_manager_default.h"
@@ -129,6 +130,10 @@ constexpr auto kSystemAlertDuration = crl::time(0);
 	return ((threadAlert || fromAlert) && !sound.none)
 		? sound.id
 		: std::optional<DocumentId>();
+}
+
+[[nodiscard]] bool AllowNotificationActions(not_null<PeerData*> peer) {
+	return Platform::IsMac() && peer->isNotificationsUser();
 }
 
 } // namespace
@@ -1443,6 +1448,87 @@ void Manager::notificationReplied(
 	}
 }
 
+void Manager::notificationActionActivated(
+		NotificationId id,
+		const QString &actionId) {
+	if (actionId == u"markAsRead"_q) {
+		notificationReplied(id, {});
+		return;
+	}
+	if (!actionId.startsWith(u"callbackButton:"_q)) {
+		return;
+	}
+	const auto payload = QStringView(actionId).mid(15);
+	const auto sep = payload.indexOf(':');
+	if (sep < 0) {
+		return;
+	}
+	const auto row = payload.left(sep).toInt();
+	const auto column = payload.mid(sep + 1).toInt();
+	if (!id.contextId.sessionId || !id.contextId.peerId) {
+		return;
+	}
+	const auto session = system()->findSession(id.contextId.sessionId);
+	if (!session) {
+		return;
+	}
+	const auto history = session->data().history(id.contextId.peerId);
+	const auto item = history->owner().message(history->peer, id.msgId);
+	if (!item || !item->isRegular()) {
+		return;
+	}
+	const auto owner = &history->owner();
+	const auto fullId = item->fullId();
+	const auto button = HistoryMessageMarkupButton::Get(
+		owner,
+		fullId,
+		row,
+		column);
+	if (!button || button->requestId) {
+		return;
+	}
+	using ButtonType = HistoryMessageMarkupButton::Type;
+	if (button->type != ButtonType::Callback) {
+		return;
+	}
+	auto flags = MTPmessages_GetBotCallbackAnswer::Flags(0);
+	flags |= MTPmessages_GetBotCallbackAnswer::Flag::f_data;
+	const auto sendData = button->data;
+	button->requestId = session->api().request(
+		MTPmessages_GetBotCallbackAnswer(
+			MTP_flags(flags),
+			history->peer->input(),
+			MTP_int(item->id),
+			MTP_bytes(sendData),
+			MTP_inputCheckPasswordEmpty())
+	).done([=](const MTPmessages_BotCallbackAnswer &result) {
+		const auto item = owner->message(fullId);
+		if (!item) {
+			return;
+		}
+		if (const auto button = HistoryMessageMarkupButton::Get(
+				owner,
+				fullId,
+				row,
+				column)) {
+			button->requestId = 0;
+			owner->requestItemRepaint(item);
+		}
+	}).fail([=](const MTP::Error &error) {
+		const auto item = owner->message(fullId);
+		if (!item) {
+			return;
+		}
+		if (const auto button = HistoryMessageMarkupButton::Get(
+				owner,
+				fullId,
+				row,
+				column)) {
+			button->requestId = 0;
+		}
+	}).send();
+}
+
 void Manager::maybePlaySound(Fn<void()> playSound) {
 	if (_system->volumeSupported()) {
 		doMaybePlaySound(std::move(playSound));
@@ -1527,6 +1613,27 @@ void NativeManager::doShowNotification(NotificationFields &&fields) {
 			return Core::App().notifications().lookupSoundBytes(owner, 0);
 		});
 	} : Fn<NotificationSound()>();
+	auto actions = std::vector<NotificationAction>();
+	if (AllowNotificationActions(peer)) {
+		if (const auto markup = item->inlineReplyMarkup()) {
+			using ButtonType = HistoryMessageMarkupButton::Type;
+			const auto &rows = markup->data.rows;
+			const auto rowsCount = int(rows.size());
+			for (auto row = 0; row != rowsCount; ++row) {
+				const auto &buttons = rows[row];
+				const auto colsCount = int(buttons.size());
+				for (auto col = 0; col != colsCount; ++col) {
+					const auto &button = buttons[col];
+					if (button.type == ButtonType::Callback) {
+						actions.push_back({
+							.id = u"callbackButton:%1:%2"_q.arg(row).arg(col),
+							.text = button.text,
+						});
+					}
+				}
+			}
+		}
+	}
 	doShowNativeNotification({
 		.peer = item->history()->peer,
 		.topicRootId = item->topicRootId(),
@@ -1539,6 +1646,7 @@ void NativeManager::doShowNotification(NotificationFields &&fields) {
 		.message = text,
 		.sound = sound,
 		.options = options,
+		.actions = std::move(actions),
 	}, userpicView);
 }
 

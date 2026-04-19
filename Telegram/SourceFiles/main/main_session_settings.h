@@ -187,6 +187,13 @@ public:
 		return _moderateCommonGroups;
 	}
 
+	void setPhoneNumberHidden(bool hidden) {
+		_phoneNumberHidden = hidden;
+	}
+	[[nodiscard]] bool phoneNumberHidden() const {
+		return _phoneNumberHidden;
+	}
+
 private:
 	static constexpr auto kDefaultSupportChatsLimitSlice = 7 * 24 * 60 * 60;
 	static constexpr auto kPhotoEditorHintMaxShowsCount = 5;
@@ -236,6 +243,8 @@ private:
 	Data::SetupEmailState _setupEmailState;
 
 	std::vector<int32> _moderateCommonGroups;
+
+	bool _phoneNumberHidden = false;
 
 };
 

@@ -46,6 +46,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_saved_messages.h"
 #include "data/data_saved_sublist.h"
 #include "data/data_session.h"
+#include "data/data_thread.h"
 #include "data/data_file_origin.h"
 #include "data/data_flags.h"
 #include "data/data_folder.h"
@@ -120,6 +121,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "settings/cloud_password/settings_cloud_password_start.h"
 #include "settings/cloud_password/settings_cloud_password_email_confirm.h"
 #include "settings/sections/settings_main.h"
+#include "styles/style_chat.h"
 #include "settings/sections/settings_premium.h"
 #include "settings/sections/settings_privacy_security.h"
 #include "styles/style_window.h"
@@ -1877,6 +1879,10 @@ void SessionController::init() {
 	if (session().supportMode()) {
 		session().supportHelper().registerWindow(this);
 	}
+	session().data().drawToReplyRequests(
+	) | rpl::on_next([=](Data::DrawToReplyRequest request) {
+		handleDrawToReplyRequest(std::move(request));
+	}, lifetime());
 	setupShortcuts();
 }
 
@@ -2722,6 +2728,7 @@ void SessionController::showCalendar(ShowCalendarDescriptor &&descriptor) {
 	const auto chat = descriptor.chat;
 	const auto requestedDate = descriptor.date;
 	const auto topic = chat.topic();
+	const auto sublist = chat.sublist();
 	const auto history = chat.owningHistory();
 	if (!history) {
 		return;
@@ -2795,6 +2802,7 @@ void SessionController::showCalendar(ShowCalendarDescriptor &&descriptor) {
 		: !currentPeerDate.isNull()
 		? currentPeerDate
 		: QDate::currentDate();
+	const auto performJump = descriptor.customJump;
 	struct ButtonState {
 		enum class Type {
 			None,
@@ -2888,32 +2896,34 @@ void SessionController::showCalendar(ShowCalendarDescriptor &&descriptor) {
 				const auto date = base::unixtime::serialize(
 					QDateTime(d, QTime()));
 				if (const auto msgId = search->resolveMsgIdByDate(date)) {
-					performJump(*msgId, close);
+					performJump(FullMsgId(history->peer->id, *msgId), close);
 				}
 			};
 		}
 		return { Factory(factory), std::move(customJump) };
 	}();
 	const auto weak = base::make_weak(this);
-	const auto weakTopic = base::make_weak(topic);
+	const auto weakThread = base::make_weak(chat.thread());
 	const auto jump = [=](const QDate &date, Fn<void()> close) {
 		const auto open = [=](not_null<PeerData*> peer, MsgId id) {
 			if (const auto strong = weak.get()) {
-				if (!topic) {
+				if (performJump) {
+					performJump(FullMsgId(peer->id, id), close);
+				} else if (!topic && !sublist) {
 					strong->showPeerHistory(
 						peer,
 						SectionShow::Way::Forward,
 						id);
-				} else if (const auto strongTopic = weakTopic.get()) {
-					strong->showTopic(
-						strongTopic,
+				} else if (const auto strongThread = weakThread.get()) {
+					strong->showThread(
+						strongThread,
 						id,
 						SectionShow::Way::Forward);
 					strong->hideLayer(anim::type::normal);
 				}
 			}
 		};
-		if (!topic || weakTopic) {
+		if ((!topic && !sublist) || weakThread) {
 			session().api().resolveJumpToDate(chat, date, open);
 		}
 	};

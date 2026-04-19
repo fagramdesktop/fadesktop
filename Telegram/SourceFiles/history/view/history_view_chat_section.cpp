@@ -458,36 +458,6 @@ ChatWidget::ChatWidget(
 		}, lifetime());
 	}
 
-	session().data().drawToReplyRequests(
-	) | rpl::on_next([=](Data::DrawToReplyRequest request) {
-		if (request.messageId.peer != _peer->id) {
-			return;
-		}
-		auto image = ResolveDrawToReplyImage(
-			&session().data(),
-			request);
-		if (image.isNull()) {
-			return;
-		}
-		const auto replyTo = request.messageId;
-		OpenDrawToReplyEditor(
-			controller,
-			std::move(image),
-			crl::guard(this, [=](QImage &&result) {
-				if (result.isNull()) {
-					return;
-				}
-				if (replyTo) {
-					replyToMessage({ .messageId = replyTo });
-				}
-				auto list = Storage::PrepareMediaFromImage(
-					std::move(result),
-					QByteArray(),
-					st::sendMediaPreviewSize);
-				confirmSendingFiles(std::move(list));
-			}));
-	}, lifetime());
-
 	_selfForwardsTagger = std::make_unique<HistoryView::SelfForwardsTagger>(
 		controller,
 		this,
@@ -915,6 +885,12 @@ void ChatWidget::setupComposeControls() {
 			this,
 			[=] { chooseAttach(overrideCompress); });
 	}, lifetime());
+
+	_composeControls->setSendAsFileConfirmed(crl::guard(this, [=](
+			std::shared_ptr<Ui::PreparedBundle> bundle,
+			Api::SendOptions options) {
+		sendingFilesConfirmed(std::move(bundle), options);
+	}));
 
 	_composeControls->fileChosen(
 	) | rpl::on_next([=](ChatHelpers::FileChosen data) {
@@ -3295,6 +3271,34 @@ void ChatWidget::listShowPremiumToast(not_null<DocumentData*> document) {
 	_stickerToast->showFor(document);
 }
 
+bool ChatWidget::handleDrawToReplyRequest(Data::DrawToReplyRequest request) {
+	if (request.messageId.peer != _peer->id) {
+		return false;
+	}
+	auto image = ResolveDrawToReplyImage(&session().data(), request);
+	if (image.isNull()) {
+		return false;
+	}
+	const auto replyTo = request.messageId;
+	OpenDrawToReplyEditor(
+		controller(),
+		std::move(image),
+		crl::guard(this, [=](QImage &&result) {
+			if (result.isNull()) {
+				return;
+			}
+			if (replyTo) {
+				replyToMessage({ .messageId = replyTo });
+			}
+			auto list = Storage::PrepareMediaFromImage(
+				std::move(result),
+				QByteArray(),
+				st::sendMediaPreviewSize);
+			confirmSendingFiles(std::move(list));
+		}));
+	return true;
+}
+
 void ChatWidget::listOpenPhoto(
 		not_null<PhotoData*> photo,
 		FullMsgId context) {
@@ -3516,6 +3520,7 @@ bool ChatWidget::searchInChatEmbedded(
 		_history,
 		sublist->sublistPeer(),
 		query);
+	_composeSearch->setCalendarChat(Dialogs::Key(sublist));
 
 	updateControlsGeometry();
 	setInnerFocus();

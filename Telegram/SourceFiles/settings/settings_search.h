@@ -19,6 +19,7 @@ class SessionController;
 
 namespace Ui {
 class InputField;
+class PopupMenu;
 class RpWidget;
 class SearchFieldController;
 class VerticalLayout;
@@ -60,7 +61,12 @@ private:
 	void setupCustomizations();
 	void buildIndex();
 	void rebuildResults(const QString &query);
+	void rebuildRecentResults();
 	void rebuildFaqResults();
+	void bumpRecentEntry(const QString &entryId);
+	[[nodiscard]] not_null<Ui::SettingsButton*> createEntryButton(
+		int entryIndex,
+		const QString &subtitle);
 	void selectByKeyboard(int newSelected);
 	void clearSelection();
 	void handleKeyNavigation(int key);
@@ -72,6 +78,7 @@ private:
 	Ui::InputField *_searchField = nullptr;
 	Ui::VerticalLayout *_list = nullptr;
 	base::flat_map<QString, ResultCustomization> _customizations;
+	base::flat_map<QString, int> _entryIdToIndex;
 	QString _pendingQuery;
 	std::vector<IndexedEntry> _entries;
 	base::flat_map<QChar, base::flat_set<int>> _firstLetterIndex;
@@ -79,6 +86,7 @@ private:
 	int _faqStartIndex = 0;
 	std::vector<Ui::SettingsButton*> _visibleButtons;
 	base::flat_set<not_null<Ui::SettingsButton*>> _trackedButtons;
+	base::unique_qptr<Ui::PopupMenu> _contextMenu;
 	int _selected = -1;
 
 };

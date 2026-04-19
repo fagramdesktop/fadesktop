@@ -61,6 +61,7 @@ struct VideoInformation {
 	QSize size;
 	QImage cover;
 	int rotation = 0;
+	float64 fps = 0.;
 	bool alpha = false;
 };
 

@@ -37,6 +37,8 @@ ResolveWindow ResolveWindowDefault() {
 			return b;
 		} else if (const auto c = check(app.windowFor(account))) {
 			return c;
+		} else if (Core::Quitting()) {
+			return nullptr;
 		} else if (const auto d = check(app.ensureSeparateWindowFor(
 				account))) {
 			return d;

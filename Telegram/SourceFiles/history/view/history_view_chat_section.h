@@ -54,6 +54,7 @@ class Result;
 namespace Data {
 class RepliesList;
 class ForumTopic;
+struct DrawToReplyRequest;
 } // namespace Data
 
 namespace HistoryView {
@@ -187,6 +188,7 @@ public:
 	auto listAllowedReactionsValue()
 		->rpl::producer<Data::AllowedReactions> override;
 	void listShowPremiumToast(not_null<DocumentData*> document) override;
+	bool handleDrawToReplyRequest(Data::DrawToReplyRequest request);
 	void listOpenPhoto(
 		not_null<PhotoData*> photo,
 		FullMsgId context) override;

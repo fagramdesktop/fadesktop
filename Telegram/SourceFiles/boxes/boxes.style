@@ -92,7 +92,7 @@ restoreUserpicIcon: UserpicButton(defaultUserpicButton) {
 }
 
 confirmInviteTitle: FlatLabel(defaultFlatLabel) {
-	align: align(center);
+	align: align(top);
 	minWidth: 320px;
 	maxHeight: 24px;
 	textFg: windowBoldFg;
@@ -101,9 +101,8 @@ confirmInviteTitle: FlatLabel(defaultFlatLabel) {
 	}
 }
 confirmInviteAbout: FlatLabel(boxLabel) {
-	align: align(center);
+	align: align(top);
 	minWidth: 320px;
-	maxHeight: 60px;
 	style: TextStyle(boxLabelStyle) {
 		lineHeight: 19px;
 	}
