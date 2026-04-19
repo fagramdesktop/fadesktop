@@ -75,17 +75,22 @@ namespace Settings {
     void FALogs::SetupLogs(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
         Ui::AddSubsectionTitle(container, fatr::fa_debug_logs());
     	
-    	AddButtonWithLabel(
+		const auto cleanLogsButton = AddButtonWithLabel(
 			container,
 			fatr::fa_clean_debug_logs(),
 			rpl::single(QString("")),
 			st::settingsButton,
 			{ &st::menuIconClear }
-		)->setClickedCallback([=] {
+		);
+		cleanLogsButton->setClickedCallback([=] {
 			controller->showToast(fatr::fa_cleaning_debug_logs(fatr::now), 500);
 			cleanDebugLogs();
 			controller->showToast(fatr::fa_cleaned_debug_logs(fatr::now), 1000);
 		});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			cleanLogsButton,
+			u"fa/logs/clean"_q,
+			controller);
 		
 		SettingsMenuJsonSwitch(fa_debug_logs, debug_logs, u"fa/logs/debug-logs"_q);
 

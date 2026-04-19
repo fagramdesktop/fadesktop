@@ -33,6 +33,7 @@ void AttachSettingsContextMenu(
 	if (deepLink.isEmpty()) {
 		return;
 	}
+	controller->checkHighlightControl(controlId, widget);
 
 	base::install_event_filter(widget, [=](not_null<QEvent*> e) {
 		if (e->type() != QEvent::ContextMenu) {
