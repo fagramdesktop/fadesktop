@@ -360,15 +360,6 @@ const auto kFAAppearanceMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
-			.id = u"fa/appearance/hide-phone"_q,
-			.title = fatr::fa_hide_phone_number(fatr::now),
-			.keywords = { u"phone"_q, u"number"_q, u"hide"_q, u"privacy"_q },
-			.icon = { &st::menuIconPalette },
-		};
-	});
-
-	builder.add(nullptr, [] {
-		return SearchEntry{
 			.id = u"fa/appearance/hide-stories"_q,
 			.title = fatr::fa_hide_stories(fatr::now),
 			.keywords = { u"stories"_q, u"hide"_q, u"disable"_q },

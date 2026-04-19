@@ -185,8 +185,6 @@ namespace Settings {
 		Ui::AddDividerText(container, fatr::fa_screenshot_mode_desc());
 		SettingsMenuJsonSwitch(fa_force_snow, force_snow, u"fa/appearance/force-snow"_q);
 		Ui::AddDividerText(container, fatr::fa_force_snow_desc());
-		SettingsMenuJsonSwitch(fa_hide_phone_number, hide_phone_number, u"fa/appearance/hide-phone"_q);
-		Ui::AddDividerText(container, fatr::fa_hide_phone_number_desc());
 		RestartSettingsMenuJsonSwitch(fa_hide_stories, hide_stories, u"fa/appearance/hide-stories"_q);
 		Ui::AddDividerText(container, fatr::fa_hide_stories_desc());
 		RestartSettingsMenuJsonSwitch(fa_hide_folder_tabs_titles, hide_folder_tabs_titles, u"fa/appearance/hide-folder-titles"_q);

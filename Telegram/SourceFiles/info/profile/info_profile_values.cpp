@@ -7,8 +7,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "info/profile/info_profile_values.h"
 
-#include "fa/settings/fa_settings.h"
-
 #include "api/api_chat_participants.h"
 #include "apiwrap.h"
 #include "info/profile/info_profile_phone_menu.h"
@@ -17,6 +15,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/click_handler_types.h"
 #include "countries/countries_instance.h"
 #include "main/main_session.h"
+#include "main/main_session_settings.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/text/format_values.h" // Ui::FormatPhone
 #include "ui/text/text_utilities.h"
@@ -137,23 +136,18 @@ rpl::producer<TextWithEntities> PhoneValue(not_null<UserData*> user) {
 }
 
 rpl::producer<TextWithEntities> PhoneOrHiddenValue(not_null<UserData*> user) {
-	auto settingsChanged = FASettings::JsonSettings::Events("hide_phone_number") | rpl::to_empty;
-
 	return rpl::combine(
 		PhoneValue(user),
 		PlainUsernameValue(user),
 		PlainAboutValue(user),
-		tr::lng_info_mobile_hidden(),
-		rpl::single(rpl::empty_value()) | rpl::then(std::move(settingsChanged))
+		tr::lng_info_mobile_hidden()
 	) | rpl::map([user](
 			const TextWithEntities &phone,
 			const QString &username,
 			const QString &about,
-			const QString &hidden,
-			rpl::empty_value) {
-		const auto hidePhone = FASettings::JsonSettings::GetBool("hide_phone_number");
-		if (hidePhone) {
-			return tr::marked("Phone hidden");
+			const QString &hidden) {
+		if (user->session().settings().phoneNumberHidden()) {
+			return tr::marked(hidden);
 		} else if (phone.text.isEmpty() && username.isEmpty() && about.isEmpty()) {
 			return tr::marked(hidden);
 		} else if (IsCollectiblePhone(user)) {
