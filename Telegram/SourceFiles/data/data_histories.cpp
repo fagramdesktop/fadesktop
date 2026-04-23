@@ -482,17 +482,7 @@ void Histories::applyPeerDialogs(const MTPmessages_PeerDialogs &dialogs) {
 	const auto &data = dialogs.c_messages_peerDialogs();
 	_owner->processUsers(data.vusers());
 	_owner->processChats(data.vchats());
-	_owner->processMessages(data.vmessages(), NewMessageType::Last);
-	for (const auto &dialog : data.vdialogs().v) {
-		dialog.match([&](const MTPDdialog &data) {
-			if (const auto peerId = peerFromMTP(data.vpeer())) {
-				_owner->history(peerId)->applyDialog(nullptr, data);
-			}
-		}, [&](const MTPDdialogFolder &data) {
-			const auto folder = _owner->processFolder(data.vfolder());
-			folder->applyDialog(data);
-		});
-	}
+	_owner->applyDialogs(nullptr, data.vmessages().v, data.vdialogs().v);
 	_owner->sendHistoryChangeNotifications();
 }
 

@@ -144,6 +144,9 @@ void RestoreLocalPinnedChats(not_null<Session*> session) {
 			continue;
 		}
 		const auto history = session->history(peerId);
+		if (!history->lastMessageKnown()) {
+			session->histories().requestDialogEntry(history);
+		}
 		if (!history->folderKnown() || history->folder()) {
 			history->clearFolder();
 		}
@@ -2572,12 +2575,12 @@ void Session::applyDialogs(
 			applyDialog(requestFolder, data);
 		});
 	}
-	if (!requestFolder
-		&& !_localPinnedRestoredForCurrentLoad
-		&& LocalUnlimitedPinnedChatsEnabled()) {
+	if (!requestFolder && LocalUnlimitedPinnedChatsEnabled()) {
 		RestoreLocalPinnedChats(this);
-		_localPinnedRestoredForCurrentLoad = true;
-		notifyPinnedDialogsOrderUpdated();
+		if (!_localPinnedRestoredForCurrentLoad) {
+			_localPinnedRestoredForCurrentLoad = true;
+			notifyPinnedDialogsOrderUpdated();
+		}
 	}
 	if (requestFolder && count) {
 		requestFolder->chatsList()->setCloudListSize(*count);
