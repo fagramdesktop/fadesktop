@@ -147,7 +147,9 @@ rpl::producer<TextWithEntities> PhoneOrHiddenValue(not_null<UserData*> user) {
 			const QString &about,
 			const QString &hidden) {
 		if (user->session().settings().phoneNumberHidden()) {
-			return tr::marked(hidden);
+			return phone.text.isEmpty()
+				? tr::marked(hidden)
+				: Ui::Text::Wrapped({ phone.text }, EntityType::Spoiler);
 		} else if (phone.text.isEmpty() && username.isEmpty() && about.isEmpty()) {
 			return tr::marked(hidden);
 		} else if (IsCollectiblePhone(user)) {
