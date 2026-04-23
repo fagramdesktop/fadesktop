@@ -233,7 +233,7 @@ void SessionSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 setupEmailState = 0;
 	std::vector<int32> moderateCommonGroups;
 	qint32 disableSharingBoxShowsCount = 0;
-	qint32 phoneNumberHidden = 0;
+	qint32 phoneNumberHidden = 1;
 
 	stream >> versionTag;
 	if (versionTag == kVersionTag) {

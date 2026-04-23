@@ -244,7 +244,7 @@ private:
 
 	std::vector<int32> _moderateCommonGroups;
 
-	bool _phoneNumberHidden = false;
+	bool _phoneNumberHidden = true;
 
 };
 
