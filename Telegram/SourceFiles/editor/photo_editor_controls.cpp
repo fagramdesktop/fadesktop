@@ -202,6 +202,38 @@ ButtonBar::ButtonBar(
 	}, lifetime());
 }
 
+class TextToolButton final : public Ui::AbstractButton {
+public:
+	TextToolButton(not_null<QWidget*> parent)
+	: AbstractButton(parent) {
+		constexpr auto kSizeShrink = 6;
+		resize(
+			st::photoEditorStickersButton.width - kSizeShrink,
+			st::photoEditorStickersButton.height - kSizeShrink);
+		events(
+		) | rpl::on_next([=](not_null<QEvent*> event) {
+			if (event->type() == QEvent::Enter
+				|| event->type() == QEvent::Leave) {
+				update();
+			}
+		}, lifetime());
+	}
+
+private:
+	void paintEvent(QPaintEvent *) override {
+		auto p = QPainter(this);
+		auto hq = PainterHighQualityEnabler(p);
+		auto font = st::semiboldFont->f;
+		font.setPixelSize(QWidget::rect().height() / 2);
+		p.setFont(font);
+		p.setPen(isOver()
+			? st::photoEditorButtonIconFgOver
+			: st::photoEditorButtonIconFg);
+		p.translate(0, st::lineWidth * 3);
+		p.drawText(QWidget::rect(), style::al_center, u"A"_q);
+	}
+};
+
 PhotoEditorControls::PhotoEditorControls(
 	not_null<Ui::RpWidget*> parent,
 	std::shared_ptr<Controllers> controllers,
@@ -272,6 +304,7 @@ PhotoEditorControls::PhotoEditorControls(
 			_paintBottomButtons,
 			st::photoEditorStickersButton)
 		: nullptr)
+, _textButton(base::make_unique_q<TextToolButton>(_paintBottomButtons))
 , _paintDone(base::make_unique_q<EdgeButton>(
 	_paintBottomButtons,
 	tr::lng_box_done(tr::now),
@@ -497,6 +530,10 @@ rpl::producer<> PhotoEditorControls::flipRequests() const {
 
 rpl::producer<> PhotoEditorControls::paintModeRequests() const {
 	return _paintModeButton->clicks() | rpl::to_empty;
+}
+
+rpl::producer<> PhotoEditorControls::textRequests() const {
+	return _textButton->clicks() | rpl::to_empty;
 }
 
 rpl::producer<> PhotoEditorControls::doneRequests() const {

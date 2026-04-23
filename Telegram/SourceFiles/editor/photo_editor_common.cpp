@@ -9,8 +9,40 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "editor/scene/scene.h"
 #include "ui/painter.h"
+#include "ui/userpic_view.h"
 
 namespace Editor {
+namespace {
+
+void ApplyShapeMask(QImage &image, EditorData::CropType type) {
+	if (type == EditorData::CropType::Rect) {
+		return;
+	}
+	if (image.format() != QImage::Format_ARGB32_Premultiplied) {
+		image = image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+	}
+	auto mask = QImage(image.size(), QImage::Format_ARGB32_Premultiplied);
+	mask.fill(Qt::transparent);
+	{
+		auto p = QPainter(&mask);
+		auto hq = PainterHighQualityEnabler(p);
+		p.setPen(Qt::NoPen);
+		p.setBrush(Qt::white);
+		const auto rect = QRectF(QPointF(), QSizeF(image.size()));
+		if (type == EditorData::CropType::Ellipse) {
+			p.drawEllipse(rect);
+		} else {
+			const auto radius = std::min(rect.width(), rect.height())
+				* Ui::ForumUserpicRadiusMultiplier();
+			p.drawRoundedRect(rect, radius, radius);
+		}
+	}
+	auto p = QPainter(&image);
+	p.setCompositionMode(QPainter::CompositionMode_DestinationIn);
+	p.drawImage(0, 0, mask);
+}
+
+} // namespace
 
 QImage ImageModified(QImage image, const PhotoModifications &mods) {
 	Expects(!image.isNull());
@@ -32,6 +64,7 @@ QImage ImageModified(QImage image, const PhotoModifications &mods) {
 	auto cropped = mods.crop.isValid()
 		? image.copy(mods.crop)
 		: image;
+	ApplyShapeMask(cropped, mods.cropType);
 	QTransform transform;
 	if (mods.flipped) {
 		transform.scale(-1, 1);
@@ -43,7 +76,11 @@ QImage ImageModified(QImage image, const PhotoModifications &mods) {
 }
 
 bool PhotoModifications::empty() const {
-	return !angle && !flipped && !crop.isValid() && !paint;
+	return !angle
+		&& !flipped
+		&& !crop.isValid()
+		&& cropType == EditorData::CropType::Rect
+		&& !paint;
 }
 
 PhotoModifications::operator bool() const {

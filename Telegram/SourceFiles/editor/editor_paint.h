@@ -29,7 +29,8 @@ public:
 		PhotoModifications &modifications,
 		const QSize &imageSize,
 		std::shared_ptr<Controllers> controllers,
-		Fn<QImage(QRect)> blurSource);
+		Fn<QImage(QRect)> blurSource,
+		bool fixedCrop = false);
 	~Paint() override;
 
 	[[nodiscard]] std::shared_ptr<Scene> saveScene() const;
@@ -41,9 +42,23 @@ public:
 	void keepResult();
 	void updateUndoState();
 
+	void createTextItem();
+	void clearSelection();
+	void setTextColor(const QColor &color);
+	void setSelectedTextColor(const QColor &color);
+
+	[[nodiscard]] rpl::producer<QColor> textColorRequests() const;
+	[[nodiscard]] rpl::producer<QColor> textItemSelections() const;
+	[[nodiscard]] rpl::producer<> textItemDeselections() const;
+	[[nodiscard]] rpl::producer<bool> textEditStates() const;
+
 	void handleMimeData(const QMimeData *data);
 	void paintImage(QPainter &p, const QPixmap &image) const;
 	void resetView();
+
+	bool zoomSceneItems(float64 wheelDelta, bool fine = false);
+	void panSceneItems(QPointF sceneDelta);
+	[[nodiscard]] QPointF mapWidgetDeltaToScene(QPoint delta) const;
 
 private:
 	bool eventFilter(QObject *obj, QEvent *e) override;
@@ -64,6 +79,7 @@ private:
 	const base::unique_qptr<QGraphicsView> _view;
 	QPointer<QWidget> _viewport;
 	const QSize _imageSize;
+	const bool _fixedCrop = false;
 	QRect _imageGeometry;
 	QRect _outerGeometry;
 
@@ -84,6 +100,7 @@ private:
 
 	rpl::variable<bool> _hasUndo = true;
 	rpl::variable<bool> _hasRedo = true;
+	rpl::variable<bool> _textEditing = false;
 
 
 };

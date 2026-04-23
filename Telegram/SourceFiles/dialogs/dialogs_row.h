@@ -11,6 +11,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/text/text.h"
 #include "ui/unread_badge.h"
 #include "ui/userpic_view.h"
+#include "dialogs/dialogs_entry.h"
 #include "dialogs/dialogs_key.h"
 #include "dialogs/ui/dialogs_message_view.h"
 
@@ -239,6 +240,9 @@ public:
 		return _badge;
 	}
 	[[nodiscard]] const Ui::Text::String &name() const;
+	[[nodiscard]] DateText dateText(
+		TimeId date,
+		crl::time now) const;
 
 	void invalidateTopic();
 
@@ -252,6 +256,7 @@ private:
 	mutable Ui::MessageView _itemView;
 	mutable Ui::PeerBadge _badge;
 	mutable Ui::Text::String _name;
+	mutable DateTextCache _dateCache;
 
 };
 

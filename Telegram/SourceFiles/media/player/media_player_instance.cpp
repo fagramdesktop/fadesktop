@@ -1282,6 +1282,15 @@ void Instance::emitUpdate(AudioMsgId::Type type, CheckCallback check) {
 			}
 		}
 		updatePowerSaveBlocker(data, state);
+		const auto activelyPlayingRound = (type == AudioMsgId::Type::Voice)
+			&& !IsPausedOrPausing(state.state)
+			&& !IsStoppedOrStopping(state.state)
+			&& data->current.audio()
+			&& data->current.audio()->isVideoMessage();
+		if (_roundPlaying != activelyPlayingRound) {
+			_roundPlaying = activelyPlayingRound;
+			Core::App().floatPlayerToggleGifsPaused(activelyPlayingRound);
+		}
 		if (type == AudioMsgId::Type::Song) {
 			_listenTracker->update(state);
 		}
@@ -1357,8 +1366,6 @@ void Instance::handleStreamingUpdate(
 					float64) {
 				requestRoundVideoRepaint();
 			});
-			_roundPlaying = true;
-			Core::App().floatPlayerToggleGifsPaused(true);
 			requestRoundVideoResize();
 		}
 		emitUpdate(data->type);

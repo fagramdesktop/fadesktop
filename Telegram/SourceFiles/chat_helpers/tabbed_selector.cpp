@@ -381,6 +381,7 @@ TabbedSelector::TabbedSelector(
 , _show(std::move(descriptor.show))
 , _level(descriptor.level)
 , _customTextColor(std::move(descriptor.customTextColor))
+, _excludeStickerSetId(descriptor.excludeStickerSetId)
 , _mode(descriptor.mode)
 , _panelRounding(Ui::PrepareCornerPixmaps(st::emojiPanRadius, _st.bg))
 , _categoriesRounding(
@@ -644,6 +645,7 @@ TabbedSelector::Tab TabbedSelector::createTab(SelectorTab type, int index) {
 				.paused = paused,
 				.st = &_st,
 				.features = _features,
+				.excludeSetId = _excludeStickerSetId,
 			});
 		}
 		case SelectorTab::Gifs: {

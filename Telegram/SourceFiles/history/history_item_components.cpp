@@ -155,6 +155,7 @@ void HistoryMessageVia::resize(int32 availw) const {
 			tr::now,
 			lt_inline_bot,
 			'@' + bot->username());
+		maxWidth = st::msgServiceNameFont->width(text);
 		if (availw < maxWidth) {
 			text = st::msgServiceNameFont->elided(text, availw);
 			width = st::msgServiceNameFont->width(text);

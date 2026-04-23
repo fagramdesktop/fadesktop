@@ -193,6 +193,8 @@ menuIconOrderPrice: icon {{ "menu/order_price", menuIconColor }};
 menuIconOrderDate: icon {{ "menu/order_date", menuIconColor }};
 menuIconOrderNumber: icon {{ "menu/order_number", menuIconColor }};
 menuIconAdd: icon {{ "menu/add", menuIconColor }};
+menuIconStickerCreate: icon {{ "menu/sticker_add", menuIconColor }};
+menuIconStickerAdd: icon {{ "menu/sticker_select", menuIconColor }};
 menuIconRatingGifts: icon {{ "menu/rating_gifts-24x24", menuIconColor }};
 menuIconRatingUsers: icon {{ "menu/users_stars-24x24", menuIconColor }};
 menuIconRatingRefund: icon {{ "menu/rating_refund-24x24", menuIconColor }};

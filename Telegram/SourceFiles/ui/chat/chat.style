@@ -595,6 +595,8 @@ historyVideoMessageMute: icon {{ "volume_mute", historyFileThumbIconFg }};
 historyVideoMessageMuteSelected: icon {{ "volume_mute", historyFileThumbIconFgSelected }};
 historyVideoMessageMuteSize: 25px;
 historyVideoMessageProgressOpacity: 0.72;
+historyVideoMessageSeekInset: 12px;
+historyVideoMessageSeekDotSize: 13px;
 historyVideoMessageTtlIcon: icon {{ "chat/audio_once", historyFileThumbIconFg }};
 historyVideoMessageTtlIconSelected: icon {{ "chat/audio_once", historyFileThumbIconFgSelected }};
 

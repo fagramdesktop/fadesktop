@@ -70,7 +70,8 @@ struct GifSection {
 
 [[nodiscard]] std::vector<EmojiPtr> SearchEmoji(
 	const std::vector<QString> &query,
-	base::flat_set<EmojiPtr> &outResultSet);
+	base::flat_set<EmojiPtr> &outResultSet,
+	bool exact = false);
 
 struct StickerIcon {
 	explicit StickerIcon(uint64 setId);

@@ -84,6 +84,9 @@ int SendAsFilePasteThreshold() {
 LargeTextPasteResult CheckLargeTextPaste(
 		not_null<Ui::InputField*> field,
 		not_null<const QMimeData*> data) {
+	if (data->hasImage()) {
+		return {};
+	}
 	const auto pasteText = Core::ReadMimeText(data);
 	if (pasteText.isEmpty()) {
 		return {};

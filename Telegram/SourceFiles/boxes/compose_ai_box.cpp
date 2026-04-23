@@ -1203,6 +1203,10 @@ void ComposeAiContent::request() {
 				return;
 			}
 			weak->_requestId = 0;
+			if (MTP::IgnoreError(error)) {
+				weak->resetState(CardState::Waiting);
+				return;
+			}
 			weak->showError(error.type());
 		});
 }

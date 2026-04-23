@@ -192,6 +192,10 @@ void TabbedPanel::setDesiredHeightValues(
 	updateContentHeight();
 }
 
+void TabbedPanel::setShowAnimationOrigin(Ui::PanelAnimation::Origin origin) {
+	_showAnimationOrigin = origin;
+}
+
 void TabbedPanel::setDropDown(bool dropDown) {
 	selector()->setDropDown(dropDown);
 	_dropDown = dropDown;
@@ -380,11 +384,12 @@ void TabbedPanel::startShowAnimation() {
 	if (!_a_show.animating()) {
 		auto image = grabForAnimation();
 
+		const auto origin = _showAnimationOrigin.value_or(_dropDown
+			? Ui::PanelAnimation::Origin::TopRight
+			: Ui::PanelAnimation::Origin::BottomRight);
 		_showAnimation = std::make_unique<Ui::PanelAnimation>(
 			_selector->st().showAnimation,
-			(_dropDown
-				? Ui::PanelAnimation::Origin::TopRight
-				: Ui::PanelAnimation::Origin::BottomRight));
+			origin);
 		auto inner = rect().marginsRemoved(st::emojiPanMargins);
 		_showAnimation->setFinalImage(
 			std::move(image),

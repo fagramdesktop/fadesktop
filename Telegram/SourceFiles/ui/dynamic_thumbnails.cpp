@@ -1121,6 +1121,16 @@ std::shared_ptr<DynamicImage> MakeDocumentThumbnail(
 		false);
 }
 
+std::shared_ptr<DynamicImage> MakeDocumentThumbnail(
+		not_null<DocumentData*> document,
+		Data::FileOrigin origin) {
+	return std::make_shared<VideoThumbnail>(
+		document,
+		origin,
+		false,
+		false);
+}
+
 std::shared_ptr<DynamicImage> MakeDocumentThumbnailCenterCrop(
 		not_null<DocumentData*> document,
 		FullMsgId fullId) {

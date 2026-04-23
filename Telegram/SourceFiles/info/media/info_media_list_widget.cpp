@@ -2392,10 +2392,13 @@ void ListWidget::mouseActionFinish(
 		&& (button != Qt::RightButton)
 		&& (_mouseAction == MouseAction::PrepareDrag
 			|| _mouseAction == MouseAction::PrepareSelect);
-	if (_mouseAction == MouseAction::Reordering
-		|| _mouseAction == MouseAction::PrepareReorder) {
+	if (_mouseAction == MouseAction::Reordering) {
 		finishReorder();
 		return;
+	}
+	if (_mouseAction == MouseAction::PrepareReorder) {
+		_reorderState = {};
+		_mouseAction = MouseAction::PrepareDrag;
 	}
 	const auto needSelectionToggle = simpleSelectionChange && selectionMode;
 	const auto needSelectionClear = simpleSelectionChange

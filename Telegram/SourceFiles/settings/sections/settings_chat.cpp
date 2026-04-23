@@ -118,11 +118,7 @@ constexpr auto kCustomColorButtonParts = 7;
 }
 
 [[nodiscard]] bool IsSystemAccentColorSupported() {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-	return true;
-#else
-	return !Platform::IsWindows() || !Platform::IsWindows8OrGreater();
-#endif
+	return Window::Theme::SystemAccentColor().has_value();
 }
 
 class ColorsPalette final {

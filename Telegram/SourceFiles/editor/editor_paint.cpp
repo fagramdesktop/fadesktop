@@ -12,6 +12,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "editor/scene/scene_item_canvas.h"
 #include "editor/scene/scene_item_image.h"
 #include "editor/scene/scene_item_sticker.h"
+#include "editor/scene/scene_item_text.h"
 #include "editor/scene/scene.h"
 #include "lang/lang_keys.h"
 #include "lottie/lottie_single_player.h"
@@ -35,6 +36,9 @@ constexpr auto kMinCanvasZoom = 1.;
 constexpr auto kMaxCanvasZoom = 8.;
 constexpr auto kCanvasZoomStep = 1.15;
 constexpr auto kZoomEpsilon = 0.0001;
+constexpr auto kMinItemZoom = 0.1;
+constexpr auto kMaxItemZoom = 10.;
+constexpr auto kCanvasZoomStepFine = 1.015;
 
 std::shared_ptr<Scene> EnsureScene(
 		PhotoModifications &mods,
@@ -54,16 +58,29 @@ Paint::Paint(
 	PhotoModifications &modifications,
 	const QSize &imageSize,
 	std::shared_ptr<Controllers> controllers,
-	Fn<QImage(QRect)> blurSource)
+	Fn<QImage(QRect)> blurSource,
+	bool fixedCrop)
 : RpWidget(parent)
 , _controllers(controllers)
 , _scene(EnsureScene(modifications, imageSize))
 , _view(base::make_unique_q<QGraphicsView>(_scene.get(), this))
 , _viewport(_view->viewport())
-, _imageSize(imageSize) {
+, _imageSize(imageSize)
+, _fixedCrop(fixedCrop) {
 	Expects(modifications.paint != nullptr);
 
 	_scene->setBlurSource(std::move(blurSource));
+
+	{
+		constexpr auto kDefaultFontSizeDivisor = 15.;
+		const auto shortSide = std::min(
+			imageSize.width(),
+			imageSize.height());
+		_scene->setTextDefaults(
+			QColor(255, 255, 255),
+			shortSide / kDefaultFontSizeDivisor,
+			int(TextStyle::Plain));
+	}
 
 	keepResult();
 
@@ -77,9 +94,17 @@ Paint::Paint(
 	_viewport->setAttribute(Qt::WA_TranslucentBackground, true);
 	_viewport->installEventFilter(this);
 
+	_scene->textEditStates(
+	) | rpl::on_next([=](bool editing) {
+		_textEditing = editing;
+	}, lifetime());
+
 	// Undo / Redo.
 	controllers->undoController->performRequestChanges(
 	) | rpl::on_next([=](const Undo &command) {
+		if (_textEditing.current()) {
+			return;
+		}
 		if (command == Undo::Undo) {
 			_scene->performUndo();
 		} else {
@@ -91,16 +116,22 @@ Paint::Paint(
 	}, lifetime());
 
 	controllers->undoController->setCanPerformChanges(rpl::merge(
-		_hasUndo.value() | rpl::map([](bool enable) {
+		rpl::combine(
+			_hasUndo.value(),
+			_textEditing.value()
+		) | rpl::map([](bool enable, bool editing) {
 			return UndoController::EnableRequest{
 				.command = Undo::Undo,
-				.enable = enable,
+				.enable = enable && !editing,
 			};
 		}),
-		_hasRedo.value() | rpl::map([](bool enable) {
+		rpl::combine(
+			_hasRedo.value(),
+			_textEditing.value()
+		) | rpl::map([](bool enable, bool editing) {
 			return UndoController::EnableRequest{
 				.command = Undo::Redo,
-				.enable = enable,
+				.enable = enable && !editing,
 			};
 		})));
 
@@ -137,6 +168,51 @@ Paint::Paint(
 		updateUndoState();
 	}, lifetime());
 
+}
+
+bool Paint::zoomSceneItems(float64 wheelDelta, bool fine) {
+	if (!wheelDelta) {
+		return false;
+	}
+	const auto step = wheelDelta
+		/ float64(QWheelEvent::DefaultDeltasPerStep);
+	const auto base = fine ? kCanvasZoomStepFine : kCanvasZoomStep;
+	const auto factor = std::pow(base, step);
+	const auto center = rect::center(_scene->sceneRect());
+	auto applied = false;
+	for (const auto &item : _scene->items()) {
+		const auto raw = item.get();
+		const auto oldScale = raw->scale();
+		const auto newScale = std::clamp(
+			oldScale * factor,
+			kMinItemZoom,
+			kMaxItemZoom);
+		if (std::abs(newScale - oldScale) < kZoomEpsilon) {
+			continue;
+		}
+		const auto ratio = newScale / oldScale;
+		raw->setScale(newScale);
+		const auto pos = raw->pos();
+		raw->setPos(center + (pos - center) * ratio);
+		applied = true;
+	}
+	return applied;
+}
+
+void Paint::panSceneItems(QPointF sceneDelta) {
+	if (sceneDelta.isNull()) {
+		return;
+	}
+	for (const auto &item : _scene->items()) {
+		item->setPos(item->pos() + sceneDelta);
+	}
+}
+
+QPointF Paint::mapWidgetDeltaToScene(QPoint delta) const {
+	if (!_view) {
+		return QPointF(delta);
+	}
+	return _view->mapToScene(delta) - _view->mapToScene(QPoint());
 }
 
 Paint::~Paint() {
@@ -232,6 +308,38 @@ void Paint::applyBrush(const Brush &brush) {
 		brush.color,
 		(kMinBrush + float64(kMaxBrush - kMinBrush) * brush.sizeRatio),
 		brush.tool);
+}
+
+void Paint::createTextItem() {
+	_scene->createTextAtCenter();
+}
+
+void Paint::clearSelection() {
+	_scene->clearSelection();
+}
+
+void Paint::setTextColor(const QColor &color) {
+	_scene->setTextColor(color);
+}
+
+void Paint::setSelectedTextColor(const QColor &color) {
+	_scene->setSelectedTextColor(color);
+}
+
+rpl::producer<QColor> Paint::textColorRequests() const {
+	return _scene->textColorRequests();
+}
+
+rpl::producer<QColor> Paint::textItemSelections() const {
+	return _scene->textItemSelections();
+}
+
+rpl::producer<> Paint::textItemDeselections() const {
+	return _scene->textItemDeselections();
+}
+
+rpl::producer<bool> Paint::textEditStates() const {
+	return _scene->textEditStates();
 }
 
 void Paint::handleMimeData(const QMimeData *data) {
@@ -330,11 +438,18 @@ bool Paint::eventFilter(QObject *obj, QEvent *e) {
 	}
 	if (e->type() == QEvent::Wheel) {
 		const auto wheel = static_cast<QWheelEvent*>(e);
-		const auto delta = wheel->angleDelta().y();
+		const auto raw = wheel->angleDelta();
+		const auto delta = raw.y() ? raw.y() : raw.x();
 		if (!delta) {
 			return true;
 		}
 
+		if (_fixedCrop) {
+			zoomSceneItems(
+				delta,
+				wheel->modifiers().testFlag(Qt::ShiftModifier));
+			return true;
+		}
 		const auto step = delta / float64(QWheelEvent::DefaultDeltasPerStep);
 		const auto factor = std::pow(kCanvasZoomStep, step);
 		const auto newZoom = std::clamp(
@@ -363,7 +478,8 @@ bool Paint::eventFilter(QObject *obj, QEvent *e) {
 		const auto mouse = static_cast<QMouseEvent*>(e);
 		if (mouse->button() == Qt::MiddleButton) {
 			_pan = {
-				.active = (_transform.userZoom > kMinCanvasZoom),
+				.active = (_fixedCrop
+					|| _transform.userZoom > kMinCanvasZoom),
 				.point = mouse->pos(),
 			};
 			if (_pan.active) {
@@ -378,7 +494,9 @@ bool Paint::eventFilter(QObject *obj, QEvent *e) {
 			const auto delta = point - _pan.point;
 			_pan.point = point;
 
-			if (_transform.userZoom > kMinCanvasZoom) {
+			if (_fixedCrop) {
+				panSceneItems(mapWidgetDeltaToScene(delta));
+			} else if (_transform.userZoom > kMinCanvasZoom) {
 				view->horizontalScrollBar()->setValue(
 					view->horizontalScrollBar()->value() - delta.x());
 				view->verticalScrollBar()->setValue(

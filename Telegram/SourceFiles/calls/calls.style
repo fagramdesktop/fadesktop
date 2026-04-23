@@ -52,7 +52,7 @@ callBodyLayout: CallBodyLayout {
 	participantsTop: 294px;
 	muteStroke: 3px;
 	muteSize: 36px;
-	mutePosition: point(142px, 135px);
+	mutePosition: point(140px, 135px);
 }
 callBodyWithPreview: CallBodyLayout {
 	height: 185px;
@@ -631,7 +631,6 @@ groupCallMenuAbout: FlatLabel(defaultFlatLabel) {
 	textFg: groupCallMemberNotJoinedStatus;
 	palette: groupCallTextPalette;
 	minWidth: 200px;
-	maxHeight: 92px;
 }
 callDeviceSelectionLabel: FlatLabel(defaultSubsectionTitle) {
 	textFg: groupCallActiveFg;

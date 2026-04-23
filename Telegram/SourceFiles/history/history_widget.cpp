@@ -1407,9 +1407,14 @@ void HistoryWidget::sendTextAsFile(
 		_peer,
 		Api::SendType::Normal,
 		sendMenuDetails());
+	box->setReplyTo(replyTo());
 	box->setConfirmedCallback(crl::guard(this, [=](
 			std::shared_ptr<Ui::PreparedBundle> bundle,
-			Api::SendOptions options) {
+			Api::SendOptions options,
+			FullReplyTo currentReplyTo) {
+		if (!currentReplyTo.messageId && replyTo().messageId) {
+			cancelReply();
+		}
 		sendingFilesConfirmed(std::move(bundle), options);
 	}));
 	box->setCancelledCallback(crl::guard(this, [=] {
@@ -6903,10 +6908,15 @@ bool HistoryWidget::confirmSendingFiles(
 		_peer,
 		Api::SendType::Normal,
 		sendMenuDetails());
+	box->setReplyTo(replyTo());
 	_field->setTextWithTags({});
 	box->setConfirmedCallback(crl::guard(this, [=](
 			std::shared_ptr<Ui::PreparedBundle> bundle,
-			Api::SendOptions options) {
+			Api::SendOptions options,
+			FullReplyTo currentReplyTo) {
+		if (!currentReplyTo.messageId && replyTo().messageId) {
+			cancelReply();
+		}
 		sendingFilesConfirmed(std::move(bundle), options);
 	}));
 	box->setCancelledCallback(crl::guard(this, [=] {

@@ -21,6 +21,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "api/api_ringtones.h"
 #include "api/api_transcribes.h"
 #include "api/api_who_reacted.h"
+#include "api/api_stickers_creator.h"
 #include "api/api_toggling_media.h" // Api::ToggleFavedSticker
 #include "base/qt/qt_key_modifiers.h"
 #include "base/unixtime.h"
@@ -39,6 +40,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "info/profile/info_profile_widget.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/widgets/menu/menu_action.h"
+#include "ui/widgets/menu/menu_add_action_callback_factory.h"
 #include "ui/widgets/menu/menu_common.h"
 #include "ui/widgets/menu/menu_multiline_action.h"
 #include "ui/widgets/menu/menu_separator.h"
@@ -302,6 +304,12 @@ void AddDocumentActions(
 				: tr::lng_context_pack_add(tr::now)),
 			[=] { ShowStickerPackInfo(document, list); },
 			&st::menuIconStickers);
+	}
+	if (document->sticker() && !document->sticker()->set) {
+		Api::AddAddToStickerSetAction(
+			Ui::Menu::CreateAddActionCallback(menu),
+			controller->uiShow(),
+			document);
 	}
 	if (document->sticker()) {
 		const auto isFaved = document->owner().stickers().isFaved(document);

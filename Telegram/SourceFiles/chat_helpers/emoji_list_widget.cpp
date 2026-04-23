@@ -670,12 +670,13 @@ void EmojiListWidget::applyNextSearchQuery() {
 	}
 	const auto guard = gsl::finally([&] { finish(); });
 	auto plain = collectPlainSearchResults();
-	if (_searchEmoji == _searchEmojiPrevious) {
-		return;
-	}
 	_searchEmoticon = QString();
-	for (const auto emoji : plain) {
-		_searchEmoticon += emoji->text();
+	{
+		auto exactSet = base::flat_set<EmojiPtr>();
+		const auto exact = SearchEmoji(_searchQuery, exactSet, true);
+		for (const auto emoji : exact) {
+			_searchEmoticon += emoji->text();
+		}
 	}
 	_searchResults.clear();
 	_searchCustomIds.clear();
@@ -689,9 +690,6 @@ void EmojiListWidget::applyNextSearchQuery() {
 	}
 	if (_mode != Mode::Full || session().premium()) {
 		appendPremiumSearchResults();
-	}
-	if (_mode == Mode::Full) {
-		appendLocalPackSearchResults();
 	}
 
 	_searchQueryText = ranges::accumulate(
@@ -819,62 +817,6 @@ void EmojiListWidget::appendPremiumSearchResults() {
 				});
 			}
 		}
-	}
-}
-
-void EmojiListWidget::appendLocalPackSearchResults() {
-	const auto text = _searchQueryText.toLower();
-	if (text.isEmpty()) {
-		return;
-	}
-	const auto test = session().isTestMode();
-	const auto &sets = session().data().stickers().sets();
-	const auto processSet = [&](uint64 setId) {
-		const auto it = sets.find(setId);
-		if (it == sets.end()) {
-			return;
-		}
-		const auto set = it->second.get();
-		if (!(set->flags & Data::StickersSetFlag::Emoji)) {
-			return;
-		}
-		const auto title = set->title.toLower();
-		if (!title.startsWith(text)
-			&& !title.contains(u' ' + text)) {
-			return;
-		}
-		const auto &list = set->stickers.empty()
-			? set->covers
-			: set->stickers;
-		for (const auto document : list) {
-			if (_searchResults.size() >= kCustomSearchLimit) {
-				return;
-			}
-			const auto sticker = document->sticker();
-			if (!sticker) {
-				continue;
-			}
-			const auto id = document->id;
-			if (!_searchCustomIds.emplace(id).second) {
-				continue;
-			}
-			const auto statusId = EmojiStatusId{ id };
-			_searchResults.push_back({
-				.custom = resolveCustomEmoji(
-					statusId,
-					document,
-					SearchEmojiSectionSetId()),
-				.id = { RecentEmojiDocument{ .id = id, .test = test } },
-			});
-		}
-	};
-	for (const auto setId
-		: session().data().stickers().emojiSetsOrder()) {
-		processSet(setId);
-	}
-	for (const auto setId
-		: session().data().stickers().featuredEmojiSetsOrder()) {
-		processSet(setId);
 	}
 }
 
@@ -1131,9 +1073,6 @@ void EmojiListWidget::showSearchResults() {
 		appendPremiumSearchResults();
 	}
 	fillCloudSearchResults();
-	if (_mode == Mode::Full) {
-		appendLocalPackSearchResults();
-	}
 	fillCloudSearchSets();
 
 	resizeToWidth(width());

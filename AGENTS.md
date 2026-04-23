@@ -212,6 +212,7 @@ api().request(MTPnamespace_MethodName(
   ```
 - For single constructors, use `.data()` shortcut
 - Include `.handleFloodErrors()` before `.send()` in rare cases where you want special case flood error handling
+- Silently ignore HTTP 406 errors in UI: the server uses 406 to mean "show nothing to the user". Guard toasts with `MTP::IgnoreError(error)` or use `MTP::ShowErrorFallback(show, error)` (both in `mtproto/mtproto_response.h`) which shows `error.type()` as a toast unless the error should be ignored.
 
 ## UI Styling
 

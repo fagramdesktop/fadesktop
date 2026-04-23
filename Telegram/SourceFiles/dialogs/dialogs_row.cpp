@@ -811,4 +811,10 @@ const Ui::Text::String &FakeRow::name() const {
 	return _name;
 }
 
+DateText FakeRow::dateText(
+		TimeId date,
+		crl::time now) const {
+	return ResolveDateText(_dateCache, date, now);
+}
+
 } // namespace Dialogs

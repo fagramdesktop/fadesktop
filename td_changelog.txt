@@ -1,3 +1,17 @@
+6.7.7 beta (20.04.26)
+
+- Proxy auto-rotation option.
+- Allow seeking in video messages.
+- Styled text items with emoji support in image editor.
+- Wheel zoom and middle-button panning in image editor.
+- Reply header with preview in send files box.
+- Bring back original video quality option.
+- Delete owned sticker set from sticker set box.
+- Add-to-Sticker-Set and Add-to-Emoji-Set submenus for foreign packs.
+- Screen reader support for language list and country select box.
+- Fix stories in albums with reorder enabled.
+- Fix layout for RTL messages.
+
 6.7.6 (14.04.26)
 
 - Gradient-reveal animation for text appearing in messages.

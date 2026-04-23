@@ -85,6 +85,8 @@ public:
 	object_ptr<Ui::BoxContent> addNewItemBox();
 	bool setProxySettings(ProxyData::Settings value);
 	void setProxyForCalls(bool enabled);
+	void setProxyRotationEnabled(bool enabled);
+	void setProxyRotationTimeout(int value);
 	void setTryIPv6(bool enabled);
 	rpl::producer<ProxyData::Settings> proxySettingsValue() const;
 

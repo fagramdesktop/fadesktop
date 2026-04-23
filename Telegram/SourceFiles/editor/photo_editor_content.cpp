@@ -13,6 +13,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "media/view/media_view_pip.h"
 #include "storage/storage_media_prepare.h"
 
+#include <QtGui/QMouseEvent>
+#include <QtGui/QWheelEvent>
+
 namespace Editor {
 
 using Media::View::FlipSizeByRotation;
@@ -26,6 +29,7 @@ PhotoEditorContent::PhotoEditorContent(
 	EditorData data)
 : RpWidget(parent)
 , _photoSize(photo->size())
+, _fixedCrop(data.fixedCrop)
 , _paint(base::make_unique_q<Paint>(
 	this,
 	modifications,
@@ -42,7 +46,8 @@ PhotoEditorContent::PhotoEditorContent(
 		auto result = img.copy(pixelRect.intersected(img.rect()));
 		result.setDevicePixelRatio(dpr);
 		return result;
-	}))
+	},
+	data.fixedCrop))
 , _crop(base::make_unique_q<Crop>(
 	this,
 	modifications,
@@ -110,6 +115,48 @@ PhotoEditorContent::PhotoEditorContent(
 	}, lifetime());
 
 	setupDragArea();
+
+	if (_fixedCrop) {
+		const auto pan = _crop->lifetime().make_state<
+			std::optional<QPoint>
+		>();
+		_crop->events(
+		) | rpl::on_next([=](not_null<QEvent*> e) {
+			const auto type = e->type();
+			if (type == QEvent::Wheel) {
+				const auto wheel = static_cast<QWheelEvent*>(e.get());
+				const auto raw = wheel->angleDelta();
+				_paint->zoomSceneItems(
+					raw.y() ? raw.y() : raw.x(),
+					wheel->modifiers().testFlag(Qt::ShiftModifier));
+				e->accept();
+			} else if (type == QEvent::MouseButtonPress) {
+				const auto mouse = static_cast<QMouseEvent*>(e.get());
+				if (mouse->button() == Qt::MiddleButton) {
+					*pan = mouse->pos();
+					_crop->setCursor(Qt::ClosedHandCursor);
+					e->accept();
+				}
+			} else if (type == QEvent::MouseMove) {
+				if (pan->has_value()) {
+					const auto mouse = static_cast<QMouseEvent*>(e.get());
+					const auto point = mouse->pos();
+					const auto delta = point - **pan;
+					*pan = point;
+					_paint->panSceneItems(
+						_paint->mapWidgetDeltaToScene(delta));
+					e->accept();
+				}
+			} else if (type == QEvent::MouseButtonRelease) {
+				const auto mouse = static_cast<QMouseEvent*>(e.get());
+				if (mouse->button() == Qt::MiddleButton && pan->has_value()) {
+					pan->reset();
+					_crop->unsetCursor();
+					e->accept();
+				}
+			}
+		}, _crop->lifetime());
+	}
 }
 
 void PhotoEditorContent::applyModifications(
@@ -160,6 +207,38 @@ void PhotoEditorContent::applyAspectRatio(float64 ratio) {
 
 void PhotoEditorContent::applyBrush(const Brush &brush) {
 	_paint->applyBrush(brush);
+}
+
+void PhotoEditorContent::createTextItem() {
+	_paint->createTextItem();
+}
+
+void PhotoEditorContent::clearSelection() {
+	_paint->clearSelection();
+}
+
+void PhotoEditorContent::setTextColor(const QColor &color) {
+	_paint->setTextColor(color);
+}
+
+void PhotoEditorContent::setSelectedTextColor(const QColor &color) {
+	_paint->setSelectedTextColor(color);
+}
+
+rpl::producer<QColor> PhotoEditorContent::textColorRequests() const {
+	return _paint->textColorRequests();
+}
+
+rpl::producer<QColor> PhotoEditorContent::textItemSelections() const {
+	return _paint->textItemSelections();
+}
+
+rpl::producer<> PhotoEditorContent::textItemDeselections() const {
+	return _paint->textItemDeselections();
+}
+
+rpl::producer<bool> PhotoEditorContent::textEditStates() const {
+	return _paint->textEditStates();
 }
 
 bool PhotoEditorContent::handleKeyPress(not_null<QKeyEvent*> e) const {

@@ -133,9 +133,9 @@ public:
 		Fn<void(bool)> menuOverCallback,
 		Fn<float64(bool lastNonDefault)> value,
 		Fn<void(float64)> change,
-		std::vector<int> qualities = {},
+		std::vector<VideoQuality> qualities = {},
 		Fn<VideoQuality()> quality = nullptr,
-		Fn<void(int)> changeQuality = nullptr);
+		Fn<void(VideoQuality)> changeQuality = nullptr);
 
 	[[nodiscard]] rpl::producer<> saved() const;
 	[[nodiscard]] rpl::producer<float64> realtimeValue() const;
@@ -160,9 +160,9 @@ private:
 	rpl::event_stream<float64> _speedChanged;
 	rpl::event_stream<> _saved;
 
-	std::vector<int> _qualities;
+	std::vector<VideoQuality> _qualities;
 	Fn<VideoQuality()> _lookupQuality;
-	Fn<void(int)> _changeQuality;
+	Fn<void(VideoQuality)> _changeQuality;
 	rpl::variable<VideoQuality> _quality;
 
 };

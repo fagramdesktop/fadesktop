@@ -424,6 +424,58 @@ stickersScroll: ScrollArea(boxScroll) {
 stickersRowDisabledOpacity: 0.4;
 stickersRowDuration: 200;
 
+stickersAddCellPlusSize: 22px;
+stickersAddCellPlusThickness: 2px;
+stickersAddCellBgRadius: 28px;
+
+stickersEmojiPickerExpandedRadius: 20px;
+stickersEmojiPickerBg: emojiPanBg;
+stickersEmojiPickerShadow: windowShadowFg;
+stickersEmojiPickerPadding: margins(12px, 8px, 12px, 0px);
+stickersEmojiPickerItemSize: 30px;
+stickersEmojiPickerItemSkip: 4px;
+stickersEmojiPickerStripHeight: 40px;
+stickersEmojiPickerExpandedHeight: 220px;
+stickersEmojiPickerStripBubble: icon{
+	{ "chat/reactions_bubble_shadow", windowShadowFg },
+	{ "chat/reactions_bubble", emojiPanBg },
+};
+stickersEmojiPickerStripBubbleRight: 20px;
+stickersEmojiPickerSelectedBg: windowBgActive;
+stickersEmojiPickerSelectedFg: windowBgActive;
+stickersEmojiPickerHeaderFg: windowSubTextFg;
+stickersEmojiPickerScroll: ScrollArea(boxScroll) {
+	width: 14px;
+	deltax: 5px;
+	deltat: 4px;
+	deltab: 18px;
+}
+stickersEmojiPickerAbout: FlatLabel(defaultFlatLabel) {
+	minWidth: 100px;
+	align: align(top);
+	textFg: windowSubTextFg;
+	style: TextStyle(defaultTextStyle) {
+		font: font(12px);
+	}
+}
+stickersEmojiPickerSectionHeader: FlatLabel(defaultFlatLabel) {
+	minWidth: 10px;
+	align: align(topleft);
+	textFg: windowSubTextFg;
+	style: TextStyle(defaultTextStyle) {
+		font: font(12px semibold);
+	}
+}
+stickersEmojiPickerExpandIcon: icon {{ "intro_country_dropdown", windowSubTextFg }};
+stickersEmojiPickerCollapseIcon: icon {{ "intro_country_dropdown-flip_vertical", windowSubTextFg }};
+stickersEmojiPickerExpandSize: 24px;
+stickersEmojiPickerExpandBg: windowBgRipple;
+stickersEmojiPickerBoxShadow: BoxShadow {
+	blurRadius: 20px;
+	offset: point(0px, 6px);
+	opacity: 0.22;
+}
+
 emojiStatusDefault: icon {{ "emoji/stickers_premium", emojiIconFg }};
 
 filtersRemove: IconButton(stickersRemove) {
@@ -609,7 +661,7 @@ sendBoxAlbumSmallGroupSize: size(30px, 25px);
 sendBoxAlbumSmallGroupCircleSize: 27px;
 
 sendBoxFileGroupSkipTop: 2px;
-sendBoxFileGroupSkipRight: 5px;
+sendBoxFileGroupSkipRight: 1px;
 sendBoxFileGroupEditInternalSkip: -1px;
 
 sendBoxAlbumGroupButtonFile: IconButton(editMediaButton) {
@@ -622,7 +674,7 @@ sendBoxAlbumGroupDeleteButtonIconFile: icon {{ "send_media/send_media_cross", me
 
 sendBoxAlbumButtonMediaMore: icon {{ "send_media/send_media_more", roundedFg }};
 sendBoxAlbumGroupButtonMediaMore: icon {{ "send_media/send_media_more", roundedFg, point(4px, 1px) }};
-sendBoxAlbumGroupButtonMediaDelete: icon {{ "send_media/send_media_cross", roundedFg, point(-2px, 1px) }};
+sendBoxAlbumGroupButtonMediaDelete: icon {{ "send_media/send_media_cross", roundedFg }};
 
 defaultComposeIcons: ComposeIcons {
 	settings: icon {{ "emoji/emoji_settings", emojiIconFg }};
@@ -1034,6 +1086,19 @@ historyReplyCancel: IconButton {
 historyPinnedShowAll: IconButton(historyReplyCancel) {
 	icon: icon {{ "pinned_show_all", historyReplyCancelFg }};
 	iconOver: icon {{ "pinned_show_all", historyReplyCancelFgOver }};
+}
+sendFilesReplyIconPosition: point(11px, 7px);
+sendFilesReplyCancelSize: 24px;
+sendFilesReplyCancel: IconButton(editMediaButton) {
+	width: sendFilesReplyCancelSize;
+	height: sendFilesReplyCancelSize;
+	icon: icon {{ "send_media/send_media_cross", historyReplyCancelFg }};
+	iconOver: icon {{ "send_media/send_media_cross", historyReplyCancelFgOver }};
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: windowBgRipple;
+	}
+
+	rippleAreaSize: sendFilesReplyCancelSize;
 }
 historyPinnedBotButton: RoundButton(defaultActiveButton) {
 	width: -34px;

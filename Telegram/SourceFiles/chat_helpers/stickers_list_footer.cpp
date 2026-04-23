@@ -146,7 +146,8 @@ rpl::producer<std::vector<GifSection>> GifSectionsValue(
 
 [[nodiscard]] std::vector<EmojiPtr> SearchEmoji(
 		const std::vector<QString> &query,
-		base::flat_set<EmojiPtr> &outResultSet) {
+		base::flat_set<EmojiPtr> &outResultSet,
+		bool exact) {
 	auto result = std::vector<EmojiPtr>();
 	const auto pushPlain = [&](EmojiPtr emoji) {
 		if (result.size() < kEmojiSearchLimit
@@ -170,7 +171,7 @@ rpl::producer<std::vector<GifSection>> GifSectionsValue(
 				refreshed = true;
 				keywords.refresh();
 			}
-			const auto list = keywords.queryMine(entry);
+			const auto list = keywords.queryMine(entry, exact);
 			for (const auto &entry : list) {
 				pushPlain(entry.emoji);
 				if (result.size() >= kEmojiSearchLimit) {

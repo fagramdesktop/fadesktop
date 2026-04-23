@@ -397,7 +397,9 @@ private:
 	bool textAppearValidate(not_null<TextAppearing*> appearing);
 	bool textAppearCheckLine(not_null<TextAppearing*> appearing);
 	void textAppearStartWidthAnimation(not_null<TextAppearing*> appearing);
-	void textAppearStartHeightAnimation(not_null<TextAppearing*> appearing);
+	void textAppearStartHeightAnimation(
+		not_null<TextAppearing*> appearing,
+		int targetHeight);
 	void textAppearWidthCallback();
 	void textAppearHeightCallback();
 	[[nodiscard]] int textAppearTargetHeight(

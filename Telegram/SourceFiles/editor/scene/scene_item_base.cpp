@@ -329,6 +329,7 @@ void ItemBase::updateVerticalSize() {
 }
 
 void ItemBase::setAspectRatio(float64 aspectRatio) {
+	prepareGeometryChange();
 	_aspectRatio = aspectRatio;
 	updateVerticalSize();
 }

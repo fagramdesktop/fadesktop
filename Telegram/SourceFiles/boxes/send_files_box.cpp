@@ -37,6 +37,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "boxes/premium_preview_box.h"
 #include "boxes/send_gif_with_caption_box.h"
 #include "boxes/send_credits_box.h"
+#include "boxes/send_files_box_reply_header.h"
 #include "ui/effects/scroll_content_shadow.h"
 #include "ui/widgets/fields/number_input.h"
 #include "ui/widgets/checkbox.h"
@@ -429,6 +430,10 @@ int SendFilesBox::Block::fromIndex() const {
 	return _from;
 }
 
+bool SendFilesBox::Block::isSingleFile() const {
+	return !_isAlbum && !_isSingleMedia;
+}
+
 int SendFilesBox::Block::tillIndex() const {
 	return _till;
 }
@@ -646,7 +651,56 @@ SendFilesBox::SendFilesBox(QWidget*, SendFilesBoxDescriptor &&descriptor)
 , _inner(
 	_scroll->setOwnedWidget(
 		object_ptr<Ui::VerticalLayout>(_scroll.data()))) {
+	setReplyTo(descriptor.replyTo);
 	enqueueNextPrepare();
+}
+
+void SendFilesBox::setReplyTo(FullReplyTo replyTo) {
+	if (_replyTo == replyTo) {
+		return;
+	} else if (!replyTo.messageId || !replyTo.messageId.peer) {
+		_replyTo = {};
+		if (_replyHeader) {
+			_replyHeader->hideAnimated();
+		}
+		return;
+	}
+	_replyTo = replyTo;
+	if (_replyHeader) {
+		_replyHeader = nullptr;
+		_replyHeaderHeight = 0;
+	}
+	_replyHeader = std::make_unique<SendFiles::ReplyPillHeader>(
+		this,
+		_show,
+		std::move(replyTo));
+	_replyHeader->setRoundedShapeBelow(
+		!_blocks.empty() && !_blocks.front().isSingleFile());
+	_replyHeader->show();
+	_replyHeader->desiredHeight(
+	) | rpl::on_next([=](int height) {
+		if (_replyHeaderHeight.current() != height) {
+			_replyHeaderHeight = height;
+			updateBoxSize();
+			updateControlsGeometry();
+		}
+	}, _replyHeader->lifetime());
+	_replyHeader->closeRequests(
+	) | rpl::on_next([=] {
+		_replyTo = {};
+		if (_replyHeader) {
+			_replyHeader->hideAnimated();
+		}
+	}, _replyHeader->lifetime());
+	_replyHeader->hideFinished(
+	) | rpl::on_next([=] {
+		InvokeQueued(this, [=] {
+			_replyHeader = nullptr;
+			_replyHeaderHeight = 0;
+			updateBoxSize();
+			updateControlsGeometry();
+		});
+	}, _replyHeader->lifetime());
 }
 
 Fn<SendMenu::Details()> SendFilesBox::prepareSendMenuDetails(
@@ -1219,6 +1273,10 @@ void SendFilesBox::generatePreviewFrom(int fromBlock) {
 	}
 	if (albumStart >= 0) {
 		pushBlock(albumStart, _list.files.size());
+	}
+	if (_replyHeader) {
+		_replyHeader->setRoundedShapeBelow(
+			!_blocks.empty() && !_blocks.front().isSingleFile());
 	}
 }
 
@@ -2084,6 +2142,7 @@ void SendFilesBox::updateBoxSize() {
 	if (!_caption->isHidden()) {
 		footerHeight += st::boxPhotoCaptionSkip + _caption->height();
 	}
+	footerHeight += _replyHeaderHeight.current();
 	const auto pairs = std::array<std::pair<RpWidget*, int>, 4>{ {
 		{ _groupFiles.data(), st::boxPhotoCompressedSkip },
 		{ _sendImagesAsPhotos.data(), st::boxPhotoCompressedSkip },
@@ -2171,8 +2230,14 @@ void SendFilesBox::updateControlsGeometry() {
 			bottom -= pair.second + pointer->heightNoMargins();
 		}
 	}
-	_scroll->resize(width(), bottom - _titleHeight.current());
-	_scroll->move(0, _titleHeight.current());
+	const auto replyH = _replyHeaderHeight.current();
+	const auto replyTopOverlap = std::min(st::boxPhotoCaptionSkip, replyH);
+	const auto replyTop = _titleHeight.current() - replyTopOverlap;
+	if (_replyHeader) {
+		_replyHeader->setGeometry(0, replyTop, width(), replyH);
+	}
+	_scroll->resize(width(), bottom - replyTop - replyH);
+	_scroll->move(0, replyTop + replyH);
 }
 
 void SendFilesBox::showFinished() {
@@ -2317,7 +2382,7 @@ void SendFilesBox::send(
 			}
 		}
 
-		_confirmedCallback(std::move(bundle), options);
+		_confirmedCallback(std::move(bundle), options, _replyTo);
 	}
 	closeBox();
 }

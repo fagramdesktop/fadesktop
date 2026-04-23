@@ -600,7 +600,7 @@ QSize Document::countCurrentSize(int newWidth) {
 							+ st::mediaUnreadSkip)
 					+ (thumbedWidth + statusWidth)
 					+ st.thumbSkip
-					+ (_realParent->hasUnreadMediaFlag()
+					+ (_realParent->isUnreadMedia()
 						? st::mediaUnreadSkip + st::mediaUnreadSize
 						: 0)
 					+ _parent->bottomInfoFirstLineWidth()
@@ -950,7 +950,7 @@ void Document::draw(
 	p.setPen(stm->mediaFg);
 	p.drawTextLeft(nameleft, statustop, width, statusText);
 
-	if (_realParent->hasUnreadMediaFlag()) {
+	if (_realParent->isUnreadMedia()) {
 		auto w = st::normalFont->width(statusText);
 		if (w + st::mediaUnreadSkip + st::mediaUnreadSize <= statuswidth) {
 			p.setPen(Qt::NoPen);

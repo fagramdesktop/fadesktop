@@ -181,7 +181,7 @@ Image *DocumentMedia::goodThumbnail() const {
 }
 
 void DocumentMedia::setGoodThumbnail(QImage thumbnail) {
-	if (!(_flags & Flag::GoodThumbnailWanted)) {
+	if (!(_flags & Flag::GoodThumbnailWanted) || thumbnail.isNull()) {
 		return;
 	}
 	_goodThumbnail = std::make_unique<Image>(std::move(thumbnail));

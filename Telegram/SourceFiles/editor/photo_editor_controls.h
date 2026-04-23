@@ -15,6 +15,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "editor/photo_editor_inner_common.h"
 
 namespace Ui {
+class AbstractButton;
 class IconButton;
 class FlatLabel;
 class PopupMenu;
@@ -41,6 +42,7 @@ public:
 	[[nodiscard]] rpl::producer<int> rotateRequests() const;
 	[[nodiscard]] rpl::producer<> flipRequests() const;
 	[[nodiscard]] rpl::producer<> paintModeRequests() const;
+	[[nodiscard]] rpl::producer<> textRequests() const;
 	[[nodiscard]] rpl::producer<> doneRequests() const;
 	[[nodiscard]] rpl::producer<> cancelRequests() const;
 	[[nodiscard]] rpl::producer<QPoint> colorLinePositionValue() const;
@@ -82,6 +84,7 @@ private:
 	const base::unique_qptr<Ui::IconButton> _redoButton;
 	const base::unique_qptr<Ui::IconButton> _paintModeButtonActive;
 	const base::unique_qptr<Ui::IconButton> _stickersButton;
+	const base::unique_qptr<Ui::AbstractButton> _textButton;
 	const base::unique_qptr<EdgeButton> _paintDone;
 
 	base::unique_qptr<Ui::PopupMenu> _ratioMenu;

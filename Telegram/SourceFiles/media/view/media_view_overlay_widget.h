@@ -241,9 +241,9 @@ private:
 	void playbackControlsVolumeChangeFinished() override;
 	void playbackControlsSpeedChanged(float64 speed) override;
 	float64 playbackControlsCurrentSpeed(bool lastNonDefault) override;
-	std::vector<int> playbackControlsQualities() override;
+	std::vector<VideoQuality> playbackControlsQualities() override;
 	VideoQuality playbackControlsCurrentQuality() override;
-	void playbackControlsQualityChanged(int quality) override;
+	void playbackControlsQualityChanged(VideoQuality quality) override;
 	void playbackControlsToFullScreen() override;
 	void playbackControlsFromFullScreen() override;
 	void playbackControlsToPictureInPicture() override;

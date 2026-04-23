@@ -84,6 +84,7 @@ struct StickersListDescriptor {
 	std::vector<StickerCustomRecentDescriptor> customRecentList;
 	const style::EmojiPan *st = nullptr;
 	ComposeFeatures features;
+	uint64 excludeSetId = 0;
 };
 
 class StickersListWidget final : public TabbedSelector::Inner {
@@ -419,6 +420,7 @@ private:
 	Section _section = Section::Stickers;
 	const bool _isMasks;
 	const bool _isEffects;
+	const uint64 _excludeSetId = 0;
 
 	base::Timer _updateItemsTimer;
 	base::Timer _updateSetsTimer;

@@ -27,7 +27,8 @@ enum class OrderMode {
 
 struct VideoQuality {
 	uint32 manual : 1 = 0;
-	uint32 height : 31 = 0;
+	uint32 height : 30 = 0;
+	uint32 original : 1 = 0;
 
 	friend inline constexpr auto operator<=>(
 		VideoQuality,

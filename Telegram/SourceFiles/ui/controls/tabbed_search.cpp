@@ -80,7 +80,7 @@ private:
 };
 
 [[nodiscard]] std::vector<QString> FieldQuery(not_null<InputField*> field) {
-	if (const auto last = field->getLastText(); !last.isEmpty()) {
+	if (const auto last = field->getLastText().trimmed(); !last.isEmpty()) {
 		return { last };
 	}
 	return {};

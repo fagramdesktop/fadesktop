@@ -257,7 +257,7 @@ void ItemCanvas::drawArrowHead() {
 	}
 	direction /= length;
 	const auto angle = qDegreesToRadians(
-		double(st::photoEditorArrowHeadAngleDegrees));
+		float64(st::photoEditorArrowHeadAngleDegrees));
 	const auto sinA = std::sin(angle);
 	const auto cosA = std::cos(angle);
 	const auto rotate = [&](const QPointF &v, float64 s, float64 c) {

@@ -1241,6 +1241,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_proxy_use_system_settings" = "Use system proxy settings";
 "lng_proxy_use_custom" = "Use custom proxy";
 "lng_proxy_use_for_calls" = "Use proxy for calls";
+"lng_proxy_auto_switch" = "Auto-switch proxies";
+"lng_proxy_auto_switch_about" = "You can choose how quickly the app should auto-connect to the nearest active proxy if the current one stops working.";
+"lng_proxy_auto_switch_timeout#one" = "{count} s";
+"lng_proxy_auto_switch_timeout#other" = "{count} s";
 "lng_proxy_about" = "Proxy servers may be helpful in accessing Telegram if there is no connection in a specific region.";
 "lng_proxy_add" = "Add proxy";
 "lng_proxy_share" = "Share";
@@ -4501,9 +4505,41 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_stickers_context_edit_name" = "Edit name";
 "lng_stickers_context_delete" = "Delete sticker";
 "lng_stickers_context_delete_sure" = "Are you sure you want to delete the sticker from your sticker set?";
+"lng_stickers_context_delete_pack" = "Delete Pack";
+"lng_stickers_context_delete_pack_everyone" = "Delete for Everyone";
+"lng_stickers_context_delete_pack_self" = "Delete for Myself";
+"lng_stickers_delete_pack_sure" = "Are you sure you want to delete this sticker set for everyone? This cannot be undone.";
+"lng_stickers_bot_more_options" = "Check the {bot} bot for more options";
 "lng_stickers_box_edit_name_title" = "Edit Sticker Set Name";
 "lng_stickers_box_edit_name_about" = "Choose a name for your set.";
 "lng_stickers_creator_badge" = "edit";
+
+"lng_stickers_create_new" = "Create a New Sticker";
+"lng_stickers_add_existing" = "Add an Existing Sticker";
+"lng_stickers_add_to_set" = "Add to Sticker Set";
+"lng_stickers_already_in_set" = "This Sticker is already in the Set.";
+"lng_stickers_set_is_full" = "This Sticker Set is full.";
+"lng_emoji_add_to_set" = "Add to Emoji Set";
+"lng_emoji_already_in_set" = "This Emoji is already in the Set.";
+"lng_emoji_set_is_full" = "This Emoji Set is full.";
+"lng_emoji_added" = "Emoji added.";
+"lng_stickers_pack_choose_emoji_title" = "Choose Emoji";
+"lng_stickers_pack_choose_emoji_about" = "Pick an emoji that corresponds to this sticker.";
+"lng_stickers_pick_existing_title" = "Choose Sticker";
+"lng_stickers_pick_existing_about" = "Pick a sticker from your library to add it to this set.";
+"lng_stickers_pick_existing_empty" = "You don't have any stickers yet.";
+"lng_stickers_create_image_title" = "New Sticker";
+"lng_stickers_create_image_about" = "Choose an image to add as a sticker.";
+"lng_stickers_create_choose_image" = "Choose Image";
+"lng_stickers_create_image_filter" = "Images";
+"lng_stickers_create_open_failed" = "Could not load image.";
+"lng_stickers_create_too_small" = "The image must be at least {size} pixels on each side.";
+"lng_stickers_create_choose_emoji" = "Choose an emoji that corresponds to your sticker:";
+"lng_stickers_create_emoji_about" = "Choose emojis that match your sticker";
+"lng_stickers_create_emoji_required" = "Please choose an emoji.";
+"lng_stickers_create_uploading" = "Uploading sticker…";
+"lng_stickers_create_upload_failed" = "Sticker upload failed. Please try again.";
+"lng_stickers_create_added" = "Sticker added.";
 
 "lng_in_dlg_photo" = "Photo";
 "lng_in_dlg_album" = "Album";
@@ -5606,6 +5642,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_mediaview_playback_speed" = "Playback speed: {speed}";
 "lng_mediaview_rotate_video" = "Rotate video";
 "lng_mediaview_quality_auto" = "Auto";
+"lng_mediaview_quality_original" = "Original ({quality}p)";
 
 "lng_theme_preview_title" = "Theme Preview";
 "lng_theme_preview_generating" = "Generating color theme preview...";
@@ -7179,6 +7216,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_photo_editor_menu_flip" = "Flip";
 "lng_photo_editor_menu_duplicate" = "Duplicate";
 
+"lng_photo_editor_text_style_plain" = "Plain";
+"lng_photo_editor_text_style_framed" = "Framed";
+"lng_photo_editor_text_style_semi_transparent" = "Semi-Transparent";
+
 "lng_photo_editor_crop_original" = "Original";
 "lng_photo_editor_crop_square" = "Square";
 "lng_photo_editor_crop_free" = "Free";
@@ -7914,5 +7955,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_mac_touchbar_favorite_stickers" = "Favorite stickers";
 
 "lng_mac_hold_to_quit" = "Hold {text} to Quit";
+
+"lng_sr_country_column_name" = "Country name";
+"lng_sr_languages_column_native" = "Native name";
+"lng_sr_languages_column_name" = "Language name";
 
 // Keys finished

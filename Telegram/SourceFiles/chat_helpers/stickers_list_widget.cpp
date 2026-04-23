@@ -213,6 +213,7 @@ StickersListWidget::StickersListWidget(
 , _section(Section::Stickers)
 , _isMasks(_mode == Mode::Masks)
 , _isEffects(_mode == Mode::MessageEffects)
+, _excludeSetId(descriptor.excludeSetId)
 , _updateItemsTimer([=] { updateItems(); })
 , _updateSetsTimer([=] { updateSets(); })
 , _trendingAddBgOver(
@@ -2578,6 +2579,9 @@ bool StickersListWidget::appendSet(
 		uint64 setId,
 		bool externalLayout,
 		AppendSkip skip) {
+	if (_excludeSetId && setId == _excludeSetId) {
+		return false;
+	}
 	const auto &sets = session().data().stickers().sets();
 	auto it = sets.find(setId);
 	if (it == sets.cend()

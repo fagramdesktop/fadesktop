@@ -151,7 +151,7 @@ struct BrushState {
 			const auto tool = ToolFromSerialized(entryTool);
 			const auto index = ToolIndex(tool);
 			if (version == kBrushesVersion && size > 0) {
-				result.brushes[index].sizeRatio = size / float(kPrecision);
+				result.brushes[index].sizeRatio = size / float64(kPrecision);
 			}
 			if (color.isValid()) {
 				result.brushes[index].color = color;
@@ -237,6 +237,7 @@ PhotoEditor::PhotoEditor(
 	std::move(show),
 	_brushes,
 	_brushTool)) {
+	_modifications.cropType = data.cropType;
 
 	sizeValue(
 	) | rpl::on_next([=](const QSize &size) {
@@ -302,6 +303,11 @@ PhotoEditor::PhotoEditor(
 		};
 	}, lifetime());
 
+	_controls->textRequests(
+	) | rpl::on_next([=] {
+		_content->createTextItem();
+	}, lifetime());
+
 	_controls->doneRequests(
 	) | rpl::on_next([=] {
 		const auto mode = _mode.current().mode;
@@ -336,17 +342,63 @@ PhotoEditor::PhotoEditor(
 		}
 	}, lifetime());
 
+	_colorPicker->toolClicks(
+	) | rpl::on_next([=] {
+		_content->clearSelection();
+	}, lifetime());
+
 	_colorPicker->saveBrushRequests(
 	) | rpl::on_next([=](const Brush &brush) {
-		_content->applyBrush(brush);
+		if (_textItemSelected || _textEditing) {
+			_content->setSelectedTextColor(brush.color);
+			_content->setTextColor(brush.color);
+		} else {
+			_content->applyBrush(brush);
+			_content->setTextColor(brush.color);
 
-		_brushTool = brush.tool;
-		_brushes[ToolIndex(brush.tool)] = brush;
-		const auto serialized = Serialize(_brushes, _brushTool);
-		if (Core::App().settings().photoEditorBrush() != serialized) {
-			Core::App().settings().setPhotoEditorBrush(serialized);
-			Core::App().saveSettingsDelayed();
+			_brushTool = brush.tool;
+			_brushes[ToolIndex(brush.tool)] = brush;
+			const auto serialized = Serialize(_brushes, _brushTool);
+			if (Core::App().settings().photoEditorBrush() != serialized) {
+				Core::App().settings().setPhotoEditorBrush(serialized);
+				Core::App().saveSettingsDelayed();
+			}
 		}
+	}, lifetime());
+
+	_content->textEditStates(
+	) | rpl::on_next([=](bool editing) {
+		_textEditing = editing;
+		if (_textEditing) {
+			_colorPicker->setToolSelectionVisible(false);
+		} else if (!_textItemSelected) {
+			const auto &brush = _brushes[ToolIndex(_brushTool)];
+			_colorPicker->setColor(brush.color);
+			_colorPicker->setToolSelectionVisible(true);
+		}
+	}, lifetime());
+
+	_content->textColorRequests(
+	) | rpl::on_next([=](const QColor &color) {
+		_colorPicker->setColor(color);
+	}, lifetime());
+
+	_content->textItemSelections(
+	) | rpl::on_next([=](const QColor &color) {
+		_textItemSelected = true;
+		_colorPicker->setToolSelectionVisible(false);
+		_colorPicker->setColor(color);
+	}, lifetime());
+
+	_content->textItemDeselections(
+	) | rpl::on_next([=] {
+		_textItemSelected = false;
+		if (_textEditing) {
+			return;
+		}
+		const auto &brush = _brushes[ToolIndex(_brushTool)];
+		_colorPicker->setColor(brush.color);
+		_colorPicker->setToolSelectionVisible(true);
 	}, lifetime());
 }
 

@@ -9,6 +9,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "dialogs/dialogs_key.h"
 #include "dialogs/dialogs_indexed_list.h"
+#include "base/unixtime.h"
 #include "data/data_changes.h"
 #include "data/data_session.h"
 #include "data/data_folder.h"
@@ -20,6 +21,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "mainwidget.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
+#include "ui/text/format_values.h"
 #include "ui/text/text_options.h"
 #include "ui/ui_utility.h"
 #include "history/history.h"
@@ -307,6 +309,33 @@ const Ui::Text::String &Entry::chatListNameText() const {
 			Ui::NameTextOptions());
 	}
 	return _chatListNameText;
+}
+
+DateText ResolveDateText(
+		DateTextCache &cache,
+		TimeId date,
+		crl::time now) {
+	static crl::time LastNow = 0;
+	static int LastTodaySerial = 0;
+	if (!now || LastNow != now) {
+		LastNow = now;
+		LastTodaySerial = int(QDate::currentDate().toJulianDay());
+	}
+	if (cache.messageTimeId != date
+		|| cache.todaySerial != LastTodaySerial) {
+		const auto qdt = base::unixtime::parse(date);
+		cache.text = Ui::FormatDialogsDate(qdt);
+		cache.width = st::dialogsDateFont->width(cache.text);
+		cache.messageTimeId = date;
+		cache.todaySerial = LastTodaySerial;
+	}
+	return { cache.text, cache.width };
+}
+
+DateText Entry::chatListTimestampText(
+		TimeId date,
+		crl::time now) const {
+	return ResolveDateText(_chatListDateCache, date, now);
 }
 
 void Entry::setChatListExistence(bool exists) {

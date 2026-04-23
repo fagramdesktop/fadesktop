@@ -65,7 +65,7 @@ PlaybackControls::PlaybackControls(
 			: Fn<void(float64)>()),
 		_qualitiesList,
 		[=] { return _delegate->playbackControlsCurrentQuality(); },
-		[=](int quality) { saveQuality(quality); })
+		[=](Media::VideoQuality quality) { saveQuality(quality); })
 	: nullptr)
 , _fadeAnimation(std::make_unique<Ui::FadeAnimation>(this)) {
 	_fadeAnimation->show();
@@ -214,7 +214,6 @@ void PlaybackControls::fadeUpdated(float64 opacity) {
 	_volumeController->setFadeOpacity(opacity);
 }
 
-
 float64 PlaybackControls::speedLookup(bool lastNonDefault) const {
 	return _delegate->playbackControlsCurrentSpeed(lastNonDefault);
 }
@@ -224,14 +223,13 @@ void PlaybackControls::saveSpeed(float64 speed) {
 	_delegate->playbackControlsSpeedChanged(speed);
 }
 
-void PlaybackControls::saveQuality(int quality) {
-	_speedToggle->setQuality(_qualitiesList.empty() ? 0 : quality);
+void PlaybackControls::saveQuality(Media::VideoQuality quality) {
+	_speedToggle->setQuality(quality);
 	_delegate->playbackControlsQualityChanged(quality);
 }
 
 void PlaybackControls::updateSpeedToggleQuality() {
-	const auto quality = _delegate->playbackControlsCurrentQuality();
-	_speedToggle->setQuality(_qualitiesList.empty() ? 0 : quality.height);
+	_speedToggle->setQuality(_delegate->playbackControlsCurrentQuality());
 }
 
 void PlaybackControls::updatePlaybackSpeed(float64 speed) {

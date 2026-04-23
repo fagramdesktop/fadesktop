@@ -575,7 +575,8 @@ bool ScheduledWidget::confirmSendingFiles(
 
 	box->setConfirmedCallback(crl::guard(this, [=](
 			std::shared_ptr<Ui::PreparedBundle> bundle,
-			Api::SendOptions options) {
+			Api::SendOptions options,
+			FullReplyTo) {
 		sendingFilesConfirmed(std::move(bundle), options);
 	}));
 	box->setCancelledCallback(_composeControls->restoreTextCallback(

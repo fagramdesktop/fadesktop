@@ -127,7 +127,7 @@ Locate the render tool (`codegen_style` with `--render-svg` mode):
 
 ```bash
 if [[ "$OSTYPE" == darwin* ]]; then
-    ls out/Debug/codegen_style
+    ls out/Telegram/codegen/codegen/style/Debug/codegen_style
 else
     ls out/Telegram/codegen/codegen/style/Debug/codegen_style.exe
 fi
@@ -137,7 +137,7 @@ If missing, build it: `cmake --build out --config Debug --target codegen_style`
 
 Test on a known good SVG (use the appropriate binary path for the OS):
 ```bash
-CODEGEN=$(if [[ "$OSTYPE" == darwin* ]]; then echo out/Debug/codegen_style; else echo out/Telegram/codegen/codegen/style/Debug/codegen_style.exe; fi)
+CODEGEN=$(if [[ "$OSTYPE" == darwin* ]]; then echo out/Telegram/codegen/codegen/style/Debug/codegen_style; else echo out/Telegram/codegen/codegen/style/Debug/codegen_style.exe; fi)
 $CODEGEN --render-svg Telegram/Resources/icons/menu/tag_add.svg .ai/icon_{name}/test_render.png 512
 ```
 

@@ -3387,6 +3387,16 @@ void ComposeControls::fireSendTextAsFile(
 			? Api::SendType::ScheduledToUser
 			: Api::SendType::Scheduled)
 		: Api::SendType::Normal;
+	auto confirmed = [=, callback = _sendAsFileConfirmed](
+			std::shared_ptr<Ui::PreparedBundle> bundle,
+			Api::SendOptions options,
+			FullReplyTo replyTo) {
+		if (!replyTo.messageId
+				&& replyingToMessage().messageId) {
+			cancelReplyMessage();
+		}
+		callback(std::move(bundle), options);
+	};
 	_show->show(Box<SendFilesBox>(SendFilesBoxDescriptor{
 		.show = _show,
 		.list = Ui::PrepareTextAsFile(fileText),
@@ -3397,8 +3407,9 @@ void ComposeControls::fireSendTextAsFile(
 		.sendType = sendType,
 		.sendMenuDetails = _sendMenuDetails,
 		.stOverride = &_st,
-		.confirmed = _sendAsFileConfirmed,
+		.confirmed = std::move(confirmed),
 		.cancelled = std::move(restoreText),
+		.replyTo = replyingToMessage(),
 	}));
 }
 

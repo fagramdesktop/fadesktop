@@ -11,18 +11,6 @@ namespace Editor {
 
 class Scene;
 
-struct PhotoModifications {
-	int angle = 0;
-	bool flipped = false;
-	QRect crop;
-	std::shared_ptr<Scene> paint = nullptr;
-
-	[[nodiscard]] bool empty() const;
-	[[nodiscard]] explicit operator bool() const;
-	~PhotoModifications();
-
-};
-
 struct EditorData {
 	enum class CropType {
 		Rect,
@@ -35,6 +23,20 @@ struct EditorData {
 	QSize exactSize;
 	CropType cropType = CropType::Rect;
 	bool keepAspectRatio = false;
+	bool fixedCrop = false;
+};
+
+struct PhotoModifications {
+	int angle = 0;
+	bool flipped = false;
+	QRect crop;
+	EditorData::CropType cropType = EditorData::CropType::Rect;
+	std::shared_ptr<Scene> paint = nullptr;
+
+	[[nodiscard]] bool empty() const;
+	[[nodiscard]] explicit operator bool() const;
+	~PhotoModifications();
+
 };
 
 [[nodiscard]] QImage ImageModified(

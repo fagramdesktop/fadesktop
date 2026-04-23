@@ -299,7 +299,6 @@ private:
 	void setupSearch();
 	[[nodiscard]] std::vector<EmojiPtr> collectPlainSearchResults();
 	void appendPremiumSearchResults();
-	void appendLocalPackSearchResults();
 	void sendSearchRequest();
 	void sendSearchSetsRequest(const QString &query);
 	void requestSearchCloud(

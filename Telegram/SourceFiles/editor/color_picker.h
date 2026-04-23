@@ -30,9 +30,12 @@ public:
 	void moveLine(const QPoint &position);
 	void setCanvasRect(const QRect &rect);
 	void setVisible(bool visible);
+	void setColor(const QColor &color);
+	void setToolSelectionVisible(bool visible);
 	bool preventHandleKeyPress() const;
 
 	rpl::producer<Brush> saveBrushRequests() const;
+	rpl::producer<> toolClicks() const;
 
 private:
 	void paintSizeControl(QPainter &p);
@@ -75,6 +78,7 @@ private:
 		int y = 0;
 		bool pressed = false;
 	} _sizeDown;
+	bool _toolSelectionSuppressed = false;
 	bool _sizeHoverAreaHovered = false;
 	bool _sizeControlHovered = false;
 	bool _sizeControlExpanded = false;
@@ -94,6 +98,7 @@ private:
 	Ui::Animations::Simple _toolSelectionAnimation;
 
 	rpl::event_stream<Brush> _saveBrushRequests;
+	rpl::event_stream<> _toolClicks;
 
 	std::vector<base::unique_qptr<Ui::ColorSample>> _paletteButtons;
 	base::unique_qptr<Ui::AbstractButton> _palettePlus;

@@ -100,11 +100,12 @@ void SessionController::showDrawToReplyFilesBox(
 		.sendType = Api::SendType::Normal,
 		.confirmed = crl::guard(this, [=](
 				std::shared_ptr<Ui::PreparedBundle> bundle,
-				Api::SendOptions options) {
+				Api::SendOptions options,
+				FullReplyTo currentReplyTo) {
 			if (const auto thread = weak.get()) {
 				sendDrawToReplyFiles(
 					thread,
-					replyTo,
+					currentReplyTo.messageId,
 					std::move(bundle),
 					options);
 			}

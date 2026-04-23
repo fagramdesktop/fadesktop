@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #pragma once
 
 #include "base/flags.h"
+#include "data/data_msg_id.h"
 #include "ui/layers/box_content.h"
 #include "ui/chat/attach/attach_prepare.h"
 #include "ui/chat/attach/attach_send_files_way.h"
@@ -62,6 +63,10 @@ class CharactersLimitLabel;
 class ComposeAiButton;
 } // namespace HistoryView::Controls
 
+namespace SendFiles {
+class ReplyPillHeader;
+} // namespace SendFiles
+
 enum class SendFilesAllow {
 	OnlyOne = (1 << 0),
 	Photos = (1 << 1),
@@ -91,7 +96,8 @@ using SendFilesCheck = Fn<bool(
 
 using SendFilesConfirmed = Fn<void(
 	std::shared_ptr<Ui::PreparedBundle>,
-	Api::SendOptions)>;
+	Api::SendOptions,
+	FullReplyTo)>;
 
 struct SendFilesBoxDescriptor {
 	std::shared_ptr<ChatHelpers::Show> show;
@@ -105,6 +111,7 @@ struct SendFilesBoxDescriptor {
 	const style::ComposeControls *stOverride = nullptr;
 	SendFilesConfirmed confirmed;
 	Fn<void()> cancelled;
+	FullReplyTo replyTo;
 };
 
 class SendFilesBox : public Ui::BoxContent {
@@ -129,6 +136,7 @@ public:
 	void setCancelledCallback(Fn<void()> callback) {
 		_cancelledCallback = std::move(callback);
 	}
+	void setReplyTo(FullReplyTo replyTo);
 
 	[[nodiscard]] rpl::producer<TextWithTags> takeTextWithTagsRequests() const;
 
@@ -164,6 +172,7 @@ private:
 
 		[[nodiscard]] int fromIndex() const;
 		[[nodiscard]] int tillIndex() const;
+		[[nodiscard]] bool isSingleFile() const;
 		[[nodiscard]] object_ptr<Ui::RpWidget> takeWidget();
 
 		[[nodiscard]] rpl::producer<int> itemDeleteRequest() const;
@@ -314,6 +323,10 @@ private:
 
 	rpl::variable<int> _footerHeight = 0;
 	rpl::lifetime _dimensionsLifetime;
+
+	std::unique_ptr<SendFiles::ReplyPillHeader> _replyHeader;
+	rpl::variable<int> _replyHeaderHeight = 0;
+	FullReplyTo _replyTo;
 
 	object_ptr<Ui::ScrollArea> _scroll;
 	QPointer<Ui::VerticalLayout> _inner;

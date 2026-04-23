@@ -462,6 +462,7 @@ void Account::startMtp(std::unique_ptr<MTP::Config> config) {
 	_mtp->setStateChangedHandler([=](MTP::ShiftedDcId dc, int32 state) {
 		if (dc == _mtp->mainDcId()) {
 			Core::App().settings().proxy().connectionTypeChangesNotify();
+			Core::App().checkProxyRotation(this, state);
 		}
 	});
 	_mtp->setSessionResetHandler([=](MTP::ShiftedDcId shiftedDcId) {
