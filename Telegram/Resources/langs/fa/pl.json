@@ -17,6 +17,8 @@
   "fa_disable_ads_desc": "Usuwa wiadomości sponsorowane i reklamy",
   "fa_disable_ai_text_editor": "Wyłącz edytor tekstu AI",
   "fa_disable_ai_text_editor_desc": "Wyłącza edytor tekstu AI we wszystkich czatach",
+  "fa_disable_auto_download": "Wyłącz całe automatyczne pobieranie",
+  "fa_disable_auto_download_desc": "Wyłącza wszystkie automatyczne pobierania, w tym naklejki, GIF-y i emoji",
   "fa_show_start_token": "Pokaż token startowy przy uruchomieniu bota",
   "fa_show_start_token_desc": "Pokazuje token parametru startowego przy otwieraniu bota",
   "fa_show_peer_ids": "Pokaż ID partnera",

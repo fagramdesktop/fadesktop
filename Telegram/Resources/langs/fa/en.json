@@ -17,6 +17,8 @@
   "fa_disable_ads_desc": "Removes sponsored messages and advertisements",
   "fa_disable_ai_text_editor": "Disable AI Text Editor",
   "fa_disable_ai_text_editor_desc": "Disable AI text editor in chats",
+  "fa_disable_auto_download": "Disable all auto-download",
+  "fa_disable_auto_download_desc": "Disables all automatic downloads, including stickers, GIFs, and emoji",
   "fa_show_start_token": "Show Start Token in Bot",
   "fa_show_start_token_desc": "Shows the start parameter token when opening a bot",
   "fa_show_peer_ids": "Show Peer IDs",

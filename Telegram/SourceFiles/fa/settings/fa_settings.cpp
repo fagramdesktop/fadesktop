@@ -172,6 +172,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "disable_ai_text_editor", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "disable_auto_download", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 	{ "show_start_token", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},

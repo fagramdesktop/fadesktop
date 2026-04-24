@@ -17,6 +17,8 @@
   "fa_disable_ads_desc": "Homiylik xabarlari va reklamalarni olib tashlaydi",
   "fa_disable_ai_text_editor": "AI matn muharririni o'chirish",
   "fa_disable_ai_text_editor_desc": "Chatlarda AI matn muharririni o'chiradi",
+  "fa_disable_auto_download": "Barcha avto-yuklab olishni o'chirish",
+  "fa_disable_auto_download_desc": "Stiker, GIF va emoji jumladan barcha avtomatik yuklab olishlarni o'chiradi",
   "fa_show_start_token": "Bot ishga tushganda boshlash tokenini ko'rsatish",
   "fa_show_start_token_desc": "Botni ochishda boshlash parametri tokenini ko'rsatadi",
   "fa_show_peer_ids": "Sherik ID ko'rsatish",

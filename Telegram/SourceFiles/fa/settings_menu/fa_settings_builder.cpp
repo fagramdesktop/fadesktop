@@ -160,6 +160,15 @@ const auto kFAGeneralMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
+			.id = u"fa/general/disable-auto-download"_q,
+			.title = fatr::fa_disable_auto_download(fatr::now),
+			.keywords = { u"auto"_q, u"download"_q, u"media"_q, u"files"_q, u"documents"_q, u"stickers"_q, u"gifs"_q, u"emoji"_q, u"disable"_q },
+			.icon = { &st::menuIconShowAll },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
 			.id = u"fa/general/start-token"_q,
 			.title = fatr::fa_show_start_token(fatr::now),
 			.keywords = { u"start"_q, u"token"_q, u"bot"_q, u"parameter"_q },

@@ -17,6 +17,8 @@
   "fa_disable_ads_desc": "يزيل الرسائل الممولة والإعلانات",
   "fa_disable_ai_text_editor": "تعطيل تعديل الرسائل بالذكاء الإصطناعي",
   "fa_disable_ai_text_editor_desc": "يقوم بتعطيل إمكانية تعديل الرسائل في المحادثات",
+  "fa_disable_auto_download": "تعطيل التنزيل التلقائي بالكامل",
+  "fa_disable_auto_download_desc": "يعطل جميع التنزيلات التلقائية، بما في ذلك الملصقات، والصور المتحركة (GIF)، والرموز التعبيرية",
   "fa_show_start_token": "إظهار رمز البدء في البوت",
   "fa_show_start_token_desc": "يعرض رمز معامل البدء عند فتح البوت",
   "fa_show_peer_ids": "إظهار معرّفات المستخدمين",

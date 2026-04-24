@@ -108,6 +108,31 @@ namespace Settings {
         Ui::AddDividerText(container, fatr::fa_disable_ads_desc());
 		SettingsMenuJsonSwitch(fa_disable_ai_text_editor, disable_ai_text_editor, u"fa/general/disable-ai-text-editor"_q);
 		Ui::AddDividerText(container, fatr::fa_disable_ai_text_editor_desc());
+		const auto disableAutoDownload = container->add(object_ptr<Button>(
+			container,
+			fatr::fa_disable_auto_download(),
+			st::settingsButtonNoIcon
+		));
+		disableAutoDownload->toggleOn(
+			rpl::single(::FASettings::JsonSettings::GetBool(u"disable_auto_download"_q))
+		)->toggledValue(
+		) | rpl::filter([](bool enabled) {
+			return (enabled != ::FASettings::JsonSettings::GetBool(u"disable_auto_download"_q));
+		}) | rpl::on_next([=](bool enabled) {
+			::FASettings::JsonSettings::Set(u"disable_auto_download"_q, enabled);
+			::FASettings::JsonSettings::Write();
+			auto &session = controller->session();
+			session.data().photoLoadSettingsChanged();
+			session.data().documentLoadSettingsChanged();
+			if (enabled) {
+				session.data().checkPlayingAnimations();
+			}
+		}, container->lifetime());
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			disableAutoDownload,
+			u"fa/general/disable-auto-download"_q,
+			controller);
+		Ui::AddDividerText(container, fatr::fa_disable_auto_download_desc());
         SettingsMenuJsonSwitch(fa_show_start_token, show_start_token, u"fa/general/start-token"_q);
         Ui::AddDividerText(container, fatr::fa_show_start_token_desc());
         SettingsMenuJsonSwitch(fa_show_peer_ids, show_peer_id, u"fa/general/peer-ids"_q);

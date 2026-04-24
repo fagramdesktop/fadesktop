@@ -17,6 +17,8 @@
   "fa_disable_ads_desc": "Supprime les messages sponsorisés et les publicités",
   "fa_disable_ai_text_editor": "Désactiver l'éditeur de texte IA",
   "fa_disable_ai_text_editor_desc": "Désactive l'éditeur de texte IA dans les discussions",
+  "fa_disable_auto_download": "Désactiver tout le téléchargement auto",
+  "fa_disable_auto_download_desc": "Désactive tous les téléchargements automatiques, y compris les autocollants, les GIF et les emojis",
   "fa_show_start_token": "Afficher le jeton Start dans les bots",
   "fa_show_start_token_desc": "Affiche le jeton de paramètre start lors de l’ouverture d’un bot",
   "fa_show_peer_ids": "Afficher les ID des interlocuteurs",

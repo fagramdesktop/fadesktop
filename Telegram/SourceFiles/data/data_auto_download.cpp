@@ -10,6 +10,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_peer.h"
 #include "data/data_photo.h"
 #include "data/data_document.h"
+#include "fa/settings/fa_settings.h"
 
 #include <QtCore/QBuffer>
 
@@ -183,6 +184,10 @@ void Full::setBytesLimit(Source source, Type type, int64 bytesLimit) {
 }
 
 bool Full::shouldDownload(Source source, Type type, int64 fileSize) const {
+	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)
+	) {
+		return false;
+	}
 	if (ranges::find(kStreamedTypes, type) != end(kStreamedTypes)) {
 		// With streaming we disable autodownload and hide them in Settings.
 		return false;
@@ -263,6 +268,9 @@ bool Should(
 		const Full &data,
 		Source source,
 		not_null<DocumentData*> document) {
+	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+		return false;
+	}
 	if (document->sticker() || document->isGifv()) {
 		return true;
 	} else if (document->isVoiceMessage()
@@ -284,6 +292,9 @@ bool Should(
 bool Should(
 		const Full &data,
 		not_null<DocumentData*> document) {
+	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+		return false;
+	}
 	if (document->sticker()) {
 		return true;
 	}
@@ -296,6 +307,9 @@ bool Should(
 		const Full &data,
 		not_null<PeerData*> peer,
 		not_null<PhotoData*> photo) {
+	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+		return false;
+	}
 	return data.shouldDownload(
 		SourceFromPeer(peer),
 		Type::Photo,
@@ -306,6 +320,9 @@ bool ShouldAutoPlay(
 		const Full &data,
 		not_null<PeerData*> peer,
 		not_null<DocumentData*> document) {
+	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+		return false;
+	}
 	return document->sticker() || data.shouldDownload(
 		SourceFromPeer(peer),
 		AutoPlayTypeFromDocument(document),
@@ -316,6 +333,9 @@ bool ShouldAutoPlay(
 		const Full &data,
 		not_null<PeerData*> peer,
 		not_null<PhotoData*> photo) {
+	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+		return false;
+	}
 	const auto source = SourceFromPeer(peer);
 	const auto size = photo->videoByteSize(PhotoSize::Large);
 	return photo->hasVideo()

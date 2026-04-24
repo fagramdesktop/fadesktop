@@ -17,6 +17,8 @@
   "fa_disable_ads_desc": "Entfernt gesponserte Nachrichten und Werbung",
   "fa_disable_ai_text_editor": "KI-Texteditor deaktivieren",
   "fa_disable_ai_text_editor_desc": "KI-Texteditor in Chats deaktivieren",
+  "fa_disable_auto_download": "Allen automatischen Download deaktivieren",
+  "fa_disable_auto_download_desc": "Deaktiviert alle automatischen Downloads, einschließlich Sticker, GIFs und Emojis",
   "fa_show_start_token": "Starttoken beim Bot-Start anzeigen",
   "fa_show_start_token_desc": "Zeigt das Startparameter-Token an, wenn ein Bot geöffnet wird",
   "fa_show_peer_ids": "Peer-IDs anzeigen",

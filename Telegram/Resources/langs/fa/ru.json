@@ -17,6 +17,8 @@
   "fa_disable_ads_desc": "Удаляет спонсируемые сообщения и рекламу",
   "fa_disable_ai_text_editor": "Отключить текстовый ИИ-редактор",
   "fa_disable_ai_text_editor_desc": "Отключает ИИ-редактор текста в чатах",
+  "fa_disable_auto_download": "Отключить всю автозагрузку",
+  "fa_disable_auto_download_desc": "Отключает всю автоматическую загрузку, включая загрузку стикеров, GIF и эмодзи",
   "fa_show_start_token": "Показывать стартовой токен в старте бота",
   "fa_show_start_token_desc": "Показывает токен стартового параметра при открытии бота",
   "fa_show_peer_ids": "Показывать Peer ID",

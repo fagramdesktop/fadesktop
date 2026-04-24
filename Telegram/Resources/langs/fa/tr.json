@@ -17,6 +17,8 @@
   "fa_disable_ads_desc": "Sponsorlu mesajları ve reklamları kaldırır",
   "fa_disable_ai_text_editor": "YZ Metin Düzenleyiciyi Devre Dışı Bırak",
   "fa_disable_ai_text_editor_desc": "Sohbetlerde YZ metin düzenleyicisini devre dışı bırakır",
+  "fa_disable_auto_download": "Tüm otomatik indirmeleri devre dışı bırak",
+  "fa_disable_auto_download_desc": "Çıkartmalar, GIF'ler ve emojiler dahil tüm otomatik indirmeleri devre dışı bırakır",
   "fa_show_start_token": "Bot'ta Başlatma Jetonunu Göster",
   "fa_show_start_token_desc": "Bir bot açarken başlangıç parametresi jetonunu gösterir",
   "fa_show_peer_ids": "Eş Kimliklerini Göster",

@@ -17,6 +17,8 @@
   "fa_disable_ads_desc": "Eltávolítja a szponzorált üzeneteket és hirdetéseket",
   "fa_disable_ai_text_editor": "MI szövegszerkesztő letiltása",
   "fa_disable_ai_text_editor_desc": "Letiltja az MI szövegszerkesztőt a csevegésekben",
+  "fa_disable_auto_download": "Minden automatikus letöltés letiltása",
+  "fa_disable_auto_download_desc": "Minden automatikus letöltést letilt, beleértve a matricákat, a GIF-eket és az emojikat is",
   "fa_show_start_token": "Indítási token megjelenítése bot indításkor",
   "fa_show_start_token_desc": "Megjeleníti a start paraméter tokent bot megnyitásakor",
   "fa_show_peer_ids": "Partner ID megjelenítése",
