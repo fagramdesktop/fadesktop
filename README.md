@@ -37,7 +37,6 @@
 - Show registration of the user
 - Solar icons (thx design480)
 - Show sticker and emoji pack owner
-- Hide your phone number in settings
 - Add hide All chats folder
 - Added button Copy Callback to copy callback data of button
 - Created answer "Not found." to links tg://... that not found
@@ -95,6 +94,7 @@
 - FastShare option on chats/groups
 - Disable AI editor
 - Unlimited local pinned chats
+- Auto-Downloads kill switch
 
 </details>
 

@@ -66,6 +66,21 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 			"- Bug fixes\n\n"
 			"@FAgramDesktop\n"
 		},
+		{
+			2002004,
+			"- Updated tdesktop to v6.7.7.beta\n"
+			"- Improve fast share display logic for channels and chats\n"
+			"- Added toggle to automatically add a comma after mentioning usernames\n"
+			"- Updated OTA logics\n"
+			"- Remove hide phone number option\n"
+			"- Updated FAsettings menu with deep link support for logs and clean logs button\n"
+			"- Updated material icons\n"
+			"- Optimized dialog processing in local pinned chats\n"
+			"- Added option to disable auto-download of media and files\n"
+			"- Updated translations\n"
+			"- Bug fixes\n\n"
+			"@FAgramDesktop\n"
+		},
 	};
 	return entries;
 }
