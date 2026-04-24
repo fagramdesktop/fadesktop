@@ -295,6 +295,12 @@ PhotoEditor::PhotoEditor(
 		_content->applyAspectRatio(ratio);
 	}, lifetime());
 
+	_controls->cornersLevelChanges(
+	) | rpl::on_next([=](RoundedCornersLevel level) {
+		_modifications.cornersLevel = level;
+		_content->applyModifications(_modifications);
+	}, lifetime());
+
 	_controls->paintModeRequests(
 	) | rpl::on_next([=] {
 		_mode = PhotoEditorMode{

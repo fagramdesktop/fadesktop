@@ -1,3 +1,19 @@
+6.7.8 (24.04.26)
+
+- Proxy auto-rotation option.
+- Allow seeking in video messages.
+- Styled text items with emoji support in image editor.
+- Wheel zoom and middle-button panning in image editor.
+- Manage owned custom emoji packs and delete owned sticker sets.
+- Add-to-Sticker-Set and Add-to-Emoji-Set submenus for foreign packs.
+- Reply header with preview in send files box.
+- Bring back original video quality option.
+- Screen reader support for language list and country select box.
+- Fix screen reader false-positive reporting on X11.
+- Fix stories in albums with reorder enabled.
+- Fix crash in proxy sharing before auth.
+- Fix layout for RTL messages.
+
 6.7.7 beta (20.04.26)
 
 - Proxy auto-rotation option.

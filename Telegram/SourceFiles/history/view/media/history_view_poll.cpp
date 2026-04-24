@@ -491,6 +491,7 @@ private:
 	[[nodiscard]] bool hasTimerLine(int innerWidth) const;
 	[[nodiscard]] bool hasCloseDate() const;
 	[[nodiscard]] QString closeTimerText() const;
+	[[nodiscard]] QRect timerRect(int left, int innerWidth) const;
 	[[nodiscard]] bool timerFooterMultiline(int paintw) const;
 	[[nodiscard]] bool centeredOverlapsInfo(
 		int textWidth,
@@ -571,13 +572,13 @@ void Poll::Footer::draw(
 				labelWidth,
 				outerWidth);
 			p.setFont(st::msgDateFont);
-			const auto timerw = st::msgDateFont->width(timerText);
+			const auto rect = timerRect(left, innerWidth);
 			p.drawTextLeft(
-				left + (innerWidth - timerw) / 2,
-				top + st::msgDateFont->height,
+				rect.x(),
+				rect.y(),
 				outerWidth,
 				timerText,
-				timerw);
+				rect.width());
 		} else {
 			p.setFont(st::msgDateFont);
 			const auto sep = QString::fromUtf8(" \xC2\xB7 ");
@@ -678,13 +679,13 @@ void Poll::Footer::draw(
 				labelWidth,
 				style::al_top);
 			p.setFont(st::msgDateFont);
-			const auto timerw = st::msgDateFont->width(timerText);
+			const auto rect = timerRect(left, innerWidth);
 			p.drawTextLeft(
-				left + (innerWidth - timerw) / 2,
-				stringtop + st::msgDateFont->height,
+				rect.x(),
+				rect.y(),
 				outerWidth,
 				timerText,
-				timerw);
+				rect.width());
 		} else {
 			p.setFont(st::msgDateFont);
 			const auto sep = QString::fromUtf8(" \xC2\xB7 ");
@@ -728,13 +729,13 @@ void Poll::Footer::draw(
 		if (!timerText.isEmpty()) {
 			p.setFont(st::msgDateFont);
 			p.setPen(stm->msgDateFg);
-			const auto timerw = st::msgDateFont->width(timerText);
+			const auto rect = timerRect(left, innerWidth);
 			p.drawTextLeft(
-				left + (innerWidth - timerw) / 2,
-				stringtop + st::semiboldFont->height,
+				rect.x(),
+				rect.y(),
 				outerWidth,
 				timerText,
-				timerw);
+				rect.width());
 		}
 	}
 }
@@ -746,6 +747,15 @@ TextState Poll::Footer::textState(
 		int outerWidth,
 		StateRequest request) const {
 	TextState result;
+	const auto timer = timerRect(left, innerWidth);
+	if (!timer.isEmpty() && timer.contains(point)) {
+		result.customTooltip = true;
+		using Flag = Ui::Text::StateRequest::Flag;
+		if (request.flags & Flag::LookupCustomTooltip) {
+			result.customTooltipText = langDateTimeFull(
+				base::unixtime::parse(_owner->_poll->closeDate));
+		}
+	}
 	if (_owner->inlineFooter()) {
 		return result;
 	}
@@ -4001,6 +4011,48 @@ QString Poll::Footer::closeTimerText() const {
 	return hideResults
 		? tr::lng_polls_results_in_time(tr::now, lt_time, timer)
 		: tr::lng_polls_ends_in_time(tr::now, lt_time, timer);
+}
+
+QRect Poll::Footer::timerRect(int left, int innerWidth) const {
+	const auto timerText = closeTimerText();
+	if (timerText.isEmpty()) {
+		return {};
+	}
+	const auto lineHeight = st::msgDateFont->height;
+	const auto timerw = st::msgDateFont->width(timerText);
+	const auto inline_ = _owner->inlineFooter();
+	if (inline_ || _owner->showVotersCount()) {
+		const auto y = inline_ ? st::msgPadding.bottom() : textTop();
+		if (timerFooterMultiline(innerWidth)) {
+			return QRect(
+				left + (innerWidth - timerw) / 2,
+				y + lineHeight,
+				timerw,
+				lineHeight);
+		}
+		const auto sep = QString::fromUtf8(" \xC2\xB7 ");
+		const auto label = _totalVotesLabel.toString();
+		const auto prefixw = st::msgDateFont->width(label + sep);
+		const auto fullw = prefixw + timerw;
+		return QRect(
+			left + (innerWidth - fullw) / 2 + prefixw,
+			y,
+			timerw,
+			lineHeight);
+	}
+	const auto suppressedByLink = _owner->_addOptionActive
+		|| (_owner->isAuthorNotVoted()
+			&& !_owner->_adminShowResults
+			&& !_owner->canSendVotes())
+		|| (_owner->_adminShowResults && _owner->isAuthorNotVoted());
+	if (suppressedByLink) {
+		return {};
+	}
+	return QRect(
+		left + (innerWidth - timerw) / 2,
+		textTop() + st::semiboldFont->height,
+		timerw,
+		lineHeight);
 }
 
 bool Poll::Footer::timerFooterMultiline(int paintw) const {

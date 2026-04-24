@@ -32,6 +32,7 @@ namespace Api {
 
 inline constexpr auto kStickersInOwnedSetMax = 120;
 inline constexpr auto kEmojiInOwnedSetMax = 200;
+inline constexpr auto kEmojiStickerSideMax = 100;
 
 void AddExistingStickerToSet(
 	not_null<Main::Session*> session,
@@ -69,6 +70,11 @@ void AddAddToStickerSetAction(
 	not_null<DocumentData*> document);
 
 void AddAddToEmojiSetAction(
+	const Ui::Menu::MenuCallback &addAction,
+	std::shared_ptr<ChatHelpers::Show> show,
+	not_null<DocumentData*> document);
+
+void AddAddToOwnedSetAction(
 	const Ui::Menu::MenuCallback &addAction,
 	std::shared_ptr<ChatHelpers::Show> show,
 	not_null<DocumentData*> document);

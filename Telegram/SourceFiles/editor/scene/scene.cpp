@@ -820,6 +820,7 @@ void Scene::finishTextEditing(bool save) {
 }
 
 Scene::~Scene() {
+	disconnect(this, &QGraphicsScene::selectionChanged, nullptr, nullptr);
 	if (_textEdit.proxy) {
 		setTextEditing(false);
 		const auto raw = static_cast<TextEditProxy*>(

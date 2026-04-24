@@ -82,7 +82,8 @@ Crop::Crop(
 	: QRectF(QPoint(), _imageSize))
 , _angle(modifications.angle)
 , _flipped(modifications.flipped)
-, _keepAspectRatio(_data.keepAspectRatio) {
+, _keepAspectRatio(_data.keepAspectRatio)
+, _cornersLevel(modifications.cornersLevel) {
 
 	setMouseTracking(true);
 
@@ -158,9 +159,15 @@ QPainterPath Crop::cropPath() const {
 	if (_data.cropType == EditorData::CropType::Ellipse) {
 		result.addEllipse(_cropPaint);
 	} else if (_data.cropType == EditorData::CropType::RoundedRect) {
-		const auto radius = std::min(_cropPaint.width(), _cropPaint.height())
-			* Ui::ForumUserpicRadiusMultiplier();
-		result.addRoundedRect(_cropPaint, radius, radius);
+		const auto multiplier = RoundedCornersMultiplier(_cornersLevel);
+		if (multiplier <= 0.) {
+			result.addRect(_cropPaint);
+		} else {
+			const auto radius = std::min(
+				_cropPaint.width(),
+				_cropPaint.height()) * multiplier;
+			result.addRoundedRect(_cropPaint, radius, radius);
+		}
 	} else {
 		result.addRect(_cropPaint);
 	}
@@ -562,6 +569,17 @@ void Crop::setAspectRatio(float64 ratio) {
 	} else {
 		updateEdges();
 	}
+	update();
+}
+
+void Crop::setCornersLevel(RoundedCornersLevel level) {
+	if (_cornersLevel == level) {
+		return;
+	}
+	_cornersLevel = level;
+	_painterPath.clear();
+	_painterPath.addRect(_innerRect);
+	_painterPath.addPath(cropPath());
 	update();
 }
 

@@ -644,18 +644,25 @@ TextWithEntities DropDisallowedCustomEmoji(
 	if (to->session().premium() || to->isSelf()) {
 		return text;
 	}
+	const auto isLocalIconEmoji = [](const EntityInText &entity) {
+		return entity.data().startsWith(u"icon-emoji-"_q);
+	};
 	const auto channel = to->asMegagroup();
 	const auto allowSetId = channel ? channel->mgInfo->emojiSet.id : 0;
 	if (!allowSetId) {
+		const auto predicate = [&](const EntityInText &entity) {
+			return (entity.type() == EntityType::CustomEmoji)
+				&& !isLocalIconEmoji(entity);
+		};
 		text.entities.erase(
-			ranges::remove(
-				text.entities,
-				EntityType::CustomEmoji,
-				&EntityInText::type),
+			ranges::remove_if(text.entities, predicate),
 			text.entities.end());
 	} else {
 		const auto predicate = [&](const EntityInText &entity) {
 			if (entity.type() != EntityType::CustomEmoji) {
+				return false;
+			}
+			if (isLocalIconEmoji(entity)) {
 				return false;
 			}
 			if (const auto id = Data::ParseCustomEmojiData(entity.data())) {

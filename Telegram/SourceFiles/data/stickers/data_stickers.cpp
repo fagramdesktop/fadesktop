@@ -1609,7 +1609,8 @@ not_null<StickersSet*> Stickers::feedSet(const MTPStickerSet &info) {
 			& (SetFlag::Featured
 				| SetFlag::Unread
 				| SetFlag::NotLoaded
-				| SetFlag::Special);
+				| SetFlag::Special
+				| SetFlag::Installed);
 		set->flags = flags | clientFlags;
 		const auto installDate = data.vinstalled_date();
 		set->installDate = installDate

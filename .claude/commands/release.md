@@ -27,9 +27,11 @@ Read `changelog.txt` from the repository root. Note the **latest version number*
 
 ### 3. Determine the new version number
 
-- **If a version was provided in arguments**, use it directly (append `.0` if only major.minor was given).
+**Important:** version numbers are shared across the beta and stable tracks — the sequence advances through both. The same `major.minor.patch` cannot be released as both beta and stable. A beta release "uses up" that number; the next stable must bump to a new patch.
+
+- **If a version was provided in arguments**, use it directly (append `.0` if only major.minor was given). If the latest changelog entry already used this exact number (regardless of beta/stable), warn the user — they likely want a bumped patch.
 - **If no version was provided**, auto-increment from the latest changelog version:
-  - If it was a beta, and the new release is **not** beta, reuse the same version number but drop "beta".
+  - If it was a beta, and the new release is **not** beta, bump the patch component by 1 (do **not** reuse the beta's number for stable).
   - If the new release is beta and the latest was also beta with the same major.minor, bump patch.
   - Otherwise bump the patch component by 1.
 - Present the chosen version to the user and ask for confirmation before proceeding. If the user suggests a different version, use that instead.
@@ -64,6 +66,10 @@ Use this exact format (date is today in DD.MM.YY):
 ```
 
 Prepend the new entry at the very top of `changelog.txt`, separated by a blank line from the previous first entry. Use the Edit tool.
+
+**Never delete or edit existing entries**, even if the new stable entry merges bullets from prior beta(s). Prior beta blocks remain as historical record for beta-track users.
+
+**For stable releases spanning prior beta(s):** the entry should cover everything since the last **stable** release (not just since the last beta), including noteworthy beta-shipped features, trimmed as needed to stay within 4–12 bullets.
 
 ### 8. Wait for approval
 

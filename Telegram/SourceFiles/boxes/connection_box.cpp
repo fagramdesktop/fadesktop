@@ -18,7 +18,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "main/main_account.h"
 #include "main/main_session.h"
 #include "mtproto/facade.h"
+#include "mtproto/mtproto_config.h"
 #include "mtproto/proxy_check.h"
+#include "qr/qr_generate.h"
 #include "settings/settings_common.h"
 #include "storage/localstorage.h"
 #include "ui/basic_click_handlers.h"
@@ -48,10 +50,11 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/ui_utility.h"
 #include "boxes/abstract_box.h" // Ui::show().
 #include "window/window_session_controller.h"
-#include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_info.h"
+#include "styles/style_intro.h"
+#include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h"
 
@@ -128,12 +131,140 @@ using ProxyData = MTP::ProxyData;
 }
 
 [[nodiscard]] QString ProxyDataToPublicLink(
-		const Main::Session &session,
+		not_null<Main::Account*> account,
 		const ProxyData &proxy) {
 	const auto queryPath = ProxyDataToQueryPath(proxy);
-	return queryPath.isEmpty()
-		? QString()
-		: session.createInternalLinkFull(queryPath);
+	if (queryPath.isEmpty()) {
+		return QString();
+	}
+	if (const auto session = account->maybeSession()) {
+		return session->createInternalLinkFull(queryPath);
+	}
+	auto domain = MTP::ConfigFields(
+		account->mtp().environment()
+	).internalLinksDomain;
+	if (domain.endsWith('/') && queryPath.startsWith('/')) {
+		domain.chop(1);
+	} else if (!domain.endsWith('/') && !queryPath.startsWith('/')) {
+		domain += '/';
+	}
+	return domain + queryPath;
+}
+
+[[nodiscard]] QColor ProxyQrActiveColor() {
+	return QColor(0x40, 0xA7, 0xE3);
+}
+
+[[nodiscard]] QImage ProxyQr(const Qr::Data &data, int pixel, int max = 0) {
+	Expects(data.size > 0);
+
+	const auto available = max
+		? std::max(max - 2 * st::introQrBackgroundSkip, 1)
+		: 0;
+	if (available > 0 && data.size * pixel > available) {
+		pixel = std::max(available / data.size, 1);
+	}
+	return Qr::Generate(
+		data,
+		pixel * style::DevicePixelRatio(),
+		Qt::black,
+		Qt::white);
+}
+
+[[nodiscard]] QImage ProxyQrLogo() {
+	const auto size = QSize(st::introQrCenterSize, st::introQrCenterSize);
+	auto result = QImage(
+		size * style::DevicePixelRatio(),
+		QImage::Format_ARGB32_Premultiplied);
+	result.fill(Qt::transparent);
+	result.setDevicePixelRatio(style::DevicePixelRatio());
+	{
+		auto p = QPainter(&result);
+		auto hq = PainterHighQualityEnabler(p);
+		p.setBrush(ProxyQrActiveColor());
+		p.setPen(Qt::NoPen);
+		p.drawEllipse(QRect(QPoint(), size));
+		st::introQrPlane.paintInCenter(p, QRect(QPoint(), size));
+	}
+	return result;
+}
+
+[[nodiscard]] QImage ProxyQrTile(const QString &link, int max = 0) {
+	const auto data = Qr::Encode(link, Qr::Redundancy::Quartile);
+	const auto qr = ProxyQr(
+		data,
+		st::introQrPixel,
+		max);
+	const auto qrSize = qr.width() / style::DevicePixelRatio();
+	const auto skip = st::introQrBackgroundSkip;
+	const auto size = QSize(qrSize + 2 * skip, qrSize + 2 * skip);
+	auto result = QImage(
+		size * style::DevicePixelRatio(),
+		QImage::Format_ARGB32_Premultiplied);
+	result.fill(Qt::transparent);
+	result.setDevicePixelRatio(style::DevicePixelRatio());
+	{
+		auto p = QPainter(&result);
+		auto hq = PainterHighQualityEnabler(p);
+		p.setPen(Qt::NoPen);
+		p.setBrush(Qt::white);
+		p.drawRoundedRect(
+			QRect(QPoint(), size),
+			st::introQrBackgroundRadius,
+			st::introQrBackgroundRadius);
+		p.drawImage(QRect(skip, skip, qrSize, qrSize), qr);
+		const auto logo = ProxyQrLogo();
+		p.drawImage(
+			QRect(
+				(size.width() - st::introQrCenterSize) / 2,
+				(size.height() - st::introQrCenterSize) / 2,
+				st::introQrCenterSize,
+				st::introQrCenterSize),
+			logo);
+	}
+	return result;
+}
+
+[[nodiscard]] QImage ProxyQrForShare(const QString &link) {
+	return ProxyQrTile(
+		link,
+		st::boxWidth - st::boxRowPadding.left() - st::boxRowPadding.right());
+}
+
+void ShowProxyQrBox(std::shared_ptr<Ui::Show> show, const QString &link) {
+	show->showBox(Box([=](not_null<Ui::GenericBox*> box) {
+		box->setTitle(tr::lng_proxy_edit_share_qr_box_title());
+		box->addButton(tr::lng_about_done(), [=] { box->closeBox(); });
+
+		const auto copyCallback = [=, image = ProxyQrForShare(link)] {
+			QGuiApplication::clipboard()->setImage(image);
+			show->showToast(tr::lng_group_invite_qr_copied(tr::now));
+		};
+
+		const auto qr = ProxyQrTile(
+			link,
+			st::boxWidth
+				- st::boxRowPadding.left()
+				- st::boxRowPadding.right());
+		const auto size = qr.width() / style::DevicePixelRatio();
+		const auto height = st::inviteLinkQrSkip * 2 + size;
+		const auto container = box->addRow(
+			object_ptr<Ui::BoxContentDivider>(box, height),
+			st::inviteLinkQrMargin);
+		const auto button = Ui::CreateChild<Ui::AbstractButton>(container);
+		button->resize(size, size);
+		button->paintRequest(
+		) | rpl::on_next([=] {
+			QPainter(button).drawImage(QRect(0, 0, size, size), qr);
+		}, button->lifetime());
+		container->widthValue(
+		) | rpl::on_next([=](int width) {
+			button->move((width - size) / 2, st::inviteLinkQrSkip);
+		}, button->lifetime());
+		button->setClickedCallback(copyCallback);
+
+		box->addLeftButton(tr::lng_group_invite_context_copy(), copyCallback);
+	}));
 }
 
 [[nodiscard]] ProxyData ProxyDataFromFields(
@@ -482,6 +613,7 @@ private:
 		not_null<Ui::VerticalLayout*> parent,
 		const QString &text) const;
 
+	const bool _allowShare = false;
 	Fn<void(ProxyData)> _callback;
 	Fn<void(ProxyData)> _shareCallback;
 
@@ -1215,7 +1347,8 @@ ProxyBox::ProxyBox(
 	const ProxyData &data,
 	Fn<void(ProxyData)> callback,
 	Fn<void(ProxyData)> shareCallback)
-: _callback(std::move(callback))
+: _allowShare(data.type != Type::None)
+, _callback(std::move(callback))
 , _shareCallback(std::move(shareCallback))
 , _content(this) {
 	setupControls(data);
@@ -1284,7 +1417,8 @@ void ProxyBox::refreshButtons() {
 	addButton(tr::lng_cancel(), [=] { closeBox(); });
 
 	const auto type = _type->current();
-	if (type == Type::Socks5 || type == Type::Mtproto) {
+	if (_allowShare
+		&& (type == Type::Socks5 || type == Type::Mtproto)) {
 		addLeftButton(tr::lng_proxy_share(), [=] { share(); });
 	}
 }
@@ -1331,10 +1465,10 @@ ProxyData ProxyBox::collectData() {
 }
 
 void ProxyBox::setupTypes() {
-	const auto types = std::map<Type, QString>{
-		{ Type::Http, "HTTP" },
-		{ Type::Socks5, "SOCKS5" },
-		{ Type::Mtproto, "MTPROTO" },
+	const auto types = std::vector<std::pair<Type, QString>>{
+		{ Type::Mtproto, u"MTPROTO"_q },
+		{ Type::Socks5, u"SOCKS5"_q },
+		{ Type::Http, u"HTTP"_q },
 	};
 	for (const auto &[type, label] : types) {
 		_content->add(
@@ -1446,7 +1580,7 @@ void ProxyBox::setupMtprotoCredentials(const ProxyData &data) {
 void ProxyBox::setupControls(const ProxyData &data) {
 	_type = std::make_shared<Ui::RadioenumGroup<Type>>(
 		(data.type == Type::None
-			? Type::Socks5
+			? Type::Mtproto
 			: data.type));
 	_content.create(this);
 	_content->resizeToWidth(st::boxWideWidth);
@@ -1860,8 +1994,10 @@ void ProxiesBoxController::shareItems() {
 	auto result = QString();
 	for (const auto &item : _list) {
 		if (!item.deleted && ProxyDataIsShareable(item.data)) {
-			result += ProxyDataToPublicLink(_account->session(), item.data)
-				+ '\n' + '\n';
+			const auto link = ProxyDataToPublicLink(_account, item.data);
+			if (!link.isEmpty()) {
+				result += (result.isEmpty() ? QString() : u"\n\n"_q) + link;
+			}
 		}
 	}
 	if (result.isEmpty()) {
@@ -2145,12 +2281,22 @@ void ProxiesBoxController::share(const ProxyData &proxy, bool qr) {
 		return;
 	}
 	const auto qrLink = ProxyDataToLocalLink(proxy);
-	const auto shareLink = ProxyDataToPublicLink(_account->session(), proxy);
+	if (qrLink.isEmpty()) {
+		return;
+	}
 	if (qr) {
-		_show->showBox(Box([=](not_null<Ui::GenericBox*> box) {
-			Ui::FillPeerQrBox(box, nullptr, qrLink, rpl::single(QString()));
-			box->setTitle(tr::lng_proxy_edit_share_qr_box_title());
-		}));
+		if (_account->sessionExists()) {
+			_show->showBox(Box([=](not_null<Ui::GenericBox*> box) {
+				Ui::FillPeerQrBox(box, nullptr, qrLink, rpl::single(QString()));
+				box->setTitle(tr::lng_proxy_edit_share_qr_box_title());
+			}));
+		} else {
+			ShowProxyQrBox(_show, qrLink);
+		}
+		return;
+	}
+	const auto shareLink = ProxyDataToPublicLink(_account, proxy);
+	if (shareLink.isEmpty()) {
 		return;
 	}
 	QGuiApplication::clipboard()->setText(shareLink);

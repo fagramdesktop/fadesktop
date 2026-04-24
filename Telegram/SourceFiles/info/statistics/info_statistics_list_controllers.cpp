@@ -485,7 +485,7 @@ private:
 BoostRow::BoostRow(not_null<PeerData*> peer, const Data::Boost &boost)
 : PeerListRow(peer, UniqueRowIdFromString(boost.id))
 , _boost(boost)
-, _userpic(Ui::EmptyUserpic::UserpicColor(0), QString()) {
+, _userpic(Ui::EmptyUserpic::UserpicColor(st::colorIndexRed), QString()) {
 	init();
 }
 

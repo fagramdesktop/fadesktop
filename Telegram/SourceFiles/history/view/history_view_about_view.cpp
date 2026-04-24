@@ -348,6 +348,7 @@ auto GenerateNewBotThread(
 					const auto x = (outerWidth - icon.width()) / 2;
 					const auto y = (size - icon.height()) / 2
 						+ st::newThreadAboutIconSkip;
+					auto hq = PainterHighQualityEnabler(p);
 					p.setPen(Qt::NoPen);
 					p.setBrush(context.st->msgServiceBgSelected());
 					p.drawEllipse(

@@ -1847,6 +1847,9 @@ void EmojiListWidget::paint(
 		&& !_searchRequestTimer.isActive()) {
 		paintEmptySearchResults(p);
 	}
+	const auto badgeText = tr::lng_stickers_creator_badge(tr::now);
+	const auto &badgeFont = st::stickersHeaderBadgeFont;
+	const auto badgeWidth = badgeFont->width(badgeText);
 	enumerateSections([&](const SectionInfo &info) {
 		if (clip.top() >= info.rowsBottom) {
 			return true;
@@ -1859,7 +1862,7 @@ void EmojiListWidget::paint(
 		const auto titleLeft = (info.premiumRequired
 			? st().headerLockedLeft
 			: st().headerLeft) - st().margin.left();
-		const auto widthForTitle = emojiRight()
+		auto widthForTitle = emojiRight()
 			- titleLeft
 			- paintButtonGetWidth(p, info, buttonSelected, clip);
 		if (info.section > 0 && clip.top() < info.rowsTop) {
@@ -1870,6 +1873,18 @@ void EmojiListWidget::paint(
 				: (info.section < _staticCount)
 				? ChatHelpers::EmojiCategoryTitle(info.section)(tr::now)
 				: _custom[info.section - _staticCount].title;
+			const auto titleSet = (_searchMode && info.section > 0)
+				? searchSetBySection(info.section).set.get()
+				: (info.section >= _staticCount)
+				? _custom[info.section - _staticCount].set.get()
+				: nullptr;
+			const auto amCreator = titleSet
+				&& (titleSet->flags & Data::StickersSetFlag::AmCreator);
+			if (amCreator) {
+				widthForTitle -= badgeWidth
+					+ st::stickersFeaturedUnreadSkip
+					+ st::stickersHeaderBadgeFontSkip;
+			}
 			auto titleWidth = st::emojiPanHeaderFont->width(titleText);
 			if (titleWidth > widthForTitle) {
 				titleText = st::emojiPanHeaderFont->elided(titleText, widthForTitle);
@@ -1887,6 +1902,38 @@ void EmojiListWidget::paint(
 			p.setFont(st::emojiPanHeaderFont);
 			p.setPen(st().headerFg);
 			p.drawText(titleLeft, textBaseline, titleText);
+			if (amCreator) {
+				const auto badgeLeft = titleLeft
+					+ titleWidth
+					+ st::stickersFeaturedUnreadSkip;
+				{
+					auto color = st().headerFg->c;
+					color.setAlphaF(st().headerFg->c.alphaF() * 0.15);
+					p.setPen(Qt::NoPen);
+					p.setBrush(color);
+					auto hq = PainterHighQualityEnabler(p);
+					p.drawRoundedRect(
+						style::rtlrect(
+							badgeLeft,
+							info.top + st::stickersHeaderBadgeFontTop,
+							badgeWidth + badgeFont->height,
+							badgeFont->height,
+							width()),
+						badgeFont->height / 2.,
+						badgeFont->height / 2.);
+				}
+				p.setPen(st().headerFg);
+				p.setBrush(Qt::NoBrush);
+				p.setFont(badgeFont);
+				p.drawText(
+					QRect(
+						badgeLeft + badgeFont->height / 2,
+						info.top + st::stickersHeaderBadgeFontTop,
+						badgeWidth,
+						badgeFont->height),
+					badgeText,
+					style::al_center);
+			}
 		}
 		if (clip.top() + clip.height() > info.rowsTop) {
 			ensureLoaded(info.section);
@@ -2885,6 +2932,7 @@ void EmojiListWidget::refreshCustom() {
 				return;
 			} else if (valid) {
 				i->thumbnailDocument = it->second->lookupThumbnailDocument();
+				i->title = it->second->title;
 				const auto premiumRequired = premium && premiumMayBeBought;
 				if (i->canRemove != canRemove
 					|| i->premiumRequired != premiumRequired) {

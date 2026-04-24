@@ -145,7 +145,6 @@ void DrawEmojiCell(
 			auto q = QPainter(&buffer);
 			Ui::Emoji::Draw(q, emoji, esize, 0, 0);
 		}
-		auto hq = PainterHighQualityEnabler(p);
 		p.drawImage(target, buffer);
 	}
 }
@@ -221,6 +220,7 @@ void EmojiPickerOverlay::Strip::updateHover(int index) {
 
 void EmojiPickerOverlay::Strip::paintEvent(QPaintEvent *e) {
 	auto p = QPainter(this);
+	auto hq = PainterHighQualityEnabler(p);
 	for (auto i = 0; i != int(_cells.size()); ++i) {
 		const auto &cell = _cells[i];
 		const auto selected = _owner->_selectedList.end()
@@ -323,6 +323,7 @@ void EmojiPickerOverlay::Grid::updateHover(int index) {
 
 void EmojiPickerOverlay::Grid::paintEvent(QPaintEvent *e) {
 	auto p = QPainter(this);
+	auto hq = PainterHighQualityEnabler(p);
 	const auto clip = e->rect();
 	for (auto i = 0; i != int(_cells.size()); ++i) {
 		const auto &cell = _cells[i];

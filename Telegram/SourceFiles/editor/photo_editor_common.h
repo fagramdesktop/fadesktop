@@ -11,6 +11,15 @@ namespace Editor {
 
 class Scene;
 
+enum class RoundedCornersLevel {
+	Large,
+	Medium,
+	Small,
+	None,
+};
+
+[[nodiscard]] float64 RoundedCornersMultiplier(RoundedCornersLevel level);
+
 struct EditorData {
 	enum class CropType {
 		Rect,
@@ -31,6 +40,7 @@ struct PhotoModifications {
 	bool flipped = false;
 	QRect crop;
 	EditorData::CropType cropType = EditorData::CropType::Rect;
+	RoundedCornersLevel cornersLevel = RoundedCornersLevel::Large;
 	std::shared_ptr<Scene> paint = nullptr;
 
 	[[nodiscard]] bool empty() const;

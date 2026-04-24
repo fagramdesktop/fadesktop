@@ -39,6 +39,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "window/window_session_controller.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat_helpers.h"
+#include "styles/style_color_indices.h"
 #include "styles/style_credits.h"
 #include "styles/style_info.h"
 #include "styles/style_layers.h"
@@ -263,7 +264,7 @@ void ConfirmSubscriptionBox(
 		}
 	} else {
 		state->photoEmpty = std::make_unique<Ui::EmptyUserpic>(
-			Ui::EmptyUserpic::UserpicColor(0),
+			Ui::EmptyUserpic::UserpicColor(st::colorIndexRed),
 			name);
 	}
 	Ui::AddSkip(content);
@@ -502,7 +503,7 @@ void ConfirmInviteBox(
 		}
 	} else {
 		state->photoEmpty = std::make_unique<Ui::EmptyUserpic>(
-			Ui::EmptyUserpic::UserpicColor(0),
+			Ui::EmptyUserpic::UserpicColor(st::colorIndexRed),
 			invite.title);
 	}
 

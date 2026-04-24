@@ -101,11 +101,11 @@ struct AlbumCounts {
 };
 
 [[nodiscard]] TextWithEntities WithCaptionNotificationText(
-		const QString &attachType,
+		TextWithEntities attachType,
 		const TextWithEntities &caption,
 		bool hasMiniImages = false) {
 	if (caption.text.isEmpty()) {
-		return Ui::Text::Colorized(attachType);
+		return Ui::Text::Colorized(std::move(attachType));
 	}
 	auto wrapped = st::wrap_rtl(caption);
 	return hasMiniImages
@@ -116,11 +116,21 @@ struct AlbumCounts {
 			tr::lng_dialogs_text_media_wrapped(
 				tr::now,
 				lt_media,
-				Ui::Text::Colorized(attachType),
+				Ui::Text::Colorized(std::move(attachType)),
 				tr::marked),
 			lt_caption,
 			wrapped,
 			tr::marked);
+}
+
+[[nodiscard]] TextWithEntities WithCaptionNotificationText(
+		const QString &attachType,
+		const TextWithEntities &caption,
+		bool hasMiniImages = false) {
+	return WithCaptionNotificationText(
+		Ui::Text::WithEntities(attachType),
+		caption,
+		hasMiniImages);
 }
 
 [[nodiscard]] QImage PreparePreviewImage(
@@ -1209,32 +1219,35 @@ ItemPreview MediaFile::toPreview(ToPreviewOptions options) const {
 			}
 		}
 	}
-	const auto type = [&] {
+	const auto type = [&]() -> TextWithEntities {
 		using namespace Ui::Text;
 		if (_document->isVideoMessage()) {
-			return (item->media() && item->media()->ttlSeconds())
+			return WithEntities((item->media() && item->media()->ttlSeconds())
 				? tr::lng_in_dlg_video_message_ttl(tr::now)
-				: tr::lng_in_dlg_video_message(tr::now);
+				: tr::lng_in_dlg_video_message(tr::now));
 		} else if (_document->isAnimation()) {
-			return u"GIF"_q;
+			return WithEntities(u"GIF"_q);
 		} else if (_document->isVideoFile()) {
-			return tr::lng_in_dlg_video(tr::now);
+			return WithEntities(tr::lng_in_dlg_video(tr::now));
 		} else if (_document->isVoiceMessage()) {
-			return (item->media() && item->media()->ttlSeconds())
-				? tr::lng_in_dlg_voice_message_ttl(tr::now)
-				: item->isUnreadMedia()
-				? tr::lng_in_dlg_audio_unread(
+			if (item->media() && item->media()->ttlSeconds()) {
+				return WithEntities(
+					tr::lng_in_dlg_voice_message_ttl(tr::now));
+			} else if (item->isUnreadMedia()) {
+				return tr::lng_in_dlg_audio_unread(
 					tr::now,
 					lt_emoji,
-					QChar(0x25CF))
-				: tr::lng_in_dlg_audio(tr::now);
+					IconEmoji(&st::dialogsUnreadMediaDotEmoji),
+					tr::rich);
+			}
+			return WithEntities(tr::lng_in_dlg_audio(tr::now));
 		} else if (const auto name = FormatSongNameFor(_document).string();
 				!name.isEmpty()) {
-			return name;
+			return WithEntities(name);
 		} else if (_document->isAudioFile()) {
-			return tr::lng_in_dlg_audio_file(tr::now);
+			return WithEntities(tr::lng_in_dlg_audio_file(tr::now));
 		}
-		return tr::lng_in_dlg_file(tr::now);
+		return WithEntities(tr::lng_in_dlg_file(tr::now));
 	}();
 	const auto caption = (options.hideCaption || options.ignoreMessageText)
 		? TextWithEntities()

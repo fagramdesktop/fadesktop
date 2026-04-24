@@ -138,9 +138,7 @@ public:
 
 	void firstShow();
 	bool minimizeToTray();
-	void updateGlobalMenu() {
-		updateGlobalMenuHook();
-	}
+	void updateGlobalMenu();
 
 	[[nodiscard]] virtual rpl::producer<QPoint> globalForceClicks() {
 		return rpl::never<QPoint>();

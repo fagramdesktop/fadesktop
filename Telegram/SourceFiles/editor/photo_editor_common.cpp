@@ -14,8 +14,17 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 namespace Editor {
 namespace {
 
-void ApplyShapeMask(QImage &image, EditorData::CropType type) {
+void ApplyShapeMask(
+		QImage &image,
+		EditorData::CropType type,
+		RoundedCornersLevel cornersLevel) {
 	if (type == EditorData::CropType::Rect) {
+		return;
+	}
+	const auto multiplier = (type == EditorData::CropType::RoundedRect)
+		? RoundedCornersMultiplier(cornersLevel)
+		: Ui::ForumUserpicRadiusMultiplier();
+	if (type == EditorData::CropType::RoundedRect && multiplier <= 0.) {
 		return;
 	}
 	if (image.format() != QImage::Format_ARGB32_Premultiplied) {
@@ -33,7 +42,7 @@ void ApplyShapeMask(QImage &image, EditorData::CropType type) {
 			p.drawEllipse(rect);
 		} else {
 			const auto radius = std::min(rect.width(), rect.height())
-				* Ui::ForumUserpicRadiusMultiplier();
+				* multiplier;
 			p.drawRoundedRect(rect, radius, radius);
 		}
 	}
@@ -43,6 +52,16 @@ void ApplyShapeMask(QImage &image, EditorData::CropType type) {
 }
 
 } // namespace
+
+float64 RoundedCornersMultiplier(RoundedCornersLevel level) {
+	switch (level) {
+	case RoundedCornersLevel::Large: return Ui::ForumUserpicRadiusMultiplier();
+	case RoundedCornersLevel::Medium: return 0.2;
+	case RoundedCornersLevel::Small: return 0.12;
+	case RoundedCornersLevel::None: return 0.;
+	}
+	Unexpected("Unknown RoundedCornersLevel in RoundedCornersMultiplier.");
+}
 
 QImage ImageModified(QImage image, const PhotoModifications &mods) {
 	Expects(!image.isNull());
@@ -64,7 +83,7 @@ QImage ImageModified(QImage image, const PhotoModifications &mods) {
 	auto cropped = mods.crop.isValid()
 		? image.copy(mods.crop)
 		: image;
-	ApplyShapeMask(cropped, mods.cropType);
+	ApplyShapeMask(cropped, mods.cropType, mods.cornersLevel);
 	QTransform transform;
 	if (mods.flipped) {
 		transform.scale(-1, 1);

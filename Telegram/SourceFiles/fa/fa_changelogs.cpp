@@ -68,7 +68,7 @@ const std::vector<BuiltInChangelog> &GetBuiltInChangelogs() {
 		},
 		{
 			2002004,
-			"- Updated tdesktop to v6.7.7.beta\n"
+			"- Updated tdesktop to v6.7.8\n"
 			"- Improve fast share display logic for channels and chats\n"
 			"- Added toggle to automatically add a comma after mentioning usernames\n"
 			"- Updated OTA logics\n"

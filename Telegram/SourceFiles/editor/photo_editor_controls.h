@@ -48,6 +48,8 @@ public:
 	[[nodiscard]] rpl::producer<QPoint> colorLinePositionValue() const;
 	[[nodiscard]] rpl::producer<bool> colorLineShownValue() const;
 	[[nodiscard]] rpl::producer<float64> aspectRatioChanges() const;
+	[[nodiscard]] auto cornersLevelChanges() const
+		-> rpl::producer<RoundedCornersLevel>;
 
 	[[nodiscard]] bool animating() const;
 
@@ -77,6 +79,7 @@ private:
 	const base::unique_qptr<Ui::IconButton> _rotateButton;
 	const base::unique_qptr<Ui::IconButton> _paintModeButton;
 	const base::unique_qptr<Ui::IconButton> _cropRatioButton;
+	const base::unique_qptr<Ui::IconButton> _cornersButton;
 	const base::unique_qptr<EdgeButton> _transformDone;
 
 	const base::unique_qptr<EdgeButton> _paintCancel;
@@ -88,7 +91,9 @@ private:
 	const base::unique_qptr<EdgeButton> _paintDone;
 
 	base::unique_qptr<Ui::PopupMenu> _ratioMenu;
+	base::unique_qptr<Ui::PopupMenu> _cornersMenu;
 	float64 _currentRatio = 0.;
+	RoundedCornersLevel _currentCornersLevel = RoundedCornersLevel::Large;
 
 	bool _flipped = false;
 
@@ -97,6 +102,7 @@ private:
 	rpl::variable<PhotoEditorMode> _mode;
 	rpl::event_stream<not_null<QKeyEvent*>> _keyPresses;
 	rpl::event_stream<float64> _aspectRatioChanges;
+	rpl::event_stream<RoundedCornersLevel> _cornersLevelChanges;
 
 };
 

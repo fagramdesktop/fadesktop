@@ -1397,6 +1397,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_blocked_list_confirm_title" = "Block {name}";
 "lng_blocked_list_confirm_text" = "Do you want to block {name} from messaging and calling you on Telegram?";
 "lng_blocked_list_confirm_clear" = "Delete this chat";
+"lng_blocked_list_confirm_reply" = "Delete this reply";
+"lng_blocked_list_confirm_reply_all" = "Delete all replies from {user}";
 "lng_blocked_list_confirm_ok" = "Block";
 "lng_blocked_list_empty_title" = "No blocked users";
 "lng_blocked_list_empty_description" = "You haven't blocked anyone yet.";
@@ -4505,6 +4507,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_stickers_context_edit_name" = "Edit name";
 "lng_stickers_context_delete" = "Delete sticker";
 "lng_stickers_context_delete_sure" = "Are you sure you want to delete the sticker from your sticker set?";
+"lng_emoji_context_delete" = "Delete emoji";
+"lng_emoji_context_delete_sure" = "Are you sure you want to delete this emoji from your set?";
 "lng_stickers_context_delete_pack" = "Delete Pack";
 "lng_stickers_context_delete_pack_everyone" = "Delete for Everyone";
 "lng_stickers_context_delete_pack_self" = "Delete for Myself";
@@ -7223,6 +7227,12 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_photo_editor_crop_original" = "Original";
 "lng_photo_editor_crop_square" = "Square";
 "lng_photo_editor_crop_free" = "Free";
+
+"lng_photo_editor_corners_about" = "Choose how rounded the sticker corners should look.";
+"lng_photo_editor_corners_large" = "Large";
+"lng_photo_editor_corners_medium" = "Medium";
+"lng_photo_editor_corners_small" = "Small";
+"lng_photo_editor_corners_none" = "None";
 
 "lng_voice_speed_slow" = "Slow";
 "lng_voice_speed_normal" = "Normal";

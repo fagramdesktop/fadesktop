@@ -547,6 +547,11 @@ dialogsMiniPreviewSkip: 2px;
 dialogsMiniPreviewRight: 3px;
 dialogsMiniPlay: icon{{ "dialogs/dialogs_mini_play", videoPlayIconFg }};
 
+dialogsUnreadMediaDotEmoji: IconEmoji {
+	icon: icon{{ "dialogs/dialogs_unread_media_dot", dialogsTextFgService }};
+	padding: margins(1px, 7px, 2px, 0px);
+}
+
 dialogsMiniForward: DialogsMiniIcon {
 	icon: ThreeStateIcon {
 		icon: icon {{ "mini_forward", dialogsTextFg, point(0px, 1px) }};

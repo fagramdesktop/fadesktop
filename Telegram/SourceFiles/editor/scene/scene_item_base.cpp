@@ -12,6 +12,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/popup_menu.h"
 #include "ui/painter.h"
 #include "styles/style_editor.h"
+#include "styles/style_media_view.h"
 #include "styles/style_menu_icons.h"
 
 #include <QGraphicsScene>
@@ -211,22 +212,22 @@ void ItemBase::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
 
 	_menu = base::make_unique_q<Ui::PopupMenu>(
 		nullptr,
-		st::popupMenuWithIcons);
+		st::mediaviewPopupMenu);
 	add(
 		tr::lng_photo_editor_menu_delete,
 		kDeleteSequence,
 		[=] { actionDelete(); },
-		&st::menuIconDelete);
+		&st::mediaMenuIconDelete);
 	add(
 		tr::lng_photo_editor_menu_flip,
 		kFlipSequence,
 		[=] { actionFlip(); },
-		&st::menuIconFlip);
+		&st::mediaMenuIconFlip);
 	add(
 		tr::lng_photo_editor_menu_duplicate,
 		kDuplicateSequence,
 		[=] { actionDuplicate(); },
-		&st::menuIconCopy);
+		&st::mediaMenuIconCopy);
 
 	_menu->popup(event->screenPos());
 }

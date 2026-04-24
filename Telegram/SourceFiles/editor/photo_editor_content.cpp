@@ -96,6 +96,7 @@ PhotoEditorContent::PhotoEditorContent(
 			geometry + _crop->cropMargins(),
 			mods.angle,
 			mods.flipped, imageSizeF);
+		_crop->setCornersLevel(mods.cornersLevel);
 		_paint->applyTransform(geometry, mods.angle, mods.flipped);
 
 		_innerRect = geometry;

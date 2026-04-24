@@ -941,6 +941,27 @@ storiesWhoViewed: WhoRead(defaultWhoRead) {
 		align: align(left);
 	}
 }
+mediaviewEmojiPan: EmojiPan(storiesEmojiPan) {
+	showAnimation: PanelAnimation(emojiPanAnimation) {
+		fadeBg: groupCallMenuBg;
+	}
+	bg: groupCallMenuBg;
+	overBg: groupCallMenuBgOver;
+	pathBg: groupCallMenuBgRipple;
+	pathFg: groupCallMenuBgOver;
+	categoriesBg: groupCallMenuBg;
+	categoriesBgOver: groupCallMenuBgOver;
+	fadeLeft: icon {{ "fade_horizontal-flip_horizontal", groupCallMenuBg }};
+	fadeRight: icon {{ "fade_horizontal", groupCallMenuBg }};
+	tabs: SettingsSlider(emojiTabs) {
+		barFgActive: storiesComposeBlue;
+		labelFg: storiesComposeGrayText;
+		labelFgActive: storiesComposeBlue;
+		rippleBg: groupCallMenuBgOver;
+		rippleBgActive: groupCallMenuBgOver;
+	}
+}
+
 storiesReactionsPan: EmojiPan(storiesEmojiPan) {
 	margin: margins(reactStripSkip, 0px, reactStripSkip, 0px);
 	padding: margins(reactStripSkip, 0px, reactStripSkip, reactStripSkip);

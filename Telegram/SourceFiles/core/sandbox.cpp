@@ -30,6 +30,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/ui_utility.h"
 #include "ui/effects/animations.h"
 
+#ifdef Q_OS_MAC
+#include "platform/mac/global_menu_mac.h"
+#endif // Q_OS_MAC
+
 #include <QtCore/QLockFile>
 #include <QtGui/QSessionManager>
 #include <QtGui/QScreen>
@@ -54,6 +58,9 @@ bool Sandbox::QuitOnStartRequested = false;
 Sandbox::Sandbox(int &argc, char **argv)
 : QApplication(argc, argv)
 , _mainThreadId(QThread::currentThreadId()) {
+#ifdef Q_OS_MAC
+	Platform::CreateGlobalMenu();
+#endif // Q_OS_MAC
 }
 
 int Sandbox::start() {
@@ -222,7 +229,11 @@ void Sandbox::setupScreenScale() {
 	LOG(("ScreenScale: %1").arg(cScreenScale()));
 }
 
-Sandbox::~Sandbox() = default;
+Sandbox::~Sandbox() {
+#ifdef Q_OS_MAC
+	Platform::DestroyGlobalMenu();
+#endif // Q_OS_MAC
+}
 
 bool Sandbox::event(QEvent *e) {
 	if (e->type() == QEvent::Quit) {

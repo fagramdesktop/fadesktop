@@ -33,6 +33,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/wrap/padding_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "styles/style_channel_earn.h"
+#include "styles/style_color_indices.h"
 #include "styles/style_credits.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_intro.h" // introFragmentIcon.
@@ -233,7 +234,7 @@ PaintRoundImageCallback GenerateCreditsPaintUserpicCallback(
 		case Data::CreditsHistoryEntry::PeerType::API:
 			return { st::historyPeer2UserpicBg, st::historyPeer2UserpicBg2 };
 		case Data::CreditsHistoryEntry::PeerType::Peer:
-			return EmptyUserpic::UserpicColor(0);
+			return EmptyUserpic::UserpicColor(st::colorIndexRed);
 		case Data::CreditsHistoryEntry::PeerType::AppStore:
 			return { st::historyPeer7UserpicBg, st::historyPeer7UserpicBg2 };
 		case Data::CreditsHistoryEntry::PeerType::PlayMarket:

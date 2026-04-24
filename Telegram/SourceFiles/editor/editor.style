@@ -10,6 +10,7 @@ using "ui/basic.style";
 using "window/window.style";
 using "ui/widgets/widgets.style";
 using "ui/chat/chat.style";
+using "media/view/media_view.style";
 
 // photoEditorControlsBottomSkip * 2 + photoEditorControlsCenterSkip + photoEditorButtonBarHeight * 2
 photoEditorControlsHeight: 146px;
@@ -95,9 +96,27 @@ photoEditorCropRatioButton: IconButton(photoEditorRotateButton) {
 }
 photoEditorCropRatioIconActive: icon {{ "photo_editor/ratio-23x23", photoEditorButtonIconFgActive, point(0px, 1px) }};
 
-photoEditorCropRatioMenu: PopupMenu(popupMenuWithIcons) {
-	menu: Menu(menuWithIcons) {
+photoEditorCornersButton: IconButton(photoEditorRotateButton) {
+	icon: icon {{ "photo_editor/corners-23x23", photoEditorButtonIconFg, point(0px, 1px) }};
+	iconOver: icon {{ "photo_editor/corners-23x23", photoEditorButtonIconFgOver, point(0px, 1px) }};
+}
+photoEditorCornersIconActive: icon {{ "photo_editor/corners-23x23", photoEditorButtonIconFgActive, point(0px, 1px) }};
+
+photoEditorCornersMenuAboutLabel: FlatLabel(defaultFlatLabel) {
+	style: TextStyle(defaultTextStyle) {
+		font: font(11px);
+	}
+	minWidth: 136px;
+	textFg: groupCallMemberNotJoinedStatus;
+}
+photoEditorCornersMenuAboutPosition: point(12px, 4px);
+
+photoEditorMenuSubmenuArrow: icon {{ "menu/submenu_arrow", groupCallMemberNotJoinedStatus }};
+
+photoEditorCropRatioMenu: PopupMenu(mediaviewPopupMenu) {
+	menu: Menu(mediaviewMenu) {
 		widthMin: 108px;
+		arrow: photoEditorMenuSubmenuArrow;
 	}
 }
 

@@ -11,7 +11,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "platform/mac/specific_mac_p.h"
 #include "base/timer.h"
 
-#include <QtWidgets/QMenuBar>
 #include <QtCore/QTimer>
 
 namespace Platform {
@@ -41,10 +40,7 @@ protected:
 	void initHook() override;
 	void unreadCounterChangedHook() override;
 
-	void updateGlobalMenuHook() override;
-
 	void closeWithoutDestroy() override;
-	void createGlobalMenu() override;
 
 private:
 	friend class Private;
@@ -62,29 +58,6 @@ private:
 	mutable QTimer psIdleTimer;
 
 	base::Timer _hideAfterFullScreenTimer;
-
-	QMenuBar psMainMenu;
-	QAction *psLogout = nullptr;
-	QAction *psUndo = nullptr;
-	QAction *psRedo = nullptr;
-	QAction *psCut = nullptr;
-	QAction *psCopy = nullptr;
-	QAction *psPaste = nullptr;
-	QAction *psDelete = nullptr;
-	QAction *psSelectAll = nullptr;
-	QAction *psContacts = nullptr;
-	QAction *psAddContact = nullptr;
-	QAction *psNewGroup = nullptr;
-	QAction *psNewChannel = nullptr;
-	QAction *psShowTelegram = nullptr;
-
-	QAction *psBold = nullptr;
-	QAction *psItalic = nullptr;
-	QAction *psUnderline = nullptr;
-	QAction *psStrikeOut = nullptr;
-	QAction *psBlockquote = nullptr;
-	QAction *psMonospace = nullptr;
-	QAction *psClearFormat = nullptr;
 
 	rpl::event_stream<QPoint> _forceClicks;
 	int _customTitleHeight = 0;
