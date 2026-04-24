@@ -116,9 +116,11 @@ elif (winarm):
         'X8664': 'ARM64',
     })
 elif (mac):
+    cpuCount = os.cpu_count() or 1
     environment.update({
         'SPECIAL_TARGET': 'mac',
-        'MAKE_THREADS_CNT': '-j' + str(os.cpu_count()),
+        'MAKE_THREADS_CNT': os.environ.get('MAKE_THREADS_CNT', '-j' + str(cpuCount)),
+        'CMAKE_BUILD_PARALLEL_LEVEL': os.environ.get('CMAKE_BUILD_PARALLEL_LEVEL', str(cpuCount)),
         'MACOSX_DEPLOYMENT_TARGET': '10.13',
         'UNGUARDED': '-Werror=unguarded-availability-new',
         'MIN_VER': '-mmacosx-version-min=10.13',

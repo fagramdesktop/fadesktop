@@ -36,6 +36,7 @@ jobs:
   prepare-libraries:
     name: Prepare Libraries
     runs-on: macos-latest
+    timeout-minutes: 240
 
     steps:
       - name: Resolve paths
@@ -67,7 +68,18 @@ jobs:
 
       - name: Build libraries
         if: steps.cache-libs.outputs.cache-hit != 'true'
-        run: bash Telegram/build/prepare/mac.sh
+        env:
+          MAKE_THREADS_CNT: -j3
+          CMAKE_BUILD_PARALLEL_LEVEL: 3
+        run: |
+          set -euo pipefail
+          while true; do
+            echo "prepare-libraries is still running at $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            sleep 240
+          done &
+          HEARTBEAT_PID=$!
+          trap 'kill "$HEARTBEAT_PID" >/dev/null 2>&1 || true' EXIT
+          bash Telegram/build/prepare/mac.sh
 
   build:
     name: Build macOS
