@@ -882,13 +882,22 @@ void HttpLoaderActor::sendRequest() {
 
 void HttpLoaderActor::gotMetaData() {
 	const auto pairs = _reply->rawHeaderPairs();
+	auto contentLength = int64(0);
+	auto gotTotalFromRange = false;
 	for (const auto &pair : pairs) {
-		if (QString::fromUtf8(pair.first).toLower() == "content-range") {
+		const auto name = QString::fromUtf8(pair.first).toLower();
+		if (name == "content-range") {
 			const auto m = QRegularExpression(u"/(\\d+)([^\\d]|$)"_q).match(QString::fromUtf8(pair.second));
 			if (m.hasMatch()) {
-				_parent->writeChunk({}, m.captured(1).toInt());
+				_parent->writeChunk({}, m.captured(1).toLongLong());
+				gotTotalFromRange = true;
 			}
+		} else if (name == "content-length") {
+			contentLength = QString::fromUtf8(pair.second).toLongLong();
 		}
+	}
+	if (!gotTotalFromRange && contentLength > 0) {
+		_parent->writeChunk({}, _parent->alreadySize() + contentLength);
 	}
 }
 
