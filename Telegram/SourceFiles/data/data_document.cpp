@@ -13,6 +13,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_document_media.h"
 #include "data/data_reply_preview.h"
 #include "data/data_web_page.h"
+#include "fa/settings/fa_settings.h"
 #include "lang/lang_keys.h"
 #include "inline_bots/inline_bot_layout_item.h"
 #include "main/main_session.h"
@@ -827,6 +828,9 @@ bool DocumentData::thumbnailFailed() const {
 }
 
 void DocumentData::loadThumbnail(Data::FileOrigin origin) {
+	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+		return;
+	}
 	const auto autoLoading = false;
 	const auto finalCheck = [=] {
 		if (const auto active = activeMediaView()) {
@@ -872,6 +876,9 @@ bool DocumentData::videoThumbnailFailed() const {
 }
 
 void DocumentData::loadVideoThumbnail(Data::FileOrigin origin) {
+	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+		return;
+	}
 	const auto autoLoading = false;
 	const auto finalCheck = [=] {
 		if (const auto active = activeMediaView()) {

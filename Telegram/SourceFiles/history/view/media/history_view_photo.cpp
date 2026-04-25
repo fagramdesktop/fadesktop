@@ -42,6 +42,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_web_page.h"
 #include "core/application.h"
 #include "core/ui_integration.h"
+#include "fa/settings/fa_settings.h"
 #include "fa/utils/telegram_helpers.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
@@ -129,7 +130,8 @@ void Photo::create(FullMsgId contextId, PeerData *chat) {
 		dataMediaCreated();
 	} else if (_data->inlineThumbnailBytes().isEmpty()
 		&& (_data->hasExact(PhotoSize::Small)
-			|| _data->hasExact(PhotoSize::Thumbnail))) {
+			|| _data->hasExact(PhotoSize::Thumbnail))
+		&& !FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
 		_data->load(PhotoSize::Small, contextId);
 	}
 	if (_spoiler) {
@@ -152,7 +154,8 @@ void Photo::dataMediaCreated() const {
 	if (_data->inlineThumbnailBytes().isEmpty()
 		&& !_dataMedia->image(PhotoSize::Large)
 		&& !_dataMedia->image(PhotoSize::Thumbnail)
-		&& !_data->extendedMediaPreview()) {
+		&& !_data->extendedMediaPreview()
+		&& !FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
 		_dataMedia->wanted(PhotoSize::Small, _realParent->fullId());
 	}
 	history()->owner().registerHeavyViewPart(_parent);

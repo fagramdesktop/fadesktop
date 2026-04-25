@@ -9,6 +9,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "data/data_file_origin.h"
 #include "data/data_session.h"
+#include "fa/settings/fa_settings.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "main/main_session.h"
@@ -80,6 +81,9 @@ auto PhotoMedia::resolveLoadedImage(PhotoSize size) const
 }
 
 void PhotoMedia::wanted(PhotoSize size, Data::FileOrigin origin) {
+	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+		return;
+	}
 	const auto index = _owner->validSizeIndex(size);
 	if (!_images[index].data || _images[index].goodFor < size) {
 		_owner->load(size, origin);
@@ -128,6 +132,9 @@ QSize PhotoMedia::videoSize(PhotoSize size) const {
 }
 
 void PhotoMedia::videoWanted(PhotoSize size, Data::FileOrigin origin) {
+	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+		return;
+	}
 	if (videoContent(size).isEmpty()) {
 		_owner->loadVideo(size, origin);
 	}
@@ -152,6 +159,9 @@ float64 PhotoMedia::progress() const {
 
 bool PhotoMedia::autoLoadThumbnailAllowed(not_null<PeerData*> peer) const {
 	if (loaded() || _owner->cancelled()) {
+		return false;
+	}
+	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
 		return false;
 	}
 	return _owner->hasExact(PhotoSize::Small)

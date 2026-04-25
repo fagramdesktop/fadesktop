@@ -108,8 +108,8 @@ Image *ReplyPreview::image(
 			}
 			using Size = PhotoSize;
 			const auto loadThumbnail = inlineThumbnailBytes.isEmpty()
-				|| (!spoiler
-					&& _photoMedia->autoLoadThumbnailAllowed(context));
+				&& !spoiler
+				&& _photoMedia->autoLoadThumbnailAllowed(context);
 			if (loadThumbnail) {
 				_photoMedia->wanted(Size::Small, origin);
 			}

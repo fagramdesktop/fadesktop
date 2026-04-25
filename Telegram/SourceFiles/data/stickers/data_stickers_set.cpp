@@ -7,6 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "data/stickers/data_stickers_set.h"
 
+#include "fa/settings/fa_settings.h"
 #include "main/main_session.h"
 #include "data/data_session.h"
 #include "data/data_file_origin.h"
@@ -156,6 +157,9 @@ bool StickersSet::thumbnailFailed() const {
 }
 
 void StickersSet::loadThumbnail() {
+	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+		return;
+	}
 	const auto autoLoading = false;
 	const auto finalCheck = [=] {
 		if (const auto active = activeThumbnailView()) {
