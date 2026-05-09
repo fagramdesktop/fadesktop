@@ -735,12 +735,7 @@ void start() {
 				+ cExeName();
 		}
 
-		if (!Core::UpdaterDisabled()) {
-			return u"org.fagram._%1"_q.arg(
-				Core::Launcher::Instance().instanceHash().constData());
-		}
-
-		return u"org.fagram.desktop"_q;
+		return u"org.fagram"_q;
 	}());
 
 	LOG(("App ID: %1").arg(QGuiApplication::desktopFileName()));
@@ -840,8 +835,7 @@ QImage DefaultApplicationIcon() {
 QString ApplicationIconName() {
 	static const auto Result = KSandbox::isSnap()
 		? u"snap.%1."_q.arg(qEnvironmentVariable("SNAP_INSTANCE_NAME"))
-		: QGuiApplication::desktopFileName().remove(
-		u"._"_q + Core::Launcher::Instance().instanceHash());
+		: QGuiApplication::desktopFileName();
 	return Result;
 }
 
