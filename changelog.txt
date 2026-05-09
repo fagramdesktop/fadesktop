@@ -106,7 +106,6 @@
 - Added option to forward media/docs without caption
 - Improved changelog peer chat implementation
 
-
 2.1.2 (05.01.26)
 
 - Updated tdesktop to v6.4.0

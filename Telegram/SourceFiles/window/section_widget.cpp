@@ -26,17 +26,24 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_peer_values.h"
 #include "history/history.h"
 #include "history/history_item.h"
-#include "settings/sections/settings_premium.h"
+#include "lang/lang_keys.h"
 #include "main/main_session.h"
+#include "menu/menu_send.h"
+#include "settings/sections/settings_premium.h"
+#include "ui/toast/toast.h"
 #include "window/section_memento.h"
 #include "window/window_slide_animation.h"
 #include "window/window_session_controller.h"
 #include "window/themes/window_theme.h"
 
+#include "styles/style_polls.h"
+
 #include <rpl/range.h>
 
 namespace Window {
 namespace {
+
+constexpr auto kReactionRestrictionToastDuration = 5 * crl::time(1000);
 
 [[nodiscard]] rpl::producer<QString> PeerThemeTokenValue(
 		not_null<PeerData*> peer) {
@@ -241,6 +248,14 @@ AbstractSectionWidget::AbstractSectionWidget(
 
 Main::Session &AbstractSectionWidget::session() const {
 	return _controller->session();
+}
+
+SendMenu::Details AbstractSectionWidget::sendMenuDetails() const {
+	return {};
+}
+
+bool AbstractSectionWidget::processChosenSticker(ChatHelpers::FileChosen &&) {
+	return false;
 }
 
 SectionWidget::SectionWidget(
@@ -598,6 +613,15 @@ bool ShowSendPremiumError(
 	return true;
 }
 
+void ShowReactRestrictionToast(not_null<SessionController*> controller) {
+	controller->showToast({
+		.text = { tr::lng_restricted_send_reactions_click(tr::now) },
+		.iconLottie = u"ban"_q,
+		.iconLottieSize = st::pollToastIconSize,
+		.duration = kReactionRestrictionToastDuration,
+	});
+}
+
 bool ShowReactPremiumError(
 		not_null<SessionController*> controller,
 		not_null<HistoryItem*> item,
@@ -607,6 +631,9 @@ bool ShowReactPremiumError(
 			return false;
 		}
 		ShowPremiumPreviewBox(controller, PremiumFeature::TagsForMessages);
+		return true;
+	} else if (!item->canReact()) {
+		ShowReactRestrictionToast(controller);
 		return true;
 	} else if (controller->session().premium()
 		|| ranges::contains(item->chosenReactions(), id)

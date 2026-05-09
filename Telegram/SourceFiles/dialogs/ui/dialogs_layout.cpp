@@ -81,7 +81,8 @@ const auto kPsaBadgePrefix = "cloud_lng_badge_psa_";
 	} else if (const auto user = history->peer->asUser()) {
 		return !user->lastseen().isHidden();
 	}
-	return !history->isForum() && !history->amMonoforumAdmin();
+	return !history->peer->displayAsForum()
+		&& !history->amMonoforumAdmin();
 }
 
 void PaintRowTopRight(
@@ -550,7 +551,8 @@ void PaintRow(
 		if (!rowBadge.ready(verifyInfo)) {
 			rowBadge.set(
 				verifyInfo,
-				from->owner().customEmojiManager().factory(),
+				from->owner().customEmojiManager().factory(
+					Data::CustomEmojiSizeTag::Isolated),
 				customEmojiRepaint);
 		}
 		const auto &st = Ui::VerifiedStyle(context);
@@ -1035,7 +1037,7 @@ const style::icon *ChatTypeIcon(
 			st::dialogsChannelIcon,
 			context.active,
 			context.selected);
-	} else if (peer->isForum()) {
+	} else if (peer->displayAsForum()) {
 		return &ThreeStateIcon(
 			st::dialogsForumIcon,
 			context.active,
@@ -1074,7 +1076,8 @@ void RowPainter::Paint(
 		if (!thread) {
 			return nullptr;
 		}
-		if ((!peer || (!peer->isForum() && !peer->amMonoforumAdmin()))
+		if ((!peer
+				|| (!peer->displayAsForum() && !peer->amMonoforumAdmin()))
 			&& (!item || !badgesState.unread)) {
 			// Draw item, if there are unread messages.
 			const auto draft = thread->owningHistory()->cloudDraft(
@@ -1325,11 +1328,20 @@ QRect RowPainter::SendActionAnimationRect(
 	const auto nameleft = st.nameLeft;
 	const auto namewidth = fullWidth - nameleft - st.padding.right();
 	const auto texttop = st.textTop;
+
+	const auto add = st::lineWidth - Ui::Emoji::GetCustomSkipNormal();
+	const auto height = std::max({
+		add + rect.height() + add,
+		add + st::normalFont->height + add,
+		add + st::dialogsMiniPreviewTop + st::dialogsMiniPreview + add,
+		st::lineWidth + Ui::Emoji::GetCustomSizeNormal() + st::lineWidth,
+	});
+
 	return QRect(
-		nameleft + (textUpdated ? 0 : rect.x()),
-		texttop + rect.y(),
-		textUpdated ? namewidth : rect.width(),
-		rect.height());
+		nameleft + (textUpdated ? (-add) : rect.x()),
+		texttop + rect.y() - add,
+		textUpdated ? (add + namewidth + add) : rect.width(),
+		height);
 }
 
 void PaintCollapsedRow(

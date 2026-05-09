@@ -7,7 +7,7 @@ jobs:
 
   windows:
     name: Windows
-    runs-on: ${{ matrix.arch == 'arm64' && 'windows-11-arm' || 'windows-latest' }}
+    runs-on: ${{ matrix.arch == 'arm64' && 'windows-11-arm' || ((github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/')) && 'depot-windows-latest-16' || 'windows-latest') }}
 
     strategy:
       matrix:
@@ -64,7 +64,7 @@ jobs:
           git config --global user.email "you@example.com"
           git config --global user.name "Sample"
 
-      - uses: ilammy/msvc-dev-cmd@v1.13.0
+      - uses: Eden-CI/msvc-dev-cmd@master
         name: Native Tools Command Prompt.
         with:
           arch: ${{ matrix.arch }}

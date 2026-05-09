@@ -19,6 +19,10 @@ namespace Bot {
 struct SendCommandRequest;
 } // namespace Bot
 
+namespace ChatHelpers {
+struct FileChosen;
+} // namespace ChatHelpers
+
 namespace SendMenu {
 struct Details;
 } // namespace SendMenu
@@ -127,6 +131,7 @@ public:
 	void showAnimated(QPixmap oldContentCache, bool back = false);
 
 	void activate();
+	void handleStartFiles(QStringList interprets, QStringList paths);
 
 	void windowShown();
 
@@ -148,6 +153,7 @@ public:
 	void checkMainSectionToLayer();
 
 	[[nodiscard]] SendMenu::Details sendMenuDetails() const;
+	bool processChosenSticker(ChatHelpers::FileChosen &&chosen);
 
 	[[nodiscard]] bool animatingShow() const;
 

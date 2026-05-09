@@ -22,6 +22,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "window/window_chat_switch_process.h"
 #include "window/window_controller.h"
 #include "window/window_filters_menu.h"
+#include "window/section_widget.h"
 #include "window/window_separate_id.h"
 #include "info/channel_statistics/earn/info_channel_earn_list.h"
 #include "info/peer_gifts/info_peer_gifts_widget.h"
@@ -299,6 +300,9 @@ SendMenu::Details MainWindowShow::sendMenuDetails() const {
 	if (!window) {
 		return SendMenu::Details();
 	}
+	if (const auto section = window->activeLayerSection()) {
+		return section->sendMenuDetails();
+	}
 	return window->content()->sendMenuDetails();
 }
 
@@ -320,7 +324,11 @@ void MainWindowShow::processChosenSticker(
 		ChatHelpers::FileChosen &&chosen) const {
 	if (const auto window = _window.get()) {
 		Ui::PostponeCall(window, [=, chosen = std::move(chosen)]() mutable {
-			window->stickerOrEmojiChosen(std::move(chosen));
+			if (const auto section = window->activeLayerSection()) {
+				section->processChosenSticker(std::move(chosen));
+			} else {
+				window->content()->processChosenSticker(std::move(chosen));
+			}
 		});
 	}
 }
@@ -800,6 +808,7 @@ void SessionNavigation::showPeerByLinkResolved(
 				.context = {
 					.controller = parentController(),
 					.fullscreen = info.botAppFullScreen,
+					.maySkipConfirmation = !info.botAppForceConfirmation,
 				},
 				.button = { .startCommand = startCommand },
 				.source = InlineBots::WebViewSourceLinkBotProfile{
@@ -3124,6 +3133,20 @@ void SessionController::removeLayerBlackout() {
 
 bool SessionController::isLayerShown() const {
 	return _window->isLayerShown();
+}
+
+void SessionController::registerActiveLayerSection(SectionWidget *section) {
+	_activeLayerSection = section;
+}
+
+void SessionController::unregisterActiveLayerSection(SectionWidget *section) {
+	if (_activeLayerSection == section) {
+		_activeLayerSection = nullptr;
+	}
+}
+
+SectionWidget *SessionController::activeLayerSection() const {
+	return _activeLayerSection.data();
 }
 
 not_null<MainWidget*> SessionController::content() const {

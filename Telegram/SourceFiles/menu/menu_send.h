@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #pragma once
 
 #include "api/api_common.h"
+#include "menu/menu_send_details.h"
 
 namespace style {
 struct ComposeIcons;

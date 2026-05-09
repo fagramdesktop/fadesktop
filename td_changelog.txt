@@ -1,3 +1,20 @@
+6.8.1 (08.05.26)
+
+- Fix crash in anonymous group admins messages.
+- Fix reactions sending in channels.
+
+6.8.0 (07.05.26)
+
+- Get answers from AI bots in any chat by tagging their @username.
+- Connect a bot to your profile with the new Chat Automation.
+- Custom AI styles in text editor with cloud-based tones and sharing.
+- Advanced emoji and stickers search by keywords.
+- Poll statistics chart and subscriber/country-based vote restrictions.
+- Delete specific reactions and restrict reactions in groups.
+- Image editor improvements: brush size, text style cycling, sticker quality.
+- Fix tg:// link handling on cold start and login widget window activation.
+- Copy and paste formatting to and from HTML.
+
 6.7.8 (24.04.26)
 
 - Proxy auto-rotation option.
