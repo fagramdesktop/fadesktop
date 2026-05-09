@@ -48,6 +48,7 @@ struct Details {
 	std::optional<uint64> price;
 	std::optional<uint64> commentPriceMin;
 	bool effectAllowed = false;
+	bool translationAllowed = false;
 };
 
 } // namespace SendMenu
