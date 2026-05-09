@@ -369,6 +369,11 @@ bool GenerateDesktopFile(
 			md5Hash,
 			AppName.utf16().replace(' ', '_')));
 
+		// Clean up legacy hashed/suffixed desktop files written by
+		// previous versions. These were the source of GNOME-visible
+		// "synthetic" launchers like org.fagram.<hash>.desktop and
+		// org.fagram._<hash>.desktop. The current code never produces
+		// such names — see Platform::start().
 		const auto d = QFile::encodeName(QDir(cWorkingDir()).absolutePath());
 		hashMd5Hex(d.constData(), d.size(), md5Hash);
 
@@ -724,23 +729,48 @@ int psFixPrevious() {
 namespace Platform {
 
 void start() {
+	// Must be called BEFORE the QApplication (Sandbox) instance is created
+	// so that the very first window opened on Wayland gets the right app_id
+	// and on X11 the WM_CLASS is set from a consistent identity.
+	//
+	// The value MUST be the desktop entry id, i.e. the basename of the
+	// installed .desktop file WITHOUT the trailing ".desktop" extension
+	// (per freedesktop Desktop Entry Spec and QGuiApplication docs).
+	// GNOME Shell maps a window to a launcher by matching:
+	//   * Wayland: xdg_toplevel.app_id == <desktop-file-id>
+	//   * X11:     WM_CLASS == StartupWMClass (or <desktop-file-id>)
+	// If neither matches, GNOME synthesises a launcher in
+	// ~/.local/share/applications/<app_id>-<hash>.desktop.
 	QGuiApplication::setDesktopFileName([&] {
 		if (KSandbox::isFlatpak()) {
+			// Flatpak desktop files are named "<FLATPAK_ID>.desktop".
 			return qEnvironmentVariable("FLATPAK_ID");
 		}
 
 		if (KSandbox::isSnap()) {
+			// Snap auto-generates "<instance>_<command>.desktop".
 			return qEnvironmentVariable("SNAP_INSTANCE_NAME")
 				+ '_'
 				+ cExeName();
 		}
 
-		if (!Core::UpdaterDisabled()) {
-			return u"org.fagram._%1"_q.arg(
-				Core::Launcher::Instance().instanceHash().constData());
-		}
-
-		return u"org.fagram.desktop"_q;
+		// Canonical, packaged identity. Matches the basename of
+		// /usr/share/applications/org.fagram.desktop (without the
+		// trailing ".desktop"), the D-Bus well-known name "org.fagram"
+		// declared in org.fagram.service (required because the desktop
+		// entry has DBusActivatable=true) and the AppStream <id>.
+		//
+		// X11 WM_CLASS still derives from QApplication::applicationName
+		// ("FAgramDesktop"), which is matched by StartupWMClass=
+		// FAgramDesktop in org.fagram.desktop.
+		//
+		// Previously this returned "org.fagram._<md5(instance)>" for
+		// non-packaged builds and "org.fagram.desktop" (with the
+		// extension!) for packaged builds. Both caused GNOME to fail
+		// to associate the running window with the installed launcher
+		// and to write a synthetic ~/.local/share/applications/
+		// org.fagram.<hash>.desktop entry.
+		return u"org.fagram"_q;
 	}());
 
 	LOG(("App ID: %1").arg(QGuiApplication::desktopFileName()));
@@ -838,10 +868,16 @@ QImage DefaultApplicationIcon() {
 }
 
 QString ApplicationIconName() {
+	// On non-sandboxed Linux, QGuiApplication::desktopFileName() is now
+	// always the canonical "org.fagram" (see Platform::start()), which
+	// matches the icon theme name installed by CMake and referenced by
+	// Icon= in org.fagram.desktop. No instance-hash suffix to strip.
+	//
+	// Snap renames icons via override-build (see snap/snapcraft.yaml),
+	// so its icon name keeps its prior "snap.<instance>." prefix form.
 	static const auto Result = KSandbox::isSnap()
 		? u"snap.%1."_q.arg(qEnvironmentVariable("SNAP_INSTANCE_NAME"))
-		: QGuiApplication::desktopFileName().remove(
-		u"._"_q + Core::Launcher::Instance().instanceHash());
+		: QGuiApplication::desktopFileName();
 	return Result;
 }
 

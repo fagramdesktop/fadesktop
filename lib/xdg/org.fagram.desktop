@@ -1,11 +1,11 @@
 [Desktop Entry]
 Name=FAgram
 Comment=Telegram client based on Telegram Desktop
-TryExec=fagram
-Exec=fagram -- %U
+TryExec=@CMAKE_INSTALL_FULL_BINDIR@/fagram
+Exec=@CMAKE_INSTALL_FULL_BINDIR@/fagram -- %U
 Icon=org.fagram
 Terminal=false
-StartupWMClass=FAgram
+StartupWMClass=FAgramDesktop
 Type=Application
 Categories=Chat;Network;InstantMessaging;Qt;
 MimeType=x-scheme-handler/tg;x-scheme-handler/tonsite;
@@ -17,6 +17,6 @@ X-GNOME-UsesNotifications=true
 X-GNOME-SingleWindow=true
 
 [Desktop Action quit]
-Exec=fagram -quit
+Exec=@CMAKE_INSTALL_FULL_BINDIR@/fagram -quit
 Name=Quit FAgram
 Icon=application-exit

@@ -2381,6 +2381,7 @@ endif()
 
 if (LINUX AND DESKTOP_APP_USE_PACKAGED)
     include(GNUInstallDirs)
+    configure_file("../lib/xdg/org.fagram.desktop" "${CMAKE_CURRENT_BINARY_DIR}/org.fagram.desktop" @ONLY)
     configure_file("../lib/xdg/org.fagram.service" "${CMAKE_CURRENT_BINARY_DIR}/org.fagram.service" @ONLY)
     configure_file("../lib/xdg/org.fagram.metainfo.xml" "${CMAKE_CURRENT_BINARY_DIR}/org.fagram.metainfo.xml" @ONLY)
     generate_appstream_changelog(Telegram "${CMAKE_SOURCE_DIR}/changelog.txt" "${CMAKE_CURRENT_BINARY_DIR}/org.fagram.metainfo.xml")
@@ -2402,7 +2403,14 @@ if (LINUX AND DESKTOP_APP_USE_PACKAGED)
     install(FILES "Resources/icons/tray_monochrome.svg" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/symbolic/apps" RENAME "org.fagram-symbolic.svg")
     install(FILES "Resources/icons/tray_monochrome_attention.svg" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/symbolic/apps" RENAME "org.fagram-attention-symbolic.svg")
     install(FILES "Resources/icons/tray_monochrome_mute.svg" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/symbolic/apps" RENAME "org.fagram-mute-symbolic.svg")
-    install(FILES "../lib/xdg/org.fagram.desktop" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
+    # Install exactly ONE desktop file, with the canonical, freedesktop-
+    # compliant id "org.fagram". Any hashed/suffixed variants (such as the
+    # legacy org.fagram._<md5>.desktop and org.fagram.<md5>.desktop names
+    # that older builds wrote to ~/.local/share/applications/) must NOT be
+    # produced — they cause GNOME Shell to fail mapping running windows to
+    # the installed launcher and to synthesise its own
+    # ~/.local/share/applications/org.fagram.<hash>.desktop entry.
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/org.fagram.desktop" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/org.fagram.service" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/dbus-1/services")
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/org.fagram.metainfo.xml" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo")
 endif()
