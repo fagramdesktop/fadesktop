@@ -15,9 +15,11 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/application.h"
 #include "data/data_peer_id.h"
 #include "base/parse_helper.h"
+#include "base/options.h"
 #include "base/timer.h"
 #include "data/data_chat_filters.h"
 #include "platform/platform_file_utilities.h"
+#include "ui/controls/compose_ai_button_factory.h"
 
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -832,6 +834,13 @@ void Load() {
 	if (!Data) return;
 
 	Data->load();
+	const auto disabled = GetBool(u"disable_ai_text_editor"_q);
+	if (disabled) {
+		const auto hideAiOption = &base::options::lookup<bool>(Ui::kOptionHideAiButton);
+		if (!hideAiOption->value()) {
+			hideAiOption->set(true);
+		}
+	}
 }
 
 void Write() {

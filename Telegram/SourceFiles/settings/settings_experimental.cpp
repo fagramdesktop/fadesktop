@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "settings/settings_experimental.h"
 
 #include "data/components/passkeys.h"
+#include "fa/settings/fa_settings.h"
 #include "main/main_session.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/text/text_entity.h"
@@ -144,6 +145,10 @@ void AddOption(
 			return;
 		}
 		option.set(toggled);
+		if (option.id() == Ui::kOptionHideAiButton) {
+			FASettings::JsonSettings::Set(u"disable_ai_text_editor"_q, toggled);
+			FASettings::JsonSettings::Write();
+		}
 		if (restarter) {
 			restarter->callOnce(st::settingsButtonNoIcon.toggle.duration);
 		}

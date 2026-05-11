@@ -29,6 +29,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "window/window_session_controller.h"
 #include "lang/lang_instance.h"
 #include "core/application.h"
+#include "ui/controls/compose_ai_button_factory.h"
+#include "base/options.h"
 #include "storage/localstorage.h"
 #include "data/data_session.h"
 #include "main/main_session.h"
@@ -104,7 +106,26 @@ namespace Settings {
 
         SettingsMenuJsonSwitch(fa_disable_ads, disable_ads, u"fa/general/disable-ads"_q);
         Ui::AddDividerText(container, fatr::fa_disable_ads_desc());
-		SettingsMenuJsonSwitch(fa_disable_ai_text_editor, disable_ai_text_editor, u"fa/general/disable-ai-text-editor"_q);
+		const auto disableAiTextEditor = container->add(object_ptr<Button>(
+			container,
+			fatr::fa_disable_ai_text_editor(),
+			st::settingsButtonNoIcon
+		));
+		const auto hideAiOption = &base::options::lookup<bool>(Ui::kOptionHideAiButton);
+		disableAiTextEditor->toggleOn(
+			rpl::single(hideAiOption->value())
+		)->toggledValue(
+		) | rpl::filter([=](bool enabled) {
+			return (enabled != hideAiOption->value());
+		}) | rpl::on_next([=](bool enabled) {
+			hideAiOption->set(enabled);
+			::FASettings::JsonSettings::Set(u"disable_ai_text_editor"_q, enabled);
+			::FASettings::JsonSettings::Write();
+		}, container->lifetime());
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			disableAiTextEditor,
+			u"fa/general/disable-ai-text-editor"_q,
+			controller);
 		Ui::AddDividerText(container, fatr::fa_disable_ai_text_editor_desc());
 		const auto disableAutoDownload = container->add(object_ptr<Button>(
 			container,
