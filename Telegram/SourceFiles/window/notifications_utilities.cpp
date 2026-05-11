@@ -13,7 +13,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/application.h"
 #include "data/data_peer.h"
 #include "ui/empty_userpic.h"
-#include "fa/changelog/fa_changelog_peer.h"
 #include "styles/style_window.h"
 
 namespace Window::Notifications {
@@ -25,38 +24,6 @@ constexpr int kNotifyDeletePhotoAfterMs = 60000;
 } // namespace
 
 QImage GenerateUserpic(not_null<PeerData*> peer, Ui::PeerUserpicView &view) {
-	// FAgram: Generate PNG avatar for changelog peer
-	if (peer->id == FA::Changelog::GetChangelogPeerId()) {
-		const auto size = st::notifyMacPhotoSize;
-		static QImage changelogAvatar;
-		if (changelogAvatar.isNull()) {
-			changelogAvatar = QImage(u":/gui/art/icon512.png"_q);
-		}
-		if (!changelogAvatar.isNull()) {
-			auto scaled = changelogAvatar.scaled(
-				size,
-				size,
-				Qt::KeepAspectRatio,
-				Qt::SmoothTransformation);
-
-			// Apply circular mask
-			QImage result(size, size, QImage::Format_ARGB32_Premultiplied);
-			result.fill(Qt::transparent);
-
-			QPainter painter(&result);
-			painter.setRenderHint(QPainter::Antialiasing, true);
-			painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-
-			QPainterPath circlePath;
-			circlePath.addEllipse(0, 0, size, size);
-			painter.setClipPath(circlePath);
-			painter.drawImage(0, 0, scaled);
-			painter.end();
-
-			return result;
-		}
-	}
-
 	return peer->isSelf()
 		? Ui::EmptyUserpic::GenerateSavedMessages(st::notifyMacPhotoSize)
 		: peer->isRepliesChat()

@@ -133,15 +133,6 @@ const auto kFAGeneralMeta = BuildHelper({
 }, [](SectionBuilder &builder) {
 	builder.add(nullptr, [] {
 		return SearchEntry{
-			.id = u"fa/general/whats-new-chat"_q,
-			.title = fatr::fa_enable_whats_new_chat(fatr::now),
-			.keywords = { u"whats new"_q, u"chat"_q, u"updates"_q, u"changelog"_q },
-			.icon = { &st::menuIconShowAll },
-		};
-	});
-
-	builder.add(nullptr, [] {
-		return SearchEntry{
 			.id = u"fa/general/disable-ads"_q,
 			.title = fatr::fa_disable_ads(fatr::now),
 			.keywords = { u"ads"_q, u"advertising"_q, u"sponsored"_q, u"disable"_q, u"block"_q, u"remove"_q },

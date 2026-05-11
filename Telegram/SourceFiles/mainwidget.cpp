@@ -77,7 +77,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/application.h"
 #include "core/changelogs.h"
 #include "core/mime_type.h"
-#include "fa/fa_changelogs.h"
 #include "calls/calls_call.h"
 #include "calls/calls_instance.h"
 #include "calls/calls_top_bar.h"
@@ -270,8 +269,7 @@ MainWidget::MainWidget(
 	? base::make_unique_q<Ui::PlainShadow>(this)
 	: nullptr)
 , _playerPlaylist(this, _controller)
-, _changelogs(Core::Changelogs::Create(&controller->session()))
-, _faChangelogs(FA::Changelogs::Create(&controller->session())) {
+, _changelogs(Core::Changelogs::Create(&controller->session())) {
 	if (_dialogs) {
 		setupConnectingWidget();
 	}

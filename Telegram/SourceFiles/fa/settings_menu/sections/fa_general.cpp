@@ -102,8 +102,6 @@ namespace Settings {
     void FAGeneral::SetupGeneral(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
         Ui::AddSubsectionTitle(container, fatr::fa_general());
 
-        RestartSettingsMenuJsonSwitch(fa_enable_whats_new_chat, enable_whats_new_chat, u"fa/general/whats-new-chat"_q);
-        Ui::AddDividerText(container, fatr::fa_enable_whats_new_chat_desc());
         SettingsMenuJsonSwitch(fa_disable_ads, disable_ads, u"fa/general/disable-ads"_q);
         Ui::AddDividerText(container, fatr::fa_disable_ads_desc());
 		SettingsMenuJsonSwitch(fa_disable_ai_text_editor, disable_ai_text_editor, u"fa/general/disable-ai-text-editor"_q);
