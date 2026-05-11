@@ -1,3 +1,14 @@
+2.2.5 (11.05.26)
+
+- Updated tdesktop to v6.8.1
+- Try fixing OTA again
+- Updated auto-download kill switch guards
+- Fix linux desktop id mapping
+- Removed changelog "What's New" Chat
+- Implemented asynchronous translation requests in MTProtoTranslateProvider
+- Updated AI text editor toggle functionality in FAsettings
+- Use fa localization submodule
+
 2.2.4 (25.04.26)
 
 - Updated tdesktop to v6.7.8
