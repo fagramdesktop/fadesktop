@@ -100,3 +100,6 @@
 [submodule "Telegram/lib_translate"]
 	path = Telegram/lib_translate
 	url = https://github.com/desktop-app/lib_translate
+[submodule "Telegram/Resources/langs/fa"]
+	path = Telegram/Resources/langs/fa
+	url = https://github.com/fagramdesktop/localization
