@@ -215,11 +215,11 @@ namespace Settings {
     	AddButtonWithLabel(
 			container,
 			fatr::fa_translation(),
-			rpl::single(QString("GitHub Localization")),
+			rpl::single(QString("Weblate")),
 			st::settingsButton,
 			{ &st::menuIconTranslate }
 		)->setClickedCallback([=] {
-			UrlClickHandler::Open("https://github.com/fagramdesktop/localization");
+			UrlClickHandler::Open("https://hosted.weblate.org/projects/fagramdesktop/");
 		});
 
     	AddButtonWithLabel(

@@ -123,7 +123,7 @@ The latest version is available for
 
 > You can help to translate FAgram.
 
-* <h3><b><a href="https://github.com/fagramdesktop/localization">GitHub Localization</a></b></h3>
+* <h3><b><a href="https://hosted.weblate.org/projects/fagramdesktop/">Weblate Translations</a></b></h3>
 
 ## <h2><img src="https://github.com/hikariatama/assets/raw/master/1312-micro-sd-card-flat.webp" height="50" align="middle"> Third-party</h2>
 

@@ -1,4 +1,4 @@
-2.2.5 (11.05.26)
+2.2.5 (19.05.26)
 
 - Updated tdesktop to v6.8.1
 - Try fixing OTA again
@@ -8,6 +8,7 @@
 - Implemented asynchronous translation requests in MTProtoTranslateProvider
 - Updated AI text editor toggle functionality in FAsettings
 - Use fa localization submodule
+- Weblate translations
 
 2.2.4 (25.04.26)
 
