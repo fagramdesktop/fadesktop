@@ -3659,6 +3659,9 @@ bool Widget::applySearchState(SearchState state) {
 		? peer->owner().history(migrateFrom).get()
 		: nullptr;
 	_searchState = state;
+	if (inChatChanged && _searchState.inChat && _stories) {
+		storiesExplicitCollapse();
+	}
 	if (_chatFilters && (queryEmptyChanged || inChatChanged)) {
 		_chatFilters->setVisible(_searchState.query.isEmpty()
 			&& !_openedForum

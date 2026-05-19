@@ -212,6 +212,7 @@ HistoryItem *HistoryStreamedDrafts::adoptIncoming(
 		sublist->applyMaybeLast(item);
 	}
 	_history->owner().updateExistingMessage(data);
+	_history->newItemAdded(item, NewAddType::StreamedDraftFinish);
 
 	if (_drafts.empty()) {
 		scheduleDestroy();

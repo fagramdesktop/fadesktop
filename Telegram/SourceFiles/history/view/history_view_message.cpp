@@ -3351,14 +3351,9 @@ bool Message::getStateFromName(
 			return true;
 		}
 		if (const auto guestChat = item->Get<HistoryMessageGuestChat>()) {
-			auto guestChatLeft = availableLeft + nameText->maxWidth()
-				+ st::msgServiceFont->spacew;
+			auto guestChatLeft = availableLeft;
 			if (via && !displayForwardedFrom()) {
 				guestChatLeft += via->width + st::msgServiceFont->spacew;
-			}
-			if (_fromNameStatus) {
-				guestChatLeft += st::dialogsPremiumIcon.icon.width()
-					+ st::msgServiceFont->spacew;
 			}
 			if (point.x() >= guestChatLeft
 				&& point.x() < availableLeft + availableWidth

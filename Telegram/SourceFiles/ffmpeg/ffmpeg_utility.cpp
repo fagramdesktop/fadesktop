@@ -47,6 +47,8 @@ constexpr auto kImageFormat = QImage::Format_ARGB32_Premultiplied;
 constexpr auto kMaxScaleByAspectRatio = 16;
 constexpr auto kAvioBlockSize = 4096;
 constexpr auto kMaxFrameStorageBytes = 64 * 1024 * 1024;
+constexpr auto kMaxPixelsPaddingRatio = 32;
+constexpr auto kMaxPixelsFixedPadding = 64 * 1024;
 constexpr auto kTimeUnknown = std::numeric_limits<crl::time>::min();
 constexpr auto kDurationMax = crl::time(std::numeric_limits<int>::max());
 
@@ -417,6 +419,12 @@ const AVCodec *FindDecoder(not_null<AVCodecContext*> context) {
 		: avcodec_find_decoder(context->codec_id);
 }
 
+int64_t MaxPixelsForAreaLimit(int64_t area) {
+	// Decoders may check internally padded frame dimensions against max_pixels,
+	// not just the visible frame size. Leave room for alignment/cropping slack.
+	return area + area / kMaxPixelsPaddingRatio + kMaxPixelsFixedPadding;
+}
+
 CodecPointer MakeCodecPointer(CodecDescriptor descriptor) {
 	auto error = AvErrorWrap();
 
@@ -435,7 +443,8 @@ CodecPointer MakeCodecPointer(CodecDescriptor descriptor) {
 	context->pkt_timebase = stream->time_base;
 	if ((descriptor.videoMaxArea > 0)
 		&& (context->codec_type == AVMEDIA_TYPE_VIDEO)) {
-		context->max_pixels = descriptor.videoMaxArea;
+		context->max_pixels = MaxPixelsForAreaLimit(
+			descriptor.videoMaxArea);
 	}
 	av_opt_set(context, "threads", "auto", 0);
 	av_opt_set_int(context, "refcounted_frames", 1, 0);

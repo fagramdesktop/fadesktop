@@ -2509,7 +2509,7 @@ void StickersListWidget::showStickerSetBox(
 		not_null<DocumentData*> document,
 		uint64 setId) {
 	if (document->sticker() && document->sticker()->set) {
-		checkHideWithBox(Box<StickerSetBox>(
+		showBoxPreventHide(Box<StickerSetBox>(
 			_show,
 			document->sticker()->set,
 			document->sticker()->setType));
@@ -3724,7 +3724,8 @@ void StickersListWidget::displaySet(uint64 setId) {
 	if (setId == Data::Stickers::MegagroupSetId) {
 		if (_megagroupSet->canEditStickers()) {
 			const auto isEmoji = false;
-			checkHideWithBox(Box<StickersBox>(_show, _megagroupSet, isEmoji));
+			showBoxPreventHide(
+				Box<StickersBox>(_show, _megagroupSet, isEmoji));
 			return;
 		} else if (_megagroupSet->mgInfo->stickerSet.id) {
 			setId = _megagroupSet->mgInfo->stickerSet.id;
@@ -3735,7 +3736,7 @@ void StickersListWidget::displaySet(uint64 setId) {
 	const auto &sets = session().data().stickers().sets();
 	auto it = sets.find(setId);
 	if (it != sets.cend()) {
-		checkHideWithBox(Box<StickerSetBox>(_show, it->second.get()));
+		showBoxPreventHide(Box<StickerSetBox>(_show, it->second.get()));
 	}
 }
 
@@ -3746,7 +3747,7 @@ void StickersListWidget::removeMegagroupSet(bool locally) {
 		refreshStickers();
 		return;
 	}
-	checkHideWithBox(Ui::MakeConfirmBox({
+	showBoxPreventHide(Ui::MakeConfirmBox({
 		.text = tr::lng_stickers_remove_group_set(),
 		.confirmed = crl::guard(this, [this, group = _megagroupSet](
 				Fn<void()> &&close) {
@@ -3772,7 +3773,7 @@ void StickersListWidget::removeSet(uint64 setId) {
 			|| !_megagroupSet->canEditStickers();
 		removeMegagroupSet(removeLocally);
 	} else if (auto box = MakeConfirmRemoveSetBox(&session(), st, setId)) {
-		checkHideWithBox(std::move(box));
+		showBoxPreventHide(std::move(box));
 	}
 }
 

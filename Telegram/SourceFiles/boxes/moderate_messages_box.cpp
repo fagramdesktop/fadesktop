@@ -741,6 +741,7 @@ void CreateModerateMessagesBox(
 		Ui::AddExpandablePeerList(report, controller, inner);
 		handleSubmition(report);
 
+		const auto show = box->uiShow();
 		handleConfirmation(report, controller, [=](
 				not_null<PeerData*> p,
 				not_null<ChannelData*> c) {
@@ -750,7 +751,7 @@ void CreateModerateMessagesBox(
 					p
 				).canReport) {
 				Api::ReportReaction(
-					box->uiShow(),
+					show,
 					reaction->peer,
 					reaction->msgId,
 					p);

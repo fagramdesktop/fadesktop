@@ -1,3 +1,15 @@
+6.8.2 (12.05.26)
+
+- Fix non-premium sending of existing custom reactions.
+- Fix sending reactions to groups you're not part of.
+- Fix viewing emoji packs from emoji search results.
+- Fix portrait 4K video playback.
+- Fix lost caption on forwarded polls.
+- Fix possible crash in reaction reports.
+- Fix possible crash in gift message display.
+- Return "Chatbots" to Telegram Business.
+- Separate badge background color keys for sidebar buttons.
+
 6.8.1 (08.05.26)
 
 - Fix crash in anonymous group admins messages.

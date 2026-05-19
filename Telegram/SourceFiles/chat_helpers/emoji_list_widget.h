@@ -443,6 +443,7 @@ private:
 		QRect clip) const;
 	void paintEmptySearchResults(Painter &p);
 
+	void displaySet(not_null<DocumentData*> document);
 	void displaySet(uint64 setId);
 	void removeSet(uint64 setId);
 	void removeMegagroupSet(bool locally);

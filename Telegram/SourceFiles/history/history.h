@@ -53,6 +53,12 @@ enum class NewMessageType {
 	Existing,
 };
 
+enum class NewAddType : uchar {
+	Outgoing,
+	RegularIncoming,
+	StreamedDraftFinish,
+};
+
 class History final : public Data::Thread {
 public:
 	using Element = HistoryView::Element;
@@ -194,7 +200,7 @@ public:
 	void addOlderSlice(const QVector<MTPMessage> &slice);
 	void addNewerSlice(const QVector<MTPMessage> &slice);
 
-	void newItemAdded(not_null<HistoryItem*> item);
+	void newItemAdded(not_null<HistoryItem*> item, NewAddType type);
 
 	void registerClientSideMessage(not_null<HistoryItem*> item);
 	void unregisterClientSideMessage(not_null<HistoryItem*> item);

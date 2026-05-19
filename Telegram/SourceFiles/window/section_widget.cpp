@@ -636,7 +636,10 @@ bool ShowReactPremiumError(
 		ShowReactRestrictionToast(controller);
 		return true;
 	} else if (controller->session().premium()
-		|| ranges::contains(item->chosenReactions(), id)
+		|| ranges::contains(
+			item->reactions(),
+			id,
+			&Data::MessageReaction::id)
 		|| item->history()->peer->isBroadcast()) {
 		return false;
 	} else if (!id.custom()) {

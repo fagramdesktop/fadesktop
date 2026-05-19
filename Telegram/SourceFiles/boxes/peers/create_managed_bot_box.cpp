@@ -100,14 +100,17 @@ void CreateManagedBotBox(
 	Ui::AddSkip(box->verticalLayout(), st::createBotFieldSpacing);
 
 	const auto botPrefixText = u"@"_q;
-	const auto botSuffixText = u"bot"_q;
+	const auto defaultBotSuffix = u"bot"_q;
+	auto botSuffixText = defaultBotSuffix;
 
 	auto initialUsername = descriptor.suggestedUsername;
 	while (initialUsername.startsWith(botPrefixText)) {
 		initialUsername.remove(0, botPrefixText.size());
 	}
-	if (initialUsername.endsWith(botSuffixText, Qt::CaseInsensitive)) {
-		initialUsername.chop(botSuffixText.size());
+	if (initialUsername.endsWith(defaultBotSuffix, Qt::CaseInsensitive)) {
+		botSuffixText = initialUsername.right(
+			int(defaultBotSuffix.size()));
+		initialUsername.chop(defaultBotSuffix.size());
 	}
 
 	const auto fieldSt = box->lifetime().make_state<style::InputField>(

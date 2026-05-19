@@ -1478,18 +1478,22 @@ void TabbedSelector::Inner::disableScroll(bool disabled) {
 	_disableScrollRequests.fire_copy(disabled);
 }
 
-void TabbedSelector::Inner::checkHideWithBox(
+void TabbedSelector::Inner::showBoxPreventHide(
 		object_ptr<Ui::BoxContent> box) {
-	const auto raw = base::make_weak(box.data());
+	const auto weak = base::make_weak(box.data());
 	_show->showBox(std::move(box));
-	if (!raw) {
-		return;
+	preventHideWithBox(weak);
+}
+
+void TabbedSelector::Inner::preventHideWithBox(
+		base::weak_qptr<Ui::BoxContent> weak) {
+	if (const auto strong = weak.get()) {
+		_preventHideWithBox = true;
+		connect(strong, &QObject::destroyed, this, [=] {
+			_preventHideWithBox = false;
+			_checkForHide.fire({});
+		});
 	}
-	_preventHideWithBox = true;
-	connect(raw.get(), &QObject::destroyed, this, [=] {
-		_preventHideWithBox = false;
-		_checkForHide.fire({});
-	});
 }
 
 void TabbedSelector::Inner::paintEmptySearchResults(

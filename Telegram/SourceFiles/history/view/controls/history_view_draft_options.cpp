@@ -953,12 +953,13 @@ void DraftOptionsBox(
 		const auto captionsCount = ItemsForwardCaptionsCount(items);
 		const auto hasOnlyForcedForwardedInfo = !captionsCount
 			&& HasOnlyForcedForwardedInfo(items);
+		const auto canDropNames = !hasOnlyForcedForwardedInfo
+			&& HasDropForwardedInfoSetting(items);
 		const auto dropCaptions = (now == Options::NoNamesAndCaptions);
 
 		AddFilledSkip(bottom);
 
-		if (!hasOnlyForcedForwardedInfo
-			&& HasDropForwardedInfoSetting(items)) {
+		if (canDropNames) {
 			Settings::AddButtonWithIcon(
 				bottom,
 				(dropNames
@@ -1025,9 +1026,13 @@ void DraftOptionsBox(
 		});
 
 		AddFilledSkip(bottom);
-		Ui::AddDividerText(bottom, (count == 1
-			? tr::lng_forward_about()
-			: tr::lng_forward_many_about()));
+		if (canDropNames) {
+			Ui::AddDividerText(bottom, (count == 1
+				? tr::lng_forward_about()
+				: tr::lng_forward_many_about()));
+		} else {
+			Ui::AddDivider(bottom);
+		}
 	};
 
 	const auto &resolver = args.resolver;
