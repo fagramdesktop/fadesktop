@@ -15,6 +15,10 @@ on:
         options:
           - ci
           - rel
+      libs_run_id:
+        description: "Run ID to reuse libraries from (skip rebuild)"
+        type: string
+        required: false
   workflow_call:
     inputs:
       tagname:
@@ -31,43 +35,33 @@ on:
         type: boolean
         required: false
         default: false
+      libs_run_id:
+        description: "Run ID to reuse libraries from (skip rebuild)"
+        type: string
+        required: false
 
 jobs:
   prepare-libraries:
     name: Prepare Libraries
+    if: ${{ !inputs.libs_run_id }}
     runs-on: macos-latest
     timeout-minutes: 240
 
     steps:
       - name: Resolve paths
-        run: echo "LIBS_PATH=$(cd $GITHUB_WORKSPACE && cd .. && pwd)/Libraries" >> $GITHUB_ENV
+        run: |
+          echo "LIBS_PATH=$(cd $GITHUB_WORKSPACE && cd .. && pwd)/Libraries" >> $GITHUB_ENV
 
       - name: Clone repository
         uses: actions/checkout@v6
         with:
           submodules: recursive
 
-      - name: Compute library cache key
-        id: cache-key
-        run: |
-          KEY_HASH=$(cat Telegram/build/prepare/prepare.py Telegram/build/prepare/mac.sh Telegram/build/qt_version.py | shasum | awk '{print $1}')
-          SUBMODULES_HASH=$(git submodule status --recursive | shasum | awk '{print $1}')
-          echo "key=mac-libraries-${KEY_HASH}-${SUBMODULES_HASH}" >> $GITHUB_OUTPUT
-
-      - name: Restore libraries cache
-        id: cache-libs
-        uses: actions/cache@v5
-        with:
-          path: ${{ env.LIBS_PATH }}
-          key: ${{ steps.cache-key.outputs.key }}
-
       - name: Install build tools
-        if: steps.cache-libs.outputs.cache-hit != 'true'
         run: |
           brew install automake cmake wget pkg-config gnu-tar ninja nasm meson
 
       - name: Build libraries
-        if: steps.cache-libs.outputs.cache-hit != 'true'
         env:
           MAKE_THREADS_CNT: -j3
           CMAKE_BUILD_PARALLEL_LEVEL: 3
@@ -81,9 +75,18 @@ jobs:
           trap 'kill "$HEARTBEAT_PID" >/dev/null 2>&1 || true' EXIT
           bash Telegram/build/prepare/mac.sh
 
+      - name: Upload Libraries
+        uses: actions/upload-artifact@v7
+        with:
+          name: libraries-mac
+          path: ${{ env.LIBS_PATH }}
+          retention-days: 7
+          compression-level: 1
+
   build:
     name: Build macOS
     needs: prepare-libraries
+    if: ${{ !cancelled() && (needs.prepare-libraries.result == 'success' || needs.prepare-libraries.result == 'skipped') }}
     runs-on: macos-latest
     outputs:
       tagname: ${{ steps.tagname.outputs.tagname }}
@@ -109,24 +112,20 @@ jobs:
           submodules: recursive
 
       - name: Resolve paths
-        run: echo "LIBS_PATH=$(cd $GITHUB_WORKSPACE && cd .. && pwd)/Libraries" >> $GITHUB_ENV
+        run: |
+          echo "LIBS_PATH=$(cd $GITHUB_WORKSPACE && cd .. && pwd)/Libraries" >> $GITHUB_ENV
+
+      - name: Download Libraries
+        uses: actions/download-artifact@v8
+        with:
+          name: libraries-mac
+          path: ${{ env.LIBS_PATH }}
+          run-id: ${{ inputs.libs_run_id || github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clone DesktopPrivate
         run: |
           git clone https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/DesktopPrivate.git $GITHUB_WORKSPACE/../DesktopPrivate
-
-      - name: Compute library cache key
-        id: cache-key
-        run: |
-          KEY_HASH=$(cat Telegram/build/prepare/prepare.py Telegram/build/prepare/mac.sh Telegram/build/qt_version.py | shasum | awk '{print $1}')
-          SUBMODULES_HASH=$(git submodule status --recursive | shasum | awk '{print $1}')
-          echo "key=mac-libraries-${KEY_HASH}-${SUBMODULES_HASH}" >> $GITHUB_OUTPUT
-
-      - name: Restore libraries cache
-        uses: actions/cache@v5
-        with:
-          path: ${{ env.LIBS_PATH }}
-          key: ${{ steps.cache-key.outputs.key }}
 
       - name: Configure with CMake
         run: |
