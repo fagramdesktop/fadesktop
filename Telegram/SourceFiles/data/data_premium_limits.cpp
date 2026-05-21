@@ -73,6 +73,9 @@ int PremiumLimits::dialogFiltersPremium() const {
 	return appConfigLimit("dialog_filters_limit_premium", 20);
 }
 int PremiumLimits::dialogFiltersCurrent() const {
+	if (FASettings::JsonSettings::GetBool("unlimited_chat_folders")) {
+		return 100;
+	}
 	return isPremium()
 		? dialogFiltersPremium()
 		: dialogFiltersDefault();

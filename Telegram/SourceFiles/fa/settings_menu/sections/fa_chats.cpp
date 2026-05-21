@@ -123,6 +123,8 @@ namespace Settings {
 		Ui::AddDividerText(container, fatr::fa_add_comma_after_mention_desc());
 		SettingsMenuJsonSwitch(fa_unlimited_pinned_chats, unlimited_pinned_chats, u"fa/chats/unlimited-pinned-chats"_q);
 		Ui::AddDividerText(container, fatr::fa_unlimited_pinned_chats_desc());
+		SettingsMenuJsonSwitch(fa_unlimited_chat_folders, unlimited_chat_folders, u"fa/chats/unlimited-chat-folders"_q);
+		Ui::AddDividerText(container, fatr::fa_unlimited_chat_folders_desc());
 
 		const auto statusDotBtn = container->add(object_ptr<Button>(
 			container,
