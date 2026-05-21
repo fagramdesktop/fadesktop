@@ -103,3 +103,9 @@
 [submodule "Telegram/Resources/langs/fa"]
 	path = Telegram/Resources/langs/fa
 	url = https://github.com/fagramdesktop/localization
+[submodule "Telegram/ThirdParty/cmark-gfm"]
+	path = Telegram/ThirdParty/cmark-gfm
+	url = https://github.com/github/cmark-gfm.git
+[submodule "Telegram/ThirdParty/MicroTeX"]
+	path = Telegram/ThirdParty/MicroTeX
+	url = https://github.com/desktop-app/MicroTeX.git

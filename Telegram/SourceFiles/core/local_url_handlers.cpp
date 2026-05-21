@@ -317,7 +317,8 @@ bool ShowAiStyle(
 		strong->window().show(Box(
 			PreviewAiToneBox,
 			&strong->session(),
-			std::move(tone)));
+			std::move(tone),
+			weak));
 	}, [=](const MTP::Error &error) {
 		const auto strong = weak.get();
 		if (!strong) {
@@ -2093,6 +2094,20 @@ QString TryConvertUrlToLocal(QString url) {
 		}
 	}
 	return url;
+}
+
+bool IsMiniAppUrl(const QString &url) {
+	const auto local = TryConvertUrlToLocal(url);
+	const auto prefix = u"tg://resolve?"_q;
+	if (!local.startsWith(prefix, Qt::CaseInsensitive)) {
+		return false;
+	}
+	const auto params = qthelp::url_parse_params(
+		local.mid(prefix.size()),
+		qthelp::UrlParamNameTransform::ToLower);
+	return params.contains(u"appname"_q)
+		|| params.contains(u"startapp"_q)
+		|| params.contains(u"attach"_q);
 }
 
 struct InternalLinkCheckResult {

@@ -80,7 +80,7 @@ PaintRoundImageCallback MultiThumbnail(
 		q.setBrush(st::shadowFg);
 		q.drawRoundedRect(QRect(0, shift, smaller, smaller), radius, radius);
 		q.setPen(st::toastFg);
-		q.setFont(style::font(smaller / 2, style::FontFlag::Semibold, 0));
+		q.setFont(style::font(smaller / 2, style::FontFlag::Bold, 0));
 		q.drawText(
 			QRect(0, shift, smaller, smaller),
 			QString::number(totalCount),

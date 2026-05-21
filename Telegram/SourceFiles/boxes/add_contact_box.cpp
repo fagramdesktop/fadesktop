@@ -276,6 +276,10 @@ void ShowAddParticipantsError(
 			return (chat->isChannel()
 				? tr::lng_error_channel_bots_too_much
 				: tr::lng_error_group_bots_too_much)(tr::now);
+		} else if (error == u"ADMINS_TOO_MUCH"_q) {
+			return (chat->isBroadcast()
+				? tr::lng_error_admin_limit_channel
+				: tr::lng_error_admin_limit)(tr::now);
 		}
 		return tr::lng_failed_add_participant(tr::now);
 	}();

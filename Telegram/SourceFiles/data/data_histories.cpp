@@ -978,6 +978,9 @@ void Histories::deleteMessages(const MessageIdsList &ids, bool revoke) {
 		document->owner().savedMusic().remove(document);
 	}
 
+	if (!remove.empty()) {
+		_owner->notifyItemsAboutToBeDestroyed(remove);
+	}
 	for (const auto &item : remove) {
 		const auto history = item->history();
 		const auto wasLast = (history->lastMessage() == item);

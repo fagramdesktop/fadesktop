@@ -32,6 +32,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/view/history_view_service_message.h"
 #include "history/view/media/history_view_document.h"
 #include "core/click_handler_types.h"
+#include "core/local_url_handlers.h"
 #include "core/ui_integration.h"
 #include "layout/layout_position.h"
 #include "media/audio/media_audio.h"
@@ -863,6 +864,10 @@ ReplyKeyboard::ReplyKeyboard(
 						: result;
 				}();
 				button.type = type;
+				button.iconType = (type == Type::Url
+					&& Core::IsMiniAppUrl(QString::fromUtf8(row[j].data)))
+					? Type::WebView
+					: type;
 				button.link = std::make_shared<ReplyMarkupClickHandler>(
 					owner,
 					i,
@@ -917,7 +922,7 @@ void ReplyKeyboard::resize(int width, int height) {
 		auto maxMinButtonWidth = 0;
 		for (const auto &button : row) {
 			widthOfText += qMax(button.text.maxWidth(), 1);
-			int minButtonWidth = _st->minButtonWidth(button.type);
+			int minButtonWidth = _st->minButtonWidth(button.iconType);
 			widthForText -= minButtonWidth;
 			accumulate_max(maxMinButtonWidth, minButtonWidth);
 		}
@@ -928,7 +933,7 @@ void ReplyKeyboard::resize(int width, int height) {
 		auto x = 0.;
 		for (auto &button : row) {
 			int buttonw = qMax(button.text.maxWidth(), 1);
-			float64 textw = buttonw, minw = _st->minButtonWidth(button.type);
+			float64 textw = buttonw, minw = _st->minButtonWidth(button.iconType);
 			float64 w = textw;
 			if (exact) {
 				w += minw;
@@ -991,7 +996,7 @@ int ReplyKeyboard::naturalWidth() const {
 		for (const auto &button : row) {
 			accumulate_max(
 				maxMinButtonWidth,
-				_st->minButtonWidth(button.type));
+				_st->minButtonWidth(button.iconType));
 		}
 		auto rowMaxButtonWidth = 0;
 		for (const auto &button : row) {
@@ -1278,7 +1283,7 @@ void ReplyKeyboard::Style::paintButton(
 			button.ripple.reset();
 		}
 	}
-	paintButtonIcon(p, st, rect, outerWidth, button.type);
+	paintButtonIcon(p, st, rect, outerWidth, button.iconType);
 	if (button.type == HistoryMessageMarkupButton::Type::CallbackWithPassword
 		|| button.type == HistoryMessageMarkupButton::Type::Callback
 		|| button.type == HistoryMessageMarkupButton::Type::Game) {

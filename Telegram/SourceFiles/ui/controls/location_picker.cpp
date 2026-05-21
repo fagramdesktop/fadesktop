@@ -1075,7 +1075,7 @@ void LocationPicker::showWebviewError() {
 	const auto available = Webview::Availability();
 	auto text = (available.error != Webview::Available::Error::None)
 		? BotWebView::ErrorText(available)
-		: TextWithEntities{ u"Error: Could not initialize WebView."_q.repeated(15) };
+		: TextWithEntities{ u"Error: Could not initialize WebView."_q };
 
 	const auto error = CreateChild<PaddingWrap<FlatLabel>>(
 		wrap,

@@ -70,6 +70,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/controls/userpic_button.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/painter.h"
+#include "ui/text/text_custom_emoji.h"
 #include "ui/text/text_utilities.h"
 #include "ui/toast/toast.h"
 #include "ui/vertical_list.h"
@@ -98,6 +99,26 @@ namespace {
 constexpr auto kProlongTimeout = 60 * crl::time(1000);
 constexpr auto kRefreshBotsTimeout = 60 * 60 * crl::time(1000);
 constexpr auto kPopularAppBotsLimit = 100;
+
+[[nodiscard]] QImage PaintButtonEmojiFrame(
+		Ui::Text::CustomEmoji &emoji,
+		const QColor &textColor,
+		int size) {
+	const auto ratio = style::DevicePixelRatio();
+	auto image = QImage(
+		QSize(size, size) * ratio,
+		QImage::Format_ARGB32_Premultiplied);
+	image.setDevicePixelRatio(ratio);
+	image.fill(Qt::transparent);
+	auto painter = Painter(&image);
+	emoji.paint(painter, Ui::Text::CustomEmoji::Context{
+		.textColor = textColor,
+		.size = QSize(size, size),
+		.now = crl::now(),
+		.position = QPoint(0, 0),
+	});
+	return image;
+}
 
 [[nodiscard]] DocumentData *ResolveIcon(
 		not_null<Main::Session*> session,
@@ -2125,6 +2146,70 @@ void WebViewInstance::botDownloadFile(
 	}).fail([=] {
 		done(QString());
 	}).send();
+}
+
+void WebViewInstance::botResolveButtonEmoji(
+		Ui::BotWebView::ResolveButtonEmojiRequest request) {
+	const auto panel = _panel.get();
+	if (!panel || !request.customEmojiId || request.size <= 0) {
+		request.callback(QImage());
+		return;
+	}
+	struct State {
+		Fn<void(QImage)> callback;
+		std::unique_ptr<Ui::Text::CustomEmoji> emoji;
+		QColor textColor;
+		int size = 0;
+		bool sent = false;
+	};
+	const auto state = std::make_shared<State>();
+	state->callback = std::move(request.callback);
+	state->textColor = request.textColor.isValid()
+		? request.textColor
+		: QColor(255, 255, 255);
+	state->size = request.size;
+	const auto weak = base::make_weak(panel);
+	const auto attempt = std::make_shared<Fn<void()>>();
+	const auto weakAttempt = std::weak_ptr<Fn<void()>>(attempt);
+	const auto weakState = std::weak_ptr<State>(state);
+	*attempt = [weak, weakState] {
+		const auto state = weakState.lock();
+		const auto panel = weak.get();
+		if (!state
+			|| state->sent
+			|| !panel
+			|| !state->emoji
+			|| !state->emoji->ready()) {
+			return;
+		}
+		state->sent = true;
+		state->callback(PaintButtonEmojiFrame(
+			*state->emoji,
+			state->textColor,
+			state->size));
+	};
+	const auto fail = [state] {
+		if (state->sent) {
+			return;
+		}
+		state->sent = true;
+		state->callback(QImage());
+	};
+	_session->data().customEmojiManager().resolve(
+		request.customEmojiId
+	) | rpl::on_next_error([=](not_null<DocumentData*> document) {
+		state->emoji = std::make_unique<Ui::Text::FirstFrameEmoji>(
+			_session->data().customEmojiManager().create(
+				document,
+				[weakAttempt] {
+					if (const auto attempt = weakAttempt.lock()) {
+						(*attempt)();
+					}
+				},
+				Data::CustomEmojiManager::SizeTag::Normal,
+				state->size));
+		(*attempt)();
+	}, fail, panel->lifetime());
 }
 
 void WebViewInstance::botVerifyAge(int age) {

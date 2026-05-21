@@ -13,9 +13,8 @@ if [ ! -d "$FullScriptPath/../../../../../DesktopPrivate" ]; then
   exit
 fi
 
-Command="$1"
-if [ "$Command" == "" ]; then
-  Command="bash"
+if [ "$#" == "0" ]; then
+  set -- bash
 fi
 
-docker run -it --rm --cpus=8 --memory=22g -u $(id -u) -v $HOME/Telegram/DesktopPrivate:/usr/src/DesktopPrivate -v $HOME/Telegram/tdesktop:/usr/src/tdesktop tdesktop:centos_env $Command
+docker run -it --rm --cpus=8 --memory=22g -u $(id -u) -v $HOME/Telegram/DesktopPrivate:/usr/src/DesktopPrivate -v $HOME/Telegram/tdesktop:/usr/src/tdesktop tdesktop:centos_env "$@"

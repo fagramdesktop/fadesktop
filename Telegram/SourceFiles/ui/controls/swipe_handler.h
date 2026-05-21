@@ -17,6 +17,7 @@ namespace Ui::Controls {
 
 struct SwipeContextData;
 struct SwipeBackResult;
+struct SwipeHandlerInitData;
 
 struct SwipeHandlerFinishData {
 	Fn<void(void)> callback;
@@ -36,7 +37,7 @@ struct SwipeHandlerArgs {
 	not_null<Ui::RpWidget*> widget;
 	Scroll scroll;
 	Fn<void(SwipeContextData)> update;
-	Fn<SwipeHandlerFinishData(int, Qt::LayoutDirection)> init;
+	Fn<SwipeHandlerFinishData(SwipeHandlerInitData)> init;
 	rpl::producer<bool> dontStart = nullptr;
 	rpl::lifetime *onLifetime = nullptr;
 };

@@ -14,6 +14,7 @@ namespace Core {
 extern const char kOptionFractionalScalingEnabled[];
 extern const char kOptionHighDpiDownscale[];
 extern const char kOptionFreeType[];
+extern const char kOptionUseQtRhi[];
 
 class Launcher {
 public:

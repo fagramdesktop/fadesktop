@@ -54,6 +54,7 @@ stage
 *.*~
 .idea/
 cmake-build-debug/
+*.qsb
 
 # Local configuration files
 settings.local.json

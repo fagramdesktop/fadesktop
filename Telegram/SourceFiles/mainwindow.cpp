@@ -168,7 +168,8 @@ void MainWindow::clearWidgetsHook() {
 }
 
 QPixmap MainWindow::grabForSlideAnimation() {
-	return Ui::GrabWidget(bodyWidget());
+	const auto body = bodyWidget();
+	return body->size().isEmpty() ? QPixmap() : Ui::GrabWidget(body);
 }
 
 void MainWindow::preventOrInvoke(Fn<void()> callback) {

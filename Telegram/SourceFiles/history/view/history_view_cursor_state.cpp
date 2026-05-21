@@ -7,6 +7,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "history/view/history_view_cursor_state.h"
 
+#include "data/data_session.h"
+#include "history/history.h"
 #include "history/history_item.h"
 #include "history/view/history_view_element.h"
 
@@ -65,6 +67,19 @@ TextState::TextState(
 
 TextState::TextState(std::nullptr_t, ClickHandlerPtr link)
 : link(link) {
+}
+
+not_null<HistoryItem*> LookupItemByPoint(
+		not_null<Element*> view,
+		QPoint itemPoint) {
+	if (view->pointState(itemPoint) == PointState::GroupPart) {
+		const auto state = view->textState(itemPoint, {});
+		const auto &owner = view->data()->history()->owner();
+		if (const auto item = owner.message(state.itemId)) {
+			return item;
+		}
+	}
+	return view->data();
 }
 
 } // namespace HistoryView

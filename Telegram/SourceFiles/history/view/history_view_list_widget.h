@@ -10,12 +10,14 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "base/timer.h"
 #include "ui/rp_widget.h"
 #include "ui/effects/animations.h"
+#include "ui/effects/thanos_effect_controller.h"
 #include "ui/dragging_scroll_manager.h"
 #include "ui/widgets/middle_click_autoscroll.h"
 #include "ui/widgets/tooltip.h"
 #include "mtproto/sender.h"
 #include "data/data_messages.h"
 #include "history/view/history_view_element.h"
+#include "history/history_inner_widget_accessibility.h"
 #include "history/history_view_highlight_manager.h"
 #include "history/history_view_top_toast.h"
 
@@ -202,6 +204,8 @@ public:
 	virtual void listLaunchDrag(
 		std::unique_ptr<QMimeData> data,
 		Fn<void()> finished) = 0;
+	virtual Ui::ScrollArea *listScrollArea() const { return nullptr; }
+	virtual bool listThanosEffectEnabled() const { return true; }
 };
 
 class WindowListDelegate : public ListDelegate {
@@ -363,6 +367,9 @@ public:
 	[[nodiscard]] bool showCopyRestrictionForSelected();
 	[[nodiscard]] bool hasSelectRestriction() const;
 	[[nodiscard]] Element *lookupItemByY(int y) const;
+	[[nodiscard]] not_null<HistoryItem*> lookupItemByPoint(
+		QPoint point,
+		not_null<Element*> view) const;
 
 	[[nodiscard]] std::pair<Element*, int> findViewForPinnedTracking(
 		int top) const;
@@ -463,8 +470,29 @@ public:
 	QString elementAuthorRank(not_null<const Element*> view) override;
 	bool elementHideTopicButton(not_null<const Element*> view) override;
 
+	void setCollapseGaps(std::vector<Ui::CollapseGap> gaps);
+
 	void setEmptyInfoWidget(base::unique_qptr<Ui::RpWidget> &&w);
 	void overrideChatMode(std::optional<ElementChatMode> mode);
+
+	// Accessibility.
+	QAccessible::Role accessibilityRole() override {
+		return QAccessible::Role::List;
+	}
+	Qt::FocusPolicy accessibilityFocusPolicy() override {
+		return Qt::TabFocus;
+	}
+	int accessibilityChildCount() const override;
+	QString accessibilityChildName(int index) const override;
+	QAccessible::State accessibilityChildState(int index) const override;
+	QAccessible::Role accessibilityChildRole() const override;
+	QRect accessibilityChildRect(int index) const override;
+	int accessibilityChildColumnCount(int row) const override;
+	QAccessible::Role accessibilityChildSubItemRole() const override;
+	QString accessibilityChildSubItemName(
+		int row, int column) const override;
+	QString accessibilityChildSubItemValue(
+		int row, int column) const override;
 
 	~ListWidget();
 
@@ -476,6 +504,7 @@ protected:
 	bool eventHook(QEvent *e) override; // calls touchEvent when necessary
 	void touchEvent(QTouchEvent *e);
 	void paintEvent(QPaintEvent *e) override;
+	void focusInEvent(QFocusEvent *e) override;
 	void keyPressEvent(QKeyEvent *e) override;
 	void mousePressEvent(QMouseEvent *e) override;
 	void mouseMoveEvent(QMouseEvent *e) override;
@@ -500,6 +529,15 @@ private:
 	using ViewsMap = base::flat_map<
 		not_null<HistoryItem*>,
 		std::unique_ptr<Element>>;
+
+	[[nodiscard]] std::vector<Element*> accessibleElements() const;
+	[[nodiscard]] int accessibilityUnreadBarIndex() const;
+	void toggleMessageSelection();
+	void playPauseFocusedMedia();
+	void setAccessibilityFocusedItem(int index, HistoryItem *item);
+	void announceAccessibilityFocus(int index);
+	[[nodiscard]] auto computeActiveColumns(int row) const
+		-> const std::vector<HistoryView::MessageSubItem> &;
 
 	struct MouseState {
 		MouseState();
@@ -792,6 +830,7 @@ private:
 		not_null<Element*>,
 		ItemRevealAnimation> _itemRevealAnimations;
 	int _itemsRevealHeight = 0;
+	std::vector<Ui::CollapseGap> _collapseGaps;
 	base::flat_set<FullMsgId> _animatedStickersPlayed;
 	base::flat_map<not_null<PeerData*>, Ui::PeerUserpicView> _userpics;
 	base::flat_map<not_null<PeerData*>, Ui::PeerUserpicView> _userpicsCache;
@@ -868,6 +907,11 @@ private:
 	bool _resizePending = false;
 	std::optional<ElementChatMode> _overrideChatMode;
 
+	int _accessibilityFocusedIndex = -1;
+	HistoryItem *_accessibilityFocusedItem = nullptr;
+	mutable const HistoryView::Element *_activeColumnsView = nullptr;
+	mutable std::vector<HistoryView::MessageSubItem> _activeColumns;
+
 	// _menu must be destroyed before _whoReactedMenuLifetime.
 	rpl::lifetime _whoReactedMenuLifetime;
 	base::unique_qptr<Ui::PopupMenu> _menu;
@@ -911,6 +955,9 @@ private:
 
 	[[nodiscard]] ElementOverlayHost &ensureOverlayHost();
 	std::unique_ptr<ElementOverlayHost> _overlayHost;
+
+	void setupThanosEffect();
+	std::unique_ptr<Ui::ThanosEffectController> _thanosController;
 
 	rpl::lifetime _viewerLifetime;
 

@@ -5604,7 +5604,7 @@ void HistoryWidget::sendButtonClicked() {
 
 void HistoryWidget::leaveEventHook(QEvent *e) {
 	if (hasMouseTracking()) {
-		mouseMoveEvent(nullptr);
+		clearOverStates();
 	}
 }
 
@@ -5655,10 +5655,30 @@ void HistoryWidget::updateOverStates(QPoint pos) {
 	}
 }
 
+void HistoryWidget::clearOverStates() {
+	if (_inPhotoEdit) {
+		_inPhotoEdit = false;
+		if (_photoEditMedia) {
+			_inPhotoEditOver.start(
+				[=] { updateField(); },
+				1.,
+				0.,
+				st::defaultMessageBar.duration);
+		} else {
+			_inPhotoEditOver.stop();
+		}
+	}
+	_inDetails = false;
+	if (_inClickable) {
+		_inClickable = false;
+		setCursor(style::cur_default);
+	}
+}
+
 void HistoryWidget::leaveToChildEvent(QEvent *e, QWidget *child) {
 // e -- from enterEvent() of child RpWidget
 	if (hasMouseTracking()) {
-		updateOverStates(mapFromGlobal(QCursor::pos()));
+		clearOverStates();
 	}
 }
 
@@ -6087,9 +6107,12 @@ bool HistoryWidget::searchInChatEmbedded(
 		Dialogs::Key chat,
 		PeerData *searchFrom) {
 	const auto peer = chat.peer(); // windows todo
+	const auto archiveWindow = (controller()->windowId().type
+		== Window::SeparateType::Archive);
 	if (!peer
 		|| ((Window::SeparateId(peer) != controller()->windowId())
-			&& !controller()->isPrimary())) {
+			&& !controller()->isPrimary()
+			&& !archiveWindow)) {
 		return false;
 	} else if (_peer != peer) {
 		const auto weak = base::make_weak(this);

@@ -5,7 +5,9 @@ the unofficial desktop client based on Telegram Desktop.
 For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
+using "chat_helpers/chat_helpers.style";
 using "ui/basic.style";
+using "ui/layers/layers.style";
 using "ui/widgets/widgets.style";
 
 ivMenuToggle: IconButton(defaultIconButton) {
@@ -51,11 +53,12 @@ ivResetZoomLabel: FlatLabel(defaultFlatLabel) {
 ivResetZoomInnerPadding: 20px;
 ivBackIconDisabled: icon {{ "box_button_back", menuIconFg }};
 ivForwardIcon: icon {{ "box_button_back-flip_horizontal", menuIconColor }};
+ivForwardIconDisabled: icon {{ "box_button_back-flip_horizontal", menuIconFg }};
 ivForward: IconButton(ivBack) {
 	width: 48px;
 	icon: ivForwardIcon;
 	iconOver: ivForwardIcon;
-	rippleAreaPosition: point(0px, 6px);
+	rippleAreaPosition: point(6px, 6px);
 }
 ivSubtitleFont: font(16px semibold);
 ivSubtitle: FlatLabel(defaultFlatLabel) {
@@ -69,3 +72,567 @@ ivSubtitleHeight: 48px;
 ivSubtitleTop: 12px;
 ivSubtitleLeft: 22px;
 ivSubtitleSkip: 0px;
+
+MarkdownBlockSkips {
+	paragraph: pixels;
+	heading: pixels;
+	code: pixels;
+	rule: pixels;
+	quote: pixels;
+	displayMath: pixels;
+	table: pixels;
+	photo: pixels;
+	video: pixels;
+	audio: pixels;
+	map: pixels;
+	channel: pixels;
+	groupedMedia: pixels;
+	relatedArticle: pixels;
+	embedPost: pixels;
+	placeholder: pixels;
+}
+MarkdownList {
+	indent: pixels;
+	continuationIndent: pixels;
+	markerWidth: pixels;
+	markerSkip: pixels;
+	bulletRadius: pixels;
+	bulletLeftShift: pixels;
+	bulletFg: color;
+	taskCheck: Check;
+}
+MarkdownQuotePaintColors {
+	blockquote: color;
+	pre: color;
+	preBg: color;
+}
+MarkdownRule {
+	fg: color;
+	height: pixels;
+}
+MarkdownDisplayMath {
+	padding: margins;
+	align: align;
+	textSize: pixels;
+	maxRenderWidth: pixels;
+	maxRenderHeight: pixels;
+	fg: color;
+	fallbackStyle: TextStyle;
+	fallbackBg: color;
+	fallbackRadius: pixels;
+	fallbackPadding: margins;
+	overflowWidth: pixels;
+	overflowFg: color;
+}
+MarkdownTable {
+	cellPadding: margins;
+	border: pixels;
+	borderFg: color;
+	headerBg: color;
+	headerStyle: TextStyle;
+	captionSkip: pixels;
+	minColumnWidth: pixels;
+	overflowWidth: pixels;
+	overflowFg: color;
+}
+MarkdownDetails {
+	headerPadding: margins;
+	bodyPadding: margins;
+	border: pixels;
+	borderFg: color;
+	headerBg: color;
+	bodyBg: color;
+	summaryFg: color;
+	radius: pixels;
+	summaryStyle: TextStyle;
+	icon: icon;
+	iconSkip: pixels;
+}
+MarkdownEmbedPost {
+	padding: margins;
+	accentWidth: pixels;
+	accentFg: color;
+	accentSkip: pixels;
+	headerGap: pixels;
+	avatarSize: pixels;
+	avatarRadius: pixels;
+	authorStyle: TextStyle;
+	authorFg: color;
+	dateStyle: TextStyle;
+	dateFg: color;
+	bodySkip: pixels;
+	captionSkip: pixels;
+}
+MarkdownPlaceholder {
+	padding: margins;
+	minHeight: pixels;
+	border: pixels;
+	radius: pixels;
+	spinnerWidth: pixels;
+	spinnerSize: pixels;
+	captionSkip: pixels;
+	labelStyle: TextStyle;
+}
+MarkdownPhoto {
+	padding: margins;
+	captionSkip: pixels;
+	progressSize: pixels;
+	progressWidth: pixels;
+}
+MarkdownAudio {
+	padding: margins;
+	captionSkip: pixels;
+	textSkip: pixels;
+	border: pixels;
+	borderFg: color;
+	bg: color;
+	radius: pixels;
+	titleStyle: TextStyle;
+	titleFg: color;
+	subtitleStyle: TextStyle;
+	subtitleFg: color;
+}
+MarkdownChannelButton {
+	padding: margins;
+	border: pixels;
+	borderFg: color;
+	bg: color;
+	radius: pixels;
+	textStyle: TextStyle;
+	textFg: color;
+}
+MarkdownChannel {
+	padding: margins;
+	border: pixels;
+	borderFg: color;
+	bg: color;
+	radius: pixels;
+	textSkip: pixels;
+	buttonSkip: pixels;
+	titleStyle: TextStyle;
+	titleFg: color;
+	subtitleStyle: TextStyle;
+	subtitleFg: color;
+	button: MarkdownChannelButton;
+}
+MarkdownRelatedArticle {
+	padding: margins;
+	border: pixels;
+	borderFg: color;
+	bg: color;
+	radius: pixels;
+	headerPadding: margins;
+	headerBg: color;
+	separator: pixels;
+	separatorFg: color;
+	textSkip: pixels;
+	footerSkip: pixels;
+	thumbnailSize: pixels;
+	thumbnailSkip: pixels;
+	thumbnailRadius: pixels;
+	titleLines: int;
+	subtitleLines: int;
+	footerLines: int;
+	titleStyle: TextStyle;
+	titleFg: color;
+	subtitleStyle: TextStyle;
+	subtitleFg: color;
+	footerStyle: TextStyle;
+	footerFg: color;
+}
+MarkdownGroupedMedia {
+	padding: margins;
+	captionSkip: pixels;
+	itemSkip: pixels;
+	radius: pixels;
+	overlayOpacity: double;
+	navButtonSize: pixels;
+	navButtonSkip: pixels;
+	navButtonBg: color;
+	navButtonBgOver: color;
+	navPreviousIcon: icon;
+	navPreviousIconOver: icon;
+	navNextIcon: icon;
+	navNextIconOver: icon;
+}
+MarkdownFailure {
+	label: FlatLabel;
+	width: pixels;
+	skip: pixels;
+}
+MarkdownEmbedOverlay {
+	scrimBg: color;
+	bg: color;
+	loading: InfiniteRadialAnimation;
+	size: size;
+	margin: margins;
+	padding: margins;
+	errorLabel: FlatLabel;
+	errorPadding: margins;
+}
+Markdown {
+	textPalette: TextPalette;
+	textColor: color;
+	supplementaryTextColor: color;
+	body: TextStyle;
+	heading1: TextStyle;
+	heading2: TextStyle;
+	heading3: TextStyle;
+	heading4: TextStyle;
+	heading5: TextStyle;
+	heading6: TextStyle;
+	code: TextStyle;
+	pagePadding: margins;
+	pageMaxWidth: pixels;
+	textPadding: margins;
+	mediaPadding: margins;
+	blockSkips: MarkdownBlockSkips;
+	list: MarkdownList;
+	quoteIndent: pixels;
+	quotePaintColors: MarkdownQuotePaintColors;
+	rule: MarkdownRule;
+	displayMath: MarkdownDisplayMath;
+	table: MarkdownTable;
+	details: MarkdownDetails;
+	embedPost: MarkdownEmbedPost;
+	placeholder: MarkdownPlaceholder;
+	photo: MarkdownPhoto;
+	audio: MarkdownAudio;
+	channel: MarkdownChannel;
+	relatedArticle: MarkdownRelatedArticle;
+	groupedMedia: MarkdownGroupedMedia;
+	failure: MarkdownFailure;
+}
+
+defaultMarkdownTextPalette: TextPalette(defaultTextPalette) {
+	linkFg: windowActiveTextFg;
+}
+defaultMarkdownBodyStyle: TextStyle(historyTextStyle) {
+	lineHeight: 24px;
+}
+defaultMarkdownCodeStyle: TextStyle(defaultMarkdownBodyStyle) {
+	font: font(14px);
+	lineHeight: 22px;
+}
+defaultMarkdownDisplayMathFallbackStyle: TextStyle(defaultMarkdownCodeStyle) {
+}
+defaultMarkdownTableHeaderStyle: TextStyle(defaultMarkdownBodyStyle) {
+	font: font(16px semibold);
+	lineHeight: 24px;
+}
+defaultMarkdownBlockSkips: MarkdownBlockSkips {
+	paragraph: 12px;
+	heading: 16px;
+	code: 12px;
+	rule: 12px;
+	quote: 12px;
+	displayMath: 12px;
+	table: 12px;
+	photo: 12px;
+	video: 12px;
+	audio: 12px;
+	map: 12px;
+	channel: 8px;
+	groupedMedia: 12px;
+	relatedArticle: 0px;
+	embedPost: 12px;
+	placeholder: 12px;
+}
+defaultMarkdownList: MarkdownList {
+	indent: 28px;
+	continuationIndent: 22px;
+	markerWidth: 22px;
+	markerSkip: 8px;
+	bulletRadius: 2px;
+	bulletLeftShift: 0px;
+	bulletFg: windowFg;
+	taskCheck: defaultCheck;
+}
+defaultMarkdownQuotePaintColors: MarkdownQuotePaintColors {
+	blockquote: windowActiveTextFg;
+	pre: windowSubTextFg;
+	preBg: windowBgOver;
+}
+defaultMarkdownRule: MarkdownRule {
+	fg: boxDividerBg;
+	height: 1px;
+}
+defaultMarkdownDisplayMath: MarkdownDisplayMath {
+	padding: margins(10px, 12px, 10px, 12px);
+	align: align(center);
+	textSize: 20px;
+	maxRenderWidth: 1600px;
+	maxRenderHeight: 1200px;
+	fg: windowFg;
+	fallbackStyle: defaultMarkdownDisplayMathFallbackStyle;
+	fallbackBg: windowBgOver;
+	fallbackRadius: 6px;
+	fallbackPadding: margins(10px, 12px, 10px, 12px);
+	overflowWidth: 4px;
+	overflowFg: windowSubTextFg;
+}
+defaultMarkdownTable: MarkdownTable {
+	cellPadding: margins(8px, 10px, 8px, 10px);
+	border: 1px;
+	borderFg: boxDividerBg;
+	headerBg: windowBgOver;
+	headerStyle: defaultMarkdownTableHeaderStyle;
+	captionSkip: 7px;
+	minColumnWidth: 96px;
+	overflowWidth: 4px;
+	overflowFg: windowSubTextFg;
+}
+defaultMarkdownDetailsSummaryStyle: TextStyle(defaultTextStyle) {
+	font: font(12px);
+	linkUnderline: kLinkUnderlineNever;
+	lineHeight: 18px;
+}
+defaultMarkdownDetails: MarkdownDetails {
+	headerPadding: margins(8px, 12px, 8px, 12px);
+	bodyPadding: margins(10px, 12px, 10px, 12px);
+	border: 1px;
+	borderFg: inputBorderFg;
+	headerBg: windowBgOver;
+	bodyBg: windowBg;
+	summaryFg: windowFg;
+	radius: 6px;
+	summaryStyle: defaultMarkdownDetailsSummaryStyle;
+	icon: icon {{ "history_comments_open", windowSubTextFg }};
+	iconSkip: 8px;
+}
+defaultMarkdownEmbedPostAuthorStyle: TextStyle(defaultMarkdownBodyStyle) {
+	font: font(16px semibold);
+}
+defaultMarkdownEmbedPostDateStyle: TextStyle(defaultMarkdownDetailsSummaryStyle) {
+}
+defaultMarkdownEmbedPostAccentWidth: 3px;
+defaultMarkdownEmbedPost: MarkdownEmbedPost {
+	padding: margins(8px, 0px, 8px, 0px);
+	accentWidth: defaultMarkdownEmbedPostAccentWidth;
+	accentFg: windowActiveTextFg;
+	accentSkip: 12px;
+	headerGap: 10px;
+	avatarSize: 40px;
+	avatarRadius: 20px;
+	authorStyle: defaultMarkdownEmbedPostAuthorStyle;
+	authorFg: windowFg;
+	dateStyle: defaultMarkdownEmbedPostDateStyle;
+	dateFg: windowSubTextFg;
+	bodySkip: 10px;
+	captionSkip: 12px;
+}
+defaultMarkdownPlaceholder: MarkdownPlaceholder {
+	padding: margins(16px, 24px, 16px, 24px);
+	minHeight: 48px;
+	border: defaultMarkdownEmbedPostAccentWidth;
+	radius: 16px;
+	spinnerWidth: 4px;
+	spinnerSize: 24px;
+	captionSkip: 14px;
+	labelStyle: TextStyle(defaultMarkdownBodyStyle) {
+		font: font(16px semibold);
+	}
+}
+defaultMarkdownPhoto: MarkdownPhoto {
+	padding: margins(0px, 0px, 0px, 0px);
+	captionSkip: 12px;
+	progressSize: 36px;
+	progressWidth: 3px;
+}
+defaultMarkdownAudioTitleStyle: TextStyle(defaultMarkdownBodyStyle) {
+	font: font(16px semibold);
+}
+defaultMarkdownAudioSubtitleStyle: TextStyle(defaultMarkdownDetailsSummaryStyle) {
+}
+defaultMarkdownAudio: MarkdownAudio {
+	padding: margins(8px, 12px, 8px, 12px);
+	captionSkip: 14px;
+	textSkip: 8px;
+	border: 1px;
+	borderFg: inputBorderFg;
+	bg: windowBgOver;
+	radius: 6px;
+	titleStyle: defaultMarkdownAudioTitleStyle;
+	titleFg: windowFg;
+	subtitleStyle: defaultMarkdownAudioSubtitleStyle;
+	subtitleFg: windowSubTextFg;
+}
+defaultMarkdownChannelTitleStyle: TextStyle(defaultMarkdownAudioTitleStyle) {
+}
+defaultMarkdownChannelSubtitleStyle: TextStyle(defaultMarkdownDetailsSummaryStyle) {
+}
+defaultMarkdownChannelButtonStyle: TextStyle(defaultMarkdownChannelTitleStyle) {
+}
+defaultMarkdownSidesMargin: margins(18px, 0px, 18px, 0px);
+defaultMarkdownChannelButton: MarkdownChannelButton {
+	padding: defaultMarkdownSidesMargin;
+	border: 0px;
+	borderFg: windowActiveTextFg;
+	bg: windowBgOver;
+	radius: 0px;
+	textStyle: defaultMarkdownChannelButtonStyle;
+	textFg: windowActiveTextFg;
+}
+defaultMarkdownChannel: MarkdownChannel {
+	padding: margins(18px, 8px, 18px, 8px);
+	border: 0px;
+	borderFg: inputBorderFg;
+	bg: windowBgOver;
+	radius: 0px;
+	textSkip: 8px;
+	buttonSkip: 18px;
+	titleStyle: defaultMarkdownChannelTitleStyle;
+	titleFg: windowFg;
+	subtitleStyle: defaultMarkdownChannelSubtitleStyle;
+	subtitleFg: windowSubTextFg;
+	button: defaultMarkdownChannelButton;
+}
+defaultMarkdownRelatedArticleTitleStyle: TextStyle(defaultMarkdownBodyStyle) {
+	font: font(16px semibold);
+	lineHeight: 22px;
+}
+defaultMarkdownRelatedArticleSubtitleStyle: TextStyle(defaultMarkdownBodyStyle) {
+	font: font(15px);
+	lineHeight: 21px;
+}
+defaultMarkdownRelatedArticleFooterStyle: TextStyle(defaultMarkdownDetailsSummaryStyle) {
+}
+defaultMarkdownRelatedArticle: MarkdownRelatedArticle {
+	padding: margins(18px, 8px, 18px, 8px);
+	border: 0px;
+	borderFg: boxDividerBg;
+	bg: windowBg;
+	radius: 0px;
+	headerPadding: margins(18px, 8px, 18px, 8px);
+	headerBg: windowBgOver;
+	separator: 1px;
+	separatorFg: boxDividerBg;
+	textSkip: 6px;
+	footerSkip: 8px;
+	thumbnailSize: 87px;
+	thumbnailSkip: 12px;
+	thumbnailRadius: 0px;
+	titleLines: 2;
+	subtitleLines: 3;
+	footerLines: 1;
+	titleStyle: defaultMarkdownRelatedArticleTitleStyle;
+	titleFg: windowFg;
+	subtitleStyle: defaultMarkdownRelatedArticleSubtitleStyle;
+	subtitleFg: windowSubTextFg;
+	footerStyle: defaultMarkdownRelatedArticleFooterStyle;
+	footerFg: windowSubTextFg;
+}
+defaultMarkdownGroupedMedia: MarkdownGroupedMedia {
+	padding: margins(0px, 0px, 0px, 0px);
+	captionSkip: 12px;
+	itemSkip: 3px;
+	radius: 0px;
+	overlayOpacity: 0.2;
+	navButtonSize: 36px;
+	navButtonSkip: 12px;
+	navButtonBg: windowBg;
+	navButtonBgOver: windowBgOver;
+	navPreviousIcon: ivBackIcon;
+	navPreviousIconOver: ivBackIcon;
+	navNextIcon: ivForwardIcon;
+	navNextIconOver: ivForwardIcon;
+}
+defaultMarkdownFailureLabel: FlatLabel(defaultFlatLabel) {
+	minWidth: 280px;
+	textFg: windowSubTextFg;
+	align: align(center);
+	style: defaultMarkdownBodyStyle;
+}
+defaultMarkdownFailure: MarkdownFailure {
+	label: defaultMarkdownFailureLabel;
+	width: 360px;
+	skip: 12px;
+}
+markdownFootnoteBox: Box(defaultBox) {
+	buttonPadding: margins(0px, 0px, 0px, 0px);
+	buttonHeight: 0px;
+}
+markdownFootnoteLabel: FlatLabel(defaultFlatLabel) {
+	minWidth: 95px;
+	textFg: windowFg;
+	align: align(topleft);
+	style: defaultMarkdownBodyStyle;
+	palette: defaultMarkdownTextPalette;
+}
+markdownFootnotePadding: margins(24px, 12px, 24px, 12px);
+markdownEmbedOverlayError: FlatLabel(defaultFlatLabel) {
+	minWidth: 240px;
+	textFg: windowSubTextFg;
+	align: align(top);
+	style: defaultMarkdownBodyStyle;
+}
+markdownEmbedOverlay: MarkdownEmbedOverlay {
+	scrimBg: layerBg;
+	bg: windowBg;
+	loading: InfiniteRadialAnimation(defaultInfiniteRadialAnimation) {
+		color: windowSubTextFg;
+	}
+	size: size(640px, 480px);
+	margin: margins(12px, 12px, 12px, 12px);
+	padding: margins(8px, 8px, 8px, 8px);
+	errorLabel: markdownEmbedOverlayError;
+	errorPadding: margins(24px, 36px, 24px, 36px);
+}
+markdownEmbedOverlayClose: IconButton(boxTitleClose) {
+	icon: icon {{ "box_button_close", mediaviewPlaybackActive }};
+	iconOver: icon {{ "box_button_close", mediaviewPlaybackActiveOver }};
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: shadowFg;
+	}
+}
+defaultMarkdown: Markdown {
+	textPalette: defaultMarkdownTextPalette;
+	textColor: windowFg;
+	supplementaryTextColor: windowSubTextFg;
+	body: defaultMarkdownBodyStyle;
+	heading1: TextStyle(defaultMarkdownBodyStyle) {
+		font: font(30px semibold);
+		lineHeight: 36px;
+	}
+	heading2: TextStyle(defaultMarkdownBodyStyle) {
+		font: font(26px semibold);
+		lineHeight: 32px;
+	}
+	heading3: TextStyle(defaultMarkdownBodyStyle) {
+		font: font(22px semibold);
+		lineHeight: 28px;
+	}
+	heading4: TextStyle(defaultMarkdownBodyStyle) {
+		font: font(19px semibold);
+		lineHeight: 25px;
+	}
+	heading5: TextStyle(defaultMarkdownBodyStyle) {
+		font: font(17px semibold);
+		lineHeight: 23px;
+	}
+	heading6: TextStyle(defaultMarkdownBodyStyle) {
+		font: font(15px semibold);
+		lineHeight: 21px;
+	}
+	code: defaultMarkdownCodeStyle;
+	pagePadding: margins(0px, 0px, 0px, 16px);
+	pageMaxWidth: 732px;
+	textPadding: defaultMarkdownSidesMargin;
+	mediaPadding: margins(0px, 0px, 0px, 0px);
+	blockSkips: defaultMarkdownBlockSkips;
+	list: defaultMarkdownList;
+	quoteIndent: 18px;
+	quotePaintColors: defaultMarkdownQuotePaintColors;
+	rule: defaultMarkdownRule;
+	displayMath: defaultMarkdownDisplayMath;
+	table: defaultMarkdownTable;
+	details: defaultMarkdownDetails;
+	embedPost: defaultMarkdownEmbedPost;
+	placeholder: defaultMarkdownPlaceholder;
+	photo: defaultMarkdownPhoto;
+	audio: defaultMarkdownAudio;
+	channel: defaultMarkdownChannel;
+	relatedArticle: defaultMarkdownRelatedArticle;
+	groupedMedia: defaultMarkdownGroupedMedia;
+	failure: defaultMarkdownFailure;
+}

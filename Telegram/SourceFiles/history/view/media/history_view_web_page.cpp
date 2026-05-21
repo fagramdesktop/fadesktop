@@ -733,10 +733,8 @@ QSize WebPage::countOptimalSize() {
 
 		_attach->initDimensions();
 		const auto bubble = _attach->bubbleMargins();
-		auto maxMediaWidth = _attach->maxWidth() - rect::m::sum::h(bubble);
-		if (isBubbleBottom() && _attach->customInfoLayout()) {
-			maxMediaWidth += skipBlockWidth;
-		}
+		const auto maxMediaWidth = _attach->maxWidth()
+			- rect::m::sum::h(bubble);
 		accumulate_max(maxWidth, maxMediaWidth);
 		minHeight += _attach->minHeight() - rect::m::sum::v(bubble);
 	}

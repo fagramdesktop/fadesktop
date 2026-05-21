@@ -396,6 +396,16 @@ void OverlayWidget::RendererGL::paintTransformedVideoFrame(
 			data.alpha,
 			data.alpha);
 		return;
+	} else if (data.format == Streaming::FrameFormat::NativeTexture) {
+		const auto image = _owner->currentVideoFrameImage();
+		if (!image.isNull()) {
+			paintTransformedStaticContent(
+				image,
+				geometry,
+				data.alpha,
+				data.alpha);
+		}
+		return;
 	}
 	Assert(!data.yuv->size.isEmpty());
 	const auto program = (data.format == Streaming::FrameFormat::NV12)

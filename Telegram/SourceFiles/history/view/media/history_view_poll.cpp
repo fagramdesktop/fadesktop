@@ -1909,7 +1909,9 @@ bool Poll::showVotes() const {
 	if (_flags & PollData::Flag::HideResultsUntilClose) {
 		return (_flags & PollData::Flag::Closed) || _poll->creator();
 	}
-	return _voted || (_flags & PollData::Flag::Closed);
+	return _voted
+		|| (_flags & PollData::Flag::Closed)
+		|| voteRestricted();
 }
 
 PollData::VoteRestriction Poll::knownVoteRestriction() const {
@@ -1947,10 +1949,16 @@ PollData::VoteRestriction Poll::knownVoteRestriction() const {
 }
 
 bool Poll::voteRestricted() const {
-	return (knownVoteRestriction() != PollData::VoteRestriction::None)
-		&& !showVotes()
-		&& !_voted
-		&& _parent->data()->isRegular();
+	if (knownVoteRestriction() == PollData::VoteRestriction::None) {
+		return false;
+	} else if (_voted
+		|| _adminShowResults
+		|| !_parent->data()->isRegular()) {
+		return false;
+	} else if (_flags & PollData::Flag::HideResultsUntilClose) {
+		return !(_flags & PollData::Flag::Closed) && !_poll->creator();
+	}
+	return !(_flags & PollData::Flag::Closed);
 }
 
 void Poll::showVoteRestrictionToast() const {

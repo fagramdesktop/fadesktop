@@ -930,7 +930,7 @@ reactPanelScrollRounded: ScrollArea(emojiScroll) {
 	deltat: 14px;
 	deltab: 14px;
 }
-selfForwardsTaggerStripSkip: 26px;
+selfForwardsTaggerStripSkip: 11px;
 
 selfForwardsTaggerIconPadding: margins(14px, 2px, 8px, 2px);
 selfForwardsTaggerToast: Toast(defaultToast) {

@@ -18,6 +18,10 @@ namespace Window {
 class SessionController;
 } // namespace Window
 
+namespace Iv::Markdown {
+class Controller;
+} // namespace Iv::Markdown
+
 namespace Iv {
 
 class Data;
@@ -53,6 +57,10 @@ public:
 
 	void showTonSite(
 		const QString &uri,
+		QVariant context = {});
+
+	bool showMarkdown(
+		const QString &path,
 		QVariant context = {});
 
 	[[nodiscard]] bool hasActiveWindow(
@@ -103,6 +111,10 @@ private:
 	mtpRequestId _ivRequestId = 0;
 
 	std::unique_ptr<TonSite> _tonSite;
+
+	base::flat_map<
+		QString,
+		std::unique_ptr<Markdown::Controller>> _markdowns;
 
 	rpl::lifetime _lifetime;
 

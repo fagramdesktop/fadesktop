@@ -44,6 +44,7 @@ public:
 
 	[[nodiscard]] QString id() const;
 	[[nodiscard]] bool partial() const;
+	[[nodiscard]] const Source &source() const;
 
 	void updateCachedViews(int cachedViews);
 

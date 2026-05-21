@@ -10,7 +10,7 @@ ENV PKG_CONFIG_PATH=/opt/rh/$TOOLSET/root/usr/lib64/pkgconfig:/opt/rh/$TOOLSET/r
 
 RUN dnf -y install epel-release \
 	&& dnf config-manager --set-enabled powertools \
-	&& dnf -y install cmake autoconf automake libtool pkgconfig make patch git \
+	&& dnf -y install autoconf automake libtool pkgconfig make patch git \
 		python3.11-pip python3.11-devel gperf flex bison clang clang-tools-extra \
 		lld nasm file which wget perl-open perl-XML-Parser perl-IPC-Cmd \
 		xorg-x11-util-macros $TOOLSET-gcc $TOOLSET-gcc-c++ $TOOLSET-binutils \
@@ -23,7 +23,7 @@ RUN dnf -y install epel-release \
 	&& dnf clean all
 
 RUN alternatives --set python3 /usr/bin/python3.11
-RUN python3 -m pip install meson ninja
+RUN python3 -m pip install cmake==3.31.10 meson ninja
 RUN cat <<EOF > /usr/local/bin/pkg-config && chmod +x /usr/local/bin/pkg-config
 #!/bin/sh
 for i in "\$@"; do
@@ -31,8 +31,10 @@ for i in "\$@"; do
 done
 exec /usr/bin/pkg-config --static "\$@"
 EOF
-RUN sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/")/ -O0 {% if LTO %}-fno-lto -fno-use-linker-plugin{% endif %} -fuse-ld=lld")/' /usr/share/cmake/Modules/Compiler/GNU.cmake
-RUN sed -i 's/NO_DEFAULT_PATH//g; s/PKG_CONFIG_ALLOW_SYSTEM_LIBS/PKG_CONFIG_IS_DUMB/g' /usr/share/cmake/Modules/FindPkgConfig.cmake
+RUN CMAKE_ROOT="$(cmake --system-information | sed -n 's/^CMAKE_ROOT "\([^"]*\)"$/\1/p')" \
+	&& test -n "$CMAKE_ROOT" \
+	&& sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/")/ -O0 {% if LTO %}-fno-lto -fno-use-linker-plugin{% endif %} -fuse-ld=lld")/' "$CMAKE_ROOT/Modules/Compiler/GNU.cmake" \
+	&& sed -i 's/NO_DEFAULT_PATH//g; s/PKG_CONFIG_ALLOW_SYSTEM_LIBS/PKG_CONFIG_IS_DUMB/g' "$CMAKE_ROOT/Modules/FindPkgConfig.cmake"
 RUN sed -i '/Requires.private: valgrind/d' /usr/lib64/pkgconfig/libdrm.pc
 RUN sed -i '/Requires.private: gl/s/gl/opengl glx/' /usr/lib64/pkgconfig/epoxy.pc
 RUN sed -i 's/-lharfbuzz//' /usr/lib64/pkgconfig/harfbuzz.pc
@@ -93,7 +95,7 @@ FROM builder AS patches
 RUN git init patches \
 	&& cd patches \
 	&& git remote add origin https://github.com/desktop-app/patches.git \
-	&& git fetch --depth=1 origin 4519c85c924b9da81f29d4aac045886f896ee479 \
+	&& git fetch --depth=1 origin 3128a5b5879c450f686f240cc9602ad7f4a054b4 \
 	&& git reset --hard FETCH_HEAD \
 	&& rm -rf .git
 
@@ -743,7 +745,7 @@ COPY --link --from=xcb-cursor /usr/src/xcb-cursor-cache /
 COPY --link --from=openssl /usr/src/openssl-cache /
 COPY --link --from=xkbcommon /usr/src/xkbcommon-cache /
 
-ENV QT=6.11.0
+ENV QT=6.11.1
 RUN git clone -b v$QT --depth=1 https://github.com/qt/qt5.git \
 	&& cd qt5 \
 	&& git submodule update --init --recursive --depth=1 qtbase qtdeclarative qtwayland qtimageformats qtsvg qtshadertools \

@@ -18,6 +18,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 struct WebPageData;
 struct TodoListItem;
+class DocumentData;
+class PhotoData;
 class VoiceSeekClickHandler;
 class ReplyKeyboard;
 
@@ -125,6 +127,13 @@ struct HistoryMessageFromRank
 struct HistoryMessageEdited
 : RuntimeComponent<HistoryMessageEdited, HistoryItem> {
 	TimeId date = 0;
+};
+
+struct HistoryMessageMediaForInstantView
+: RuntimeComponent<HistoryMessageMediaForInstantView, HistoryItem> {
+	QString url;
+	base::flat_set<not_null<DocumentData*>> documents;
+	base::flat_set<not_null<PhotoData*>> photos;
 };
 
 class HiddenSenderInfo {
@@ -582,6 +591,7 @@ private:
 		int characters = 0;
 		float64 howMuchOver = 0.;
 		HistoryMessageMarkupButton::Type type = {};
+		HistoryMessageMarkupButton::Type iconType = {};
 		HistoryMessageMarkupButton::Color color = {};
 		std::shared_ptr<ReplyMarkupClickHandler> link;
 		mutable std::unique_ptr<Ui::RippleAnimation> ripple;

@@ -42,6 +42,7 @@ public:
 	void setDeleteConfirmedCallback(Fn<void()> callback) {
 		_deleteConfirmedCallback = std::move(callback);
 	}
+	[[nodiscard]] crl::time layerAnimationDuration() const override;
 
 protected:
 	void prepare() override;

@@ -10,6 +10,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "api/api_suggest_post.h"
 #include "api/api_transcribes.h"
+#include "base/options.h"
 #include "base/qt/qt_key_modifiers.h"
 #include "base/unixtime.h"
 #include "core/click_handler_types.h" // ClickHandlerContext
@@ -63,6 +64,14 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 namespace HistoryView {
 namespace {
+
+base::options::toggle UnlimitedMessageWidth({
+	.id = kOptionUnlimitedMessageWidth,
+	.name = "Unlimited message width",
+	.description = "Allow text-only message bubbles "
+		"to expand beyond the default maximum width.",
+	.restartRequired = true,
+});
 
 constexpr auto kPlayStatusLimit = 2;
 constexpr auto kMaxWidth = (1 << 16) - 1;
@@ -197,6 +206,9 @@ struct BadgePillGeometry {
 
 } // namespace
 
+const char kOptionUnlimitedMessageWidth[]
+	= "unlimited-message-width";
+
 struct Message::CommentsButton {
 	std::unique_ptr<Ui::RippleAnimation> ripple;
 	std::vector<UserpicInRow> userpics;
@@ -305,6 +317,11 @@ Message::~Message() {
 		_fromNameStatus = nullptr;
 		checkHeavyPart();
 	}
+}
+
+void Message::setInstantViewMediaRuntime(QString pageUrl) {
+	AddComponents(InstantViewMediaRuntime::Bit());
+	Get<InstantViewMediaRuntime>()->pageUrl = std::move(pageUrl);
 }
 
 void Message::refreshSuggestedInfo(
@@ -1624,53 +1641,59 @@ void Message::draw(Painter &p, const PaintContext &context) const {
 		p.translate(-selectionTranslation, 0);
 	}
 	if (selectionModeResult.progress) {
-		const auto progress = selectionModeResult.progress;
-		if (progress <= 1.) {
-			if (context.selected()) {
-				if (!_selectionRoundCheckbox) {
-					_selectionRoundCheckbox
-						= std::make_unique<Ui::RoundCheckbox>(
-							st::msgSelectionCheck,
-							[this] { repaint(); });
+		if (!context.skipSelectionCheck) {
+			const auto progress = selectionModeResult.progress;
+			if (progress <= 1.) {
+				if (context.selected()) {
+					if (!_selectionRoundCheckbox) {
+						_selectionRoundCheckbox
+							= std::make_unique<Ui::RoundCheckbox>(
+								st::msgSelectionCheck,
+								[this] { repaint(); });
+					}
 				}
+				if (_selectionRoundCheckbox) {
+					_selectionRoundCheckbox->setChecked(
+						context.selected(),
+						anim::type::normal);
+				}
+				const auto o = ScopedPainterOpacity(p, progress);
+				const auto &st = st::msgSelectionCheck;
+				const auto right = (delegate()->elementChatMode()
+					== ElementChatMode::Wide)
+					? std::min(
+						int(_bubbleWidthLimit
+							+ st::msgPhotoSkip
+							+ st::msgSelectionOffset
+							+ st::msgPadding.left()
+							+ st.size),
+						width())
+					: width();
+				const auto pos = QPoint(
+					(right
+						- (st::msgSelectionOffset * progress - st.size) / 2
+						- st::msgPadding.right() / 2
+						- st.size
+						- st::historyScroll.deltax),
+					rect::bottom(g) - st.size - st::msgSelectionBottomSkip);
+				{
+					p.setPen(QPen(st.border, st.width));
+					p.setBrush(context.st->msgServiceBg());
+					auto hq = PainterHighQualityEnabler(p);
+					p.drawEllipse(QRect(pos, Size(st.size)));
+				}
+				if (_selectionRoundCheckbox) {
+					_selectionRoundCheckbox->paint(
+						p,
+						pos.x(),
+						pos.y(),
+						width());
+				}
+			} else {
+				_selectionRoundCheckbox = nullptr;
 			}
-			if (_selectionRoundCheckbox) {
-				_selectionRoundCheckbox->setChecked(
-					context.selected(),
-					anim::type::normal);
-			}
-			const auto o = ScopedPainterOpacity(p, progress);
-			const auto &st = st::msgSelectionCheck;
-			const auto right = (delegate()->elementChatMode()
-				== ElementChatMode::Wide)
-				? std::min(
-					int(_bubbleWidthLimit
-						+ st::msgPhotoSkip
-						+ st::msgSelectionOffset
-						+ st::msgPadding.left()
-						+ st.size),
-					width())
-				: width();
-			const auto pos = QPoint(
-				(right
-					- (st::msgSelectionOffset * progress - st.size) / 2
-					- st::msgPadding.right() / 2
-					- st.size
-					- st::historyScroll.deltax),
-				rect::bottom(g) - st.size - st::msgSelectionBottomSkip);
-			{
-				p.setPen(QPen(st.border, st.width));
-				p.setBrush(context.st->msgServiceBg());
-				auto hq = PainterHighQualityEnabler(p);
-				p.drawEllipse(QRect(pos, Size(st.size)));
-			}
-			if (_selectionRoundCheckbox) {
-				_selectionRoundCheckbox->paint(p, pos.x(), pos.y(), width());
-			}
-		} else {
-			_selectionRoundCheckbox = nullptr;
 		}
-	} else {
+	} else if (!context.skipSelectionCheck) {
 		_selectionRoundCheckbox = nullptr;
 	}
 }
@@ -4503,6 +4526,9 @@ bool Message::unwrapped() const {
 }
 
 int Message::minWidthForMedia() const {
+	if (Get<InstantViewMediaRuntime>()) {
+		return 0;
+	}
 	auto result = infoWidth() + 2 * (st::msgDateImgDelta + st::msgDateImgPadding.x());
 	const auto views = data()->Get<HistoryMessageViews>();
 	if (data()->repliesAreComments() && !views->replies.text.isEmpty()) {
@@ -5228,7 +5254,9 @@ int Message::resizeContentGetHeight(int newWidth) {
 		}
 	}
 	accumulate_min(contentWidth, maxWidth());
-	_bubbleWidthLimit = std::max(st::msgMaxWidth, monospaceMaxWidth());
+	_bubbleWidthLimit = (UnlimitedMessageWidth.value() && !mediaDisplayed)
+		? 0x3FFFFFF
+		: std::max(st::msgMaxWidth, monospaceMaxWidth());
 	accumulate_min(contentWidth, int(_bubbleWidthLimit));
 	const auto textualWidth = bubbleTextualWidth();
 	if (mediaDisplayed) {

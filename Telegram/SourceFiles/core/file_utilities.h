@@ -7,6 +7,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #pragma once
 
+#include <QtCore/QUrl>
+
 namespace Main {
 class Session;
 } // namespace Main

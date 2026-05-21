@@ -71,6 +71,10 @@ bool Data::partial() const {
 
 Data::~Data() = default;
 
+const Source &Data::source() const {
+	return *_source;
+}
+
 void Data::updateCachedViews(int cachedViews) {
 	_source->updatedCachedViews = std::max(
 		_source->updatedCachedViews,

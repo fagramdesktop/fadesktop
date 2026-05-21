@@ -1,3 +1,13 @@
+6.8.3 beta (19.05.26)
+
+- In-app markdown file viewer.
+- Native Instant View support.
+- Native external webapp viewer on Linux.
+- Screen reader support for chat list and message list.
+- Fix Ctrl+Shift+V on non-English layouts.
+- Upgrade to Qt 6.11.1 on macOS and Linux.
+- Test QRhi for Thanos effect on Qt 6.11.1.
+
 6.8.2 (12.05.26)
 
 - Fix non-premium sending of existing custom reactions.

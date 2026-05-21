@@ -708,8 +708,9 @@ object_ptr<Ui::RpWidget> CreateUserpicsTransfer(
 
 			pen.setWidthF(drawCornerPeer ? stroke * 2 : stroke);
 			q.setPen(pen);
-			q.drawEllipse(x - half, y - half, w + stroke, h + stroke);
 			if (drawCornerPeer) {
+				q.setBrush(Qt::NoBrush);
+				q.drawEllipse(x - half, y - half, w + stroke, h + stroke);
 				drawCornerPeer(
 					q,
 					x - half,
@@ -722,6 +723,7 @@ object_ptr<Ui::RpWidget> CreateUserpicsTransfer(
 					QPointF(x, y));
 				brush.setStops(Ui::Premium::ButtonGradientStops());
 				q.setBrush(brush);
+				q.drawEllipse(x - half, y - half, w + stroke, h + stroke);
 				icon.paint(q, x + skip, y + skip, outerw);
 			}
 		}

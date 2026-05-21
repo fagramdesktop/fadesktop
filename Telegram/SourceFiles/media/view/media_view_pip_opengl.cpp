@@ -308,6 +308,12 @@ void Pip::RendererGL::paintTransformedVideoFrame(
 		Assert(!data.image.isNull());
 		paintTransformedStaticContent(data.image, geometry);
 		return;
+	} else if (data.format == Streaming::FrameFormat::NativeTexture) {
+		const auto image = _owner->currentVideoFrameImage();
+		if (!image.isNull()) {
+			paintTransformedStaticContent(image, geometry);
+		}
+		return;
 	}
 	Assert(!data.yuv->size.isEmpty());
 	const auto program = (data.format == Streaming::FrameFormat::NV12)

@@ -396,6 +396,8 @@ void Document::createComponents() {
 		if (_data->hasThumbnail() && !_data->isSong()) {
 			_data->loadThumbnail(_realParent->fullId());
 			mask |= HistoryDocumentThumbed::Bit();
+		} else if (_data->isSvgImage()) {
+			mask |= HistoryDocumentThumbed::Bit();
 		}
 	}
 	UpdateComponents(mask);
@@ -509,11 +511,15 @@ QSize Document::countOptimalSize() {
 	auto thumbed = Get<HistoryDocumentThumbed>();
 	const auto &st = thumbed ? st::msgFileThumbLayout : st::msgFileLayout;
 	if (thumbed) {
-		const auto &location = _data->thumbnailLocation();
-		auto tw = style::ConvertScale(location.width());
-		auto th = style::ConvertScale(location.height());
-		if (tw > th) {
-			thumbed->thumbw = (tw * st.thumbSize) / th;
+		if (_data->hasThumbnail()) {
+			const auto &location = _data->thumbnailLocation();
+			auto tw = style::ConvertScale(location.width());
+			auto th = style::ConvertScale(location.height());
+			if (tw > th) {
+				thumbed->thumbw = (tw * st.thumbSize) / th;
+			} else {
+				thumbed->thumbw = st.thumbSize;
+			}
 		} else {
 			thumbed->thumbw = st.thumbSize;
 		}
@@ -1020,9 +1026,16 @@ void Document::validateThumbnail(
 		not_null<const HistoryDocumentThumbed*> thumbed,
 		int size,
 		Ui::BubbleRounding rounding) const {
-	const auto normal = _dataMedia->thumbnail();
+	const auto good = _data->isSvgImage()
+		? _dataMedia->goodThumbnail()
+		: nullptr;
+	const auto normal = good ? good : _dataMedia->thumbnail();
 	const auto blurred = _dataMedia->thumbnailInline();
 	if (!normal && !blurred) {
+		if (_data->isSvgImage()) {
+			_dataMedia->goodThumbnailWanted();
+			Data::DocumentMedia::CheckGoodThumbnail(_data);
+		}
 		return;
 	}
 	const auto outer = QSize(size, size);
@@ -1078,6 +1091,10 @@ void Document::ensureDataMediaCreated() const {
 		|| _data->isSongWithCover()
 		|| _transcribedRound) {
 		_dataMedia->thumbnailWanted(_realParent->fullId());
+	}
+	if (_data->isSvgImage()) {
+		_dataMedia->goodThumbnailWanted();
+		Data::DocumentMedia::CheckGoodThumbnail(_data);
 	}
 	history()->owner().registerHeavyViewPart(_parent);
 }

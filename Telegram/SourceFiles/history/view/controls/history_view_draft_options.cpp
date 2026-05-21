@@ -74,6 +74,7 @@ public:
 	bool elementAnimationsPaused() override;
 	not_null<Ui::PathShiftGradient*> elementPathShiftGradient() override;
 	Context elementContext() override;
+	bool elementHideReply(not_null<const Element*> view) override;
 
 private:
 	const not_null<QWidget*> _parent;
@@ -681,6 +682,14 @@ auto PreviewDelegate::elementPathShiftGradient()
 
 Context PreviewDelegate::elementContext() {
 	return Context::Replies;
+}
+
+bool PreviewDelegate::elementHideReply(not_null<const Element*> view) {
+	if (!view->isTopicRootReply()) {
+		return false;
+	}
+	const auto reply = view->data()->Get<HistoryMessageReply>();
+	return reply && !reply->fields().manualQuote;
 }
 
 void AddFilledSkip(not_null<Ui::VerticalLayout*> container) {

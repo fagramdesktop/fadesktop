@@ -77,4 +77,8 @@ enum class InfoDisplayType : char {
 	Background,
 };
 
+[[nodiscard]] not_null<HistoryItem*> LookupItemByPoint(
+	not_null<Element*> view,
+	QPoint itemPoint);
+
 } // namespace HistoryView

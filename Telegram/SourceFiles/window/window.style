@@ -340,7 +340,7 @@ windowFeeItem: Menu(defaultMenu) {
 	itemFgDisabled: windowFg;
 }
 
-ivWidthMin: 380px;
+ivWidthMin: 384px;
 ivHeightMin: 480px;
 ivWidthDefault: 600px;
 ivHeightDefault: 800px;

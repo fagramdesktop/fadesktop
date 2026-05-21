@@ -36,6 +36,7 @@ ThreeStateIcon {
 }
 
 VerifiedBadge {
+	position: point;
 	color: color;
 	height: pixels;
 }
@@ -436,6 +437,7 @@ dialogsLockIcon: ThreeStateIcon {
 dialogsVerifiedColors: VerifiedBadge {
 	height: 20px;
 	color: dialogsVerifiedIconBg;
+	position: point(-1px, 0px);
 }
 dialogsVerifiedColorsOver: VerifiedBadge(dialogsVerifiedColors) {
 	color: dialogsVerifiedIconBgOver;
@@ -892,6 +894,12 @@ dialogsTopBarSuggestionTitleStyle: TextStyle(defaultTextStyle) {
 }
 dialogsTopBarSuggestionAboutStyle: TextStyle(defaultTextStyle) {
 	font: font(11px);
+}
+dialogsTopBarSuggestionMargins: margins(8px, 8px, 8px, 8px);
+dialogsTopBarSuggestionShadow: BoxShadow {
+	blurRadius: 8px;
+	offset: point(0px, 2px);
+	opacity: 0.18;
 }
 dialogsSuggestionDeniedAuthLottie: size(70px, 70px);
 dialogsSuggestionDeniedAuthLottieCircle: size(90px, 90px);

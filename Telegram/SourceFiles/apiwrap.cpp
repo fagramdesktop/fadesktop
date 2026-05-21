@@ -2580,6 +2580,13 @@ void ApiWrap::refreshFileReference(
 	};
 	v::match(origin.data, [&](Data::FileOriginMessage data) {
 		if (const auto item = _session->data().message(data)) {
+			if (const auto iv = item->Get<HistoryMessageMediaForInstantView>()) {
+				if (!iv->url.isEmpty()) {
+					return refreshFileReference(
+						Data::FileOriginWebPage{ iv->url },
+						std::move(handler));
+				}
+			}
 			const auto media = item->media();
 			const auto mediaStory = media ? media->storyId() : FullStoryId();
 			const auto storyId = mediaStory

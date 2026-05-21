@@ -83,6 +83,8 @@ const char kModerateCommonGroups[] = "moderate-common-groups";
 
 namespace {
 
+constexpr auto kModerateMessagesBoxAnimationDuration = crl::time(80);
+
 struct ModerateOptions final {
 	bool reportSpam = false;
 	bool deleteAllMessages = false;
@@ -419,6 +421,8 @@ void CreateModerateMessagesBox(
 	const auto &items = entry.items;
 	const auto reaction = entry.reaction;
 	Expects(!items.empty() || reaction.has_value());
+
+	box->setLayerAnimationDuration(kModerateMessagesBoxAnimationDuration);
 
 	const auto hasItems = !items.empty();
 	const auto hasReaction = reaction.has_value();

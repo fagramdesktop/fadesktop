@@ -1,0 +1,55 @@
+#version 450
+
+layout(local_size_x = 64) in;
+
+struct Particle {
+	vec2 offset;
+	vec2 velocity;
+	float lifetime;
+	float _pad;
+};
+
+layout(std430, binding = 0) buffer Particles {
+	Particle particles[];
+};
+
+layout(std140, binding = 1) uniform Params {
+	uint particleCountX;
+	uint particleCountY;
+	uint seed;
+	uint _pad;
+};
+
+uint hash(uint x) {
+	x ^= x >> 16u;
+	x *= 0x45d9f3bu;
+	x ^= x >> 16u;
+	x *= 0x45d9f3bu;
+	x ^= x >> 16u;
+	return x;
+}
+
+float hashFloat(uint x) {
+	return float(hash(x)) / float(0xFFFFFFFFu);
+}
+
+void main() {
+	uint gid = gl_GlobalInvocationID.x;
+	uint count = particleCountX * particleCountY;
+	if (gid >= count) {
+		return;
+	}
+
+	uint s = gid * 3u + seed;
+
+	float direction = hashFloat(s) * (3.14159265 * 2.0);
+	float speed = (0.1 + hashFloat(s + 1u) * 0.1) * 320.0;
+
+	Particle p;
+	p.offset = vec2(0.0, 0.0);
+	p.velocity = vec2(cos(direction) * speed, sin(direction) * speed);
+	p.lifetime = 1.5 + hashFloat(s + 2u) * 1.5;
+	p._pad = 0.0;
+
+	particles[gid] = p;
+}

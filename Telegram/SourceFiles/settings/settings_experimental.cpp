@@ -11,14 +11,18 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "main/main_session.h"
 #include "ui/boxes/confirm_box.h"
+#include "ui/search_field_controller.h"
 #include "ui/text/text_entity.h"
 #include "ui/widgets/menu/menu_add_action_callback.h"
+#include "ui/widgets/fields/input_field.h"
+#include "ui/wrap/padding_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
 #include "ui/vertical_list.h"
 #include "ui/gl/gl_detection.h"
+#include "ui/chat/attach/attach_bot_webview.h"
 #include "ui/chat/chat_style_radius.h"
 #include "ui/controls/compose_ai_button_factory.h"
 #include "base/options.h"
@@ -30,6 +34,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "dialogs/dialogs_widget.h"
 #include "dialogs/ui/dialogs_layout.h"
 #include "history/history_item_components.h"
+#include "history/view/history_view_message.h"
 #include "info/profile/info_profile_actions.h"
 #include "lang/lang_keys.h"
 #include "mainwindow.h"
@@ -44,6 +49,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "window/notifications_manager.h"
 #include "info/info_flexible_scroll.h"
 #include "chat_helpers/stickers_list_widget.h"
+#include "styles/style_info.h"
 #include "styles/style_settings.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
@@ -102,9 +108,18 @@ void AddOption(
 		not_null<Ui::VerticalLayout*> container,
 		base::options::option<bool> &option,
 		rpl::producer<> resetClicks,
-		rpl::producer<> reloadOptionsRequests) {
-	auto &lifetime = container->lifetime();
+		rpl::producer<> reloadOptionsRequests,
+		rpl::producer<QString> query) {
 	const auto name = option.name().isEmpty() ? option.id() : option.name();
+	const auto &description = option.description();
+
+	const auto wrap = container->add(
+		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+			container,
+			object_ptr<Ui::VerticalLayout>(container)));
+	const auto inner = wrap->entity();
+
+	auto &lifetime = inner->lifetime();
 	const auto toggles = lifetime.make_state<rpl::event_stream<bool>>();
 	std::move(
 		resetClicks
@@ -115,8 +130,8 @@ void AddOption(
 		toggles->fire_copy(option.value());
 	}, lifetime);
 
-	const auto button = container->add(object_ptr<Button>(
-		container,
+	const auto button = inner->add(object_ptr<Button>(
+		inner,
 		rpl::single(name),
 		(option.relevant()
 			? st::settingsButtonNoIcon
@@ -152,35 +167,51 @@ void AddOption(
 		if (restarter) {
 			restarter->callOnce(st::settingsButtonNoIcon.toggle.duration);
 		}
-	}, container->lifetime());
+	}, inner->lifetime());
 
-	const auto &description = option.description();
 	if (!description.isEmpty()) {
-		Ui::AddSkip(container, st::settingsCheckboxesSkip);
-		Ui::AddDividerText(container, rpl::single(description));
-		Ui::AddSkip(container, st::settingsCheckboxesSkip);
+		Ui::AddSkip(inner, st::settingsCheckboxesSkip);
+		Ui::AddDividerText(inner, rpl::single(description));
+		Ui::AddSkip(inner, st::settingsCheckboxesSkip);
 	}
+
+	std::move(
+		query
+	) | rpl::on_next([=](const QString &text) {
+		const auto trimmed = text.trimmed();
+		const auto matches = trimmed.isEmpty()
+			|| name.contains(trimmed, Qt::CaseInsensitive)
+			|| description.contains(trimmed, Qt::CaseInsensitive);
+		wrap->toggle(matches, anim::type::instant);
+	}, wrap->lifetime());
 }
 
 void SetupExperimental(
 		not_null<Window::Controller*> window,
 		not_null<Ui::VerticalLayout*> container,
-		rpl::producer<> reloadOptionsRequests) {
-	Ui::AddSkip(container, st::settingsCheckboxesSkip);
-
-	container->add(
-		object_ptr<Ui::FlatLabel>(
+		rpl::producer<> reloadOptionsRequests,
+		rpl::producer<QString> query) {
+	const auto headerWrap = container->add(
+		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
 			container,
+			object_ptr<Ui::VerticalLayout>(container)));
+	const auto header = headerWrap->entity();
+
+	Ui::AddSkip(header, st::settingsCheckboxesSkip);
+
+	header->add(
+		object_ptr<Ui::FlatLabel>(
+			header,
 			tr::lng_settings_experimental_about(),
 			st::boxLabel),
 		st::defaultBoxDividerLabelPadding);
 
 	auto reset = (Button*)nullptr;
 	if (base::options::changed()) {
-		const auto wrap = container->add(
+		const auto wrap = header->add(
 			object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-				container,
-				object_ptr<Ui::VerticalLayout>(container)));
+				header,
+				object_ptr<Ui::VerticalLayout>(header)));
 		const auto inner = wrap->entity();
 		Ui::AddDivider(inner);
 		Ui::AddSkip(inner, st::settingsCheckboxesSkip);
@@ -195,8 +226,14 @@ void SetupExperimental(
 		Ui::AddSkip(inner, st::settingsCheckboxesSkip);
 	}
 
-	Ui::AddDivider(container);
-	Ui::AddSkip(container, st::settingsCheckboxesSkip);
+	Ui::AddDivider(header);
+	Ui::AddSkip(header, st::settingsCheckboxesSkip);
+
+	rpl::duplicate(
+		query
+	) | rpl::on_next([=](const QString &text) {
+		headerWrap->toggle(text.trimmed().isEmpty(), anim::type::instant);
+	}, headerWrap->lifetime());
 
 	const auto addToggle = [&](const char name[]) {
 		AddOption(
@@ -206,7 +243,8 @@ void SetupExperimental(
 			(reset
 				? (reset->clicks() | rpl::to_empty)
 				: rpl::producer<>()),
-			rpl::duplicate(reloadOptionsRequests));
+			rpl::duplicate(reloadOptionsRequests),
+			rpl::duplicate(query));
 	};
 
 	addToggle(ChatHelpers::kOptionTabbedPanelShowOnClick);
@@ -214,10 +252,12 @@ void SetupExperimental(
 	addToggle(Dialogs::Ui::kOptionDialogsMuteIcon);
 	addToggle(Core::kOptionFractionalScalingEnabled);
 	addToggle(Core::kOptionHighDpiDownscale);
+	addToggle(Core::kOptionUseQtRhi);
 	addToggle(Window::kOptionViewProfileInChatsListContextMenu);
 	// addToggle(Info::Profile::kOptionShowPeerIdBelowAbout);
 	addToggle(Info::Profile::kOptionShowChannelJoinedBelowAbout);
 	addToggle(Ui::kOptionUseSmallMsgBubbleRadius);
+	addToggle(Ui::BotWebView::kOptionLinuxExternalBotWebApps);
 	addToggle(Media::Player::kOptionDisableAutoplayNext);
 	addToggle(Webview::kOptionWebviewDebugEnabled);
 	addToggle(Webview::kOptionWebviewLegacyEdge);
@@ -240,6 +280,7 @@ void SetupExperimental(
 	addToggle(kForceComposeSearchOneColumn);
 	addToggle(ChatHelpers::kOptionUnlimitedRecentStickers);
 	addToggle(Ui::kOptionHideAiButton);
+	addToggle(HistoryView::kOptionUnlimitedMessageWidth);
 }
 
 } // namespace
@@ -250,6 +291,8 @@ Experimental::Experimental(
 : Section(parent, controller) {
 	setupContent();
 }
+
+Experimental::~Experimental() = default;
 
 rpl::producer<QString> Experimental::title() {
 	return tr::lng_settings_experimental();
@@ -290,13 +333,52 @@ void Experimental::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 		&st::menuIconImportTheme);
 }
 
+void Experimental::setInnerFocus() {
+	if (_searchField) {
+		_searchField->setFocus();
+	} else {
+		setFocus();
+	}
+}
+
+base::weak_qptr<Ui::RpWidget> Experimental::createPinnedToTop(
+		not_null<QWidget*> parent) {
+	_searchController = std::make_unique<Ui::SearchFieldController>(
+		_query.current());
+	auto rowView = _searchController->createRowView(
+		parent,
+		st::infoLayerMediaSearch);
+	_searchField = rowView.field;
+
+	const auto searchContainer = Ui::CreateChild<Ui::FixedHeightWidget>(
+		parent.get(),
+		st::infoLayerMediaSearch.height);
+	const auto wrap = rowView.wrap.release();
+	wrap->setParent(searchContainer);
+	wrap->show();
+
+	searchContainer->widthValue(
+	) | rpl::on_next([=](int width) {
+		wrap->resizeToWidth(width);
+		wrap->moveToLeft(0, 0);
+	}, searchContainer->lifetime());
+
+	_searchController->queryValue(
+	) | rpl::on_next([=](QString text) {
+		_query = std::move(text);
+	}, searchContainer->lifetime());
+
+	return base::make_weak(not_null<Ui::RpWidget*>{ searchContainer });
+}
+
 void Experimental::setupContent() {
 	const auto content = Ui::CreateChild<Ui::VerticalLayout>(this);
 
 	SetupExperimental(
 		&controller()->window(),
 		content,
-		_reloadOptionsRequests.events());
+		_reloadOptionsRequests.events(),
+		_query.value());
 
 	Ui::ResizeFitChild(this, content);
 }

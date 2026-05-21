@@ -431,7 +431,7 @@ int PeerBadge::drawVerified(
 		icon->paint(p, {
 			.textColor = st.color->c,
 			.now = crl::now(),
-			.position = position,
+			.position = position + st.position,
 		});
 		return icon->width();
 	}

@@ -306,6 +306,8 @@ private:
 		Ui::BotWebView::SetEmojiStatusRequest request) override;
 	void botDownloadFile(
 		Ui::BotWebView::DownloadFileRequest request) override;
+	void botResolveButtonEmoji(
+		Ui::BotWebView::ResolveButtonEmojiRequest request) override;
 	void botVerifyAge(int age) override;
 	void botOpenPrivacyPolicy() override;
 	void botClose() override;

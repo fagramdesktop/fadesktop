@@ -398,6 +398,8 @@ PRIVATE
     boxes/BaseTranslator.h
     boxes/GoogleAppTranslator.h
     boxes/GoogleAppTranslator.cpp
+    boxes/unconfirmed_auth_denied_box.cpp
+    boxes/unconfirmed_auth_denied_box.h
     boxes/url_auth_box.cpp
     boxes/url_auth_box.h
     boxes/username_box.cpp
@@ -442,6 +444,8 @@ PRIVATE
     calls/group/calls_group_viewport_opengl.h
     calls/group/calls_group_viewport_raster.cpp
     calls/group/calls_group_viewport_raster.h
+    calls/group/calls_group_viewport_rhi.cpp
+    calls/group/calls_group_viewport_rhi.h
     calls/group/calls_group_viewport_tile.cpp
     calls/group/calls_group_viewport_tile.h
     calls/group/calls_volume_item.cpp
@@ -790,6 +794,8 @@ PRIVATE
     dialogs/dialogs_indexed_list.h
     dialogs/dialogs_inner_widget.cpp
     dialogs/dialogs_inner_widget.h
+    dialogs/dialogs_inner_widget_accessibility.cpp
+    dialogs/dialogs_inner_widget_accessibility.h
     dialogs/dialogs_key.cpp
     dialogs/dialogs_key.h
     dialogs/dialogs_list.cpp
@@ -810,6 +816,18 @@ PRIVATE
     dialogs/dialogs_search_posts.h
     dialogs/dialogs_top_bar_suggestion.cpp
     dialogs/dialogs_top_bar_suggestion.h
+    dialogs/dialogs_top_bar_suggestion_test.cpp
+    dialogs/suggestions/suggestion.cpp
+    dialogs/suggestions/suggestion.h
+    dialogs/suggestions/suggestion_birthday_contacts.cpp
+    dialogs/suggestions/suggestion_birthday_setup.cpp
+    dialogs/suggestions/suggestion_custom_promo.cpp
+    dialogs/suggestions/suggestion_gift_auctions.cpp
+    dialogs/suggestions/suggestion_low_credits_subs.cpp
+    dialogs/suggestions/suggestion_premium_grace.cpp
+    dialogs/suggestions/suggestion_premium_offer.cpp
+    dialogs/suggestions/suggestion_unreviewed_auth.cpp
+    dialogs/suggestions/suggestion_userpic_setup.cpp
     dialogs/dialogs_widget.cpp
     dialogs/dialogs_widget.h
     editor/color_picker.cpp
@@ -1111,6 +1129,8 @@ PRIVATE
     history/history_item_text.h
     history/history_inner_widget.cpp
     history/history_inner_widget.h
+    history/history_inner_widget_accessibility.cpp
+    history/history_inner_widget_accessibility.h
     history/history_location_manager.cpp
     history/history_location_manager.h
     history/history_streamed_drafts.cpp
@@ -1318,6 +1338,8 @@ PRIVATE
     intro/intro_step.h
     intro/intro_widget.cpp
     intro/intro_widget.h
+    iv/iv_cached_media.cpp
+    iv/iv_cached_media.h
     iv/iv_delegate_impl.cpp
     iv/iv_delegate_impl.h
     iv/iv_instance.cpp
@@ -1439,6 +1461,7 @@ PRIVATE
     media/streaming/media_streaming_utility.h
     media/streaming/media_streaming_video_track.cpp
     media/streaming/media_streaming_video_track.h
+    media/streaming/media_streaming_native_frame_mac.h
     media/view/media_view_group_thumbs.cpp
     media/view/media_view_group_thumbs.h
     media/view/media_view_open_common.cpp
@@ -1447,6 +1470,9 @@ PRIVATE
     media/view/media_view_overlay_opengl.h
     media/view/media_view_overlay_raster.cpp
     media/view/media_view_overlay_raster.h
+    media/view/media_view_overlay_rhi.cpp
+    media/view/media_view_overlay_rhi.h
+    media/view/media_view_metal_texture.h
     media/view/media_view_overlay_renderer.h
     media/view/media_view_overlay_widget.cpp
     media/view/media_view_overlay_widget.h
@@ -1456,6 +1482,8 @@ PRIVATE
     media/view/media_view_pip_opengl.h
     media/view/media_view_pip_raster.cpp
     media/view/media_view_pip_raster.h
+    media/view/media_view_pip_rhi.cpp
+    media/view/media_view_pip_rhi.h
     media/view/media_view_pip_renderer.h
     media/view/media_view_playback_controls.cpp
     media/view/media_view_playback_controls.h
@@ -1850,6 +1878,14 @@ PRIVATE
     ui/effects/message_sending_animation_controller.h
     ui/effects/reaction_fly_animation.cpp
     ui/effects/reaction_fly_animation.h
+    ui/effects/thanos_effect.cpp
+    ui/effects/thanos_effect.h
+    ui/effects/thanos_effect_controller.cpp
+    ui/effects/thanos_effect_controller.h
+    ui/effects/thanos_effect_renderer.cpp
+    ui/effects/thanos_effect_renderer.h
+    ui/effects/thanos_effect_session.cpp
+    ui/effects/thanos_effect_session.h
     ui/effects/send_action_animations.cpp
     ui/effects/send_action_animations.h
     ui/image/image.cpp
@@ -1968,6 +2004,8 @@ if (APPLE)
     nice_target_sources(Telegram ${src_loc}
     PRIVATE
         tray_accounts_menu.cpp
+        media/view/media_view_metal_texture.mm
+        media/streaming/media_streaming_native_frame_mac.mm
     )
 else()
     nice_target_sources(Telegram ${src_loc}
@@ -2012,6 +2050,8 @@ PRIVATE
     langs/cloud_lang.strings
     numbers.txt
 )
+
+include(cmake/qrhi_shaders.cmake)
 
 if (APPLE AND NOT build_macstore)
     nice_target_sources(Telegram ${res_loc}
@@ -2105,6 +2145,7 @@ elseif (APPLE)
         COMMAND mkdir -p $<TARGET_FILE_DIR:Telegram>/../Resources
         COMMAND cp ${CMAKE_BINARY_DIR}/lib_ui.rcc $<TARGET_FILE_DIR:Telegram>/../Resources
         COMMAND cp ${CMAKE_BINARY_DIR}/lib_spellcheck.rcc $<TARGET_FILE_DIR:Telegram>/../Resources
+        COMMAND cp ${CMAKE_BINARY_DIR}/external_microtex_bundled.rcc $<TARGET_FILE_DIR:Telegram>/../Resources
     )
     if (NOT build_macstore AND NOT DESKTOP_APP_DISABLE_CRASH_REPORTS)
         if (DESKTOP_APP_USE_PACKAGED)
@@ -2121,6 +2162,11 @@ elseif (APPLE)
         )
     endif()
 else()
+    nice_target_sources(Telegram ${res_loc}
+    PRIVATE
+        qrc/telegram/bot_webview_shell.qrc
+    )
+
     include(${cmake_helpers_loc}/external/glib/generate_dbus.cmake)
     generate_dbus(Telegram org.freedesktop.portal. XdpBackground ${third_party_loc}/xdg-desktop-portal/data/org.freedesktop.portal.Background.xml)
     generate_dbus(Telegram org.freedesktop. XdgNotifications ${src_loc}/platform/linux/org.freedesktop.Notifications.xml)

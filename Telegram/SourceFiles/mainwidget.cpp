@@ -794,7 +794,10 @@ void MainWidget::searchMessages(
 		return;
 	}
 	auto tags = Data::SearchTagsFromQuery(query);
+	const auto archiveWindow = (_controller->windowId().type
+		== Window::SeparateType::Archive);
 	if (_dialogs
+		&& !archiveWindow
 		&& (!ForceComposeSearchOneColumn.value() || !isOneColumn())) {
 		auto state = Dialogs::SearchState{
 			.inChat = ((tags.empty() || inChat.sublist())

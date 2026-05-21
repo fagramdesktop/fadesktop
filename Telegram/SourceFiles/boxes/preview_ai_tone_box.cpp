@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/preview_ai_tone_box.h"
 
 #include "boxes/create_ai_tone_box.h"
+#include "core/click_handler_types.h"
 #include "core/ui_integration.h"
 #include "data/data_ai_compose_tones.h"
 #include "data/data_session.h"
@@ -412,7 +413,8 @@ void ShowToneRemovedToast(std::shared_ptr<Ui::Show> show, bool deleted) {
 void PreviewAiToneBox(
 		not_null<Ui::GenericBox*> box,
 		not_null<Main::Session*> session,
-		Data::AiComposeTone tone) {
+		Data::AiComposeTone tone,
+		base::weak_ptr<Window::SessionController> controller) {
 	box->setStyle(st::aiComposeBox);
 	box->setNoContentMargin(true);
 	box->setWidth(st::boxWideWidth);
@@ -533,6 +535,17 @@ void PreviewAiToneBox(
 		attribution->setMarkedText(
 			std::move(text),
 			Core::TextContext({ .session = session }));
+		attribution->setClickHandlerFilter([=](
+				const ClickHandlerPtr &handler,
+				Qt::MouseButton button) {
+			ActivateClickHandler(attribution, handler, ClickContext{
+				.button = button,
+				.other = QVariant::fromValue(ClickHandlerContext{
+					.sessionWindow = controller,
+				}),
+			});
+			return false;
+		});
 	}
 	Ui::AddSkip(body, st::aiTonePreviewBottomSkip);
 

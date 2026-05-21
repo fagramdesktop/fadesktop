@@ -15,15 +15,14 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "base/qthelp_url.h"
 #include "core/file_utilities.h"
 #include "iv/iv_data.h"
+#include "iv/iv_zoom_controls.h"
 #include "lang/lang_keys.h"
 #include "ui/chat/attach/attach_bot_webview.h"
 #include "ui/platform/ui_platform_window_title.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
-#include "ui/widgets/menu/menu_action.h"
 #include "ui/widgets/rp_window.h"
 #include "ui/widgets/popup_menu.h"
-#include "ui/widgets/tooltip.h"
 #include "ui/wrap/fade_wrap.h"
 #include "ui/basic_click_handlers.h"
 #include "ui/painter.h"
@@ -37,7 +36,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_iv.h"
 #include "styles/style_menu_icons.h"
 #include "styles/style_payments.h" // paymentsCriticalError
-#include "styles/style_widgets.h"
 #include "styles/style_window.h"
 
 #include <QtCore/QRegularExpression>
@@ -46,6 +44,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <QtCore/QJsonValue>
 #include <QtCore/QFile>
 #include <QtGui/QGuiApplication>
+#include <QtGui/QKeySequence>
 #include <QtGui/QPainter>
 #include <QtGui/QWindow>
 #include <charconv>
@@ -56,174 +55,7 @@ namespace Iv {
 namespace {
 
 constexpr auto kZoomStep = int(10);
-constexpr auto kZoomSmallStep = int(5);
-constexpr auto kZoomTinyStep = int(1);
 constexpr auto kDefaultZoom = int(100);
-
-class ItemZoom final
-	: public Ui::Menu::Action
-	, public Ui::AbstractTooltipShower {
-public:
-	ItemZoom(
-		not_null<Ui::PopupMenu*> parent,
-		const not_null<Delegate*> delegate,
-		const style::Menu &st)
-	: Ui::Menu::Action(
-		parent->menu(),
-		st,
-		Ui::CreateChild<QAction>(parent),
-		nullptr,
-		nullptr)
-	, _delegate(delegate)
-	, _st(st) {
-		init();
-	}
-
-	void init() {
-		enableMouseSelecting();
-
-		AbstractButton::setDisabled(true);
-
-		const auto processTooltip = [=](not_null<Ui::RpWidget*> w) {
-			w->events() | rpl::on_next([=](not_null<QEvent*> e) {
-				if (e->type() == QEvent::Enter) {
-					Ui::Tooltip::Show(1000, this);
-				} else if (e->type() == QEvent::Leave) {
-					Ui::Tooltip::Hide();
-				}
-			}, w->lifetime());
-		};
-
-		const auto reset = Ui::CreateChild<Ui::RoundButton>(
-			this,
-			rpl::single<QString>(QString()),
-			st::ivResetZoom);
-		processTooltip(reset);
-		const auto resetLabel = Ui::CreateChild<Ui::FlatLabel>(
-			reset,
-			tr::lng_background_reset_default(),
-			st::ivResetZoomLabel);
-		resetLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
-		reset->setClickedCallback([this] {
-			_delegate->ivSetZoom(0);
-		});
-		reset->show();
-		const auto plus = Ui::CreateSimpleCircleButton(
-			this,
-			st::defaultRippleAnimationBgOver);
-		plus->resize(Size(st::ivZoomButtonsSize));
-		plus->paintRequest() | rpl::on_next([=, fg = _st.itemFg] {
-			auto p = QPainter(plus);
-			p.setPen(fg);
-			p.setFont(st::normalFont);
-			p.drawText(plus->rect(), QChar('+'), style::al_center);
-		}, plus->lifetime());
-		processTooltip(plus);
-		const auto step = [] {
-			return base::IsAltPressed()
-				? kZoomTinyStep
-				: base::IsCtrlPressed()
-				? kZoomSmallStep
-				: kZoomStep;
-		};
-		plus->setClickedCallback([this, step] {
-			_delegate->ivSetZoom(_delegate->ivZoom() + step());
-		});
-		plus->show();
-		const auto minus = Ui::CreateSimpleCircleButton(
-			this,
-			st::defaultRippleAnimationBgOver);
-		minus->resize(Size(st::ivZoomButtonsSize));
-		minus->paintRequest() | rpl::on_next([=, fg = _st.itemFg] {
-			auto p = QPainter(minus);
-			const auto r = minus->rect();
-			p.setPen(fg);
-			p.setFont(st::normalFont);
-			p.drawText(
-				QRectF(r).translated(0, style::ConvertFloatScale(-1)),
-				QChar(0x2013),
-				style::al_center);
-		}, minus->lifetime());
-		processTooltip(minus);
-		minus->setClickedCallback([this, step] {
-			_delegate->ivSetZoom(_delegate->ivZoom() - step());
-		});
-		minus->show();
-
-		{
-			const auto maxWidthText = u"000%"_q;
-			_text.setText(_st.itemStyle, maxWidthText);
-			Ui::Menu::ItemBase::setMinWidth(
-				_text.maxWidth()
-					+ st::ivResetZoomInnerPadding
-					+ resetLabel->width()
-					+ plus->width()
-					+ minus->width()
-					+ _st.itemPadding.right() * 2);
-		}
-
-		_delegate->ivZoomValue(
-		) | rpl::on_next([this](int value) {
-			_text.setText(_st.itemStyle, QString::number(value) + '%');
-			update();
-		}, lifetime());
-
-		rpl::combine(
-			sizeValue(),
-			reset->sizeValue()
-		) | rpl::on_next([=](const QSize &size, const QSize &) {
-			reset->setFullWidth(0
-				+ resetLabel->width()
-				+ st::ivResetZoomInnerPadding);
-			resetLabel->moveToLeft(
-				(reset->width() - resetLabel->width()) / 2,
-				(reset->height() - resetLabel->height()) / 2);
-			reset->moveToRight(
-				_st.itemPadding.right(),
-				(size.height() - reset->height()) / 2);
-			plus->moveToRight(
-				_st.itemPadding.right() + reset->width(),
-				(size.height() - plus->height()) / 2);
-			minus->moveToRight(
-				_st.itemPadding.right() + plus->width() + reset->width(),
-				(size.height() - minus->height()) / 2);
-		}, lifetime());
-	}
-
-	void paintEvent(QPaintEvent *event) override {
-		auto p = QPainter(this);
-		p.setPen(_st.itemFg);
-		_text.draw(p, {
-			.position = QPoint(
-				_st.itemIconPosition.x(),
-				(height() - _text.minHeight()) / 2),
-			.outerWidth = width(),
-			.availableWidth = width(),
-		});
-	}
-
-	QString tooltipText() const override {
-#ifdef Q_OS_MAC
-		return tr::lng_iv_zoom_tooltip_cmd(tr::now);
-#else
-		return tr::lng_iv_zoom_tooltip_ctrl(tr::now);
-#endif
-	}
-
-	QPoint tooltipPos() const override {
-		return QCursor::pos();
-	}
-
-	bool tooltipWindowActive() const override {
-		return true;
-	}
-
-private:
-	const not_null<Delegate*> _delegate;
-	const style::Menu &_st;
-	Ui::Text::String _text;
-
-};
 
 [[nodiscard]] QByteArray ComputeStyles(int zoom) {
 	static const auto map = base::flat_map<QByteArray, const style::color*>{
@@ -1133,8 +965,7 @@ void Controller::showMenu() {
 	}, &st::menuIconShare);
 
 	_menu->addSeparator();
-	_menu->addAction(
-		base::make_unique_q<ItemZoom>(_menu, _delegate, _menu->menu()->st()));
+	_menu->addAction(CreateZoomMenuAction(_menu, _delegate));
 
 	_menu->setForcedOrigin(Ui::PanelAnimation::Origin::TopRight);
 	_menu->popup(_window->body()->mapToGlobal(

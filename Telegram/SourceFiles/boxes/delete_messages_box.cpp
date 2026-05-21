@@ -33,6 +33,12 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 
+namespace {
+
+constexpr auto kDeleteMessagesBoxAnimationDuration = crl::time(80);
+
+} // namespace
+
 DeleteMessagesBox::DeleteMessagesBox(
 	QWidget*,
 	not_null<HistoryItem*> item)
@@ -68,6 +74,10 @@ DeleteMessagesBox::DeleteMessagesBox(
 : _session(&peer->session())
 , _wipeHistoryPeer(peer)
 , _wipeHistoryJustClear(justClear) {
+}
+
+crl::time DeleteMessagesBox::layerAnimationDuration() const {
+	return kDeleteMessagesBoxAnimationDuration;
 }
 
 void DeleteMessagesBox::prepare() {
