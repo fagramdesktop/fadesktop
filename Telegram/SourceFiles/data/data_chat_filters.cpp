@@ -290,6 +290,101 @@ MTPDialogFilter ChatFilter::tl(FilterId replaceId) const {
 		MTP_vector<MTPInputPeer>(never));
 }
 
+ChatFilter ChatFilter::FromJson(
+		const QJsonObject &data,
+		not_null<Session*> owner) {
+	const auto id = FilterId(data.value("id").toInt());
+	const auto titleText = data.value("title").toString();
+	const auto iconEmoji = data.value("icon_emoji").toString();
+	const auto colorIdx = data.value("color_index").toInt(-1);
+	const auto flagsRaw = data.value("flags").toInt();
+	const auto isStatic = data.value("title_static").toBool();
+
+	auto entities = EntitiesInText();
+	for (const auto &e : data.value("title_entities").toArray()) {
+		const auto obj = e.toObject();
+		entities.push_back(EntityInText(
+			EntityType(obj.value("type").toInt()),
+			obj.value("offset").toInt(),
+			obj.value("length").toInt(),
+			obj.value("data").toString()));
+	}
+
+	const auto toPeers = [&](const QJsonArray &arr) {
+		auto result = base::flat_set<not_null<History*>>();
+		for (const auto &v : arr) {
+			const auto peerId = PeerId(v.toString().toULongLong());
+			if (peerId) {
+				result.insert(owner->history(peerId));
+			}
+		}
+		return result;
+	};
+	const auto toPinnedPeers = [&](const QJsonArray &arr) {
+		auto result = std::vector<not_null<History*>>();
+		for (const auto &v : arr) {
+			const auto peerId = PeerId(v.toString().toULongLong());
+			if (peerId) {
+				result.push_back(owner->history(peerId));
+			}
+		}
+		return result;
+	};
+
+	auto always = toPeers(data.value("always").toArray());
+	auto pinned = toPinnedPeers(data.value("pinned").toArray());
+	auto never = toPeers(data.value("never").toArray());
+
+	for (const auto &history : pinned) {
+		always.insert(history);
+	}
+
+	return ChatFilter(
+		id,
+		{ { titleText, entities }, isStatic },
+		iconEmoji,
+		(colorIdx >= 0)
+			? std::make_optional(uint8(colorIdx))
+			: std::nullopt,
+		Flags::from_raw(ushort(flagsRaw)),
+		std::move(always),
+		std::move(pinned),
+		std::move(never));
+}
+
+QJsonObject ChatFilter::toJson() const {
+	auto entities = QJsonArray();
+	for (const auto &e : _title.entities) {
+		entities.push_back(QJsonObject{
+			{ "type", int(e.type()) },
+			{ "offset", e.offset() },
+			{ "length", e.length() },
+			{ "data", e.data() },
+		});
+	}
+
+	const auto fromPeers = [](const auto &peers) {
+		auto arr = QJsonArray();
+		for (const auto &history : peers) {
+			arr.push_back(QString::number(history->peer->id.value));
+		}
+		return arr;
+	};
+
+	return QJsonObject{
+		{ "id", int(_id) },
+		{ "title", _title.text },
+		{ "title_entities", entities },
+		{ "title_static", !!(_flags & Flag::StaticTitle) },
+		{ "icon_emoji", _iconEmoji },
+		{ "color_index", _colorIndex ? int(*_colorIndex) : -1 },
+		{ "flags", int(_flags.value()) },
+		{ "always", fromPeers(_always) },
+		{ "pinned", fromPeers(_pinned) },
+		{ "never", fromPeers(_never) },
+	};
+}
+
 FilterId ChatFilter::id() const {
 	return _id;
 }
@@ -490,6 +585,18 @@ void ChatFilters::received(const QVector<MTPDialogFilter> &list) {
 
 	bool hide_all_chats_folder = FASettings::JsonSettings::GetBool("hide_all_chats_folder");
 
+	auto savedLocalFilters = std::vector<ChatFilter>();
+	for (auto &filter : _list) {
+		if (isLocalFilter(filter.id())) {
+			savedLocalFilters.push_back(std::move(filter));
+		}
+	}
+	_list.erase(
+		ranges::remove_if(_list, [&](const ChatFilter &f) {
+			return isLocalFilter(f.id());
+		}),
+		end(_list));
+
 	for (const auto &filter : list) {
 		auto parsed = ChatFilter::FromTL(filter, _owner);
 		if (hide_all_chats_folder && parsed.id() == 0 && list.size() > 1) {
@@ -519,6 +626,13 @@ void ChatFilters::received(const QVector<MTPDialogFilter> &list) {
 	if (!hide_all_chats_folder && !ranges::contains(begin(_list), end(_list), 0, &ChatFilter::id)) {
 		_list.insert(begin(_list), ChatFilter());
 	}
+
+	for (auto &filter : savedLocalFilters) {
+		_localFilterIds.insert(filter.id());
+		_list.push_back(std::move(filter));
+	}
+	loadLocalFilters();
+
 	if (changed || !_loaded || _reloading) {
 		_loaded = true;
 		_reloading = false;
@@ -666,12 +780,18 @@ void ChatFilters::set(ChatFilter filter) {
 	if (!filter.id()) {
 		return;
 	}
+	if (isLocalFilter(filter.id())) {
+		_localFilterIds.insert(filter.id());
+	}
 	const auto i = ranges::find(_list, filter.id(), &ChatFilter::id);
 	if (i == end(_list)) {
 		applyInsert(std::move(filter), _list.size());
 		_listChanged.fire({});
 	} else if (applyChange(*i, std::move(filter))) {
 		_listChanged.fire({});
+	}
+	if (isLocalFilter(filter.id())) {
+		saveLocalFilters();
 	}
 }
 
@@ -689,7 +809,12 @@ void ChatFilters::remove(FilterId id) {
 	if (i == end(_list)) {
 		return;
 	}
+	const auto wasLocal = isLocalFilter(id);
 	applyRemove(i - begin(_list));
+	if (wasLocal) {
+		_localFilterIds.remove(id);
+		saveLocalFilters();
+	}
 	_listChanged.fire({});
 }
 
@@ -879,17 +1004,21 @@ void ChatFilters::saveOrder(
 	const auto api = &_owner->session().api();
 	api->request(_saveOrderRequestId).cancel();
 
-	auto ids = QVector<MTPint>();
-	ids.reserve(order.size());
+	auto serverIds = QVector<MTPint>();
+	serverIds.reserve(order.size());
 	for (const auto id : order) {
-		ids.push_back(MTP_int(id));
+		if (!isLocalFilter(id)) {
+			serverIds.push_back(MTP_int(id));
+		}
 	}
-	const auto wrapped = MTP_vector<MTPint>(ids);
+	const auto wrapped = MTP_vector<MTPint>(serverIds);
 
 	apply(MTP_updateDialogFilterOrder(wrapped));
 	_saveOrderRequestId = api->request(MTPmessages_UpdateDialogFiltersOrder(
 		wrapped
 	)).afterRequest(_saveOrderAfterId).send();
+
+	saveLocalFilters();
 }
 
 bool ChatFilters::archiveNeeded() const {
@@ -1157,6 +1286,111 @@ void ChatFilters::loadMoreChatsList(FilterId id) {
 void ChatFilters::checkLoadMoreChatsLists() {
 	for (const auto &[id, entry] : _moreChatsData) {
 		loadMoreChatsList(id);
+	}
+}
+
+bool ChatFilters::isLocalFilter(FilterId id) const {
+	return id >= kLocalFilterIdBase;
+}
+
+FilterId ChatFilters::allocateLocalId() const {
+	auto id = kLocalFilterIdBase;
+	while (ranges::contains(_list, id, &ChatFilter::id)) {
+		++id;
+	}
+	return id;
+}
+
+void ChatFilters::saveLocalFilters() {
+	if (!FASettings::JsonSettings::GetBool("unlimited_chat_folders")) {
+		return;
+	}
+	const auto accountId = _owner->session().uniqueId();
+
+	auto folders = QJsonArray();
+	for (const auto &filter : _list) {
+		if (isLocalFilter(filter.id())) {
+			folders.push_back(filter.toJson());
+		}
+	}
+	FASettings::JsonSettings::Set(
+		"local_chat_folders",
+		folders,
+		accountId);
+
+	auto order = QJsonArray();
+	for (const auto &filter : _list) {
+		if (filter.id()) {
+			order.push_back(int(filter.id()));
+		}
+	}
+	FASettings::JsonSettings::Set(
+		"local_chat_folders_order",
+		order,
+		accountId);
+
+	FASettings::JsonSettings::Write();
+}
+
+void ChatFilters::loadLocalFilters() {
+	if (!FASettings::JsonSettings::GetBool("unlimited_chat_folders")) {
+		return;
+	}
+	const auto accountId = _owner->session().uniqueId();
+	const auto folders = FASettings::JsonSettings::GetJsonArray(
+		"local_chat_folders",
+		accountId);
+	if (folders.isEmpty()) {
+		return;
+	}
+
+	for (const auto &v : folders) {
+		const auto obj = v.toObject();
+		if (obj.isEmpty()) {
+			continue;
+		}
+		auto filter = ChatFilter::FromJson(obj, _owner);
+		if (!filter.id() || !isLocalFilter(filter.id())) {
+			continue;
+		}
+		if (ranges::contains(_list, filter.id(), &ChatFilter::id)) {
+			continue;
+		}
+		_localFilterIds.insert(filter.id());
+		_list.push_back(std::move(filter));
+	}
+
+	const auto savedOrder = FASettings::JsonSettings::GetJsonArray(
+		"local_chat_folders_order",
+		accountId);
+	if (!savedOrder.isEmpty()) {
+		auto ordered = std::vector<ChatFilter>();
+		ordered.reserve(_list.size());
+
+		for (const auto &v : savedOrder) {
+			const auto id = FilterId(v.toInt());
+			const auto i = ranges::find(
+				_list,
+				id,
+				&ChatFilter::id);
+			if (i != end(_list)) {
+				ordered.push_back(std::move(*i));
+			}
+		}
+		for (auto &filter : _list) {
+			if (filter.id()
+				&& !ranges::contains(
+					ordered,
+					filter.id(),
+					&ChatFilter::id)) {
+				ordered.push_back(std::move(filter));
+			}
+		}
+		if (ranges::contains(_list, FilterId(0), &ChatFilter::id)
+			&& !ranges::contains(ordered, FilterId(0), &ChatFilter::id)) {
+			ordered.insert(ordered.begin(), ChatFilter());
+		}
+		_list = std::move(ordered);
 	}
 }
 

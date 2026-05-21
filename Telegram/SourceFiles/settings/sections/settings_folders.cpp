@@ -20,6 +20,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_peer_values.h"
 #include "data/data_premium_limits.h"
 #include "data/data_session.h"
+#include "data/data_user.h"
 #include "history/history.h"
 #include "lang/lang_keys.h"
 #include "lottie/lottie_icon.h"
@@ -597,7 +598,27 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 	});
 
 	const auto prepareGoodIdsForNewFilters = [=] {
-		const auto &list = session->data().chatsFilters().list();
+		auto &realFilters = session->data().chatsFilters();
+		const auto &list = realFilters.list();
+
+		const auto limits = Data::PremiumLimits(session);
+		const auto serverLimit = session->user()->isPremium()
+			? limits.dialogFiltersPremium()
+			: limits.dialogFiltersDefault();
+
+		auto serverCount = 0;
+		for (const auto &f : list) {
+			if (f.id() && !realFilters.isLocalFilter(f.id())) {
+				++serverCount;
+			}
+		}
+		for (const auto &row : state->rows) {
+			if (row.removed
+				&& row.filter.id()
+				&& !realFilters.isLocalFilter(row.filter.id())) {
+				--serverCount;
+			}
+		}
 
 		auto localId = 1;
 		const auto chooseNextId = [&] {
@@ -614,7 +635,14 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 				continue;
 			} else if (!id
 				|| !ranges::contains(list, id, &Data::ChatFilter::id)) {
-				result.emplace(row.button, chooseNextId());
+				if (serverCount < serverLimit) {
+					result.emplace(row.button, chooseNextId());
+					++serverCount;
+				} else {
+					result.emplace(
+						row.button,
+						realFilters.allocateLocalId());
+				}
 			}
 		}
 		return result;
@@ -656,6 +684,15 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 				if (row.button.get() == single) {
 					updated = row.filter;
 				}
+			}
+			if (realFilters.isLocalFilter(newId)) {
+				if (removed) {
+					realFilters.remove(newId);
+				} else {
+					realFilters.set(row.filter);
+					order.push_back(newId);
+				}
+				continue;
 			}
 			const auto tl = removed
 				? MTPDialogFilter()

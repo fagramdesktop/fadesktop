@@ -83,6 +83,11 @@ public:
 		not_null<Session*> owner);
 	[[nodiscard]] MTPDialogFilter tl(FilterId replaceId = 0) const;
 
+	[[nodiscard]] static ChatFilter FromJson(
+		const QJsonObject &data,
+		not_null<Session*> owner);
+	[[nodiscard]] QJsonObject toJson() const;
+
 	[[nodiscard]] FilterId id() const;
 	[[nodiscard]] ChatFilterTitle title() const;
 	[[nodiscard]] const TextWithEntities &titleText() const;
@@ -216,6 +221,12 @@ public:
 	[[nodiscard]] rpl::producer<bool> tagsEnabledChanges() const;
 	void requestToggleTags(bool value, Fn<void()> fail);
 
+	static constexpr FilterId kLocalFilterIdBase = 1000;
+	[[nodiscard]] bool isLocalFilter(FilterId id) const;
+	[[nodiscard]] FilterId allocateLocalId() const;
+	void saveLocalFilters();
+	void loadLocalFilters();
+
 private:
 	struct MoreChatsData {
 		std::vector<not_null<PeerData*>> missing;
@@ -265,6 +276,8 @@ private:
 	base::flat_map<FilterId, MoreChatsData> _moreChatsData;
 	rpl::event_stream<FilterId> _moreChatsUpdated;
 	base::Timer _moreChatsTimer;
+
+	base::flat_set<FilterId> _localFilterIds;
 
 };
 

@@ -846,8 +846,18 @@ void EditFilterBox(
 		).withColorIndex(colorIndex);
 	};
 
+	const auto isLocalFilter = owner->chatsFilters().isLocalFilter(
+		filter.id());
+	const auto shareWrap = content->add(
+		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+			content,
+			object_ptr<Ui::VerticalLayout>(content)))
+		->setDuration(0);
+	shareWrap->toggle(!isLocalFilter, anim::type::instant);
+	const auto shareInner = shareWrap->entity();
+
 	Ui::AddSubsectionTitle(
-		content,
+		shareInner,
 		rpl::conditional(
 			state->hasLinks.value(),
 			tr::lng_filters_link_has(),
@@ -863,20 +873,20 @@ void EditFilterBox(
 	}
 
 	const auto createLink = AddToggledButton(
-		content,
+		shareInner,
 		state->hasLinks.value() | rpl::map(!rpl::mappers::_1),
 		tr::lng_filters_link_create(),
 		st::settingsButtonActive,
 		{ &st::settingsFolderShareIcon, IconType::Simple });
 	const auto addLink = AddToggledButton(
-		content,
+		shareInner,
 		state->hasLinks.value(),
 		tr::lng_group_invite_add(),
 		st::settingsButtonActive,
 		{ &st::settingsIconAdd, IconType::Round, &st::windowBgActive });
 
 	SetupFilterLinks(
-		content,
+		shareInner,
 		window,
 		state->links.value(),
 		[=] { return collect().value_or(Data::ChatFilter()); });
@@ -926,9 +936,9 @@ void EditFilterBox(
 			}));
 		}));
 	}, createLink->lifetime());
-	Ui::AddSkip(content);
+	Ui::AddSkip(shareInner);
 	Ui::AddDividerText(
-		content,
+		shareInner,
 		rpl::conditional(
 			state->hasLinks.value(),
 			tr::lng_filters_link_about_many(),
@@ -991,8 +1001,13 @@ void EditExistingFilter(
 	const auto doneCallback = [=](const Data::ChatFilter &result) {
 		Expects(id == result.id());
 
+		auto &filters = session->data().chatsFilters();
+		if (filters.isLocalFilter(id)) {
+			filters.set(result);
+			return;
+		}
 		const auto tl = result.tl();
-		session->data().chatsFilters().apply(MTP_updateDialogFilter(
+		filters.apply(MTP_updateDialogFilter(
 			MTP_flags(MTPDupdateDialogFilter::Flag::f_filter),
 			MTP_int(id),
 			tl));

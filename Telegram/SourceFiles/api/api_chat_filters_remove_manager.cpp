@@ -27,8 +27,13 @@ void RemoveChatFilter(
 		not_null<Main::Session*> session,
 		FilterId filterId,
 		std::vector<not_null<PeerData*>> leave) {
+	auto &filters = session->data().chatsFilters();
+	if (filters.isLocalFilter(filterId)) {
+		filters.remove(filterId);
+		return;
+	}
 	const auto api = &session->api();
-	session->data().chatsFilters().apply(MTP_updateDialogFilter(
+	filters.apply(MTP_updateDialogFilter(
 		MTP_flags(MTPDupdateDialogFilter::Flag(0)),
 		MTP_int(filterId),
 		MTPDialogFilter()));
@@ -84,6 +89,10 @@ void RemoveComplexChatFilter::request(
 	const auto simple = [=] {
 		confirm([=] { RemoveChatFilter(session, id, {}); });
 	};
+	if (session->data().chatsFilters().isLocalFilter(id)) {
+		simple();
+		return;
+	}
 	const auto suggestRemoving = Api::ExtractSuggestRemoving(filter);
 	if (suggestRemoving.empty()) {
 		simple();

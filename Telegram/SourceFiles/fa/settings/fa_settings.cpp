@@ -209,6 +209,14 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.scope = SettingScope::Account,
 		.type = SettingType::QJsonArraySetting,
 		.defaultValue = QJsonArray(), }},
+	{ "local_chat_folders", {
+		.scope = SettingScope::Account,
+		.type = SettingType::QJsonArraySetting,
+		.defaultValue = QJsonArray(), }},
+	{ "local_chat_folders_order", {
+		.scope = SettingScope::Account,
+		.type = SettingType::QJsonArraySetting,
+		.defaultValue = QJsonArray(), }},
 	{ "use_default_rounding", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},
