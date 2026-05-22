@@ -38,18 +38,17 @@ jobs:
     runs-on: macos-latest
     env:
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      REPO_NAME: ${{ github.event.repository.name || 'fadesktop' }}
 
     steps:
       - name: Clone repository
         uses: actions/checkout@v6
         with:
+          path: ${{ env.REPO_NAME }}
           submodules: recursive
 
-      - name: Get repository name
-        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
-
-      - name: Resolve paths
-        run: echo "LIBS_PATH=$(cd $GITHUB_WORKSPACE && cd .. && pwd)/Libraries" >> $GITHUB_ENV
+      - name: Free disk space
+        run: bash ${{ env.REPO_NAME }}/.github/scripts/free_disk_space_mac.sh
 
       - name: First set up
         run: |
@@ -64,7 +63,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: |
-            ${{ env.LIBS_PATH }}
+            Libraries
             ThirdParty
           key: ${{ runner.os }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
           restore-keys: ${{ runner.os }}-libs-
@@ -87,7 +86,15 @@ jobs:
           done &
           HEARTBEAT_PID=$!
           trap 'kill "$HEARTBEAT_PID" >/dev/null 2>&1 || true' EXIT
-          bash Telegram/build/prepare/mac.sh
+          bash ${{ env.REPO_NAME }}/Telegram/build/prepare/mac.sh
+
+      - name: Trim build intermediates
+        run: |
+          echo "=== Disk usage before trimming ==="
+          df -h /
+          find Libraries '(' '(' ! '(' -name '*.a' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -perm +111 ')' -type f ')' -o -empty ')' -delete
+          echo "=== Disk usage after trimming ==="
+          df -h /
 
   build:
     name: Build macOS
@@ -95,6 +102,7 @@ jobs:
     runs-on: macos-latest
     env:
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      REPO_NAME: ${{ github.event.repository.name || 'fadesktop' }}
     outputs:
       tagname: ${{ steps.tagname.outputs.tagname }}
       run_id: ${{ github.run_id }}
@@ -116,30 +124,28 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v6
         with:
+          path: ${{ env.REPO_NAME }}
           submodules: recursive
 
-      - name: Get repository name
-        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
-
-      - name: Resolve paths
-        run: echo "LIBS_PATH=$(cd $GITHUB_WORKSPACE && cd .. && pwd)/Libraries" >> $GITHUB_ENV
+      - name: Free disk space
+        run: bash ${{ env.REPO_NAME }}/.github/scripts/free_disk_space_mac.sh
 
       - name: Clone DesktopPrivate
         run: |
-          git clone https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/DesktopPrivate.git $GITHUB_WORKSPACE/../DesktopPrivate
+          git clone https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/DesktopPrivate.git $GITHUB_WORKSPACE/DesktopPrivate
 
       - name: Restore libraries cache
         uses: actions/cache@v5
         with:
           path: |
-            ${{ env.LIBS_PATH }}
+            Libraries
             ThirdParty
           key: ${{ runner.os }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
           restore-keys: ${{ runner.os }}-libs-
 
       - name: Configure with CMake
         run: |
-          cd Telegram
+          cd ${{ env.REPO_NAME }}/Telegram
           ./configure.sh \
             -D TDESKTOP_API_ID=${{ secrets.API_ID_CONFIG }} \
             -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }} \
@@ -147,22 +153,22 @@ jobs:
             -D DESKTOP_APP_BUILD_PACKER=ON
 
       - name: Build Telegram
-        run: cmake --build out --config Release --target Telegram
+        run: cmake --build ${{ env.REPO_NAME }}/out --config Release --target Telegram
 
       - name: Read version info
         run: |
-          APP_VERSION=$(grep 'AppVersion ' Telegram/build/version | awk '{print $2}')
+          APP_VERSION=$(grep 'AppVersion ' ${{ env.REPO_NAME }}/Telegram/build/version | awk '{print $2}')
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
 
       - name: Sign OTA update
         if: ${{ inputs.build_type == 'rel' }}
         run: |
-          PACKER=$(find out -name Packer -type f | head -1)
-          TELEGRAM="out/Release/fagram.app"
+          PACKER=$(find ${{ env.REPO_NAME }}/out -name Packer -type f | head -1)
+          TELEGRAM="${{ env.REPO_NAME }}/out/Release/fagram.app"
           if [ -z "$PACKER" ] || [ ! -d "$TELEGRAM" ]; then
             echo "Error: Packer or fagram.app not found"
-            find out -type f -name 'Packer'
-            find out -type d -name 'fagram.app'
+            find ${{ env.REPO_NAME }}/out -type f -name 'Packer'
+            find ${{ env.REPO_NAME }}/out -type d -name 'fagram.app'
             exit 1
           fi
           chmod +x "$PACKER"
@@ -178,7 +184,7 @@ jobs:
       - name: Package DMG
         run: |
           mkdir -p dmg_staging
-          cp -r out/Release/fagram.app dmg_staging/FAgram.app
+          cp -r ${{ env.REPO_NAME }}/out/Release/fagram.app dmg_staging/FAgram.app
           ln -s /Applications dmg_staging/Applications
           hdiutil create \
             -volname "FAgram" \
