@@ -279,9 +279,9 @@ bool UnpackUpdate(const QString &filepath) {
 	}
 
 #if defined Q_OS_WIN && !defined TDESKTOP_USE_PACKAGED // use Lzma SDK for win
-	const int32 hSigLen = 128, hShaLen = 20, hPropsLen = LZMA_PROPS_SIZE, hOriginalSizeLen = sizeof(int32), hSize = hSigLen + hShaLen + hPropsLen + hOriginalSizeLen; // header
+	const int32 hSigLen = 128, hShaLen = 20, hPropsLen = LZMA_PROPS_SIZE, hOriginalSizeLen = sizeof(int64), hSize = hSigLen + hShaLen + hPropsLen + hOriginalSizeLen; // header
 #else // Q_OS_WIN && !TDESKTOP_USE_PACKAGED
-	const int32 hSigLen = 128, hShaLen = 20, hPropsLen = 0, hOriginalSizeLen = sizeof(int32), hSize = hSigLen + hShaLen + hOriginalSizeLen; // header
+	const int32 hSigLen = 128, hShaLen = 20, hPropsLen = 0, hOriginalSizeLen = sizeof(int64), hSize = hSigLen + hShaLen + hOriginalSizeLen; // header
 #endif // Q_OS_WIN && !TDESKTOP_USE_PACKAGED
 
 	QByteArray compressed = input.readAll();
@@ -348,9 +348,9 @@ bool UnpackUpdate(const QString &filepath) {
 
 	QByteArray uncompressed;
 
-	int32 uncompressedLen;
+	int64 uncompressedLen;
 	memcpy(&uncompressedLen, compressed.constData() + hSigLen + hShaLen + hPropsLen, hOriginalSizeLen);
-	uncompressed.resize(uncompressedLen);
+	uncompressed.resize(int(uncompressedLen));
 
 	size_t resultLen = uncompressed.size();
 #if defined Q_OS_WIN && !defined TDESKTOP_USE_PACKAGED // use Lzma SDK for win
