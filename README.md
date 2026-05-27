@@ -94,6 +94,7 @@
 - Disable AI editor
 - Unlimited local pinned chats
 - Auto-Downloads kill switch
+- Unlimited local chat folders
 
 </details>
 

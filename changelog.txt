@@ -1,3 +1,9 @@
+2.2.7 (27.05.26)
+
+- Updated tdesktop to v6.8.3.beta
+- New pt & pt_BR translations
+- Unlimited local chat folders
+
 2.2.6 (19.05.26)
 
 - Updated tdesktop to v6.8.2
