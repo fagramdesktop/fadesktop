@@ -395,6 +395,7 @@ void BotGameUrlClickHandler::onClick(ClickContext context) const {
 	const auto openGame = [=] {
 		bot->session().attachWebView().open({
 			.bot = bot,
+			.context = { .controller = weakController },
 			.button = {.url = url.toUtf8() },
 			.source = InlineBots::WebViewSourceGame{
 				.messageId = itemId,

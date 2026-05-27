@@ -2,16 +2,8 @@
 
 layout(local_size_x = 64) in;
 
-struct Particle {
-	vec2 offset;
-	vec2 velocity;
-	float lifetime;
-	float _pad;
-};
-
-layout(std430, binding = 0) buffer Particles {
-	Particle particles[];
-};
+layout(rgba32f, binding = 0) uniform image2D particleStateImage;
+layout(rgba32f, binding = 2) uniform image2D particleVelocityImage;
 
 layout(std140, binding = 1) uniform Params {
 	uint particleCountX;
@@ -45,11 +37,12 @@ void main() {
 	float direction = hashFloat(s) * (3.14159265 * 2.0);
 	float speed = (0.1 + hashFloat(s + 1u) * 0.1) * 320.0;
 
-	Particle p;
-	p.offset = vec2(0.0, 0.0);
-	p.velocity = vec2(cos(direction) * speed, sin(direction) * speed);
-	p.lifetime = 1.5 + hashFloat(s + 2u) * 1.5;
-	p._pad = 0.0;
+	vec2 velocity = vec2(cos(direction) * speed, sin(direction) * speed);
+	float lifetime = 1.5 + hashFloat(s + 2u) * 1.5;
 
-	particles[gid] = p;
+	ivec2 coord = ivec2(
+		int(gid % particleCountX),
+		int(gid / particleCountX));
+	imageStore(particleStateImage, coord, vec4(0.0, 0.0, lifetime, 0.0));
+	imageStore(particleVelocityImage, coord, vec4(velocity, 0.0, 0.0));
 }

@@ -318,6 +318,138 @@ using TableOwnershipGrid = std::vector<std::vector<TableOwnershipSlot>>;
 	return path;
 }
 
+[[nodiscard]] auto TableColumnLefts(
+		const LaidOutBlock &block,
+		int columnCount,
+		int border) -> std::vector<int> {
+	auto result = std::vector<int>(
+		std::max(columnCount, 0),
+		block.tableRect.x() + border);
+	auto separatorLeft = block.tableRect.x() + border;
+	for (auto column = 0; column != columnCount; ++column) {
+		result[column] = separatorLeft;
+		if (column < int(block.tableColumnWidths.size())) {
+			separatorLeft += block.tableColumnWidths[column] + border;
+		}
+	}
+	return result;
+}
+
+void AddTableHorizontalBorderSegments(
+		QPainterPath *path,
+		const LaidOutBlock &block,
+		const TableOwnershipGrid &ownership,
+		const std::vector<int> &columnLefts,
+		QRectF inner,
+		float64 half) {
+	const auto rowCount = int(ownership.size());
+	const auto columnCount = rowCount ? int(ownership.front().size()) : 0;
+	for (auto boundaryRow = 1; boundaryRow != rowCount; ++boundaryRow) {
+		auto segmentStart = -1;
+		for (auto column = 0; column != columnCount; ++column) {
+			const auto split = ownership[boundaryRow - 1][column].cell
+				!= ownership[boundaryRow][column].cell;
+			if (split && (segmentStart < 0)) {
+				segmentStart = column;
+			} else if (!split && (segmentStart >= 0)) {
+				const auto fromX = (segmentStart == 0)
+					? inner.x()
+					: (columnLefts[segmentStart] - half);
+				const auto toX = columnLefts[column] - half;
+				const auto y = block.tableRows[boundaryRow].outer.y() - half;
+				path->moveTo(fromX, y);
+				path->lineTo(toX, y);
+				segmentStart = -1;
+			}
+		}
+		if (segmentStart >= 0) {
+			const auto fromX = (segmentStart == 0)
+				? inner.x()
+				: (columnLefts[segmentStart] - half);
+			const auto y = block.tableRows[boundaryRow].outer.y() - half;
+			path->moveTo(fromX, y);
+			path->lineTo(inner.x() + inner.width(), y);
+		}
+	}
+}
+
+void AddTableVerticalBorderSegments(
+		QPainterPath *path,
+		const LaidOutBlock &block,
+		const TableOwnershipGrid &ownership,
+		const std::vector<int> &columnLefts,
+		QRectF inner,
+		float64 half) {
+	const auto rowCount = int(ownership.size());
+	const auto columnCount = rowCount ? int(ownership.front().size()) : 0;
+	for (auto boundaryColumn = 1;
+		boundaryColumn != columnCount;
+		++boundaryColumn) {
+		auto segmentStart = -1;
+		for (auto row = 0; row != rowCount; ++row) {
+			const auto split = ownership[row][boundaryColumn - 1].cell
+				!= ownership[row][boundaryColumn].cell;
+			if (split && (segmentStart < 0)) {
+				segmentStart = row;
+			} else if (!split && (segmentStart >= 0)) {
+				const auto fromY = (segmentStart == 0)
+					? inner.y()
+					: (block.tableRows[segmentStart].outer.y() - half);
+				const auto toY = block.tableRows[row].outer.y() - half;
+				const auto x = columnLefts[boundaryColumn] - half;
+				path->moveTo(x, fromY);
+				path->lineTo(x, toY);
+				segmentStart = -1;
+			}
+		}
+		if (segmentStart >= 0) {
+			const auto fromY = (segmentStart == 0)
+				? inner.y()
+				: (block.tableRows[segmentStart].outer.y() - half);
+			const auto x = columnLefts[boundaryColumn] - half;
+			path->moveTo(x, fromY);
+			path->lineTo(x, inner.y() + inner.height());
+		}
+	}
+}
+
+[[nodiscard]] QPainterPath TableBorderPath(
+		const LaidOutBlock &block,
+		int border,
+		QPainterPath path) {
+	const auto ownership = BuildTableOwnershipGrid(block);
+	const auto rowCount = int(ownership.size());
+	const auto columnCount = rowCount
+		? int(ownership.front().size())
+		: int(block.tableColumnWidths.size());
+	if (!rowCount || !columnCount) {
+		return path;
+	}
+	const auto half = border / 2.;
+	const auto columnLefts = TableColumnLefts(block, columnCount, border);
+	const auto inner = QRectF(block.tableRect).marginsRemoved({
+		half,
+		half,
+		half,
+		half,
+	});
+	AddTableHorizontalBorderSegments(
+		&path,
+		block,
+		ownership,
+		columnLefts,
+		inner,
+		half);
+	AddTableVerticalBorderSegments(
+		&path,
+		block,
+		ownership,
+		columnLefts,
+		inner,
+		half);
+	return path;
+}
+
 void PaintTableBlock(
 		Painter &p,
 		const LaidOutBlock &block,
@@ -347,7 +479,6 @@ void PaintTableBlock(
 
 	const auto border = TableBorder(block, markdown);
 	const auto radius = st::defaultTable.radius;
-	const auto half = border / 2.;
 	const auto shapePath = TableShapePath(block, border, radius);
 
 	p.save();
@@ -369,79 +500,7 @@ void PaintTableBlock(
 	p.restore();
 
 	if (border > 0 && !block.tableRect.isEmpty()) {
-		const auto ownership = BuildTableOwnershipGrid(block);
-		const auto rowCount = int(ownership.size());
-		const auto columnCount = rowCount
-			? int(ownership.front().size())
-			: int(block.tableColumnWidths.size());
-		auto columnLefts = std::vector<int>(columnCount, block.tableRect.x() + border);
-		auto separatorLeft = block.tableRect.x() + border;
-		for (auto column = 0; column != columnCount; ++column) {
-			columnLefts[column] = separatorLeft;
-			separatorLeft += block.tableColumnWidths[column] + border;
-		}
-		const auto inner = QRectF(block.tableRect).marginsRemoved({
-			half,
-			half,
-			half,
-			half,
-		});
-		auto path = shapePath;
-		for (auto boundaryRow = 1; boundaryRow != rowCount; ++boundaryRow) {
-			auto segmentStart = -1;
-			for (auto column = 0; column != columnCount; ++column) {
-				const auto split = ownership[boundaryRow - 1][column].cell
-					!= ownership[boundaryRow][column].cell;
-				if (split && (segmentStart < 0)) {
-					segmentStart = column;
-				} else if (!split && (segmentStart >= 0)) {
-					const auto fromX = (segmentStart == 0)
-						? inner.x()
-						: (columnLefts[segmentStart] - half);
-					const auto toX = columnLefts[column] - half;
-					const auto y = block.tableRows[boundaryRow].outer.y() - half;
-					path.moveTo(fromX, y);
-					path.lineTo(toX, y);
-					segmentStart = -1;
-				}
-			}
-			if (segmentStart >= 0) {
-				const auto fromX = (segmentStart == 0)
-					? inner.x()
-					: (columnLefts[segmentStart] - half);
-				const auto y = block.tableRows[boundaryRow].outer.y() - half;
-				path.moveTo(fromX, y);
-				path.lineTo(inner.x() + inner.width(), y);
-			}
-		}
-		for (auto boundaryColumn = 1; boundaryColumn != columnCount; ++boundaryColumn) {
-			auto segmentStart = -1;
-			for (auto row = 0; row != rowCount; ++row) {
-				const auto split = ownership[row][boundaryColumn - 1].cell
-					!= ownership[row][boundaryColumn].cell;
-				if (split && (segmentStart < 0)) {
-					segmentStart = row;
-				} else if (!split && (segmentStart >= 0)) {
-					const auto fromY = (segmentStart == 0)
-						? inner.y()
-						: (block.tableRows[segmentStart].outer.y() - half);
-					const auto toY = block.tableRows[row].outer.y() - half;
-					const auto x = columnLefts[boundaryColumn] - half;
-					path.moveTo(x, fromY);
-					path.lineTo(x, toY);
-					segmentStart = -1;
-				}
-			}
-			if (segmentStart >= 0) {
-				const auto fromY = (segmentStart == 0)
-					? inner.y()
-					: (block.tableRows[segmentStart].outer.y() - half);
-				const auto x = columnLefts[boundaryColumn] - half;
-				path.moveTo(x, fromY);
-				path.lineTo(x, inner.y() + inner.height());
-			}
-		}
-
+		const auto path = TableBorderPath(block, border, shapePath);
 		auto hq = PainterHighQualityEnabler(p);
 		auto pen = markdown.table.borderFg->p;
 		pen.setWidth(border);

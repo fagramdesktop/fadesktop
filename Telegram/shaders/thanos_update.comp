@@ -2,16 +2,8 @@
 
 layout(local_size_x = 64) in;
 
-struct Particle {
-	vec2 offset;
-	vec2 velocity;
-	float lifetime;
-	float _pad;
-};
-
-layout(std430, binding = 0) buffer Particles {
-	Particle particles[];
-};
+layout(rgba32f, binding = 0) uniform image2D particleStateImage;
+layout(rgba32f, binding = 2) uniform image2D particleVelocityImage;
 
 layout(std140, binding = 1) uniform Params {
 	uint particleCountX;
@@ -43,11 +35,20 @@ void main() {
 	float particleXFraction = float(particleX) / float(particleCountX);
 	float particleFraction = easeInWindow(effectFraction, particleXFraction);
 
-	Particle p = particles[gid];
+	ivec2 coord = ivec2(
+		int(particleX),
+		int(gid / particleCountX));
 
-	p.offset += p.velocity * timeStep * particleFraction;
-	p.velocity.y += 80.0 * timeStep * particleFraction;
-	p.lifetime = max(0.0, p.lifetime - 0.6 * timeStep * particleFraction);
+	vec4 state = imageLoad(particleStateImage, coord);
+	vec2 offset = state.xy;
+	float lifetime = state.z;
 
-	particles[gid] = p;
+	vec2 velocity = imageLoad(particleVelocityImage, coord).xy;
+
+	offset += velocity * timeStep * particleFraction;
+	velocity.y += 80.0 * timeStep * particleFraction;
+	lifetime = max(0.0, lifetime - 0.6 * timeStep * particleFraction);
+
+	imageStore(particleStateImage, coord, vec4(offset, lifetime, 0.0));
+	imageStore(particleVelocityImage, coord, vec4(velocity, 0.0, 0.0));
 }

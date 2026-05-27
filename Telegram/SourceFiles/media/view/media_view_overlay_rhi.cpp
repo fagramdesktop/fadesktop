@@ -639,8 +639,13 @@ void OverlayWidget::RendererRhi::releaseResources() {
 	_uvTexture = nullptr;
 	_lumaSize = QSize();
 	_chromaSize = QSize();
+	_chromaNV12 = false;
+	_usingExternalVideoTextures = false;
 	_trackFrameIndex = 0;
 	_streamedIndex = 0;
+#ifdef Q_OS_MAC
+	_metalTextureCache.flush();
+#endif // Q_OS_MAC
 
 	delete _placeholderTexture;
 	_placeholderTexture = nullptr;
@@ -1066,7 +1071,9 @@ void OverlayWidget::RendererRhi::paintTransformedVideoFrame(
 			_metalTextureCache.flush();
 #endif // Q_OS_MAC
 		}
-		Assert(!yuv->size.isEmpty());
+		if (!yuv || yuv->size.isEmpty()) {
+			return;
+		}
 		if (!_yTexture || _lumaSize != yuv->size) {
 			delete _yTexture;
 			_yTexture = _rhi->newTexture(QRhiTexture::R8, yuv->size);

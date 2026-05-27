@@ -13,6 +13,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "base/flags.h"
 #include "ui/platform/ui_platform_utility.h"
 #include "ui/rect_part.h"
+#include "ui/widgets/separate_panel.h"
 #include "webview/webview_common.h"
 #include <crl/crl_time.h>
 #include <QtCore/QRect>
@@ -27,7 +28,6 @@ namespace Ui {
 class FlatLabel;
 class BoxContent;
 class RpWidget;
-class SeparatePanel;
 class StandaloneLayerStack;
 enum class LayerOption;
 using LayerOptions = base::flags<LayerOption>;
@@ -48,8 +48,6 @@ struct ResolvedColors;
 } // namespace Ui::BotWebView::LinuxShell
 
 namespace Ui::BotWebView {
-
-extern const char kOptionLinuxExternalBotWebApps[];
 
 struct DownloadsProgress;
 struct DownloadsEntry;
@@ -146,7 +144,7 @@ struct Args {
 	QString url;
 	Webview::StorageId storageId;
 	rpl::producer<QString> title;
-	object_ptr<Ui::RpWidget> titleBadge = { nullptr };
+	Ui::TitleBadgeDescriptor titleBadge;
 	rpl::producer<QString> bottom;
 	not_null<Delegate*> delegate;
 	MenuButtons menuButtons;

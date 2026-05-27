@@ -574,6 +574,9 @@ public:
 	[[nodiscard]] virtual QString savedMessagesChatStatus() const {
 		return QString();
 	}
+	[[nodiscard]] virtual rpl::producer<QString> searchPlaceholder() const {
+		return nullptr;
+	}
 	[[nodiscard]] virtual int customRowHeight() {
 		Unexpected("PeerListController::customRowHeight.");
 	}

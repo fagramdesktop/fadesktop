@@ -1901,7 +1901,7 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 				? &st::menuIconProfile
 				: &st::menuIconInfo));
 	}
-	if (user) {
+	if (user && !_peer->isBroadcast()) {
 		const auto isSelf = user->isSelf();
 		const auto canEditSelf = isSelf
 			&& !_peer->amRestricted(ChatRestriction::EditRank);

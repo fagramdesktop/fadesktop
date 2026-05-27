@@ -739,7 +739,7 @@ bool PeerData::canPinMessages() const {
 	Unexpected("Peer type in PeerData::canPinMessages.");
 }
 
-bool PeerData::canCreatePolls() const {
+bool PeerData::canCreatePolls(bool forbidInForums) const {
 	if (const auto user = asUser()) {
 		return user->isSelf()
 			|| (user->isBot()
@@ -749,15 +749,16 @@ bool PeerData::canCreatePolls() const {
 	} else if (isMonoforum()) {
 		return false;
 	}
-	return Data::CanSend(this, ChatRestriction::SendPolls);
+	return Data::CanSend(this, ChatRestriction::SendPolls, forbidInForums);
 }
 
-bool PeerData::canCreateTodoLists() const {
+bool PeerData::canCreateTodoLists(bool forbidInForums) const {
 	if (isMonoforum() || isBroadcast()) {
 		return false;
 	}
 	return session().premium()
-		&& (Data::CanSend(this, ChatRestriction::SendPolls) || isUser());
+		&& (Data::CanSend(this, ChatRestriction::SendPolls, forbidInForums)
+			|| isUser());
 }
 
 bool PeerData::canCreateTopics() const {

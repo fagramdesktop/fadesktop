@@ -35,7 +35,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "webview/webview_interface.h"
 #include "base/debug_log.h"
 #include "base/invoke_queued.h"
-#include "base/options.h"
 #include "base/platform/base_platform_info.h"
 #include "base/qt_signal_producer.h"
 #include "base/random.h"
@@ -60,8 +59,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <memory>
 
 namespace Ui::BotWebView {
-
-const char kOptionLinuxExternalBotWebApps[] = "linux-external-bot-webapps";
 
 namespace {
 
@@ -118,15 +115,6 @@ struct NativeMessage {
 		&& url.fragment().isEmpty();
 }
 
-base::options::toggle OptionLinuxExternalBotWebApps({
-	.id = kOptionLinuxExternalBotWebApps,
-	.name = "Use external Linux bot web app windows",
-	.description = "Open bot web apps in a top-level WebKitGTK window"
-		" with an HTML shell instead of embedding the GTK surface.",
-	.scope = base::options::linux,
-	.restartRequired = true,
-});
-
 [[nodiscard]] RectPart ParsePosition(const QString &position) {
 	if (position == u"left"_q) {
 		return RectPart::Left;
@@ -140,11 +128,17 @@ base::options::toggle OptionLinuxExternalBotWebApps({
 	return RectPart::Left;
 }
 
+[[nodiscard]] bool IsNoArgumentsSentinel(const QString &string) {
+	return string.isEmpty() || string == u"\"\""_q;
+}
+
 [[nodiscard]] bool CanParseArguments(QJsonValue value) {
 	if (value.isObject()) {
 		return true;
 	} else if (!value.isString()) {
 		return false;
+	} else if (IsNoArgumentsSentinel(value.toString())) {
+		return true;
 	}
 	auto error = QJsonParseError();
 	const auto document = QJsonDocument::fromJson(
@@ -318,9 +312,11 @@ void LogNativeMessageRejected(
 }
 
 [[nodiscard]] bool UseExternalBotWebApps() {
-	static const auto Result = OptionLinuxExternalBotWebApps.relevant()
-		&& OptionLinuxExternalBotWebApps.value();
-	return Result;
+#ifdef Q_OS_LINUX
+	return true;
+#else // Q_OS_LINUX
+	return false;
+#endif // Q_OS_LINUX
 }
 
 [[nodiscard]] QColor ResolveExternalShellThemeColor(QColor color) {
@@ -1236,7 +1232,7 @@ Panel::Panel(Args &&args)
 			return;
 		}
 	}, _widget->lifetime());
-	_externalTitleBadgeVisible = (args.titleBadge != nullptr);
+	_externalTitleBadgeVisible = (args.titleBadge.paint != nullptr);
 	_widget->setTitleBadge(std::move(args.titleBadge));
 
 	if (!showWebview(std::move(args), params)) {
@@ -1329,9 +1325,7 @@ void Panel::setupDownloadsProgress(
 				state->animation.start(0.);
 			}
 			toggle(true);
-		} else if ((state->progress.total && !progress.total)
-			|| (state->progress.ready < state->progress.total
-				&& progress.ready == progress.total)) {
+		} else if (state->shown && !progress.loading) {
 			state->animation.update(1., false, crl::now());
 			toggle(false);
 		}

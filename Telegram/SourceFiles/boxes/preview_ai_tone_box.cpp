@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/preview_ai_tone_box.h"
 
+#include "api/api_compose_with_ai.h"
 #include "boxes/create_ai_tone_box.h"
 #include "core/click_handler_types.h"
 #include "core/ui_integration.h"
@@ -16,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "main/main_app_config.h"
 #include "main/main_session.h"
+#include "window/window_session_controller.h"
 #include "ui/controls/custom_emoji_toast_icon.h"
 #include "ui/effects/animation_value.h"
 #include "ui/effects/animations.h"
@@ -28,6 +30,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/text_utilities.h"
 #include "ui/toast/toast.h"
 #include "ui/widgets/buttons.h"
+#include "ui/widgets/checkbox.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/shadow.h"
 #include "ui/wrap/vertical_layout.h"
@@ -408,6 +411,14 @@ void ShowToneRemovedToast(std::shared_ptr<Ui::Show> show, bool deleted) {
 	return std::nullopt;
 }
 
+[[nodiscard]] bool BoundsToThisTone(const Data::AiComposeTone &tone) {
+	if (tone.slug.isEmpty()) {
+		return false;
+	}
+	const auto bound = Api::AiApplyBoundSlug();
+	return !bound.isEmpty() && (bound == tone.slug);
+}
+
 } // namespace
 
 void PreviewAiToneBox(
@@ -547,6 +558,32 @@ void PreviewAiToneBox(
 			return false;
 		});
 	}
+	if (const auto shortcutText = Api::AiApplyShortcutText()
+			; !tone.slug.isEmpty() && !shortcutText.isEmpty()) {
+		const auto label = tr::lng_ai_compose_bind_use_hotkey(
+			tr::now,
+			lt_keys,
+			shortcutText);
+		const auto checkbox = body->add(
+			object_ptr<Ui::Checkbox>(
+				body,
+				label,
+				st::aiComposeEmojifyCheckbox,
+				std::make_unique<Ui::RoundCheckView>(
+					st::defaultCheck,
+					BoundsToThisTone(tone))),
+			st::aiToneAuthorCheckboxMargin,
+			style::al_top);
+		checkbox->checkedChanges(
+		) | rpl::on_next([=](bool toggled) {
+			if (toggled) {
+				Api::SetAiApplyBoundSlug(tone.slug);
+			} else if (BoundsToThisTone(tone)) {
+				Api::ClearAiApplyBoundSlug();
+			}
+		}, checkbox->lifetime());
+	}
+
 	Ui::AddSkip(body, st::aiTonePreviewBottomSkip);
 
 	const auto installedTone = FindInstalledCustomTone(session, tone);

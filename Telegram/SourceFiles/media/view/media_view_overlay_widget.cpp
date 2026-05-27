@@ -4105,6 +4105,13 @@ void OverlayWidget::hide() {
 	clearBeforeHide();
 	applyHideWindowWorkaround();
 	_window->hide();
+#ifdef Q_OS_LINUX
+	if (Platform::IsWayland()) {
+		if (const auto handle = _window->windowHandle()) {
+			handle->destroy();
+		}
+	}
+#endif // Q_OS_LINUX
 }
 
 void OverlayWidget::setCursor(style::cursor cursor) {

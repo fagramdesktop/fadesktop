@@ -10,6 +10,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_compose_with_ai.h"
 #include "apiwrap.h"
 #include "boxes/create_ai_tone_box.h"
+#include "menu/menu_check_item.h"
+#include "settings/sections/settings_shortcuts.h"
+#include "ui/widgets/checkbox.h"
+#include "window/window_session_controller.h"
 #include "boxes/premium_preview_box.h"
 #include "boxes/share_box.h"
 #include "chat_helpers/compose/compose_show.h"
@@ -1667,6 +1671,47 @@ void ComposeAiBox(not_null<Ui::GenericBox*> box, ComposeAiBoxArgs &&args) {
 				ptr->entity(),
 				st::popupMenuWithIcons);
 			const auto toneCopy = tone;
+			if (!toneCopy.slug.isEmpty()) {
+				const auto shortcutText = Api::AiApplyShortcutText();
+				if (shortcutText.isEmpty()) {
+					const auto resolve = ChatHelpers::ResolveWindowDefault();
+					(*contextMenu)->addAction(
+						tr::lng_ai_compose_bind_set_hotkey_short(tr::now),
+						[=] {
+							if (const auto window = resolve(session)) {
+								window->showSettings(
+									Settings::ShortcutsId());
+							}
+						},
+						&st::menuIconShortcut);
+				} else {
+					const auto label = tr::lng_ai_compose_bind_use_hotkey(
+						tr::now,
+						lt_keys,
+						shortcutText);
+					const auto checked
+						= (Api::AiApplyBoundSlug() == toneCopy.slug);
+					auto item = base::make_unique_q<Menu::ItemWithCheck>(
+						(*contextMenu)->menu(),
+						st::popupMenuWithIcons.menu,
+						Ui::CreateChild<QAction>(
+							(*contextMenu)->menu().get()),
+						nullptr,
+						nullptr);
+					item->action()->setText(label);
+					item->init(checked);
+					item->checkView()->checkedChanges(
+					) | rpl::on_next([=](bool toggled) {
+						if (toggled) {
+							Api::SetAiApplyBoundSlug(toneCopy.slug);
+						} else if (Api::AiApplyBoundSlug()
+								== toneCopy.slug) {
+							Api::ClearAiApplyBoundSlug();
+						}
+					}, item->lifetime());
+					(*contextMenu)->addAction(std::move(item));
+				}
+			}
 			if (toneCopy.creator) {
 				(*contextMenu)->addAction(
 					tr::lng_ai_compose_tone_edit(tr::now),

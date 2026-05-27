@@ -572,7 +572,7 @@ void Viewport::RendererRhi::renderOffscreen(
 	_nextPoolIndex = 0;
 
 	const auto size = rt->pixelSize();
-	const auto factor = style::DevicePixelRatio();
+	const auto factor = float(_owner->widget()->devicePixelRatioF());
 	if (_factor != factor) {
 		_factor = factor;
 		_ifactor = int(std::ceil(factor));
@@ -750,8 +750,12 @@ void Viewport::RendererRhi::paintTileOffscreen(
 	validateUserpicFrame(tile, tileData);
 	const auto frameSize = _userpicFrame
 		? tileData.userpicFrame.size()
-		: data.yuv420->size;
-	Assert(!frameSize.isEmpty());
+		: data.yuv420
+		? data.yuv420->size
+		: data.original.size();
+	if (frameSize.isEmpty()) {
+		return;
+	}
 
 	_rgbaFrame = (data.format == Webrtc::FrameFormat::ARGB32)
 		|| _userpicFrame;
@@ -788,7 +792,12 @@ void Viewport::RendererRhi::paintTileOnscreen(
 	_userpicFrame = (data.format == Webrtc::FrameFormat::None);
 	const auto frameSize = _userpicFrame
 		? tileData.userpicFrame.size()
-		: data.yuv420->size;
+		: data.yuv420
+		? data.yuv420->size
+		: data.original.size();
+	if (frameSize.isEmpty()) {
+		return;
+	}
 	const auto frameRotation = _userpicFrame ? 0 : data.rotation;
 	_rgbaFrame = (data.format == Webrtc::FrameFormat::ARGB32)
 		|| _userpicFrame;
@@ -1154,7 +1163,12 @@ void Viewport::RendererRhi::drawFramePass(
 	const auto data = tile->track()->frameWithInfo(false);
 	const auto frameSize = _userpicFrame
 		? tileData.userpicFrame.size()
-		: data.yuv420->size;
+		: data.yuv420
+		? data.yuv420->size
+		: data.original.size();
+	if (frameSize.isEmpty()) {
+		return;
+	}
 	const auto frameRotation = _userpicFrame ? 0 : data.rotation;
 	const auto unscaled = Media::View::FlipSizeByRotation(
 		frameSize,
@@ -1677,6 +1691,7 @@ void Viewport::RendererRhi::validateDatas() {
 		data.stale = true;
 	}
 	_tileDataIndices.resize(count);
+	auto pending = std::vector<int>();
 	for (auto i = 0; i != count; ++i) {
 		tiles[i]->row()->lazyInitialize(st::groupCallMembersListItem);
 		const auto id = quintptr(tiles[i]->track().get());
@@ -1691,9 +1706,39 @@ void Viewport::RendererRhi::validateDatas() {
 				j->nameVersion = peer->nameVersion();
 			}
 		} else {
-			const auto peer = tiles[i]->peer();
-			const auto paused = (tiles[i]->track()->state()
-				== Webrtc::VideoState::Paused);
+			_tileDataIndices[i] = -1;
+			pending.push_back(i);
+		}
+	}
+	if (pending.empty()) {
+		return;
+	}
+	auto maybeStaleAfter = begin(_tileData);
+	const auto maybeStaleEnd = end(_tileData);
+	for (const auto i : pending) {
+		const auto id = quintptr(tiles[i]->track().get());
+		const auto peer = tiles[i]->peer();
+		const auto paused = (tiles[i]->track()->state()
+			== Webrtc::VideoState::Paused);
+		maybeStaleAfter = ranges::find(
+			maybeStaleAfter,
+			maybeStaleEnd,
+			true,
+			&TileData::stale);
+		if (maybeStaleAfter != maybeStaleEnd) {
+			maybeStaleAfter->id = id;
+			maybeStaleAfter->peer = peer;
+			maybeStaleAfter->nameVersion = peer->nameVersion();
+			maybeStaleAfter->stale = false;
+			maybeStaleAfter->pause = paused;
+			maybeStaleAfter->paused.stop();
+			maybeStaleAfter->outline = false;
+			maybeStaleAfter->outlined.stop();
+			maybeStaleAfter->userpicFrame = QImage();
+			maybeStaleAfter->trackIndex = -1;
+			_tileDataIndices[i] = int(
+				maybeStaleAfter - begin(_tileData));
+		} else {
 			_tileDataIndices[i] = int(_tileData.size());
 			_tileData.push_back({
 				.id = id,
@@ -1701,26 +1746,6 @@ void Viewport::RendererRhi::validateDatas() {
 				.nameVersion = peer->nameVersion(),
 				.pause = paused,
 			});
-		}
-	}
-	for (auto it = _tileData.begin(); it != _tileData.end();) {
-		if (it->stale) {
-			delete it->rgbaTexture;
-			delete it->yTexture;
-			delete it->uTexture;
-			delete it->vTexture;
-			delete it->downscaleTexture;
-			delete it->downscaleRpDesc;
-			delete it->downscaleRt;
-			delete it->blurHTexture;
-			delete it->blurHRpDesc;
-			delete it->blurHRt;
-			delete it->blurVTexture;
-			delete it->blurVRpDesc;
-			delete it->blurVRt;
-			it = _tileData.erase(it);
-		} else {
-			++it;
 		}
 	}
 }

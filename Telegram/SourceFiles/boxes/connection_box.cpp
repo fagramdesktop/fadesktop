@@ -60,6 +60,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
+#include <QtWidgets/QTextEdit>
 
 namespace {
 
@@ -1592,15 +1593,19 @@ void ProxyBox::setupControls(const ProxyData &data) {
 	setupMtprotoCredentials(data);
 
 	const auto handleType = [=](Type type) {
-		_credentials->toggle(
-			type == Type::Http || type == Type::Socks5,
-			anim::type::instant);
-		_mtprotoCredentials->toggle(
-			type == Type::Mtproto,
-			anim::type::instant);
-		_aboutSponsored->toggle(
-			type == Type::Mtproto,
-			anim::type::instant);
+		const auto credentialsShown
+			= (type == Type::Http || type == Type::Socks5);
+		const auto mtprotoShown = (type == Type::Mtproto);
+		_credentials->toggle(credentialsShown, anim::type::instant);
+		_mtprotoCredentials->toggle(mtprotoShown, anim::type::instant);
+		_aboutSponsored->toggle(mtprotoShown, anim::type::instant);
+		const auto credentialsPolicy = credentialsShown
+			? Qt::StrongFocus
+			: Qt::NoFocus;
+		_user->rawTextEdit()->setFocusPolicy(credentialsPolicy);
+		_password->setFocusPolicy(credentialsPolicy);
+		_secret->setFocusPolicy(
+			mtprotoShown ? Qt::StrongFocus : Qt::NoFocus);
 	};
 	_type->setChangedCallback([=](Type type) {
 		handleType(type);

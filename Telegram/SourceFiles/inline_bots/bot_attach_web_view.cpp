@@ -885,6 +885,8 @@ WebViewInstance::WebViewInstance(WebViewDescriptor &&descriptor)
 , _context(ResolveContext(_bot, std::move(descriptor.context)))
 , _button(std::move(descriptor.button))
 , _source(std::move(descriptor.source)) {
+	Expects(_parentShow != nullptr);
+
 	resolve();
 }
 
@@ -1365,18 +1367,15 @@ void WebViewInstance::show(ShowArgs &&args) {
 	auto title = args.title.isEmpty()
 		? Info::Profile::NameValue(_bot)
 		: rpl::single(args.title);
-	auto titleBadge = _bot->isVerified()
-		? object_ptr<Ui::RpWidget>(_parentShow->toastParent())
-		: nullptr;
-	if (titleBadge) {
-		const auto raw = titleBadge.data();
-		raw->paintRequest() | rpl::on_next([=] {
-			auto p = Painter(raw);
-			const auto w = raw->width();
+	auto titleBadge = Ui::TitleBadgeDescriptor();
+	if (_bot->isVerified()) {
+		titleBadge.size = st::infoVerifiedStar.size()
+			+ QSize(0, st::lineWidth);
+		titleBadge.paint = [](QPainter &p, QSize size) {
+			const auto w = size.width();
 			st::infoVerifiedStar.paint(p, st::lineWidth, 0, w);
 			st::infoPeerBadge.verifiedCheck.paint(p, st::lineWidth, 0, w);
-		}, raw->lifetime());
-		raw->resize(st::infoVerifiedStar.size() + QSize(0, st::lineWidth));
+		};
 	}
 
 	const auto &bots = _session->attachWebView().attachBots();
@@ -2820,13 +2819,13 @@ std::unique_ptr<Ui::DropdownMenu> MakeAttachBotsMenu(
 		| ChatRestriction::SendStickers
 		| ChatRestriction::SendMusic
 		| ChatRestriction::SendFiles;
-	if (Data::CanSendAnyOf(peer, fileTypes)) {
+	if (Data::CanSendAnyOf(peer, fileTypes, false)) {
 		++minimal;
 		raw->addAction(tr::lng_attach_document(tr::now), [=] {
 			attach(false);
 		}, &st::menuIconFile);
 	}
-	if (peer->canCreatePolls()) {
+	if (peer->canCreatePolls(false)) {
 		++minimal;
 		raw->addAction(tr::lng_polls_menu_item(tr::now), [=] {
 			const auto action = actionFactory();
@@ -2849,7 +2848,7 @@ std::unique_ptr<Ui::DropdownMenu> MakeAttachBotsMenu(
 				{ sendMenuType });
 		}, &st::menuIconCreatePoll);
 	}
-	if (peer->canCreateTodoLists()) {
+	if (peer->canCreateTodoLists(false)) {
 		++minimal;
 		raw->addAction(tr::lng_todo_menu_item(tr::now), [=] {
 			const auto action = actionFactory();
@@ -2872,13 +2871,13 @@ std::unique_ptr<Ui::DropdownMenu> MakeAttachBotsMenu(
 	const auto session = &controller->session();
 	const auto locationType = ChatRestriction::SendOther;
 	const auto config = ResolveMapsConfig(session);
-	if (Data::CanSendAnyOf(peer, locationType)
+	if (Data::CanSendAnyOf(peer, locationType, false)
 		&& Ui::LocationPicker::Available(config)) {
 		raw->addAction(tr::lng_maps_point(tr::now), [=] {
 			ChooseAndSendLocation(controller, config, actionFactory());
 		}, &st::menuIconAddress);
 	}
-	const auto addBots = Data::CanSend(peer, ChatRestriction::SendInline)
+	const auto addBots = Data::CanSend(peer, ChatRestriction::SendInline, false)
 		&& !peer->starsPerMessageChecked();
 	for (const auto &bot : bots->attachBots()) {
 		if (!addBots

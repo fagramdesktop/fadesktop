@@ -110,6 +110,8 @@ struct Labeled {
 		{ C::SendSilentMessage, tr::lng_shortcuts_silent_send() },
 		{ C::ScheduleMessage, tr::lng_shortcuts_schedule() },
 		separator,
+		{ C::ComposeAiApplyInPlace, tr::lng_shortcuts_ai_compose_apply() },
+		separator,
 		{ C::RecordVoice, tr::lng_shortcuts_record_voice_message() },
 		{ C::RecordRound, tr::lng_shortcuts_record_round_message() },
 		separator,

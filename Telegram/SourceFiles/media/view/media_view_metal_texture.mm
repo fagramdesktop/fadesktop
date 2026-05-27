@@ -130,21 +130,11 @@ bool MetalTextureCache::createTexturesFromPixelBuffer(
 
 	if (!*yTexture || (*yTexture)->pixelSize() != *lumaSize) {
 		delete *yTexture;
-		*yTexture = rhi->newTexture(
-			QRhiTexture::R8,
-			*lumaSize,
-			1,
-			QRhiTexture::ExternalOES);
-		(*yTexture)->create();
+		*yTexture = rhi->newTexture(QRhiTexture::R8, *lumaSize);
 	}
 	if (!*uvTexture || (*uvTexture)->pixelSize() != *chromaSize) {
 		delete *uvTexture;
-		*uvTexture = rhi->newTexture(
-			QRhiTexture::RG8,
-			*chromaSize,
-			1,
-			QRhiTexture::ExternalOES);
-		(*uvTexture)->create();
+		*uvTexture = rhi->newTexture(QRhiTexture::RG8, *chromaSize);
 	}
 
 	(*yTexture)->createFrom({quint64(yMtlTexture), 0});

@@ -11,12 +11,19 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/call_delayed.h"
 #include "data/data_authorization.h"
+#include "data/data_session.h"
+#include "data/data_user.h"
 #include "dialogs/dialogs_inner_widget.h"
 #include "dialogs/ui/dialogs_top_bar_suggestion_content.h"
+#include "lang/lang_keys.h"
+#include "main/main_session.h"
+#include "ui/controls/userpic_button.h"
 #include "ui/painter.h"
+#include "ui/text/text_utilities.h"
 #include "ui/widgets/elastic_scroll.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
+#include "styles/style_boxes.h"
 #include "styles/style_dialogs.h"
 
 #include <QShortcut>
@@ -94,11 +101,20 @@ void Widget::setupTopBarSuggestionTestHotkeys() {
 			const auto content = Ui::CreateChild<TopBarSuggestionContent>(
 				this);
 			content->setRightIcon(RightIcon::Close);
+			const auto user = session().user();
 			content->setContent(
-				TextWithEntities{ u"Test regular suggestion"_q },
-				TextWithEntities{
-					u"Press the X to dismiss, then Ctrl+Shift+T again."_q
-				});
+				tr::lng_dialogs_suggestions_birthday_contact_title(
+					tr::now,
+					lt_text,
+					{ user->shortName() },
+					tr::rich),
+				tr::lng_dialogs_suggestions_birthday_contact_about(
+					tr::now,
+					TextWithEntities::Simple));
+			content->setLeadingWidget(Ui::CreateChild<Ui::UserpicButton>(
+				content,
+				user,
+				st::uploadUserpicButton));
 			content->setHideCallback(hideAndCleanup);
 			content->setCollapseProgress(_childListShown.value());
 			_prepareTopBarSnapshot.events(

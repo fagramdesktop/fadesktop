@@ -106,12 +106,13 @@ PeerListBox::PeerListBox(
 void PeerListBox::createMultiSelect() {
 	Expects(_select == nullptr);
 
+	auto placeholder = _controller->searchPlaceholder();
 	auto entity = object_ptr<Ui::MultiSelect>(
 		this,
 		(_controller->selectSt()
 			? *_controller->selectSt()
 			: st::defaultMultiSelect),
-		tr::lng_participant_filter());
+		placeholder ? std::move(placeholder) : tr::lng_participant_filter());
 	_select.create(this, std::move(entity));
 	_select->heightValue(
 	) | rpl::on_next(

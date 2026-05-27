@@ -23,6 +23,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/view/history_view_reply_button.h"
 #include "history/view/reactions/history_view_reactions_selector.h"
 #include "history/view/history_view_context_menu.h"
+#include "history/view/history_view_drag.h"
 #include "history/view/history_view_element.h"
 #include "history/view/history_view_emoji_interactions.h"
 #include "history/view/history_view_message.h"
@@ -79,6 +80,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_folder.h"
 #include "data/data_media_types.h"
 #include "data/data_document.h"
+#include "data/data_photo.h"
 #include "data/data_peer.h"
 #include "data/data_user.h"
 #include "data/data_chat.h"
@@ -4542,6 +4544,7 @@ std::unique_ptr<QMimeData> ListWidget::prepareDrag() {
 			}
 		}
 
+		auto photoData = PhotoDragData();
 		if (pressedHandler) {
 			const auto lnkDocument = reinterpret_cast<DocumentData*>(
 				pressedHandler->property(
@@ -4552,19 +4555,37 @@ std::unique_ptr<QMimeData> ListWidget::prepareDrag() {
 					urls.push_back(QUrl::fromLocalFile(filepath));
 				}
 			}
+			const auto lnkPhoto = reinterpret_cast<PhotoData*>(
+				pressedHandler->property(
+					kPhotoLinkMediaProperty).toULongLong());
+			if (lnkPhoto) {
+				photoData = PreparePhotoDragData(
+					lnkPhoto,
+					exactItem ? exactItem->date() : TimeId(0));
+				if (!photoData.tempPath.isEmpty()) {
+					urls.push_back(
+						QUrl::fromLocalFile(photoData.tempPath));
+				}
+			}
 		}
 
-		if (forwardIds.empty() && urls.isEmpty()) {
+		if (forwardIds.empty()
+			&& urls.isEmpty()
+			&& photoData.image.isNull()) {
 			return nullptr;
 		}
 
-		auto result = std::make_unique<QMimeData>();
+		auto result = std::make_unique<DragMimeData>(
+			std::move(photoData.tempPath));
 		if (!forwardIds.empty()) {
 			session().data().setMimeForwardIds(std::move(forwardIds));
 			result->setData(u"application/x-td-forward"_q, "1");
 		}
 		if (!urls.isEmpty()) {
 			result->setUrls(urls);
+		}
+		if (!photoData.image.isNull()) {
+			result->setImageData(std::move(photoData.image));
 		}
 		return result;
 	}

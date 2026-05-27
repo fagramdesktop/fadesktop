@@ -418,6 +418,9 @@ void Pip::RendererRhi::releaseResources() {
 	_trackFrameIndex = -1;
 	_chromaNV12 = false;
 	_usingExternalVideoTextures = false;
+#ifdef Q_OS_MAC
+	_metalTextureCache.flush();
+#endif // Q_OS_MAC
 
 	delete _vertexBuffer;
 	_vertexBuffer = nullptr;

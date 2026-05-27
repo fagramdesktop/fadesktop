@@ -850,9 +850,11 @@ void Apply(
 	if (const auto channel = peer->asChannel()) {
 		const auto limits = Data::LevelLimits(&channel->session());
 		AddLevelBadge(
-			profileIndices
-				? limits.channelProfileBgIconLevelMin()
-				: limits.channelBgIconLevelMin(),
+			(!profileIndices
+				? limits.channelBgIconLevelMin()
+				: channel->isMegagroup()
+				? limits.groupProfileBgIconLevelMin()
+				: limits.channelProfileBgIconLevelMin()),
 			raw,
 			right,
 			channel,

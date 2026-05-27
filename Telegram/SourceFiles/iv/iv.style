@@ -374,7 +374,7 @@ defaultMarkdownDisplayMath: MarkdownDisplayMath {
 defaultMarkdownTable: MarkdownTable {
 	cellPadding: margins(8px, 10px, 8px, 10px);
 	border: 1px;
-	borderFg: boxDividerBg;
+	borderFg: inputBorderFg;
 	headerBg: windowBgOver;
 	headerStyle: defaultMarkdownTableHeaderStyle;
 	captionSkip: 7px;

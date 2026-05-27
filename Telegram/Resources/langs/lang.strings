@@ -735,6 +735,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_shortcuts_just_send" = "Just send";
 "lng_shortcuts_silent_send" = "Silent send";
 "lng_shortcuts_schedule" = "Schedule";
+"lng_shortcuts_ai_compose_apply" = "Apply AI style to text";
 "lng_shortcuts_read_chat" = "Mark chat as read";
 "lng_shortcuts_archive_chat" = "Archive chat";
 "lng_shortcuts_media_fullscreen" = "Toggle video fullscreen";
@@ -4010,6 +4011,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_gift_availability" = "Availability";
 "lng_gift_from_hidden" = "Hidden User";
 "lng_gift_subtitle_birthdays" = "Birthdays";
+"lng_gift_recipient_search" = "Search people to send a gift to...";
 "lng_gift_list_birthday_status_today" = "{emoji} Birthday today";
 "lng_gift_list_birthday_status_yesterday" = "Birthday yesterday";
 "lng_gift_list_birthday_status_tomorrow" = "Birthday tomorrow";
@@ -5654,7 +5656,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_sr_chat_failed" = "Failed";
 "lng_sr_chat_received" = "Received";
 "lng_sr_chat_online" = "Online";
-"lng_sr_chat_sent_at" = "Sent {when}";
 "lng_sr_chat_sponsored" = "Sponsored";
 "lng_sr_chat_stories_unread#one" = "{count} unread story";
 "lng_sr_chat_stories_unread#other" = "{count} unread stories";
@@ -5697,7 +5698,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_sr_message_not_downloaded" = "Not downloaded";
 "lng_sr_message_downloading" = "Downloading";
 "lng_sr_message_reply_to" = "In reply to {name}: {text}";
-"lng_sr_message_edited" = "Edited";
 "lng_sr_message_custom_emoji" = "Custom emoji {emoji}";
 
 "lng_sr_message_column_media_type" = "Media type";
@@ -5739,8 +5739,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_sr_message_gift_premium#other" = "Premium gift, {count} days";
 "lng_sr_message_gift_credits#one" = "Star gift, {count} star";
 "lng_sr_message_gift_credits#other" = "Star gift, {count} stars";
-"lng_sr_message_paid_content" = "Paid content";
-"lng_sr_message_live_location" = "Live location";
 "lng_sr_message_invoice_paid" = "Paid";
 "lng_sr_message_invoice_unpaid" = "Unpaid";
 
@@ -8069,6 +8067,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_ai_compose_error" = "AI request failed.";
 "lng_ai_compose_error_too_long" = "Sorry, this text is too long.";
 "lng_ai_compose_tone_invalid" = "This style was deleted or the link is invalid.";
+"lng_ai_compose_apply_unbound" = "No style bound to this shortcut. Open a style and toggle 'Apply with hotkey'.";
+"lng_ai_compose_apply_empty" = "Type something first.";
+"lng_ai_compose_bind_set_hotkey_short" = "Set apply hotkey…";
+"lng_ai_compose_bind_use_hotkey" = "Apply with {keys}";
 "lng_ai_compose_tooltip" = "Rewrite, translate, or correct your text using AI.";
 "lng_ai_compose_flood_title" = "Daily limit reached";
 "lng_ai_compose_flood_text" = "Get {link} for **50x** more AI text transformations per day.";

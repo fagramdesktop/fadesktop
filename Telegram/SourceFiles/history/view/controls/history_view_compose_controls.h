@@ -371,6 +371,7 @@ private:
 	void createTabbedPanel();
 	void setTabbedPanel(std::unique_ptr<ChatHelpers::TabbedPanel> panel);
 	void showAiComposeBox();
+	void triggerAiApplyInPlace();
 	[[nodiscard]] bool canSendAiComposeDirect() const;
 
 	[[nodiscard]] bool showRecordButton() const;

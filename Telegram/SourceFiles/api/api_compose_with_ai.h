@@ -19,6 +19,11 @@ namespace Main {
 class Session;
 } // namespace Main
 
+namespace Ui {
+class InputField;
+class Show;
+} // namespace Ui
+
 namespace Api {
 
 class ComposeWithAi final {
@@ -84,5 +89,26 @@ private:
 	MTP::Sender _api;
 
 };
+
+void ApplyAiInPlaceBySlug(
+	not_null<Main::Session*> session,
+	TextWithEntities text,
+	QString slug,
+	Fn<void(TextWithEntities)> done,
+	Fn<void(const MTP::Error &)> fail = nullptr);
+
+[[nodiscard]] QString AiApplyBoundSlug();
+void SetAiApplyBoundSlug(const QString &slug);
+void ClearAiApplyBoundSlug();
+
+[[nodiscard]] QString AiApplyShortcutText();
+
+void TriggerAiApplyInPlace(
+	not_null<Main::Session*> session,
+	std::shared_ptr<Ui::Show> show,
+	not_null<QObject*> guard,
+	not_null<Ui::InputField*> field,
+	TextWithEntities fullFieldText,
+	Fn<void(TextWithTags textWithTags, int cursor)> applyToField);
 
 } // namespace Api

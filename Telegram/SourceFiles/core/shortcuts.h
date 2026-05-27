@@ -68,6 +68,7 @@ enum class Command {
 	JustSendMessage,
 	SendSilentMessage,
 	ScheduleMessage,
+	ComposeAiApplyInPlace,
 
 	RecordVoice,
 	RecordRound,

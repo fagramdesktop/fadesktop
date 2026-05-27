@@ -1,3 +1,15 @@
+6.8.4 beta (27.05.26)
+
+- Drag-and-drop of photos into chats.
+- Testing Qt RHI renderer on macOS and Windows on ARM.
+- Native external webapp viewer on Linux by default.
+- Frequent contacts and search in gift recipient picker.
+- Fix passcode bypass via separate windows opened while locked.
+- Fix clickable timestamps in blockquote.
+- Fix never ending download progress in web apps.
+- Fix borders in Instant View tables.
+- Fix several possible crashes.
+
 6.8.3 beta (19.05.26)
 
 - In-app markdown file viewer.

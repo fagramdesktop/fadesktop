@@ -1697,7 +1697,16 @@ void Document::drawGrouped(
 		not_null<QPixmap*> cache) const {
 	const auto maybeMediaHighlight = context.highlightPathCache
 		&& context.highlightPathCache->isEmpty();
-	p.translate(geometry.topLeft());
+	const auto origin = geometry.topLeft();
+#if defined(Q_OS_WIN) && defined(_M_ARM64)
+	// Workaround MSVC ARM64 /O2 codegen bug: QPointF(QPoint(0, -3))
+	// produces yp == ~4.29e9 instead of -3.0 here. Touching the ints
+	// through a volatile load first forces correct sign-extension on
+	// the path that feeds QPointF's int->double conversion.
+	[[maybe_unused]] volatile auto touch = 0 + origin.x() + origin.y();
+#endif // defined(Q_OS_WIN) && defined(_M_ARM64)
+	const auto forigin = QPointF(origin);
+	p.translate(forigin);
 	draw(
 		p,
 		context.translated(-geometry.topLeft()),

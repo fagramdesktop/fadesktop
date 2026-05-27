@@ -32,6 +32,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/view/reactions/history_view_reactions_button.h"
 #include "history/view/reactions/history_view_reactions_selector.h"
 #include "history/view/history_view_about_view.h"
+#include "history/view/history_view_drag.h"
 #include "history/view/history_view_message.h"
 #include "history/view/history_view_service_message.h"
 #include "history/view/history_view_cursor_state.h"
@@ -2274,6 +2275,7 @@ std::unique_ptr<QMimeData> HistoryInner::prepareDrag() {
 			}
 		}
 
+		auto photoData = HistoryView::PhotoDragData();
 		if (pressedHandler) {
 			const auto lnkDocument = reinterpret_cast<DocumentData*>(
 				pressedHandler->property(
@@ -2284,19 +2286,40 @@ std::unique_ptr<QMimeData> HistoryInner::prepareDrag() {
 					urls.push_back(QUrl::fromLocalFile(filepath));
 				}
 			}
+			const auto lnkPhoto = reinterpret_cast<PhotoData*>(
+				pressedHandler->property(
+					kPhotoLinkMediaProperty).toULongLong());
+			if (lnkPhoto) {
+				const auto itemDate = _mouseActionItem
+					? _mouseActionItem->date()
+					: TimeId(0);
+				photoData = HistoryView::PreparePhotoDragData(
+					lnkPhoto,
+					itemDate);
+				if (!photoData.tempPath.isEmpty()) {
+					urls.push_back(
+						QUrl::fromLocalFile(photoData.tempPath));
+				}
+			}
 		}
 
-		if (forwardIds.empty() && urls.isEmpty()) {
+		if (forwardIds.empty()
+			&& urls.isEmpty()
+			&& photoData.image.isNull()) {
 			return nullptr;
 		}
 
-		auto result = std::make_unique<QMimeData>();
+		auto result = std::make_unique<HistoryView::DragMimeData>(
+			std::move(photoData.tempPath));
 		if (!forwardIds.empty()) {
 			session().data().setMimeForwardIds(std::move(forwardIds));
 			result->setData(u"application/x-td-forward"_q, "1");
 		}
 		if (!urls.isEmpty()) {
 			result->setUrls(urls);
+		}
+		if (!photoData.image.isNull()) {
+			result->setImageData(std::move(photoData.image));
 		}
 		return result;
 	}

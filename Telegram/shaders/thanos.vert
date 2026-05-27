@@ -2,11 +2,10 @@
 
 layout(location = 0) in vec2 inQuadPos;
 
-layout(location = 1) in vec2 inOffset;
-layout(location = 2) in float inLifetime;
-
 layout(location = 0) out vec2 v_texcoord;
 layout(location = 1) out float v_alpha;
+
+layout(binding = 2) uniform sampler2D particleStateTex;
 
 layout(std140, binding = 0) uniform Params {
 	vec4 rect;
@@ -19,6 +18,13 @@ void main() {
 	uint particleId = uint(gl_InstanceIndex);
 	uint pX = particleId % particleResolution.x;
 	uint pY = particleId / particleResolution.x;
+
+	vec4 state = texelFetch(
+		particleStateTex,
+		ivec2(int(pX), int(pY)),
+		0);
+	vec2 inOffset = state.xy;
+	float inLifetime = state.z;
 
 	vec2 particleSize = size / vec2(particleResolution);
 

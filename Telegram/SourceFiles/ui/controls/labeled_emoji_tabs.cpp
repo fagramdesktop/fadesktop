@@ -175,6 +175,7 @@ void LabeledEmojiTabs::Button::paintEvent(QPaintEvent *e) {
 				left + skip,
 				st::aiComposeStyleEmojiTop + skip,
 			},
+			.paused = !window()->isActiveWindow(),
 		});
 	} else if (_descriptor.emoji) {
 		const auto size = Emoji::GetSizeLarge() / style::DevicePixelRatio();
