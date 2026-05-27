@@ -90,5 +90,7 @@
     <file alias="pl.json">../../langs/fa/pl.json</file>
     <file alias="tr.json">../../langs/fa/tr.json</file>
     <file alias="ar.json">../../langs/fa/ar.json</file>
+    <file alias="pt.json">../../langs/fa/pt.json</file>
+    <file alias="pt_BR.json">../../langs/fa/pt_BR.json</file>
   </qresource>
 </RCC>
