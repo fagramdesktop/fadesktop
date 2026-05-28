@@ -926,7 +926,10 @@ bool ChatFilters::applyChange(ChatFilter &filter, ChatFilter &&updated) {
 }
 
 bool ChatFilters::applyOrder(const QVector<MTPint> &order) {
-	if (order.size() != _list.size()) {
+	const auto serverFilterCount = ranges::count_if(
+		_list,
+		[&](const ChatFilter &f) { return !isLocalFilter(f.id()); });
+	if (order.size() != serverFilterCount) {
 		return false;
 	} else if (_list.empty()) {
 		return true;
@@ -1004,6 +1007,23 @@ void ChatFilters::saveOrder(
 	const auto api = &_owner->session().api();
 	api->request(_saveOrderRequestId).cancel();
 
+	auto changed = false;
+	auto begin = _list.begin(), end = _list.end();
+	for (const auto &id : order) {
+		const auto i = ranges::find(begin, end, id, &ChatFilter::id);
+		if (i == end) {
+			continue;
+		}
+		if (i != begin) {
+			changed = true;
+			std::swap(*i, *begin);
+		}
+		++begin;
+	}
+	if (changed) {
+		_listChanged.fire({});
+	}
+
 	auto serverIds = QVector<MTPint>();
 	serverIds.reserve(order.size());
 	for (const auto id : order) {
@@ -1013,7 +1033,6 @@ void ChatFilters::saveOrder(
 	}
 	const auto wrapped = MTP_vector<MTPint>(serverIds);
 
-	apply(MTP_updateDialogFilterOrder(wrapped));
 	_saveOrderRequestId = api->request(MTPmessages_UpdateDialogFiltersOrder(
 		wrapped
 	)).afterRequest(_saveOrderAfterId).send();
