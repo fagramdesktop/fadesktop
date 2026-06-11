@@ -3204,7 +3204,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 	};
 
 	const auto addReplyAction = [&](HistoryItem *item) {
-		if (!item || !item->isRegular()) {
+		if (!item || (!item->isRegular() && !item->isEphemeral())) {
 			return;
 		}
 		const auto canSendReply = CanSendReply(item);
@@ -3375,6 +3375,10 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						reportItem(itemId);
 					}, &st::menuIconReport);
 				}
+				HistoryView::AddEphemeralMessageActions(
+					_menu,
+					_controller->uiShow(),
+					item);
 			}
 			addSelectMessageAction(item);
 			if (isUponSelected != -2 && blockSender) {
@@ -3632,7 +3636,10 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			_menu->addAction(tr::lng_context_clear_selection(tr::now), [=] {
 				_widget->clearSelected();
 			}, &st::menuIconSelect);
-		} else if (item && ((isUponSelected != -2 && (canForward || canDelete)) || item->isRegular())) {
+		} else if (item
+			&& ((isUponSelected != -2 && (canForward || canDelete))
+				|| item->isRegular()
+				|| item->isEphemeral())) {
 			if (isUponSelected != -2) {
 				if (canForward) {
 					_menu->addAction(tr::lng_context_forward_msg(tr::now), [=] {
@@ -3670,6 +3677,10 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						reportAsGroup(itemId);
 					}, &st::menuIconReport);
 				}
+				HistoryView::AddEphemeralMessageActions(
+					_menu,
+					_controller->uiShow(),
+					item);
 			}
 			addSelectMessageAction(partItemOrLeader);
 			if (isUponSelected != -2 && canBlockSender) {

@@ -99,7 +99,7 @@ void ThanosEffectController::captureOnRemoval(
 	const auto top = _delegate.itemTop(view);
 	const auto height = view->height();
 
-	if (!item->isRegular()
+	if ((!item->isRegular() && !item->isEphemeral())
 		|| item->isService()
 		|| top < 0
 		|| height <= 0
@@ -126,7 +126,7 @@ bool ThanosEffectController::captureView(
 		int viewHeight,
 		int viewTop) {
 	const auto item = view->data();
-	if (!item->isRegular() || item->isService()) {
+	if ((!item->isRegular() && !item->isEphemeral()) || item->isService()) {
 		return false;
 	}
 	if (viewTop < 0) {

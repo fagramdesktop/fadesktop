@@ -3225,7 +3225,9 @@ void ListWidget::mouseDoubleClickEvent(QMouseEvent *e) {
 			|| _mouseCursorState == CursorState::Date)
 		&& _selected.empty()
 		&& _overElement
-		&& _overElement->data()->isRegular()) {
+		&& (_overElement->data()->isRegular()
+			|| (_overElement->data()->isEphemeral()
+				&& !_overElement->data()->out()))) {
 		mouseActionCancel();
 		switch (CurrentQuickAction()) {
 		case DoubleClickQuickAction::Reply: {

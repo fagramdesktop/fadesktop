@@ -3066,6 +3066,8 @@ bool HistoryItem::forbidsSaving() const {
 bool HistoryItem::canDelete() const {
 	if (isSponsored()) {
 		return false;
+	} else if (isEphemeral()) {
+		return false;
 	} else if (IsStoryMsgId(id)) {
 		return false;
 	} else if (isService() && !isRegular()) {
