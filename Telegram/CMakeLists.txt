@@ -119,6 +119,8 @@ PRIVATE
     api/api_chat_participants.h
     api/api_cloud_password.cpp
     api/api_cloud_password.h
+    api/api_communities.cpp
+    api/api_communities.h
     data/data_search_calendar.h
     data/data_search_calendar.cpp
     api/api_common.cpp
