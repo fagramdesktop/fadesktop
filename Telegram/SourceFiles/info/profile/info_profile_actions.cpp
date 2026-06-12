@@ -20,6 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/timer_rpl.h"
 #include "base/unixtime.h"
 #include "boxes/peers/add_bot_to_chat_box.h"
+#include "boxes/peers/community_box.h"
 #include "boxes/peers/edit_contact_box.h"
 #include "boxes/peers/edit_participants_box.h"
 #include "boxes/peers/edit_peer_info_box.h"
@@ -1261,6 +1262,7 @@ private:
 	void addManagedBotFooter(not_null<UserData*> managerUser);
 	[[nodiscard]] Section makeReportOrDeleteReaction();
 	[[nodiscard]] Section makeViewChannel(not_null<ChannelData*> channel);
+	[[nodiscard]] Section makeCommunityLink(not_null<ChannelData*> channel);
 	[[nodiscard]] Section makeTopicsList(not_null<Data::Forum*> forum);
 
 	[[nodiscard]] Section makeDeleteReactionSection(GroupReactionOrigin data);
@@ -2538,6 +2540,57 @@ Section DetailsFiller::makeViewChannel(not_null<ChannelData*> channel) {
 	};
 }
 
+Section DetailsFiller::makeCommunityLink(not_null<ChannelData*> channel) {
+	const auto parent = _stack->layout();
+	auto wrap = object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+		parent,
+		object_ptr<Ui::VerticalLayout>(parent));
+	const auto raw = wrap.data();
+	const auto window = _controller->parentController();
+	const auto community = channel->owner().channel(
+		channel->linkedCommunityId());
+	AddMainButton(
+		raw->entity(),
+		tr::lng_community_profile_view(),
+		rpl::single(true),
+		[=] { ShowCommunityBox(window, community); },
+		nullptr,
+		nullptr);
+
+	const auto hiddenWrap = raw->entity()->add(
+		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+			raw->entity(),
+			object_ptr<Ui::VerticalLayout>(raw->entity())));
+	Ui::AddDividerText(
+		hiddenWrap->entity(),
+		tr::lng_community_hidden_chat_about());
+	auto hiddenValue = rpl::single(rpl::empty) | rpl::then(
+		channel->session().changes().peerUpdates(
+			community,
+			Data::PeerUpdate::Flag::FullInfo
+		) | rpl::to_empty
+	) | rpl::map([=] {
+		const auto info = community->communityInfo();
+		if (!info) {
+			return false;
+		}
+		for (const auto &linked : info->linkedPeers()) {
+			if (linked.peer == channel) {
+				return linked.visible.has_value() && !*linked.visible;
+			}
+		}
+		return false;
+	});
+	hiddenWrap->toggleOn(std::move(hiddenValue), anim::type::instant);
+	hiddenWrap->finishAnimating();
+
+	raw->toggle(true, anim::type::instant);
+	return Section{
+		.widget = std::move(wrap),
+		.shown = raw->toggledValue(),
+	};
+}
+
 Section DetailsFiller::makeTopicsList(not_null<Data::Forum*> forum) {
 	using namespace rpl::mappers;
 
@@ -2611,6 +2664,9 @@ void DetailsFiller::buildSections() {
 		addBotVerify();
 		if (!channel->isMegagroup()) {
 			_stack->add(makeViewChannel(channel));
+		}
+		if (channel->linkedCommunityId()) {
+			_stack->add(makeCommunityLink(channel));
 		}
 		if (const auto forum = channel->forum()) {
 			_stack->add(makeTopicsList(forum));

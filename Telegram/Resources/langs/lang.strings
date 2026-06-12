@@ -2267,6 +2267,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_community_ban_warning#other" = "Banning {user} will also remove {count} their chats from the community.";
 "lng_community_ban_button" = "Ban";
 "lng_community_ban_done" = "{user} was banned from the community.";
+"lng_community_profile_view" = "View Community";
+"lng_community_hidden_chat_about" = "Only invited members and community admins will see this chat.";
 
 "lng_manage_monoforum" = "Direct Messages";
 "lng_manage_monoforum_off" = "Off";
