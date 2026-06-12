@@ -347,12 +347,16 @@ void Controller::process(not_null<PeerListRow*> row, bool reject) {
 				delegate()->peerListRemoveRow(row);
 				delegate()->peerListRefreshRows();
 			}
-			if (_allLoaded
-				&& !delegate()->peerListFullRowsCount()
-				&& _closeBox) {
-				_closeBox();
+			const auto show = _navigation->uiShow();
+			const auto closeBox = (_allLoaded
+				&& !delegate()->peerListFullRowsCount())
+				? _closeBox
+				: nullptr;
+			if (closeBox) {
+				// Destroys the box and this controller.
+				closeBox();
 			}
-			_navigation->uiShow()->showToast(reject
+			show->showToast(reject
 				? tr::lng_community_request_declined_toast(
 					tr::now,
 					lt_count,
@@ -471,8 +475,9 @@ void ShowCommunityPendingRequestsBox(
 					community,
 					reject,
 					crl::guard(box, [=] {
+						const auto show = navigation->uiShow();
 						box->closeBox();
-						navigation->uiShow()->showToast(reject
+						show->showToast(reject
 							? tr::lng_community_request_declined_toast(
 								tr::now,
 								lt_count,
