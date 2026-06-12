@@ -2259,6 +2259,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_community_requests_decline_all_title" = "Decline All";
 "lng_community_requests_decline_all_sure#one" = "Do you want to decline {count} request to join the community?";
 "lng_community_requests_decline_all_sure#other" = "Do you want to decline all {count} requests to join the community?";
+"lng_community_ban_toggle" = "Ban from the Community";
+"lng_community_ban_about#one" = "User will be removed from {count} chat.";
+"lng_community_ban_about#other" = "User will be removed from {count} chats.";
+"lng_community_ban_warning_title" = "Warning";
+"lng_community_ban_warning#one" = "Banning {user} will also remove {count} their chat from the community.";
+"lng_community_ban_warning#other" = "Banning {user} will also remove {count} their chats from the community.";
+"lng_community_ban_button" = "Ban";
+"lng_community_ban_done" = "{user} was banned from the community.";
 
 "lng_manage_monoforum" = "Direct Messages";
 "lng_manage_monoforum_off" = "Off";

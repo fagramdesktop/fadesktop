@@ -19,13 +19,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_peer_values.h"
 #include "data/data_session.h"
 #include "info/profile/info_profile_values.h"
+#include "lang/lang_hardcoded.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "main/session/session_show.h"
 #include "settings/settings_common.h"
 #include "ui/layers/generic_box.h"
+#include "ui/text/text_utilities.h"
 #include "ui/vertical_list.h"
 #include "ui/widgets/buttons.h"
+#include "ui/widgets/labels.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
@@ -354,6 +357,91 @@ void ShowCommunityBox(
 		not_null<ChannelData*> community) {
 	navigation->uiShow()->showBox(
 		Box(CommunityBox, navigation, community));
+}
+
+void BanFromCommunityWithWarning(
+		std::shared_ptr<Ui::Show> show,
+		not_null<ChannelData*> community,
+		not_null<PeerData*> participant) {
+	const auto session = &community->session();
+	const auto ban = [=] {
+		session->api().communities().toggleParticipantBanned(
+			community,
+			participant,
+			false,
+			[=] {
+				show->showToast(tr::lng_community_ban_done(
+					tr::now,
+					lt_user,
+					participant->shortName()));
+			},
+			[=](const QString &error) {
+				show->showToast(error.isEmpty()
+					? Lang::Hard::ServerError()
+					: error);
+			});
+	};
+	session->api().communities().requestParticipantJoinedChats(
+		community,
+		participant,
+		[=](Api::CommunityParticipantJoinedChats chats) {
+			if (chats.creatorChats.empty()) {
+				ban();
+				return;
+			}
+			const auto creatorChats = chats.creatorChats;
+			show->showBox(Box([=](not_null<Ui::GenericBox*> box) {
+				box->setTitle(tr::lng_community_ban_warning_title());
+				box->addRow(object_ptr<Ui::FlatLabel>(
+					box,
+					rpl::single(tr::lng_community_ban_warning(
+						tr::now,
+						lt_count,
+						int(creatorChats.size()),
+						lt_user,
+						tr::bold(participant->shortName()),
+						tr::marked)),
+					st::boxLabel));
+
+				const auto container = box->verticalLayout();
+				Ui::AddSkip(container);
+
+				class Delegate final : public PeerListContentDelegateSimple {
+				public:
+					explicit Delegate(std::shared_ptr<Main::SessionShow> show)
+					: _show(std::move(show)) {
+					}
+
+					std::shared_ptr<Main::SessionShow> peerListUiShow(
+							) override {
+						return _show;
+					}
+
+				private:
+					const std::shared_ptr<Main::SessionShow> _show;
+
+				};
+				const auto delegate
+					= container->lifetime().make_state<Delegate>(
+						Main::MakeSessionShow(show, session));
+				const auto controller = container->lifetime().make_state<
+					ChatsController
+				>(
+					session,
+					rpl::single(creatorChats),
+					[](not_null<PeerData*>) {});
+				const auto content = container->add(
+					object_ptr<PeerListContent>(container, controller));
+				delegate->setContent(content);
+				controller->setDelegate(delegate);
+
+				box->addButton(tr::lng_community_ban_button(), [=] {
+					box->closeBox();
+					ban();
+				}, st::attentionBoxButton);
+				box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
+			}));
+		});
 }
 
 void ShowChooseChatToAddBox(
