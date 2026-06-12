@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "boxes/peer_list_box.h"
 #include "boxes/peers/add_to_community_box.h"
+#include "boxes/peers/community_pending_requests_box.h"
 #include "boxes/peers/manage_community_box.h"
 #include "data/data_changes.h"
 #include "data/data_channel.h"
@@ -162,6 +163,32 @@ void CommunityBox(
 	}, toggle->lifetime());
 	Ui::AddSkip(container);
 	Ui::AddDividerText(container, tr::lng_community_show_as_one_about());
+
+	if (community->canManageLinkedPeers()) {
+		const auto wrap = container->add(
+			object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+				container,
+				object_ptr<Ui::VerticalLayout>(container)));
+		const auto inner = wrap->entity();
+		Ui::AddSkip(inner);
+		auto count = Info::Profile::PendingRequestsCountValue(
+			community
+		) | rpl::start_spawning(wrap->lifetime());
+		Settings::AddButtonWithIcon(
+			inner,
+			tr::lng_community_requests_button(
+				lt_count,
+				rpl::duplicate(count) | tr::to_count()),
+			st::settingsButton,
+			{ &st::menuIconInvite }
+		)->addClickHandler([=] {
+			ShowCommunityPendingRequestsBox(navigation, community);
+		});
+		wrap->toggleOn(
+			std::move(count) | rpl::map(rpl::mappers::_1 > 0),
+			anim::type::instant);
+		wrap->finishAnimating();
+	}
 
 	auto chats = info->linkedPeersValue(
 	) | rpl::map([=] {

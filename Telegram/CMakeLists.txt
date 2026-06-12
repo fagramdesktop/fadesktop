@@ -232,6 +232,8 @@ PRIVATE
     boxes/peers/choose_peer_box.h
     boxes/peers/community_box.cpp
     boxes/peers/community_box.h
+    boxes/peers/community_pending_requests_box.cpp
+    boxes/peers/community_pending_requests_box.h
     boxes/peers/create_managed_bot_box.cpp
     boxes/peers/create_managed_bot_box.h
     boxes/peers/edit_contact_box.cpp

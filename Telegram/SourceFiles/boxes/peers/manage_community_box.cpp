@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/manage_community_box.h"
 
 #include "apiwrap.h"
+#include "boxes/peers/community_pending_requests_box.h"
 #include "boxes/peers/edit_participants_box.h"
 #include "data/data_changes.h"
 #include "data/data_channel.h"
@@ -23,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/labels.h"
+#include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
 #include "styles/style_boxes.h"
@@ -179,6 +181,28 @@ void ManageCommunityBox(
 			community,
 			ParticipantsBoxController::Role::Admins);
 	});
+	if (community->canManageLinkedPeers()) {
+		const auto wrap = container->add(
+			object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+				container,
+				object_ptr<Ui::VerticalLayout>(container)));
+		auto count = Info::Profile::PendingRequestsCountValue(
+			community
+		) | rpl::start_spawning(wrap->lifetime());
+		Settings::AddButtonWithLabel(
+			wrap->entity(),
+			tr::lng_community_requests_title(),
+			PositiveNumberString(rpl::duplicate(count)),
+			st::settingsButton,
+			{ &st::menuIconInvite }
+		)->addClickHandler([=] {
+			ShowCommunityPendingRequestsBox(navigation, community);
+		});
+		wrap->toggleOn(
+			std::move(count) | rpl::map(rpl::mappers::_1 > 0),
+			anim::type::instant);
+		wrap->finishAnimating();
+	}
 	Settings::AddButtonWithLabel(
 		container,
 		tr::lng_manage_peer_removed_users(),
