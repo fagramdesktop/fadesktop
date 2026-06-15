@@ -386,6 +386,7 @@ private:
 			|| (_peerSearchPressed >= 0)
 			|| (_previewPressed >= 0)
 			|| (_searchedPressed >= 0)
+			|| (_communityPressed >= 0)
 			|| _pressedMorePosts
 			|| _pressedChatTypeFilter;
 	}
@@ -397,6 +398,7 @@ private:
 			|| (_peerSearchSelected >= 0)
 			|| (_previewSelected >= 0)
 			|| (_searchedSelected >= 0)
+			|| (_communitySelected >= 0)
 			|| _selectedMorePosts
 			|| _selectedChatTypeFilter;
 	}
@@ -460,6 +462,8 @@ private:
 	void fillArchiveSearchMenu(not_null<Ui::PopupMenu*> menu);
 
 	void refreshShownList();
+	void rebuildCommunitySections();
+	void setCommunityPressed(int pressed);
 	[[nodiscard]] int skipTopHeight() const;
 	[[nodiscard]] int collapsedRowsOffset() const;
 	[[nodiscard]] int dialogsOffset() const;
@@ -475,6 +479,12 @@ private:
 	[[nodiscard]] int searchedOffset() const;
 	[[nodiscard]] int searchInChatSkip() const;
 	[[nodiscard]] int hashtagsOffset() const;
+	[[nodiscard]] int communityViewableTop() const;
+	[[nodiscard]] int communityRequestableTop() const;
+	[[nodiscard]] int communitySectionsBottom() const;
+	[[nodiscard]] int communityRowCount() const;
+	[[nodiscard]] Row *communityRowAt(int index) const;
+	[[nodiscard]] int communityRowAbsoluteTop(int index) const;
 
 	void paintCollapsedRows(
 		Painter &p,
@@ -712,6 +722,12 @@ private:
 	int _searchedMigratedCount = 0;
 	int _searchedSelected = -1;
 	int _searchedPressed = -1;
+
+	std::vector<std::unique_ptr<Row>> _communityViewable;
+	std::vector<std::unique_ptr<Row>> _communityRequestable;
+	int _communitySelected = -1;
+	int _communityPressed = -1;
+	rpl::lifetime _openedCommunityLifetime;
 
 	WidgetState _state = WidgetState::Default;
 
