@@ -983,6 +983,7 @@ private:
 
 	void showWindow() {
 		_backgroundHold = shared_from_this();
+		registerLiveAndTrackSession();
 		auto descriptor = ShowWindowDescriptor{
 			.session = _session,
 			.peer = _peer,
@@ -1037,6 +1038,63 @@ private:
 		if (!_submittedPage && !_submitApiRequested) {
 			_backgroundHold = nullptr;
 		}
+	}
+
+public:
+	static void CloseAll() {
+		auto live = std::vector<std::weak_ptr<ArticleSession>>();
+		std::swap(live, Live());
+		for (const auto &weak : live) {
+			if (const auto strong = weak.lock()) {
+				strong->forceClose();
+			}
+		}
+	}
+
+private:
+	// Registry of all editor sessions that currently own a window, so that
+	// they can be force-closed on session clear or application shutdown.
+	[[nodiscard]] static std::vector<std::weak_ptr<ArticleSession>> &Live() {
+		static auto result = std::vector<std::weak_ptr<ArticleSession>>();
+		return result;
+	}
+
+	void registerLiveAndTrackSession() {
+		auto &live = Live();
+		live.erase(
+			std::remove_if(
+				live.begin(),
+				live.end(),
+				[](const std::weak_ptr<ArticleSession> &weak) {
+					return weak.expired();
+				}),
+			live.end());
+		live.push_back(weak_from_this());
+
+		_session->data().sessionDataAboutToBeCleared(
+		) | rpl::on_next([weak = weak_from_this()] {
+			// Holds a strong reference for the duration of the call, so that
+			// dropping the self-hold inside forceClose() doesn't run
+			// ~ArticleSession re-entrantly while this handler is on the stack.
+			if (const auto strong = weak.lock()) {
+				strong->forceClose();
+			}
+		}, _lifetime);
+	}
+
+	// Destroys the editor window synchronously and releases the self-hold.
+	// The caller must hold a strong reference (see CloseAll() and the session
+	// clear handler) so that the eventual ~ArticleSession runs after this
+	// returns rather than re-entrantly.
+	void forceClose() {
+		if (!_windowHost && !_backgroundHold) {
+			return;
+		}
+		_editor = nullptr;
+		_submitButton = nullptr;
+		_windowHost = nullptr;
+		_editorShow = nullptr;
+		_backgroundHold = nullptr;
 	}
 
 	void handleMediaDialogResult(
@@ -1929,6 +1987,10 @@ void ShowEditBox(
 			not_null{ current },
 			std::move(page));
 	});
+}
+
+void CloseAllWindows() {
+	ArticleSession::CloseAll();
 }
 
 } // namespace Iv::Editor

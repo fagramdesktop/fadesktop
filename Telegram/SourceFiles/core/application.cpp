@@ -46,6 +46,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "iv/iv_delegate_impl.h"
 #include "iv/iv_instance.h"
 #include "iv/iv_data.h"
+#include "iv/editor/iv_editor_session.h"
 #include "lang/lang_translator.h"
 #include "lang/lang_cloud_manager.h"
 #include "lang/lang_hardcoded.h"
@@ -214,6 +215,7 @@ void Application::closeAdditionalWindows() {
 		}
 	}
 	_iv->closeAll();
+	Iv::Editor::CloseAllWindows();
 }
 
 Application::~Application() {

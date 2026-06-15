@@ -29,4 +29,10 @@ void ShowEditBox(
 	not_null<Window::SessionController*> controller,
 	not_null<HistoryItem*> item);
 
+// Synchronously destroys all open editor windows. Called on application
+// shutdown (before ~Sandbox) so that no editor top-level widget survives
+// to be destroyed from ~QApplication, where the lib_ui native event filter
+// would re-enter the already destroyed Sandbox machinery and crash.
+void CloseAllWindows();
+
 } // namespace Iv::Editor
