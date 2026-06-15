@@ -2077,6 +2077,49 @@ void SessionController::closeFolder() {
 	_openedFolder = nullptr;
 }
 
+void SessionController::openCommunity(not_null<Data::CommunityInfo*> info) {
+	if (_openedCommunity.current() != info) {
+		resetFakeUnreadWhileOpened();
+	}
+	if (activeChatsFilterCurrent() != 0) {
+		setActiveChatsFilter(0);
+	} else if (adaptive().isOneColumn()) {
+		clearSectionStack(SectionShow::Way::ClearStack);
+	}
+	closeForum();
+	closeFolder();
+	_openedCommunity = info.get();
+
+	_openedCommunityLifetime.destroy();
+	using FlagChange = Data::Flags<ChannelDataFlags>::Change;
+	info->channel()->flagsValue(
+	) | rpl::on_next([=](FlagChange change) {
+		if (change.diff & ChannelDataFlag::CommunityCollapsed) {
+			if (!info->collapsedInDialogs()) {
+				closeCommunity();
+			}
+		}
+	}, _openedCommunityLifetime);
+	info->chatsList()->fullSize().value(
+	) | rpl::skip(
+		1
+	) | rpl::filter(
+		rpl::mappers::_1 == 0
+	) | rpl::on_next([=] {
+		closeCommunity();
+	}, _openedCommunityLifetime);
+}
+
+void SessionController::closeCommunity() {
+	_openedCommunityLifetime.destroy();
+	_openedCommunity = nullptr;
+}
+
+const rpl::variable<Data::CommunityInfo*> &
+SessionController::openedCommunity() const {
+	return _openedCommunity;
+}
+
 bool SessionController::showForumInDifferentWindow(
 		not_null<Data::Forum*> forum,
 		const SectionShow &params,
@@ -3215,6 +3258,7 @@ void SessionController::setActiveChatsFilter(
 	if (id || !changed) {
 		closeForum();
 		closeFolder();
+		closeCommunity();
 	}
 	if (adaptive().isOneColumn()) {
 		clearSectionStack(params);

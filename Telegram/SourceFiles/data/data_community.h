@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "dialogs/dialogs_main_list.h"
 #include "ui/text/text.h"
 
 class ChannelData;
@@ -50,6 +51,8 @@ public:
 		return _histories;
 	}
 
+	[[nodiscard]] not_null<Dialogs::MainList*> chatsList();
+
 	[[nodiscard]] TimeId chatsListDate() const {
 		return _chatsListDate;
 	}
@@ -71,6 +74,7 @@ private:
 	void reorderLastHistories();
 	void updateRowSortPosition();
 	void repaintRow();
+	void moveHistory(not_null<History*> history, bool nowCollapsed);
 
 	const not_null<ChannelData*> _channel;
 	std::vector<CommunityLinkedPeer> _linkedPeers;
@@ -82,6 +86,7 @@ private:
 	int _listEntryCacheVersion = 0;
 	int _chatListViewVersion = 0;
 	TimeId _chatsListDate = 0;
+	Dialogs::MainList _chatsList;
 
 	rpl::lifetime _lifetime;
 

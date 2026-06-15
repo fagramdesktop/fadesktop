@@ -23,6 +23,7 @@ class Error;
 
 namespace Data {
 class Forum;
+class CommunityInfo;
 enum class StorySourcesList : uchar;
 struct ReactionId;
 } // namespace Data
@@ -252,6 +253,9 @@ private:
 		anim::type animated);
 	void changeOpenedFolder(Data::Folder *folder, anim::type animated);
 	void changeOpenedForum(Data::Forum *forum, anim::type animated);
+	void changeOpenedCommunity(
+		Data::CommunityInfo *community,
+		anim::type animated);
 	void hideChildList();
 	void destroyChildListCanvas();
 	[[nodiscard]] QPixmap grabForFolderSlideAnimation();
@@ -368,6 +372,7 @@ private:
 
 	Data::Folder *_openedFolder = nullptr;
 	Data::Forum *_openedForum = nullptr;
+	Data::CommunityInfo *_openedCommunity = nullptr;
 	SearchState _searchState;
 	History *_searchInMigrated = nullptr;
 	rpl::lifetime _searchTagsLifetime;

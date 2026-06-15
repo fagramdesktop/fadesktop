@@ -95,7 +95,12 @@ constexpr auto kShowChatNamesCount = 8;
 } // namespace
 
 CommunityInfo::CommunityInfo(not_null<ChannelData*> channel)
-: _channel(channel) {
+: _channel(channel)
+, _chatsList(
+	&channel->session(),
+	FilterId(),
+	channel->owner().maxPinnedChatsLimitValue(
+		static_cast<Data::Folder*>(nullptr))) {
 	_channel->session().changes().peerUpdates(
 		PeerUpdate::Flag::Name
 	) | rpl::filter([=](const PeerUpdate &update) {
@@ -104,6 +109,10 @@ CommunityInfo::CommunityInfo(not_null<ChannelData*> channel)
 		++_chatListViewVersion;
 		repaintRow();
 	}, _lifetime);
+}
+
+not_null<Dialogs::MainList*> CommunityInfo::chatsList() {
+	return &_chatsList;
 }
 
 void CommunityInfo::applyLinkedPeers(const QVector<MTPCommunityPeer> &list) {
@@ -159,10 +168,26 @@ bool CommunityInfo::collapsedInDialogs() const {
 	return _channel->flags() & ChannelDataFlag::CommunityCollapsed;
 }
 
-void CommunityInfo::collapsedChanged() {
-	for (const auto &history : _histories) {
+void CommunityInfo::moveHistory(
+		not_null<History*> history,
+		bool nowCollapsed) {
+	if (!history->inChatList()) {
 		history->updateChatListSortPosition();
 		history->updateChatListExistence();
+		return;
+	}
+	auto &owner = _channel->owner();
+	const auto wasList = nowCollapsed
+		? owner.chatsList(history->folder())
+		: chatsList();
+	history->removeFromChatList(0, wasList);
+	history->updateChatListSortPosition();
+}
+
+void CommunityInfo::collapsedChanged() {
+	const auto nowCollapsed = collapsedInDialogs();
+	for (const auto &history : _histories) {
+		moveHistory(history, nowCollapsed);
 	}
 	ensureRowInChatList();
 	repaintRow();

@@ -63,6 +63,7 @@ class ChatFilter;
 class Thread;
 class Folder;
 class Forum;
+class CommunityInfo;
 class SavedMessages;
 struct ReactionId;
 } // namespace Data
@@ -149,6 +150,7 @@ public:
 
 	void changeOpenedFolder(Data::Folder *folder);
 	void changeOpenedForum(Data::Forum *forum);
+	void changeOpenedCommunity(Data::CommunityInfo *community);
 	void showSavedSublists();
 	void selectSkip(int32 direction);
 	void selectSkipPage(int32 pixels, int32 direction);
@@ -179,6 +181,7 @@ public:
 
 	[[nodiscard]] Data::Folder *shownFolder() const;
 	[[nodiscard]] Data::Forum *shownForum() const;
+	[[nodiscard]] Data::CommunityInfo *shownCommunity() const;
 
 	[[nodiscard]] WidgetState state() const;
 	[[nodiscard]] not_null<const style::DialogRow*> st() const {
@@ -624,6 +627,7 @@ private:
 	Data::Folder *_openedFolder = nullptr;
 	Data::Forum *_openedForum = nullptr;
 	rpl::lifetime _openedForumLifetime;
+	Data::CommunityInfo *_openedCommunity = nullptr;
 
 	std::vector<std::unique_ptr<CollapsedRow>> _collapsedRows;
 	not_null<const style::DialogRow*> _st;

@@ -713,6 +713,15 @@ Widget::Widget(
 			}
 		}, lifetime());
 
+		changeOpenedCommunity(
+			controller->openedCommunity().current(),
+			anim::type::instant);
+
+		controller->openedCommunity().changes(
+		) | rpl::on_next([=](Data::CommunityInfo *community) {
+			changeOpenedCommunity(community, anim::type::normal);
+		}, lifetime());
+
 		_childListShown.changes(
 		) | rpl::on_next([=] {
 			_scroll->setOverscrollBg(overscrollBg());
@@ -960,6 +969,19 @@ void Widget::chosenRow(const ChosenRow &row) {
 		controller()->openPeerStories(history->peer->id);
 		return;
 	} else if (history
+		&& !row.message.fullId
+		&& history->peer->asChannel()
+		&& history->peer->asChannel()->isCommunity()) {
+		if (const auto info = history->peer->asChannel()->communityInfo()) {
+			if (controller()->openedCommunity().current() == info) {
+				controller()->closeCommunity();
+			} else {
+				controller()->openCommunity(info);
+				hideChildList();
+			}
+		}
+		return;
+	} else if (history
 		&& history->isForum()
 		&& !row.message.fullId
 		&& (!controller()->adaptive().isOneColumn()
@@ -1171,6 +1193,7 @@ void Widget::updateFrozenAccountBar() {
 	if (_layout == Layout::Child
 		|| _openedForum
 		|| _openedFolder
+		|| _openedCommunity
 		|| !session().frozen()) {
 		_frozenAccountBar = nullptr;
 	} else if (!_frozenAccountBar) {
@@ -1184,7 +1207,8 @@ void Widget::updateFrozenAccountBar() {
 
 void Widget::updateTopBarSuggestions() {
 	if (_topBarSuggestion) {
-		_openedFolderOrForumChanges.fire(_openedFolder || _openedForum);
+		_openedFolderOrForumChanges.fire(
+			_openedFolder || _openedForum || _openedCommunity);
 	}
 }
 
@@ -1608,13 +1632,15 @@ void Widget::updateControlsVisibility(bool fast) {
 	updateLoadMoreChatsVisibility();
 	_scroll->setVisible(!_suggestions && _hidingSuggestions.empty());
 	updateStoriesVisibility();
-	if ((_openedFolder || _openedForum) && _searchHasFocus) {
+	if ((_openedFolder || _openedForum || _openedCommunity)
+		&& _searchHasFocus) {
 		setInnerFocus();
 	}
 	if (_updateTelegram) {
 		_updateTelegram->show();
 	}
-	_searchControls->setVisible(!_openedFolder && !_openedForum);
+	_searchControls->setVisible(
+		!_openedFolder && !_openedForum && !_openedCommunity);
 	if (_moreChatsBar) {
 		_moreChatsBar->show();
 	}
@@ -1624,7 +1650,7 @@ void Widget::updateControlsVisibility(bool fast) {
 	if (_chatFilters) {
 		_chatFilters->setVisible(!_openedForum);
 	}
-	if (_openedFolder || _openedForum) {
+	if (_openedFolder || _openedForum || _openedCommunity) {
 		_subsectionTopBar->show();
 		if (_forumTopShadow) {
 			_forumTopShadow->show();
@@ -2023,6 +2049,23 @@ void Widget::changeOpenedForum(Data::Forum *forum, anim::type animated) {
 	}, (forum != nullptr), animated);
 }
 
+void Widget::changeOpenedCommunity(
+		Data::CommunityInfo *community,
+		anim::type animated) {
+	if (_openedCommunity == community) {
+		return;
+	}
+	changeOpenedSubsection([&] {
+		cancelSearch({ .forceFullCancel = true });
+		closeChildList(anim::type::instant);
+		controller()->closeForum();
+		_openedCommunity = community;
+		_inner->changeOpenedCommunity(community);
+		updateFrozenAccountBar();
+		updateTopBarSuggestions();
+	}, (community != nullptr), animated);
+}
+
 void Widget::hideChildList() {
 	if (_childList) {
 		controller()->closeForum();
@@ -2030,7 +2073,7 @@ void Widget::hideChildList() {
 }
 
 void Widget::refreshTopBars() {
-	if (_openedFolder || _openedForum) {
+	if (_openedFolder || _openedForum || _openedCommunity) {
 		if (!_subsectionTopBar) {
 			_subsectionTopBar.create(this, controller());
 			if (_stories) {
@@ -2058,12 +2101,15 @@ void Widget::refreshTopBars() {
 			}, _subsectionTopBar->lifetime());
 			updateControlsGeometry();
 		}
+		const auto communityHistory = _openedCommunity
+			? session().data().history(_openedCommunity->channel()).get()
+			: nullptr;
 		const auto history = _openedForum
 			? _openedForum->history().get()
-			: nullptr;
+			: communityHistory;
 		_subsectionTopBar->setActiveChat(
 			HistoryView::TopBarWidget::ActiveChat{
-				.key = (_openedForum
+				.key = (history
 					? Dialogs::Key(history)
 					: Dialogs::Key(_openedFolder)),
 				.section = Dialogs::EntryState::Section::ChatsList,
@@ -2542,6 +2588,8 @@ void Widget::escape() {
 			if (!controller()->windowId().folder()) {
 				controller()->closeFolder();
 			}
+		} else if (controller()->openedCommunity().current()) {
+			controller()->closeCommunity();
 		} else if (controller()->activeChatEntryCurrent().key) {
 			controller()->content()->dialogsCancelled();
 		} else if (controller()->isPrimary()) {
@@ -3913,6 +3961,7 @@ void Widget::updateLoadMoreChatsVisibility() {
 	}
 	const auto hidden = (_openedFolder != nullptr)
 		|| (_openedForum != nullptr)
+		|| (_openedCommunity != nullptr)
 		|| !_searchState.query.isEmpty();
 	if (_loadMoreChats->isHidden() != hidden) {
 		_loadMoreChats->setVisible(!hidden);
@@ -4246,6 +4295,7 @@ QVariant Widget::inputMethodQuery(Qt::InputMethodQuery query) const {
 bool Widget::redirectToSearchPossible() const {
 	return !_openedFolder
 		&& !_openedForum
+		&& !_openedCommunity
 		&& !_childList
 		&& _search->isVisible()
 		&& !_search->hasFocus()

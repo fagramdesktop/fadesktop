@@ -3340,8 +3340,6 @@ bool History::shouldBeInChatList() const {
 			return !(channel->flags() & ChannelDataFlag::Forbidden)
 				&& !channel->haveLeft()
 				&& (channel->flags() & ChannelDataFlag::CommunityCollapsed);
-		} else if (_communityInfo && _communityInfo->collapsedInDialogs()) {
-			return false;
 		}
 		if (!channel->amIn()) {
 			return isTopPromoted();

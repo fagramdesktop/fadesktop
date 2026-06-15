@@ -87,6 +87,7 @@ struct CloudTheme;
 enum class CloudThemeType;
 class PhotoMedia;
 class Thread;
+class CommunityInfo;
 class Forum;
 class ForumTopic;
 class SavedSublist;
@@ -465,6 +466,10 @@ public:
 		MsgId showAtMsgId = ShowAtUnreadMsgId);
 	void closeForum();
 	const rpl::variable<Data::Forum*> &shownForum() const;
+
+	void openCommunity(not_null<Data::CommunityInfo*> info);
+	void closeCommunity();
+	const rpl::variable<Data::CommunityInfo*> &openedCommunity() const;
 
 	void setActiveChatEntry(Dialogs::RowDescriptor row);
 	void setActiveChatEntry(Dialogs::Key key);
@@ -860,6 +865,8 @@ private:
 	rpl::variable<Data::Folder*> _openedFolder;
 	rpl::variable<Data::Forum*> _shownForum;
 	rpl::lifetime _shownForumLifetime;
+	rpl::variable<Data::CommunityInfo*> _openedCommunity;
+	rpl::lifetime _openedCommunityLifetime;
 
 	rpl::event_stream<> _filtersMenuChanged;
 

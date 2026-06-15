@@ -818,6 +818,22 @@ void InnerWidget::changeOpenedForum(Data::Forum *forum) {
 	}
 }
 
+void InnerWidget::changeOpenedCommunity(Data::CommunityInfo *community) {
+	Expects(!community || !_savedSublists);
+
+	if (_openedCommunity == community) {
+		return;
+	}
+	stopReorderPinned();
+	clearSelection();
+	_openedCommunity = community;
+	refreshShownList();
+	refreshWithCollapsedRows(true);
+	if (_loadMoreCallback) {
+		_loadMoreCallback();
+	}
+}
+
 void InnerWidget::showSavedSublists() {
 	Expects(!_geometryInited);
 	Expects(!_savedSublists);
@@ -2984,8 +3000,18 @@ void InnerWidget::handleChatListEntryRefreshes() {
 			return (topic->forum() == _openedForum);
 		} else if (const auto sublist = event.key.sublist()) {
 			return sublist->parent() == _savedSublists;
+		} else if (_openedCommunity) {
+			const auto history = event.key.history();
+			return history
+				&& (history->communityListInfo() == _openedCommunity);
+		} else if (_openedForum) {
+			return false;
 		} else {
-			return !_openedForum;
+			const auto history = event.key.history();
+			const auto info = history
+				? history->communityListInfo()
+				: nullptr;
+			return !info || !info->collapsedInDialogs();
 		}
 	}) | rpl::on_next([=](const Event &event) {
 		const auto offset = dialogsOffset();
@@ -3002,7 +3028,17 @@ void InnerWidget::handleChatListEntryRefreshes() {
 				? (key.topic()->forum() == _openedForum)
 				: key.sublist()
 				? (key.sublist()->parent() == _savedSublists)
-				: (entry->folder() == _openedFolder))) {
+				: _openedCommunity
+				? (entry->asHistory()
+					&& entry->asHistory()->communityListInfo()
+						== _openedCommunity)
+				: _openedForum
+				? false
+				: (entry->folder() == _openedFolder
+					&& !(entry->asHistory()
+						&& entry->asHistory()->communityListInfo()
+						&& entry->asHistory()->communityListInfo()
+							->collapsedInDialogs())))) {
 			_dialogMoved.fire({ from, to });
 		}
 
@@ -3229,6 +3265,11 @@ Row *InnerWidget::shownRowByKey(Key key) {
 		if (!topic || topic->forum() != _openedForum) {
 			return nullptr;
 		}
+	} else if (_openedCommunity) {
+		const auto history = entry->asHistory();
+		if (!history || history->communityListInfo() != _openedCommunity) {
+			return nullptr;
+		}
 	} else if (_openedFolder) {
 		const auto history = entry->asHistory();
 		if (!history || history->folder() != _openedFolder) {
@@ -3431,6 +3472,8 @@ void InnerWidget::refreshShownList() {
 		? _savedSublists->chatsList()->indexed()
 		: _openedForum
 		? _openedForum->topicsList()->indexed()
+		: _openedCommunity
+		? _openedCommunity->chatsList()->indexed()
 		: _filterId
 		? session().data().chatsFilters().chatsList(_filterId)->indexed()
 		: session().data().chatsList(_openedFolder)->indexed();
@@ -4402,6 +4445,10 @@ Data::Forum *InnerWidget::shownForum() const {
 	return _openedForum;
 }
 
+Data::CommunityInfo *InnerWidget::shownCommunity() const {
+	return _openedCommunity;
+}
+
 bool InnerWidget::needCollapsedRowsRefresh() const {
 	const auto archive = !_shownList->empty()
 		? _shownList->begin()->get()->folder()
@@ -4517,6 +4564,8 @@ void InnerWidget::refreshEmpty() {
 		? (_openedForum->topicsList()->loaded()
 			? EmptyState::EmptyForum
 			: EmptyState::Loading)
+		: _openedCommunity
+		? EmptyState::Loading
 		: (!_filterId && data->contactsLoaded().current())
 		? EmptyState::NoContacts
 		: (_filterId > 0) && data->chatsList()->loaded()

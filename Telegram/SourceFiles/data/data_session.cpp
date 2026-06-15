@@ -5302,6 +5302,11 @@ not_null<Dialogs::MainList*> Session::chatsListFor(
 		return topic->forum()->topicsList();
 	} else if (const auto sublist = entry->asSublist()) {
 		return sublist->parent()->chatsList();
+	} else if (const auto history = entry->asHistory()) {
+		if (const auto info = history->communityListInfo()
+			; info && info->collapsedInDialogs()) {
+			return info->chatsList();
+		}
 	}
 	return chatsList(entry->folder());
 }
