@@ -723,6 +723,24 @@ void Filler::addNewWindow(bool addSeparator) {
 		}
 		return;
 	}
+	if (const auto channel = _peer ? _peer->asChannel() : nullptr) {
+		if (channel->isCommunity()) {
+			const auto history = channel->owner().history(channel);
+			const auto weak = base::make_weak(history);
+			_addAction(tr::lng_context_new_window(tr::now), [=] {
+				Ui::PreventDelayedActivation();
+				if (const auto strong = weak.get()) {
+					controller->showInNewWindow(SeparateId(
+						SeparateType::Community,
+						strong));
+				}
+			}, &st::menuIconNewWindow);
+			if (addSeparator) {
+				AddSeparatorAndShiftUp(_addAction);
+			}
+			return;
+		}
+	}
 	const auto history = _request.key.history();
 	if (!_peer
 		|| (history

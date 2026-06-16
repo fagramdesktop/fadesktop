@@ -995,7 +995,12 @@ void Widget::chosenRow(const ChosenRow &row) {
 		&& !row.message.fullId
 		&& history->peer->asChannel()
 		&& history->peer->asChannel()->isCommunity()) {
-		if (const auto info = history->peer->asChannel()->communityInfo()) {
+		if (row.newWindow) {
+			controller()->showInNewWindow(Window::SeparateId(
+				Window::SeparateType::Community,
+				history));
+		} else if (const auto info
+				= history->peer->asChannel()->communityInfo()) {
 			if (controller()->openedCommunity().current() == info) {
 				controller()->closeCommunity();
 			} else {

@@ -1431,6 +1431,12 @@ void SessionNavigation::showByInitialId(
 		clearSectionStack(instant);
 		parent->showForum(id.forum(), instant);
 		break;
+	case SeparateType::Community:
+		clearSectionStack(instant);
+		if (const auto info = id.community()) {
+			parent->openCommunity(info);
+		}
+		break;
 	case SeparateType::Primary:
 		clearSectionStack(instant);
 		break;
@@ -1559,6 +1565,7 @@ SessionController::SessionController(
 , _invitePeekTimer([=] { checkInvitePeek(); })
 , _activeChatsFilter(session->data().chatsFilters().defaultId())
 , _openedFolder(window->id().folder())
+, _openedCommunity(window->id().community())
 , _defaultChatTheme(std::make_shared<Ui::ChatTheme>())
 , _chatStyle(std::make_unique<Ui::ChatStyle>(session->colorIndicesValue())) {
 	init();
@@ -2096,26 +2103,33 @@ void SessionController::openCommunity(not_null<Data::CommunityInfo*> info) {
 	}
 
 	_openedCommunityLifetime.destroy();
-	using FlagChange = Data::Flags<ChannelDataFlags>::Change;
-	info->channel()->flagsValue(
-	) | rpl::on_next([=](FlagChange change) {
-		if (change.diff & ChannelDataFlag::CommunityCollapsed) {
-			if (!info->collapsedInDialogs()) {
-				closeCommunity();
+	if (windowId().type != SeparateType::Community) {
+		using FlagChange = Data::Flags<ChannelDataFlags>::Change;
+		info->channel()->flagsValue(
+		) | rpl::on_next([=](FlagChange change) {
+			if (change.diff & ChannelDataFlag::CommunityCollapsed) {
+				if (!info->collapsedInDialogs()) {
+					closeCommunity();
+				}
 			}
-		}
-	}, _openedCommunityLifetime);
-	info->chatsList()->fullSize().value(
-	) | rpl::skip(
-		1
-	) | rpl::filter(
-		rpl::mappers::_1 == 0
-	) | rpl::on_next([=] {
-		closeCommunity();
-	}, _openedCommunityLifetime);
+		}, _openedCommunityLifetime);
+		info->chatsList()->fullSize().value(
+		) | rpl::skip(
+			1
+		) | rpl::filter(
+			rpl::mappers::_1 == 0
+		) | rpl::on_next([=] {
+			closeCommunity();
+		}, _openedCommunityLifetime);
+	}
 }
 
 void SessionController::closeCommunity() {
+	if (_openedCommunity.current()
+		&& windowId().type == SeparateType::Community) {
+		Core::App().closeWindow(_window);
+		return;
+	}
 	_openedCommunityLifetime.destroy();
 	_openedCommunity = nullptr;
 }
