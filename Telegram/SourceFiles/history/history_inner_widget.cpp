@@ -722,8 +722,7 @@ void HistoryInner::setupSwipeReplyAndBack() {
 				return Ui::Controls::SwipeHandlerFinishData();
 			}
 		}
-		if (inSelectionMode().inSelectionMode
-			|| (peer->isChannel() && !peer->isMegagroup())) {
+		if (inSelectionMode().inSelectionMode) {
 			return result;
 		}
 		enumerateItems<EnumItemsDirection::BottomToTop>([&](
