@@ -16,16 +16,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Ui {
 namespace {
 
-constexpr auto kPeek = 0.26; // Tunable. Strip width to the left of the userpic.
-constexpr auto kCard1Scale = 0.94; // Tunable.
-constexpr auto kCard1Dx = 0.12; // Tunable.
-constexpr auto kCard1Angle = -7.; // Tunable.
-constexpr auto kCard1Radius = 0.25; // Tunable. Less rounded than the userpic.
+constexpr auto kPeek = 0.3; // Tunable. Strip width to the left of the userpic.
+constexpr auto kCover = 0.5; // Tunable. How far the image reaches into the userpic.
+constexpr auto kCard1Scale = 0.82; // Tunable.
+constexpr auto kCard1Angle = -9.; // Tunable.
+constexpr auto kCard1Radius = 0.22; // Tunable. Less rounded than the userpic.
 constexpr auto kCard1Opacity = 0.5; // Tunable.
-constexpr auto kCard2Scale = 0.86; // Tunable.
-constexpr auto kCard2Dx = 0.22; // Tunable.
-constexpr auto kCard2Angle = -14.; // Tunable.
-constexpr auto kCard2Radius = 0.18; // Tunable. Even less rounded.
+constexpr auto kCard2Scale = 0.7; // Tunable.
+constexpr auto kCard2Angle = -16.; // Tunable.
+constexpr auto kCard2Radius = 0.16; // Tunable. Even less rounded.
 constexpr auto kCard2Opacity = 0.3; // Tunable.
 constexpr auto kGap = 0.02; // Tunable.
 
@@ -60,7 +59,7 @@ void PaintCommunityUserpicEffect(
 		cache.paletteVersion = version;
 		cache.dpr = dpr;
 
-		const auto imageW = int(std::ceil(peek * dpr));
+		const auto imageW = int(std::ceil((peek + size * kCover) * dpr));
 		const auto imageH = int(std::ceil(size * dpr));
 		if (cache.image.size() != QSize(imageW, imageH)) {
 			cache.image = QImage(
@@ -72,52 +71,53 @@ void PaintCommunityUserpicEffect(
 
 		auto q = QPainter(&cache.image);
 		auto hq = PainterHighQualityEnabler(q);
-		const auto Cu = QPointF(peek + size / 2., size / 2.);
 		const auto gap = size * kGap;
+		const auto rounding = Ui::ForumUserpicRadiusMultiplier();
 
+		// The userpic and every card share a pivot on the userpic's left edge
+		// where its bottom-left rounding starts; each card is pinned there and
+		// rotated, so only its top-left corner peeks out to the left.
+		const auto pivot = QPointF(peek, size * (1. - rounding));
 		const auto card = [&](
-				QPointF center,
-				float64 side,
+				float64 scale,
+				float64 round,
 				float64 angle,
-				float64 rounding) {
-			const auto half = side / 2.;
-			const auto radius = side * rounding;
+				float64 grow) {
+			const auto side = size * scale;
+			const auto radius = side * round;
+			const auto top = pivot.y() - (side - radius);
 			q.save();
-			q.translate(center);
+			q.translate(pivot);
 			q.rotate(angle);
+			q.translate(-pivot);
 			q.drawRoundedRect(
-				QRectF(-half, -half, side, side),
-				radius,
-				radius);
+				QRectF(peek - grow, top - grow, side + 2 * grow, side + 2 * grow),
+				radius + grow,
+				radius + grow);
 			q.restore();
 		};
-
-		const auto s1 = size * kCard1Scale;
-		const auto C1 = Cu - QPointF(size * kCard1Dx, 0.);
-		const auto s2 = size * kCard2Scale;
-		const auto C2 = Cu - QPointF(size * kCard2Dx, 0.);
 
 		q.setPen(Qt::NoPen);
 
 		auto color2 = color;
 		color2.setAlphaF(color.alphaF() * kCard2Opacity);
 		q.setBrush(color2);
-		card(C2, s2, kCard2Angle, kCard2Radius);
+		card(kCard2Scale, kCard2Radius, kCard2Angle, 0.);
 
 		// Carve a transparent gap, then draw card1 on top.
 		q.setCompositionMode(QPainter::CompositionMode_Source);
 		q.setBrush(Qt::transparent);
-		card(C1, s1 + 2 * gap, kCard1Angle, kCard1Radius);
+		card(kCard1Scale, kCard1Radius, kCard1Angle, gap);
 		q.setCompositionMode(QPainter::CompositionMode_SourceOver);
 		auto color1 = color;
 		color1.setAlphaF(color.alphaF() * kCard1Opacity);
 		q.setBrush(color1);
-		card(C1, s1, kCard1Angle, kCard1Radius);
+		card(kCard1Scale, kCard1Radius, kCard1Angle, 0.);
 
 		// Carve the userpic gap; the userpic is drawn by the caller.
 		q.setCompositionMode(QPainter::CompositionMode_Source);
 		q.setBrush(Qt::transparent);
-		card(Cu, size + 2 * gap, 0., Ui::ForumUserpicRadiusMultiplier());
+		card(1., rounding, 0., gap);
 	}
 	p.drawImage(QPointF(x - peek, y), cache.image);
 }
