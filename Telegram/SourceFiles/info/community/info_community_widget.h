@@ -47,6 +47,9 @@ public:
 		const QRect &geometry,
 		not_null<Memento*> memento);
 
+	void enableBackButton() override;
+	void showFinished() override;
+
 	rpl::producer<QString> title() override;
 
 private:
@@ -55,7 +58,11 @@ private:
 
 	std::shared_ptr<ContentMemento> doCreateMemento() override;
 
+	FlexibleScrollData _flexibleScroll;
 	InnerWidget *_inner = nullptr;
+	base::weak_qptr<Ui::RpWidget> _pinnedToTop;
+	base::weak_qptr<Ui::RpWidget> _pinnedToBottom;
+	std::unique_ptr<FlexibleScrollHelper> _flexibleScrollHelper;
 
 };
 

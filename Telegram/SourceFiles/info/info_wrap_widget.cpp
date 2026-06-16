@@ -70,6 +70,7 @@ const style::InfoTopBar &TopBarStyle(Wrap wrap) {
 	const auto section = controller->section();
 	return (section.type() == Section::Type::BotStarRef)
 		|| (section.type() == Section::Type::Profile)
+		|| (section.type() == Section::Type::Community)
 		|| ((section.type() == Section::Type::Settings)
 			&& section.settingsType()->hasCustomTopBar())
 		|| (section.type() == Section::Type::Stories

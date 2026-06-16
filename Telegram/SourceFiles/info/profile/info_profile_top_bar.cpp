@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "boxes/peers/edit_peer_info_box.h" // EditPeerInfoBox::Available.
 #include "boxes/peers/edit_forum_topic_box.h"
+#include "boxes/peers/manage_community_box.h"
 #include "boxes/moderate_messages_box.h"
 #include "boxes/report_messages_box.h"
 #include "boxes/star_gift_box.h"
@@ -256,6 +257,11 @@ struct PatternColors {
 	return points;
 }
 
+[[nodiscard]] bool CommunityCanManage(PeerData *peer) {
+	const auto channel = peer ? peer->asChannel() : nullptr;
+	return channel && channel->canEditInformation();
+}
+
 } // namespace
 
 TopBar::TopBar(
@@ -302,6 +308,8 @@ TopBar::TopBar(
 	_gifPausedChecker))
 , _hasActions(descriptor.source != Source::Stories
 	&& descriptor.source != Source::Preview
+	&& (descriptor.source != Source::Community
+		|| CommunityCanManage(_peer))
 	&& (_wrap.current() != Wrap::Side || !_peer->isNotificationsUser()))
 , _minForProgress([&] {
 	QWidget::setMinimumHeight(st::infoLayerTopBarHeight);
@@ -326,6 +334,7 @@ TopBar::TopBar(
 	: nullptr)
 , _status(this, QString(), statusStyle())
 , _statusLabel(std::make_unique<StatusLabel>(_status.data(), _peer))
+, _customStatus(std::move(descriptor.customStatus))
 , _showLastSeen(
 	this,
 	object_ptr<Ui::RoundButton>(
@@ -365,6 +374,7 @@ TopBar::TopBar(
 }())
 , _backToggles(std::move(descriptor.backToggles)) {
 	_peer->updateFull();
+	_communityEffect = (_source == Source::Community);
 	if (const auto broadcast = _peer->monoforumBroadcast()) {
 		broadcast->updateFull();
 	}
@@ -391,12 +401,7 @@ TopBar::TopBar(
 		setupShowLastSeen(controller);
 	}
 
-	_peer->session().changes().peerFlagsValue(
-		_peer,
-		Data::PeerUpdate::Flag::OnlineStatus | Data::PeerUpdate::Flag::Members
-	) | rpl::on_next([=] {
-		_statusLabel->refresh();
-	}, lifetime());
+	bindStatus();
 
 	_title->setSelectable(true);
 	_title->setContextCopyText(tr::lng_profile_copy_fullname(tr::now));
@@ -580,12 +585,26 @@ void TopBar::adjustColors(const std::optional<QColor> &edgeColor) {
 		}, _status->lifetime());
 		_statusLabel = std::make_unique<StatusLabel>(_status.data(), _peer);
 		_statusLabel->setMembersLinkCallback(membersLinkCallback);
+		if (_customStatus) {
+			rpl::duplicate(
+				_customStatus
+			) | rpl::on_next([=](TextWithEntities text) {
+				_status->setMarkedText(std::move(text));
+				updateStatusPosition(_progress.current());
+			}, _status->lifetime());
+		}
 		_status->setTextColorOverride(collectible
 			? collectible->textColor
 			: shouldOverrideStatus
 			? std::optional<QColor>(st::groupCallVideoSubTextFg->c)
 			: std::nullopt);
-		_statusLabel->setColorized(!shouldOverrideStatus);
+		if (!_customStatus) {
+			// For the custom status the text is driven by the producer
+			// bound above, so let StatusLabel::refresh() (called from
+			// setColorized) overwrite _status only when there is no custom
+			// status.
+			_statusLabel->setColorized(!shouldOverrideStatus);
+		}
 	}
 
 	const auto shouldOverrideBadges = shouldOverride(
@@ -704,6 +723,81 @@ void TopBar::updateCollectibleStatus() {
 		: std::nullopt);
 }
 
+void TopBar::finalizeActions(
+		const std::vector<not_null<TopBarActionButton*>> &buttons) {
+	_actionsShadow = base::make_unique_q<Ui::RpWidget>(this);
+	const auto shadowRaw = _actionsShadow.get();
+	shadowRaw->setAttribute(Qt::WA_TransparentForMouseEvents);
+	const auto shadow = shadowRaw->lifetime().make_state<Ui::BoxShadow>(
+		st::infoProfileTopBarActionButtonShadow);
+	const auto shadowShown = shadowRaw->lifetime().make_state<bool>(
+		false);
+	const auto extend = Ui::BoxShadow::ExtendFor(
+		st::infoProfileTopBarActionButtonShadow);
+	shadowRaw->paintRequest() | rpl::on_next([=] {
+		if (!*shadowShown) {
+			return;
+		}
+		const auto full = st::infoProfileTopBarActionButtonSize;
+		const auto progress = std::clamp(
+			float64(_actions->height()) / full,
+			0.,
+			1.);
+		if (progress <= 0.) {
+			return;
+		}
+		auto p = QPainter(shadowRaw);
+		const auto opacity = shadow->opacity() * progress;
+		for (const auto &button : buttons) {
+			const auto buttonRect = button->geometry().translated(
+				extend.left(),
+				extend.top());
+			shadow->paint(p, buttonRect, st::boxRadius, opacity);
+		}
+	}, shadowRaw->lifetime());
+
+	style::PaletteChanged(
+	) | rpl::on_next([=] {
+		const auto current = _edgeColor.current();
+		_edgeColor.force_assign(current);
+	}, _actions->lifetime());
+	_edgeColor.value() | rpl::map([=](std::optional<QColor> c) {
+		return mapActionStyle(c);
+	}) | rpl::on_next([=](
+			TopBarActionButtonStyle st) {
+		for (const auto &button : buttons) {
+			button->setStyle(st);
+		}
+		*shadowShown = st.shadowColor.has_value();
+		shadowRaw->update();
+	}, _actions->lifetime());
+	const auto padding = st::infoProfileTopBarActionButtonsPadding;
+	sizeValue() | rpl::on_next([=](const QSize &size) {
+		const auto ratio = float64(size.height())
+			/ (st::infoProfileTopBarActionButtonsHeight
+				+ st::infoLayerTopBarHeight);
+		const auto h = st::infoProfileTopBarActionButtonSize;
+		const auto resultHeight = (ratio >= 1.)
+			? h
+			: (ratio <= 0.5)
+			? 0
+			: int(h * (ratio - 0.5) / 0.5);
+		_actions->setGeometry(
+			padding.left(),
+			size.height() - resultHeight - padding.bottom(),
+			size.width() - rect::m::sum::h(padding),
+			resultHeight);
+	}, _actions->lifetime());
+	_actions->geometryValue() | rpl::on_next([=](QRect geometry) {
+		shadowRaw->setGeometry(geometry.marginsAdded(extend));
+		shadowRaw->update();
+	}, shadowRaw->lifetime());
+	shadowRaw->show();
+	_actions->show();
+	_actions->raise();
+	shadowRaw->stackUnder(_actions.get());
+}
+
 void TopBar::setupActions(not_null<Window::SessionController*> controller) {
 	const auto peer = _peer;
 	const auto user = peer->asUser();
@@ -712,6 +806,28 @@ void TopBar::setupActions(not_null<Window::SessionController*> controller) {
 	const auto topic = _key.topic();
 	const auto sublist = _key.sublist();
 	const auto isSide = (_wrap.current() == Wrap::Side);
+
+	if (_source == Source::Community) {
+		_actions = base::make_unique_q<Ui::HorizontalFitContainer>(
+			this,
+			st::infoProfileTopBarActionButtonsSpace);
+		auto buttons = std::vector<not_null<TopBarActionButton*>>();
+		if (channel && channel->canEditInformation()) {
+			const auto manage = Ui::CreateChild<TopBarActionButton>(
+				this,
+				tr::lng_profile_action_short_manage(tr::now),
+				st::infoProfileTopBarActionManage);
+			manage->setClickedCallback([=] {
+				ShowManageCommunityBox(controller, channel);
+			});
+			manage->setAccessibleName(
+				tr::lng_profile_action_short_manage(tr::now));
+			buttons.push_back(manage);
+			_actions->add(manage);
+		}
+		finalizeActions(buttons);
+		return;
+	}
 
 	auto buttons = std::vector<not_null<TopBarActionButton*>>();
 	_actions = base::make_unique_q<Ui::HorizontalFitContainer>(
@@ -744,78 +860,7 @@ void TopBar::setupActions(not_null<Window::SessionController*> controller) {
 	};
 	const auto guard = gsl::finally([&] {
 		addMore();
-
-		_actionsShadow = base::make_unique_q<Ui::RpWidget>(this);
-		const auto shadowRaw = _actionsShadow.get();
-		shadowRaw->setAttribute(Qt::WA_TransparentForMouseEvents);
-		const auto shadow = shadowRaw->lifetime().make_state<Ui::BoxShadow>(
-			st::infoProfileTopBarActionButtonShadow);
-		const auto shadowShown = shadowRaw->lifetime().make_state<bool>(
-			false);
-		const auto extend = Ui::BoxShadow::ExtendFor(
-			st::infoProfileTopBarActionButtonShadow);
-		shadowRaw->paintRequest() | rpl::on_next([=] {
-			if (!*shadowShown) {
-				return;
-			}
-			const auto full = st::infoProfileTopBarActionButtonSize;
-			const auto progress = std::clamp(
-				float64(_actions->height()) / full,
-				0.,
-				1.);
-			if (progress <= 0.) {
-				return;
-			}
-			auto p = QPainter(shadowRaw);
-			const auto opacity = shadow->opacity() * progress;
-			for (const auto &button : buttons) {
-				const auto buttonRect = button->geometry().translated(
-					extend.left(),
-					extend.top());
-				shadow->paint(p, buttonRect, st::boxRadius, opacity);
-			}
-		}, shadowRaw->lifetime());
-
-		style::PaletteChanged(
-		) | rpl::on_next([=] {
-			const auto current = _edgeColor.current();
-			_edgeColor.force_assign(current);
-		}, _actions->lifetime());
-		_edgeColor.value() | rpl::map([=](std::optional<QColor> c) {
-			return mapActionStyle(c);
-		}) | rpl::on_next([=](
-				TopBarActionButtonStyle st) {
-			for (const auto &button : buttons) {
-				button->setStyle(st);
-			}
-			*shadowShown = st.shadowColor.has_value();
-			shadowRaw->update();
-		}, _actions->lifetime());
-		const auto padding = st::infoProfileTopBarActionButtonsPadding;
-		sizeValue() | rpl::on_next([=](const QSize &size) {
-			const auto ratio = float64(size.height())
-				/ (st::infoProfileTopBarActionButtonsHeight
-					+ st::infoLayerTopBarHeight);
-			const auto h = st::infoProfileTopBarActionButtonSize;
-			const auto resultHeight = (ratio >= 1.)
-				? h
-				: (ratio <= 0.5)
-				? 0
-				: int(h * (ratio - 0.5) / 0.5);
-			_actions->setGeometry(
-				padding.left(),
-				size.height() - resultHeight - padding.bottom(),
-				size.width() - rect::m::sum::h(padding),
-				resultHeight);
-		}, _actions->lifetime());
-		_actions->geometryValue() | rpl::on_next([=](QRect geometry) {
-			shadowRaw->setGeometry(geometry.marginsAdded(extend));
-			shadowRaw->update();
-		}, shadowRaw->lifetime());
-		shadowRaw->show();
-		_actions->show();
-		_actions->raise();
-		shadowRaw->stackUnder(_actions.get());
+		finalizeActions(buttons);
 	});
 	if (user) {
 		const auto message = Ui::CreateChild<TopBarActionButton>(
@@ -1960,14 +2005,27 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 				_monoforumMask);
 			q.end();
 		} else {
+			const auto radius = (_source == Source::Community)
+				? std::optional<int>(
+					int(scaled * Ui::ForumUserpicRadiusMultiplier()))
+				: std::nullopt;
 			image = PeerData::GenerateUserpicImage(
 				_peer,
 				_userpicView,
 				scaled,
-				std::nullopt);
+				radius);
 		}
 		_cachedUserpic = std::move(image);
 		_cachedUserpic.setDevicePixelRatio(style::DevicePixelRatio());
+	}
+	if (_communityEffect) {
+		Ui::PaintCommunityUserpicEffect(
+			p,
+			_communityUserpicEffect,
+			geometry.x(),
+			geometry.y(),
+			geometry.width(),
+			st::windowSubTextFg->c);
 	}
 	{
 		auto hq = PainterHighQualityEnabler(p);
@@ -2923,6 +2981,27 @@ void TopBar::paintStoryOutline(QPainter &p, const QRect &geometry) {
 			geometry.width(),
 			outline);
 	}
+}
+
+void TopBar::bindStatus() {
+	if (_customStatus) {
+		rpl::duplicate(
+			_customStatus
+		) | rpl::on_next([=](TextWithEntities text) {
+			_status->setMarkedText(std::move(text));
+			updateStatusPosition(_progress.current());
+		}, _status->lifetime());
+		_status->widthValue() | rpl::on_next([=] {
+			updateStatusPosition(_progress.current());
+		}, _status->lifetime());
+		return;
+	}
+	_peer->session().changes().peerFlagsValue(
+		_peer,
+		Data::PeerUpdate::Flag::OnlineStatus | Data::PeerUpdate::Flag::Members
+	) | rpl::on_next([=] {
+		_statusLabel->refresh();
+	}, lifetime());
 }
 
 void TopBar::setupStatusWithRating() {

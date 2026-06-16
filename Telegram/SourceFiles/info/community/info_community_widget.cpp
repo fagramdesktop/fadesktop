@@ -8,10 +8,17 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/community/info_community_widget.h"
 
 #include "boxes/peers/community_box.h"
+#include "data/data_changes.h"
 #include "data/data_channel.h"
+#include "data/data_community.h"
+#include "info/profile/info_profile_top_bar.h"
 #include "info/profile/info_profile_values.h"
 #include "info/info_controller.h"
+#include "lang/lang_keys.h"
+#include "main/main_session.h"
+#include "ui/text/text_utilities.h"
 #include "ui/wrap/vertical_layout.h"
+#include "ui/rp_widget.h"
 #include "ui/ui_utility.h"
 #include "styles/style_info.h"
 
@@ -28,8 +35,25 @@ public:
 		return _peer;
 	}
 
+	[[nodiscard]] rpl::producer<> backRequest() const;
+	void enableBackButton();
+	void showFinished();
+
+	[[nodiscard]] bool hasFlexibleTopBar() const;
+	base::weak_qptr<Ui::RpWidget> createPinnedToTop(
+		not_null<Ui::RpWidget*> parent);
+	base::weak_qptr<Ui::RpWidget> createPinnedToBottom(
+		not_null<Ui::RpWidget*> parent);
+
 private:
+	[[nodiscard]] rpl::producer<TextWithEntities> chatsStatusValue() const;
+
+	const not_null<Controller*> _controller;
 	const not_null<PeerData*> _peer;
+
+	rpl::variable<bool> _backToggles;
+	rpl::event_stream<> _backClicks;
+	rpl::event_stream<> _showFinished;
 
 };
 
@@ -38,10 +62,78 @@ InnerWidget::InnerWidget(
 	not_null<Controller*> controller,
 	not_null<PeerData*> peer)
 : Ui::VerticalLayout(parent)
+, _controller(controller)
 , _peer(peer) {
 	if (const auto community = peer->asChannel()) {
 		SetupCommunityContent(this, controller, community, controller->uiShow());
 	}
+}
+
+rpl::producer<> InnerWidget::backRequest() const {
+	return _backClicks.events();
+}
+
+void InnerWidget::enableBackButton() {
+	_backToggles.force_assign(true);
+}
+
+void InnerWidget::showFinished() {
+	_showFinished.fire({});
+}
+
+bool InnerWidget::hasFlexibleTopBar() const {
+	const auto channel = _peer->asChannel();
+	return channel && channel->isCommunity();
+}
+
+rpl::producer<TextWithEntities> InnerWidget::chatsStatusValue() const {
+	const auto channel = _peer->asChannel();
+	Assert(channel != nullptr);
+	return channel->session().changes().peerFlagsValue(
+		channel,
+		Data::PeerUpdate::Flag::FullInfo
+	) | rpl::map([=] {
+		return channel->communityInfo();
+	}) | rpl::map([](Data::CommunityInfo *info)
+			-> rpl::producer<int> {
+		if (!info) {
+			return rpl::single(0);
+		}
+		return info->linkedPeersValue() | rpl::map([info] {
+			return int(info->linkedPeers().size());
+		});
+	}) | rpl::flatten_latest() | rpl::map([](int count) {
+		return TextWithEntities{
+			tr::lng_community_chats(tr::now, lt_count, float64(count)),
+		};
+	});
+}
+
+base::weak_qptr<Ui::RpWidget> InnerWidget::createPinnedToTop(
+		not_null<Ui::RpWidget*> parent) {
+	if (!hasFlexibleTopBar()) {
+		return nullptr;
+	}
+	const auto content = Ui::CreateChild<Profile::TopBar>(
+		parent,
+		Profile::TopBar::Descriptor{
+			.controller = _controller->parentController(),
+			.key = _controller->key(),
+			.wrap = _controller->wrapValue(),
+			.source = Profile::TopBar::Source::Community,
+			.peer = _peer,
+			.backToggles = _backToggles.value(),
+			.showFinished = _showFinished.events(),
+			.customStatus = chatsStatusValue(),
+		});
+	content->backRequest(
+	) | rpl::start_to_stream(_backClicks, content->lifetime());
+	return base::make_weak(not_null<Ui::RpWidget*>{ content });
+}
+
+base::weak_qptr<Ui::RpWidget> InnerWidget::createPinnedToBottom(
+		not_null<Ui::RpWidget*> parent) {
+	return nullptr;
 }
 
 Memento::Memento(not_null<PeerData*> peer)
@@ -67,8 +159,55 @@ Widget::Widget(
 	QWidget *parent,
 	not_null<Controller*> controller,
 	not_null<PeerData*> peer)
-: ContentWidget(parent, controller) {
-	_inner = setInnerWidget(object_ptr<InnerWidget>(this, controller, peer));
+: ContentWidget(parent, controller)
+, _inner(
+	setupFlexibleInnerWidget(
+		object_ptr<InnerWidget>(this, controller, peer),
+		_flexibleScroll))
+, _pinnedToTop(_inner->createPinnedToTop(this))
+, _pinnedToBottom(_inner->createPinnedToBottom(this)) {
+	_inner->move(0, 0);
+
+	_inner->backRequest() | rpl::on_next([=] {
+		checkBeforeClose([=] { controller->showBackFromStack(); });
+	}, _inner->lifetime());
+
+	if (_pinnedToTop) {
+		_inner->widthValue(
+		) | rpl::on_next([=](int w) {
+			_pinnedToTop->resizeToWidth(w);
+			setScrollTopSkip(_pinnedToTop->height());
+		}, _pinnedToTop->lifetime());
+
+		_pinnedToTop->heightValue(
+		) | rpl::on_next([=](int h) {
+			setScrollTopSkip(h);
+		}, _pinnedToTop->lifetime());
+	}
+
+	if (_pinnedToTop
+		&& _pinnedToTop->minimumHeight()
+		&& _inner->hasFlexibleTopBar()) {
+		_flexibleScrollHelper = std::make_unique<FlexibleScrollHelper>(
+			scroll(),
+			_inner,
+			_pinnedToTop.get(),
+			[=](QMargins margins) {
+				ContentWidget::setPaintPadding(std::move(margins));
+			},
+			[=](rpl::producer<not_null<QEvent*>> &&events) {
+				ContentWidget::setViewport(std::move(events));
+			},
+			_flexibleScroll);
+	}
+}
+
+void Widget::enableBackButton() {
+	_inner->enableBackButton();
+}
+
+void Widget::showFinished() {
+	_inner->showFinished();
 }
 
 rpl::producer<QString> Widget::title() {

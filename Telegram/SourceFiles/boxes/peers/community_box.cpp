@@ -12,7 +12,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peer_list_box.h"
 #include "boxes/peers/add_to_community_box.h"
 #include "boxes/peers/community_pending_requests_box.h"
-#include "boxes/peers/manage_community_box.h"
 #include "data/data_changes.h"
 #include "data/data_channel.h"
 #include "data/data_community.h"
@@ -141,17 +140,7 @@ void SetupCommunityContent(
 		return;
 	}
 
-	if (community->canEditInformation()) {
-		Settings::AddButtonWithIcon(
-			container,
-			tr::lng_community_manage(),
-			st::settingsButton,
-			{ &st::menuIconEdit }
-		)->addClickHandler([=] {
-			ShowManageCommunityBox(navigation, community);
-		});
-	}
-
+	Ui::AddSkip(container);
 	const auto toggle = Settings::AddButtonWithIcon(
 		container,
 		tr::lng_community_show_as_one(),
