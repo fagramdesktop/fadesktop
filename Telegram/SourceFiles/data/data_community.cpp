@@ -174,6 +174,10 @@ rpl::producer<> CommunityInfo::linkedPeersValue() const {
 	) | rpl::then(_linkedPeersChanges.events());
 }
 
+rpl::producer<> CommunityInfo::refreshed() const {
+	return _refreshed.events();
+}
+
 bool CommunityInfo::isHidden(not_null<PeerData*> peer) const {
 	return _hiddenPeers.contains(peer);
 }
@@ -314,6 +318,7 @@ void CommunityInfo::repaintRow() {
 	if (const auto history = _channel->owner().historyLoaded(_channel)) {
 		history->updateChatListEntry();
 	}
+	_refreshed.fire({});
 }
 
 void CommunityInfo::validateListEntryCache() {

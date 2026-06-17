@@ -43,6 +43,11 @@ CommunityChatsList::CommunityChatsList(
 		rebuild();
 	}, lifetime());
 
+	_community->refreshed(
+	) | rpl::on_next([=] {
+		update();
+	}, lifetime());
+
 	using Event = Data::Session::ChatListEntryRefresh;
 	_controller->session().data().chatListEntryRefreshes(
 	) | rpl::filter([=](const Event &event) {
@@ -61,9 +66,7 @@ CommunityChatsList::CommunityChatsList(
 		| Data::EntryUpdate::Flag::Height
 	) | rpl::filter([=](const Data::EntryUpdate &update) {
 		const auto history = update.entry->asHistory();
-		return history
-			&& (_view.contains(history)
-				|| (history->peer == _community->channel()));
+		return history && _view.contains(history);
 	}) | rpl::on_next([=](const Data::EntryUpdate &entryUpdate) {
 		if (entryUpdate.flags & Data::EntryUpdate::Flag::Height) {
 			_view.recountHeights(0.);
