@@ -162,9 +162,8 @@ dialogsCommunityBadgeLine: 1px;
 dialogsCommunityHiddenBadgeSize: 16px;
 dialogsCommunityHiddenBadgeSkip: point(-3px, -3px);
 dialogsCommunityHiddenBadgeStroke: 2px;
-dialogsCommunityHiddenBadgeLine: 1px;
-dialogsCommunityHiddenBadgePupil: 1px;
 dialogsCommunityHiddenBadgeFg: menuIconFg;
+dialogsCommunityHiddenBadgeIcon: icon{{ "stories/stealth_logo", windowBg }};
 
 dialogsTTLBadgeSize: 20px;
 dialogsTTLBadgeInnerMargins: margins(2px, 2px, 2px, 2px);

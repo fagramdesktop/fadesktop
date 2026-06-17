@@ -502,51 +502,29 @@ void Row::PaintCornerBadgeFrame(
 		q.setCompositionMode(QPainter::CompositionMode_Source);
 		const auto size = st::dialogsCommunityHiddenBadgeSize;
 		const auto &skip = st::dialogsCommunityHiddenBadgeSkip;
-		const auto rect = QRectF(
+		const auto stroke = st::dialogsCommunityHiddenBadgeStroke;
+		const auto rect = QRect(
 			photoSize - skip.x() - size,
 			photoSize - skip.y() - size,
 			size,
 			size);
 		auto pen = QPen(Qt::transparent);
-		pen.setWidthF(st::dialogsCommunityHiddenBadgeStroke);
+		pen.setWidthF(stroke);
 		q.setPen(pen);
 		q.setBrush(st::dialogsCommunityHiddenBadgeFg);
 		q.drawEllipse(rect);
 		q.setCompositionMode(QPainter::CompositionMode_SourceOver);
 
-		const auto center = rect.center();
-		const auto eyeWidth = size / 3.;
-		const auto eyeHeight = size / 5.;
-		auto glyph = QPen(st::windowBg->c);
-		glyph.setWidthF(st::dialogsCommunityHiddenBadgeLine);
-		glyph.setCapStyle(Qt::RoundCap);
-		glyph.setJoinStyle(Qt::RoundJoin);
-		q.setPen(glyph);
-		q.setBrush(Qt::NoBrush);
-		auto eye = QPainterPath();
-		eye.moveTo(center.x() - eyeWidth, center.y());
-		eye.quadTo(
-			center.x(),
-			center.y() - eyeHeight * 2.,
-			center.x() + eyeWidth,
-			center.y());
-		eye.quadTo(
-			center.x(),
-			center.y() + eyeHeight * 2.,
-			center.x() - eyeWidth,
-			center.y());
-		q.drawPath(eye);
-
-		q.setPen(Qt::NoPen);
-		q.setBrush(st::windowBg->c);
-		const auto pupil = st::dialogsCommunityHiddenBadgePupil;
-		q.drawEllipse(center, pupil, pupil);
-
-		q.setPen(glyph);
-		q.setBrush(Qt::NoBrush);
-		q.drawLine(
-			QPointF(center.x() - eyeWidth, center.y() + eyeWidth),
-			QPointF(center.x() + eyeWidth, center.y() - eyeWidth));
+		const auto icon = rect.marginsRemoved({ stroke, stroke, stroke, stroke });
+		const auto ratio = style::DevicePixelRatio();
+		auto image = st::dialogsCommunityHiddenBadgeIcon.instance(
+			st::windowBg->c
+		).scaled(
+			icon.size() * ratio,
+			Qt::KeepAspectRatio,
+			Qt::SmoothTransformation);
+		image.setDevicePixelRatio(ratio);
+		q.drawImage(icon, image);
 		return;
 	}
 
