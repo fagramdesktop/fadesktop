@@ -10,7 +10,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_changes.h"
 #include "data/data_channel.h"
 #include "data/data_community.h"
-#include "data/data_forum.h"
 #include "data/data_session.h"
 #include "dialogs/ui/dialogs_layout.h"
 #include "dialogs/dialogs_entry.h"
@@ -36,6 +35,7 @@ CommunityChatsList::CommunityChatsList(
 , _kind(kind)
 , _st(&st::defaultDialogRow) {
 	setMouseTracking(true);
+	_view.setRepaint([=] { update(); });
 	rebuild();
 
 	_community->linkedPeersValue(
@@ -75,18 +75,10 @@ CommunityChatsList::~CommunityChatsList() = default;
 void CommunityChatsList::rebuild() {
 	const auto wasCount = _view.size();
 	_view.clear();
-	_forumsLifetime.destroy();
 	setSelected(-1);
 	setPressed(-1);
 	const auto owner = &_controller->session().data();
 	const auto add = [&](not_null<History*> history) {
-		if (const auto forum = history->peer->forum()) {
-			forum->preloadTopics();
-			forum->chatsListChanges(
-			) | rpl::on_next([=] {
-				update();
-			}, _forumsLifetime);
-		}
 		_view.add(history, 0.);
 	};
 	if (_kind == CommunityChatsKind::Joined) {

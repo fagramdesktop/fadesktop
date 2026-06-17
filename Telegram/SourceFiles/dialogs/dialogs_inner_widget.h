@@ -729,7 +729,6 @@ private:
 	int _communitySelected = -1;
 	int _communityPressed = -1;
 	rpl::lifetime _openedCommunityLifetime;
-	rpl::lifetime _communityForumsLifetime;
 
 	WidgetState _state = WidgetState::Default;
 

@@ -71,7 +71,6 @@ private:
 	int _pressed = -1;
 	rpl::variable<int> _count = 0;
 	rpl::event_stream<not_null<History*>> _chatChosen;
-	rpl::lifetime _forumsLifetime;
 
 };
 

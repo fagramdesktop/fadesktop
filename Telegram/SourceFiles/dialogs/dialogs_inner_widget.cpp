@@ -309,6 +309,9 @@ InnerWidget::InnerWidget(
 	setAttribute(Qt::WA_OpaquePaintEvent, true);
 	setAccessibleName(tr::lng_recent_chats(tr::now));
 
+	_communityViewable.setRepaint([=] { update(); });
+	_communityRequestable.setRepaint([=] { update(); });
+
 	style::PaletteChanged(
 	) | rpl::on_next([=] {
 		_topicJumpCache = nullptr;
@@ -887,7 +890,6 @@ void InnerWidget::changeOpenedForum(Data::Forum *forum) {
 void InnerWidget::rebuildCommunitySections() {
 	_communityViewable.clear();
 	_communityRequestable.clear();
-	_communityForumsLifetime.destroy();
 	_communitySelected = -1;
 	setCommunityPressed(-1);
 	if (!_openedCommunity) {
@@ -902,13 +904,6 @@ void InnerWidget::rebuildCommunitySections() {
 		const auto history = owner->history(linked.peer);
 		if (_shownList->getRow(Key(history))) {
 			continue;
-		}
-		if (const auto forum = history->peer->forum()) {
-			forum->preloadTopics();
-			forum->chatsListChanges(
-			) | rpl::on_next([=] {
-				update();
-			}, _communityForumsLifetime);
 		}
 		if (Data::IsCommunityChatViewable(linked)) {
 			_communityViewable.add(history, _narrowRatio);
