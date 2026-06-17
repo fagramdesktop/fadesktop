@@ -9,6 +9,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "ui/layers/layer_manager.h"
 
+#include <QtGui/QCloseEvent>
+
 #ifdef Q_OS_WIN
 #include <QtNetwork/QNetworkProxy>
 
@@ -29,6 +31,10 @@ Window::Window(QWidget *parent)
 }
 
 Window::~Window() = default;
+
+void Window::setCloseRequestHandler(Fn<bool()> handler) {
+	_closeRequestHandler = std::move(handler);
+}
 
 rpl::producer<> Window::imeCompositionStarts() const {
 	return _imeCompositionStartReceived.events();
@@ -66,6 +72,19 @@ rpl::producer<bool> Window::layerShownValue() const {
 
 std::shared_ptr<Ui::Show> Window::uiShow() {
 	return _layers->uiShow();
+}
+
+bool Window::eventHook(QEvent *event) {
+	if (event->type() == QEvent::Close && _closeRequestHandler) {
+		const auto closeEvent = static_cast<QCloseEvent*>(event);
+		if (_closeRequestHandler()) {
+			closeEvent->accept();
+		} else {
+			closeEvent->ignore();
+		}
+		return true;
+	}
+	return Ui::RpWindow::eventHook(event);
 }
 
 #ifdef Q_OS_WIN

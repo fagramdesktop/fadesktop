@@ -17,6 +17,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <rpl/event_stream.h>
 
+#include <QtCore/QPointer>
+
 #include <array>
 #include <memory>
 #include <optional>
@@ -68,6 +70,10 @@ struct WidgetServices {
 	std::shared_ptr<Main::SessionShow> show;
 	not_null<QWidget*> outer;
 	Fn<bool()> customEmojiPaused;
+	Fn<void(
+		not_null<Widget*>,
+		QPointer<QWidget>,
+		std::optional<State::ReplaceTarget>)> requestMedia;
 	Fn<void(not_null<Widget*>, Ui::PreparedList, PreparedMediaPasteTarget)>
 		applyPreparedMedia;
 	rpl::producer<> imeCompositionStarts;
@@ -94,7 +100,9 @@ public:
 	void applyExternalRichPageMutation(Fn<bool(RichPage&)> mutation);
 	void syncInlineFieldGeometry();
 	void insertBlock(State::InsertAction action);
+	void requestMedia(std::optional<State::ReplaceTarget> replaceTarget);
 	void insertPreparedBlock(RichPage::Block block);
+	void replacePreparedBlock(State::ReplaceTarget target, RichPage::Block block);
 	void insertPreparedBlocks(std::vector<RichPage::Block> blocks);
 	void pastePreparedBlock(
 		RichPage::Block block,
@@ -390,6 +398,8 @@ private:
 	[[nodiscard]] bool handleTabNavigation(QKeyEvent *e);
 	[[nodiscard]] bool handleClipboardKey(QKeyEvent *e);
 	[[nodiscard]] bool handleFieldBlockInsertShortcut(QKeyEvent *e);
+	[[nodiscard]] bool fieldMonospaceShortcutUsesCodeBlock() const;
+	void applyFieldMonospaceAction();
 	void insertCodeBlock();
 	[[nodiscard]] bool handleFieldKey(QKeyEvent *e);
 	void copyCurrentSelectionToClipboard();
@@ -540,6 +550,26 @@ private:
 		not_null<Ui::PopupMenu*> menu,
 		const Markdown::PreparedEditTableCellRange &range);
 	void applyTableChange(Fn<bool()> change);
+	[[nodiscard]] std::optional<State::BlockPath> simpleMediaBlockPathFromHit(
+		const Markdown::PreparedEditHit &hit) const;
+	[[nodiscard]] std::optional<State::BlockPath> groupedMediaBlockPathFromHit(
+		const Markdown::PreparedEditHit &hit) const;
+	[[nodiscard]] bool structuralPhotoVideoSelectionAvailable() const;
+	[[nodiscard]] bool clickHitsStructuralPhotoVideoSelection(
+		const Markdown::PreparedEditHit &hit) const;
+	void showSimpleMediaMenu(const State::BlockPath &path, QPoint globalPos);
+	void showGroupedMediaMenu(const State::BlockPath &path, QPoint globalPos);
+	void showStructuralPhotoVideoMenu(QPoint globalPos);
+	[[nodiscard]] bool showMediaMenuFromHit(
+		const Markdown::PreparedEditHit &hit,
+		const Markdown::MarkdownArticleHitTestResult &articleHit,
+		QPoint globalPos);
+	[[nodiscard]] bool activateGroupedMediaLinkFromHit(
+		const Markdown::PreparedEditHit &hit,
+		const Markdown::MarkdownArticleHitTestResult &articleHit,
+		Qt::MouseButton button);
+	[[nodiscard]] bool applyMediaBlockChange(Fn<bool()> change);
+	void requestReplaceMedia(State::BlockPath path);
 	[[nodiscard]] Markdown::PreparedEditSelection structuralSelectionFromHits(
 		const Markdown::PreparedEditHit &anchor,
 		const Markdown::PreparedEditHit &focus) const;
@@ -557,6 +587,10 @@ private:
 	const std::shared_ptr<Main::SessionShow> _show;
 	const not_null<QWidget*> _outer;
 	const Fn<bool()> _customEmojiPaused;
+	const Fn<void(
+		not_null<Widget*>,
+		QPointer<QWidget>,
+		std::optional<State::ReplaceTarget>)> _requestMedia;
 	const Fn<void(not_null<Widget*>, Ui::PreparedList, PreparedMediaPasteTarget)>
 		_applyPreparedMedia;
 	const not_null<PeerData*> _peer;

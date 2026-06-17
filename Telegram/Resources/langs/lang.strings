@@ -7227,6 +7227,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_article_insert_task_list" = "Task List";
 "lng_article_insert_pullquote" = "Pullquote";
 "lng_article_insert_media" = "Attach Media";
+"lng_article_media_ungroup" = "Ungroup";
+"lng_article_media_collage" = "Collage";
+"lng_article_media_slideshow" = "Slideshow";
 "lng_article_insert_details" = "Details";
 "lng_article_insert_table" = "Table";
 "lng_article_insert_map" = "Map";

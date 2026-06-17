@@ -42,6 +42,7 @@ using PreparedBlockPath = Markdown::PreparedEditBlockPath;
 using PreparedBlockContainerStep = Markdown::PreparedEditBlockContainerStep;
 using PreparedEditSelection = Markdown::PreparedEditSelection;
 using PreparedMutationKind = State::PreparedMutationKind;
+using ReplaceTarget = State::ReplaceTarget;
 using RemovalKind = State::RemovalKind;
 using RemovalTarget = State::RemovalTarget;
 using RichText = RichPage::RichText;
@@ -396,6 +397,102 @@ bool SetMediaBlockSpoiler(Block *block, bool enabled) {
 		return true;
 	}
 	return false;
+}
+
+[[nodiscard]] bool IsPhotoVideoBlockKind(BlockKind kind) {
+	return (kind == BlockKind::Photo) || (kind == BlockKind::Video);
+}
+
+[[nodiscard]] bool IsReplaceableMediaBlockKind(BlockKind kind) {
+	return IsPhotoVideoBlockKind(kind) || (kind == BlockKind::Audio);
+}
+
+[[nodiscard]] std::optional<uint64> ReplaceTargetMediaId(const Block &block) {
+	switch (block.kind) {
+	case BlockKind::Photo:
+		return block.photoId ? std::make_optional(block.photoId) : std::nullopt;
+	case BlockKind::Video:
+	case BlockKind::Audio:
+		return block.documentId
+			? std::make_optional(block.documentId)
+			: std::nullopt;
+	default:
+		return std::nullopt;
+	}
+}
+
+[[nodiscard]] bool BlockMatchesReplaceTarget(
+		const Block &block,
+		const ReplaceTarget &target) {
+	const auto mediaId = ReplaceTargetMediaId(block);
+	return (block.kind == target.kind)
+		&& mediaId
+		&& (*mediaId == target.mediaId);
+}
+
+[[nodiscard]] std::optional<RichPage::GroupedMediaItem>
+GroupedItemFromPhotoVideoBlock(const Block &block) {
+	if (!IsPhotoVideoBlockKind(block.kind)) {
+		return std::nullopt;
+	}
+	auto result = RichPage::GroupedMediaItem();
+	result.kind = block.kind;
+	result.photo = block.photo;
+	result.document = block.document;
+	result.photoId = block.photoId;
+	result.documentId = block.documentId;
+	result.width = block.width;
+	result.height = block.height;
+	result.autoplay = block.autoplay;
+	result.loop = block.loop;
+	result.spoiler = block.spoiler;
+	return result;
+}
+
+[[nodiscard]] std::optional<Block> PhotoVideoBlockFromGroupedItem(
+		const RichPage::GroupedMediaItem &item) {
+	if (!IsPhotoVideoBlockKind(item.kind)) {
+		return std::nullopt;
+	}
+	auto result = Block();
+	result.kind = item.kind;
+	result.photo = item.photo;
+	result.document = item.document;
+	result.photoId = item.photoId;
+	result.documentId = item.documentId;
+	result.width = item.width;
+	result.height = item.height;
+	result.autoplay = item.autoplay;
+	result.loop = item.loop;
+	result.spoiler = item.spoiler;
+	return result;
+}
+
+[[nodiscard]] bool GroupingRichTextIsEmpty(const RichText &text) {
+	return text.text.text.trimmed().isEmpty()
+		&& text.anchorId.isEmpty()
+		&& text.anchorIds.empty();
+}
+
+[[nodiscard]] bool BlockHasGroupingCaptionOrAnchor(const Block &block) {
+	return !GroupingRichTextIsEmpty(block.caption)
+		|| !block.anchorId.isEmpty();
+}
+
+[[nodiscard]] bool HasValidGroupingCaptionAndAnchorSource(
+		const std::vector<Block> &blocks,
+		int from,
+		int till) {
+	auto found = false;
+	for (auto i = from; i != till; ++i) {
+		if (!BlockHasGroupingCaptionOrAnchor(blocks[i])) {
+			continue;
+		} else if (found) {
+			return false;
+		}
+		found = true;
+	}
+	return true;
 }
 
 [[nodiscard]] BlockContainerPath BlockChildrenContainer(BlockPath path) {
@@ -1602,6 +1699,195 @@ bool State::toggleSpoilerOnBlocks(
 		if (!changed) {
 			return CheckedMutationResult<bool>{ .result = false };
 		}
+		candidate.rebuild();
+		return CheckedMutationResult<bool>{
+			.apply = true,
+			.result = true,
+		};
+	});
+}
+
+std::optional<State::ReplaceTarget> State::replaceTargetForBlock(
+		const BlockPath &path) const {
+	const auto current = block(path);
+	if (!current || !IsReplaceableMediaBlockKind(current->kind)) {
+		return std::nullopt;
+	}
+	const auto mediaId = ReplaceTargetMediaId(*current);
+	if (!mediaId) {
+		return std::nullopt;
+	}
+	return ReplaceTarget{
+		.path = path,
+		.kind = current->kind,
+		.mediaId = *mediaId,
+	};
+}
+
+bool State::replaceBlockWithPreparedBlock(
+		const ReplaceTarget &target,
+		Block block) {
+	return applyCheckedMutation(false, [
+		target,
+		block = std::move(block)
+	](State &candidate) mutable {
+		const auto &path = target.path;
+		const auto blocks = candidate.blockContainer(path.container);
+		if (!blocks
+			|| path.index < 0
+			|| path.index >= int(blocks->size())) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		auto &current = (*blocks)[path.index];
+		if (!BlockMatchesReplaceTarget(current, target)
+			|| !IsReplaceableMediaBlockKind(block.kind)) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		block.caption = std::move(current.caption);
+		block.anchorId = std::move(current.anchorId);
+		if (IsPhotoVideoBlockKind(current.kind)
+			&& IsPhotoVideoBlockKind(block.kind)) {
+			block.spoiler = current.spoiler;
+		}
+		current = std::move(block);
+		candidate.rebuild();
+		return CheckedMutationResult<bool>{
+			.apply = true,
+			.result = true,
+		};
+	});
+}
+
+std::optional<int> State::removeBlock(
+		const BlockPath &path,
+		bool forward) {
+	return removeStructuralSelection(preparedSelectionForBlock(path), forward);
+}
+
+bool State::canGroupPhotoVideoBlocks(
+		const PreparedEditSelection &selection) const {
+	if (selection.kind != PreparedEditSelectionKind::Blocks) {
+		return false;
+	}
+	const auto range = validateBlockRange(selection.blocks);
+	if (!range || range->till - range->from < 2) {
+		return false;
+	}
+	const auto blocks = blockContainer(range->container);
+	if (!blocks) {
+		return false;
+	}
+	for (auto i = range->from; i != range->till; ++i) {
+		if (!IsPhotoVideoBlockKind((*blocks)[i].kind)) {
+			return false;
+		}
+	}
+	return HasValidGroupingCaptionAndAnchorSource(
+		*blocks,
+		range->from,
+		range->till);
+}
+
+bool State::groupPhotoVideoBlocks(
+		const PreparedEditSelection &selection,
+		RichPage::GroupedMediaIntent intent) {
+	return applyCheckedMutation(false, [selection, intent](State &candidate) {
+		if (!candidate.canGroupPhotoVideoBlocks(selection)) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		const auto range = candidate.validateBlockRange(selection.blocks);
+		if (!range) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		auto *blocks = candidate.blockContainer(range->container);
+		if (!blocks) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		auto items = std::vector<RichPage::GroupedMediaItem>();
+		items.reserve(range->till - range->from);
+		auto captionSource = std::optional<int>();
+		for (auto i = range->from; i != range->till; ++i) {
+			const auto item = GroupedItemFromPhotoVideoBlock((*blocks)[i]);
+			if (!item) {
+				return CheckedMutationResult<bool>{ .result = false };
+			}
+			items.push_back(*item);
+			if (!BlockHasGroupingCaptionOrAnchor((*blocks)[i])) {
+				continue;
+			} else if (captionSource) {
+				return CheckedMutationResult<bool>{ .result = false };
+			}
+			captionSource = i;
+		}
+		auto grouped = Block();
+		grouped.kind = BlockKind::GroupedMedia;
+		grouped.mediaIntent = intent;
+		grouped.mediaItems = std::move(items);
+		if (captionSource) {
+			auto &source = (*blocks)[*captionSource];
+			grouped.caption = std::move(source.caption);
+			grouped.anchorId = std::move(source.anchorId);
+		}
+		blocks->erase(
+			blocks->begin() + range->from,
+			blocks->begin() + range->till);
+		blocks->insert(blocks->begin() + range->from, std::move(grouped));
+		candidate.rebuild();
+		return CheckedMutationResult<bool>{
+			.apply = true,
+			.result = true,
+		};
+	});
+}
+
+bool State::ungroupGroupedMediaBlock(const BlockPath &path) {
+	return applyCheckedMutation(false, [path](State &candidate) {
+		auto *blocks = candidate.blockContainer(path.container);
+		if (!blocks
+			|| path.index < 0
+			|| path.index >= int(blocks->size())) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		auto &current = (*blocks)[path.index];
+		if (current.kind != BlockKind::GroupedMedia
+			|| current.mediaItems.empty()) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		auto emitted = std::vector<Block>();
+		emitted.reserve(current.mediaItems.size());
+		for (const auto &item : current.mediaItems) {
+			auto block = PhotoVideoBlockFromGroupedItem(item);
+			if (!block) {
+				return CheckedMutationResult<bool>{ .result = false };
+			}
+			emitted.push_back(std::move(*block));
+		}
+		emitted.front().caption = std::move(current.caption);
+		emitted.front().anchorId = std::move(current.anchorId);
+		blocks->erase(blocks->begin() + path.index);
+		blocks->insert(
+			blocks->begin() + path.index,
+			std::make_move_iterator(emitted.begin()),
+			std::make_move_iterator(emitted.end()));
+		candidate.rebuild();
+		return CheckedMutationResult<bool>{
+			.apply = true,
+			.result = true,
+		};
+	});
+}
+
+bool State::setGroupedMediaIntent(
+		const BlockPath &path,
+		RichPage::GroupedMediaIntent intent) {
+	return applyCheckedMutation(false, [path, intent](State &candidate) {
+		auto *current = candidate.block(path);
+		if (!current || current->kind != BlockKind::GroupedMedia) {
+			return CheckedMutationResult<bool>{ .result = false };
+		} else if (current->mediaIntent == intent) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		current->mediaIntent = intent;
 		candidate.rebuild();
 		return CheckedMutationResult<bool>{
 			.apply = true,

@@ -49,7 +49,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtCore/QEvent>
 #include <QtCore/QPointer>
-#include <QtGui/QCloseEvent>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QKeyEvent>
 #include <QtGui/QPainter>
@@ -266,7 +265,7 @@ public:
 		QWidget *parent,
 		not_null<Widget*> editor,
 		QPointer<QWidget> tooltipParent,
-		Fn<void(not_null<Widget*>, QPointer<QWidget>)> requestMedia,
+		bool hasRequestMedia,
 		Fn<void(not_null<Widget*>, QPointer<QWidget>, rpl::producer<>)> requestMap,
 		Fn<void()> toggleEmoji);
 
@@ -302,7 +301,7 @@ private:
 
 	const QPointer<Widget> _editor;
 	const QPointer<QWidget> _tooltipParent;
-	const Fn<void(not_null<Widget*>, QPointer<QWidget>)> _requestMedia;
+	const bool _hasRequestMedia = false;
 	const Fn<void(not_null<Widget*>, QPointer<QWidget>, rpl::producer<>)> _requestMap;
 	const Fn<void()> _toggleEmoji;
 	Widget::ToolbarState _toolbarState = {};
@@ -320,7 +319,14 @@ private:
 };
 
 [[nodiscard]] QRect DefaultWindowGeometry() {
-	const auto size = st::ivEditorWindowDefaultSize;
+	const auto padding = st::ivEditorBodyPadding;
+	const auto size = QSize(
+		std::max(
+			st::ivEditorWindowMinSize.width(),
+			(st::defaultMarkdown.pageMaxWidth * 3) / 4
+				+ padding.left()
+				+ padding.right()),
+		st::ivEditorWindowDefaultSize.height());
 	auto result = QRect(QPoint(), size);
 	if (const auto screen = QGuiApplication::primaryScreen()) {
 		result.moveCenter(screen->availableGeometry().center());
@@ -514,13 +520,13 @@ Toolbar::Toolbar(
 	QWidget *parent,
 	not_null<Widget*> editor,
 	QPointer<QWidget> tooltipParent,
-	Fn<void(not_null<Widget*>, QPointer<QWidget>)> requestMedia,
+	bool hasRequestMedia,
 	Fn<void(not_null<Widget*>, QPointer<QWidget>, rpl::producer<>)> requestMap,
 	Fn<void()> toggleEmoji)
 : Ui::RpWidget(parent)
 , _editor(editor.get())
 , _tooltipParent(std::move(tooltipParent))
-, _requestMedia(std::move(requestMedia))
+, _hasRequestMedia(hasRequestMedia)
 , _requestMap(std::move(requestMap))
 , _toggleEmoji(std::move(toggleEmoji)) {
 	setMouseTracking(true);
@@ -768,7 +774,7 @@ void Toolbar::addButtons() {
 		&st::ivEditorToolbarTaskListIcon,
 		&st::ivEditorToolbarTaskListIcon,
 		[=] { insertType(State::InsertBlockType::TaskList); });
-	if (_requestMedia) {
+	if (_hasRequestMedia) {
 		addAction(
 			ToolbarActionId::Attach,
 			ToolbarGroupId::Insertions,
@@ -776,9 +782,7 @@ void Toolbar::addButtons() {
 			&st::ivEditorToolbarAttachIcon,
 			[=] {
 				if (_editor) {
-					_requestMedia(
-						not_null<Widget*>(_editor.data()),
-						_tooltipParent);
+					_editor->requestMedia(std::nullopt);
 				}
 			});
 	}
@@ -1288,6 +1292,7 @@ private:
 	void setEmojiColumnInteractionActive(bool active);
 	[[nodiscard]] int emojiColumnWidth() const;
 	[[nodiscard]] int minimalWindowWidthWithEmojiColumn() const;
+	[[nodiscard]] bool handleCloseRequest();
 	void finishCloseFromAcceptedEvent();
 	void finishClose();
 	[[nodiscard]] bool articleChanged();
@@ -1339,6 +1344,9 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 
 	_window = std::make_unique<Window>();
 	const auto window = _window.get();
+	window->setCloseRequestHandler([=] {
+		return handleCloseRequest();
+	});
 	_show = std::make_shared<WindowContext>(window, descriptor.session);
 	if (descriptor.showCreated) {
 		descriptor.showCreated(_show);
@@ -1361,6 +1369,7 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		QPainter(_bottom.data()).fillRect(clip, st::windowBg);
 	}, _bottom->lifetime());
 
+	const auto hasRequestMedia = static_cast<bool>(descriptor.requestMedia);
 	_scroll = object_ptr<Ui::ScrollArea>(window->body().get(), st::boxScroll);
 	_editor = _scroll->setOwnedWidget(object_ptr<Widget>(
 		_scroll.data(),
@@ -1371,6 +1380,7 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 			.customEmojiPaused = [show = _show] {
 				return show->paused(ChatHelpers::PauseReason::Layer);
 			},
+			.requestMedia = std::move(descriptor.requestMedia),
 			.applyPreparedMedia = std::move(descriptor.applyPreparedMedia),
 			.imeCompositionStarts = window->imeCompositionStarts(),
 		},
@@ -1385,7 +1395,7 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		_top.data(),
 		editor,
 		body,
-		std::move(descriptor.requestMedia),
+		hasRequestMedia,
 		std::move(descriptor.requestMap),
 		[=] {
 			_toolbar->hideShownTooltip();
@@ -1423,19 +1433,7 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		updateEditorVisibleTopBottom();
 	}, _lifetime);
 	window->events() | rpl::on_next([=](not_null<QEvent*> e) {
-		if (e->type() == QEvent::Close) {
-			const auto event = static_cast<QCloseEvent*>(e.get());
-			if (_closingApproved) {
-				event->accept();
-				return;
-			}
-			if (confirmCancel()) {
-				event->accept();
-				finishCloseFromAcceptedEvent();
-			} else {
-				event->ignore();
-			}
-		} else if (e->type() == QEvent::KeyPress) {
+		if (e->type() == QEvent::KeyPress) {
 			const auto event = static_cast<QKeyEvent*>(e.get());
 			if (event->key() == Qt::Key_Escape) {
 				event->accept();
@@ -1623,6 +1621,17 @@ int WindowHost::Impl::emojiColumnWidth() const {
 
 int WindowHost::Impl::minimalWindowWidthWithEmojiColumn() const {
 	return st::ivEditorWindowMinSize.width() + emojiColumnWidth();
+}
+
+bool WindowHost::Impl::handleCloseRequest() {
+	if (_closingApproved) {
+		return true;
+	}
+	if (confirmCancel()) {
+		finishCloseFromAcceptedEvent();
+		return true;
+	}
+	return false;
 }
 
 void WindowHost::Impl::finishCloseFromAcceptedEvent() {

@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "base/basic_types.h"
+#include "iv/editor/iv_editor_state.h"
 
 #include <rpl/producer.h>
 
@@ -15,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QString>
 
 #include <memory>
+#include <optional>
 
 class PeerData;
 class QWidget;
@@ -57,7 +59,10 @@ struct ShowWindowDescriptor {
 	Fn<bool()> cancelled;
 	Fn<bool()> confirmed;
 	Fn<void(not_null<Ui::RpWidget*>)> setupSubmitButton;
-	Fn<void(not_null<Widget*>, QPointer<QWidget>)> requestMedia;
+	Fn<void(
+		not_null<Widget*>,
+		QPointer<QWidget>,
+		std::optional<State::ReplaceTarget>)> requestMedia;
 	Fn<void(not_null<Widget*>, Ui::PreparedList, PreparedMediaPasteTarget)>
 		applyPreparedMedia;
 	Fn<void(not_null<Widget*>, QPointer<QWidget>, rpl::producer<>)> requestMap;

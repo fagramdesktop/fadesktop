@@ -28,6 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/chat/attach/attach_prepare.h"
 #include "ui/chat/chat_style.h"
 #include "ui/chat/chat_theme.h"
+#include "ui/click_handler.h"
 #include "ui/image/image_location.h"
 #include "ui/layers/generic_box.h"
 #include "ui/painter.h"
@@ -38,6 +39,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/menu/menu_action.h"
+#include "ui/widgets/menu/menu_add_action_callback.h"
+#include "ui/widgets/menu/menu_add_action_callback_factory.h"
 #include "ui/widgets/menu/menu_separator.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/widgets/scroll_area.h"
@@ -784,6 +787,47 @@ template <typename Range>
 	default:
 		return false;
 	}
+}
+
+[[nodiscard]] bool IsSimpleMediaBlockKind(RichPage::BlockKind kind) {
+	switch (kind) {
+	case RichPage::BlockKind::Photo:
+	case RichPage::BlockKind::Video:
+	case RichPage::BlockKind::Audio:
+		return true;
+	default:
+		return false;
+	}
+}
+
+[[nodiscard]] bool IsPhotoVideoBlockKind(RichPage::BlockKind kind) {
+	return (kind == RichPage::BlockKind::Photo)
+		|| (kind == RichPage::BlockKind::Video);
+}
+
+[[nodiscard]] bool GroupedMediaHasPhotoVideoItems(
+		const RichPage::Block &block) {
+	return (block.kind == RichPage::BlockKind::GroupedMedia)
+		&& ranges::any_of(
+			block.mediaItems,
+			[](const RichPage::GroupedMediaItem &item) {
+				return IsPhotoVideoBlockKind(item.kind);
+			});
+}
+
+[[nodiscard]] bool GroupedPhotoVideoItemsHaveSpoiler(
+		const RichPage::Block &block) {
+	auto any = false;
+	for (const auto &item : block.mediaItems) {
+		if (!IsPhotoVideoBlockKind(item.kind)) {
+			continue;
+		}
+		any = true;
+		if (!item.spoiler) {
+			return false;
+		}
+	}
+	return any;
 }
 
 [[nodiscard]] bool MediaBlockHasSpoiler(
@@ -1733,6 +1777,7 @@ Widget::Widget(
 , _show(std::move(services.show))
 , _outer(services.outer)
 , _customEmojiPaused(std::move(services.customEmojiPaused))
+, _requestMedia(std::move(services.requestMedia))
 , _applyPreparedMedia(std::move(services.applyPreparedMedia))
 , _peer(peer)
 , _state(std::move(state))
@@ -2167,6 +2212,53 @@ void Widget::insertPreparedBlock(RichPage::Block block) {
 	insertPreparedBlocks(std::move(blocks));
 }
 
+void Widget::requestMedia(std::optional<State::ReplaceTarget> replaceTarget) {
+	if (_requestMedia) {
+		_requestMedia(
+			not_null<Widget*>(this),
+			QPointer<QWidget>(_outer.get()),
+			std::move(replaceTarget));
+	}
+}
+
+void Widget::replacePreparedBlock(
+		State::ReplaceTarget target,
+		RichPage::Block block) {
+	recordMutationTransaction([&] {
+		auto committed = ApplyResult::Unchanged;
+		if (!_field->isHidden()) {
+			committed = commitInlineField();
+			if (committed == ApplyResult::Failed) {
+				return MutationTransactionResult{
+					.committed = committed,
+					.failed = true,
+				};
+			}
+		}
+		if (!_state->replaceBlockWithPreparedBlock(target, std::move(block))) {
+			return MutationTransactionResult{
+				.committed = committed,
+				.changed = (committed == ApplyResult::Changed),
+			};
+		}
+		_pendingOrdinal = -1;
+		_pendingCursorOffset = 0;
+		hideInlineField();
+		clearInlineFieldEditSession();
+		clearTextSelection();
+		clearStructuralSelection();
+		refreshPreparedContent();
+		const auto ordinal = _state->activeTextOrdinal();
+		if (ordinal >= 0 && ordinal < _state->textNodeCount()) {
+			activateTextOrdinal(ordinal, 0);
+		}
+		return MutationTransactionResult{
+			.committed = committed,
+			.changed = true,
+		};
+	});
+}
+
 void Widget::insertPreparedBlocks(std::vector<RichPage::Block> blocks) {
 	insertPreparedBlocks(std::move(blocks), activeTextInsertContext());
 }
@@ -2512,15 +2604,37 @@ bool Widget::handleFieldBlockInsertShortcut(QKeyEvent *e) {
 	if (!blockquote && !monospace) {
 		return false;
 	}
-	if (type == QEvent::KeyPress) {
-		if (blockquote) {
+	if (blockquote) {
+		if (type == QEvent::KeyPress) {
 			insertBlockquote();
-		} else {
-			insertCodeBlock();
 		}
+		e->accept();
+		return true;
+	}
+	if (type == QEvent::KeyPress) {
+		applyFieldMonospaceAction();
 	}
 	e->accept();
 	return true;
+}
+
+bool Widget::fieldMonospaceShortcutUsesCodeBlock() const {
+	return (_fieldMode == State::FieldMode::Rich)
+		&& _field
+		&& _field->isVisible()
+		&& (_field->selectionMarkdownTagForToggle(
+			Ui::InputField::kTagCode) == Ui::InputField::kTagPre);
+}
+
+void Widget::applyFieldMonospaceAction() {
+	if (!_field) {
+		return;
+	} else if (fieldMonospaceShortcutUsesCodeBlock()) {
+		insertCodeBlock();
+	} else {
+		_field->toggleCurrentMarkdownTag(Ui::InputField::kTagCode);
+		notifyToolbarStateChanged();
+	}
 }
 
 void Widget::truncateHistoryRedo() {
@@ -3304,7 +3418,14 @@ void Widget::contextMenuEvent(QContextMenuEvent *e) {
 		return;
 	}
 	const auto articlePoint = e->pos() - articleTopLeft();
+	const auto hit = _article->hitTest(
+		articlePoint,
+		Ui::Text::StateRequest::Flag::LookupSymbol);
 	const auto editHit = _article->editHitTest(articlePoint);
+	if (showMediaMenuFromHit(editHit, hit, e->globalPos())) {
+		e->accept();
+		return;
+	}
 	const auto owner = StructuralOwnerFromHit(editHit);
 	const auto cell = TableCellFromOwner(owner);
 	if (!cell) {
@@ -3340,6 +3461,8 @@ void Widget::keyPressEvent(QKeyEvent *e) {
 	} else if (handleSelectAllShortcut(e)) {
 		return;
 	} else if (handleClipboardKey(e)) {
+		return;
+	} else if (handleFieldBlockInsertShortcut(e)) {
 		return;
 	} else if (handleStructuralSelectionKey(e)) {
 		return;
@@ -3440,6 +3563,22 @@ void Widget::addFieldBlockFormatActions(not_null<QMenu*> menu) {
 			? text
 			: text + QChar('\t') + shortcut;
 	};
+	const auto shortcutText = [](const QString &text) {
+		const auto tab = text.indexOf(QChar('\t'));
+		return (tab >= 0) ? text.mid(tab + 1) : QString();
+	};
+	const auto monospaceText = tr::lng_menu_formatting_monospace(tr::now);
+	const auto monospaceShortcut = Ui::kMonospaceSequence.toString(
+		QKeySequence::NativeText);
+	for (const auto action : submenu->actions()) {
+		if (!action->isSeparator()
+			&& baseText(action->text()) == monospaceText
+			&& shortcutText(action->text()) == monospaceShortcut) {
+			submenu->removeAction(action);
+			delete action;
+			break;
+		}
+	}
 	const auto before = [&] {
 		for (const auto action : submenu->actions()) {
 			if (action->isSeparator()) {
@@ -3466,12 +3605,10 @@ void Widget::addFieldBlockFormatActions(not_null<QMenu*> menu) {
 	add(blockquote);
 
 	const auto monospace = new QAction(
-		textWithShortcut(
-			tr::lng_menu_formatting_monospace(tr::now),
-			Ui::kMonospaceSequence),
+		textWithShortcut(monospaceText, Ui::kMonospaceSequence),
 		submenu);
 	connect(monospace, &QAction::triggered, this, [=] {
-		insertCodeBlock();
+		applyFieldMonospaceAction();
 	});
 	add(monospace);
 }
@@ -3792,6 +3929,351 @@ void Widget::applyTableChange(Fn<bool()> change) {
 	});
 }
 
+std::optional<State::BlockPath> Widget::simpleMediaBlockPathFromHit(
+		const PreparedEditHit &hit) const {
+	if (hit.kind != PreparedEditHitKind::Block || !hit.block) {
+		return std::nullopt;
+	}
+	const auto path = _state->convertBlockPath(*hit.block);
+	if (!path) {
+		return std::nullopt;
+	}
+	const auto block = BlockFromPath(_state->richPage(), *path);
+	if (!block || !IsSimpleMediaBlockKind(block->kind)) {
+		return std::nullopt;
+	}
+	return path;
+}
+
+std::optional<State::BlockPath> Widget::groupedMediaBlockPathFromHit(
+		const PreparedEditHit &hit) const {
+	if (hit.kind != PreparedEditHitKind::Block || !hit.block) {
+		return std::nullopt;
+	}
+	const auto path = _state->convertBlockPath(*hit.block);
+	if (!path) {
+		return std::nullopt;
+	}
+	const auto block = BlockFromPath(_state->richPage(), *path);
+	if (!block || block->kind != RichPage::BlockKind::GroupedMedia) {
+		return std::nullopt;
+	}
+	return path;
+}
+
+bool Widget::structuralPhotoVideoSelectionAvailable() const {
+	return _state->canGroupPhotoVideoBlocks(_structuralSelection);
+}
+
+bool Widget::clickHitsStructuralPhotoVideoSelection(
+		const PreparedEditHit &hit) const {
+	if (!structuralPhotoVideoSelectionAvailable()
+		|| _structuralSelection.kind != PreparedEditSelectionKind::Blocks
+		|| hit.kind != PreparedEditHitKind::Block
+		|| !hit.block) {
+		return false;
+	}
+	const auto path = _state->convertBlockPath(*hit.block);
+	if (!path || !BlockFromPath(_state->richPage(), *path)) {
+		return false;
+	}
+	return PreparedPathInBlockRange(
+		hit.block->path,
+		_structuralSelection.blocks);
+}
+
+void Widget::showSimpleMediaMenu(
+		const State::BlockPath &path,
+		QPoint globalPos) {
+	const auto block = BlockFromPath(_state->richPage(), path);
+	if (!block || !IsSimpleMediaBlockKind(block->kind)) {
+		return;
+	}
+	const auto menu = Ui::CreateChild<Ui::PopupMenu>(
+		this,
+		st::popupMenuWithIcons);
+	menu->addAction(
+		tr::lng_attach_replace(tr::now),
+		[=] {
+			requestReplaceMedia(path);
+		},
+		&st::menuIconReplace);
+	if (IsPhotoVideoBlockKind(block->kind)) {
+		const auto currentSpoiler = block->spoiler;
+		Menu::AddCheckedAction(
+			menu,
+			tr::lng_context_spoiler_effect(tr::now),
+			[=] {
+				[[maybe_unused]] const auto changed = applyMediaBlockChange([=] {
+					const auto current = BlockFromPath(
+						_state->richPage(),
+						path);
+					if (!current || !IsPhotoVideoBlockKind(current->kind)) {
+						return false;
+					}
+					return _state->toggleSpoilerOnBlocks(
+						std::vector<State::BlockPath>{ path },
+						!currentSpoiler);
+				});
+			},
+			&st::menuIconSpoiler,
+			currentSpoiler);
+	}
+	Ui::Menu::CreateAddActionCallback(menu)({
+		.text = tr::lng_box_remove(tr::now),
+		.handler = [=] {
+			auto target = std::optional<int>();
+			const auto changed = applyMediaBlockChange([=, &target] {
+				const auto current = BlockFromPath(
+					_state->richPage(),
+					path);
+				if (!current || !IsSimpleMediaBlockKind(current->kind)) {
+					return false;
+				}
+				target = _state->removeBlock(path, true);
+				return true;
+			});
+			if (!changed) {
+				return;
+			} else if (target) {
+				activateTextOrdinal(*target, 0);
+			} else {
+				activateInitialNode();
+			}
+		},
+		.icon = &st::menuIconDeleteAttention,
+		.isAttention = true,
+	});
+	if (menu->empty()) {
+		menu->deleteLater();
+		return;
+	}
+	menu->popup(globalPos);
+}
+
+void Widget::showGroupedMediaMenu(
+		const State::BlockPath &path,
+		QPoint globalPos) {
+	const auto block = BlockFromPath(_state->richPage(), path);
+	if (!block || block->kind != RichPage::BlockKind::GroupedMedia) {
+		return;
+	}
+	const auto menu = Ui::CreateChild<Ui::PopupMenu>(
+		this,
+		st::popupMenuWithIcons);
+	const auto currentIntent = block->mediaIntent;
+	const auto currentSpoiler = GroupedPhotoVideoItemsHaveSpoiler(*block);
+	menu->addAction(
+		tr::lng_article_media_ungroup(tr::now),
+		[=] {
+			[[maybe_unused]] const auto changed = applyMediaBlockChange([=] {
+				const auto current = BlockFromPath(
+					_state->richPage(),
+					path);
+				if (!current
+					|| current->kind != RichPage::BlockKind::GroupedMedia) {
+					return false;
+				}
+				return _state->ungroupGroupedMediaBlock(path);
+			});
+		},
+		&st::menuIconExpand);
+	const auto switchToCollage
+		= (currentIntent == RichPage::GroupedMediaIntent::Slideshow);
+	const auto nextIntent = switchToCollage
+		? RichPage::GroupedMediaIntent::Collage
+		: RichPage::GroupedMediaIntent::Slideshow;
+	menu->addAction(
+		switchToCollage
+			? tr::lng_article_media_collage(tr::now)
+			: tr::lng_article_media_slideshow(tr::now),
+		[=] {
+			[[maybe_unused]] const auto changed = applyMediaBlockChange([=] {
+				const auto current = BlockFromPath(
+					_state->richPage(),
+					path);
+				if (!current
+					|| current->kind != RichPage::BlockKind::GroupedMedia) {
+					return false;
+				}
+				return _state->setGroupedMediaIntent(path, nextIntent);
+			});
+		},
+		switchToCollage ? &st::menuIconShowAll : &st::menuIconPhotoSet);
+	if (GroupedMediaHasPhotoVideoItems(*block)) {
+		Menu::AddCheckedAction(
+			menu,
+			tr::lng_context_spoiler_effect(tr::now),
+			[=] {
+				[[maybe_unused]] const auto changed = applyMediaBlockChange([=] {
+					const auto current = BlockFromPath(
+						_state->richPage(),
+						path);
+					if (!current || !GroupedMediaHasPhotoVideoItems(*current)) {
+						return false;
+					}
+					return _state->toggleSpoilerOnBlocks(
+						std::vector<State::BlockPath>{ path },
+						!currentSpoiler);
+				});
+			},
+			&st::menuIconSpoiler,
+			currentSpoiler);
+	}
+	Ui::Menu::CreateAddActionCallback(menu)({
+		.text = tr::lng_box_remove(tr::now),
+		.handler = [=] {
+			auto target = std::optional<int>();
+			const auto changed = applyMediaBlockChange([=, &target] {
+				const auto current = BlockFromPath(
+					_state->richPage(),
+					path);
+				if (!current
+					|| current->kind != RichPage::BlockKind::GroupedMedia) {
+					return false;
+				}
+				target = _state->removeBlock(path, true);
+				return true;
+			});
+			if (!changed) {
+				return;
+			} else if (target) {
+				activateTextOrdinal(*target, 0);
+			} else {
+				activateInitialNode();
+			}
+		},
+		.icon = &st::menuIconDeleteAttention,
+		.isAttention = true,
+	});
+	if (menu->empty()) {
+		menu->deleteLater();
+		return;
+	}
+	menu->popup(globalPos);
+}
+
+void Widget::showStructuralPhotoVideoMenu(QPoint globalPos) {
+	if (!structuralPhotoVideoSelectionAvailable()) {
+		return;
+	}
+	const auto selection = _structuralSelection;
+	const auto menu = Ui::CreateChild<Ui::PopupMenu>(
+		this,
+		st::popupMenuWithIcons);
+	menu->addAction(
+		tr::lng_article_media_collage(tr::now),
+		[=] {
+			[[maybe_unused]] const auto changed = applyMediaBlockChange([=] {
+				return _state->groupPhotoVideoBlocks(
+					selection,
+					RichPage::GroupedMediaIntent::Collage);
+			});
+		},
+		&st::menuIconShowAll);
+	menu->addAction(
+		tr::lng_article_media_slideshow(tr::now),
+		[=] {
+			[[maybe_unused]] const auto changed = applyMediaBlockChange([=] {
+				return _state->groupPhotoVideoBlocks(
+					selection,
+					RichPage::GroupedMediaIntent::Slideshow);
+			});
+		},
+		&st::menuIconPhotoSet);
+	Ui::Menu::CreateAddActionCallback(menu)({
+		.text = tr::lng_box_remove(tr::now),
+		.handler = [=] {
+			if (structuralPhotoVideoSelectionAvailable()) {
+				removeStructuralSelectionAndReposition(true);
+			}
+		},
+		.icon = &st::menuIconDeleteAttention,
+		.isAttention = true,
+	});
+	if (menu->empty()) {
+		menu->deleteLater();
+		return;
+	}
+	menu->popup(globalPos);
+}
+
+bool Widget::showMediaMenuFromHit(
+		const PreparedEditHit &hit,
+		const Markdown::MarkdownArticleHitTestResult &articleHit,
+		QPoint globalPos) {
+	if (clickHitsStructuralPhotoVideoSelection(hit)) {
+		showStructuralPhotoVideoMenu(globalPos);
+		return true;
+	} else if (const auto path = simpleMediaBlockPathFromHit(hit)) {
+		showSimpleMediaMenu(*path, globalPos);
+		return true;
+	} else if (const auto path = groupedMediaBlockPathFromHit(hit)) {
+		if (articleHit.mediaActivation.kind
+			== Markdown::MediaActivationKind::None) {
+			return false;
+		}
+		showGroupedMediaMenu(*path, globalPos);
+		return true;
+	}
+	return false;
+}
+
+bool Widget::activateGroupedMediaLinkFromHit(
+		const PreparedEditHit &hit,
+		const Markdown::MarkdownArticleHitTestResult &articleHit,
+		Qt::MouseButton button) {
+	if (!groupedMediaBlockPathFromHit(hit)
+		|| !articleHit.state.link
+		|| articleHit.mediaActivation.kind
+			!= Markdown::MediaActivationKind::None) {
+		return false;
+	}
+	ActivateClickHandler(this, articleHit.state.link, button);
+	return true;
+}
+
+bool Widget::applyMediaBlockChange(Fn<bool()> change) {
+	const auto hadVisibleField = !_field->isHidden();
+	auto changed = false;
+	const auto result = recordMutationTransaction([&] {
+		const auto committed = commitInlineField();
+		if (committed == ApplyResult::Failed) {
+			return MutationTransactionResult{
+				.committed = committed,
+				.failed = true,
+			};
+		}
+		_pendingOrdinal = -1;
+		_pendingCursorOffset = 0;
+		hideInlineField();
+		clearInlineFieldEditSession();
+		changed = change();
+		if (changed) {
+			refreshPreparedContent();
+		} else if (hadVisibleField) {
+			refreshAfterInlineFieldCommit(committed);
+		}
+		clearTextSelection();
+		clearStructuralSelection();
+		setFocus();
+		notifyToolbarStateChanged();
+		return MutationTransactionResult{
+			.committed = committed,
+			.changed = (committed == ApplyResult::Changed) || changed,
+		};
+	});
+	return !result.failed && changed;
+}
+
+void Widget::requestReplaceMedia(State::BlockPath path) {
+	const auto target = _state->replaceTargetForBlock(path);
+	if (!target) {
+		return;
+	}
+	requestMedia(std::move(target));
+}
+
 void Widget::touchEvent(QTouchEvent *e) {
 	if (e->type() == QEvent::TouchCancel) {
 		_pendingTouchHorizontalScrollPoint = std::nullopt;
@@ -3929,15 +4411,22 @@ void Widget::mouseMoveEvent(QMouseEvent *e) {
 		if (controlHit.valid()) {
 			cursor = style::cur_pointer;
 		} else {
-			const auto hit = _article->hitTest(
-				articlePoint,
-				Ui::Text::StateRequest::Flag::LookupSymbol);
-			if (hit.valid() && hit.codeHeaderCopy) {
+			const auto editHit = _article->editHitTest(articlePoint);
+			if (simpleMediaBlockPathFromHit(editHit)
+				|| groupedMediaBlockPathFromHit(editHit)
+				|| clickHitsStructuralPhotoVideoSelection(editHit)) {
 				cursor = style::cur_pointer;
-			} else if (hit.valid()
-				&& hit.direct
-				&& _article->segmentIsText(hit.segmentIndex)) {
-				cursor = style::cur_text;
+			} else {
+				const auto hit = _article->hitTest(
+					articlePoint,
+					Ui::Text::StateRequest::Flag::LookupSymbol);
+				if (hit.valid() && hit.codeHeaderCopy) {
+					cursor = style::cur_pointer;
+				} else if (hit.valid()
+					&& hit.direct
+					&& _article->segmentIsText(hit.segmentIndex)) {
+					cursor = style::cur_text;
+				}
 			}
 		}
 		setCursor(cursor);
@@ -4266,6 +4755,14 @@ void Widget::mouseReleaseEvent(QMouseEvent *e) {
 			updateArticleSelection(articlePoint, hit, editHit);
 		}
 		if (clickLike) {
+			if (activateGroupedMediaLinkFromHit(editHit, hit, e->button())) {
+				e->accept();
+				return;
+			}
+			if (showMediaMenuFromHit(editHit, hit, e->globalPos())) {
+				e->accept();
+				return;
+			}
 			const auto changed = !_selection.empty()
 				|| _selectionEndpoints.from.valid()
 				|| _selectionEndpoints.to.valid()
@@ -4368,7 +4865,10 @@ void Widget::mouseReleaseEvent(QMouseEvent *e) {
 		}
 	} else if (articlePoint.y() >= _articleHeight) {
 		activateTrailingParagraph();
-	} else {
+	} else if (activateGroupedMediaLinkFromHit(editHit, hit, e->button())) {
+		e->accept();
+		return;
+	} else if (!showMediaMenuFromHit(editHit, hit, e->globalPos())) {
 		focusOrActivateInitial();
 	}
 	e->accept();
@@ -4619,6 +5119,8 @@ void Widget::setupInlineField() {
 				Ui::InputField::kTagItalic,
 				Ui::InputField::kTagUnderline,
 				Ui::InputField::kTagStrikeOut,
+				Ui::InputField::kTagCode,
+				Ui::InputField::kTagPre,
 				Ui::InputField::kTagSpoiler,
 				Ui::InputField::kTagIvMarked,
 				Ui::InputField::kTagIvSubscript,

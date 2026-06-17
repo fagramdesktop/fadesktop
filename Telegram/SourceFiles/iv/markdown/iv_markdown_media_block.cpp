@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/spoiler_mess.h"
 #include "ui/grouped_layout.h"
 #include "ui/image/image_prepare.h"
+#include "ui/power_saving.h"
 
 #include "rpl/lifetime.h"
 
@@ -153,8 +154,15 @@ constexpr auto kMaxGroupedMediaLayoutItems = 10;
 	return result;
 }
 
+void PaintImageSpoiler(
+		Painter &p,
+		QRect rect,
+		const Ui::SpoilerMessFrame &frame) {
+	Ui::FillSpoilerRect(p, rect, frame);
+}
+
 void PaintImageSpoiler(Painter &p, QRect rect) {
-	Ui::FillSpoilerRect(p, rect, Ui::DefaultImageSpoiler().frame());
+	PaintImageSpoiler(p, rect, Ui::DefaultImageSpoiler().frame());
 }
 
 [[nodiscard]] bool UpdateResolvedImage(
@@ -1138,7 +1146,10 @@ private:
 
 	[[nodiscard]] double itemProgress(const ItemState &item) const;
 
-	void paintActiveItem(Painter &p, const style::Markdown &st) const;
+	void paintActiveItem(
+		Painter &p,
+		const style::Markdown &st,
+		const MarkdownArticlePaintContext &context) const;
 
 	[[nodiscard]] bool paintActiveItemWithBlurredBackground(
 		Painter &p,
@@ -1180,6 +1191,7 @@ private:
 	int _height = 1;
 	int _activeIndex = 0;
 	bool _useCollageLayout = false;
+	mutable std::unique_ptr<Ui::SpoilerAnimation> _spoilerAnimation;
 };
 
 GroupedMediaBlock::GroupedMediaBlock(
@@ -1254,7 +1266,7 @@ void GroupedMediaBlock::paint(
 	const auto path = RoundedRectPath(_geometry, layoutGrouped.radius);
 	p.setClipPath(path, Qt::IntersectClip);
 	if (_intent == PreparedGroupedMediaIntent::Slideshow) {
-		paintActiveItem(p, st);
+		paintActiveItem(p, st, context);
 		paintNavigation(p, st);
 	} else if (_useCollageLayout) {
 		for (const auto &item : _items) {
@@ -1537,9 +1549,11 @@ double GroupedMediaBlock::itemProgress(const ItemState &item) const {
 
 void GroupedMediaBlock::paintActiveItem(
 		Painter &p,
-		const style::Markdown &st) const {
+		const style::Markdown &st,
+		const MarkdownArticlePaintContext &context) const {
 	const auto item = activeItem();
 	if (!item) {
+		_spoilerAnimation = nullptr;
 		return;
 	}
 	const auto foregroundHeight = activeItemForegroundHeight(_geometry.width());
@@ -1553,7 +1567,20 @@ void GroupedMediaBlock::paintActiveItem(
 			item->previousThumbnailImage,
 			item->previousFullImage);
 	if (painted && item->spoiler) {
-		PaintImageSpoiler(p, _geometry);
+		if (!_spoilerAnimation) {
+			_spoilerAnimation = std::make_unique<Ui::SpoilerAnimation>([=] {
+				requestRepaint(_geometry);
+			});
+		}
+		const auto pausedSpoiler = context.paused
+			|| On(PowerSaving::kChatSpoiler);
+		PaintImageSpoiler(
+			p,
+			_geometry,
+			Ui::DefaultImageSpoiler().frame(
+				_spoilerAnimation->index(context.now, pausedSpoiler)));
+	} else {
+		_spoilerAnimation = nullptr;
 	}
 	if (itemLoading(*item)) {
 		PaintPhotoProgress(

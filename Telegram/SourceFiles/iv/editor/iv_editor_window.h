@@ -38,6 +38,7 @@ public:
 
 	[[nodiscard]] rpl::producer<> imeCompositionStarts() const;
 	void imeCompositionStartReceived();
+	void setCloseRequestHandler(Fn<bool()> handler);
 
 	void showBox(
 		object_ptr<Ui::BoxContent> box,
@@ -53,6 +54,8 @@ public:
 	[[nodiscard]] std::shared_ptr<Ui::Show> uiShow();
 
 protected:
+	bool eventHook(QEvent *event) override;
+
 #ifdef Q_OS_WIN
 	bool nativeEvent(
 		const QByteArray &eventType,
@@ -68,6 +71,7 @@ protected:
 private:
 	const std::unique_ptr<Ui::LayerManager> _layers;
 	rpl::event_stream<> _imeCompositionStartReceived;
+	Fn<bool()> _closeRequestHandler;
 
 };
 

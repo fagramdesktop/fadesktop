@@ -105,6 +105,12 @@ public:
 		}
 	};
 
+	struct ReplaceTarget {
+		BlockPath path;
+		RichPage::BlockKind kind = RichPage::BlockKind::Unsupported;
+		uint64 mediaId = 0;
+	};
+
 	enum class LeafKind : uchar {
 		BlockText,
 		BlockCaption,
@@ -267,6 +273,10 @@ public:
 	tableContextRangeForSelection(
 		const Markdown::PreparedEditSelection &selection,
 		const Markdown::PreparedEditTableCellSource &source) const;
+	[[nodiscard]] std::optional<BlockPath> convertBlockPath(
+		const Markdown::PreparedEditBlockPath &path) const;
+	[[nodiscard]] std::optional<BlockPath> convertBlockPath(
+		const Markdown::PreparedEditBlockSource &source) const;
 	[[nodiscard]] bool canRemoveStructuralSelection(
 		const Markdown::PreparedEditSelection &selection) const;
 	[[nodiscard]] auto structuredClipboardDataForSelection(
@@ -363,6 +373,23 @@ public:
 	[[nodiscard]] bool toggleSpoilerOnBlocks(
 		const std::vector<BlockPath> &blocks,
 		std::optional<bool> enabled = std::nullopt);
+	[[nodiscard]] std::optional<ReplaceTarget> replaceTargetForBlock(
+		const BlockPath &path) const;
+	[[nodiscard]] bool replaceBlockWithPreparedBlock(
+		const ReplaceTarget &target,
+		RichPage::Block block);
+	[[nodiscard]] std::optional<int> removeBlock(
+		const BlockPath &path,
+		bool forward);
+	[[nodiscard]] bool canGroupPhotoVideoBlocks(
+		const Markdown::PreparedEditSelection &selection) const;
+	[[nodiscard]] bool groupPhotoVideoBlocks(
+		const Markdown::PreparedEditSelection &selection,
+		RichPage::GroupedMediaIntent intent);
+	[[nodiscard]] bool ungroupGroupedMediaBlock(const BlockPath &path);
+	[[nodiscard]] bool setGroupedMediaIntent(
+		const BlockPath &path,
+		RichPage::GroupedMediaIntent intent);
 
 private:
 	struct StructuralBlockRange {
@@ -426,10 +453,6 @@ private:
 
 	[[nodiscard]] std::optional<BlockContainerPath> convertBlockContainerPath(
 		const Markdown::PreparedEditBlockContainerPath &path) const;
-	[[nodiscard]] std::optional<BlockPath> convertBlockPath(
-		const Markdown::PreparedEditBlockPath &path) const;
-	[[nodiscard]] std::optional<BlockPath> convertBlockPath(
-		const Markdown::PreparedEditBlockSource &source) const;
 	[[nodiscard]] std::optional<LeafPath> convertLeafPath(
 		const Markdown::PreparedEditLeafSource &source) const;
 	[[nodiscard]] std::optional<StructuralBlockRange> validateBlockRange(
