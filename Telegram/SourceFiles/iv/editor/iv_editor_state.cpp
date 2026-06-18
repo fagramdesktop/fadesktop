@@ -51,6 +51,7 @@ using TableRow = RichPage::TableRow;
 using TaskState = RichPage::TaskState;
 using TextNodeDescriptor = State::TextNodeDescriptor;
 using TextFormattingAction = State::TextFormattingAction;
+using TextSelectionDropResult = State::TextSelectionDropResult;
 using TextNodeSpan = State::TextNodeSpan;
 
 struct TextRange {
@@ -604,6 +605,44 @@ GroupedItemFromPhotoVideoBlock(const Block &block) {
 		return true;
 	}
 	return ShiftBlockContainerPathAfterRemovedBlock(path.container, removed);
+}
+
+[[nodiscard]] bool ShiftBlockContainerPathAfterRemovedListItem(
+		BlockContainerPath &path,
+		const BlockPath &list,
+		int removedItemIndex) {
+	const auto removed = ListItemChildrenContainer(list, removedItemIndex);
+	if (ContainerHasPrefix(path, removed)) {
+		return false;
+	}
+	if (!ContainerHasPrefix(path, list.container)) {
+		return true;
+	}
+	const auto size = list.container.steps.size();
+	if (path.steps.size() <= size) {
+		return true;
+	}
+	auto &step = path.steps[size];
+	if (step.blockIndex != list.index
+		|| step.kind != BlockContainerKind::ListItemChildren) {
+		return true;
+	}
+	if (step.listItemIndex == removedItemIndex) {
+		return false;
+	} else if (step.listItemIndex > removedItemIndex) {
+		--step.listItemIndex;
+	}
+	return true;
+}
+
+[[nodiscard]] bool ShiftBlockPathAfterRemovedListItem(
+		BlockPath &path,
+		const BlockPath &list,
+		int removedItemIndex) {
+	return ShiftBlockContainerPathAfterRemovedListItem(
+		path.container,
+		list,
+		removedItemIndex);
 }
 
 [[nodiscard]] std::optional<int> BlockIndexInContainer(
@@ -1325,6 +1364,45 @@ PreparedMutationKind State::lastPreparedMutationKind() const {
 std::optional<PreparedEditLeafSource> State::activePreparedLeafSource() const {
 	const auto descriptor = textNode(_activeTextOrdinal);
 	return descriptor ? convertPreparedLeafSource(*descriptor) : std::nullopt;
+}
+
+std::vector<TextNodeSpan> State::resolveTextSpansForPreparedLeafRange(
+		const PreparedEditLeafSource &source,
+		int from,
+		int till) const {
+	if (from < 0 || till <= from) {
+		return {};
+	}
+	const auto firstLeaf = convertLeafPath(source);
+	if (!firstLeaf) {
+		return {};
+	}
+	const auto firstOrdinal = textOrdinalForLeafPath(*firstLeaf);
+	if (firstOrdinal < 0) {
+		return {};
+	}
+	auto result = std::vector<TextNodeSpan>();
+	auto consumed = 0;
+	for (auto i = firstOrdinal, count = textNodeCount()
+		; i != count && consumed < till
+		; ++i) {
+		const auto current = richText(_textNodes[i].leaf);
+		if (!current) {
+			return {};
+		}
+		const auto length = int(current->text.text.size());
+		const auto spanFrom = std::max(from - consumed, 0);
+		const auto spanTo = std::min(till - consumed, length);
+		if (spanFrom < spanTo) {
+			result.push_back(TextNodeSpan{
+				.leaf = _textNodes[i].leaf,
+				.from = spanFrom,
+				.till = spanTo,
+			});
+		}
+		consumed += length;
+	}
+	return (consumed >= till) ? result : std::vector<TextNodeSpan>();
 }
 
 int State::textNodeCount() const {
@@ -5280,6 +5358,586 @@ bool State::replaceStructuralSelectionWithClipboardListItems(
 	return true;
 }
 
+State::StructuralSelectionDropResult State::moveStructuralSelectionToDropTarget(
+		const PreparedEditSelection &selection,
+		const Markdown::PreparedEditDropTarget &target) {
+	struct BlockInsertionTarget {
+		BlockContainerPath container;
+		int insertIndex = -1;
+	};
+	struct ListInsertionTarget {
+		BlockPath block;
+		int insertIndex = -1;
+	};
+	const auto failure = StructuralSelectionDropResult{
+		.result = ApplyResult::Failed,
+	};
+	return applyCheckedMutation(failure, [selection, target](State &candidate) {
+		auto result = StructuralSelectionDropResult{
+			.result = ApplyResult::Failed,
+		};
+		const auto payload = candidate.structuredClipboardDataForSelection(
+			selection);
+		if (!payload) {
+			return CheckedMutationResult<StructuralSelectionDropResult>{
+				.apply = false,
+				.result = result,
+			};
+		}
+		auto blockTarget = std::optional<BlockInsertionTarget>();
+		auto listTarget = std::optional<ListInsertionTarget>();
+		if (const auto block = std::get_if<Markdown::PreparedEditBlockDropTarget>(
+				&target)) {
+			const auto container = candidate.convertBlockContainerPath(
+				block->container);
+			const auto blocks = container
+				? candidate.blockContainer(*container)
+				: nullptr;
+			if (!container
+				|| !blocks
+				|| block->insertIndex < 0
+				|| block->insertIndex > int(blocks->size())) {
+				return CheckedMutationResult<StructuralSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			blockTarget = {
+				.container = *container,
+				.insertIndex = block->insertIndex,
+			};
+		} else if (const auto list
+			= std::get_if<Markdown::PreparedEditListItemDropTarget>(&target)) {
+			const auto blockPath = candidate.convertBlockPath(list->block);
+			const auto owner = blockPath ? candidate.block(*blockPath) : nullptr;
+			if (!blockPath
+				|| !owner
+				|| owner->kind != BlockKind::List
+				|| list->insertIndex < 0
+				|| list->insertIndex > int(owner->listItems.size())) {
+				return CheckedMutationResult<StructuralSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			listTarget = {
+				.block = *blockPath,
+				.insertIndex = list->insertIndex,
+			};
+		} else {
+			return CheckedMutationResult<StructuralSelectionDropResult>{
+				.apply = false,
+				.result = result,
+			};
+		}
+		switch (selection.kind) {
+		case PreparedEditSelectionKind::Blocks: {
+			const auto range = candidate.validateBlockRange(selection.blocks);
+			if (!range || !blockTarget) {
+				return CheckedMutationResult<StructuralSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			if (blockTarget->container == range->container) {
+				if (blockTarget->insertIndex >= range->from
+					&& blockTarget->insertIndex <= range->till) {
+					result.result = ApplyResult::Unchanged;
+					return CheckedMutationResult<StructuralSelectionDropResult>{
+						.apply = false,
+						.result = result,
+					};
+				} else if (blockTarget->insertIndex > range->till) {
+					blockTarget->insertIndex -= (range->till - range->from);
+				}
+			}
+			for (auto i = range->till; i != range->from;) {
+				--i;
+				const auto removed = BlockPath{
+					.container = range->container,
+					.index = i,
+				};
+				if (!ShiftBlockContainerPathAfterRemovedBlock(
+						blockTarget->container,
+						removed)) {
+					result.result = ApplyResult::Unchanged;
+					return CheckedMutationResult<StructuralSelectionDropResult>{
+						.apply = false,
+						.result = result,
+					};
+				}
+			}
+		} break;
+		case PreparedEditSelectionKind::ListItems: {
+			const auto range = candidate.validateListItemRange(
+				selection.listItems);
+			const auto owner = range ? candidate.block(range->block) : nullptr;
+			if (!range || !owner || owner->kind != BlockKind::List) {
+				return CheckedMutationResult<StructuralSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			const auto removesWholeList = (range->from == 0)
+				&& (range->till == int(owner->listItems.size()));
+			if (blockTarget) {
+				if (removesWholeList
+					&& blockTarget->container == range->block.container
+					&& blockTarget->insertIndex >= range->block.index
+					&& blockTarget->insertIndex <= range->block.index + 1) {
+					result.result = ApplyResult::Unchanged;
+					return CheckedMutationResult<StructuralSelectionDropResult>{
+						.apply = false,
+						.result = result,
+					};
+				}
+				if (removesWholeList) {
+					if (blockTarget->container == range->block.container
+						&& blockTarget->insertIndex > range->block.index) {
+						--blockTarget->insertIndex;
+					}
+					if (!ShiftBlockContainerPathAfterRemovedBlock(
+							blockTarget->container,
+							range->block)) {
+						result.result = ApplyResult::Unchanged;
+						return CheckedMutationResult<StructuralSelectionDropResult>{
+							.apply = false,
+							.result = result,
+						};
+					}
+				} else {
+					for (auto i = range->till; i != range->from;) {
+						--i;
+						if (!ShiftBlockContainerPathAfterRemovedListItem(
+								blockTarget->container,
+								range->block,
+								i)) {
+							result.result = ApplyResult::Unchanged;
+							return CheckedMutationResult<StructuralSelectionDropResult>{
+								.apply = false,
+								.result = result,
+							};
+						}
+					}
+				}
+			} else if (listTarget) {
+				if (listTarget->block == range->block) {
+					if (listTarget->insertIndex >= range->from
+						&& listTarget->insertIndex <= range->till) {
+						result.result = ApplyResult::Unchanged;
+						return CheckedMutationResult<StructuralSelectionDropResult>{
+							.apply = false,
+							.result = result,
+						};
+					} else if (listTarget->insertIndex > range->till) {
+						listTarget->insertIndex -= (range->till - range->from);
+					}
+				} else if (removesWholeList) {
+					if (!ShiftBlockPathAfterRemovedBlock(
+							listTarget->block,
+							range->block)) {
+						result.result = ApplyResult::Unchanged;
+						return CheckedMutationResult<StructuralSelectionDropResult>{
+							.apply = false,
+							.result = result,
+						};
+					}
+				} else {
+					for (auto i = range->till; i != range->from;) {
+						--i;
+						if (!ShiftBlockPathAfterRemovedListItem(
+								listTarget->block,
+								range->block,
+								i)) {
+							result.result = ApplyResult::Unchanged;
+							return CheckedMutationResult<StructuralSelectionDropResult>{
+								.apply = false,
+								.result = result,
+							};
+						}
+					}
+				}
+			} else {
+				return CheckedMutationResult<StructuralSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+		} break;
+		case PreparedEditSelectionKind::TableRows:
+		case PreparedEditSelectionKind::TableCells:
+		case PreparedEditSelectionKind::None:
+			return CheckedMutationResult<StructuralSelectionDropResult>{
+				.apply = false,
+				.result = result,
+			};
+		}
+		if (!candidate.removeStructuralSelection(selection, true)) {
+			return CheckedMutationResult<StructuralSelectionDropResult>{
+				.apply = false,
+				.result = result,
+			};
+		}
+		if (const auto blocks = std::get_if<ClipboardBlockData>(&*payload)) {
+			if (!blockTarget) {
+				return CheckedMutationResult<StructuralSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			auto inserted = blocks->blocks;
+			candidate.normalizeInsertedBlockAnchors(inserted);
+			const auto count = int(inserted.size());
+			if (!candidate.insertPreparedBlocksAtExplicitPosition(
+					std::move(inserted),
+					blockTarget->container,
+					blockTarget->insertIndex)) {
+				return CheckedMutationResult<StructuralSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			candidate.rebuild();
+			result.result = ApplyResult::Changed;
+			result.destination = candidate.destinationTargetForInsertedBlocks(
+				blockTarget->container,
+				blockTarget->insertIndex,
+				count);
+			return CheckedMutationResult<StructuralSelectionDropResult>{
+				.apply = true,
+				.result = result,
+			};
+		}
+		const auto items = std::get_if<ClipboardListItemsData>(&*payload);
+		if (!items) {
+			return CheckedMutationResult<StructuralSelectionDropResult>{
+				.apply = false,
+				.result = result,
+			};
+		}
+		auto listBlock = Block();
+		listBlock.kind = BlockKind::List;
+		listBlock.listKind = items->listKind;
+		listBlock.listItems = items->items;
+		auto insertedBlocks = std::vector<Block>();
+		insertedBlocks.push_back(std::move(listBlock));
+		candidate.normalizeInsertedBlockAnchors(insertedBlocks);
+		if (listTarget) {
+			const auto owner = candidate.block(listTarget->block);
+			if (!owner || owner->kind != BlockKind::List) {
+				return CheckedMutationResult<StructuralSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			const auto taskList = std::any_of(
+				owner->listItems.begin(),
+				owner->listItems.end(),
+				[](const ListItem &item) {
+					return item.taskState != TaskState::None;
+				});
+			if (owner->listKind == items->listKind
+				&& taskList == items->taskList) {
+				auto insertedItems = std::move(insertedBlocks.front().listItems);
+				const auto count = int(insertedItems.size());
+				if (!candidate.insertPreparedListItemsAtExplicitPosition(
+						std::move(insertedItems),
+						listTarget->block,
+						listTarget->insertIndex)) {
+					return CheckedMutationResult<StructuralSelectionDropResult>{
+						.apply = false,
+						.result = result,
+					};
+				}
+				candidate.rebuild();
+				result.result = ApplyResult::Changed;
+				result.destination = candidate.destinationTargetForInsertedListItems(
+					listTarget->block,
+					listTarget->insertIndex,
+					count);
+				return CheckedMutationResult<StructuralSelectionDropResult>{
+					.apply = true,
+					.result = result,
+				};
+			}
+			auto container = listTarget->block.container;
+			auto insertAt = listTarget->block.index;
+			auto trailingBlocks = std::vector<Block>();
+			if (listTarget->insertIndex > 0) {
+				insertAt = listTarget->block.index + 1;
+				if (listTarget->insertIndex < int(owner->listItems.size())) {
+					auto trailing = Block();
+					trailing.kind = BlockKind::List;
+					trailing.listKind = owner->listKind;
+					trailing.listItems = std::vector<ListItem>(
+						std::make_move_iterator(
+							owner->listItems.begin() + listTarget->insertIndex),
+						std::make_move_iterator(owner->listItems.end()));
+					owner->listItems.erase(
+						owner->listItems.begin() + listTarget->insertIndex,
+						owner->listItems.end());
+					trailingBlocks.push_back(std::move(trailing));
+				}
+			}
+			if (!candidate.insertPreparedBlocksAtExplicitPosition(
+					std::move(insertedBlocks),
+					container,
+					insertAt)) {
+				return CheckedMutationResult<StructuralSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			if (!trailingBlocks.empty()
+				&& !candidate.insertPreparedBlocksAtExplicitPosition(
+					std::move(trailingBlocks),
+					container,
+					insertAt + 1)) {
+				return CheckedMutationResult<StructuralSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			candidate.rebuild();
+			result.result = ApplyResult::Changed;
+			result.destination = candidate.destinationTargetForInsertedBlocks(
+				container,
+				insertAt,
+				1);
+			return CheckedMutationResult<StructuralSelectionDropResult>{
+				.apply = true,
+				.result = result,
+			};
+		}
+		if (!blockTarget
+			|| !candidate.insertPreparedBlocksAtExplicitPosition(
+				std::move(insertedBlocks),
+				blockTarget->container,
+				blockTarget->insertIndex)) {
+			return CheckedMutationResult<StructuralSelectionDropResult>{
+				.apply = false,
+				.result = result,
+			};
+		}
+		candidate.rebuild();
+		result.result = ApplyResult::Changed;
+		result.destination = candidate.destinationTargetForInsertedBlocks(
+			blockTarget->container,
+			blockTarget->insertIndex,
+			1);
+		return CheckedMutationResult<StructuralSelectionDropResult>{
+			.apply = true,
+			.result = result,
+		};
+	});
+}
+
+State::TextSelectionDropResult State::moveTextSelectionToDropTarget(
+		const std::vector<TextNodeSpan> &source,
+		const Markdown::PreparedEditDropTarget &target) {
+	const auto failure = TextSelectionDropResult{
+		.result = ApplyResult::Failed,
+	};
+	if (source.empty()) {
+		return failure;
+	}
+	return applyCheckedMutation(failure, [source, target](State &candidate) {
+		struct SourceRewrite {
+			LeafPath leaf;
+			TextWithEntities text;
+		};
+
+		auto result = TextSelectionDropResult{
+			.result = ApplyResult::Failed,
+		};
+		auto moved = TextWithEntities();
+		auto sourceRewrites = std::vector<SourceRewrite>();
+		sourceRewrites.reserve(source.size());
+		for (const auto &span : source) {
+			const auto current = candidate.richText(span.leaf);
+			if (!current) {
+				return CheckedMutationResult<TextSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			auto sourceBefore = TextWithEntities();
+			auto selected = TextWithEntities();
+			auto sourceAfter = TextWithEntities();
+			if (!SplitTextSpan(
+					current->text,
+					span.from,
+					span.till,
+					&sourceBefore,
+					&selected,
+					&sourceAfter)) {
+				return CheckedMutationResult<TextSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			moved.append(std::move(selected));
+			sourceRewrites.push_back(SourceRewrite{
+				.leaf = span.leaf,
+				.text = JoinText(
+					std::move(sourceBefore),
+					TextWithEntities(),
+					std::move(sourceAfter)),
+			});
+		}
+		const auto movedLength = int(moved.text.size());
+		const auto applySourceRewrites = [&](std::vector<SourceRewrite> rewrites) {
+			for (auto &rewrite : rewrites) {
+				const auto current = candidate.richText(rewrite.leaf);
+				if (!current) {
+					return false;
+				}
+				current->text = std::move(rewrite.text);
+			}
+			return true;
+		};
+		const auto finishAtLeaf = [&](
+				const LeafPath &leaf,
+				int selectionFrom,
+				int selectionTo) {
+			candidate.rebuild();
+			const auto ordinal = candidate.textOrdinalForLeafPath(leaf);
+			if (ordinal >= 0) {
+				(void)candidate.setActiveTextByOrdinal(ordinal);
+			} else {
+				candidate.ensureActiveTextOrdinal();
+			}
+			result.result = ApplyResult::Changed;
+			result.destinationLeaf = leaf;
+			result.selectionFrom = selectionFrom;
+			result.selectionTo = selectionTo;
+			return CheckedMutationResult<TextSelectionDropResult>{
+				.apply = true,
+				.result = result,
+			};
+		};
+		if (const auto text = std::get_if<Markdown::PreparedEditTextDropTarget>(
+				&target)) {
+			const auto destinationLeaf = candidate.convertLeafPath(text->leaf);
+			const auto destination = destinationLeaf
+				? candidate.richText(*destinationLeaf)
+				: nullptr;
+			if (!destination
+				|| (text->leaf.kind
+					== Markdown::PreparedEditLeafKind::MathFormula)
+				|| !RangeInsideText(destination->text.text, text->offset, 0)) {
+				return CheckedMutationResult<TextSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			auto insertAt = text->offset;
+			auto destinationRewrite = -1;
+			for (auto i = 0, count = int(source.size()); i != count; ++i) {
+				const auto &span = source[i];
+				if (!(span.leaf == *destinationLeaf)) {
+					continue;
+				}
+				if (text->offset >= span.from && text->offset <= span.till) {
+					result.result = ApplyResult::Unchanged;
+					return CheckedMutationResult<TextSelectionDropResult>{
+						.apply = false,
+						.result = result,
+					};
+				}
+				if (span.from < insertAt) {
+					insertAt -= std::min(span.till, insertAt) - span.from;
+				}
+				destinationRewrite = i;
+			}
+			const auto destinationText = (destinationRewrite >= 0)
+				? sourceRewrites[destinationRewrite].text
+				: destination->text;
+			if (!RangeInsideText(destinationText.text, insertAt, 0)) {
+				return CheckedMutationResult<TextSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			auto destinationBefore = Ui::Text::Mid(destinationText, 0, insertAt);
+			auto destinationAfter = Ui::Text::Mid(destinationText, insertAt);
+			auto updated = JoinText(
+				std::move(destinationBefore),
+				std::move(moved),
+				std::move(destinationAfter));
+			if (destinationRewrite >= 0) {
+				sourceRewrites[destinationRewrite].text = std::move(updated);
+			} else {
+				destination->text = std::move(updated);
+			}
+			if (!applySourceRewrites(std::move(sourceRewrites))) {
+				return CheckedMutationResult<TextSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			return finishAtLeaf(
+				*destinationLeaf,
+				insertAt,
+				insertAt + movedLength);
+		}
+		const auto block = std::get_if<Markdown::PreparedEditBlockDropTarget>(
+			&target);
+		const auto container = block
+			? candidate.convertBlockContainerPath(block->container)
+			: std::nullopt;
+		const auto destination = container
+			? candidate.blockContainer(*container)
+			: nullptr;
+		if (!block
+			|| !destination
+			|| block->insertIndex < 0
+			|| block->insertIndex > int(destination->size())) {
+			return CheckedMutationResult<TextSelectionDropResult>{
+				.apply = false,
+				.result = result,
+			};
+		}
+		auto paragraph = MakeParagraphBlock();
+		paragraph.text.text = std::move(moved);
+		auto blocks = std::vector<Block>();
+		blocks.push_back(std::move(paragraph));
+		if (!applySourceRewrites(std::move(sourceRewrites))) {
+			return CheckedMutationResult<TextSelectionDropResult>{
+				.apply = false,
+				.result = result,
+			};
+		}
+		if (!candidate.insertPreparedBlocksAtExplicitPosition(
+				std::move(blocks),
+				*container,
+				block->insertIndex)) {
+			return CheckedMutationResult<TextSelectionDropResult>{
+				.apply = false,
+				.result = result,
+			};
+		}
+		return finishAtLeaf(
+			LeafPath{
+				.kind = LeafKind::BlockText,
+				.block = BlockPath{
+					.container = *container,
+					.index = block->insertIndex,
+				},
+			},
+			0,
+			movedLength);
+	});
+}
+
+State::TextSelectionDropResult State::moveTextSelectionToDropTarget(
+		const TextNodeSpan &source,
+		const Markdown::PreparedEditDropTarget &target) {
+	return moveTextSelectionToDropTarget(
+		std::vector<TextNodeSpan>{ source },
+		target);
+}
+
 void State::insertHeading1AfterActive() {
 	(void)insertBlockAfterActive({
 		.type = InsertBlockType::Heading,
@@ -5640,6 +6298,39 @@ bool State::insertBlocksAfterActiveUnchecked(
 		std::make_move_iterator(blocks.end()));
 	rebuild();
 	focusInsertedBlocks(anchor.container, insertAt, count);
+	return true;
+}
+
+bool State::insertPreparedBlocksAtExplicitPosition(
+		std::vector<Block> blocks,
+		const BlockContainerPath &container,
+		int insertAt) {
+	auto *destination = blockContainer(container);
+	if (!destination || insertAt < 0 || insertAt > int(destination->size())) {
+		return false;
+	}
+	destination->insert(
+		destination->begin() + insertAt,
+		std::make_move_iterator(blocks.begin()),
+		std::make_move_iterator(blocks.end()));
+	return true;
+}
+
+bool State::insertPreparedListItemsAtExplicitPosition(
+		std::vector<ListItem> items,
+		const BlockPath &path,
+		int insertAt) {
+	auto *owner = block(path);
+	if (!owner
+		|| owner->kind != BlockKind::List
+		|| insertAt < 0
+		|| insertAt > int(owner->listItems.size())) {
+		return false;
+	}
+	owner->listItems.insert(
+		owner->listItems.begin() + insertAt,
+		std::make_move_iterator(items.begin()),
+		std::make_move_iterator(items.end()));
 	return true;
 }
 
@@ -6114,6 +6805,78 @@ void State::focusInsertedBlocks(
 		}
 	}
 	ensureActiveTextOrdinal();
+}
+
+State::BoundaryTarget State::destinationTargetForInsertedBlocks(
+		const BlockContainerPath &container,
+		int from,
+		int count) {
+	focusInsertedBlocks(container, from, count);
+	if (const auto descriptor = textNode(_activeTextOrdinal)) {
+		for (auto blockIndex = from; blockIndex != from + count; ++blockIndex) {
+			const auto path = BlockPath{
+				.container = container,
+				.index = blockIndex,
+			};
+			if (descriptorBelongsToBlock(*descriptor, path)) {
+				return {
+					.action = BoundaryTarget::Action::Text,
+					.textOrdinal = _activeTextOrdinal,
+				};
+			}
+		}
+	}
+	for (auto blockIndex = from; blockIndex != from + count; ++blockIndex) {
+		const auto path = BlockPath{
+			.container = container,
+			.index = blockIndex,
+		};
+		if (const auto owner = block(path); owner && CanEditBlock(*owner)) {
+			return {
+				.action = BoundaryTarget::Action::StructuralSelection,
+				.structuralSelection = preparedSelectionForBlock(path),
+			};
+		}
+	}
+	return {};
+}
+
+State::BoundaryTarget State::destinationTargetForInsertedListItems(
+		const BlockPath &path,
+		int from,
+		int count) {
+	for (auto i = 0, textCount = textNodeCount(); i != textCount; ++i) {
+		const auto itemIndex = ListItemIndexForLeaf(_textNodes[i].leaf, path);
+		if (!itemIndex
+			|| *itemIndex < from
+			|| *itemIndex >= from + count
+			|| !setActiveTextByOrdinal(i)) {
+			continue;
+		}
+		return {
+			.action = BoundaryTarget::Action::Text,
+			.textOrdinal = _activeTextOrdinal,
+		};
+	}
+	const auto owner = block(path);
+	if (owner
+		&& owner->kind == BlockKind::List
+		&& from >= 0
+		&& from < int(owner->listItems.size())
+		&& CanEditBlocks(owner->listItems[from].blocks)) {
+		ensureActiveTextOrdinal();
+		return {
+			.action = BoundaryTarget::Action::StructuralSelection,
+			.structuralSelection = preparedSelectionForListItem(path, from),
+		};
+	}
+	ensureActiveTextOrdinal();
+	return (_activeTextOrdinal >= 0)
+		? BoundaryTarget{
+			.action = BoundaryTarget::Action::Text,
+			.textOrdinal = _activeTextOrdinal,
+		}
+		: BoundaryTarget();
 }
 
 std::optional<int> State::adjacentEditableOrdinal(bool forward) const {
@@ -6694,12 +7457,9 @@ Block State::MakeListBlock(ListKind kind, TaskState taskState) {
 	auto block = Block();
 	block.kind = BlockKind::List;
 	block.listKind = kind;
-	block.listItems.reserve(3);
-	for (auto i = 0; i != 3; ++i) {
-		auto item = ListItem();
-		item.taskState = taskState;
-		block.listItems.push_back(std::move(item));
-	}
+	auto item = ListItem();
+	item.taskState = taskState;
+	block.listItems.push_back(std::move(item));
 	return block;
 }
 

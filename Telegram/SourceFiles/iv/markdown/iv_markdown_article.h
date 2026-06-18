@@ -261,6 +261,28 @@ inline bool operator!=(
 	return !(a == b);
 }
 
+struct MarkdownArticleDropLocation {
+	std::optional<PreparedEditDropTarget> target;
+	QRect indicatorRect;
+
+	[[nodiscard]] bool valid() const {
+		return target.has_value();
+	}
+};
+
+inline bool operator==(
+		MarkdownArticleDropLocation a,
+		MarkdownArticleDropLocation b) {
+	return (a.target == b.target)
+		&& (a.indicatorRect == b.indicatorRect);
+}
+
+inline bool operator!=(
+		MarkdownArticleDropLocation a,
+		MarkdownArticleDropLocation b) {
+	return !(a == b);
+}
+
 struct MarkdownArticleTextLeafStyle {
 	const style::TextStyle *textStyle = nullptr;
 	style::color textColor;
@@ -316,6 +338,11 @@ public:
 		QPoint point,
 		Ui::Text::StateRequest::Flags flags) const;
 	[[nodiscard]] PreparedEditHit editHitTest(QPoint point) const;
+	[[nodiscard]] MarkdownArticleDropLocation editDropTarget(
+		QPoint point) const;
+	[[nodiscard]] MarkdownArticleDropLocation editStructuralDropTarget(
+		QPoint point,
+		const PreparedEditSelection &selection) const;
 	[[nodiscard]] MarkdownArticleEditControlHit editControlHitTest(
 		QPoint point) const;
 	void addTaskMarkerRipple(

@@ -357,6 +357,45 @@ struct TextRange {
 		&& IndexInRange(step.listItemIndex, range.from, range.till);
 }
 
+[[nodiscard]] bool PreparedContainerNestedInSelection(
+		const PreparedBlockContainerPath &container,
+		const PreparedSelection &selection) {
+	const auto marker = PreparedBlockPath{
+		.container = container,
+		.index = 0,
+	};
+	switch (selection.kind) {
+	case PreparedSelectionKind::Blocks:
+		return (container.steps.size() > selection.blocks.container.steps.size())
+			&& PreparedPathInBlockRange(marker, selection.blocks);
+	case PreparedSelectionKind::ListItems:
+		return (container.steps.size()
+			> selection.listItems.block.container.steps.size())
+			&& PreparedPathInListItemRange(marker, selection.listItems);
+	case PreparedSelectionKind::TableRows:
+	case PreparedSelectionKind::TableCells:
+	case PreparedSelectionKind::None:
+		return false;
+	}
+	return false;
+}
+
+[[nodiscard]] bool PreparedBlockPathInSelection(
+		const PreparedBlockPath &path,
+		const PreparedSelection &selection) {
+	switch (selection.kind) {
+	case PreparedSelectionKind::Blocks:
+		return PreparedPathInBlockRange(path, selection.blocks);
+	case PreparedSelectionKind::ListItems:
+		return PreparedPathInListItemRange(path, selection.listItems);
+	case PreparedSelectionKind::TableRows:
+	case PreparedSelectionKind::TableCells:
+	case PreparedSelectionKind::None:
+		return false;
+	}
+	return false;
+}
+
 [[nodiscard]] const std::vector<RichPage::Block> *BlockContainer(
 		const RichPage &page,
 		const StateBlockContainerPath &path) {
@@ -1217,13 +1256,17 @@ using PreparedEditBlockSource = Markdown::PreparedEditBlockSource;
 using PreparedEditHit = Markdown::PreparedEditHit;
 using PreparedEditHitKind = Markdown::PreparedEditHitKind;
 using PreparedEditLeafKind = Markdown::PreparedEditLeafKind;
+using PreparedEditDropTarget = Markdown::PreparedEditDropTarget;
+using PreparedEditBlockDropTarget = Markdown::PreparedEditBlockDropTarget;
 using PreparedEditLeafSource = Markdown::PreparedEditLeafSource;
+using PreparedEditListItemDropTarget = Markdown::PreparedEditListItemDropTarget;
 using PreparedEditListItemSource = Markdown::PreparedEditListItemSource;
 using PreparedEditSelection = Markdown::PreparedEditSelection;
 using PreparedEditSelectionKind = Markdown::PreparedEditSelectionKind;
 using PreparedEditTableCellRange = Markdown::PreparedEditTableCellRange;
 using PreparedEditTableCellSource = Markdown::PreparedEditTableCellSource;
 using PreparedEditTableRowSource = Markdown::PreparedEditTableRowSource;
+using PreparedEditTextDropTarget = Markdown::PreparedEditTextDropTarget;
 using ApplyResult = State::ApplyResult;
 using PreparedMutationKind = State::PreparedMutationKind;
 
@@ -4496,7 +4539,12 @@ void Widget::mouseMoveEvent(QMouseEvent *e) {
 		}
 		_articleSelectionDrag.dragStarted = true;
 	}
-	updateArticleSelection(articlePoint, hit, editHit);
+	if (_articleSelectionDrag.operation
+		== ArticleSelectionOperation::DragSelection) {
+		updateArticleDropTarget(articlePoint);
+	} else {
+		updateArticleSelection(articlePoint, hit, editHit);
+	}
 	e->accept();
 }
 
@@ -4530,6 +4578,57 @@ void Widget::mousePressEvent(QMouseEvent *e) {
 		Ui::Text::StateRequest::Flag::LookupSymbol);
 	const auto editHit = _article->editHitTest(articlePoint);
 	const auto startedBelow = (articlePoint.y() >= _articleHeight);
+	const auto pressedSelectedText = _article->selectionContains(
+		_selection,
+		&_selectionEndpoints,
+		hit);
+	const auto pressedSelectedStructuralOwner = [&] {
+		if (_structuralSelection.empty()) {
+			return false;
+		}
+		const auto owner = StructuralOwnerFromHit(editHit);
+		if (!owner.valid()) {
+			return false;
+		}
+		switch (_structuralSelection.kind) {
+		case PreparedEditSelectionKind::Blocks:
+			if (const auto path = BlockPathFromOwner(owner)) {
+				return PreparedPathInBlockRange(
+					*path,
+					_structuralSelection.blocks);
+			}
+			return false;
+		case PreparedEditSelectionKind::ListItems:
+			if (const auto listItem = ListItemFromOwner(owner)) {
+				return SamePreparedEditBlockPath(
+					listItem->block,
+					_structuralSelection.listItems.block)
+					&& IndexInRange(
+						listItem->listItemIndex,
+						_structuralSelection.listItems.from,
+						_structuralSelection.listItems.till);
+			}
+			if (const auto path = BlockPathFromOwner(owner)) {
+				return PreparedPathInListItemRange(
+					*path,
+					_structuralSelection.listItems);
+			}
+			return false;
+		case PreparedEditSelectionKind::None:
+		case PreparedEditSelectionKind::TableRows:
+		case PreparedEditSelectionKind::TableCells:
+			return false;
+		}
+		return false;
+	}();
+	if ((pressedSelectedText || pressedSelectedStructuralOwner)
+		&& startSelectionDragFromExistingState(
+			articlePoint,
+			e->globalPos(),
+			editHit)) {
+		e->accept();
+		return;
+	}
 	if (hit.codeHeaderCopy) {
 		startArticleSelection(articlePoint, e->globalPos(), hit, editHit);
 		e->accept();
@@ -4749,6 +4848,7 @@ void Widget::mouseReleaseEvent(QMouseEvent *e) {
 		const auto fromField = _articleSelectionDrag.fromField;
 		const auto pendingCodeHeader = _articleSelectionDrag.codeHeader;
 		const auto startedBelow = _articleSelectionDrag.startedBelow;
+		const auto operation = _articleSelectionDrag.operation;
 		const auto clickLike = !_articleSelectionDrag.dragStarted
 			&& ((e->globalPos()
 				- _articleSelectionDrag.globalPressPoint).manhattanLength()
@@ -4759,7 +4859,11 @@ void Widget::mouseReleaseEvent(QMouseEvent *e) {
 				|| (!pendingCodeHeader
 					&& (!startedBelow || articlePoint.y() < _articleHeight)));
 		if (updateOnRelease) {
-			updateArticleSelection(articlePoint, hit, editHit);
+			if (operation == ArticleSelectionOperation::DragSelection) {
+				updateArticleDropTarget(articlePoint);
+			} else {
+				updateArticleSelection(articlePoint, hit, editHit);
+			}
 		}
 		if (clickLike) {
 			if (activateGroupedMediaLinkFromHit(editHit, hit, e->button())) {
@@ -4780,6 +4884,20 @@ void Widget::mouseReleaseEvent(QMouseEvent *e) {
 			if (changed) {
 				update();
 			}
+		}
+		if (!clickLike
+			&& (operation == ArticleSelectionOperation::DragSelection)) {
+			if (_articleSelectionDrag.dropTarget) {
+				if (_articleSelectionDrag.mode == DragSelectionMode::Structural) {
+					static_cast<void>(applyStructuralSelectionDrop());
+				} else if (_articleSelectionDrag.mode
+					== DragSelectionMode::Text) {
+					static_cast<void>(applyInlineSelectionDrop());
+				}
+			}
+			clearArticleDropTarget();
+			e->accept();
+			return;
 		}
 		if (!clickLike && hasStructuralSelection()) {
 			commitVisibleInlineField();
@@ -4891,10 +5009,19 @@ void Widget::paintEvent(QPaintEvent *e) {
 	auto p = Painter(this);
 	p.setTextPalette(st::inTextPalette);
 	const auto topLeft = articleTopLeft();
+	p.save();
 	p.translate(topLeft);
 	_article->paint(
 		p,
 		textPaintContext(e->rect().translated(-topLeft.x(), -topLeft.y())));
+	p.restore();
+	if (!_articleSelectionDrag.indicatorRect.isEmpty()) {
+		auto color = st::windowActiveTextFg->c;
+		color.setAlphaF(color.alphaF() * 0.7);
+		auto rect = _articleSelectionDrag.indicatorRect.translated(topLeft);
+		rect.setHeight(std::max(rect.height(), st::lineWidth));
+		p.fillRect(rect, color);
+	}
 }
 
 void Widget::resizeEvent(QResizeEvent *e) {
@@ -7398,6 +7525,7 @@ void Widget::startArticleSelection(
 		.anchorHit = editHit,
 		.textSegment = -1,
 		.textOffset = 0,
+		.operation = ArticleSelectionOperation::GrowSelection,
 		.mode = DragSelectionMode::None,
 	};
 	if (!isTextHit) {
@@ -7428,11 +7556,114 @@ void Widget::startArticleSelection(
 	update();
 }
 
+bool Widget::startSelectionDragFromExistingState(
+		QPoint pressPoint,
+		QPoint globalPressPoint,
+		const PreparedEditHit &editHit,
+		bool fromField) {
+	auto drag = ArticleSelectionDrag{
+		.active = true,
+		.fromField = fromField,
+		.startedBelow = false,
+		.codeHeader = false,
+		.pressPoint = pressPoint,
+		.globalPressPoint = globalPressPoint,
+		.anchorHit = editHit,
+		.textSegment = -1,
+		.textOffset = 0,
+		.operation = ArticleSelectionOperation::DragSelection,
+		.mode = DragSelectionMode::None,
+	};
+	if (fromField) {
+		if (_settingField
+			|| _field->isHidden()
+			|| (_activeSegmentIndex < 0)
+			|| (_state->activeFieldMode() != State::FieldMode::Rich)) {
+			return false;
+		}
+		const auto sourceLeaf = _state->activeLeafPath();
+		const auto preparedSource = _state->activePreparedLeafSource();
+		if (!sourceLeaf || !preparedSource) {
+			return false;
+		}
+		const auto full = ConvertEditorTagsToRichText(
+			_field->getTextWithAppliedMarkdown());
+		const auto cursor = _field->textCursor();
+		if (!cursor.hasSelection()) {
+			return false;
+		}
+		const auto length = int(full.text.size());
+		auto from = richOffsetForFieldOffset(full, cursor.selectionStart());
+		auto till = richOffsetForFieldOffset(full, cursor.selectionEnd());
+		from = std::clamp(from, 0, length);
+		till = std::clamp(till, from, length);
+		if (from >= till) {
+			return false;
+		}
+		drag.textSegment = _activeSegmentIndex;
+		drag.textOffset = std::clamp(
+			cursor.position(),
+			0,
+			int(_field->getLastText().size()));
+		drag.mode = DragSelectionMode::Text;
+		drag.inlineSource = TextNodeSpan{
+			.leaf = *sourceLeaf,
+			.from = from,
+			.till = till,
+		};
+		drag.sourceLeaf = *preparedSource;
+		drag.sourceSegment = _activeSegmentIndex;
+		drag.sourceFrom = from;
+		drag.sourceTo = till;
+		_articleSelectionDrag = std::move(drag);
+		return true;
+	}
+	if (!_structuralSelection.empty()
+		&& ((_structuralSelection.kind == PreparedEditSelectionKind::Blocks)
+			|| (_structuralSelection.kind
+				== PreparedEditSelectionKind::ListItems))) {
+		drag.mode = DragSelectionMode::Structural;
+		drag.structuralSource = _structuralSelection;
+		_articleSelectionDrag = std::move(drag);
+		return true;
+	}
+	const auto selection = NormalizeSelection(_selection);
+	if (selection.empty()
+		|| !_selectionEndpoints.from.valid()
+		|| !_selectionEndpoints.to.valid()
+		|| (selection.from.segment != selection.to.segment)
+		|| !_article->segmentIsText(selection.from.segment)
+		|| !editHit.leaf) {
+		return false;
+	}
+	const auto ordinal = editableOrdinalForSegment(selection.from.segment);
+	const auto &nodes = _state->textNodes();
+	if ((ordinal < 0) || (ordinal >= int(nodes.size()))) {
+		return false;
+	}
+	drag.textSegment = selection.from.segment;
+	drag.textOffset = selection.from.offset;
+	drag.mode = DragSelectionMode::Text;
+	drag.inlineSource = TextNodeSpan{
+		.leaf = nodes[ordinal].leaf,
+		.from = selection.from.offset,
+		.till = selection.to.offset,
+	};
+	drag.sourceLeaf = *editHit.leaf;
+	drag.sourceSegment = selection.from.segment;
+	drag.sourceFrom = selection.from.offset;
+	drag.sourceTo = selection.to.offset;
+	_articleSelectionDrag = std::move(drag);
+	return true;
+}
+
 void Widget::updateArticleSelection(
 		QPoint articlePoint,
 		const Markdown::MarkdownArticleHitTestResult &hit,
 		const PreparedEditHit &editHit) {
-	if (!_articleSelectionDrag.active) {
+	if (!_articleSelectionDrag.active
+		|| (_articleSelectionDrag.operation
+			!= ArticleSelectionOperation::GrowSelection)) {
 		return;
 	}
 	const auto dragSegment = _articleSelectionDrag.textSegment;
@@ -7578,8 +7809,319 @@ void Widget::updateArticleSelection(
 	}
 }
 
+void Widget::updateArticleDropTarget(QPoint articlePoint) {
+	if (!_articleSelectionDrag.active
+		|| (_articleSelectionDrag.operation
+			!= ArticleSelectionOperation::DragSelection)) {
+		clearArticleDropTarget();
+		return;
+	}
+	const auto structuralSource = _articleSelectionDrag.structuralSource;
+	auto location = (_articleSelectionDrag.mode == DragSelectionMode::Structural
+			&& structuralSource)
+		? _article->editStructuralDropTarget(articlePoint, *structuralSource)
+		: _article->editDropTarget(articlePoint);
+	auto supported = false;
+	if (location.valid()) {
+		const auto &target = *location.target;
+		switch (_articleSelectionDrag.mode) {
+		case DragSelectionMode::Structural:
+			if (const auto source = structuralSource) {
+				if (const auto block = std::get_if<PreparedEditBlockDropTarget>(
+						&target)) {
+					supported = (source->kind
+						== PreparedEditSelectionKind::Blocks);
+					if (supported
+						&& (block->container == source->blocks.container)
+						&& (block->insertIndex >= source->blocks.from)
+						&& (block->insertIndex <= source->blocks.till)) {
+						supported = false;
+					} else if (supported
+						&& PreparedContainerNestedInSelection(
+							block->container,
+							*source)) {
+						supported = false;
+					}
+				} else if (const auto list
+					= std::get_if<PreparedEditListItemDropTarget>(&target)) {
+					supported = (source->kind
+						== PreparedEditSelectionKind::ListItems);
+					if (supported
+						&& SamePreparedEditBlockPath(
+							list->block,
+							source->listItems.block)
+						&& (list->insertIndex >= source->listItems.from)
+						&& (list->insertIndex <= source->listItems.till)) {
+						supported = false;
+					} else if (supported
+						&& PreparedBlockPathInSelection(
+							list->block,
+							*source)) {
+						supported = false;
+					}
+				}
+			}
+			break;
+		case DragSelectionMode::Text:
+			if (const auto text = std::get_if<PreparedEditTextDropTarget>(
+					&target)) {
+				supported = (text->leaf.kind != PreparedEditLeafKind::MathFormula);
+				if (supported
+					&& _articleSelectionDrag.sourceLeaf
+					&& (*_articleSelectionDrag.sourceLeaf == text->leaf)
+					&& (text->offset >= _articleSelectionDrag.sourceFrom)
+					&& (text->offset <= _articleSelectionDrag.sourceTo)) {
+					supported = false;
+				}
+			} else {
+				supported = std::holds_alternative<PreparedEditBlockDropTarget>(
+					target);
+			}
+			break;
+		case DragSelectionMode::None:
+			break;
+		}
+	}
+	if (!supported) {
+		location = {};
+	}
+	const auto oldRect = _articleSelectionDrag.indicatorRect;
+	_articleSelectionDrag.dropTarget = location.valid()
+		? location.target
+		: std::nullopt;
+	_articleSelectionDrag.indicatorRect = location.valid()
+		? location.indicatorRect
+		: QRect();
+	if (oldRect != _articleSelectionDrag.indicatorRect) {
+		update();
+	}
+}
+
+void Widget::clearArticleDropTarget() {
+	const auto oldRect = _articleSelectionDrag.indicatorRect;
+	_articleSelectionDrag.dropTarget = std::nullopt;
+	_articleSelectionDrag.indicatorRect = QRect();
+	if (!oldRect.isEmpty()) {
+		update();
+	}
+}
+
 void Widget::finishArticleSelection() {
+	const auto repaint = !_articleSelectionDrag.indicatorRect.isEmpty();
 	_articleSelectionDrag = {};
+	if (repaint) {
+		update();
+	}
+}
+
+bool Widget::applyStructuralSelectionDrop() {
+	if (!_articleSelectionDrag.structuralSource
+		|| !_articleSelectionDrag.dropTarget) {
+		return false;
+	}
+	const auto clearOverlay = gsl::finally([&] {
+		clearArticleDropTarget();
+	});
+	const auto selection = *_articleSelectionDrag.structuralSource;
+	const auto target = *_articleSelectionDrag.dropTarget;
+	auto applied = false;
+	recordMutationTransaction([&] {
+		const auto hadVisibleField = !_field->isHidden();
+		const auto source = hadVisibleField
+			? _state->activePreparedLeafSource()
+			: std::optional<PreparedEditLeafSource>();
+		auto committed = ApplyResult::Unchanged;
+		if (hadVisibleField) {
+			committed = commitInlineField();
+			if (committed == ApplyResult::Failed) {
+				return MutationTransactionResult{
+					.committed = committed,
+					.failed = true,
+				};
+			}
+		}
+		_pendingOrdinal = -1;
+		_pendingCursorOffset = 0;
+		hideInlineField();
+		clearInlineFieldEditSession();
+		const auto moved = _state->moveStructuralSelectionToDropTarget(
+			selection,
+			target);
+		if (moved.result == ApplyResult::Failed) {
+			showLastLimitToast();
+			if (hadVisibleField) {
+				refreshAfterInlineFieldCommit(committed, source);
+			}
+			return MutationTransactionResult{
+				.committed = committed,
+				.changed = (committed == ApplyResult::Changed),
+			};
+		} else if (moved.result == ApplyResult::Unchanged) {
+			if (hadVisibleField) {
+				refreshAfterInlineFieldCommit(committed, source);
+			}
+			return MutationTransactionResult{
+				.committed = committed,
+				.changed = (committed == ApplyResult::Changed),
+			};
+		}
+		applied = true;
+		refreshPreparedContent();
+		switch (moved.destination.action) {
+		case State::BoundaryTarget::Action::StructuralSelection:
+			_boundarySelectionOrigin = std::nullopt;
+			_selection = {};
+			_selectionEndpoints = {};
+			setStructuralSelection(moved.destination.structuralSelection);
+			update();
+			break;
+		case State::BoundaryTarget::Action::Text:
+			activateTextOrdinal(moved.destination.textOrdinal, 0);
+			break;
+		case State::BoundaryTarget::Action::None:
+		case State::BoundaryTarget::Action::RemoveActiveOwner: {
+			const auto ordinal = _state->activeTextOrdinal();
+			if (ordinal >= 0 && ordinal < _state->textNodeCount()) {
+				activateTextOrdinal(ordinal, 0);
+			} else {
+				activateInitialNode();
+			}
+		} break;
+		}
+		return MutationTransactionResult{
+			.committed = committed,
+			.changed = true,
+		};
+	});
+	return applied;
+}
+
+bool Widget::applyInlineSelectionDrop() {
+	if (!_articleSelectionDrag.inlineSource
+		|| !_articleSelectionDrag.dropTarget) {
+		return false;
+	}
+	const auto clearOverlay = gsl::finally([&] {
+		clearArticleDropTarget();
+	});
+	const auto target = *_articleSelectionDrag.dropTarget;
+	auto applied = false;
+	recordMutationTransaction([&] {
+		const auto restoreField = !_field->isHidden();
+		const auto restoreLeaf = restoreField
+			? _fieldLeaf
+			: std::optional<State::LeafPath>();
+		const auto restoreStyleKey = restoreField
+			? _activeFieldStyleKey
+			: std::optional<InlineFieldStyleKey>();
+		const auto restoreMode = _fieldMode;
+		const auto restoreSelection = restoreField
+			? captureHistoryViewState().leafSelection
+			: std::optional<HistoryLeafSelection>();
+		auto committed = ApplyResult::Unchanged;
+		if (restoreField) {
+			committed = commitInlineField();
+			if (committed == ApplyResult::Failed) {
+				return MutationTransactionResult{
+					.committed = committed,
+					.failed = true,
+				};
+			}
+			_pendingOrdinal = -1;
+			_pendingCursorOffset = 0;
+			hideInlineField();
+			clearInlineFieldEditSession(true);
+		}
+		const auto sourceSpans = _articleSelectionDrag.fromField
+			? (_articleSelectionDrag.sourceLeaf
+				? _state->resolveTextSpansForPreparedLeafRange(
+					*_articleSelectionDrag.sourceLeaf,
+					_articleSelectionDrag.sourceFrom,
+					_articleSelectionDrag.sourceTo)
+				: std::vector<TextNodeSpan>())
+			: std::vector<TextNodeSpan>{ *_articleSelectionDrag.inlineSource };
+		if (sourceSpans.empty()) {
+			return MutationTransactionResult{
+				.committed = committed,
+				.changed = (committed == ApplyResult::Changed),
+			};
+		}
+		auto restore = restoreField;
+		const auto restoreInlineField = gsl::finally([&] {
+			if (!restore) {
+				return;
+			}
+			if (restoreLeaf && restoreStyleKey) {
+				if (auto revived = reviveRetainedLeafField(
+						_historyIndex,
+						*restoreLeaf,
+						restoreMode,
+						*restoreStyleKey)) {
+					_field = std::move(revived);
+					_activeFieldStyleKey = restoreStyleKey;
+					_fieldMode = restoreMode;
+					_fieldLeaf = *restoreLeaf;
+					refreshInlineFieldPlaceholder();
+					_fieldUndoAvailable = _field->isUndoAvailable();
+					_fieldRedoAvailable = _field->isRedoAvailable();
+					clearFieldUndoRedoNoopState();
+				}
+			}
+			if (!_fieldLeaf && restoreSelection) {
+				const auto ordinal = _state->textOrdinalForLeafPath(
+					restoreSelection->leaf);
+				if (ordinal >= 0) {
+					activateTextOrdinal(
+						ordinal,
+						restoreSelection->anchorOffset,
+						restoreSelection->cursorOffset);
+					return;
+				}
+			}
+			_field->show();
+			syncInlineFieldGeometry();
+			updateInlineFieldHeightOverride();
+			syncArticleVisibleTopBottom();
+			revealActiveInlineField();
+			_field->raise();
+			_field->setFocusFast();
+			notifyToolbarStateChanged();
+		});
+		const auto moved = _state->moveTextSelectionToDropTarget(
+			sourceSpans,
+			target);
+		if (moved.result == ApplyResult::Failed) {
+			showLastLimitToast();
+			return MutationTransactionResult{
+				.committed = committed,
+				.changed = (committed == ApplyResult::Changed),
+			};
+		} else if (moved.result == ApplyResult::Unchanged) {
+			return MutationTransactionResult{
+				.committed = committed,
+				.changed = (committed == ApplyResult::Changed),
+			};
+		}
+		restore = false;
+		applied = true;
+		refreshPreparedContent();
+		const auto ordinal = moved.destinationLeaf
+			? _state->textOrdinalForLeafPath(*moved.destinationLeaf)
+			: _state->activeTextOrdinal();
+		if (ordinal >= 0) {
+			activateTextOrdinal(
+				ordinal,
+				moved.selectionFrom,
+				moved.selectionTo);
+		} else {
+			activateInitialNode();
+		}
+		return MutationTransactionResult{
+			.committed = committed,
+			.changed = true,
+		};
+	});
+	return applied;
 }
 
 bool Widget::handleStructuralSelectionKey(QKeyEvent *e) {
@@ -7692,13 +8234,29 @@ bool Widget::handleFieldMouseEvent(QEvent *event) {
 		if (!anchorHit.valid()) {
 			return false;
 		}
-		clearTextSelection();
-		clearStructuralSelection();
 		const auto globalPoint = mouse->globalPos();
 		const auto articlePoint = mapFromGlobal(globalPoint)
 			- articleTopLeft();
 		const auto cursor = _field->textCursor();
+		const auto raw = _field->rawTextEdit();
+		const auto pressCursor = raw->cursorForPosition(
+			raw->viewport()->mapFromGlobal(globalPoint));
+		const auto pressingCurrentSelection
+			= (_state->activeFieldMode() == State::FieldMode::Rich)
+			&& cursor.hasSelection()
+			&& (pressCursor.position() >= cursor.selectionStart())
+			&& (pressCursor.position() < cursor.selectionEnd());
 		_trackingPointerPress = true;
+		if (pressingCurrentSelection
+			&& startSelectionDragFromExistingState(
+				articlePoint,
+				globalPoint,
+				anchorHit,
+				true)) {
+			return false;
+		}
+		clearTextSelection();
+		clearStructuralSelection();
 		_articleSelectionDrag = {
 			.active = true,
 			.fromField = true,
@@ -7712,6 +8270,7 @@ bool Widget::handleFieldMouseEvent(QEvent *event) {
 				cursor.position(),
 				0,
 				int(_field->getLastText().size())),
+			.operation = ArticleSelectionOperation::GrowSelection,
 			.mode = DragSelectionMode::Text,
 		};
 		return false;
@@ -7730,6 +8289,7 @@ bool Widget::handleFieldMouseEvent(QEvent *event) {
 
 	const auto globalPoint = mouse->globalPos();
 	const auto articlePoint = mapFromGlobal(globalPoint) - articleTopLeft();
+	const auto operation = _articleSelectionDrag.operation;
 	const auto movedFarEnough = (globalPoint
 		- _articleSelectionDrag.globalPressPoint).manhattanLength()
 		>= QApplication::startDragDistance();
@@ -7770,11 +8330,13 @@ bool Widget::handleFieldMouseEvent(QEvent *event) {
 		}
 	};
 	if (insideActiveField || originalSegmentHit || originalMathFormulaHit) {
-		if (_articleSelectionDrag.mode == DragSelectionMode::Structural) {
+		if ((operation == ArticleSelectionOperation::GrowSelection)
+			&& (_articleSelectionDrag.mode == DragSelectionMode::Structural)) {
 			clearArticleSelection();
 			_articleSelectionDrag.mode = DragSelectionMode::Text;
 		}
 		if (type == QEvent::MouseButtonRelease) {
+			clearArticleDropTarget();
 			finishArticleSelection();
 			_trackingPointerPress = false;
 		}
@@ -7782,12 +8344,32 @@ bool Widget::handleFieldMouseEvent(QEvent *event) {
 	}
 
 	if (clickLike) {
+		clearArticleDropTarget();
 		finishArticleSelection();
 		_trackingPointerPress = false;
 		return false;
 	}
-	updateArticleSelection(articlePoint, hit, editHit);
+	if (operation == ArticleSelectionOperation::DragSelection) {
+		updateArticleDropTarget(articlePoint);
+	} else {
+		updateArticleSelection(articlePoint, hit, editHit);
+	}
 	if (type == QEvent::MouseButtonRelease) {
+		if (operation == ArticleSelectionOperation::DragSelection) {
+			if (_articleSelectionDrag.dropTarget) {
+				if (_articleSelectionDrag.mode == DragSelectionMode::Structural) {
+					static_cast<void>(applyStructuralSelectionDrop());
+				} else if (_articleSelectionDrag.mode
+					== DragSelectionMode::Text) {
+					static_cast<void>(applyInlineSelectionDrop());
+				}
+			}
+			clearArticleDropTarget();
+			finishArticleSelection();
+			_trackingPointerPress = false;
+			mouse->accept();
+			return true;
+		}
 		if (hasStructuralSelection()) {
 			const auto committed = recordMutationTransaction([&] {
 				return commitInlineField();
@@ -7810,7 +8392,8 @@ bool Widget::handleFieldMouseEvent(QEvent *event) {
 		_trackingPointerPress = false;
 		return false;
 	}
-	if (_articleSelectionDrag.mode == DragSelectionMode::Structural) {
+	if ((operation == ArticleSelectionOperation::DragSelection)
+		|| (_articleSelectionDrag.mode == DragSelectionMode::Structural)) {
 		mouse->accept();
 		return true;
 	}

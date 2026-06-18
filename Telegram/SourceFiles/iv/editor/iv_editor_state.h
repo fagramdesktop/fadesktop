@@ -328,6 +328,10 @@ public:
 		int selectionFrom = 0;
 		int selectionTo = 0;
 	};
+	struct StructuralSelectionDropResult {
+		ApplyResult result = ApplyResult::Failed;
+		BoundaryTarget destination;
+	};
 	[[nodiscard]] DisplayMathEditResult editActiveDisplayMath(
 		QString source,
 		bool separateLine);
@@ -353,6 +357,10 @@ public:
 		const Markdown::PreparedEditSelection &selection,
 		const ClipboardListItemsData &data,
 		std::optional<ActiveTextInsertContext> context = std::nullopt);
+	[[nodiscard]] StructuralSelectionDropResult
+	moveStructuralSelectionToDropTarget(
+		const Markdown::PreparedEditSelection &selection,
+		const Markdown::PreparedEditDropTarget &target);
 	enum class TextFormattingAction : uchar {
 		Bold,
 		Italic,
@@ -366,6 +374,22 @@ public:
 		int from = 0;
 		int till = 0;
 	};
+	struct TextSelectionDropResult {
+		ApplyResult result = ApplyResult::Failed;
+		std::optional<LeafPath> destinationLeaf;
+		int selectionFrom = 0;
+		int selectionTo = 0;
+	};
+	[[nodiscard]] std::vector<TextNodeSpan> resolveTextSpansForPreparedLeafRange(
+		const Markdown::PreparedEditLeafSource &source,
+		int from,
+		int till) const;
+	[[nodiscard]] TextSelectionDropResult moveTextSelectionToDropTarget(
+		const std::vector<TextNodeSpan> &source,
+		const Markdown::PreparedEditDropTarget &target);
+	[[nodiscard]] TextSelectionDropResult moveTextSelectionToDropTarget(
+		const TextNodeSpan &source,
+		const Markdown::PreparedEditDropTarget &target);
 	[[nodiscard]] ApplyResult applyFormattingToTextSpans(
 		const std::vector<TextNodeSpan> &spans,
 		TextFormattingAction action,
@@ -620,6 +644,14 @@ private:
 	[[nodiscard]] bool insertBlocksAfterActiveUnchecked(
 		std::vector<RichPage::Block> blocks,
 		std::optional<ActiveTextInsertContext> context = std::nullopt);
+	[[nodiscard]] bool insertPreparedBlocksAtExplicitPosition(
+		std::vector<RichPage::Block> blocks,
+		const BlockContainerPath &container,
+		int insertAt);
+	[[nodiscard]] bool insertPreparedListItemsAtExplicitPosition(
+		std::vector<RichPage::ListItem> items,
+		const BlockPath &path,
+		int insertAt);
 	[[nodiscard]] bool insertBlocksAfterActiveWithContextUnchecked(
 		std::vector<RichPage::Block> &blocks,
 		const ActiveTextInsertContext &context);
@@ -654,6 +686,14 @@ private:
 	void ensureEditableNodes();
 	void focusInsertedBlocks(
 		const BlockContainerPath &container,
+		int from,
+		int count);
+	[[nodiscard]] BoundaryTarget destinationTargetForInsertedBlocks(
+		const BlockContainerPath &container,
+		int from,
+		int count);
+	[[nodiscard]] BoundaryTarget destinationTargetForInsertedListItems(
+		const BlockPath &path,
 		int from,
 		int count);
 	[[nodiscard]] std::optional<int> adjacentEditableOrdinal(

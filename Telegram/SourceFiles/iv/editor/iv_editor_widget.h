@@ -227,6 +227,12 @@ private:
 		Structural,
 	};
 
+	enum class ArticleSelectionOperation {
+		None,
+		GrowSelection,
+		DragSelection,
+	};
+
 	struct ArticleSelectionDrag {
 		bool active = false;
 		bool fromField = false;
@@ -238,7 +244,17 @@ private:
 		Markdown::PreparedEditHit anchorHit;
 		int textSegment = -1;
 		int textOffset = 0;
+		ArticleSelectionOperation operation
+			= ArticleSelectionOperation::None;
 		DragSelectionMode mode = DragSelectionMode::None;
+		std::optional<Markdown::PreparedEditSelection> structuralSource;
+		std::optional<State::TextNodeSpan> inlineSource;
+		std::optional<Markdown::PreparedEditLeafSource> sourceLeaf;
+		int sourceSegment = -1;
+		int sourceFrom = 0;
+		int sourceTo = 0;
+		std::optional<Markdown::PreparedEditDropTarget> dropTarget;
+		QRect indicatorRect;
 	};
 
 	enum class HorizontalScrollDrag {
@@ -550,11 +566,20 @@ private:
 		const Markdown::PreparedEditHit &editHit,
 		bool fromField = false,
 		bool startedBelow = false);
+	[[nodiscard]] bool startSelectionDragFromExistingState(
+		QPoint pressPoint,
+		QPoint globalPressPoint,
+		const Markdown::PreparedEditHit &editHit,
+		bool fromField = false);
 	void updateArticleSelection(
 		QPoint articlePoint,
 		const Markdown::MarkdownArticleHitTestResult &hit,
 		const Markdown::PreparedEditHit &editHit);
+	void updateArticleDropTarget(QPoint articlePoint);
+	void clearArticleDropTarget();
 	void finishArticleSelection();
+	[[nodiscard]] bool applyStructuralSelectionDrop();
+	[[nodiscard]] bool applyInlineSelectionDrop();
 	[[nodiscard]] bool handleStructuralSelectionKey(QKeyEvent *e);
 	void addFieldBlockFormatActions(not_null<QMenu*> menu);
 	void handleFieldContextMenuRequest(

@@ -479,6 +479,65 @@ struct PreparedEditHit {
 	}
 };
 
+struct PreparedEditTextDropTarget {
+	PreparedEditLeafSource leaf;
+	int offset = 0;
+
+	friend inline bool operator==(
+			const PreparedEditTextDropTarget &a,
+			const PreparedEditTextDropTarget &b) {
+		return (a.leaf == b.leaf)
+			&& (a.offset == b.offset);
+	}
+
+	friend inline bool operator!=(
+			const PreparedEditTextDropTarget &a,
+			const PreparedEditTextDropTarget &b) {
+		return !(a == b);
+	}
+};
+
+struct PreparedEditBlockDropTarget {
+	PreparedEditBlockContainerPath container;
+	int insertIndex = -1;
+
+	friend inline bool operator==(
+			const PreparedEditBlockDropTarget &a,
+			const PreparedEditBlockDropTarget &b) {
+		return (a.container == b.container)
+			&& (a.insertIndex == b.insertIndex);
+	}
+
+	friend inline bool operator!=(
+			const PreparedEditBlockDropTarget &a,
+			const PreparedEditBlockDropTarget &b) {
+		return !(a == b);
+	}
+};
+
+struct PreparedEditListItemDropTarget {
+	PreparedEditBlockPath block;
+	int insertIndex = -1;
+
+	friend inline bool operator==(
+			const PreparedEditListItemDropTarget &a,
+			const PreparedEditListItemDropTarget &b) {
+		return (a.block == b.block)
+			&& (a.insertIndex == b.insertIndex);
+	}
+
+	friend inline bool operator!=(
+			const PreparedEditListItemDropTarget &a,
+			const PreparedEditListItemDropTarget &b) {
+		return !(a == b);
+	}
+};
+
+using PreparedEditDropTarget = std::variant<
+	PreparedEditTextDropTarget,
+	PreparedEditBlockDropTarget,
+	PreparedEditListItemDropTarget>;
+
 struct PreparedTableCell {
 	TextWithEntities text;
 	std::vector<PreparedLink> links;

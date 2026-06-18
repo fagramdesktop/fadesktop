@@ -183,6 +183,11 @@ void ShowRichMessagesPremiumToast(std::shared_ptr<ChatHelpers::Show> show) {
 	}
 }
 
+[[nodiscard]] bool IsPhotoVideoRichMessageKind(RichPage::BlockKind kind) {
+	return (kind == RichPage::BlockKind::Photo)
+		|| (kind == RichPage::BlockKind::Video);
+}
+
 void CountRichPageMedia(
 		const std::vector<RichPage::Block> &blocks,
 		int *result) {
@@ -221,7 +226,7 @@ template <typename Container>
 
 [[nodiscard]] int CountAcceptedPreparedFiles(const PreparedList &list) {
 	return CountAcceptedPreparedFiles(list.files)
-		+ CountAcceptedPreparedFiles(list.filesToProcess);
+		+ int(list.filesToProcess.size());
 }
 
 [[nodiscard]] bool IsReplacing(
@@ -536,12 +541,34 @@ private:
 		DocumentData *serverDocument = nullptr;
 	};
 
+	enum class MediaBatchItemState : uchar {
+		Waiting,
+		Ready,
+		Skipped,
+		Inserted,
+	};
+
+	struct MediaBatchItem {
+		MediaBatchItemState state = MediaBatchItemState::Waiting;
+		FullMsgId uploadId = FullMsgId();
+		RichPage::BlockKind blockKind = RichPage::BlockKind::Unsupported;
+	};
+
+	struct MediaBatch {
+		uint64 id = 0;
+		QPointer<Widget> editor;
+		AttachmentInsertMode insertMode = AttachmentInsertMode::Normal;
+		std::optional<PreparedMediaPasteTarget> insertTarget;
+		std::vector<MediaBatchItem> items;
+		int nextIndex = 0;
+	};
+
 	struct QueuedPrepare {
 		QPointer<Widget> editor;
 		PreparedFile file;
 		uint64 batchId = 0;
+		int order = 0;
 		AttachmentInsertMode insertMode = AttachmentInsertMode::Normal;
-		std::optional<PreparedMediaPasteTarget> insertTarget;
 		std::optional<State::ReplaceTarget> replaceTarget;
 	};
 
@@ -994,19 +1021,29 @@ private:
 		_editor = editor;
 		const auto weak = base::make_weak(this);
 		const auto editorPointer = QPointer<Widget>(editor.get());
-		FileDialog::GetOpenPath(
-			std::move(parent),
-			tr::lng_choose_file(tr::now),
-			FileDialog::PhotoVideoAudioFilesFilter(),
-			[weak, editorPointer, replaceTarget = std::move(replaceTarget)](
-					FileDialog::OpenResult &&result) mutable {
-				if (const auto session = weak.get()) {
-					session->handleMediaDialogResult(
-						editorPointer,
-						std::move(result),
-						std::move(replaceTarget));
-				}
-			});
+		const auto replacing = replaceTarget.has_value();
+		auto callback = [weak, editorPointer, replaceTarget = std::move(
+				replaceTarget)](FileDialog::OpenResult &&result) mutable {
+			if (const auto session = weak.get()) {
+				session->handleMediaDialogResult(
+					editorPointer,
+					std::move(result),
+					std::move(replaceTarget));
+			}
+		};
+		if (replacing) {
+			FileDialog::GetOpenPath(
+				std::move(parent),
+				tr::lng_choose_file(tr::now),
+				FileDialog::PhotoVideoAudioFilesFilter(),
+				std::move(callback));
+		} else {
+			FileDialog::GetOpenPaths(
+				std::move(parent),
+				tr::lng_choose_files(tr::now),
+				FileDialog::PhotoVideoAudioFilesFilter(),
+				std::move(callback));
+		}
 	}
 
 	void requestMap(
@@ -1236,13 +1273,47 @@ private:
 			showRichMessageLimitToast(RichMessageLimitError::Media);
 			return;
 		}
+		if (replacing) {
+			if (!list.files.empty()) {
+				applyPreparedFile(
+					editor,
+					std::move(list.files.front()),
+					batchId,
+					0,
+					effectiveInsertMode,
+					std::move(replaceTarget));
+			} else if (!list.filesToProcess.empty()) {
+				_prepareQueue.push_back({
+					.editor = editor,
+					.file = std::move(list.filesToProcess.front()),
+					.batchId = batchId,
+					.order = 0,
+					.insertMode = effectiveInsertMode,
+					.replaceTarget = std::move(replaceTarget),
+				});
+				enqueueNextPrepare();
+			}
+			return;
+		}
+		const auto totalCount = int(
+			list.files.size() + list.filesToProcess.size());
+		if (totalCount > 0) {
+			_mediaBatches.push_back({
+				.id = batchId,
+				.editor = editor,
+				.insertMode = effectiveInsertMode,
+				.insertTarget = insertTarget,
+				.items = std::vector<MediaBatchItem>(totalCount),
+			});
+		}
+		auto order = 0;
 		for (auto &file : list.files) {
 			applyPreparedFile(
 				editor,
 				std::move(file),
 				batchId,
+				order++,
 				effectiveInsertMode,
-				insertTarget,
 				replaceTarget);
 		}
 		for (auto &file : list.filesToProcess) {
@@ -1250,8 +1321,8 @@ private:
 				.editor = editor,
 				.file = std::move(file),
 				.batchId = batchId,
+				.order = order++,
 				.insertMode = effectiveInsertMode,
-				.insertTarget = insertTarget,
 				.replaceTarget = replaceTarget,
 			});
 		}
@@ -1270,8 +1341,8 @@ private:
 				queued.editor,
 				std::move(queued.file),
 				queued.batchId,
+				queued.order,
 				queued.insertMode,
-				std::move(queued.insertTarget),
 				std::move(queued.replaceTarget));
 		}
 		if (_prepareQueue.empty()) {
@@ -1282,7 +1353,6 @@ private:
 		_prepareQueue.pop_front();
 		const auto weak = base::make_weak(this);
 		_preparing = true;
-		_preparingFileType = queued.file.type;
 		const auto sideLimit = PhotoSideLimit();
 		crl::async([weak, queued = std::move(queued), sideLimit]() mutable {
 			Storage::PrepareDetails(
@@ -1299,13 +1369,12 @@ private:
 
 	void preparedAsyncFile(QueuedPrepare queued) {
 		_preparing = false;
-		_preparingFileType = PreparedFileType::None;
 		applyPreparedFile(
 			queued.editor,
 			std::move(queued.file),
 			queued.batchId,
+			queued.order,
 			queued.insertMode,
-			std::move(queued.insertTarget),
 			std::move(queued.replaceTarget));
 		enqueueNextPrepare();
 	}
@@ -1314,10 +1383,14 @@ private:
 		QPointer<Widget> editor,
 		PreparedFile file,
 		uint64 batchId,
+		int order,
 		AttachmentInsertMode insertMode,
-		std::optional<PreparedMediaPasteTarget> insertTarget,
 		std::optional<State::ReplaceTarget> replaceTarget) {
 		if (!AcceptedPreparedFileType(file.type)) {
+			if (!IsReplacing(insertMode, replaceTarget)) {
+				markMediaBatchItemSkipped(batchId, order);
+				flushMediaBatch(batchId);
+			}
 			showUnsupportedMediaToast(batchId);
 			return;
 		}
@@ -1325,6 +1398,10 @@ private:
 			? 0
 			: 1;
 		if (exceedsMediaLimitWith(additionalMedia)) {
+			if (!IsReplacing(insertMode, replaceTarget)) {
+				markMediaBatchItemSkipped(batchId, order);
+				flushMediaBatch(batchId);
+			}
 			showRichMessageLimitToast(RichMessageLimitError::Media);
 			return;
 		}
@@ -1332,8 +1409,8 @@ private:
 			editor,
 			std::move(file),
 			batchId,
+			order,
 			insertMode,
-			std::move(insertTarget),
 			std::move(replaceTarget));
 	}
 
@@ -1341,8 +1418,8 @@ private:
 		QPointer<Widget> editor,
 		PreparedFile file,
 		uint64 batchId,
+		int order,
 		AttachmentInsertMode insertMode,
-		std::optional<PreparedMediaPasteTarget> insertTarget,
 		std::optional<State::ReplaceTarget> replaceTarget) {
 		const auto meta = BuildAttachmentMeta(file);
 		const auto weak = base::make_weak(this);
@@ -1350,7 +1427,7 @@ private:
 		_attachmentPrepareQueue.addTask(
 			std::make_unique<PrepareAttachmentTask>(
 				BuildPrepareTaskArgs(_session, _peer->id, std::move(file)),
-				[weak, editor, meta, batchId, insertMode, insertTarget, replaceTarget](
+				[weak, editor, meta, batchId, order, insertMode, replaceTarget](
 						std::shared_ptr<FilePrepareResult> prepared) mutable {
 					if (const auto session = weak.get()) {
 						session->attachmentPrepared(
@@ -1358,8 +1435,8 @@ private:
 							std::move(meta),
 							std::move(prepared),
 							batchId,
+							order,
 							insertMode,
-							std::move(insertTarget),
 							std::move(replaceTarget));
 					}
 				}));
@@ -1370,23 +1447,45 @@ private:
 		AttachmentMeta meta,
 		std::shared_ptr<FilePrepareResult> prepared,
 		uint64 batchId,
+		int order,
 		AttachmentInsertMode insertMode,
-		std::optional<PreparedMediaPasteTarget> insertTarget,
 		std::optional<State::ReplaceTarget> replaceTarget) {
 		_pendingAttachmentPrepareCount = std::max(
 			_pendingAttachmentPrepareCount - 1,
 			0);
 		if (!prepared) {
+			if (!IsReplacing(insertMode, replaceTarget)) {
+				markMediaBatchItemSkipped(batchId, order);
+				flushMediaBatch(batchId);
+			}
 			showAttachmentFailedToast();
 			maybeContinueDeferredSubmit();
 			return;
 		}
 		if (!editor) {
+			if (!IsReplacing(insertMode, replaceTarget)) {
+				markMediaBatchItemSkipped(batchId, order);
+				flushMediaBatch(batchId);
+			}
 			maybeContinueDeferredSubmit();
 			return;
 		}
 		if (meta.blockKind != BlockKindForPreparedResult(*prepared)) {
+			if (!IsReplacing(insertMode, replaceTarget)) {
+				markMediaBatchItemSkipped(batchId, order);
+				flushMediaBatch(batchId);
+			}
 			showUnsupportedMediaToast(batchId);
+			maybeContinueDeferredSubmit();
+			return;
+		}
+		const auto replacing = IsReplacing(insertMode, replaceTarget);
+		if (exceedsMediaLimitWith(replacing ? 0 : 1)) {
+			if (!replacing) {
+				markMediaBatchItemSkipped(batchId, order);
+				flushMediaBatch(batchId);
+			}
+			showRichMessageLimitToast(RichMessageLimitError::Media);
 			maybeContinueDeferredSubmit();
 			return;
 		}
@@ -1394,8 +1493,9 @@ private:
 			editor,
 			std::move(meta),
 			std::move(prepared),
+			batchId,
+			order,
 			insertMode,
-			std::move(insertTarget),
 			std::move(replaceTarget));
 		maybeContinueDeferredSubmit();
 	}
@@ -1404,18 +1504,55 @@ private:
 		QPointer<Widget> editor,
 		AttachmentMeta meta,
 		std::shared_ptr<FilePrepareResult> prepared,
+		uint64 batchId,
+		int order,
 		AttachmentInsertMode insertMode,
-		std::optional<PreparedMediaPasteTarget> insertTarget,
 		std::optional<State::ReplaceTarget> replaceTarget) {
-		if (!editor || !prepared) {
+		if (!editor) {
 			return;
 		}
 		const auto replacing = IsReplacing(insertMode, replaceTarget);
-		if (exceedsMediaLimitWith(replacing ? 0 : 1)) {
-			showRichMessageLimitToast(RichMessageLimitError::Media);
+		_editor = editor;
+		const auto blockKind = meta.blockKind;
+		const auto uploadId = createAttachmentUpload(
+			std::move(meta),
+			std::move(prepared));
+		if (!uploadId) {
 			return;
 		}
-		_editor = editor;
+		const auto attachment = findAttachment(*uploadId);
+		if (!attachment) {
+			return;
+		}
+		if (!replacing) {
+			markMediaBatchItemReady(
+				batchId,
+				order,
+				*uploadId,
+				blockKind);
+			flushMediaBatch(batchId);
+			return;
+		}
+		auto block = makeAttachmentBlock(*attachment);
+		editor->replacePreparedBlock(
+			std::move(*replaceTarget),
+			std::move(block));
+		refreshAttachmentLocatorsAndDropMissing();
+		const auto updated = findAttachment(*uploadId);
+		if (!updated) {
+			requestEditorUpdate();
+			return;
+		}
+		updateAttachmentProgress(*updated);
+		requestEditorUpdate();
+	}
+
+	[[nodiscard]] std::optional<FullMsgId> createAttachmentUpload(
+		AttachmentMeta meta,
+		std::shared_ptr<FilePrepareResult> prepared) {
+		if (!prepared) {
+			return std::nullopt;
+		}
 		const auto uploadId = FullMsgId(
 			_peer->id,
 			_session->data().nextLocalMessageId());
@@ -1473,40 +1610,8 @@ private:
 		}
 
 		_attachments.push_back(std::move(record));
-		auto &stored = _attachments.back();
 		_session->uploader().upload(uploadId, prepared);
-		auto block = makeAttachmentBlock(stored);
-		if (replacing) {
-			editor->replacePreparedBlock(
-				std::move(*replaceTarget),
-				std::move(block));
-		} else if (insertMode == AttachmentInsertMode::ClipboardPaste
-			&& insertTarget) {
-			editor->pastePreparedBlock(
-				std::move(block),
-				std::move(*insertTarget));
-		} else {
-			editor->insertPreparedBlock(std::move(block));
-		}
-		if (replacing) {
-			refreshAttachmentLocatorsAndDropMissing();
-			const auto attachment = findAttachment(uploadId);
-			if (!attachment) {
-				requestEditorUpdate();
-				return;
-			}
-			updateAttachmentProgress(*attachment);
-			requestEditorUpdate();
-			return;
-		}
-		refreshAttachmentLocators(_state->richPage(), stored);
-		if (stored.blockLocators.empty()) {
-			_session->uploader().cancel(uploadId);
-			_attachments.pop_back();
-			return;
-		}
-		updateAttachmentProgress(stored);
-		requestEditorUpdate();
+		return uploadId;
 	}
 
 	void applyMapSelection(
@@ -1542,6 +1647,57 @@ private:
 			block.audioPerformer = attachment.audioPerformer;
 			block.audioFileName = attachment.audioFileName;
 			block.audioDuration = attachment.audioDuration;
+		}
+		return block;
+	}
+
+	[[nodiscard]] auto makeGroupedAttachmentItem(
+			const AttachmentRecord &attachment) const
+	-> std::optional<RichPage::GroupedMediaItem> {
+		auto item = RichPage::GroupedMediaItem();
+		item.kind = attachment.blockKind;
+		if (attachment.blockKind == RichPage::BlockKind::Photo) {
+			item.photoId = attachment.localMediaId;
+		} else if (attachment.blockKind == RichPage::BlockKind::Video) {
+			item.documentId = attachment.localMediaId;
+		} else {
+			return std::nullopt;
+		}
+		item.width = attachment.dimensions.width();
+		item.height = attachment.dimensions.height();
+		item.autoplay = attachment.autoplay;
+		item.loop = attachment.loop;
+		item.spoiler = attachment.spoiler;
+		return item;
+	}
+
+	[[nodiscard]] RichPage::Block makeGroupedAttachmentBlock(
+			const std::vector<FullMsgId> &uploadIds) const {
+		auto block = RichPage::Block();
+		block.kind = RichPage::BlockKind::GroupedMedia;
+		block.mediaIntent = RichPage::GroupedMediaIntent::Collage;
+		block.mediaItems.reserve(uploadIds.size());
+		auto caption = QString();
+		auto captionCount = 0;
+		for (const auto &uploadId : uploadIds) {
+			const auto attachment = findAttachment(uploadId);
+			if (!attachment) {
+				continue;
+			}
+			const auto item = makeGroupedAttachmentItem(*attachment);
+			if (!item) {
+				continue;
+			}
+			block.mediaItems.push_back(*item);
+			if (caption.isEmpty() && !attachment->caption.isEmpty()) {
+				caption = attachment->caption;
+			}
+			if (!attachment->caption.isEmpty()) {
+				++captionCount;
+			}
+		}
+		if (captionCount == 1) {
+			block.caption = ToRichText(std::move(caption));
 		}
 		return block;
 	}
@@ -1878,6 +2034,321 @@ private:
 		return nullptr;
 	}
 
+	[[nodiscard]] const AttachmentRecord *findAttachment(
+			FullMsgId uploadId) const {
+		for (const auto &attachment : _attachments) {
+			if (attachment.uploadId == uploadId) {
+				return &attachment;
+			}
+		}
+		return nullptr;
+	}
+
+	[[nodiscard]] MediaBatch *findMediaBatch(uint64 batchId) {
+		for (auto &batch : _mediaBatches) {
+			if (batch.id == batchId) {
+				return &batch;
+			}
+		}
+		return nullptr;
+	}
+
+	[[nodiscard]] bool eraseFinishedMediaBatch(uint64 batchId) {
+		auto erased = false;
+		_mediaBatches.erase(
+			std::remove_if(
+				_mediaBatches.begin(),
+				_mediaBatches.end(),
+				[=, &erased](const MediaBatch &batch) {
+					const auto done = (batch.id == batchId)
+						&& std::all_of(
+							batch.items.begin(),
+							batch.items.end(),
+							[](const MediaBatchItem &item) {
+								return (item.state
+										== MediaBatchItemState::Inserted)
+									|| (item.state
+										== MediaBatchItemState::Skipped);
+							});
+					if (done) {
+						erased = true;
+					}
+					return done;
+				}),
+			_mediaBatches.end());
+		return erased;
+	}
+
+	void markMediaBatchItemSkipped(uint64 batchId, int order) {
+		const auto batch = findMediaBatch(batchId);
+		if (!batch || order < 0 || order >= int(batch->items.size())) {
+			return;
+		}
+		auto &item = batch->items[order];
+		if (item.state != MediaBatchItemState::Inserted) {
+			item.state = MediaBatchItemState::Skipped;
+		}
+	}
+
+	void markMediaBatchItemReady(
+			uint64 batchId,
+			int order,
+			FullMsgId uploadId,
+			RichPage::BlockKind blockKind) {
+		const auto batch = findMediaBatch(batchId);
+		if (!batch
+			|| order < 0
+			|| order >= int(batch->items.size())
+			|| !findAttachment(uploadId)) {
+			return;
+		}
+		auto &item = batch->items[order];
+		item.state = MediaBatchItemState::Ready;
+		item.uploadId = uploadId;
+		item.blockKind = blockKind;
+	}
+
+	void eraseAttachment(FullMsgId uploadId) {
+		const auto i = std::find_if(
+			_attachments.begin(),
+			_attachments.end(),
+			[=](const AttachmentRecord &attachment) {
+				return attachment.uploadId == uploadId;
+			});
+		if (i == _attachments.end()) {
+			return;
+		}
+		if (i->state != AttachmentState::Ready) {
+			_session->uploader().cancel(i->uploadId);
+		}
+		_attachments.erase(i);
+	}
+
+	[[nodiscard]] bool hasUninsertedMediaBatchUpload(
+			FullMsgId uploadId) const {
+		for (const auto &batch : _mediaBatches) {
+			for (const auto &item : batch.items) {
+				if (item.state == MediaBatchItemState::Ready
+					&& item.uploadId == uploadId) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	void abandonMediaBatch(uint64 batchId) {
+		const auto batch = findMediaBatch(batchId);
+		if (!batch) {
+			return;
+		}
+		for (auto &item : batch->items) {
+			if (item.state == MediaBatchItemState::Ready
+				&& item.uploadId) {
+				eraseAttachment(item.uploadId);
+			}
+			if (item.state != MediaBatchItemState::Inserted) {
+				item.state = MediaBatchItemState::Skipped;
+			}
+		}
+		_mediaBatches.erase(
+			std::remove_if(
+				_mediaBatches.begin(),
+				_mediaBatches.end(),
+				[=](const MediaBatch &batch) {
+					return batch.id == batchId;
+				}),
+			_mediaBatches.end());
+		maybeContinueDeferredSubmit();
+	}
+
+	void flushMediaBatch(uint64 batchId) {
+		if (eraseFinishedMediaBatch(batchId)) {
+			maybeContinueDeferredSubmit();
+			return;
+		}
+		const auto batch = findMediaBatch(batchId);
+		if (!batch) {
+			return;
+		}
+		if (!batch->editor) {
+			abandonMediaBatch(batchId);
+			return;
+		}
+		auto blocks = std::vector<RichPage::Block>();
+		auto emittedUploadIds = std::vector<FullMsgId>();
+		const auto skipFinished = [&] {
+			while (batch->nextIndex < int(batch->items.size())) {
+				const auto state = batch->items[batch->nextIndex].state;
+				if (state != MediaBatchItemState::Skipped
+					&& state != MediaBatchItemState::Inserted) {
+					return;
+				}
+				++batch->nextIndex;
+			}
+		};
+		const auto appendSubrun = [&](
+				const std::vector<FullMsgId> &uploadIds) {
+			if (uploadIds.empty()) {
+				return;
+			}
+			if (uploadIds.size() == 1) {
+				if (const auto attachment = findAttachment(uploadIds.front())) {
+					blocks.push_back(makeAttachmentBlock(*attachment));
+				}
+			} else {
+				blocks.push_back(makeGroupedAttachmentBlock(uploadIds));
+			}
+			emittedUploadIds.insert(
+				emittedUploadIds.end(),
+				uploadIds.begin(),
+				uploadIds.end());
+		};
+		const auto appendPhotoVideoRun = [&](
+				const std::vector<FullMsgId> &uploadIds) {
+			auto subrun = std::vector<FullMsgId>();
+			auto hasCaption = false;
+			for (const auto &uploadId : uploadIds) {
+				const auto attachment = findAttachment(uploadId);
+				if (!attachment) {
+					continue;
+				}
+				const auto itemHasCaption = !attachment->caption.isEmpty();
+				if (itemHasCaption && hasCaption) {
+					appendSubrun(subrun);
+					subrun.clear();
+					hasCaption = false;
+				}
+				subrun.push_back(uploadId);
+				hasCaption = hasCaption || itemHasCaption;
+			}
+			appendSubrun(subrun);
+		};
+
+		while (true) {
+			skipFinished();
+			if (batch->nextIndex >= int(batch->items.size())) {
+				break;
+			}
+			auto &item = batch->items[batch->nextIndex];
+			if (item.state == MediaBatchItemState::Waiting) {
+				break;
+			}
+			if (item.state != MediaBatchItemState::Ready) {
+				break;
+			}
+			const auto attachment = findAttachment(item.uploadId);
+			if (!attachment) {
+				item.state = MediaBatchItemState::Skipped;
+				++batch->nextIndex;
+				continue;
+			}
+			if (item.blockKind == RichPage::BlockKind::Audio) {
+				blocks.push_back(makeAttachmentBlock(*attachment));
+				emittedUploadIds.push_back(item.uploadId);
+				item.state = MediaBatchItemState::Inserted;
+				++batch->nextIndex;
+				continue;
+			}
+			if (!IsPhotoVideoRichMessageKind(item.blockKind)) {
+				item.state = MediaBatchItemState::Skipped;
+				++batch->nextIndex;
+				continue;
+			}
+			auto cursor = batch->nextIndex;
+			auto waitingBeforeBoundary = false;
+			auto runUploadIds = std::vector<FullMsgId>();
+			auto runIndexes = std::vector<int>();
+			while (cursor < int(batch->items.size())) {
+				auto &candidate = batch->items[cursor];
+				if (candidate.state == MediaBatchItemState::Skipped
+					|| candidate.state == MediaBatchItemState::Inserted) {
+					++cursor;
+					continue;
+				}
+				if (candidate.state == MediaBatchItemState::Waiting) {
+					waitingBeforeBoundary = true;
+					break;
+				}
+				if (candidate.state != MediaBatchItemState::Ready) {
+					waitingBeforeBoundary = true;
+					break;
+				}
+				if (candidate.blockKind == RichPage::BlockKind::Audio) {
+					break;
+				}
+				if (!IsPhotoVideoRichMessageKind(candidate.blockKind)) {
+					candidate.state = MediaBatchItemState::Skipped;
+					++cursor;
+					continue;
+				}
+				if (findAttachment(candidate.uploadId)) {
+					runUploadIds.push_back(candidate.uploadId);
+					runIndexes.push_back(cursor);
+				} else {
+					candidate.state = MediaBatchItemState::Skipped;
+				}
+				++cursor;
+			}
+			if (waitingBeforeBoundary) {
+				break;
+			}
+			if (runUploadIds.empty()) {
+				batch->nextIndex = cursor;
+				continue;
+			}
+			appendPhotoVideoRun(runUploadIds);
+			for (const auto index : runIndexes) {
+				batch->items[index].state = MediaBatchItemState::Inserted;
+			}
+			batch->nextIndex = cursor;
+		}
+		if (blocks.empty()) {
+			if (eraseFinishedMediaBatch(batchId)) {
+				maybeContinueDeferredSubmit();
+			}
+			return;
+		}
+		const auto editor = batch->editor;
+		_editor = editor;
+		if (batch->insertMode == AttachmentInsertMode::ClipboardPaste
+			&& batch->insertTarget) {
+			auto target = std::move(*batch->insertTarget);
+			batch->insertTarget = std::nullopt;
+			editor->pastePreparedBlocks(std::move(blocks), std::move(target));
+		} else {
+			editor->insertPreparedBlocks(std::move(blocks));
+		}
+		refreshAttachmentLocatorsAndDropMissing();
+		for (const auto &uploadId : emittedUploadIds) {
+			if (const auto attachment = findAttachment(uploadId)) {
+				if (attachment->state == AttachmentState::Ready && _editor) {
+					auto patched = true;
+					_editor->applyExternalRichPageMutation([&](
+							RichPage &page) {
+						const auto result = patchVisibleAttachmentBlocks(
+							page,
+							*attachment);
+						patched = patched && result;
+						return result;
+					});
+					if (!patched) {
+						requestEditorUpdate();
+					}
+				}
+			}
+			if (const auto attachment = findAttachment(uploadId)) {
+				if (!attachment->blockLocators.empty()) {
+					updateAttachmentProgress(*attachment);
+				}
+			}
+		}
+		requestEditorUpdate();
+		if (eraseFinishedMediaBatch(batchId)) {
+			maybeContinueDeferredSubmit();
+		}
+	}
+
 	[[nodiscard]] bool mediaIdMatchesAttachment(
 			uint64 id,
 			const AttachmentRecord &attachment) const {
@@ -2006,6 +2477,10 @@ private:
 				++i;
 				continue;
 			}
+			if (hasUninsertedMediaBatchUpload(i->uploadId)) {
+				++i;
+				continue;
+			}
 			if (i->state != AttachmentState::Ready) {
 				_session->uploader().cancel(i->uploadId);
 			}
@@ -2076,12 +2551,20 @@ private:
 
 	[[nodiscard]] int pendingAttachmentPlaceholders() const {
 		auto result = _pendingAttachmentPrepareCount;
-		if (AcceptedPreparedFileType(_preparingFileType)) {
+		if (_preparing) {
 			++result;
 		}
 		for (const auto &queued : _prepareQueue) {
-			if (AcceptedPreparedFileType(queued.file.type)) {
+			if (AcceptedPreparedFileType(queued.file.type)
+				|| !queued.file.information) {
 				++result;
+			}
+		}
+		for (const auto &batch : _mediaBatches) {
+			for (const auto &item : batch.items) {
+				if (item.state == MediaBatchItemState::Ready) {
+					++result;
+				}
 			}
 		}
 		return result;
@@ -2144,7 +2627,8 @@ private:
 	[[nodiscard]] bool hasPendingPreparation() const {
 		return _preparing
 			|| !_prepareQueue.empty()
-			|| (_pendingAttachmentPrepareCount > 0);
+			|| (_pendingAttachmentPrepareCount > 0)
+			|| !_mediaBatches.empty();
 	}
 
 	void maybeContinueDeferredSubmit() {
@@ -2196,13 +2680,13 @@ private:
 	std::shared_ptr<const RichPage> _submittedPage;
 	std::vector<AttachmentRecord> _attachments;
 	std::deque<QueuedPrepare> _prepareQueue;
+	std::vector<MediaBatch> _mediaBatches;
 	TaskQueue _attachmentPrepareQueue;
 	rpl::lifetime _lifetime;
 	uint64 _prepareBatchId = 0;
 	uint64 _rejectedToastBatchId = 0;
 	int _pendingAttachmentPrepareCount = 0;
 	bool _preparing = false;
-	PreparedFileType _preparingFileType = PreparedFileType::None;
 	bool _submitDeferred = false;
 	bool _submitApiRequested = false;
 
