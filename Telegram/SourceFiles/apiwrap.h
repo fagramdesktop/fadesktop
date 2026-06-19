@@ -161,6 +161,11 @@ public:
 	void clearModifyRequest(const QString &key);
 
 	void saveCurrentDraftToCloud();
+	mtpRequestId saveDraftToCloud(
+		not_null<Data::Thread*> thread,
+		const Data::Draft &draft,
+		Fn<void()> done = nullptr,
+		Fn<void(const MTP::Error &)> fail = nullptr);
 
 	void savePinnedOrder(Data::Folder *folder);
 	void savePinnedOrder(not_null<Data::Forum*> forum);
@@ -499,6 +504,12 @@ private:
 	void checkQuitPreventFinished();
 
 	void saveDraftsToCloud();
+	mtpRequestId savePreparedDraftToCloud(
+		not_null<Data::Thread*> thread,
+		const Data::Draft &draft,
+		bool clearOnFail,
+		Fn<void()> done = nullptr,
+		Fn<void(const MTP::Error &)> fail = nullptr);
 
 	void resolveMessageDatas();
 	void finalizeMessageDataRequest(

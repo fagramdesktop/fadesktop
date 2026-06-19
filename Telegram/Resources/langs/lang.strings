@@ -373,6 +373,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_edit_media_album_error" = "This file cannot be saved as a part of an album.";
 "lng_edit_media_invalid_file" = "Sorry, no way to use this file.";
 "lng_iv_editor_media_invalid_file" = "Sorry, only photos, video, and audio files are supported here.";
+"lng_iv_editor_discard_draft_sure" = "Discard this rich draft? The current message text will be kept as a draft.";
+"lng_iv_editor_saving_draft" = "Saving the draft...";
+"lng_iv_editor_save_draft_failed" = "Could not save the draft.";
+"lng_iv_editor_save_draft_failed_error" = "Could not save the draft.\n\nError: {error}";
+"lng_iv_editor_close_now" = "Close now";
 "lng_edit_photo_editor_hint" = "Left-click on the photo to edit.";
 "lng_edit_caption_attach" = "Sorry, you can't attach new media while editing a message.";
 "lng_edit_caption_voice" = "Sorry, you can't edit messages when you have an unsent voice message.";

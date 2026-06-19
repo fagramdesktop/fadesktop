@@ -110,6 +110,7 @@ using AiTooltipManager = ComposeTooltipManager;
 namespace HistoryView {
 
 class FieldHeader;
+class RichDraftPreview;
 
 enum class ComposeControlsMode {
 	Normal,
@@ -406,6 +407,7 @@ private:
 	void saveDraftDelayed();
 	void saveDraftWithTextNow();
 	void saveCloudDraft();
+	void cancelPendingDraftSaves();
 
 	void writeDrafts();
 	void writeDraftTexts();
@@ -421,9 +423,19 @@ private:
 
 	void unregisterDraftSources();
 	void registerDraftSource();
+	void unregisterThreadFieldBridge();
+	void registerThreadFieldBridge();
+	void updateFieldVisibility();
 	void changeFocusedControl();
 
 	void checkCharsLimitation();
+	[[nodiscard]] Data::Draft *cloudDraft() const;
+	[[nodiscard]] bool isComposeBoxOpen() const;
+	[[nodiscard]] bool hasRichDraftThreadScope() const;
+	[[nodiscard]] bool bypassNormalDraftHandling() const;
+	[[nodiscard]] bool shouldShowRichDraftPreview() const;
+	[[nodiscard]] std::unique_ptr<Data::Draft> readThreadFieldDraft() const;
+	void saveThreadFieldDraft(std::unique_ptr<Data::Draft> draft);
 
 	const style::ComposeControls &_st;
 	ChatHelpers::ComposeFeatures _features;
@@ -477,6 +489,7 @@ private:
 	const not_null<Ui::EmojiButton*> _tabbedSelectorToggle;
 	rpl::producer<QString> _fieldCustomPlaceholder;
 	const not_null<Ui::InputField*> _field;
+	std::unique_ptr<RichDraftPreview> _richDraftPreview;
 	Ui::IconButton * const _botCommandStart = nullptr;
 	std::unique_ptr<Ui::SendAsButton> _sendAs;
 	rpl::variable<bool> _videoStreamAdmin;
@@ -548,8 +561,10 @@ private:
 
 	std::unique_ptr<Controls::WebpageProcessor> _preview;
 	bool _previewShown = false;
+	bool _threadFieldVisible = false;
 
 	rpl::lifetime _historyLifetime;
+	rpl::lifetime _threadFieldBridgeLifetime;
 	rpl::lifetime _uploaderSubscriptions;
 
 };

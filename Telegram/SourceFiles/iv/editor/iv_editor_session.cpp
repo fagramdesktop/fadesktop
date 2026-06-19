@@ -13,14 +13,19 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtWidgets/QApplication>
 #include <crl/crl_async.h>
 #include <crl/crl_on_main.h>
+#include <rpl/variable.h>
 
 #include "api/api_sending.h"
 #include "api/api_editing.h"
 #include "apiwrap.h"
+#include "base/timer.h"
+#include "base/weak_qptr.h"
 #include "base/weak_ptr.h"
 #include "chat_helpers/compose/compose_show.h"
 #include "core/application.h"
+#include "data/data_file_origin.h"
 #include "core/shortcuts.h"
+#include "data/data_drafts.h"
 #include "data/data_document.h"
 #include "data/data_location.h"
 #include "data/data_photo.h"
@@ -45,6 +50,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/localimageloader.h"
 #include "storage/storage_account.h"
 #include "storage/storage_media_prepare.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/chat/attach/attach_prepare.h"
 #include "ui/controls/location_picker.h"
 #include "ui/rp_widget.h"
@@ -59,6 +65,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <vector>
 
 #include "styles/style_boxes.h"
+#include "styles/style_layers.h"
 
 namespace Iv::Editor {
 namespace {
@@ -66,6 +73,69 @@ namespace {
 using PreparedFile = Ui::PreparedFile;
 using PreparedFileType = Ui::PreparedFile::Type;
 using PreparedList = Ui::PreparedList;
+
+constexpr auto kRichDraftAutosaveTimeout = crl::time(10 * 1000);
+
+class ArticleSession;
+
+struct ComposeThreadKey {
+	Main::Session *session = nullptr;
+	PeerId peerId = 0;
+	::Data::DraftKey draftKey = ::Data::DraftKey::None();
+
+	friend inline auto operator<=>(ComposeThreadKey, ComposeThreadKey) = default;
+};
+
+struct ComposeThreadEntry {
+	std::weak_ptr<ArticleSession> articleSession;
+	rpl::variable<bool> fieldVisible = false;
+	ThreadFieldDraftReader readDraft;
+	ThreadFieldDraftSaver saveDraft;
+};
+
+[[nodiscard]] ComposeThreadKey ComposeKey(
+		not_null<Main::Session*> session,
+		PeerId peerId,
+		MsgId topicRootId,
+		PeerId monoforumPeerId) {
+	return {
+		.session = session.get(),
+		.peerId = peerId,
+		.draftKey = ::Data::DraftKey::Cloud(topicRootId, monoforumPeerId),
+	};
+}
+
+[[nodiscard]] ::Data::FileOrigin ComposeDraftOrigin(
+		const ComposeThreadKey &key) {
+	return ::Data::FileOriginCloudDraft{
+		.peerId = key.peerId,
+		.topicRootId = key.draftKey.topicRootId(),
+		.monoforumPeerId = key.draftKey.monoforumPeerId(),
+	};
+}
+
+[[nodiscard]] auto &ComposeThreads() {
+	static auto result = base::flat_map<ComposeThreadKey, ComposeThreadEntry>();
+	return result;
+}
+
+[[nodiscard]] ComposeThreadEntry &ComposeThreadEntryFor(
+		const ComposeThreadKey &key) {
+	return ComposeThreads()[key];
+}
+
+[[nodiscard]] ComposeThreadEntry *LookupComposeThreadEntry(
+		const ComposeThreadKey &key) {
+	auto &threads = ComposeThreads();
+	const auto i = threads.find(key);
+	return (i != end(threads)) ? &i->second : nullptr;
+}
+
+void SetComposeFieldVisible(
+		const ComposeThreadKey &key,
+		bool visible) {
+	ComposeThreadEntryFor(key).fieldVisible.force_assign(visible);
+}
 
 enum class AttachmentState : uchar {
 	Uploading,
@@ -459,15 +529,35 @@ public:
 		not_null<PeerData*> peer,
 		Api::SendAction action,
 		Fn<SendMenu::Details()> sendMenuDetails) {
+		const auto history = action.history;
+		const auto topicRootId = action.replyTo.topicRootId;
+		const auto monoforumPeerId = action.replyTo.monoforumPeerId;
+		const auto composeKey = ComposeKey(
+			session,
+			history->peer->id,
+			topicRootId,
+			monoforumPeerId);
+		if (const auto entry = LookupComposeThreadEntry(composeKey)) {
+			if (const auto existing = entry->articleSession.lock()) {
+				SetComposeFieldVisible(composeKey, true);
+				existing->focusWindow();
+				return;
+			}
+		}
+		const auto cloudDraft = history->cloudDraft(topicRootId, monoforumPeerId);
+		const auto page = (cloudDraft && cloudDraft->hasRichMessage())
+			? std::make_shared<RichPage>(*cloudDraft->richMessage)
+			: std::make_shared<RichPage>();
 		auto articleSession = std::shared_ptr<ArticleSession>(new ArticleSession(
 			session,
 			peer,
 			Mode::Compose,
 			FullMsgId(peer->id, session->data().nextLocalMessageId()),
-			std::make_shared<RichPage>(),
+			std::move(page),
 			std::move(action),
 			std::move(sendMenuDetails),
-			std::nullopt));
+			std::nullopt,
+			composeKey));
 		articleSession->showWindow();
 	}
 
@@ -494,7 +584,8 @@ public:
 				.inlinePage = item->richPage(),
 				.summary = item->originalText(),
 				.fullPage = item->fullRichPage(),
-			}));
+			},
+			std::nullopt));
 		articleSession->showWindow();
 	}
 
@@ -537,6 +628,7 @@ private:
 		uint64 serverMediaId = 0;
 		uint64 accessHash = 0;
 		QByteArray fileReference;
+		::Data::FileOrigin origin;
 		PhotoData *serverPhoto = nullptr;
 		DocumentData *serverDocument = nullptr;
 	};
@@ -587,7 +679,8 @@ private:
 		std::shared_ptr<RichPage> page,
 		std::optional<Api::SendAction> action,
 		Fn<SendMenu::Details()> sendMenuDetails,
-		std::optional<EditedItemSnapshot> edited)
+		std::optional<EditedItemSnapshot> edited,
+		std::optional<ComposeThreadKey> composeThreadKey)
 	: _session(session)
 	, _peer(peer)
 	, _mode(mode)
@@ -598,6 +691,7 @@ private:
 	, _composeAction(std::move(action))
 	, _sendMenuDetails(std::move(sendMenuDetails))
 	, _edited(std::move(edited))
+	, _composeThreadKey(std::move(composeThreadKey))
 	, _page(page ? std::move(page) : std::make_shared<RichPage>())
 	, _runtime(CreateMessageMediaRuntime(
 		_session,
@@ -608,7 +702,10 @@ private:
 		}))
 	, _limits(ResolveRichMessageLimits(_session))
 	, _state(std::make_shared<State>(_page, _runtime, _limits))
-	, _submitOptions(_composeAction ? _composeAction->options : Api::SendOptions()) {
+	, _submitOptions(_composeAction ? _composeAction->options : Api::SendOptions())
+	, _richDraftAutosaveTimer([=] {
+		saveRichDraftNow();
+	}) {
 		subscribeToUploader();
 	}
 
@@ -629,6 +726,50 @@ private:
 		if (const auto show = resolveShow()) {
 			show->showToast(text);
 		}
+	}
+
+	void focusWindow() {
+		if (const auto show = resolveShow()) {
+			show->activate();
+		}
+		if (_editor) {
+			_editor->setFocus(Qt::OtherFocusReason);
+		}
+	}
+
+	void trackComposeThreadWindow() {
+		if (!_composeThreadKey) {
+			return;
+		}
+		auto &entry = ComposeThreadEntryFor(*_composeThreadKey);
+		entry.articleSession = weak_from_this();
+		entry.fieldVisible.force_assign(true);
+	}
+
+	void releaseComposeThreadWindow() {
+		if (!_composeThreadKey) {
+			return;
+		}
+		auto &entry = ComposeThreadEntryFor(*_composeThreadKey);
+		if (const auto current = entry.articleSession.lock()) {
+			if (current.get() != this) {
+				return;
+			}
+		}
+		entry.articleSession.reset();
+		entry.fieldVisible.force_assign(false);
+	}
+
+	[[nodiscard]] ComposeThreadEntry *composeThreadEntry() const {
+		return _composeThreadKey
+			? LookupComposeThreadEntry(*_composeThreadKey)
+			: nullptr;
+	}
+
+	[[nodiscard]] ::Data::FileOrigin composeDraftOrigin() const {
+		return _composeThreadKey
+			? ComposeDraftOrigin(*_composeThreadKey)
+			: ::Data::FileOrigin();
 	}
 
 	[[nodiscard]] bool submitRequested() {
@@ -658,6 +799,7 @@ private:
 			return false;
 		}
 		_submitDeferred = false;
+		cancelRichDraftAutosave();
 		_submittedPage = std::move(page);
 		_backgroundHold = shared_from_this();
 		maybeContinueSubmittedRequest();
@@ -666,6 +808,46 @@ private:
 
 	[[nodiscard]] bool cancelRequested() {
 		_submitDeferred = false;
+		return true;
+	}
+
+	[[nodiscard]] bool changedCancelRequested() {
+		_submitDeferred = false;
+		if (!_composeAction || !_composeThreadKey) {
+			return true;
+		}
+		startCloseWithDraftSave();
+		return false;
+	}
+
+	[[nodiscard]] bool discardRequested() {
+		_submitDeferred = false;
+		cancelRichDraftAutosave();
+		if (!_composeAction || !_composeThreadKey) {
+			return true;
+		}
+		const auto topicRootId = _composeThreadKey->draftKey.topicRootId();
+		const auto monoforumPeerId = _composeThreadKey->draftKey.monoforumPeerId();
+		const auto history = _composeAction->history;
+		const auto entry = composeThreadEntry();
+		const auto plainDraft = (entry && entry->readDraft)
+			? entry->readDraft()
+			: nullptr;
+		if (entry && entry->saveDraft) {
+			entry->saveDraft(plainDraft
+				? std::make_unique<::Data::Draft>(*plainDraft)
+				: nullptr);
+		}
+		history->clearCloudDraft(topicRootId, monoforumPeerId);
+		if (const auto thread = history->threadFor(topicRootId, monoforumPeerId)) {
+			const auto cloudDraft = history->createCloudDraft(
+				topicRootId,
+				monoforumPeerId,
+				plainDraft.get());
+			if (cloudDraft) {
+				_session->api().saveDraftToCloud(not_null{ thread }, *cloudDraft);
+			}
+		}
 		return true;
 	}
 
@@ -918,9 +1100,14 @@ private:
 		return true;
 	}
 
-	[[nodiscard]] SerializeInputRichMessageResult serializeSubmittedPage() const {
+	[[nodiscard]] SerializeInputRichMessageResult serializeSubmittedPage() {
 		if (!_submittedPage) {
 			return {};
+		}
+		for (auto &attachment : _attachments) {
+			if (attachment.origin) {
+				refreshAttachmentInput(attachment);
+			}
 		}
 		auto page = RichPage(*_submittedPage);
 		return patchSubmittedBlocks(page.blocks)
@@ -961,6 +1148,10 @@ private:
 		if (_mode == Mode::Compose) {
 			auto action = *_composeAction;
 			action.options = _submitOptions;
+			action.clearDraft = true;
+			action.history->clearCloudDraft(
+				action.replyTo.topicRootId,
+				action.replyTo.monoforumPeerId);
 			_session->api().sendRichMessage(
 				item,
 				*richMessage.value,
@@ -1110,18 +1301,33 @@ private:
 	void showWindow() {
 		_backgroundHold = shared_from_this();
 		registerLiveAndTrackSession();
+		trackComposeThreadWindow();
 		auto descriptor = ShowWindowDescriptor{
 			.session = _session,
 			.peer = _peer,
 			.state = _state,
 			.submitType = _submitType,
+			.discarded = _composeAction
+				? Fn<bool()>([session = shared_from_this()] {
+					return session->discardRequested();
+				})
+				: Fn<bool()>(),
 			.showCreated = [session = shared_from_this()](
 					std::shared_ptr<ChatHelpers::Show> show) {
 				session->setEditorShow(std::move(show));
 			},
+			.editorCreated = [session = shared_from_this()](
+					not_null<Widget*> editor) {
+				session->editorCreated(editor);
+			},
 			.cancelled = [session = shared_from_this()] {
 				return session->cancelRequested();
 			},
+			.changedCancelled = _composeAction
+				? Fn<bool()>([session = shared_from_this()] {
+					return session->changedCancelRequested();
+				})
+				: Fn<bool()>(),
 			.confirmed = [session = shared_from_this()] {
 				return session->submitRequested();
 			},
@@ -1165,9 +1371,13 @@ private:
 			},
 		};
 		_windowHost = ShowWindow(std::move(descriptor));
+		restoreComposeDraftAttachments();
 	}
 
 	void windowClosed() {
+		cancelRichDraftAutosave();
+		cancelCloseWithDraftSave(_closeDraftSaveGeneration);
+		releaseComposeThreadWindow();
 		_editor = nullptr;
 		_submitButton = nullptr;
 		_windowHost = nullptr;
@@ -1227,6 +1437,9 @@ private:
 		if (!_windowHost && !_backgroundHold) {
 			return;
 		}
+		cancelRichDraftAutosave();
+		cancelCloseWithDraftSave(_closeDraftSaveGeneration);
+		releaseComposeThreadWindow();
 		_editor = nullptr;
 		_submitButton = nullptr;
 		_windowHost = nullptr;
@@ -1948,6 +2161,8 @@ private:
 			_state->resyncAfterExternalRichPageMutation();
 			requestEditorUpdate();
 		}
+		retryRichDraftAutosaveIfNeeded();
+		retryRichDraftCloseSaveIfNeeded();
 		maybeContinueSubmittedRequest();
 	}
 
@@ -2019,6 +2234,8 @@ private:
 			_state->resyncAfterExternalRichPageMutation();
 			requestEditorUpdate();
 		}
+		retryRichDraftAutosaveIfNeeded();
+		retryRichDraftCloseSaveIfNeeded();
 		maybeContinueSubmittedRequest();
 	}
 
@@ -2028,6 +2245,7 @@ private:
 			updateAttachmentProgress(*attachment);
 			showAttachmentFailedToast();
 			requestEditorUpdate();
+			retryRichDraftCloseSaveIfNeeded();
 			maybeContinueSubmittedRequest();
 		}
 	}
@@ -2053,6 +2271,241 @@ private:
 			_editor->update();
 		}
 	}
+
+	void restoreComposeDraftAttachments() {
+		if (!_composeAction || !_composeThreadKey) {
+			return;
+		}
+		const auto origin = composeDraftOrigin();
+		for (const auto &block : _state->richPage().blocks) {
+			restoreComposeDraftAttachment(block, origin);
+		}
+		refreshAttachmentLocatorsAndDropMissing();
+	}
+
+	void restoreComposeDraftAttachment(
+			const RichPage::Block &block,
+			const ::Data::FileOrigin &origin) {
+		const auto appendPhoto = [&](not_null<PhotoData*> photo, uint64 id) {
+			auto existing = std::find_if(
+				_attachments.begin(),
+				_attachments.end(),
+				[=](const AttachmentRecord &attachment) {
+					return (attachment.blockKind == RichPage::BlockKind::Photo)
+						&& (attachment.serverMediaId == id);
+				});
+			if (existing != end(_attachments)) {
+				if (!existing->origin) {
+					existing->origin = origin;
+				}
+				refreshAttachmentInput(*existing);
+				return;
+			}
+			auto attachment = AttachmentRecord{
+				.type = PreparedFileType::Photo,
+				.blockKind = RichPage::BlockKind::Photo,
+				.state = AttachmentState::Ready,
+				.progress = 1.,
+				.caption = block.caption.text.text,
+				.dimensions = QSize(block.width, block.height),
+				.spoiler = block.spoiler,
+				.serverMediaId = id,
+				.origin = origin,
+				.serverPhoto = photo.get(),
+			};
+			refreshAttachmentInput(attachment);
+			_attachments.push_back(std::move(attachment));
+		};
+		const auto appendDocument = [&](not_null<DocumentData*> document,
+				uint64 id,
+				RichPage::BlockKind kind) {
+			auto existing = std::find_if(
+				_attachments.begin(),
+				_attachments.end(),
+				[=](const AttachmentRecord &attachment) {
+					return (attachment.blockKind == kind)
+						&& (attachment.serverMediaId == id);
+				});
+			if (existing != end(_attachments)) {
+				if (!existing->origin) {
+					existing->origin = origin;
+				}
+				refreshAttachmentInput(*existing);
+				return;
+			}
+			auto attachment = AttachmentRecord{
+				.type = (kind == RichPage::BlockKind::Audio)
+					? PreparedFileType::Music
+					: PreparedFileType::Video,
+				.blockKind = kind,
+				.state = AttachmentState::Ready,
+				.progress = 1.,
+				.caption = block.caption.text.text,
+				.dimensions = QSize(block.width, block.height),
+				.spoiler = block.spoiler,
+				.autoplay = block.autoplay,
+				.loop = block.loop,
+				.serverMediaId = id,
+				.origin = origin,
+				.serverDocument = document.get(),
+			};
+			if (kind == RichPage::BlockKind::Audio) {
+				attachment.audioTitle = block.audioTitle;
+				attachment.audioPerformer = block.audioPerformer;
+				attachment.audioFileName = block.audioFileName;
+				attachment.audioDuration = block.audioDuration;
+			}
+			refreshAttachmentInput(attachment);
+			_attachments.push_back(std::move(attachment));
+		};
+		switch (block.kind) {
+		case RichPage::BlockKind::Photo: {
+			const auto photo = block.photo
+				? block.photo
+				: _session->data().photo(block.photoId).get();
+			if (photo && block.photoId) {
+				appendPhoto(not_null{ photo }, block.photoId);
+			}
+		} break;
+		case RichPage::BlockKind::Video:
+		case RichPage::BlockKind::Audio: {
+			const auto document = block.document
+				? block.document
+				: _session->data().document(block.documentId).get();
+			if (document && block.documentId) {
+				appendDocument(
+					not_null{ document },
+					block.documentId,
+					block.kind);
+			}
+		} break;
+		case RichPage::BlockKind::GroupedMedia:
+			for (const auto &item : block.mediaItems) {
+				restoreComposeDraftAttachment(item, origin);
+			}
+			break;
+		default:
+			break;
+		}
+		for (const auto &child : block.blocks) {
+			restoreComposeDraftAttachment(child, origin);
+		}
+		for (const auto &item : block.listItems) {
+			for (const auto &child : item.blocks) {
+				restoreComposeDraftAttachment(child, origin);
+			}
+		}
+	}
+
+	void restoreComposeDraftAttachment(
+			const RichPage::GroupedMediaItem &item,
+			const ::Data::FileOrigin &origin) {
+		if (item.kind == RichPage::BlockKind::Photo) {
+			const auto photo = item.photo
+				? item.photo
+				: _session->data().photo(item.photoId).get();
+			if (!photo || !item.photoId) {
+				return;
+			}
+			auto existing = std::find_if(
+				_attachments.begin(),
+				_attachments.end(),
+				[=](const AttachmentRecord &attachment) {
+					return (attachment.blockKind == RichPage::BlockKind::Photo)
+						&& (attachment.serverMediaId == item.photoId);
+				});
+			if (existing != end(_attachments)) {
+				if (!existing->origin) {
+					existing->origin = origin;
+				}
+				refreshAttachmentInput(*existing);
+				return;
+			}
+			auto attachment = AttachmentRecord{
+				.type = PreparedFileType::Photo,
+				.blockKind = RichPage::BlockKind::Photo,
+				.state = AttachmentState::Ready,
+				.progress = 1.,
+				.dimensions = QSize(item.width, item.height),
+				.spoiler = item.spoiler,
+				.serverMediaId = item.photoId,
+				.origin = origin,
+				.serverPhoto = photo,
+			};
+			refreshAttachmentInput(attachment);
+			_attachments.push_back(std::move(attachment));
+		} else if (item.kind == RichPage::BlockKind::Video) {
+			const auto document = item.document
+				? item.document
+				: _session->data().document(item.documentId).get();
+			if (!document || !item.documentId) {
+				return;
+			}
+			auto existing = std::find_if(
+				_attachments.begin(),
+				_attachments.end(),
+				[=](const AttachmentRecord &attachment) {
+					return (attachment.blockKind == RichPage::BlockKind::Video)
+						&& (attachment.serverMediaId == item.documentId);
+				});
+			if (existing != end(_attachments)) {
+				if (!existing->origin) {
+					existing->origin = origin;
+				}
+				refreshAttachmentInput(*existing);
+				return;
+			}
+			auto attachment = AttachmentRecord{
+				.type = PreparedFileType::Video,
+				.blockKind = RichPage::BlockKind::Video,
+				.state = AttachmentState::Ready,
+				.progress = 1.,
+				.dimensions = QSize(item.width, item.height),
+				.spoiler = item.spoiler,
+				.autoplay = item.autoplay,
+				.loop = item.loop,
+				.serverMediaId = item.documentId,
+				.origin = origin,
+				.serverDocument = document,
+			};
+			refreshAttachmentInput(attachment);
+			_attachments.push_back(std::move(attachment));
+		}
+	}
+
+	void refreshAttachmentInput(AttachmentRecord &attachment) {
+		if (attachment.serverPhoto) {
+			const auto input = attachment.serverPhoto->mtpInput();
+			if (input.type() == mtpc_inputPhoto) {
+				attachment.inputPhoto = input;
+				attachment.accessHash = input.c_inputPhoto().vaccess_hash().v;
+				attachment.fileReference = attachment.serverPhoto->fileReference();
+			}
+		} else if (attachment.serverDocument) {
+			const auto input = attachment.serverDocument->mtpInput();
+			if (input.type() == mtpc_inputDocument) {
+				attachment.inputDocument = input;
+				attachment.accessHash = input.c_inputDocument().vaccess_hash().v;
+				attachment.fileReference = attachment.serverDocument->fileReference();
+			}
+		}
+	}
+	void editorCreated(not_null<Widget*> editor);
+	void cancelRichDraftAutosave();
+	void restartRichDraftAutosave();
+	void handleRichDraftAutosave(Widget::AutosaveEvent event);
+	[[nodiscard]] std::optional<::Data::Draft> prepareRichDraftForAutosave() const;
+	void saveRichDraftNow();
+	void retryRichDraftAutosaveIfNeeded();
+	void startCloseWithDraftSave();
+	void saveRichDraftForClose(uint64 generation);
+	void retryRichDraftCloseSaveIfNeeded();
+	void closeWithDraftSaveDone(uint64 generation);
+	void closeWithDraftSaveFailed(uint64 generation, QString error = QString());
+	void closeNowWithoutDraftSave(uint64 generation);
+	void cancelCloseWithDraftSave(uint64 generation);
+	void showCloseDraftSavingBox(uint64 generation);
+	void showCloseDraftSaveFailedBox(uint64 generation, const QString &error);
 
 	[[nodiscard]] AttachmentRecord *findAttachment(FullMsgId uploadId) {
 		for (auto &attachment : _attachments) {
@@ -2620,6 +3073,17 @@ private:
 		return false;
 	}
 
+	[[nodiscard]] bool hasVisiblePendingAttachments() {
+		for (auto &attachment : _attachments) {
+			if (((attachment.state == AttachmentState::Uploading)
+					|| (attachment.state == AttachmentState::Finalizing))
+				&& hasVisibleAttachmentBlock(attachment)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	void showAttachmentFailedToast() {
 		showToast(tr::lng_attach_failed(tr::now));
 	}
@@ -2661,6 +3125,7 @@ private:
 	}
 
 	void maybeContinueDeferredSubmit() {
+		retryRichDraftCloseSaveIfNeeded();
 		if (!_submitDeferred || hasPendingPreparation()) {
 			return;
 		}
@@ -2697,6 +3162,7 @@ private:
 	std::optional<Api::SendAction> _composeAction;
 	const Fn<SendMenu::Details()> _sendMenuDetails;
 	const std::optional<EditedItemSnapshot> _edited;
+	const std::optional<ComposeThreadKey> _composeThreadKey;
 	const std::shared_ptr<RichPage> _page;
 	const std::shared_ptr<Markdown::MediaRuntime> _runtime;
 	const RichMessageLimits _limits;
@@ -2712,15 +3178,349 @@ private:
 	std::deque<QueuedPrepare> _prepareQueue;
 	std::vector<MediaBatch> _mediaBatches;
 	TaskQueue _attachmentPrepareQueue;
+	base::Timer _richDraftAutosaveTimer;
+	base::weak_qptr<Ui::GenericBox> _closeDraftSaveBox;
+	rpl::lifetime _editorAutosaveLifetime;
 	rpl::lifetime _lifetime;
 	uint64 _prepareBatchId = 0;
 	uint64 _rejectedToastBatchId = 0;
+	uint64 _closeDraftSaveGeneration = 0;
+	mtpRequestId _closeDraftSaveRequestId = 0;
 	int _pendingAttachmentPrepareCount = 0;
 	bool _preparing = false;
 	bool _submitDeferred = false;
 	bool _submitApiRequested = false;
+	bool _closeDraftSaveActive = false;
+	bool _closeDraftSaveWaiting = false;
+	bool _richDraftAutosaveRetryPending = false;
 
 };
+
+void ArticleSession::editorCreated(not_null<Widget*> editor) {
+	_editor = editor;
+	if (!_composeAction || !_composeThreadKey) {
+		return;
+	}
+	_editorAutosaveLifetime.destroy();
+	editor->autosaveEvents(
+	) | rpl::on_next([weak = weak_from_this()](Widget::AutosaveEvent event) {
+		if (const auto session = weak.lock()) {
+			session->handleRichDraftAutosave(event);
+		}
+	}, _editorAutosaveLifetime);
+}
+
+void ArticleSession::cancelRichDraftAutosave() {
+	_richDraftAutosaveTimer.cancel();
+	_editorAutosaveLifetime.destroy();
+	_richDraftAutosaveRetryPending = false;
+}
+
+void ArticleSession::restartRichDraftAutosave() {
+	_richDraftAutosaveTimer.callOnce(kRichDraftAutosaveTimeout);
+}
+
+void ArticleSession::handleRichDraftAutosave(Widget::AutosaveEvent event) {
+	if (!_composeAction
+		|| !_composeThreadKey
+		|| !_windowHost
+		|| _submittedPage
+		|| _submitApiRequested
+		|| _closeDraftSaveActive) {
+		return;
+	}
+	switch (event.type) {
+	case Widget::AutosaveEventType::TextIdle:
+		restartRichDraftAutosave();
+		return;
+	case Widget::AutosaveEventType::StructuralMutation:
+		_richDraftAutosaveTimer.cancel();
+		saveRichDraftNow();
+		return;
+	}
+}
+
+std::optional<::Data::Draft> ArticleSession::prepareRichDraftForAutosave() const {
+	if (!_composeAction || !_composeThreadKey) {
+		return std::nullopt;
+	}
+	const auto topicRootId = _composeThreadKey->draftKey.topicRootId();
+	const auto monoforumPeerId = _composeThreadKey->draftKey.monoforumPeerId();
+	const auto history = _composeAction->history;
+	const auto cloudDraft = history->cloudDraft(topicRootId, monoforumPeerId);
+	auto draft = cloudDraft
+		? *cloudDraft
+		: ::Data::Draft(
+			TextWithTags(),
+			_composeAction->replyTo,
+			SuggestOptions(),
+			MessageCursor(),
+			::Data::WebPageDraft());
+	draft.textWithTags = TextWithTags();
+	draft.cursor = MessageCursor();
+	draft.webpage = ::Data::WebPageDraft();
+	draft.reply.topicRootId = topicRootId;
+	draft.reply.monoforumPeerId = monoforumPeerId;
+	auto richMessage = std::make_shared<RichPage>(_state->richPage());
+	const auto serialized = SerializeInputRichMessage(
+		_session,
+		*richMessage,
+		SerializeInputRichMessageMode::FinalSubmit);
+	if (serialized.status == SerializeInputRichMessageStatus::EmptyContent) {
+		return ::Data::Draft(
+			TextWithTags(),
+			FullReplyTo{
+				.topicRootId = topicRootId,
+				.monoforumPeerId = monoforumPeerId,
+			},
+			SuggestOptions(),
+			MessageCursor(),
+			::Data::WebPageDraft());
+	} else if (serialized.status != SerializeInputRichMessageStatus::Success) {
+		return std::nullopt;
+	}
+	draft.richMessage = std::move(richMessage);
+	draft.richMessageSummary = FlattenRichPageSummary(*draft.richMessage);
+	draft.richMessageEmpty = false;
+	return draft;
+}
+
+void ArticleSession::saveRichDraftNow() {
+	if (!_composeAction
+		|| !_composeThreadKey
+		|| !_windowHost
+		|| _submittedPage
+		|| _submitApiRequested
+		|| _closeDraftSaveActive) {
+		return;
+	}
+	const auto prepared = prepareRichDraftForAutosave();
+	if (!prepared) {
+		_richDraftAutosaveRetryPending = hasVisiblePendingAttachments();
+		return;
+	}
+	const auto topicRootId = _composeThreadKey->draftKey.topicRootId();
+	const auto monoforumPeerId = _composeThreadKey->draftKey.monoforumPeerId();
+	const auto history = _composeAction->history;
+	const auto thread = history->threadFor(topicRootId, monoforumPeerId);
+	if (!thread) {
+		return;
+	}
+	const auto cloudDraft = history->createCloudDraft(
+		topicRootId,
+		monoforumPeerId,
+		&*prepared);
+	if (!cloudDraft) {
+		return;
+	}
+	_richDraftAutosaveRetryPending = (_session->api().saveDraftToCloud(
+		not_null{ thread },
+		*cloudDraft) == 0);
+}
+
+void ArticleSession::retryRichDraftAutosaveIfNeeded() {
+	if (_richDraftAutosaveRetryPending) {
+		saveRichDraftNow();
+	}
+}
+
+void ArticleSession::startCloseWithDraftSave() {
+	if (_closeDraftSaveActive) {
+		return;
+	}
+	_closeDraftSaveActive = true;
+	_closeDraftSaveWaiting = false;
+	_closeDraftSaveRequestId = 0;
+	_richDraftAutosaveTimer.cancel();
+	const auto generation = ++_closeDraftSaveGeneration;
+	showCloseDraftSavingBox(generation);
+	saveRichDraftForClose(generation);
+}
+
+void ArticleSession::saveRichDraftForClose(uint64 generation) {
+	if (!_closeDraftSaveActive
+		|| generation != _closeDraftSaveGeneration
+		|| !_composeAction
+		|| !_composeThreadKey
+		|| !_windowHost
+		|| _submittedPage
+		|| _submitApiRequested) {
+		return;
+	}
+	if (hasVisibleFailedAttachments()) {
+		closeWithDraftSaveFailed(generation);
+		return;
+	} else if (hasPendingPreparation() || hasVisiblePendingAttachments()) {
+		_closeDraftSaveWaiting = true;
+		return;
+	}
+	const auto prepared = prepareRichDraftForAutosave();
+	if (!prepared) {
+		closeWithDraftSaveFailed(generation);
+		return;
+	}
+	const auto topicRootId = _composeThreadKey->draftKey.topicRootId();
+	const auto monoforumPeerId = _composeThreadKey->draftKey.monoforumPeerId();
+	const auto history = _composeAction->history;
+	const auto thread = history->threadFor(topicRootId, monoforumPeerId);
+	if (!thread) {
+		closeWithDraftSaveFailed(generation);
+		return;
+	}
+	const auto cloudDraft = history->createCloudDraft(
+		topicRootId,
+		monoforumPeerId,
+		&*prepared);
+	if (!cloudDraft) {
+		closeWithDraftSaveFailed(generation);
+		return;
+	}
+	_closeDraftSaveWaiting = false;
+	_richDraftAutosaveRetryPending = false;
+	_closeDraftSaveRequestId = _session->api().saveDraftToCloud(
+		not_null{ thread },
+		*cloudDraft,
+		[weak = weak_from_this(), generation] {
+			if (const auto session = weak.lock()) {
+				session->closeWithDraftSaveDone(generation);
+			}
+		},
+		[weak = weak_from_this(), generation](const MTP::Error &error) {
+			if (const auto session = weak.lock()) {
+				session->closeWithDraftSaveFailed(generation, error.type());
+			}
+		});
+	if (!_closeDraftSaveRequestId) {
+		closeWithDraftSaveFailed(generation);
+	}
+}
+
+void ArticleSession::retryRichDraftCloseSaveIfNeeded() {
+	if (_closeDraftSaveActive && _closeDraftSaveWaiting) {
+		saveRichDraftForClose(_closeDraftSaveGeneration);
+	}
+}
+
+void ArticleSession::closeWithDraftSaveDone(uint64 generation) {
+	if (!_closeDraftSaveActive || generation != _closeDraftSaveGeneration) {
+		return;
+	}
+	_closeDraftSaveActive = false;
+	_closeDraftSaveWaiting = false;
+	_closeDraftSaveRequestId = 0;
+	++_closeDraftSaveGeneration;
+	if (_closeDraftSaveBox) {
+		_closeDraftSaveBox->closeBox();
+	}
+	if (_windowHost) {
+		_windowHost->close();
+	}
+}
+
+void ArticleSession::closeWithDraftSaveFailed(uint64 generation, QString error) {
+	if (!_closeDraftSaveActive || generation != _closeDraftSaveGeneration) {
+		return;
+	}
+	_closeDraftSaveWaiting = false;
+	_closeDraftSaveRequestId = 0;
+	if (_closeDraftSaveBox) {
+		_closeDraftSaveBox->closeBox();
+	}
+	showCloseDraftSaveFailedBox(generation, error);
+}
+
+void ArticleSession::closeNowWithoutDraftSave(uint64 generation) {
+	if (!_closeDraftSaveActive || generation != _closeDraftSaveGeneration) {
+		return;
+	}
+	_closeDraftSaveActive = false;
+	_closeDraftSaveWaiting = false;
+	_closeDraftSaveRequestId = 0;
+	++_closeDraftSaveGeneration;
+	if (_windowHost) {
+		_windowHost->close();
+	}
+}
+
+void ArticleSession::cancelCloseWithDraftSave(uint64 generation) {
+	if (!_closeDraftSaveActive || generation != _closeDraftSaveGeneration) {
+		return;
+	}
+	_closeDraftSaveActive = false;
+	_closeDraftSaveWaiting = false;
+	_closeDraftSaveRequestId = 0;
+	++_closeDraftSaveGeneration;
+	if (_closeDraftSaveBox) {
+		_closeDraftSaveBox->closeBox();
+	}
+}
+
+void ArticleSession::showCloseDraftSavingBox(uint64 generation) {
+	if (_closeDraftSaveBox) {
+		return;
+	}
+	const auto show = resolveShow();
+	if (!show) {
+		return;
+	}
+	_closeDraftSaveBox = show->show(Ui::MakeConfirmBox({
+		.text = tr::lng_iv_editor_saving_draft(),
+		.confirmed = [weak = weak_from_this(), generation](
+				Fn<void()> closeBox) {
+			closeBox();
+			if (const auto session = weak.lock()) {
+				session->closeNowWithoutDraftSave(generation);
+			}
+		},
+		.cancelled = [weak = weak_from_this(), generation](
+				Fn<void()> closeBox) {
+			closeBox();
+			if (const auto session = weak.lock()) {
+				session->cancelCloseWithDraftSave(generation);
+			}
+		},
+		.confirmText = tr::lng_iv_editor_close_now(),
+		.cancelText = tr::lng_cancel(),
+		.confirmStyle = &st::attentionBoxButton,
+		.strictCancel = true,
+	}));
+}
+
+void ArticleSession::showCloseDraftSaveFailedBox(
+		uint64 generation,
+		const QString &error) {
+	const auto show = resolveShow();
+	if (!show) {
+		return;
+	}
+	const auto text = error.isEmpty()
+		? tr::lng_iv_editor_save_draft_failed(tr::now)
+		: tr::lng_iv_editor_save_draft_failed_error(
+			tr::now,
+			lt_error,
+			error);
+	_closeDraftSaveBox = show->show(Ui::MakeConfirmBox({
+		.text = text,
+		.confirmed = [weak = weak_from_this(), generation](
+				Fn<void()> closeBox) {
+			closeBox();
+			if (const auto session = weak.lock()) {
+				session->closeNowWithoutDraftSave(generation);
+			}
+		},
+		.cancelled = [weak = weak_from_this(), generation](
+				Fn<void()> closeBox) {
+			closeBox();
+			if (const auto session = weak.lock()) {
+				session->cancelCloseWithDraftSave(generation);
+			}
+		},
+		.confirmText = tr::lng_iv_editor_close_now(),
+		.cancelText = tr::lng_cancel(),
+		.confirmStyle = &st::attentionBoxButton,
+		.strictCancel = true,
+	}));
+}
 
 } // namespace
 
@@ -2766,6 +3566,50 @@ void ShowEditBox(
 			not_null{ current },
 			std::move(page));
 	});
+}
+
+bool IsComposeBoxOpen(
+		not_null<Main::Session*> session,
+		PeerId peerId,
+		MsgId topicRootId,
+		PeerId monoforumPeerId) {
+	const auto entry = LookupComposeThreadEntry(
+		ComposeKey(session, peerId, topicRootId, monoforumPeerId));
+	return entry && !entry->articleSession.expired();
+}
+
+rpl::producer<bool> FieldVisibleValue(
+		not_null<Main::Session*> session,
+		PeerId peerId,
+		MsgId topicRootId,
+		PeerId monoforumPeerId) {
+	return ComposeThreadEntryFor(
+		ComposeKey(session, peerId, topicRootId, monoforumPeerId)
+	).fieldVisible.value();
+}
+
+void RegisterThreadFieldBridge(
+		not_null<Main::Session*> session,
+		PeerId peerId,
+		MsgId topicRootId,
+		PeerId monoforumPeerId,
+		ThreadFieldDraftReader readDraft,
+		ThreadFieldDraftSaver saveDraft) {
+	auto &entry = ComposeThreadEntryFor(
+		ComposeKey(session, peerId, topicRootId, monoforumPeerId));
+	entry.readDraft = std::move(readDraft);
+	entry.saveDraft = std::move(saveDraft);
+}
+
+void UnregisterThreadFieldBridge(
+		not_null<Main::Session*> session,
+		PeerId peerId,
+		MsgId topicRootId,
+		PeerId monoforumPeerId) {
+	auto &entry = ComposeThreadEntryFor(
+		ComposeKey(session, peerId, topicRootId, monoforumPeerId));
+	entry.readDraft = nullptr;
+	entry.saveDraft = nullptr;
 }
 
 void CloseAllWindows() {

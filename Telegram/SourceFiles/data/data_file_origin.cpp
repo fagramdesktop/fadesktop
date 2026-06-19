@@ -143,6 +143,18 @@ struct FileReferenceAccumulator {
 		}, [](const MTPDmessageReplyStoryHeader &data) {
 		});
 	}
+	void push(const MTPDraftMessage &data) {
+		data.match([&](const MTPDdraftMessage &data) {
+			push(data.vrich_message());
+		}, [](const MTPDdraftMessageEmpty &) {
+		});
+	}
+	void push(const MTPDialog &data) {
+		data.match([&](const MTPDdialog &data) {
+			push(data.vdraft());
+		}, [](const MTPDdialogFolder &) {
+		});
+	}
 	void push(const MTPMessage &data) {
 		data.match([&](const MTPDmessage &data) {
 			push(data.vmedia());
@@ -175,6 +187,11 @@ struct FileReferenceAccumulator {
 			push(data.vmessages());
 		});
 	}
+	void push(const MTPmessages_PeerDialogs &data) {
+		const auto &fields = data.c_messages_peerDialogs();
+		push(fields.vmessages());
+		push(fields.vdialogs());
+	}
 	void push(const MTPphotos_Photos &data) {
 		data.match([&](const auto &data) {
 			push(data.vphotos());
@@ -195,6 +212,17 @@ struct FileReferenceAccumulator {
 	}
 	void push(const MTPmessages_ChatFull &data) {
 		push(data.data().vfull_chat());
+	}
+	void push(const MTPForumTopic &data) {
+		data.match([&](const MTPDforumTopic &data) {
+			push(data.vdraft());
+		}, [](const MTPDforumTopicDeleted &data) {
+		});
+	}
+	void push(const MTPmessages_ForumTopics &data) {
+		const auto &fields = data.data();
+		push(fields.vmessages());
+		push(fields.vtopics());
 	}
 	void push(const MTPmessages_RecentStickers &data) {
 		data.match([&](const MTPDmessages_recentStickers &data) {
@@ -218,6 +246,19 @@ struct FileReferenceAccumulator {
 		data.match([&](const MTPDmessages_savedGifs &data) {
 			push(data.vgifs());
 		}, [](const MTPDmessages_savedGifsNotModified &data) {
+		});
+	}
+	void push(const MTPSavedDialog &data) {
+		data.match([&](const MTPDsavedDialog &) {
+		}, [&](const MTPDmonoForumDialog &data) {
+			push(data.vdraft());
+		});
+	}
+	void push(const MTPmessages_SavedDialogs &data) {
+		data.match([](const MTPDmessages_savedDialogsNotModified &) {
+		}, [&](const auto &data) {
+			push(data.vmessages());
+			push(data.vdialogs());
 		});
 	}
 	void push(const MTPaccount_SavedRingtones &data) {
@@ -258,6 +299,10 @@ UpdatedFileReferences GetFileReferences(const MTPmessages_Messages &data) {
 	return GetFileReferencesHelper(data);
 }
 
+UpdatedFileReferences GetFileReferences(const MTPmessages_PeerDialogs &data) {
+	return GetFileReferencesHelper(data);
+}
+
 UpdatedFileReferences GetFileReferences(const MTPphotos_Photos &data) {
 	return GetFileReferencesHelper(data);
 }
@@ -267,6 +312,10 @@ UpdatedFileReferences GetFileReferences(const MTPusers_UserFull &data) {
 }
 
 UpdatedFileReferences GetFileReferences(const MTPmessages_ChatFull &data) {
+	return GetFileReferencesHelper(data);
+}
+
+UpdatedFileReferences GetFileReferences(const MTPmessages_ForumTopics &data) {
 	return GetFileReferencesHelper(data);
 }
 
@@ -286,6 +335,10 @@ UpdatedFileReferences GetFileReferences(
 }
 
 UpdatedFileReferences GetFileReferences(const MTPmessages_SavedGifs &data) {
+	return GetFileReferencesHelper(data);
+}
+
+UpdatedFileReferences GetFileReferences(const MTPmessages_SavedDialogs &data) {
 	return GetFileReferencesHelper(data);
 }
 

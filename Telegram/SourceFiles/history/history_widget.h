@@ -136,6 +136,7 @@ struct VoiceToSend;
 
 class BotKeyboard;
 class HistoryInner;
+class HistoryWidgetRichDraftPreview;
 
 class HistoryWidget final
 	: public Window::AbstractSectionWidget
@@ -412,6 +413,7 @@ private:
 	void saveCloudDraft();
 	void saveDraftDelayed();
 	void saveDraftWithTextNow();
+	void cancelPendingDraftSaves();
 	void showMembersDropdown();
 	void windowIsVisibleChanged();
 	void saveFieldToHistoryLocalDraft();
@@ -671,9 +673,18 @@ private:
 		FieldHistoryAction fieldHistoryAction = FieldHistoryAction::Clear);
 	[[nodiscard]] int fieldHeight() const;
 	[[nodiscard]] bool fieldOrDisabledShown() const;
+	[[nodiscard]] bool fieldHasSendText() const;
 
 	void unregisterDraftSources();
 	void registerDraftSource();
+	void unregisterThreadFieldBridge();
+	void registerThreadFieldBridge();
+	[[nodiscard]] Data::Draft *cloudDraft() const;
+	[[nodiscard]] bool isComposeBoxOpen() const;
+	[[nodiscard]] bool bypassNormalDraftHandling() const;
+	[[nodiscard]] bool shouldShowRichDraftPreview() const;
+	[[nodiscard]] std::unique_ptr<Data::Draft> readThreadFieldDraft() const;
+	void saveThreadFieldDraft(std::unique_ptr<Data::Draft> draft);
 	void setHistory(History *history);
 	void setEditMsgId(MsgId msgId);
 
@@ -844,6 +855,7 @@ private:
 	bool _inlineLookingUpBot = false;
 	mtpRequestId _inlineBotResolveRequestId = 0;
 	bool _isInlineBot = false;
+	bool _threadFieldVisible = false;
 
 	Webrtc::RecordAvailability _recordAvailability = {};
 
@@ -891,6 +903,7 @@ private:
 	std::shared_ptr<Ui::ChatStyle> _fieldChatStyle;
 	bool _cmdStartShown = false;
 	object_ptr<Ui::InputField> _field;
+	std::unique_ptr<HistoryWidgetRichDraftPreview> _richDraftPreview;
 	base::unique_qptr<Ui::RpWidget> _fieldDisabled;
 	std::unique_ptr<Ui::RpWidget> _sendRestriction;
 	using CharactersLimitLabel = HistoryView::Controls::CharactersLimitLabel;
@@ -934,6 +947,7 @@ private:
 	bool _saveDraftText = false;
 	base::Timer _saveDraftTimer;
 	base::Timer _saveCloudDraftTimer;
+	rpl::lifetime _threadFieldBridgeLifetime;
 
 	HistoryView::InfoTooltip _topToast;
 	HistoryView::AnchoredTooltip _hiddenSenderTooltip;

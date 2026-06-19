@@ -55,8 +55,11 @@ struct ShowWindowDescriptor {
 	std::shared_ptr<State> state;
 	QString submitLabel;
 	SubmitType submitType = SubmitType::Send;
+	Fn<bool()> discarded;
 	Fn<void(std::shared_ptr<ChatHelpers::Show>)> showCreated;
+	Fn<void(not_null<Widget*>)> editorCreated;
 	Fn<bool()> cancelled;
+	Fn<bool()> changedCancelled;
 	Fn<bool()> confirmed;
 	Fn<void(not_null<Ui::RpWidget*>)> setupSubmitButton;
 	Fn<void(
@@ -73,6 +76,7 @@ struct ShowWindowDescriptor {
 class WindowHost final {
 public:
 	~WindowHost();
+	void close();
 
 private:
 	friend std::unique_ptr<WindowHost> ShowWindow(

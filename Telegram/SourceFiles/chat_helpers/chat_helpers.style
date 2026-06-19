@@ -1265,6 +1265,7 @@ historyComposeField: InputField(defaultInputField) {
 	duration: 100;
 }
 historyComposeFieldMaxHeight: 224px;
+historyRichMessagePreviewHeight: 72px;
 historyComposeFieldFadeHeight: 6px;
 historySendRight: 2px;
 historySendPadding: 9px;

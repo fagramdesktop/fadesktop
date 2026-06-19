@@ -86,6 +86,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/localimageloader.h"
 #include "inline_bots/inline_bot_result.h"
 #include "info/profile/info_profile_values.h"
+#include "iv/editor/iv_editor_session.h"
 #include "lang/lang_keys.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
@@ -1381,6 +1382,11 @@ Api::SendAction ChatWidget::prepareSendAction(
 	auto result = Api::SendAction(_history, options);
 	result.replyTo = replyTo();
 	result.options.sendAs = _composeControls->sendAsPeer();
+	result.clearDraft = !Iv::Editor::IsComposeBoxOpen(
+		&session(),
+		_peer->id,
+		_repliesRootId,
+		_monoforumPeerId);
 	return result;
 }
 

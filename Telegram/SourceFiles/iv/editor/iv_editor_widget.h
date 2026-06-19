@@ -153,8 +153,16 @@ public:
 		std::array<ToolbarActionState, int(ToolbarFormatAction::Count)>
 			actions = {};
 	};
+	enum class AutosaveEventType {
+		TextIdle,
+		StructuralMutation,
+	};
+	struct AutosaveEvent {
+		AutosaveEventType type = AutosaveEventType::TextIdle;
+	};
 	[[nodiscard]] ToolbarState toolbarStateValue() const;
 	[[nodiscard]] rpl::producer<ToolbarState> toolbarStateChanges() const;
+	[[nodiscard]] rpl::producer<AutosaveEvent> autosaveEvents() const;
 	void performToolbarUndoRedo(bool redo);
 	void applyToolbarFormatAction(ToolbarFormatAction action);
 	void editLinkFromToolbar();
@@ -670,6 +678,7 @@ private:
 	std::shared_ptr<style::Markdown> _articleStyle;
 	std::shared_ptr<Markdown::MarkdownArticle> _article;
 	base::unique_qptr<Ui::InputField> _field;
+	rpl::event_stream<AutosaveEvent> _autosaveEvents;
 	rpl::event_stream<ToolbarState> _toolbarStateChanges;
 	std::unique_ptr<Ui::ChatTheme> _theme;
 	std::unique_ptr<Ui::ChatStyle> _style;

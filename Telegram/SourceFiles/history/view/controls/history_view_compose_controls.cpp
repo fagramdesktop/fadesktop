@@ -169,6 +169,33 @@ const char kOptionMacCmdReplyImmediately[] = "mac-cmd-reply-immediately";
 const ChatHelpers::PauseReason kDefaultPanelsLevel
 	= ChatHelpers::PauseReason::TabbedPanel;
 
+class RichDraftPreview final : public Ui::RpWidget {
+public:
+	RichDraftPreview(
+		QWidget *parent,
+		not_null<Main::Session*> session,
+		std::shared_ptr<ChatHelpers::Show> show,
+		Fn<void()> activate);
+
+	void setDraft(const Data::Draft &draft);
+	[[nodiscard]] int resizeGetHeight(
+		int width,
+		int minHeight,
+		int maxHeight);
+
+private:
+	void paint(QRect clip);
+	[[nodiscard]] int contentHeightForWidth(int width) const;
+	void mouseReleaseEvent(QMouseEvent *e) override;
+
+	const not_null<Main::Session*> _session;
+	const std::shared_ptr<ChatHelpers::Show> _show;
+	const Fn<void()> _activate;
+	Ui::Text::String _title;
+	Ui::Text::String _summary;
+
+};
+
 class FieldHeader final : public Ui::RpWidget {
 public:
 	FieldHeader(
@@ -296,6 +323,109 @@ private:
 	rpl::event_stream<> _editPhotoRequests;
 
 };
+
+RichDraftPreview::RichDraftPreview(
+	QWidget *parent,
+	not_null<Main::Session*> session,
+	std::shared_ptr<ChatHelpers::Show> show,
+	Fn<void()> activate)
+: RpWidget(parent)
+, _session(session)
+, _show(std::move(show))
+, _activate(std::move(activate)) {
+	setCursor(style::cur_pointer);
+
+	paintRequest(
+	) | rpl::on_next([=](QRect clip) {
+		paint(clip);
+	}, lifetime());
+}
+
+void RichDraftPreview::setDraft(const Data::Draft &draft) {
+	const auto context = Core::TextContext({
+		.session = _session,
+		.repaint = [=] { update(); },
+		.customEmojiLoopLimit = 1,
+	});
+	_title.setText(
+		st::msgNameStyle,
+		tr::lng_article_editor_title(tr::now),
+		Ui::NameTextOptions());
+	_summary.setMarkedText(
+		st::messageTextStyle,
+		draft.richMessageSummary,
+		Ui::DialogTextOptions(),
+		context);
+	update();
+}
+
+int RichDraftPreview::resizeGetHeight(
+		int width,
+		int minHeight,
+		int maxHeight) {
+	const auto height = std::min(
+		std::max(contentHeightForWidth(width), minHeight),
+		maxHeight);
+	resize(width, height);
+	return height;
+}
+
+void RichDraftPreview::paint(QRect clip) {
+	Q_UNUSED(clip);
+
+	Painter p(this);
+	p.setInactive(_show->paused(Window::GifPauseReason::Any));
+	p.fillRect(rect(), st::historyComposeAreaBg);
+
+	const auto left = st::msgReplyPadding.left();
+	const auto top = st::msgReplyPadding.top();
+	const auto right = st::msgReplyPadding.right();
+	const auto width = std::max(0, this->width() - left - right);
+
+	p.setPen(st::historyReplyNameFg);
+	_title.drawElided(p, left, top, width);
+
+	if (_summary.isEmpty()) {
+		return;
+	}
+
+	const auto bodyTop = top + st::msgServiceNameFont->height;
+	const auto bodyHeight = height() - bodyTop - st::msgReplyPadding.top();
+	const auto lines = std::max(1, bodyHeight / _summary.minHeight());
+	p.setPen(st::historyComposeAreaFg);
+	_summary.draw(p, {
+		.position = QPoint(left, bodyTop),
+		.availableWidth = width,
+		.palette = &st::historyComposeAreaPalette,
+		.spoiler = Ui::Text::DefaultSpoilerCache(),
+		.now = crl::now(),
+		.pausedEmoji = p.inactive() || On(PowerSaving::kEmojiChat),
+		.pausedSpoiler = p.inactive() || On(PowerSaving::kChatSpoiler),
+		.elisionLines = lines,
+	});
+}
+
+int RichDraftPreview::contentHeightForWidth(int width) const {
+	const auto left = st::msgReplyPadding.left();
+	const auto right = st::msgReplyPadding.right();
+	const auto available = std::max(0, width - left - right);
+	const auto summaryHeight = _summary.isEmpty()
+		? 0
+		: std::min(
+			_summary.countHeight(available),
+			_summary.minHeight() * 2);
+	return st::msgReplyPadding.top()
+		+ st::msgServiceNameFont->height
+		+ summaryHeight
+		+ st::msgReplyPadding.top();
+}
+
+void RichDraftPreview::mouseReleaseEvent(QMouseEvent *e) {
+	if ((e->button() == Qt::LeftButton) && _activate) {
+		_activate();
+	}
+	RpWidget::mouseReleaseEvent(e);
+}
 
 FieldHeader::FieldHeader(
 	QWidget *parent,
@@ -1084,6 +1214,19 @@ ComposeControls::ComposeControls(
 		(_fieldCustomPlaceholder
 			? rpl::duplicate(_fieldCustomPlaceholder)
 			: tr::lng_message_ph())))
+, _richDraftPreview(std::make_unique<RichDraftPreview>(
+	_wrap.get(),
+	_session,
+	_show,
+	[=] {
+		if (_regularWindow && _history && _sendActionFactory) {
+			Iv::Editor::ShowComposeBox(
+				_regularWindow,
+				_history->peer,
+				_sendActionFactory(),
+				[=] { return sendMenuDetails(); });
+		}
+	}))
 , _botCommandStart(_features.botCommandSend
 	? Ui::CreateChild<Ui::IconButton>(
 		_wrap.get(),
@@ -1092,7 +1235,7 @@ ComposeControls::ComposeControls(
 , _header(std::make_unique<FieldHeader>(
 	_wrap.get(),
 	_show,
-	[=] { return HasSendText(_field); }))
+	[=] { return _field->isVisible() && HasSendText(_field); }))
 , _voiceRecordBar(std::make_unique<VoiceRecordBar>(
 	_wrap.get(),
 	Controls::VoiceRecordBarDescriptor{
@@ -1148,6 +1291,7 @@ rpl::producer<> ComposeControls::showScheduledRequests() const {
 
 ComposeControls::~ComposeControls() {
 	saveFieldToHistoryLocalDraft();
+	unregisterThreadFieldBridge();
 	unregisterDraftSources();
 	setTabbedPanel(nullptr);
 	session().api().request(_inlineBotResolveRequestId).cancel();
@@ -1158,8 +1302,13 @@ Main::Session &ComposeControls::session() const {
 }
 
 void ComposeControls::updateTopicRootId(MsgId topicRootId) {
+	unregisterThreadFieldBridge();
+	unregisterDraftSources();
 	_topicRootId = topicRootId;
 	_header->updateTopicRootId(_topicRootId);
+	registerThreadFieldBridge();
+	registerDraftSource();
+	updateFieldVisibility();
 }
 
 void ComposeControls::updateShortcutId(BusinessShortcutId shortcutId) {
@@ -1186,12 +1335,15 @@ void ComposeControls::setHistory(SetHistoryArgs &&args) {
 	if (_history == history) {
 		return;
 	}
+	unregisterThreadFieldBridge();
 	unregisterDraftSources();
 	_history = history;
 	_topicRootId = args.topicRootId;
 	_monoforumPeerId = args.monoforumPeerId;
 	_historyLifetime.destroy();
+	_threadFieldBridgeLifetime.destroy();
 	_header->setHistory(args);
+	registerThreadFieldBridge();
 	registerDraftSource();
 	_selector->setCurrentPeer(history ? history->peer.get() : nullptr);
 	initFieldAutocomplete();
@@ -1354,12 +1506,14 @@ void ComposeControls::updateFeatures(ChatHelpers::ComposeFeatures features) {
 
 void ComposeControls::setCurrentDialogsEntryState(
 		Dialogs::EntryState state) {
+	unregisterThreadFieldBridge();
 	unregisterDraftSources();
 	state.currentReplyTo.topicRootId = _topicRootId;
 	state.currentReplyTo.monoforumPeerId = _monoforumPeerId;
 	state.currentSuggest = SuggestOptions();
 	_currentDialogsEntryState = state;
 	updateForwarding();
+	registerThreadFieldBridge();
 	registerDraftSource();
 }
 
@@ -2031,6 +2185,9 @@ void ComposeControls::setFieldText(
 }
 
 void ComposeControls::saveFieldToHistoryLocalDraft() {
+	if (bypassNormalDraftHandling()) {
+		return;
+	}
 	const auto key = draftKeyCurrent();
 	if (!_history || !key) {
 		return;
@@ -2048,6 +2205,69 @@ void ComposeControls::saveFieldToHistoryLocalDraft() {
 	} else {
 		_history->clearDraft(draftKeyCurrent());
 	}
+}
+
+Data::Draft *ComposeControls::cloudDraft() const {
+	return _history
+		? _history->cloudDraft(_topicRootId, _monoforumPeerId)
+		: nullptr;
+}
+
+bool ComposeControls::isComposeBoxOpen() const {
+	return _history
+		&& hasRichDraftThreadScope()
+		&& Iv::Editor::IsComposeBoxOpen(
+			_session,
+			_history->peer->id,
+			_topicRootId,
+			_monoforumPeerId);
+}
+
+bool ComposeControls::hasRichDraftThreadScope() const {
+	return draftKey(DraftType::Normal).isLocal();
+}
+
+bool ComposeControls::bypassNormalDraftHandling() const {
+	return !isEditingMessage() && isComposeBoxOpen();
+}
+
+bool ComposeControls::shouldShowRichDraftPreview() const {
+	const auto draft = cloudDraft();
+	return !_threadFieldVisible
+		&& !isEditingMessage()
+		&& hasRichDraftThreadScope()
+		&& draft
+		&& draft->hasRichMessage();
+}
+
+std::unique_ptr<Data::Draft> ComposeControls::readThreadFieldDraft() const {
+	if (!_history || !hasRichDraftThreadScope()) {
+		return nullptr;
+	}
+	auto result = std::make_unique<Data::Draft>(
+		_field,
+		_header->getDraftReply(),
+		_header->suggestOptions(),
+		_preview ? _preview->draft() : Data::WebPageDraft());
+	result->reply.topicRootId = _topicRootId;
+	result->reply.monoforumPeerId = _monoforumPeerId;
+	return Data::DraftIsNull(result.get()) ? nullptr : std::move(result);
+}
+
+void ComposeControls::saveThreadFieldDraft(std::unique_ptr<Data::Draft> draft) {
+	if (!_history || !hasRichDraftThreadScope()) {
+		return;
+	}
+	const auto key = draftKey(DraftType::Normal);
+	if (!key) {
+		return;
+	}
+	if (!draft || Data::DraftIsNull(draft.get())) {
+		_history->clearDraft(key);
+	} else {
+		_history->setDraft(key, std::move(draft));
+	}
+	applyDraft(Ui::InputField::HistoryAction::NewEntry);
 }
 
 void ComposeControls::clearFieldText(
@@ -2291,14 +2511,14 @@ bool ComposeControls::showRecordButton() const {
 		&& (_recordAvailability != Webrtc::RecordAvailability::None)
 		&& !_voiceRecordBar->isListenState()
 		&& !_voiceRecordBar->isRecordingByAnotherBar()
-		&& !HasSendText(_field)
+		&& !(_field->isVisible() && HasSendText(_field))
 		&& !readyToForward()
 		&& !isEditingMessage();
 }
 
 bool ComposeControls::showEditStarsButton() const {
 	return editStarsButtonShown()
-		&& !HasSendText(_field)
+		&& !(_field->isVisible() && HasSendText(_field))
 		&& !readyToForward()
 		&& !isEditingMessage()
 		&& !shownStarsPerMessage();
@@ -2577,7 +2797,7 @@ void ComposeControls::fieldChanged() {
 		&& !_header->isEditingMessage()
 		&& (_textUpdateEvents & TextUpdateEvent::SendTyping));
 	updateSendButtonType();
-	_hasSendText = HasSendText(_field);
+	_hasSendText = _field->isVisible() && HasSendText(_field);
 	if (updateBotCommandShown() || updateLikeShown()) {
 		updateControlsVisibility();
 		updateControlsGeometry(_wrap->size());
@@ -2592,6 +2812,9 @@ void ComposeControls::fieldChanged() {
 	checkCharsLimitation();
 
 	_saveCloudDraftTimer.cancel();
+	if (bypassNormalDraftHandling()) {
+		return;
+	}
 	if (!(_textUpdateEvents & TextUpdateEvent::SaveDraft)) {
 		return;
 	}
@@ -2600,6 +2823,10 @@ void ComposeControls::fieldChanged() {
 }
 
 void ComposeControls::saveDraftDelayed() {
+	if (bypassNormalDraftHandling()) {
+		cancelPendingDraftSaves();
+		return;
+	}
 	if (!(_textUpdateEvents & TextUpdateEvent::SaveDraft)) {
 		return;
 	}
@@ -2634,6 +2861,10 @@ Data::DraftKey ComposeControls::draftKeyCurrent() const {
 }
 
 void ComposeControls::saveDraftWithTextNow() {
+	if (bypassNormalDraftHandling()) {
+		cancelPendingDraftSaves();
+		return;
+	}
 	_saveDraftText = true;
 	_saveDraftStart = crl::now();
 	saveDraft();
@@ -2653,7 +2884,18 @@ void ComposeControls::saveDraft(bool delayed) {
 }
 
 void ComposeControls::saveCloudDraft() {
+	if (bypassNormalDraftHandling()) {
+		_saveCloudDraftTimer.cancel();
+		return;
+	}
 	session().api().saveCurrentDraftToCloud();
+}
+
+void ComposeControls::cancelPendingDraftSaves() {
+	_saveDraftStart = 0;
+	_saveDraftText = false;
+	_saveDraftTimer.cancel();
+	_saveCloudDraftTimer.cancel();
 }
 
 void ComposeControls::writeDraftTexts() {
@@ -2688,6 +2930,10 @@ void ComposeControls::registerDraftSource() {
 	}
 	const auto key = draftKeyCurrent();
 	if (key != Data::DraftKey::None()) {
+		const auto normal = draftKey(DraftType::Normal);
+		if ((key == normal) && isComposeBoxOpen()) {
+			return;
+		}
 		const auto draft = [=] {
 			return Storage::MessageDraft{
 				_header->getDraftReply(),
@@ -2707,7 +2953,82 @@ void ComposeControls::registerDraftSource() {
 	}
 }
 
+void ComposeControls::unregisterThreadFieldBridge() {
+	_threadFieldBridgeLifetime.destroy();
+	if (_history) {
+		Iv::Editor::UnregisterThreadFieldBridge(
+			_session,
+			_history->peer->id,
+			_topicRootId,
+			_monoforumPeerId);
+	}
+	_threadFieldVisible = false;
+}
+
+void ComposeControls::registerThreadFieldBridge() {
+	if (!_history || !hasRichDraftThreadScope()) {
+		_threadFieldVisible = false;
+		updateFieldVisibility();
+		return;
+	}
+	const auto peerId = _history->peer->id;
+	const auto topicRootId = _topicRootId;
+	const auto monoforumPeerId = _monoforumPeerId;
+	Iv::Editor::RegisterThreadFieldBridge(
+		_session,
+		peerId,
+		topicRootId,
+		monoforumPeerId,
+		[this] {
+			return readThreadFieldDraft();
+		},
+		[this](std::unique_ptr<Data::Draft> draft) {
+			saveThreadFieldDraft(std::move(draft));
+		});
+	std::move(
+		Iv::Editor::FieldVisibleValue(
+			_session,
+			peerId,
+			topicRootId,
+			monoforumPeerId
+		) | rpl::distinct_until_changed()
+	) | rpl::on_next([=](bool visible) {
+		_threadFieldVisible = visible;
+		if (visible && !isEditingMessage()) {
+			cancelPendingDraftSaves();
+		}
+		unregisterDraftSources();
+		registerDraftSource();
+		updateFieldVisibility();
+		updateSendButtonType();
+		updateControlsVisibility();
+		updateHeight();
+		updateControlsGeometry(_wrap->size());
+	}, _threadFieldBridgeLifetime);
+}
+
+void ComposeControls::updateFieldVisibility() {
+	const auto showPreview = shouldShowRichDraftPreview();
+	const auto showField = !_recording.current() && !showPreview;
+	_field->setVisible(showField);
+	_hasSendText = showField && HasSendText(_field);
+	if (_richDraftPreview) {
+		if (showPreview && !_recording.current()) {
+			if (const auto draft = cloudDraft()) {
+				_richDraftPreview->setDraft(*draft);
+			}
+			_richDraftPreview->show();
+		} else {
+			_richDraftPreview->hide();
+		}
+	}
+}
+
 void ComposeControls::writeDrafts() {
+	if (bypassNormalDraftHandling()) {
+		cancelPendingDraftSaves();
+		return;
+	}
 	const auto save = (_history != nullptr)
 		&& (_saveDraftStart > 0)
 		&& (draftKeyCurrent() != Data::DraftKey::None());
@@ -2727,15 +3048,22 @@ void ComposeControls::writeDrafts() {
 }
 
 void ComposeControls::applyCloudDraft() {
-	if (!isEditingMessage()) {
+	if (!isEditingMessage() && !bypassNormalDraftHandling()) {
 		applyDraft(Ui::InputField::HistoryAction::NewEntry);
 	}
 }
 
 void ComposeControls::applyDraft(FieldHistoryAction fieldHistoryAction) {
 	Expects(_history != nullptr);
+	if (bypassNormalDraftHandling()) {
+		updateFieldVisibility();
+		return;
+	}
 
 	const auto editDraft = _history->draft(draftKey(DraftType::Edit));
+	const auto richDraft = shouldShowRichDraftPreview()
+		? cloudDraft()
+		: nullptr;
 	const auto draft = editDraft
 		? editDraft
 		: _history->draft(draftKey(DraftType::Normal));
@@ -2760,6 +3088,18 @@ void ComposeControls::applyDraft(FieldHistoryAction fieldHistoryAction) {
 	});
 
 	const auto hadFocus = Ui::InFocusChain(_field);
+	if (richDraft) {
+		_header->replyToMessage(richDraft->reply);
+		_header->editMessage({}, {});
+		if (_preview) {
+			_preview->apply({ .removed = true });
+			_preview->setDisabled(false);
+		}
+		_canReplaceMedia = _canAddMedia = false;
+		_photoEditMedia = nullptr;
+		updateFieldVisibility();
+		return;
+	}
 	if (!draft) {
 		clearFieldText(0, fieldHistoryAction);
 		if (hadFocus) {
@@ -2773,6 +3113,7 @@ void ComposeControls::applyDraft(FieldHistoryAction fieldHistoryAction) {
 		}
 		_canReplaceMedia = _canAddMedia = false;
 		_photoEditMedia = nullptr;
+		updateFieldVisibility();
 		return;
 	}
 
@@ -2855,6 +3196,7 @@ void ComposeControls::applyDraft(FieldHistoryAction fieldHistoryAction) {
 			_preview->setDisabled(false);
 		}
 	}
+	updateFieldVisibility();
 	checkCharsLimitation();
 }
 
@@ -3290,10 +3632,11 @@ void ComposeControls::initVoiceRecordBar() {
 			changeFocusedControl();
 		}
 		_field->setDisabled(active);
-		_field->setVisible(!active);
+		updateFieldVisibility();
 		if (!active) {
 			changeFocusedControl();
 			_recording = false;
+			updateFieldVisibility();
 		}
 		updateAiButtonVisibility();
 		updateSendAsFileVisibility();
@@ -3543,7 +3886,7 @@ SendMenu::Details ComposeControls::sendMenuDetails() const {
 }
 
 SendMenu::Details ComposeControls::saveMenuDetails() const {
-	return _header->saveMenuDetails(HasSendText(_field));
+	return _header->saveMenuDetails(_field->isVisible() && HasSendText(_field));
 }
 
 SendMenu::Details ComposeControls::sendButtonMenuDetails() const {
@@ -3602,6 +3945,9 @@ void ComposeControls::updateControlsGeometry(QSize size) {
 	// (_commentsShown) (_attachToggle|_replaceMedia) (_sendAs) -- _inlineResults ------ _tabbedPanel -- _fieldBarCancel (_starsReaction)
 	// (_attachDocument|_attachPhoto) _field (_ttlInfo) (_scheduled) (_silent|_botCommandStart) _tabbedSelectorToggle _send
 
+	const auto oldComposeHeight = shouldShowRichDraftPreview()
+		? _richDraftPreview->height()
+		: _field->height();
 	const auto commentsShown = _commentsShown
 		&& !_commentsShown->isHidden();
 	const auto fieldWidth = size.width()
@@ -3624,11 +3970,21 @@ void ComposeControls::updateControlsGeometry(QSize size) {
 			? (_st.starsSkip + _starsReaction->width())
 			: 0);
 	{
-		const auto oldFieldHeight = _field->height();
 		_field->resizeToWidth(fieldWidth);
-		// If a height of the field is changed
-		// then this method will be called with the updated size.
-		if (oldFieldHeight != _field->height()) {
+		if (_richDraftPreview) {
+			[[maybe_unused]] const auto previewHeight
+				= _richDraftPreview->resizeGetHeight(
+				fieldWidth,
+				_st.field.heightMin,
+				std::min(
+					st::historyRichMessagePreviewHeight,
+					st::historyComposeFieldMaxHeight));
+		}
+		const auto newComposeHeight = shouldShowRichDraftPreview()
+			? _richDraftPreview->height()
+			: _field->height();
+		if (oldComposeHeight != newComposeHeight) {
+			updateHeight();
 			return;
 		}
 	}
@@ -3652,14 +4008,19 @@ void ComposeControls::updateControlsGeometry(QSize size) {
 		_sendAs->moveToLeft(left, buttonsTop);
 		left += _sendAs->width();
 	}
-	_field->moveToLeft(
-		left,
-		size.height() - _st.padding.bottom() - _field->height());
+	const auto fieldHeight = shouldShowRichDraftPreview()
+		? _richDraftPreview->height()
+		: _field->height();
+	const auto fieldTop = size.height() - _st.padding.bottom() - fieldHeight;
+	_field->moveToLeft(left, fieldTop);
+	if (_richDraftPreview) {
+		_richDraftPreview->moveToLeft(left, fieldTop);
+	}
 
 	_header->resizeToWidth(size.width());
 	_header->moveToLeft(
 		0,
-		_field->y() - _st.padding.top() - _header->height());
+		fieldTop - _st.padding.top() - _header->height());
 
 	auto right = 0;
 	if (_starsReaction) {
@@ -3808,7 +4169,7 @@ void ComposeControls::updateSendAsFileGeometry() {
 }
 
 bool ComposeControls::updateLikeShown() {
-	auto shown = _like && !HasSendText(_field);
+	auto shown = _like && !(_field->isVisible() && HasSendText(_field));
 	if (_likeShown != shown) {
 		_likeShown = shown;
 		return true;
@@ -3910,7 +4271,7 @@ bool ComposeControls::updateBotCommandShown() {
 			}
 			return false;
 		}();
-		if (hasBotCommands && !HasSendText(_field)) {
+		if (hasBotCommands && !(_field->isVisible() && HasSendText(_field))) {
 			shown = true;
 		}
 	}
@@ -4132,7 +4493,9 @@ void ComposeControls::toggleTabbedSelectorMode() {
 void ComposeControls::updateHeight() {
 	const auto height = (_header->isDisplayed() ? _header->height() : 0)
 		+ _st.padding.top()
-		+ _field->height()
+		+ (shouldShowRichDraftPreview()
+			? _richDraftPreview->height()
+			: _field->height())
 		+ _st.padding.bottom();
 	if (height != _wrap->height()) {
 		_wrap->resize(_wrap->width(), height);
@@ -4677,7 +5040,9 @@ Fn<void()> ComposeControls::restoreTextCallback(
 }
 
 Ui::InputField *ComposeControls::fieldForMention() const {
-	return _writeRestriction.current() ? nullptr : _field.get();
+	return (_writeRestriction.current() || !_field->isVisible())
+		? nullptr
+		: _field.get();
 }
 
 TextWithEntities ComposeControls::prepareTextForEditMsg() const {

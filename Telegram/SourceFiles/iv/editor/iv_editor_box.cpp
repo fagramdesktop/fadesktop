@@ -1280,6 +1280,7 @@ struct WindowHost::Impl final {
 public:
 	explicit Impl(ShowWindowDescriptor descriptor);
 	~Impl();
+	void close();
 
 private:
 	void setupWindow(ShowWindowDescriptor &&descriptor);
@@ -1297,7 +1298,9 @@ private:
 	void finishClose();
 	[[nodiscard]] bool articleChanged();
 	[[nodiscard]] bool showCloseConfirmation();
+	[[nodiscard]] bool showDiscardConfirmation();
 	[[nodiscard]] bool confirmCancel();
+	void discard();
 	void submit();
 
 	std::unique_ptr<Window> _window;
@@ -1309,13 +1312,17 @@ private:
 	object_ptr<Ui::ScrollArea> _scroll = { nullptr };
 	QPointer<Widget> _editor;
 	object_ptr<Toolbar> _toolbar = { nullptr };
+	object_ptr<Ui::RoundButton> _discard = { nullptr };
 	object_ptr<Ui::RoundButton> _cancel = { nullptr };
 	object_ptr<Ui::RoundButton> _submit = { nullptr };
 	object_ptr<ChatHelpers::TabbedSelector> _emojiColumn = { nullptr };
+	Fn<bool()> _discarded;
 	Fn<bool()> _cancelled;
+	Fn<bool()> _changedCancelled;
 	Fn<bool()> _confirmed;
 	Fn<void()> _closed;
 	base::weak_qptr<Ui::GenericBox> _closeConfirmation;
+	base::weak_qptr<Ui::GenericBox> _discardConfirmation;
 	rpl::lifetime _lifetime;
 	int _emojiColumnExtendedBy = 0;
 	bool _emojiColumnShown = false;
@@ -1331,6 +1338,10 @@ WindowHost::Impl::Impl(ShowWindowDescriptor descriptor) {
 
 WindowHost::Impl::~Impl() {
 	hideEmojiColumn(true);
+}
+
+void WindowHost::Impl::close() {
+	finishClose();
 }
 
 void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
@@ -1388,6 +1399,9 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		descriptor.state,
 		std::move(descriptor.showLimitToast)));
 	const auto editor = not_null<Widget*>(_editor.data());
+	if (descriptor.editorCreated) {
+		descriptor.editorCreated(editor);
+	}
 	const auto body = QPointer<QWidget>(window->body().get());
 	setupEmojiColumn(descriptor);
 
@@ -1401,6 +1415,15 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 			_toolbar->hideShownTooltip();
 			toggleEmojiColumn();
 		});
+	if (descriptor.discarded) {
+		_discard = object_ptr<Ui::RoundButton>(
+			_bottom.data(),
+			tr::lng_record_lock_discard(),
+			st::ivEditorDiscardButton);
+		_discard->setClickedCallback([=] {
+			discard();
+		});
+	}
 	_cancel = object_ptr<Ui::RoundButton>(
 		_bottom.data(),
 		tr::lng_cancel(),
@@ -1419,7 +1442,9 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		descriptor.setupSubmitButton(not_null<Ui::RpWidget*>(_submit.data()));
 	}
 
+	_discarded = std::move(descriptor.discarded);
 	_cancelled = std::move(descriptor.cancelled);
+	_changedCancelled = std::move(descriptor.changedCancelled);
 	_confirmed = std::move(descriptor.confirmed);
 	_closed = std::move(descriptor.closed);
 
@@ -1502,7 +1527,10 @@ void WindowHost::Impl::layout() {
 	const auto emojiWidth = _emojiColumnShown ? emojiColumnWidth() : 0;
 	const auto editorWidth = std::max(width - emojiWidth, 0);
 	const auto toolbarHeight = _toolbar->resizeGetHeight(editorWidth);
-	const auto buttonsHeight = std::max(_cancel->height(), _submit->height());
+	auto buttonsHeight = std::max(_cancel->height(), _submit->height());
+	if (_discard) {
+		buttonsHeight = std::max(buttonsHeight, _discard->height());
+	}
 	const auto bottomHeight = padding.top() + buttonsHeight + padding.bottom();
 	const auto contentHeight = std::max(height - toolbarHeight - bottomHeight, 0);
 	const auto buttonsTop = padding.top();
@@ -1513,6 +1541,9 @@ void WindowHost::Impl::layout() {
 		std::max(height - bottomHeight, toolbarHeight),
 		editorWidth,
 		bottomHeight);
+	if (_discard) {
+		_discard->moveToLeft(padding.left(), buttonsTop);
+	}
 	_submit->moveToRight(padding.right(), buttonsTop, editorWidth);
 	_cancel->moveToRight(
 		padding.right()
@@ -1688,13 +1719,45 @@ bool WindowHost::Impl::showCloseConfirmation() {
 	return true;
 }
 
+bool WindowHost::Impl::showDiscardConfirmation() {
+	if (_discardConfirmation) {
+		return true;
+	} else if (!_show || !_show->valid()) {
+		return false;
+	}
+	const auto window = QPointer<Window>(_window.get());
+	const auto discard = [=](Fn<void()> closeBox) {
+		closeBox();
+		if (!window) {
+			return;
+		} else if (!_discarded || _discarded()) {
+			finishClose();
+		}
+	};
+	_discardConfirmation = _show->show(Ui::MakeConfirmBox({
+		.text = tr::lng_iv_editor_discard_draft_sure(tr::now),
+		.confirmed = discard,
+		.confirmText = tr::lng_record_lock_discard(),
+		.confirmStyle = &st::attentionBoxButton,
+	}));
+	return true;
+}
+
 bool WindowHost::Impl::confirmCancel() {
 	if (!articleChanged()) {
 		return !_cancelled || _cancelled();
+	} else if (_changedCancelled) {
+		return _changedCancelled();
 	}
 	return showCloseConfirmation()
 		? false
 		: (!_cancelled || _cancelled());
+}
+
+void WindowHost::Impl::discard() {
+	if (_discard) {
+		[[maybe_unused]] const auto shown = showDiscardConfirmation();
+	}
 }
 
 void WindowHost::Impl::submit() {
@@ -1714,6 +1777,10 @@ WindowHost::WindowHost(ShowWindowDescriptor descriptor)
 }
 
 WindowHost::~WindowHost() = default;
+
+void WindowHost::close() {
+	_impl->close();
+}
 
 std::unique_ptr<WindowHost> ShowWindow(ShowWindowDescriptor descriptor) {
 	if (!descriptor.state) {

@@ -93,6 +93,9 @@ ivEditorBottomControlsButtonSkip: 6px;
 ivEditorSubmitButton: RoundButton(defaultActiveButton) {
 	height: ivEditorToolbarButtonSize;
 }
+ivEditorDiscardButton: RoundButton(attentionBoxButton) {
+	height: ivEditorToolbarButtonSize;
+}
 ivEditorCancelButton: RoundButton(defaultLightButton) {
 	height: ivEditorToolbarButtonSize;
 }

@@ -3251,6 +3251,10 @@ rpl::producer<Widget::ToolbarState> Widget::toolbarStateChanges() const {
 	return _toolbarStateChanges.events_starting_with(toolbarStateValue());
 }
 
+rpl::producer<Widget::AutosaveEvent> Widget::autosaveEvents() const {
+	return _autosaveEvents.events();
+}
+
 void Widget::performToolbarUndoRedo(bool redo) {
 	if (!canPerformFieldUndoRedo(redo) && !canPerformHistoryUndoRedo(redo)) {
 		return;
@@ -5708,6 +5712,9 @@ void Widget::setupInlineField() {
 			}
 			if (!_restoringHistory && !_performingUndoRedo && !_settingField) {
 				clearFieldUndoRedoNoopState();
+				_autosaveEvents.fire({
+					.type = AutosaveEventType::TextIdle,
+				});
 			}
 			crl::on_main(this, [=] {
 				if (!field || (_field.get() != field.data())) {
@@ -7431,8 +7438,8 @@ void Widget::finishMutationTransaction(
 		return;
 	}
 	const auto after = captureHistoryEntry();
-	if (SnapshotEquals(before.snapshot, after.snapshot)
-		&& (before.viewState == after.viewState)) {
+	const auto snapshotChanged = !SnapshotEquals(before.snapshot, after.snapshot);
+	if (!snapshotChanged && (before.viewState == after.viewState)) {
 		return;
 	}
 	truncateHistoryRedo();
@@ -7443,6 +7450,13 @@ void Widget::finishMutationTransaction(
 		_historyIndex,
 		beforeRetainToken);
 	notifyToolbarStateChanged();
+	if (snapshotChanged
+		&& (_state->lastPreparedMutationKind()
+			!= PreparedMutationKind::LeafOnly)) {
+		_autosaveEvents.fire({
+			.type = AutosaveEventType::StructuralMutation,
+		});
+	}
 }
 
 void Widget::retainActiveLeafField(
