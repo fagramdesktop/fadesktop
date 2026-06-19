@@ -1619,16 +1619,24 @@ void Element::refreshMedia(Element *replacing) {
 				.service = true,
 				.hideServiceText = true,
 			});
-	} else if (const auto added = item->Get<HistoryServiceCommunityAdded>()
-		; added && added->community) {
-		_media = std::make_unique<MediaGeneric>(
-			this,
-			GenerateCommunityAddedMedia(this, added->community),
-			MediaGenericDescriptor{
-				.maxWidth = st::msgServiceGiftBoxSize.width(),
-				.service = true,
-				.hideServiceText = true,
-			});
+	} else if (const auto added = item->Get<HistoryServiceCommunityAdded>()) {
+		if (!added->community && added->communityId) {
+			// Resolve lazily in case the channel loaded after parse time.
+			added->community = history()->owner().channelLoaded(
+				added->communityId);
+		}
+		if (added->community) {
+			_media = std::make_unique<MediaGeneric>(
+				this,
+				GenerateCommunityAddedMedia(this, added->community),
+				MediaGenericDescriptor{
+					.maxWidth = st::msgServiceGiftBoxSize.width(),
+					.service = true,
+					.hideServiceText = true,
+				});
+		} else {
+			_media = nullptr;
+		}
 	} else {
 		_media = nullptr;
 	}

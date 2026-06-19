@@ -50,6 +50,7 @@ public:
 
 	void registerOne(not_null<History*> history);
 	void unregisterOne(not_null<History*> history);
+	void refreshOneMembership(not_null<History*> history);
 	[[nodiscard]] auto histories() const
 	-> const base::flat_set<not_null<History*>> & {
 		return _histories;
@@ -74,6 +75,7 @@ public:
 	}
 
 private:
+	void memberAdded(not_null<History*> history);
 	void recountChatsListDate();
 	void reorderLastHistories();
 	void updateRowSortPosition();
@@ -86,7 +88,12 @@ private:
 	rpl::event_stream<> _linkedPeersChanges;
 	rpl::event_stream<> _refreshed;
 
+	// Member chats (amIn()) the user is joined to; the source of the
+	// grouped row's aggregated badge / date / preview. Non-member linked
+	// chats whose History is loaded are tracked separately in
+	// _otherHistories so they never leak into those aggregates.
 	base::flat_set<not_null<History*>> _histories;
+	base::flat_set<not_null<History*>> _otherHistories;
 	std::vector<not_null<History*>> _lastHistories;
 	Ui::Text::String _listEntryCache;
 	int _listEntryCacheVersion = 0;

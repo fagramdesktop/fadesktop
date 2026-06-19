@@ -194,6 +194,14 @@ namespace {
 constexpr auto kArchivedToastDuration = crl::time(5000);
 constexpr auto kMaxUnreadWithoutConfirmation = 1000;
 
+[[nodiscard]] bool InsideCollapsedCommunity(History *history) {
+	// A member chat hidden inside a collapsed community lives in that
+	// community's own list, not the main chats list, so the top-level
+	// placement actions (archive / pin / add-to-folder) don't apply to it.
+	const auto info = history ? history->communityListInfo() : nullptr;
+	return info && info->collapsedInDialogs();
+}
+
 [[nodiscard]] QString LookupMemberRank(
 		not_null<PeerData*> peer,
 		not_null<UserData*> user) {
@@ -554,6 +562,8 @@ void Filler::addTogglePin() {
 		&& community->isCommunity()
 		&& !community->collapsedInDialogs()) {
 		return;
+	} else if (InsideCollapsedCommunity(_request.key.history())) {
+		return;
 	}
 	const auto pinText = [=] {
 		return entry->isPinnedDialog(filterId)
@@ -676,6 +686,8 @@ void Filler::addToggleFolder() {
 		; channel
 		&& channel->isCommunity()
 		&& !channel->collapsedInDialogs()) {
+		return;
+	} else if (InsideCollapsedCommunity(history)) {
 		return;
 	}
 	_addAction(PeerMenuCallback::Args{
@@ -4336,6 +4348,8 @@ bool CanArchive(History *history, PeerData *peer) {
 		return false;
 	} else if (const auto channel = peer ? peer->asChannel() : nullptr
 		; channel && channel->isCommunity()) {
+		return false;
+	} else if (InsideCollapsedCommunity(history)) {
 		return false;
 	} else if (peer && (peer->isNotificationsUser() || peer->isSelf())) {
 		if (!history || !history->folder()) {

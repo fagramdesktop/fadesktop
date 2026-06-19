@@ -41,6 +41,12 @@ struct CommunityParticipantJoinedChats {
 	std::vector<not_null<PeerData*>> joinedChats;
 };
 
+enum class PeerLinkAction {
+	Visible,
+	Hidden,
+	Deleted,
+};
+
 class Communities final {
 public:
 	explicit Communities(not_null<ApiWrap*> api);
@@ -105,8 +111,7 @@ private:
 	void togglePeerLink(
 		not_null<ChannelData*> community,
 		not_null<PeerData*> peer,
-		std::optional<bool> visible,
-		bool remove,
+		PeerLinkAction action,
 		Fn<void()> done,
 		Fn<void(const QString &)> fail);
 
@@ -114,6 +119,9 @@ private:
 	MTP::Sender _api;
 
 	base::flat_set<not_null<ChannelData*>> _collapseRequests;
+	base::flat_map<
+		not_null<ChannelData*>,
+		mtpRequestId> _peerLinkRequestsRequests;
 	mtpRequestId _joinedRequestId = 0;
 
 };

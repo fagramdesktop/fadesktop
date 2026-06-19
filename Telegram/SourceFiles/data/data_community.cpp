@@ -155,14 +155,20 @@ void CommunityInfo::applyLinkedPeers(const QVector<MTPCommunityPeer> &list) {
 			history->peer,
 			&CommunityLinkedPeer::peer);
 	};
-	for (const auto &history : base::duplicate(_histories)) {
-		if (!stillLinked(history)) {
-			const auto channel = history->peer->asChannel();
-			if (channel && channel->linkedCommunityId() == communityId) {
-				channel->setLinkedCommunityId(ChannelId());
+	const auto unlinkStale = [&](
+			const base::flat_set<not_null<History*>> &set) {
+		for (const auto &history : base::duplicate(set)) {
+			if (!stillLinked(history)) {
+				const auto channel = history->peer->asChannel();
+				if (channel
+					&& channel->linkedCommunityId() == communityId) {
+					channel->setLinkedCommunityId(ChannelId());
+				}
 			}
 		}
-	}
+	};
+	unlinkStale(_histories);
+	unlinkStale(_otherHistories);
 	++_chatListViewVersion;
 	repaintRow();
 	_linkedPeersChanges.fire({});
@@ -183,7 +189,7 @@ bool CommunityInfo::isHidden(not_null<PeerData*> peer) const {
 }
 
 bool CommunityInfo::collapsedInDialogs() const {
-	return _channel->flags() & ChannelDataFlag::CommunityCollapsed;
+	return _channel->collapsedInDialogs();
 }
 
 void CommunityInfo::moveHistory(
@@ -222,9 +228,58 @@ void CommunityInfo::ensureRowInChatList() {
 }
 
 void CommunityInfo::registerOne(not_null<History*> history) {
-	if (!_histories.emplace(history).second) {
+	const auto channel = history->peer->asChannel();
+	if (channel && channel->amIn()) {
+		if (!_histories.emplace(history).second) {
+			return;
+		}
+		memberAdded(history);
+	} else if (!_otherHistories.emplace(history).second) {
 		return;
 	}
+	ensureRowInChatList();
+	updateRowSortPosition();
+}
+
+void CommunityInfo::unregisterOne(not_null<History*> history) {
+	if (!_histories.remove(history)) {
+		_otherHistories.remove(history);
+		return;
+	}
+	if (history->chatListTimeId() >= _chatsListDate) {
+		recountChatsListDate();
+	}
+	reorderLastHistories();
+	updateRowSortPosition();
+}
+
+void CommunityInfo::refreshOneMembership(not_null<History*> history) {
+	const auto channel = history->peer->asChannel();
+	if (channel && channel->amIn()) {
+		// A non-member linked chat the user just joined moves into the
+		// member aggregate.
+		if (_histories.contains(history)
+			|| !_otherHistories.remove(history)) {
+			return;
+		}
+		_histories.emplace(history);
+		memberAdded(history);
+		updateRowSortPosition();
+	} else {
+		// A member chat the user just left moves out of the aggregate.
+		if (!_histories.remove(history)) {
+			return;
+		}
+		_otherHistories.emplace(history);
+		if (history->chatListTimeId() >= _chatsListDate) {
+			recountChatsListDate();
+		}
+		reorderLastHistories();
+		updateRowSortPosition();
+	}
+}
+
+void CommunityInfo::memberAdded(not_null<History*> history) {
 	const auto date = history->chatListTimeId();
 	if (date > _chatsListDate) {
 		_chatsListDate = date;
@@ -233,19 +288,6 @@ void CommunityInfo::registerOne(not_null<History*> history) {
 	if (collapsedInDialogs()) {
 		history->updateChatListExistence();
 	}
-	ensureRowInChatList();
-	updateRowSortPosition();
-}
-
-void CommunityInfo::unregisterOne(not_null<History*> history) {
-	if (!_histories.remove(history)) {
-		return;
-	}
-	if (history->chatListTimeId() >= _chatsListDate) {
-		recountChatsListDate();
-	}
-	reorderLastHistories();
-	updateRowSortPosition();
 }
 
 void CommunityInfo::oneChatsListDateChanged(TimeId was, TimeId now) {
@@ -270,10 +312,6 @@ void CommunityInfo::oneUnreadStateChanged() {
 void CommunityInfo::recountChatsListDate() {
 	auto result = TimeId(0);
 	for (const auto &history : _histories) {
-		const auto channel = history->peer->asChannel();
-		if (channel && !channel->amIn()) {
-			continue;
-		}
 		result = std::max(result, history->chatListTimeId());
 	}
 	_chatsListDate = result;
@@ -291,10 +329,6 @@ void CommunityInfo::reorderLastHistories() {
 	_lastHistories.reserve(
 		std::min(int(_histories.size()), kShowChatNamesCount));
 	for (const auto &history : _histories) {
-		const auto channel = history->peer->asChannel();
-		if (channel && !channel->amIn()) {
-			continue;
-		}
 		const auto i = ranges::upper_bound(_lastHistories, history, pred);
 		if (int(_lastHistories.size()) < kShowChatNamesCount
 			|| i != end(_lastHistories)) {

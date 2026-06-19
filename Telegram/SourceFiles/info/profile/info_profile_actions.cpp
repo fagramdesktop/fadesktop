@@ -2611,23 +2611,19 @@ Section DetailsFiller::makeCommunityLink(not_null<ChannelData*> channel) {
 	delegate->setContent(content);
 	controller->setDelegate(delegate);
 
-	auto hidden = rpl::single(rpl::empty) | rpl::then(
-		channel->session().changes().peerUpdates(
-			community,
-			Data::PeerUpdate::Flag::FullInfo
-		) | rpl::to_empty
+	auto hidden = channel->session().changes().peerFlagsValue(
+		community,
+		Data::PeerUpdate::Flag::FullInfo
 	) | rpl::map([=] {
-		const auto info = community->communityInfo();
+		return community->communityInfo();
+	}) | rpl::map([=](Data::CommunityInfo *info) -> rpl::producer<bool> {
 		if (!info) {
-			return false;
+			return rpl::single(false);
 		}
-		for (const auto &linked : info->linkedPeers()) {
-			if (linked.peer == channel) {
-				return linked.visible.has_value() && !*linked.visible;
-			}
-		}
-		return false;
-	}) | rpl::start_spawning(container->lifetime());
+		return info->linkedPeersValue() | rpl::map([=] {
+			return info->isHidden(channel);
+		});
+	}) | rpl::flatten_latest() | rpl::start_spawning(container->lifetime());
 
 	const auto hiddenWrap = container->add(
 		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(

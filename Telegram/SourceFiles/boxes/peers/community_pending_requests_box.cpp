@@ -48,17 +48,7 @@ constexpr auto kPerPage = 100;
 constexpr auto kAcceptButton = 1;
 constexpr auto kRejectButton = 2;
 constexpr auto kUndoToastDuration = crl::time(3000);
-
-struct PendingAction {
-	enum class Stage {
-		Pending,
-		Performed,
-		Undone,
-	};
-	not_null<PeerData*> peer;
-	bool reject = false;
-	Stage stage = Stage::Pending;
-};
+constexpr auto kPendingRowOpacity = 0.4;
 
 [[nodiscard]] object_ptr<Ui::RpWidget> MakeUserpicToastIcon(
 		not_null<PeerData*> peer,
@@ -183,10 +173,13 @@ struct PendingAction {
 	return result;
 }
 
+class Row;
+
 class RowDelegate {
 public:
 	[[nodiscard]] virtual QSize rowAcceptButtonSize() = 0;
 	[[nodiscard]] virtual QSize rowRejectButtonSize() = 0;
+	virtual void rowUpdateRow(not_null<Row*> row) = 0;
 	virtual void rowPaintAccept(
 		Painter &p,
 		QRect geometry,
@@ -207,6 +200,13 @@ public:
 		not_null<RowDelegate*> delegate,
 		const Api::CommunityPeerRequest &request);
 
+	[[nodiscard]] bool pending() const {
+		return _pending;
+	}
+	void setPending(bool pending);
+
+	float64 opacity() override;
+
 	int elementsCount() const override;
 	QRect elementGeometry(int element, int outerWidth) const override;
 	bool elementDisabled(int element) const override;
@@ -226,6 +226,7 @@ private:
 	const not_null<RowDelegate*> _delegate;
 	std::unique_ptr<Ui::RippleAnimation> _acceptRipple;
 	std::unique_ptr<Ui::RippleAnimation> _rejectRipple;
+	bool _pending = false;
 
 };
 
@@ -253,6 +254,21 @@ Row::Row(
 	setCustomStatus(status);
 }
 
+void Row::setPending(bool pending) {
+	if (_pending == pending) {
+		return;
+	}
+	_pending = pending;
+	if (_pending) {
+		elementsStopLastRipple();
+	}
+	_delegate->rowUpdateRow(this);
+}
+
+float64 Row::opacity() {
+	return _pending ? kPendingRowOpacity : 1.;
+}
+
 int Row::elementsCount() const {
 	return 2;
 }
@@ -276,7 +292,7 @@ QRect Row::elementGeometry(int element, int outerWidth) const {
 }
 
 bool Row::elementDisabled(int element) const {
-	return false;
+	return _pending;
 }
 
 bool Row::elementOnlySelect(int element) const {
@@ -326,6 +342,9 @@ void Row::elementsPaint(
 		int outerWidth,
 		bool selected,
 		int selectedElement) {
+	if (_pending) {
+		return;
+	}
 	const auto accept = elementGeometry(kAcceptButton, outerWidth);
 	const auto reject = elementGeometry(kRejectButton, outerWidth);
 
@@ -345,6 +364,18 @@ void Row::elementsPaint(
 		outerWidth,
 		over(kRejectButton));
 }
+
+struct PendingAction {
+	enum class Stage {
+		Pending,
+		Performed,
+		Undone,
+	};
+	not_null<Row*> row;
+	not_null<PeerData*> peer;
+	bool reject = false;
+	Stage stage = Stage::Pending;
+};
 
 class Controller final
 	: public PeerListController
@@ -370,6 +401,7 @@ public:
 
 	QSize rowAcceptButtonSize() override;
 	QSize rowRejectButtonSize() override;
+	void rowUpdateRow(not_null<Row*> row) override;
 	void rowPaintAccept(
 		Painter &p,
 		QRect geometry,
@@ -403,7 +435,8 @@ private:
 	const not_null<ChannelData*> _community;
 	QPointer<QWidget> _toastParent;
 	base::weak_ptr<Ui::Toast::Instance> _toast;
-	std::shared_ptr<PendingAction> _pending;
+	std::vector<std::shared_ptr<PendingAction>> _pending;
+	std::shared_ptr<PendingAction> _current;
 
 	QString _offset;
 	bool _allLoaded = false;
@@ -470,7 +503,14 @@ void Controller::loadMoreRows() {
 		}));
 }
 
+void Controller::rowUpdateRow(not_null<Row*> row) {
+	delegate()->peerListUpdateRow(row);
+}
+
 void Controller::rowClicked(not_null<PeerListRow*> row) {
+	if (static_cast<Row*>(row.get())->pending()) {
+		return;
+	}
 	const auto peer = row->peer();
 	if (const auto window = _navigation->parentController()) {
 		window->showPeer(peer);
@@ -490,16 +530,17 @@ void Controller::rowElementClicked(
 void Controller::startUndoable(not_null<PeerListRow*> row, bool reject) {
 	hideCurrentToast();
 
+	const auto raw = static_cast<Row*>(row.get());
 	const auto peer = row->peer();
-	const auto id = peer->id.value;
-	delegate()->peerListSetRowHidden(row, true);
-	delegate()->peerListRefreshRows();
+	raw->setPending(true);
 
 	const auto action = std::make_shared<PendingAction>(PendingAction{
+		.row = raw,
 		.peer = peer,
 		.reject = reject,
 	});
-	_pending = action;
+	_pending.push_back(action);
+	_current = action;
 
 	if (!_toastParent) {
 		performNow(action);
@@ -551,17 +592,20 @@ void Controller::startUndoable(not_null<PeerListRow*> row, bool reject) {
 		}
 	};
 	const auto undo = [=] {
-		action->stage = PendingAction::Stage::Undone;
-		if (const auto restore = delegate()->peerListFindRow(id)) {
-			delegate()->peerListSetRowHidden(restore, false);
-			delegate()->peerListRefreshRows();
+		if (action->stage != PendingAction::Stage::Pending) {
+			return;
 		}
+		action->stage = PendingAction::Stage::Undone;
+		action->row->setPending(false);
 		if (const auto strong = _toast.get()) {
 			strong->hideAnimated();
 		}
-		if (_pending == action) {
-			_pending = nullptr;
+		if (_current == action) {
+			_current = nullptr;
 		}
+		_pending.erase(
+			ranges::remove(_pending, action),
+			end(_pending));
 	};
 	const auto button = MakeUndoButton(
 		widget.get(),
@@ -587,9 +631,10 @@ void Controller::performNow(const std::shared_ptr<PendingAction> &action) {
 		return;
 	}
 	action->stage = PendingAction::Stage::Performed;
-	if (_pending == action) {
-		_pending = nullptr;
+	if (_current == action) {
+		_current = nullptr;
 	}
+	_pending.erase(ranges::remove(_pending, action), end(_pending));
 	const auto peer = action->peer;
 	const auto id = peer->id.value;
 	const auto reject = action->reject;
@@ -609,13 +654,20 @@ void Controller::performNow(const std::shared_ptr<PendingAction> &action) {
 }
 
 void Controller::hideCurrentToast() {
+	// Perform the outgoing action explicitly instead of relying on the
+	// fading toast's destruction callback, which may never fire if the
+	// box is closed before the fade finishes.
+	if (const auto action = base::take(_current)) {
+		performNow(action);
+	}
 	if (const auto strong = base::take(_toast).get()) {
 		strong->hideAnimated();
 	}
 }
 
 void Controller::flushPendingOnClose() {
-	if (const auto action = base::take(_pending)) {
+	_current = nullptr;
+	for (const auto &action : base::take(_pending)) {
 		performNow(action);
 	}
 	if (const auto strong = base::take(_toast).get()) {

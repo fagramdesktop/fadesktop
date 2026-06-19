@@ -1227,6 +1227,18 @@ void ApiWrap::requestFullPeer(not_null<PeerData*> peer) {
 	_fullPeerRequests.emplace(peer, requestId);
 }
 
+void ApiWrap::reloadFullPeer(not_null<PeerData*> peer) {
+	// Force a fresh full-peer fetch even if one is already in flight, so the
+	// result reflects the latest server state instead of a possibly stale
+	// in-flight response (used after a mutation like approving a join request).
+	if (const auto i = _fullPeerRequests.find(peer)
+		; i != end(_fullPeerRequests)) {
+		request(i->second).cancel();
+		_fullPeerRequests.erase(i);
+	}
+	requestFullPeer(peer);
+}
+
 void ApiWrap::processFullPeer(
 		not_null<PeerData*> peer,
 		const MTPmessages_ChatFull &result) {

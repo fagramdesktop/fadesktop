@@ -92,8 +92,7 @@ void Communities::addPeerLink(
 	togglePeerLink(
 		community,
 		peer,
-		visible,
-		false,
+		visible ? PeerLinkAction::Visible : PeerLinkAction::Hidden,
 		std::move(done),
 		std::move(fail));
 }
@@ -106,8 +105,7 @@ void Communities::removePeerLink(
 	togglePeerLink(
 		community,
 		peer,
-		std::nullopt,
-		true,
+		PeerLinkAction::Deleted,
 		std::move(done),
 		std::move(fail));
 }
@@ -115,14 +113,15 @@ void Communities::removePeerLink(
 void Communities::togglePeerLink(
 		not_null<ChannelData*> community,
 		not_null<PeerData*> peer,
-		std::optional<bool> visible,
-		bool remove,
+		PeerLinkAction action,
 		Fn<void()> done,
 		Fn<void(const QString &)> fail) {
 	using Flag = MTPcommunities_TogglePeerLink::Flag;
-	const auto flags = (remove ? Flag::f_deleted : Flag())
-		| (visible.value_or(false) ? Flag::f_visible : Flag())
-		| ((visible && !*visible) ? Flag::f_hidden : Flag());
+	const auto flags = (action == PeerLinkAction::Deleted)
+		? Flag::f_deleted
+		: (action == PeerLinkAction::Hidden)
+		? Flag::f_hidden
+		: Flag::f_visible;
 	_api.request(MTPcommunities_TogglePeerLink(
 		MTP_flags(flags),
 		community->inputChannel(),
@@ -180,8 +179,11 @@ void Communities::toggleCollapsedInDialogs(
 	if (!_collapseRequests.emplace(community).second) {
 		return;
 	}
+	const auto history = community->owner().history(community);
 	const auto was = (community->flags()
 		& ChannelDataFlag::CommunityCollapsed) != 0;
+	const auto wasPinned = history->folderKnown()
+		&& history->isPinnedDialog(FilterId());
 	const auto apply = [=](bool value) {
 		if (value) {
 			community->addFlags(ChannelDataFlag::CommunityCollapsed);
@@ -189,13 +191,10 @@ void Communities::toggleCollapsedInDialogs(
 			community->removeFlags(ChannelDataFlag::CommunityCollapsed);
 		}
 	};
+
+	// Clearing the flag drops the grouped row from the chat list, which
+	// self-unpins it; the server's updateDialogPinned confirms it on done.
 	apply(collapsed);
-	if (!collapsed) {
-		const auto history = community->owner().history(community);
-		if (history->folderKnown() && history->isPinnedDialog(FilterId())) {
-			community->owner().setChatPinned(history, FilterId(), false);
-		}
-	}
 	using Flag = MTPcommunities_ToggleCommunityCollapsedInDialogs::Flag;
 	_api.request(MTPcommunities_ToggleCommunityCollapsedInDialogs(
 		MTP_flags(collapsed ? Flag::f_collapsed : Flag()),
@@ -206,6 +205,9 @@ void Communities::toggleCollapsedInDialogs(
 	}).fail([=] {
 		_collapseRequests.remove(community);
 		apply(was);
+		if (wasPinned) {
+			community->owner().setChatPinned(history, FilterId(), true);
+		}
 	}).send();
 }
 
@@ -214,11 +216,17 @@ void Communities::requestPeerLinkRequests(
 		const QString &offset,
 		int limit,
 		Fn<void(CommunityPeerRequestsSlice)> done) {
-	_api.request(MTPcommunities_GetPeerLinkRequests(
+	const auto i = _peerLinkRequestsRequests.find(community);
+	if (i != end(_peerLinkRequestsRequests)) {
+		_api.request(i->second).cancel();
+		_peerLinkRequestsRequests.erase(i);
+	}
+	const auto requestId = _api.request(MTPcommunities_GetPeerLinkRequests(
 		community->inputChannel(),
 		MTP_string(offset),
 		MTP_int(limit)
 	)).done([=](const MTPcommunities_PeerLinkRequests &result) {
+		_peerLinkRequestsRequests.remove(community);
 		const auto &data = result.data();
 		auto &owner = _session->data();
 		owner.processUsers(data.vusers());
@@ -244,10 +252,12 @@ void Communities::requestPeerLinkRequests(
 			done(std::move(slice));
 		}
 	}).fail([=] {
+		_peerLinkRequestsRequests.remove(community);
 		if (done) {
 			done({});
 		}
 	}).send();
+	_peerLinkRequestsRequests[community] = requestId;
 }
 
 void Communities::togglePeerLinkRequestApproval(
@@ -262,10 +272,16 @@ void Communities::togglePeerLinkRequestApproval(
 		community->inputChannel(),
 		peer->input()
 	)).done([=] {
+		// Optimistic decrement for instant feedback, then a forced fresh full
+		// fetch for the authoritative count and the newly-added member. A plain
+		// requestFullPeer() would be deduped against an in-flight full fetch (the
+		// surface requests it lazily) and the older stale response would clobber
+		// the count back to the pre-approval value; reloadFullPeer cancels that
+		// stale request and refetches.
 		community->setPendingRequestsCount(
 			std::max(community->pendingRequestsCount() - 1, 0),
 			QVector<MTPlong>());
-		_session->api().requestFullPeer(community);
+		_session->api().reloadFullPeer(community);
 		if (done) {
 			done();
 		}
@@ -286,8 +302,11 @@ void Communities::toggleAllPeerLinkRequestApproval(
 		MTP_flags(reject ? Flag::f_reject : Flag()),
 		community->inputChannel()
 	)).done([=] {
+		// Optimistic reset, then a forced fresh full fetch for the authoritative
+		// state; see togglePeerLinkRequestApproval for why reloadFullPeer (not a
+		// dedupable requestFullPeer) is used here.
 		community->setPendingRequestsCount(0, QVector<MTPlong>());
-		_session->api().requestFullPeer(community);
+		_session->api().reloadFullPeer(community);
 		if (done) {
 			done();
 		}

@@ -5501,13 +5501,32 @@ void HistoryItem::createServiceFromMtp(const MTPDmessageService &message) {
 		}
 	} else if (type == mtpc_messageActionChangeCommunity) {
 		const auto &data = action.c_messageActionChangeCommunity();
-		const auto communityId = data.vcommunity_id().value_or_empty();
-		if (communityId) {
-			const auto community = _history->owner().channelLoaded(
-				ChannelId(communityId));
-			if (community) {
-				UpdateComponents(HistoryServiceCommunityAdded::Bit());
-				Get<HistoryServiceCommunityAdded>()->community = community;
+		if (data.vcommunity_id().has_value()) {
+			const auto communityId = ChannelId(data.vcommunity_id()->v);
+			const auto owner = &_history->owner();
+			UpdateComponents(HistoryServiceCommunityAdded::Bit());
+			const auto added = Get<HistoryServiceCommunityAdded>();
+			added->communityId = communityId;
+			added->community = owner->channelLoaded(communityId);
+			added->lifetime.destroy();
+			if (!added->community) {
+				// The community channel isn't loaded yet, re-resolve once it
+				// materializes so that both the card and the text appear.
+				using Flag = Data::PeerUpdate::Flag;
+				owner->session().changes().peerUpdates(
+					owner->channel(communityId),
+					Flag::Name | Flag::Photo | Flag::Username | Flag::FullInfo
+				) | rpl::filter([=] {
+					return (owner->channelLoaded(communityId) != nullptr);
+				}) | rpl::take(1) | rpl::on_next([=] {
+					const auto added = Get<HistoryServiceCommunityAdded>();
+					if (!added) {
+						return;
+					}
+					added->community = owner->channelLoaded(communityId);
+					setServiceMessageByAction(action);
+					owner->requestItemViewRefresh(this);
+				}, added->lifetime);
 			}
 		}
 	}
@@ -7304,10 +7323,19 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 	auto prepareChangeCommunity = [this](const MTPDmessageActionChangeCommunity &action) {
 		auto result = PreparedServiceText();
 		result.links.push_back(fromLink());
-		const auto communityId = action.vcommunity_id().value_or_empty();
-		const auto community = communityId
-			? _history->owner().channelLoaded(ChannelId(communityId))
-			: nullptr;
+		const auto present = action.vcommunity_id().has_value();
+		// Resolve against the same cached community as the card uses, so the
+		// text and the card never disagree.
+		const auto community = [&]() -> ChannelData* {
+			if (!present) {
+				return nullptr;
+			} else if (const auto added = Get<HistoryServiceCommunityAdded>()
+				; added && added->community) {
+				return added->community;
+			}
+			return _history->owner().channelLoaded(
+				ChannelId(action.vcommunity_id()->v));
+		}();
 		if (community && !community->name().isEmpty()) {
 			result.links.push_back(community->createOpenLink());
 			result.text = tr::lng_action_community_added(
@@ -7317,7 +7345,7 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 				lt_community,
 				tr::link(community->name(), 2),
 				tr::marked);
-		} else if (communityId) {
+		} else if (present) {
 			result.text = tr::lng_action_community_added_unknown(
 				tr::now,
 				lt_from,

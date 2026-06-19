@@ -61,7 +61,6 @@ private:
 	FlexibleScrollData _flexibleScroll;
 	InnerWidget *_inner = nullptr;
 	base::weak_qptr<Ui::RpWidget> _pinnedToTop;
-	base::weak_qptr<Ui::RpWidget> _pinnedToBottom;
 	std::unique_ptr<FlexibleScrollHelper> _flexibleScrollHelper;
 
 };

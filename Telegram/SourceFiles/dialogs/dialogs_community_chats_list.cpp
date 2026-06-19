@@ -36,13 +36,16 @@ CommunityChatsList::CommunityChatsList(
 , _st(&st::defaultDialogRow) {
 	setMouseTracking(true);
 	_view.setRepaint([=] { update(); });
-	rebuild();
 
+	// linkedPeersValue() fires immediately on subscription, which performs
+	// the first rebuild below.
 	_community->linkedPeersValue(
 	) | rpl::on_next([=] {
 		rebuild();
 	}, lifetime());
 
+	// Member chats are not MainList rows here, so they repaint via the
+	// community's refreshed() signal (fired on aggregate/unread changes).
 	_community->refreshed(
 	) | rpl::on_next([=] {
 		update();

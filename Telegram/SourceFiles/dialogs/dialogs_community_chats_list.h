@@ -7,7 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
-#include "dialogs/dialogs_community_chats.h"
+#include "dialogs/dialogs_community_rows_view.h"
 #include "ui/rp_widget.h"
 
 class History;

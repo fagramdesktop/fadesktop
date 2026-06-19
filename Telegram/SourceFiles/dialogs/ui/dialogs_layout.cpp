@@ -620,13 +620,18 @@ void PaintRow(
 			st::dialogsTextFont->height);
 		PaintFolderEntryText(p, folder, context, rect);
 	} else if (const auto info = CommunityListInfo(history)) {
+		// Unlike the Archive folder (fixed on top), a collapsed community is
+		// a movable pinned entry, so it shows the pinned icon when pinned and
+		// without an unread counter, exactly like an ordinary chat.
+		const auto displayPinnedIcon = entry->isPinnedDialog(context.filter)
+			&& (context.filter || !entry->fixedOnTopIndex());
 		const auto availableWidth = PaintWideCounter(
 			p,
 			context,
 			badgesState,
 			texttop,
 			namewidth,
-			false);
+			displayPinnedIcon);
 		const auto rect = QRect(
 			nameleft,
 			texttop,

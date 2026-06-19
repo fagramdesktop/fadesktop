@@ -48,7 +48,7 @@ constexpr auto kMaxNotifyCheckDelay = 24 * 3600 * crl::time(1000);
 	} else if (const auto chat = peer->asChat()) {
 		return chat->isDeactivated() || chat->isForbidden();
 	} else if (const auto channel = peer->asChannel()) {
-		return channel->isForbidden();
+		return channel->isForbidden() || channel->isCommunity();
 	}
 	return false;
 }

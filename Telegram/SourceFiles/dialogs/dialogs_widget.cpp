@@ -1676,7 +1676,7 @@ void Widget::updateControlsVisibility(bool fast) {
 		_frozenAccountBar->show();
 	}
 	if (_chatFilters) {
-		_chatFilters->setVisible(!_openedForum);
+		_chatFilters->setVisible(!_openedForum && !_openedCommunity);
 	}
 	if (_openedFolder || _openedForum || _openedCommunity) {
 		_subsectionTopBar->show();
@@ -1753,7 +1753,8 @@ void Widget::toggleFiltersMenu(bool enabled) {
 	if (_layout == Layout::Child) {
 		enabled = false;
 	}
-	if (const auto id = controller()->windowId(); id.forum() || id.folder()) {
+	if (const auto id = controller()->windowId()
+		; id.forum() || id.folder() || id.community()) {
 		enabled = false;
 	}
 	if (!enabled == !_chatFilters) {
@@ -3754,6 +3755,7 @@ bool Widget::applySearchState(SearchState state) {
 	if (_chatFilters && (queryEmptyChanged || inChatChanged)) {
 		_chatFilters->setVisible(_searchState.query.isEmpty()
 			&& !_openedForum
+			&& !_openedCommunity
 			&& !searchInPeer());
 		updateControlsGeometry();
 	}

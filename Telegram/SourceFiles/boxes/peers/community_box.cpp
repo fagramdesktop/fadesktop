@@ -43,6 +43,19 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace {
 
+[[nodiscard]] std::unique_ptr<PeerListRow> MakeCommunityChatRow(
+		not_null<PeerData*> peer) {
+	auto row = std::make_unique<PeerListRow>(peer);
+	const auto channel = peer->asChannel();
+	if (channel && channel->membersCountKnown()) {
+		row->setCustomStatus(tr::lng_chat_status_members(
+			tr::now,
+			lt_count_decimal,
+			channel->membersCount()));
+	}
+	return row;
+}
+
 class ChatsController final : public PeerListController {
 public:
 	ChatsController(
@@ -89,15 +102,7 @@ void ChatsController::prepare() {
 					delegate()->peerListFullRowsCount() - 1));
 		}
 		for (const auto &peer : list) {
-			auto row = std::make_unique<PeerListRow>(peer);
-			const auto channel = peer->asChannel();
-			if (channel && channel->membersCountKnown()) {
-				row->setCustomStatus(tr::lng_chat_status_members(
-					tr::now,
-					lt_count_decimal,
-					channel->membersCount()));
-			}
-			delegate()->peerListAppendRow(std::move(row));
+			delegate()->peerListAppendRow(MakeCommunityChatRow(peer));
 		}
 		delegate()->peerListRefreshRows();
 		_count = int(list.size());
@@ -339,14 +344,7 @@ void ChooseChatController::prepare() {
 		if (delegate()->peerListFindRow(channel->id.value)) {
 			continue;
 		}
-		auto row = std::make_unique<PeerListRow>(channel);
-		if (channel->membersCountKnown()) {
-			row->setCustomStatus(tr::lng_chat_status_members(
-				tr::now,
-				lt_count_decimal,
-				channel->membersCount()));
-		}
-		delegate()->peerListAppendRow(std::move(row));
+		delegate()->peerListAppendRow(MakeCommunityChatRow(channel));
 	}
 	delegate()->peerListRefreshRows();
 }

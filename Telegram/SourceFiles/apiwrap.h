@@ -202,6 +202,7 @@ public:
 		Fn<void()> fail);
 
 	void requestFullPeer(not_null<PeerData*> peer);
+	void reloadFullPeer(not_null<PeerData*> peer);
 	void requestPeerSettings(not_null<PeerData*> peer);
 
 	using UpdatedFileReferences = Data::UpdatedFileReferences;

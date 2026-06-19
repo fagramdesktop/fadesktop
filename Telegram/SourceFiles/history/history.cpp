@@ -2303,7 +2303,7 @@ void History::setUnreadCount(int newUnreadCount) {
 	} else if (!_firstUnreadView && !_unreadBarView && loadedAtBottom()) {
 		calculateFirstUnreadMessage();
 	}
-	if (_communityInfo) {
+	if (isLinkedCommunityMember()) {
 		_communityInfo->oneUnreadStateChanged();
 	}
 }
@@ -2318,7 +2318,7 @@ void History::setUnreadMark(bool unread) {
 	const auto notifier = unreadStateChangeNotifier(
 		useMyUnreadInParent() && !unreadCount());
 	Thread::setUnreadMarkFlag(unread);
-	if (_communityInfo) {
+	if (isLinkedCommunityMember()) {
 		_communityInfo->oneUnreadStateChanged();
 	}
 }
@@ -2480,9 +2480,17 @@ void History::updateCommunityRegistration() {
 }
 
 void History::communityChatsListDateChanged(TimeId wasDate) {
-	if (_communityInfo) {
+	if (isLinkedCommunityMember()) {
 		_communityInfo->oneChatsListDateChanged(wasDate, chatListTimeId());
 	}
+}
+
+bool History::isLinkedCommunityMember() const {
+	if (!_communityInfo) {
+		return false;
+	}
+	const auto channel = peer->asChannel();
+	return channel && channel->amIn();
 }
 
 int History::chatListNameVersion() const {
@@ -3078,7 +3086,7 @@ void History::setChatListMessage(HistoryItem *item) {
 	if (const auto folder = this->folder()) {
 		folder->oneListMessageChanged(was, item);
 	}
-	if (_communityInfo) {
+	if (isLinkedCommunityMember()) {
 		_communityInfo->oneListMessageChanged();
 	}
 	if (const auto to = peer->migrateTo()) {

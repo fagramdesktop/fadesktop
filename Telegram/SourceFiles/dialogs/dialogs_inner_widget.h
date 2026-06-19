@@ -12,7 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/timer.h"
 #include "data/data_messages.h"
 #include "dialogs/ui/dialogs_quick_action_context.h"
-#include "dialogs/dialogs_community_chats.h"
+#include "dialogs/dialogs_community_rows_view.h"
 #include "dialogs/dialogs_inner_widget_accessibility.h"
 #include "dialogs/dialogs_key.h"
 #include "lang/lang_keys.h"

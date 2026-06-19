@@ -257,7 +257,7 @@ public:
 		return flags() & Flag::Left;
 	}
 	[[nodiscard]] bool amIn() const {
-		return !isForbidden() && !haveLeft();
+		return !isForbidden() && !haveLeft() && !isCommunity();
 	}
 	[[nodiscard]] bool addsSignature() const {
 		return flags() & Flag::Signatures;
@@ -266,7 +266,7 @@ public:
 		return flags() & Flag::SignatureProfiles;
 	}
 	[[nodiscard]] bool isForbidden() const {
-		return flags() & (Flag::Forbidden | Flag::Community);
+		return flags() & Flag::Forbidden;
 	}
 	[[nodiscard]] bool isVerified() const {
 		return flags() & Flag::Verified;

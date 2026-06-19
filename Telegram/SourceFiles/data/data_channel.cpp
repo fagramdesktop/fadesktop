@@ -225,6 +225,18 @@ void ChannelData::setFlags(ChannelDataFlags which) {
 				}
 			});
 		}
+
+		// A membership change in a community member chat moves its history
+		// between the community's joined and other-linked lists.
+		if (const auto communityId = linkedCommunityId()) {
+			if (const auto community = owner().channelLoaded(communityId)) {
+				if (const auto info = community->communityInfo()) {
+					if (const auto history = owner().historyLoaded(this)) {
+						info->refreshOneMembership(history);
+					}
+				}
+			}
+		}
 	}
 	if (diff & (Flag::Forum
 		| Flag::MonoforumAdmin

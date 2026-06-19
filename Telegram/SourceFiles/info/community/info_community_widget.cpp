@@ -42,8 +42,6 @@ public:
 	[[nodiscard]] bool hasFlexibleTopBar() const;
 	base::weak_qptr<Ui::RpWidget> createPinnedToTop(
 		not_null<Ui::RpWidget*> parent);
-	base::weak_qptr<Ui::RpWidget> createPinnedToBottom(
-		not_null<Ui::RpWidget*> parent);
 
 private:
 	[[nodiscard]] rpl::producer<TextWithEntities> chatsStatusValue() const;
@@ -135,11 +133,6 @@ base::weak_qptr<Ui::RpWidget> InnerWidget::createPinnedToTop(
 	return base::make_weak(not_null<Ui::RpWidget*>{ content });
 }
 
-base::weak_qptr<Ui::RpWidget> InnerWidget::createPinnedToBottom(
-		not_null<Ui::RpWidget*> parent) {
-	return nullptr;
-}
-
 Memento::Memento(not_null<PeerData*> peer)
 : ContentMemento(peer, nullptr, nullptr, PeerId()) {
 }
@@ -168,8 +161,7 @@ Widget::Widget(
 	setupFlexibleInnerWidget(
 		object_ptr<InnerWidget>(this, controller, peer),
 		_flexibleScroll))
-, _pinnedToTop(_inner->createPinnedToTop(this))
-, _pinnedToBottom(_inner->createPinnedToBottom(this)) {
+, _pinnedToTop(_inner->createPinnedToTop(this)) {
 	_inner->move(0, 0);
 
 	_inner->backRequest() | rpl::on_next([=] {
@@ -227,10 +219,8 @@ bool Widget::showInternal(not_null<ContentMemento*> memento) {
 		return false;
 	}
 	if (auto communityMemento = dynamic_cast<Memento*>(memento.get())) {
-		if (communityMemento->peer() == peer()) {
-			restoreState(communityMemento);
-			return true;
-		}
+		restoreState(communityMemento);
+		return true;
 	}
 	return false;
 }

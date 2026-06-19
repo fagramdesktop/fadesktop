@@ -611,6 +611,18 @@ bool InnerWidget::updateEntryHeight(not_null<Entry*> entry) {
 			top += result.row->height();
 		}
 	}
+	if (_openedCommunity) {
+		if (const auto history = entry->asHistory()) {
+			const auto recount = [&](CommunityRowsView &view) {
+				if (view.contains(history)) {
+					view.recountHeights(_narrowRatio);
+					changing = true;
+				}
+			};
+			recount(_communityViewable);
+			recount(_communityRequestable);
+		}
+	}
 	return _shownList->updateHeight(entry, _narrowRatio) || changing;
 }
 
@@ -925,9 +937,10 @@ void InnerWidget::changeOpenedCommunity(Data::CommunityInfo *community) {
 	clearSelection();
 	_openedCommunity = community;
 	refreshShownList();
-	rebuildCommunitySections();
 	_openedCommunityLifetime.destroy();
 	if (community) {
+		// linkedPeersValue() fires immediately on subscription, which
+		// performs the first rebuild + refresh below.
 		community->linkedPeersValue(
 		) | rpl::on_next([=] {
 			rebuildCommunitySections();
@@ -938,6 +951,8 @@ void InnerWidget::changeOpenedCommunity(Data::CommunityInfo *community) {
 		) | rpl::on_next([=] {
 			update();
 		}, _openedCommunityLifetime);
+	} else {
+		rebuildCommunitySections();
 	}
 	refreshWithCollapsedRows(true);
 	if (_loadMoreCallback) {

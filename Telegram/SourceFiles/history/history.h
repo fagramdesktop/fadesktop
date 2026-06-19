@@ -455,6 +455,7 @@ public:
 	}
 	void updateCommunityRegistration();
 	void communityChatsListDateChanged(TimeId wasDate);
+	[[nodiscard]] bool isLinkedCommunityMember() const;
 
 	// Interface for Data::Histories.
 	void setInboxReadTill(MsgId upTo);
