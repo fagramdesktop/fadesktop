@@ -44,10 +44,16 @@ jobs:
         shell: bash
         run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
 
-      - uses: ilammy/msvc-dev-cmd@v1.13.0
+      - uses: Eden-CI/msvc-dev-cmd@master
         name: Native Tools Command Prompt
         with:
           arch: ${{ matrix.arch }}
+          toolset: 14.44
+
+      - name: Install ATL
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set "VS_PATH=%%i"
+          "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath "%VS_PATH%" --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.143.ATL --passive --norestart --wait
 
       - name: Clone repository
         uses: actions/checkout@v6
@@ -84,9 +90,6 @@ jobs:
           restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-
 
       - name: Prepare Libraries
-        env:
-          GYP_MSVS_OVERRIDE_PATH: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\'
-          GYP_MSVS_VERSION: 2022
         run: |
           cd %TBUILD%
           %REPO_NAME%\Telegram\build\prepare\win.bat skip-release silent
