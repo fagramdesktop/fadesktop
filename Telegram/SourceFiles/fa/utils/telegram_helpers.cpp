@@ -833,6 +833,10 @@ void searchUser(long long userId, Main::Session *session, bool searchUserFlag, c
 				[&](const MTPDbotInlineMessageMediaWebPage &data)
 				{
 					return QString();
+				},
+				[&](const MTPDbotInlineMessageRichMessage &data)
+				{
+					return QString();
 				});
 
 			if (text.isEmpty()) {
