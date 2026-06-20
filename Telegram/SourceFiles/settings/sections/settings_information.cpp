@@ -1072,6 +1072,7 @@ not_null<Ui::SlideWrap<Ui::SettingsButton>*> AccountsList::setupAdd() {
 			domain.addActivated(environment, true);
 		} else {
 			_controller->window().preventOrInvoke([=] {
+				Core::App().setActivePrimaryWindow(&_controller->window());
 				_controller->session().domain().addActivated(environment);
 			});
 		}

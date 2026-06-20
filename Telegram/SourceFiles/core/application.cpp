@@ -1394,6 +1394,13 @@ Window::Controller *Application::activePrimaryWindow() const {
 	return _lastActivePrimaryWindow;
 }
 
+void Application::setActivePrimaryWindow(
+		not_null<Window::Controller*> window) {
+	if (window->isPrimary()) {
+		_lastActivePrimaryWindow = window;
+	}
+}
+
 Window::Controller *Application::separateWindowFor(
 		Window::SeparateId id) const {
 	for (const auto &[existingId, window] : _windows) {
