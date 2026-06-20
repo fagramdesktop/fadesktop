@@ -71,7 +71,7 @@ jobs:
       - name: Install build tools
         if: steps.cache-libs.outputs.cache-hit != 'true'
         run: |
-          brew install automake cmake wget pkg-config gnu-tar ninja nasm meson
+          brew install automake cmake wget pkg-config gnu-tar ninja nasm meson libtool
 
       - name: Build libraries
         if: steps.cache-libs.outputs.cache-hit != 'true'
