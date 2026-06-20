@@ -56,6 +56,7 @@ struct Spec {
 	Priority priority = Priority{};
 	Fn<bool(const Context&)> available;
 	Fn<void(ActivateArgs)> activate;
+	bool dayDependent = false;
 };
 
 [[nodiscard]] std::vector<Spec> AllSpecs();

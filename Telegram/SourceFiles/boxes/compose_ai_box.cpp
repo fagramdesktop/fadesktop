@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_compose_with_ai.h"
 #include "apiwrap.h"
 #include "boxes/create_ai_tone_box.h"
+#include "core/shortcuts.h"
 #include "menu/menu_check_item.h"
 #include "settings/sections/settings_shortcuts.h"
 #include "ui/widgets/checkbox.h"
@@ -1679,6 +1680,10 @@ void ComposeAiBox(not_null<Ui::GenericBox*> box, ComposeAiBoxArgs &&args) {
 						tr::lng_ai_compose_bind_set_hotkey_short(tr::now),
 						[=] {
 							if (const auto window = resolve(session)) {
+								window->setHighlightControlId(
+									Settings::ShortcutsHighlightId(
+										Shortcuts::Command
+											::ComposeAiApplyInPlace));
 								window->showSettings(
 									Settings::ShortcutsId());
 							}

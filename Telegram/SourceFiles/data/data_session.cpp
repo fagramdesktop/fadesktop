@@ -62,6 +62,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_file_origin.h"
 #include "data/data_download_manager.h"
 #include "data/data_web_page.h"
+#include "iv/iv_rich_page.h"
 #include "data/data_game.h"
 #include "data/data_poll.h"
 #include "data/data_replies_list.h"
@@ -93,6 +94,7 @@ namespace Data {
 namespace {
 
 constexpr auto kNextForUpgradeGiftTimeout = 5 * crl::time(1000);
+constexpr auto kMaxServiceNotificationMessageSize = 4096;
 
 using ViewElement = HistoryView::Element;
 
@@ -448,6 +450,8 @@ void Session::subscribeForTopicRepliesLists() {
 }
 
 void Session::clear() {
+	_sessionDataAboutToBeCleared.fire({});
+
 	// Optimization: clear notifications before destroying items.
 	Core::App().notifications().clearFromSession(_session);
 
@@ -654,6 +658,7 @@ not_null<UserData*> Session::processUser(const MTPUser &data) {
 				info->userCreatesTopics = data.is_bot_forum_can_manage_topics();
 				info->canManageBots = data.is_bot_can_manage_bots();
 				info->supportsGuestChat = data.is_bot_guestchat();
+				info->supportsGuard = data.is_bot_guard();
 			}
 		}
 
@@ -2255,6 +2260,10 @@ rpl::producer<not_null<const HistoryItem*>> Session::itemRemoved(
 	});
 }
 
+rpl::producer<> Session::sessionDataAboutToBeCleared() const {
+	return _sessionDataAboutToBeCleared.events();
+}
+
 void Session::notifyItemsAboutToBeDestroyed(
 		const std::vector<not_null<HistoryItem*>> &items) {
 	_itemsAboutToBeDestroyed.fire_copy(items);
@@ -2266,12 +2275,12 @@ auto Session::itemsAboutToBeDestroyed() const
 }
 
 void Session::notifyViewAboutToBeRemoved(
-		not_null<const ViewElement*> view) {
-	_viewAboutToBeRemoved.fire_copy(view);
+		not_null<const ViewElement*> view,
+		ViewRemovalReason reason) {
+	_viewAboutToBeRemoved.fire({ view, reason });
 }
 
-rpl::producer<not_null<const ViewElement*>>
-Session::viewAboutToBeRemoved() const {
+rpl::producer<ViewRemoval> Session::viewAboutToBeRemoved() const {
 	return _viewAboutToBeRemoved.events();
 }
 
@@ -3060,9 +3069,7 @@ void Session::processMessagesDeleted(
 		if (list && i != list->end()) {
 			const auto history = i->second->history();
 			toDestroy.push_back(i->second);
-			if (!history->chatListMessageKnown()) {
-				historiesToCheck.emplace(history);
-			}
+			historiesToCheck.emplace(history);
 		} else if (affected) {
 			affected->unknownMessageDeleted(messageId.v);
 		}
@@ -3074,7 +3081,9 @@ void Session::processMessagesDeleted(
 		}
 	}
 	for (const auto &history : historiesToCheck) {
-		history->requestChatListMessage();
+		if (!history->chatListMessageKnown()) {
+			history->requestChatListMessage();
+		}
 	}
 }
 
@@ -3085,9 +3094,7 @@ void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
 		if (const auto item = nonChannelMessage(messageId.v)) {
 			const auto history = item->history();
 			toDestroy.push_back(item);
-			if (!history->chatListMessageKnown()) {
-				historiesToCheck.emplace(history);
-			}
+			historiesToCheck.emplace(history);
 		}
 	}
 	if (!toDestroy.empty()) {
@@ -3097,7 +3104,9 @@ void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
 		}
 	}
 	for (const auto &history : historiesToCheck) {
-		history->requestChatListMessage();
+		if (!history->chatListMessageKnown()) {
+			history->requestChatListMessage();
+		}
 	}
 }
 
@@ -4087,7 +4096,9 @@ not_null<WebPageData*> Session::processWebpage(
 not_null<WebPageData*> Session::webpage(
 		WebPageId id,
 		const QString &siteName,
-		const TextWithEntities &content) {
+		const TextWithEntities &content,
+		PhotoData *photo,
+		DocumentData *document) {
 	return webpage(
 		id,
 		WebPageType::Article,
@@ -4096,8 +4107,8 @@ not_null<WebPageData*> Session::webpage(
 		siteName,
 		QString(),
 		content,
-		nullptr,
-		nullptr,
+		photo,
+		document,
 		WebPageCollage(),
 		nullptr,
 		nullptr,
@@ -4320,55 +4331,25 @@ void Session::webpageApplyFields(
 			}, [](const auto &) {});
 		}
 	}
-	if (const auto page = data.vcached_page()) {
-		for (const auto &photo : page->data().vphotos().v) {
-			processPhoto(photo);
-		}
-		for (const auto &document : page->data().vdocuments().v) {
-			processDocument(document);
-		}
-		const auto process = [&](
-				const MTPPageBlock &block,
-				const auto &self) -> void {
-			block.match([&](const MTPDpageBlockChannel &data) {
-				processChat(data.vchannel());
-			}, [&](const MTPDpageBlockCover &data) {
-				self(data.vcover(), self);
-			}, [&](const MTPDpageBlockEmbedPost &data) {
-				for (const auto &block : data.vblocks().v) {
-					self(block, self);
-				}
-			}, [&](const MTPDpageBlockCollage &data) {
-				for (const auto &block : data.vitems().v) {
-					self(block, self);
-				}
-			}, [&](const MTPDpageBlockSlideshow &data) {
-				for (const auto &block : data.vitems().v) {
-					self(block, self);
-				}
-			}, [&](const MTPDpageBlockDetails &data) {
-				for (const auto &block : data.vblocks().v) {
-					self(block, self);
-				}
-			}, [](const auto &) {});
-		};
-		for (const auto &block : page->data().vblocks().v) {
-			process(block, process);
-		}
-	}
 	const auto type = story ? WebPageType::Story : ParseWebPageType(data);
-	auto iv = (data.vcached_page() && !IgnoreIv(type))
-		? std::make_unique<Iv::Data>(data, *data.vcached_page())
+	const auto cachedPage = data.vcached_page();
+	const auto ivPhoto = photo ? processPhoto(*photo).get() : nullptr;
+	const auto ivDocument = document ? processDocument(*document).get() : nullptr;
+	const auto richPage = (cachedPage && !IgnoreIv(type))
+		? Iv::ParseRichPage(_session, data)
+		: nullptr;
+	auto iv = richPage
+		? std::make_unique<Iv::Data>(data, richPage)
 		: nullptr;
 	const auto resolvedPhoto = story
 		? story->photo()
 		: photo
-		? processPhoto(*photo).get()
+		? ivPhoto
 		: nullptr;
 	const auto resolvedDocument = story
 		? story->document()
 		: document
-		? processDocument(*document).get()
+		? ivDocument
 		: lookupThemeDocument();
 	const auto photoIsVideoCover = data.is_video_cover_photo()
 		|| (resolvedDocument
@@ -5513,7 +5494,10 @@ void Session::insertCheckedServiceNotification(
 	const auto localFlags = MessageFlag::ClientSideUnread
 		| MessageFlag::Local;
 	auto sending = TextWithEntities(), left = message;
-	while (TextUtilities::CutPart(sending, left, MaxMessageSize)) {
+	while (TextUtilities::CutPart(
+			sending,
+			left,
+			kMaxServiceNotificationMessageSize)) {
 		const auto id = nextLocalMessageId();
 		addNewMessage(
 			id,
@@ -5551,7 +5535,8 @@ void Session::insertCheckedServiceNotification(
 				MTPlong(), // paid_message_stars
 				MTPSuggestedPost(),
 				MTPint(), // schedule_repeat_period
-				MTPstring()), // summary_from_language
+				MTPstring(), // summary_from_language
+				MTPRichMessage()),
 			localFlags,
 			NewMessageType::Unread);
 	}
@@ -5669,6 +5654,15 @@ void Session::webViewResultSent(WebViewResultSent &&sent) {
 
 auto Session::webViewResultSent() const -> rpl::producer<WebViewResultSent> {
 	return _webViewResultSent.events();
+}
+
+void Session::joinChatWebViewDecision(JoinChatWebViewDecision &&decision) {
+	return _joinChatWebViewDecision.fire(std::move(decision));
+}
+
+auto Session::joinChatWebViewDecision() const
+-> rpl::producer<JoinChatWebViewDecision> {
+	return _joinChatWebViewDecision.events();
 }
 
 rpl::producer<not_null<PeerData*>> Session::peerDecorationsUpdated() const {

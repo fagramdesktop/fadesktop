@@ -350,6 +350,13 @@ historyPinInSelectedIcon: icon {{ "history_pin", msgInDateFgSelected }};
 historyPinOutIcon: icon {{ "history_pin", historyOutIconFg }};
 historyPinOutSelectedIcon: icon {{ "history_pin", historyOutIconFgSelected }};
 historyPinInvertedIcon: icon {{ "history_pin", historySendingInvertedIconFg }};
+historySilentWidth: 12px;
+historySilentTop: -13px;
+historySilentInIcon: icon {{ "dialogs/dialogs_mute", msgInDateFg }};
+historySilentInSelectedIcon: icon {{ "dialogs/dialogs_mute", msgInDateFgSelected }};
+historySilentOutIcon: icon {{ "dialogs/dialogs_mute", historyOutIconFg }};
+historySilentOutSelectedIcon: icon {{ "dialogs/dialogs_mute", historyOutIconFgSelected }};
+historySilentInvertedIcon: icon {{ "dialogs/dialogs_mute", historySendingInvertedIconFg }};
 
 historyBotMenuSkip: 8px;
 historyBotMenuMaxWidth: 160px;

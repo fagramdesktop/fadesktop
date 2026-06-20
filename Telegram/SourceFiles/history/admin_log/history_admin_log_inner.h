@@ -8,8 +8,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #pragma once
 
 #include "history/view/history_view_element.h"
+#include "history/view/history_view_cursor_state.h"
 #include "history/admin_log/history_admin_log_item.h"
 #include "history/admin_log/history_admin_log_filter_value.h"
+#include "history/history_view_highlight_manager.h"
 #include "menu/menu_antispam_validator.h"
 #include "ui/rp_widget.h"
 #include "ui/effects/animations.h"
@@ -132,6 +134,9 @@ public:
 		not_null<DocumentData*> document,
 		FullMsgId context,
 		bool showInMediaView = false) override;
+	bool elementScrollToLocalY(
+		not_null<const HistoryView::Element*> view,
+		int localTop) override;
 	void elementCancelUpload(const FullMsgId &context) override;
 	void elementShowTooltip(
 		const TextWithEntities &text,
@@ -205,6 +210,7 @@ private:
 	};
 	using TextState = HistoryView::TextState;
 	using CursorState = HistoryView::CursorState;
+	using MessageSelection = HistoryView::MessageSelection;
 	using PointState = HistoryView::PointState;
 	using StateRequest = HistoryView::StateRequest;
 
@@ -283,6 +289,10 @@ private:
 		const Element *view,
 		DisplayPointerScope pointerScope) const;
 	void toggleDeleteGroup(uint64 groupEventId);
+	void expandGroupContaining(not_null<HistoryItem*> item);
+	void jumpToMessageInLog(
+		not_null<HistoryItem*> item,
+		MessageHighlightId highlight);
 	OwnedItem createGroupSummaryItem(
 		const DeleteGroup &group,
 		bool expanded);
@@ -343,6 +353,9 @@ private:
 	const std::unique_ptr<Ui::PathShiftGradient> _pathGradient;
 	std::shared_ptr<Ui::ChatTheme> _theme;
 
+	HistoryView::ElementHighlighter _highlighter;
+	QPainterPath _highlightPathCache;
+
 	std::vector<OwnedItem> _items;
 	std::set<uint64> _eventIds;
 	std::map<not_null<const HistoryItem*>, not_null<Element*>> _itemsByData;
@@ -351,6 +364,7 @@ private:
 	base::flat_map<not_null<PeerData*>, Ui::PeerUserpicView> _userpics;
 	base::flat_map<not_null<PeerData*>, Ui::PeerUserpicView> _userpicsCache;
 	base::flat_map<FullMsgId, MsgId> _realIdsForReport;
+	base::flat_map<MsgId, not_null<HistoryItem*>> _itemsByRealMsgId;
 
 	// Delete event grouping.
 	struct DisplayEntry {
@@ -369,6 +383,7 @@ private:
 	base::flat_set<uint64> _previousDeleteGroupAnchors;
 	base::flat_set<not_null<HistoryItem*>> _expandMarkupItems;
 	Ui::Animations::Simple _toggleAnimation;
+	Ui::Animations::Simple _scrollToAnimation;
 	bool _skipScrollRestore = false;
 	bool _skipUnreadEventPrune = false;
 
@@ -414,11 +429,12 @@ private:
 	QPoint _mousePosition;
 	Element *_mouseActionItem = nullptr;
 	CursorState _mouseCursorState = CursorState();
-	uint16 _mouseTextSymbol = 0;
+	TextState _mouseTextAnchor;
 	bool _pressWasInactive = false;
+	bool _overSenderUserpic = false;
 
 	Element *_selectedItem = nullptr;
-	TextSelection _selectedText;
+	MessageSelection _selectedTextSelection;
 	bool _wasSelectedText = false; // was some text selected in current drag action
 	Qt::CursorShape _cursor = style::cur_default;
 

@@ -70,7 +70,7 @@ int PremiumLimits::dialogFiltersDefault() const {
 	return appConfigLimit("dialog_filters_limit_default", 10);
 }
 int PremiumLimits::dialogFiltersPremium() const {
-	return appConfigLimit("dialog_filters_limit_premium", 20);
+	return appConfigLimit("dialog_filters_limit_premium", 30);
 }
 int PremiumLimits::dialogFiltersCurrent() const {
 	if (FASettings::JsonSettings::GetBool("unlimited_chat_folders")) {
@@ -185,6 +185,20 @@ int PremiumLimits::captionLengthCurrent() const {
 	return isPremium()
 		? captionLengthPremium()
 		: captionLengthDefault();
+}
+
+int PremiumLimits::messageLengthDefault() const {
+	return appConfigLimit("message_length_limit_default", 4096);
+}
+
+int PremiumLimits::messageLengthPremium() const {
+	return appConfigLimit("message_length_limit_premium", 8192);
+}
+
+int PremiumLimits::messageLengthCurrent() const {
+	return isPremium()
+		? messageLengthPremium()
+		: messageLengthDefault();
 }
 
 int PremiumLimits::uploadMaxDefault() const {

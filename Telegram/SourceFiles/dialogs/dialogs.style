@@ -566,6 +566,11 @@ dialogsMiniReplyIcon: IconEmoji {
 	padding: margins(0px, 2px, 0px, 0px);
 }
 
+dialogsMiniPollIcon: IconEmoji {
+	icon: icon {{ "dialogs/dialogs_chatlist_poll-17x17", dialogsTextFg }};
+	padding: margins(0px, 1px, 3px, 0px);
+}
+
 dialogsMiniReplyStory: DialogsMiniIcon {
 	icon: ThreeStateIcon {
 		icon: icon {{ "mini_reply_story", dialogsTextFg, point(0px, 1px) }};

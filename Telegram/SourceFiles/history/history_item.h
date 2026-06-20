@@ -77,6 +77,10 @@ class Service;
 class ServiceMessagePainter;
 } // namespace HistoryView
 
+namespace Iv {
+struct RichPage;
+} // namespace Iv
+
 namespace Ui {
 struct ColorCollectible;
 } // namespace Ui
@@ -216,7 +220,9 @@ public:
 	void addLogEntryOriginal(
 		WebPageId localId,
 		const QString &label,
-		const TextWithEntities &content);
+		const TextWithEntities &content,
+		PhotoData *photo = nullptr,
+		DocumentData *document = nullptr);
 	void setFactcheck(MessageFactcheck info);
 	[[nodiscard]] bool hasUnrequestedFactcheck() const;
 	[[nodiscard]] TextWithEntities factcheckText() const;
@@ -240,7 +246,8 @@ public:
 	}
 	void refreshMainView();
 	void clearMainView();
-	void removeMainView();
+	void removeMainView(
+		Data::ViewRemovalReason reason = Data::ViewRemovalReason::Removed);
 
 	void invalidateChatListEntry();
 
@@ -386,7 +393,8 @@ public:
 	void updateForwardedInfo(const MTPMessageFwdHeader *fwd);
 	void updateSentContent(
 		const TextWithEntities &textWithEntities,
-		const MTPMessageMedia *media);
+		const MTPMessageMedia *media,
+		const MTPRichMessage *richMessage = nullptr);
 	void applySentMessage(const MTPDmessage &data);
 	void applySentMessage(
 		const QString &text,
@@ -530,8 +538,19 @@ public:
 	[[nodiscard]] Data::Media *media() const {
 		return _media.get();
 	}
+	[[nodiscard]] std::shared_ptr<const Iv::RichPage> richPage() const;
+	[[nodiscard]] std::shared_ptr<const Iv::RichPage> fullRichPage() const;
+	[[nodiscard]] uint64 fullRichPageVersion() const;
 	[[nodiscard]] bool computeDropForwardedInfo() const;
 	void setText(TextWithEntities textWithEntities);
+	void applyLocalRichPage(std::shared_ptr<const Iv::RichPage> page);
+	void applyLocalRichPage(
+		std::shared_ptr<const Iv::RichPage> page,
+		const TextWithEntities &summary);
+	void setRichPage(std::shared_ptr<const Iv::RichPage> page);
+	void setFullRichPage(std::shared_ptr<const Iv::RichPage> page);
+	void clearFullRichPage();
+	void clearRichPage();
 
 	[[nodiscard]] MsgId replyToId() const;
 	[[nodiscard]] FullMsgId replyToFullId() const;
@@ -540,6 +559,8 @@ public:
 	[[nodiscard]] FullStoryId replyToStory() const;
 	[[nodiscard]] FullReplyTo replyTo() const;
 	[[nodiscard]] bool inThread(MsgId rootId) const;
+
+	void resolveAdminLogReplyTo(not_null<HistoryItem*> replyTo);
 
 	[[nodiscard]] not_null<PeerData*> author() const;
 
@@ -607,8 +628,12 @@ public:
 		QString url,
 		DocumentData *document = nullptr,
 		PhotoData *photo = nullptr);
-	void addDocumentForInstantView(not_null<DocumentData*> document);
-	void addPhotoForInstantView(not_null<PhotoData*> photo);
+	void addDocumentForInstantView(
+		not_null<DocumentData*> document,
+		TextWithEntities caption = {});
+	void addPhotoForInstantView(
+		not_null<PhotoData*> photo,
+		TextWithEntities caption = {});
 
 	[[nodiscard]] SuggestionActions computeSuggestionActions() const;
 	[[nodiscard]] SuggestionActions computeSuggestionActions(
@@ -662,6 +687,11 @@ private:
 	}
 
 	[[nodiscard]] bool checkDiscussionLink(ChannelId id) const;
+	void updateSentContent(
+		const TextWithEntities &textWithEntities,
+		const MTPMessageMedia *media,
+		std::shared_ptr<const Iv::RichPage> richPage,
+		std::shared_ptr<const Iv::RichPage> preservedFullPage = nullptr);
 
 	void setReplyMarkup(
 		HistoryMessageMarkupData &&markup,

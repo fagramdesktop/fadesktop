@@ -145,7 +145,7 @@ void Widget::setupTopBarSuggestionTestHotkeys() {
 			});
 			const auto auth = CreateUnconfirmedAuthContent(
 				this,
-				fake,
+				rpl::single(std::move(fake)),
 				[=](bool) { hideAndCleanup(); },
 				_childListShown.value());
 			_prepareTopBarSnapshot.events(

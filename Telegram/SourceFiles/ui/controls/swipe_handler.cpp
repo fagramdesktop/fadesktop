@@ -68,6 +68,7 @@ void SetupSwipeHandler(SwipeHandlerArgs &&args) {
 	const auto widget = std::move(args.widget);
 	const auto scroll = std::move(args.scroll);
 	const auto update = std::move(args.update);
+	const auto skipWheelEvent = std::move(args.skipWheelEvent);
 
 	struct UpdateArgs {
 		QPoint globalCursor;
@@ -343,6 +344,10 @@ void SetupSwipeHandler(SwipeHandlerArgs &&args) {
 		} break;
 		case QEvent::Wheel: {
 			const auto w = static_cast<QWheelEvent*>(e.get());
+			if (skipWheelEvent && skipWheelEvent(w)) {
+				processEnd();
+				break;
+			}
 			const auto phase = w->phase();
 			if (phase == Qt::NoScrollPhase) {
 				break;

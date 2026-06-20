@@ -1,3 +1,47 @@
+6.9.3 (12.06.26)
+
+- Fix possible crash in formula parsing.
+- Fix field resize after Undo/Redo.
+- Fix OpenGL in Windows build.
+
+6.9.2 (10.06.26)
+
+- Fix possible crash in OpenGL init (Linux).
+- Fix possible crash in calls (Windows on ARM).
+- Fix working with system proxy (Windows).
+- Fix display of rich messages without text.
+- Fix display of rich messages in Recent Actions.
+- Replace dispatch with TooManyCooks (Linux).
+
+6.9.1 (09.06.26)
+
+- Fix sending several same custom emoji.
+- Fix some rich messages layout glitches.
+
+6.9 (09.06.26)
+
+- Rich Text Formatting for Bots.
+- Guardian Bots for Group Chats.
+- Links in Poll Options.
+- Viewer for Markdown files in .md format.
+- Instant View that's really instant.
+
+6.8.5 beta (04.06.26)
+
+- Animated 3D objects on settings covers (premium star, coin, diamond).
+- Particle effects for one-time voice message playback.
+- Birthday celebration effect on profile.
+- Poll votes graph in message statistics.
+- Separate send action animation for round video messages.
+- Open public channels from chat folder invite links.
+- Notify toggle and muted icon for silent scheduled messages.
+- Per-window Qt RHI renderer activation.
+- Fix empty chat list preview after deleting last message.
+- Fix shaking of pinned chats dragged past rows of other heights.
+- Fix scroll with keyboard in chat history.
+- Fix pause of animated reactions when opening their context menu.
+- Improve performance with RHI enabled.
+
 6.8.4 beta (27.05.26)
 
 - Drag-and-drop of photos into chats.

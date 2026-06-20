@@ -9,6 +9,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "overview/overview_checkbox.h"
 #include "overview/overview_layout_delegate.h"
+#include "core/application.h"
+#include "core/click_handler_types.h"
 #include "core/ui_integration.h" // TextContext
 #include "data/data_document.h"
 #include "data/data_document_resolver.h"
@@ -34,6 +36,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/view/history_view_cursor_state.h"
 #include "history/view/media/history_view_media_common.h"
 #include "history/view/media/history_view_document.h" // DrawThumbnailAsSongCover
+#include "iv/iv_instance.h"
 #include "base/unixtime.h"
 #include "boxes/sticker_set_box.h"
 #include "ui/effects/round_checkbox.h"
@@ -47,6 +50,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/painter.h"
 #include "ui/power_saving.h"
 #include "ui/ui_utility.h"
+#include "window/window_session_controller.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_overview.h"
@@ -71,6 +75,56 @@ using ::Media::ValidFrameSize;
 [[nodiscard]] bool CanPlayInline(not_null<DocumentData*> document) {
 	return ValidFrameSize(document->dimensions, kMaxInlineArea);
 }
+
+[[nodiscard]] ClickHandlerPtr MakeUrlHandler(const QString &url) {
+	return UrlClickHandler::IsSuspicious(url)
+		? std::make_shared<HiddenUrlClickHandler>(url)
+		: std::make_shared<UrlClickHandler>(url, false);
+}
+
+void OpenPreferringIv(
+		not_null<Window::SessionController*> controller,
+		WebPageData *page,
+		const TextWithEntities &text,
+		const QString &url,
+		QVariant context) {
+	if (page && page->iv && UrlMatchesWebPage(page, url)) {
+		const auto hash = ExtractHash(page, text);
+		Core::App().iv().show(controller, page->iv.get(), hash);
+	} else {
+		Core::App().iv().openWithIvPreferred(controller, url, context);
+	}
+}
+
+class IvLink final : public UrlClickHandler {
+public:
+	IvLink(WebPageData *page, TextWithEntities text, const QString &url)
+	: UrlClickHandler(url, false)
+	, _page(page)
+	, _text(std::move(text)) {
+	}
+
+	void onClick(ClickContext context) const override {
+		const auto button = context.button;
+		if (button != Qt::LeftButton && button != Qt::MiddleButton) {
+			return;
+		}
+		const auto my = context.other.value<ClickHandlerContext>();
+		if (const auto controller = my.sessionWindow.get()) {
+			OpenPreferringIv(
+				controller,
+				_page,
+				_text,
+				originalUrl(),
+				context.other);
+		}
+	}
+
+private:
+	WebPageData *_page = nullptr;
+	TextWithEntities _text;
+
+};
 
 [[nodiscard]] QImage CropMediaFrame(QImage image, int width, int height) {
 	const auto ratio = style::DevicePixelRatio();
@@ -313,6 +367,11 @@ Photo::Photo(
 			maybeClearSensitiveSpoiler();
 		})),
 		parent)
+	: _spoiler
+	? std::make_shared<LambdaClickHandler>(crl::guard(this, [=] {
+		clearSpoiler();
+		_link = makeOpenPhotoHandler();
+	}))
 	: makeOpenPhotoHandler()) {
 	if (_data->inlineThumbnailBytes().isEmpty()
 		&& (_data->hasExact(Data::PhotoSize::Small)
@@ -515,6 +574,11 @@ Video::Video(
 				setDocumentLinks(_data);
 			})),
 			parent);
+	} else if (_spoiler) {
+		_openl = std::make_shared<LambdaClickHandler>(crl::guard(this, [=] {
+			clearSpoiler();
+			setDocumentLinks(_data);
+		}));
 	}
 	if (!_videoCover) {
 		_data->loadThumbnail(parent->fullId());
@@ -1722,7 +1786,7 @@ Link::Link(
 		const auto customUrl = entity.data();
 		const auto entityText = text.mid(entity.offset(), entity.length());
 		const auto url = customUrl.isEmpty() ? entityText : customUrl;
-		if (_links.isEmpty()) {
+		if (_links.empty()) {
 			mainUrl = url;
 		}
 		_links.push_back(LinkEntry(url, entityText));
@@ -1761,11 +1825,7 @@ Link::Link(
 		}
 	}
 
-	const auto createHandler = [](const QString &url) {
-		return UrlClickHandler::IsSuspicious(url)
-			? std::make_shared<HiddenUrlClickHandler>(url)
-			: std::make_shared<UrlClickHandler>(url, false);
-	};
+	const auto createHandler = MakeUrlHandler;
 	_page = media ? media->webpage() : nullptr;
 	if (_page) {
 		mainUrl = _page->url;
@@ -1799,6 +1859,7 @@ Link::Link(
 	} else if (!mainUrl.isEmpty()) {
 		_photol = createHandler(mainUrl);
 	}
+
 	if (from >= till && _page) {
 		text = _page->description.text;
 		from = 0;
@@ -1856,6 +1917,71 @@ Link::Link(
 		}
 	}
 	_titlew = st::semiboldFont->width(_title);
+
+	setupLinks(textWithEntities, mainUrl);
+}
+
+void Link::setupLinks(
+		const TextWithEntities &text,
+		const QString &mainUrl) {
+	const auto page = _page;
+	const auto ivCapable = [=](const QString &url) {
+		return Iv::PreferForUri(url)
+			|| (page && page->iv && UrlMatchesWebPage(page, url));
+	};
+	const auto makeHandler = [&](const QString &url, bool iv) {
+		return iv
+			? ClickHandlerPtr(std::make_shared<IvLink>(page, text, url))
+			: MakeUrlHandler(url);
+	};
+	static const auto kLinkOptions = TextParseOptions{
+		0,
+		0,
+		0,
+		Qt::LayoutDirectionAuto,
+	};
+	for (auto &link : _links) {
+		const auto iv = ivCapable(link.url);
+		link.handler = makeHandler(link.url, iv);
+		auto markup = iv
+			? Ui::Text::IconEmoji(&st::overviewLinkIvIcon)
+			: TextWithEntities();
+		const auto offset = int(markup.text.size());
+		markup.append(link.display);
+		markup.entities.push_back({
+			EntityType::CustomUrl,
+			offset,
+			int(link.display.size()),
+			link.url,
+		});
+		link.text.setMarkedText(st::defaultTextStyle, markup, kLinkOptions);
+		link.text.setLink(1, link.handler);
+	}
+
+	const auto titleUrl = !mainUrl.isEmpty()
+		? mainUrl
+		: (page ? page->url : QString());
+	if (!titleUrl.isEmpty()) {
+		_titlel = makeHandler(titleUrl, ivCapable(titleUrl));
+	}
+
+	if (!mainUrl.isEmpty() && ivCapable(mainUrl)) {
+		const auto previous = _photol;
+		_photol = std::make_shared<LambdaClickHandler>([=](
+				ClickContext context) {
+			const auto my = context.other.value<ClickHandlerContext>();
+			if (const auto controller = my.sessionWindow.get()) {
+				OpenPreferringIv(
+					controller,
+					page,
+					text,
+					mainUrl,
+					context.other);
+			} else if (previous) {
+				previous->onClick(context);
+			}
+		});
+	}
 }
 
 void Link::initDimensions() {
@@ -1874,8 +2000,11 @@ void Link::initDimensions() {
 int32 Link::resizeGetHeight(int32 width) {
 	_width = qMin(width, _maxw);
 	int32 w = _width - st::linksPhotoSize - st::linksPhotoPadding;
-	for (const auto &link : std::as_const(_links)) {
-		link.lnk->setFullDisplayed(w >= link.width);
+	for (const auto &link : _links) {
+		if (const auto handler = std::dynamic_pointer_cast<TextClickHandler>(
+				link.handler)) {
+			handler->setFullDisplayed(w >= link.text.maxWidth());
+		}
 	}
 
 	_height = 0;
@@ -1929,10 +2058,10 @@ void Link::paint(Painter &p, const QRect &clip, TextSelection selection, const P
 	}
 
 	p.setPen(st::windowActiveTextFg);
-	for (const auto &link : std::as_const(_links)) {
-		if (clip.intersects(style::rtlrect(left, top, qMin(w, link.width), st::normalFont->height, _width))) {
-			p.setFont(ClickHandler::showAsActive(link.lnk) ? st::normalFont->underline() : st::normalFont);
-			p.drawTextLeft(left, top, _width, (w < link.width) ? st::normalFont->elided(link.text, w) : link.text);
+	for (const auto &link : _links) {
+		const auto width = link.text.maxWidth();
+		if (clip.intersects(style::rtlrect(left, top, qMin(w, width), st::normalFont->height, _width))) {
+			link.text.drawLeftElided(p, left, top, w, _width);
 		}
 		top += st::normalFont->height;
 	}
@@ -2069,7 +2198,7 @@ TextState Link::getState(
 	}
 	if (!_title.isEmpty()) {
 		if (style::rtlrect(left, top, qMin(w, _titlew), st::semiboldFont->height, _width).contains(point)) {
-			return { parent(), _photol };
+			return { parent(), _titlel };
 		}
 		top += st::webPageTitleFont->height;
 	}
@@ -2077,8 +2206,9 @@ TextState Link::getState(
 		top += qMin(st::normalFont->height * 3, _text.countHeight(w));
 	}
 	for (const auto &link : _links) {
-		if (style::rtlrect(left, top, qMin(w, link.width), st::normalFont->height, _width).contains(point)) {
-			return { parent(), ClickHandlerPtr(link.lnk) };
+		const auto width = link.text.maxWidth();
+		if (style::rtlrect(left, top, qMin(w, width), st::normalFont->height, _width).contains(point)) {
+			return { parent(), link.handler };
 		}
 		top += st::normalFont->height;
 	}
@@ -2089,12 +2219,9 @@ const style::RoundCheckbox &Link::checkboxStyle() const {
 	return st::overviewSmallCheck;
 }
 
-Link::LinkEntry::LinkEntry(const QString &url, const QString &text)
-: text(text)
-, width(st::normalFont->width(text))
-, lnk(UrlClickHandler::IsSuspicious(url)
-	? std::make_shared<HiddenUrlClickHandler>(url)
-	: std::make_shared<UrlClickHandler>(url)) {
+Link::LinkEntry::LinkEntry(const QString &url, const QString &display)
+: url(url)
+, display(display) {
 }
 
 // Copied from inline_bot_layout_internal.

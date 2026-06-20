@@ -1852,6 +1852,10 @@ not_null<::MainWindow*> SessionController::widget() const {
 	return _window->widget();
 }
 
+rpl::producer<> SessionController::imeCompositionStarts() const {
+	return widget()->imeCompositionStarts();
+}
+
 auto SessionController::sendingAnimation() const
 -> Ui::MessageSendingAnimationController & {
 	return *_sendingAnimation;
@@ -3134,6 +3138,10 @@ void SessionController::removeLayerBlackout() {
 
 bool SessionController::isLayerShown() const {
 	return _window->isLayerShown();
+}
+
+rpl::producer<bool> SessionController::boxShownValue() const {
+	return _window->boxShownValue();
 }
 
 void SessionController::registerActiveLayerSection(SectionWidget *section) {

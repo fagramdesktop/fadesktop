@@ -61,6 +61,40 @@ void PaintTopFade(QPainter &p, int outerWidth, int fadeHeight) {
 	p.fillRect(QRect(0, 0, outerWidth, fadeHeight), grad);
 }
 
+[[nodiscard]] QString FormatUnconfirmedAuthMessage(
+		const std::vector<Data::UnreviewedAuth> &list) {
+	if (list.empty()) {
+		return QString();
+	} else if (list.size() == 1) {
+		const auto &auth = list.at(0);
+		return tr::lng_unconfirmed_auth_single(
+			tr::now,
+			lt_from,
+			auth.device,
+			lt_country,
+			auth.location);
+	}
+	auto commonLocation = list.at(0).location;
+	for (auto i = 1; i < list.size(); ++i) {
+		if (commonLocation != list.at(i).location) {
+			commonLocation.clear();
+			break;
+		}
+	}
+	if (commonLocation.isEmpty()) {
+		return tr::lng_unconfirmed_auth_multiple(
+			tr::now,
+			lt_count,
+			list.size());
+	}
+	return tr::lng_unconfirmed_auth_multiple_from(
+		tr::now,
+		lt_count,
+		list.size(),
+		lt_country,
+		commonLocation);
+}
+
 void PaintPillTopSheen(QPainter &p, const QRect &pill, int radius) {
 	if (pill.isEmpty() || st::dialogsBg->c.lightness() >= 128) {
 		return;
@@ -146,7 +180,7 @@ int UnconfirmedAuthWrap::resizeGetHeight(int newWidth) {
 
 not_null<UnconfirmedAuthWrap*> CreateUnconfirmedAuthContent(
 		not_null<Ui::RpWidget*> parent,
-		const std::vector<Data::UnreviewedAuth> &list,
+		rpl::producer<std::vector<Data::UnreviewedAuth>> list,
 		Fn<void(bool)> callback,
 		rpl::producer<float64> collapseProgress) {
 	const auto wrap = Ui::CreateChild<UnconfirmedAuthWrap>(
@@ -195,42 +229,10 @@ not_null<UnconfirmedAuthWrap*> CreateUnconfirmedAuthContent(
 
 	Ui::AddSkip(content);
 
-	auto messageText = QString();
-	if (list.size() == 1) {
-		const auto &auth = list.at(0);
-		messageText = tr::lng_unconfirmed_auth_single(
-			tr::now,
-			lt_from,
-			auth.device,
-			lt_country,
-			auth.location);
-	} else {
-		auto commonLocation = list.at(0).location;
-		for (auto i = 1; i < list.size(); ++i) {
-			if (commonLocation != list.at(i).location) {
-				commonLocation.clear();
-				break;
-			}
-		}
-		if (commonLocation.isEmpty()) {
-			messageText = tr::lng_unconfirmed_auth_multiple(
-				tr::now,
-				lt_count,
-				list.size());
-		} else {
-			messageText = tr::lng_unconfirmed_auth_multiple_from(
-				tr::now,
-				lt_count,
-				list.size(),
-				lt_country,
-				commonLocation);
-		}
-	}
-
 	content->add(
 		object_ptr<Ui::FlatLabel>(
 			content,
-			rpl::single(messageText),
+			std::move(list) | rpl::map(FormatUnconfirmedAuthMessage),
 			st::dialogsUnconfirmedAuthAbout),
 		padding,
 		style::al_top)->setTryMakeSimilarLines(true);

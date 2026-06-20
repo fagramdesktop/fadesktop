@@ -102,5 +102,6 @@
     <file alias="swipe_read.tgs">../../animations/swipe_action/read.tgs</file>
     <file alias="swipe_unread.tgs">../../animations/swipe_action/unread.tgs</file>
     <file alias="craft_progress.tgs">../../animations/craft_progress.tgs</file>
+    <file alias="cleaning_cache.tgs">../../animations/cleaning_cache.tgs</file>
   </qresource>
 </RCC>

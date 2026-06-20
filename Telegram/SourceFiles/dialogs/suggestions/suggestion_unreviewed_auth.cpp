@@ -105,22 +105,27 @@ void Activate(ActivateArgs args) {
 	const auto session = args.context.session.get();
 	const auto parent = args.context.parent;
 	const auto findController = args.context.findController;
-	const auto list = session->api().authorizations().unreviewed();
-	if (list.empty()) {
-		return;
-	}
-	const auto hashes = ranges::views::all(
-		list
-	) | ranges::views::transform([](const auto &auth) {
-		return auth.hash;
-	}) | ranges::to_vector;
+	const auto authorizations = &session->api().authorizations();
+	auto listProducer = rpl::single(
+		authorizations->unreviewed()
+	) | rpl::then(
+		authorizations->unreviewedChanges() | rpl::map([=] {
+			return authorizations->unreviewed();
+		})
+	);
 
 	const auto wrap = CreateUnconfirmedAuthContent(
 		parent,
-		list,
+		std::move(listProducer),
 		[=](bool confirmed) {
-			ShowAuthToast(parent, session, findController, list, confirmed);
-			session->api().authorizations().review(hashes, confirmed);
+			const auto current = authorizations->unreviewed();
+			auto hashes = ranges::views::all(
+				current
+			) | ranges::views::transform([](const auto &auth) {
+				return auth.hash;
+			}) | ranges::to_vector;
+			ShowAuthToast(parent, session, findController, current, confirmed);
+			authorizations->review(hashes, confirmed);
 		},
 		args.context.childListShown());
 	args.done(wrap, [wrap] { wrap->prepareCollapseSnapshot(); });

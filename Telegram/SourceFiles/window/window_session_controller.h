@@ -16,6 +16,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "settings/settings_type.h"
 #include "window/window_adaptive.h"
 
+#include <QtCore/QDate>
 #include <QtCore/QPointer>
 
 class PhotoData;
@@ -415,6 +416,7 @@ public:
 	[[nodiscard]] SeparateId windowId() const;
 	[[nodiscard]] bool isPrimary() const;
 	[[nodiscard]] not_null<::MainWindow*> widget() const;
+	[[nodiscard]] rpl::producer<> imeCompositionStarts() const;
 	[[nodiscard]] not_null<MainWidget*> content() const;
 	[[nodiscard]] Adaptive &adaptive() const;
 	[[nodiscard]] ChatHelpers::EmojiInteractions &emojiInteractions() const {
@@ -555,6 +557,7 @@ public:
 	}
 	void removeLayerBlackout();
 	[[nodiscard]] bool isLayerShown() const;
+	[[nodiscard]] rpl::producer<bool> boxShownValue() const;
 	void registerActiveLayerSection(SectionWidget *section);
 	void unregisterActiveLayerSection(SectionWidget *section);
 	[[nodiscard]] SectionWidget *activeLayerSection() const;

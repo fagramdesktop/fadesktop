@@ -6,6 +6,7 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "iv/markdown/iv_markdown_prepare.h"
+#include "iv/iv_rich_page.h"
 #include "iv/markdown/iv_markdown_prepare_blocks.h"
 #include "iv/markdown/iv_markdown_prepare_formulas.h"
 #include "iv/markdown/iv_markdown_prepare_native_blocks.h"
@@ -69,9 +70,11 @@ const MarkdownPrepareLimits &PrepareLimitsForIv() {
 	static const auto result = MarkdownPrepareLimits{
 		.tableRender = {
 			.maxRows = 128,
-			.maxColumns = 16,
+			.maxColumns = 20,
 			.maxCells = 1024,
 		},
+		.visualListDepth = 16,
+		.visualQuoteDepth = 16,
 		.maxPreparedBlocks = 4096,
 	};
 	return result;
@@ -131,6 +134,10 @@ NativeInstantViewPrepareResult TryPrepareNativeInstantView(
 	auto timer = QElapsedTimer();
 	timer.start();
 	state.result.mediaRuntime = std::move(request.mediaRuntime);
+	state.result.editMode = request.editMode;
+	state.dimensions = request.dimensionsOverride.value_or(
+		CaptureMarkdownPrepareDimensions());
+	state.editMode = request.editMode;
 	const auto finish = [&](NativeInstantViewPrepareResultKind kind, QString reason) {
 		state.result.debug.prepareMs = int(timer.elapsed());
 		return NativeInstantViewPrepareResult{
@@ -140,31 +147,18 @@ NativeInstantViewPrepareResult TryPrepareNativeInstantView(
 		};
 	};
 
-	if (!request.source) {
+	if (!request.richPage) {
 		state.setFailure(
 			PrepareTerminalFailure::InvalidRequest,
-			u"missing-native-iv-source"_q);
+			u"missing-native-iv-rich-page"_q);
 		ClearPreparedOutput(&state.result);
 		return finish(
 			NativeInstantViewPrepareResultKind::Failure,
 			state.result.failure.debugReason);
 	}
 
-	for (const auto &photo : request.source->page.data().vphotos().v) {
-		RememberNativeIvPhoto(&state, photo);
-	}
-	if (request.source->webpagePhoto) {
-		RememberNativeIvPhoto(&state, *request.source->webpagePhoto);
-	}
-	for (const auto &document : request.source->page.data().vdocuments().v) {
-		RememberNativeIvDocument(&state, document);
-	}
-	if (request.source->webpageDocument) {
-		RememberNativeIvDocument(&state, *request.source->webpageDocument);
-	}
-
 	if (!PrepareNativeIvBlocks(
-			request.source->page.data().vblocks().v,
+			*request.richPage,
 			&state.result.blocks.blocks,
 			&state)) {
 		if (state.result.failure.failed()) {
@@ -178,9 +172,56 @@ NativeInstantViewPrepareResult TryPrepareNativeInstantView(
 			&state.result.blocks.blocks);
 	}
 	ApplySoftPreparedBlockLimit(&state.result.blocks.blocks);
+	MeasureNativeIvPreparedFormulas(&state);
+	if (state.result.failure.failed()) {
+		ClearPreparedOutput(&state.result);
+		return finish(
+			NativeInstantViewPrepareResultKind::Failure,
+			state.result.failure.debugReason);
+	}
 	return finish(
 		NativeInstantViewPrepareResultKind::Supported,
 		QString());
+}
+
+NativeInstantViewLeafUpdateResult UpdatePreparedNativeInstantViewLeaf(
+		MarkdownArticleContent *content,
+		const RichPage &page,
+		const PreparedEditLeafSource &source) {
+	if (!content) {
+		return NativeInstantViewLeafUpdateResult::Failed;
+	}
+	auto state = NativeIvPrepareState();
+	state.result.mediaRuntime = content->mediaRuntime;
+	state.result.editMode = content->editMode;
+	state.result.formulas = content->formulas;
+	state.dimensions = CaptureMarkdownPrepareDimensions();
+	state.editMode = content->editMode;
+	state.nextFormulaIndex = int(content->formulas.size());
+	auto blocks = content->blocks.blocks;
+	auto formulaRange = NativeIvPreparedLeafFormulaRange{
+		.from = state.nextFormulaIndex,
+		.till = state.nextFormulaIndex,
+	};
+	const auto updated = UpdatePreparedNativeIvLeaf(
+		&blocks,
+		page,
+		source,
+		&state,
+		&formulaRange);
+	if (updated != NativeInstantViewLeafUpdateResult::Updated) {
+		return updated;
+	}
+	MeasureNativeIvPreparedFormulas(
+		&state,
+		formulaRange.from,
+		formulaRange.till);
+	if (state.result.failure.failed()) {
+		return NativeInstantViewLeafUpdateResult::Failed;
+	}
+	content->blocks.blocks = std::move(blocks);
+	content->formulas = std::move(state.result.formulas);
+	return NativeInstantViewLeafUpdateResult::Updated;
 }
 
 } // namespace Iv::Markdown

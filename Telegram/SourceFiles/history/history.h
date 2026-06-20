@@ -720,7 +720,9 @@ public:
 
 	std::vector<std::unique_ptr<Element>> messages;
 
-	void remove(not_null<Element*> view);
+	void remove(
+		not_null<Element*> view,
+		Data::ViewRemovalReason reason = Data::ViewRemovalReason::Removed);
 	void refreshView(not_null<Element*> view);
 
 	int resizeGetHeight(int newWidth, ResizeRequest request);

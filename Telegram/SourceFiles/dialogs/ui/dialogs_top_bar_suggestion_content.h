@@ -56,7 +56,7 @@ private:
 
 not_null<UnconfirmedAuthWrap*> CreateUnconfirmedAuthContent(
 		not_null<Ui::RpWidget*> parent,
-		const std::vector<Data::UnreviewedAuth> &list,
+		rpl::producer<std::vector<Data::UnreviewedAuth>> list,
 		Fn<void(bool)> callback,
 		rpl::producer<float64> collapseProgress);
 

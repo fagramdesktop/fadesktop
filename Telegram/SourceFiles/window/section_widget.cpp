@@ -30,6 +30,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "main/main_session.h"
 #include "menu/menu_send.h"
 #include "settings/sections/settings_premium.h"
+#include "ui/text/text_custom_emoji.h"
 #include "ui/toast/toast.h"
 #include "window/section_memento.h"
 #include "window/window_slide_animation.h"
@@ -347,7 +348,7 @@ void SectionWidget::PaintBackground(
 		const auto fill = QSize(widget->width(), fillHeight);
 		const auto &state = theme->backgroundState(fill);
 		const auto make = [&] {
-			return std::make_unique<Ui::Text::LimitedLoopsEmoji>(
+			return MakeWrappedEmoji<Ui::Text::LimitedLoopsEmoji>(
 				controller->session().data().customEmojiManager().create(
 					id,
 					crl::guard(widget, [=] { widget->update(); }),

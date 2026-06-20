@@ -79,6 +79,7 @@ Spec MakeBirthdaySetupSpec() {
 		.priority = Priority::BirthdaySetup,
 		.available = Available,
 		.activate = Activate,
+		.dayDependent = true,
 	};
 }
 

@@ -7,6 +7,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #pragma once
 
+#include "history/history_message_selection.h"
+
 class HistoryItem;
 
 namespace HistoryView {
@@ -54,6 +56,7 @@ struct TextState {
 	ClickHandlerPtr link;
 	uint16 symbol = 0;
 	bool afterSymbol = false;
+	MessageSelectionEndpoint selectionCursor;
 	bool overMessageText = false;
 	bool customTooltip = false;
 	bool horizontalScroll = false;

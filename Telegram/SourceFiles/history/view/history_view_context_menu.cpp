@@ -87,7 +87,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_channel.h"
 #include "data/data_chat.h"
 #include "data/data_file_click_handler.h"
-#include "data/data_file_origin.h"
 #include "data/data_message_reactions.h"
 #include "data/data_user.h"
 #include "data/stickers/data_custom_emoji.h"
@@ -2183,7 +2182,8 @@ void AddPollActions(
 		not_null<HistoryItem*> item,
 		Context context,
 		not_null<Window::SessionController*> controller,
-		bool skipRetractVote) {
+		bool skipRetractVote,
+		bool skipViewStats) {
 	{
 		constexpr auto kRadio = "\xf0\x9f\x94\x98";
 		const auto radio = QString::fromUtf8(kRadio);
@@ -2210,7 +2210,7 @@ void AddPollActions(
 		return;
 	}
 	const auto itemId = item->fullId();
-	if (poll->canViewStats() && item->isRegular()) {
+	if (poll->canViewStats() && item->isRegular() && !skipViewStats) {
 		menu->addAction(tr::lng_polls_view_stats(tr::now), [=] {
 			ShowPollStatsBox(controller, itemId);
 		}, &st::menuIconStats);

@@ -27,7 +27,11 @@ TextState::TextState(
 	: CursorState::None)
 , link(state.link)
 , symbol(state.symbol)
-, afterSymbol(state.afterSymbol) {
+, afterSymbol(state.afterSymbol)
+, selectionCursor(MessageSelectionEndpoint::Flat({
+	state.symbol,
+	state.afterSymbol,
+})) {
 }
 
 TextState::TextState(
@@ -62,7 +66,11 @@ TextState::TextState(
 	: CursorState::None)
 , link(state.link)
 , symbol(state.symbol)
-, afterSymbol(state.afterSymbol) {
+, afterSymbol(state.afterSymbol)
+, selectionCursor(MessageSelectionEndpoint::Flat({
+	state.symbol,
+	state.afterSymbol,
+})) {
 }
 
 TextState::TextState(std::nullptr_t, ClickHandlerPtr link)

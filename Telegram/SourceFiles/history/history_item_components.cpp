@@ -596,6 +596,23 @@ void HistoryMessageReply::updateData(
 	}
 }
 
+void HistoryMessageReply::setInLogReplyTo(
+		not_null<HistoryItem*> holder,
+		not_null<HistoryItem*> message) {
+	if (resolvedMessage.get() == message) {
+		return;
+	} else if (resolvedMessage) {
+		holder->history()->owner().unregisterDependentMessage(
+			holder,
+			resolvedMessage.get());
+		resolvedMessage = nullptr;
+	}
+	_fields.externalPeerId = PeerId();
+	_fields.messageId = message->id;
+	_unavailable = 0;
+	updateData(holder, true);
+}
+
 void HistoryMessageReply::set(ReplyFields fields) {
 	_fields = std::move(fields);
 }

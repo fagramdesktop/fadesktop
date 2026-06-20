@@ -75,6 +75,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "inline_bots/bot_attach_web_view.h"
 #include "history/history.h"
 #include "history/history_item.h"
+#include "iv/iv_instance.h"
 #include "apiwrap.h"
 
 #include <QtGui/QGuiApplication>

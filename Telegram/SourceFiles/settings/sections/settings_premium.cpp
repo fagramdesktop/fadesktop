@@ -1299,19 +1299,8 @@ void BuildPremiumSectionContent(
 				state->ref,
 				state->radioGroup);
 
-			auto buttonCallback = [controller, state](PremiumFeature section) {
-				if (state->setPaused) {
-					state->setPaused(true);
-				}
-				const auto hidden = crl::guard(
-					(QObject*)controller->widget(),
-					[state] {
-						if (state->setPaused) {
-							state->setPaused(false);
-						}
-					});
-
-				ShowPremiumPreviewToBuy(controller, section, hidden);
+			auto buttonCallback = [controller](PremiumFeature section) {
+				ShowPremiumPreviewToBuy(controller, section, nullptr);
 			};
 			AddSummaryPremium(
 				ctx.container,
@@ -1561,6 +1550,8 @@ base::weak_qptr<Ui::RpWidget> Premium::createPinnedToTop(
 				.clickContextOther = clickContextOther,
 				.title = std::move(title),
 				.about = std::move(about),
+				.use3dStar = true,
+				.showFinished = _showFinished.events(),
 			});
 	}();
 	_state->setPaused = [=](bool paused) {
@@ -1569,6 +1560,10 @@ base::weak_qptr<Ui::RpWidget> Premium::createPinnedToTop(
 			_subscribe->setGlarePaused(paused);
 		}
 	};
+	controller()->boxShownValue(
+	) | rpl::on_next([=](bool shown) {
+		_state->setPaused(shown);
+	}, content->lifetime());
 
 	_wrap.value(
 	) | rpl::on_next([=](Info::Wrap wrap) {

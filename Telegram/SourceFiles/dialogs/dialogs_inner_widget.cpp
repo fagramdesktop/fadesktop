@@ -2466,29 +2466,50 @@ bool InnerWidget::updateReorderPinned(QPoint localPosition) {
 	}
 
 	const auto draggingHeight = _dragging->height();
+	const auto promoted = fixedOnTopCount();
 	auto yaddWas = _pinnedRows[_draggingIndex].yadd.current();
 	auto shift = 0;
 	auto shiftHeight = 0;
 	auto now = crl::now();
+	const auto crossThreshold = [&](int height) {
+		return std::max(draggingHeight / 2, height - draggingHeight / 2);
+	};
 	if (_dragStart.y() > localPosition.y() && _draggingIndex > 0) {
-		shift = -floorclamp(_dragStart.y() - localPosition.y() + (draggingHeight / 2), draggingHeight, 0, _draggingIndex);
-
-		for (auto from = _draggingIndex, to = _draggingIndex + shift; from > to; --from) {
+		auto delta = _dragStart.y() - localPosition.y();
+		for (auto from = _draggingIndex; from > 0; --from) {
+			const auto height
+				= (*(_shownList->cbegin() + promoted + from - 1))->height();
+			if (delta < crossThreshold(height)) {
+				break;
+			}
+			delta -= height;
+			--shift;
 			_shownList->movePinned(_dragging, -1);
 			std::swap(_pinnedRows[from], _pinnedRows[from - 1]);
-			_pinnedRows[from].yadd = anim::value(_pinnedRows[from].yadd.current() - draggingHeight, 0);
+			_pinnedRows[from].yadd = anim::value(
+				_pinnedRows[from].yadd.current() - draggingHeight,
+				0);
 			_pinnedRows[from].animStartTime = now;
-			shiftHeight -= (*(_shownList->cbegin() + from))->height();
+			shiftHeight -= height;
 		}
-	} else if (_dragStart.y() < localPosition.y() && _draggingIndex + 1 < pinnedCount) {
-		shift = floorclamp(localPosition.y() - _dragStart.y() + (draggingHeight / 2), draggingHeight, 0, pinnedCount - _draggingIndex - 1);
-
-		for (auto from = _draggingIndex, to = _draggingIndex + shift; from < to; ++from) {
+	} else if (_dragStart.y() < localPosition.y()
+			&& _draggingIndex + 1 < pinnedCount) {
+		auto delta = localPosition.y() - _dragStart.y();
+		for (auto from = _draggingIndex; from + 1 < pinnedCount; ++from) {
+			const auto height
+				= (*(_shownList->cbegin() + promoted + from + 1))->height();
+			if (delta < crossThreshold(height)) {
+				break;
+			}
+			delta -= height;
+			++shift;
 			_shownList->movePinned(_dragging, 1);
 			std::swap(_pinnedRows[from], _pinnedRows[from + 1]);
-			_pinnedRows[from].yadd = anim::value(_pinnedRows[from].yadd.current() + draggingHeight, 0);
+			_pinnedRows[from].yadd = anim::value(
+				_pinnedRows[from].yadd.current() + draggingHeight,
+				0);
 			_pinnedRows[from].animStartTime = now;
-			shiftHeight += (*(_shownList->cbegin() + from))->height();
+			shiftHeight += height;
 		}
 	}
 	if (shift) {

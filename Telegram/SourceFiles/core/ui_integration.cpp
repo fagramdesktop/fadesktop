@@ -247,14 +247,14 @@ Ui::Text::MarkedContext TextContext(TextContextArgs &&args) {
 		? Factory([simple, loop = args.customEmojiLoopLimit](
 				QStringView data,
 				const Context &context) {
-			return std::make_unique<Ui::Text::LimitedLoopsEmoji>(
+			return MakeWrappedEmoji<Ui::Text::LimitedLoopsEmoji>(
 				simple(data, context),
 				loop);
 		})
 		: Factory([simple](
 				QStringView data,
 				const Context &context) {
-			return std::make_unique<Ui::Text::FirstFrameEmoji>(
+			return MakeWrappedEmoji<Ui::Text::FirstFrameEmoji>(
 				simple(data, context));
 		});
 	args.details.session = session;

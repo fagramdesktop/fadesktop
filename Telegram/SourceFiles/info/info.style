@@ -407,6 +407,9 @@ infoProfileTopBarPhotoBgNoActionsShift: 30px;
 infoProfileTopBarPhotoSize: 80px;
 infoProfileTopBarLastSeenSkip: point(8px, 1px);
 
+infoProfileBirthdayConfettiSize: 360px;
+infoProfileBirthdayDigitSize: 64px;
+
 infoProfileTopBarGiftSize: 20px;
 
 infoProfileTopBarGiftLeft: point(15px, 13px);
@@ -725,7 +728,6 @@ infoMainButtonAttention: SettingsButton(infoMainButton) {
 	textFgOver: attentionButtonFgOver;
 }
 infoSharedMediaButton: infoProfileButton;
-infoSharedMediaBottomSkip: 12px;
 
 infoBlockButton: SettingsButton(infoProfileButton) {
 	textFg: attentionButtonFg;

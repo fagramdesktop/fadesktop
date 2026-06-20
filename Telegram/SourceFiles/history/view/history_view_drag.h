@@ -7,30 +7,21 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
-#include <QtCore/QMimeData>
+#include <QtCore/QByteArray>
 #include <QtGui/QImage>
 
+class QMimeData;
 class PhotoData;
 
 namespace HistoryView {
 
-class DragMimeData final : public QMimeData {
-public:
-	explicit DragMimeData(QString tempPath = QString());
-	~DragMimeData();
-
-private:
-	const QString _tempPath;
-
-};
-
 struct PhotoDragData {
 	QImage image;
-	QString tempPath;
+	QByteArray bytes;
 };
 
-[[nodiscard]] PhotoDragData PreparePhotoDragData(
-	not_null<PhotoData*> photo,
-	TimeId itemDate);
+[[nodiscard]] PhotoDragData PreparePhotoDragData(not_null<PhotoData*> photo);
+
+void FillDragMimeWithPhoto(not_null<QMimeData*> mime, PhotoDragData &&data);
 
 } // namespace HistoryView

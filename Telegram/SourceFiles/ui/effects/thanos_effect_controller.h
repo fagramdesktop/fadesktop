@@ -85,6 +85,7 @@ private:
 	void startCollapseAnimation(int height, int itemTop);
 	void collapseAnimationCallback();
 	void syncCollapseGapsToHost();
+	void ensureScrollBaseline();
 
 	const not_null<Main::Session*> _session;
 	const Delegate _delegate;
@@ -97,7 +98,6 @@ private:
 	Animations::Simple _collapseAnimation;
 
 	int _savedScrollTop = 0;
-	int _expectedScrollTop = 0;
 	bool _restoreScrollPending = false;
 };
 

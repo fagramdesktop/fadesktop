@@ -183,25 +183,44 @@ QString currentTitle = tr::lng_settings_title(tr::now);
 rpl::producer<QString> nameProducer = GetNameProducer();
 ```
 
-**Use trailing return types for long return types:**
+**Use trailing return types only when the normal form is too long:**
 
-Never split a long return type onto the line before a function declaration or definition:
-
-```cpp
-// BAD:
-std::shared_ptr<PlaceholderBlockRuntime>
-getOrCreatePlaceholderRuntime(PreparedPlaceholderBlockId id);
-```
-
-Use `auto` with a trailing return type instead:
+Prefer the normal return type form when the opening line fits comfortably, roughly around 77 characters or less:
 
 ```cpp
 // GOOD:
-auto getOrCreatePlaceholderRuntime(PreparedPlaceholderBlockId id)
--> std::shared_ptr<PlaceholderBlockRuntime>;
+[[nodiscard]] TextWithEntities FlattenSummaryBlocks(
+	const std::vector<Block> &blocks);
 ```
 
-This applies to both declarations and definitions. It keeps the method name at the front, makes scanning easier, and avoids orphaned return-type lines.
+Do not use one-line trailing return types, or put the trailing return type after `)` on the same line. If it fits on one line with trailing syntax, the normal form would be shorter and easier to read:
+
+```cpp
+// BAD:
+auto ComputeTitle() -> QString;
+
+// BAD:
+[[nodiscard]] auto FlattenSummaryBlocks(
+	const std::vector<Block> &blocks) -> TextWithEntities;
+```
+
+Use `auto` with a trailing return type only when the normal opening line
+`{attributes} {return-type} {class-name::}{function-name(}` would be too long, or would force the return type onto its own line. Put the arrow and return type on the next line so the return type remains easy to find:
+
+```cpp
+// BAD:
+not_null<HistoryView::Controls::ComposeAiButton*>
+HistoryView::Controls::SetupCaptionAiButton(SetupCaptionAiButtonArgs &&args);
+```
+
+```cpp
+// GOOD:
+auto HistoryView::Controls::SetupCaptionAiButton(
+		SetupCaptionAiButtonArgs &&args)
+-> not_null<HistoryView::Controls::ComposeAiButton*>;
+```
+
+This applies to both declarations and definitions.
 
 **Use `_q` for QString literals:**
 

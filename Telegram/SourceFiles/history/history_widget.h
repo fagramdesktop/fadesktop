@@ -678,6 +678,7 @@ private:
 	void setHistory(History *history);
 	void setEditMsgId(MsgId msgId);
 
+	friend class HistoryInner;
 	HistoryItem *getItemFromHistoryOrMigrated(MsgId genericMsgId) const;
 	void animatedScrollToItem(MsgId msgId);
 	void animatedScrollToY(int scrollTo, HistoryItem *attachTo = nullptr);

@@ -12,8 +12,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_msg_id.h"
 #include "base/qt/qt_compare.h"
 
-#define ID long long
-
+struct AudioAlbumThumbLocation;
 class HistoryItem;
 using HistoryItemsList = std::vector<not_null<HistoryItem*>>;
 
@@ -391,6 +390,11 @@ enum class ForwardOptions {
 	PreserveInfo,
 	NoSenderNames,
 	NoNamesAndCaptions,
+};
+
+enum class ViewRemovalReason : uchar {
+	Removed,
+	Detached,
 };
 
 struct ForwardDraft {

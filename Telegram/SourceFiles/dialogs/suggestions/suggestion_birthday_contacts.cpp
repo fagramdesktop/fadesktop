@@ -142,6 +142,7 @@ Spec MakeBirthdayContactsSpec() {
 		.priority = Priority::BirthdayContacts,
 		.available = Available,
 		.activate = Activate,
+		.dayDependent = true,
 	};
 }
 

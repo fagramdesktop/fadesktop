@@ -17,6 +17,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/painter.h"
 #include "ui/rect.h"
 #include "ui/power_saving.h"
+#include "ui/text/text_custom_emoji.h"
 #include "ui/unread_badge_paint.h"
 #include "styles/style_dialogs.h"
 
@@ -350,11 +351,14 @@ int PeerBadge::drawPremiumEmojiStatus(
 		using namespace Ui::Text;
 		auto &manager = peer->session().data().customEmojiManager();
 		_emojiStatus->id = id;
-		_emojiStatus->emoji = std::make_unique<LimitedLoopsEmoji>(
+		_emojiStatus->emoji = MakeWrappedEmoji<LimitedLoopsEmoji>(
 			manager.create(
 				Data::EmojiStatusCustomId(id),
 				descriptor.customEmojiRepaint),
 			kPlayStatusLimit);
+	}
+	if (!_emojiStatus->emoji) {
+		return 0;
 	}
 	_emojiStatus->emoji->paint(p, {
 		.textColor = (*descriptor.premiumFg)->c,
@@ -410,7 +414,7 @@ void PeerBadge::set(
 		const auto outer = st::emojiSize;
 		const auto inner = int(base::SafeRound(
 			st::emojiSize * kBotVerifiedScale));
-		_botVerifiedData->icon = std::make_unique<ScaledBotVerifiedEmoji>(
+		_botVerifiedData->icon = MakeWrappedEmoji<ScaledBotVerifiedEmoji>(
 			factory(
 				Data::SerializeCustomEmojiId(details->iconId),
 				{ .repaint = repaint }),
