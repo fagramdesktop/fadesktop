@@ -50,11 +50,6 @@ jobs:
           arch: ${{ matrix.arch }}
           toolset: 14.44
 
-      - name: Install ATL
-        run: |
-          for /f "usebackq tokens=*" %%i in (`"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set "VS_PATH=%%i"
-          "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath "%VS_PATH%" --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.143.ATL --passive --norestart --wait
-
       - name: Clone repository
         uses: actions/checkout@v6
         with:
@@ -67,6 +62,16 @@ jobs:
           echo "CACHE_KEY=$(sha256sum $TBUILD/$REPO_NAME/$PREPARE_PATH | awk '{ print $1 }')" >> $GITHUB_ENV
           git config --global user.email "you@example.com"
           git config --global user.name "Sample"
+
+      - name: Install ATL
+        shell: pwsh
+        run: |
+          $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $p = Start-Process -FilePath "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -Wait -PassThru -ArgumentList `
+            'modify', '--installPath', "`"$vsPath`"", `
+            '--add', 'Microsoft.VisualStudio.Component.VC.ATL', `
+            '--passive', '--norestart'
+          if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { exit $p.ExitCode }
 
       - name: NuGet sources
         run: |
