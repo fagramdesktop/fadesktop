@@ -1437,6 +1437,8 @@ PRIVATE
     media/view/media_view_overlay_renderer.h
     media/view/media_view_overlay_widget.cpp
     media/view/media_view_overlay_widget.h
+    media/view/media_view_recognition_selection.cpp
+    media/view/media_view_recognition_selection.h
     media/view/media_view_pip.cpp
     media/view/media_view_pip.h
     media/view/media_view_pip_opengl.cpp

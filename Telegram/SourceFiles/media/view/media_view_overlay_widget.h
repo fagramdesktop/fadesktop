@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "media/stories/media_stories_delegate.h"
 #include "media/view/media_view_playback_controls.h"
 #include "media/view/media_view_open_common.h"
+#include "media/view/media_view_recognition_selection.h"
 #include "media/media_common.h"
 #include "platform/platform_text_recognition.h"
 
@@ -297,8 +298,12 @@ private:
 	void draw();
 	void receiveMouse();
 	void showAttachedStickers();
+
 	[[nodiscard]] auto scaledRecognitionRect(QPoint position)
 	const -> std::optional<Platform::TextRecognition::RectWithText>;
+	void updateRecognitionSelection(QPoint position);
+	void clearRecognitionSelection();
+	bool copyRecognitionSelection();
 	void showDropdown();
 	void handleTouchTimer();
 	void handleDocumentClick();
@@ -839,6 +844,7 @@ private:
 	bool _recognitionRetryOnLarge = false;
 	bool _showRecognitionResults = false;
 	Ui::Animations::Simple _recognitionAnimation;
+	RecognitionSelection _recognition;
 
 	bool _themePreviewShown = false;
 	uint64 _themePreviewId = 0;

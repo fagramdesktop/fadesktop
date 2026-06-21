@@ -1333,6 +1333,24 @@ void OverlayWidget::RendererRhi::paintRecognitionOverlay(
 				r.width() * _ifactor * scale,
 				r.height() * _ifactor * scale), Qt::transparent);
 		}
+		const auto spans = _owner->_recognition.spans();
+		if (!spans.empty()) {
+			p.setCompositionMode(QPainter::CompositionMode_SourceOver);
+			const auto color = QColor(48, 128, 255, int(128 * opacity));
+			for (const auto &span : spans) {
+				const auto band = _owner->_recognition.bandFor(
+					span.item,
+					span.from,
+					span.till);
+				if (!band.isEmpty()) {
+					p.fillRect(QRectF(
+						band.x() * _ifactor * scale,
+						band.y() * _ifactor * scale,
+						band.width() * _ifactor * scale,
+						band.height() * _ifactor * scale), color);
+				}
+			}
+		}
 	}
 
 	auto *tex = acquirePoolTexture(overlaySize);
