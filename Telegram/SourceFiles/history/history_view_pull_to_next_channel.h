@@ -53,6 +53,7 @@ private:
 	void startRetract(float64 from, History *next);
 	void clearState();
 	void reset();
+	void jumpWhenReady(not_null<History*> next, crl::time waited);
 	void jumpTo(not_null<History*> history);
 
 	const not_null<Ui::RpWidget*> _parent;

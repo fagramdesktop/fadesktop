@@ -1483,6 +1483,9 @@ void MainWidget::showHistory(
 			|| (params.animated == anim::type::instant)) {
 			return false;
 		}
+		if (params.slideFromBottom) {
+			return !_history->isHidden();
+		}
 		if (!peerId) {
 			if (isOneColumn()) {
 				return _dialogs && _dialogs->isHidden();
@@ -1556,7 +1559,9 @@ void MainWidget::showHistory(
 		if (!_showAnimation) {
 			if (!animationParams.oldContentCache.isNull()) {
 				_history->showAnimated(
-					back
+					params.slideFromBottom
+						? Window::SlideDirection::FromBottom
+						: back
 						? Window::SlideDirection::FromLeft
 						: Window::SlideDirection::FromRight,
 					animationParams);

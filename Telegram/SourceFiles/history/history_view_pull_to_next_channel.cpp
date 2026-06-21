@@ -7,9 +7,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_view_pull_to_next_channel.h"
 
+#include "apiwrap.h"
+#include "base/call_delayed.h"
 #include "base/event_filter.h"
 #include "base/platform/base_platform_haptic.h"
 #include "data/data_chat_filters.h"
+#include "data/data_messages.h"
 #include "data/data_peer.h"
 #include "data/data_session.h"
 #include "data/components/sponsored_messages.h"
@@ -19,6 +22,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
+#include "storage/storage_shared_media.h"
+#include "support/support_preload.h"
 #include "ui/chat/chat_style.h"
 #include "ui/chat/continuous_scroll.h"
 #include "ui/rect.h"
@@ -62,6 +67,45 @@ constexpr auto kBounceDuration = crl::time(400);
 		}
 	}
 	return nullptr;
+}
+
+[[nodiscard]] Storage::SharedMediaResult TopPinnedSlice(
+		not_null<PeerData*> peer) {
+	return peer->session().storage().snapshot(Storage::SharedMediaQuery(
+		Storage::SharedMediaKey(
+			peer->id,
+			MsgId(0), // topicRootId
+			PeerId(0), // monoforumPeerId
+			Storage::SharedMediaType::Pinned,
+			ServerMaxMsgId - 1),
+		1,
+		1));
+}
+
+void PreloadPinnedBar(not_null<History*> next) {
+	const auto peer = next->peer;
+	if (TopPinnedSlice(peer).count.has_value()) {
+		return;
+	}
+	peer->session().api().requestSharedMedia(
+		peer,
+		MsgId(0), // topicRootId
+		PeerId(0), // monoforumPeerId
+		Storage::SharedMediaType::Pinned,
+		ServerMaxMsgId - 1,
+		Data::LoadDirection::Before);
+}
+
+[[nodiscard]] bool PinnedBarReady(not_null<History*> next) {
+	const auto peer = next->peer;
+	const auto slice = TopPinnedSlice(peer);
+	if (!slice.count.has_value()) {
+		return false;
+	} else if (slice.messageIds.empty()) {
+		return true;
+	}
+	const auto id = FullMsgId(peer->id, slice.messageIds.back());
+	return (peer->owner().message(id) != nullptr);
 }
 
 void PaintStroke(
@@ -596,6 +640,14 @@ bool PullToNextChannel::applyDelta(float64 deltaX, float64 deltaY) {
 		_retract.stop();
 		_accumulated = down;
 		_next = FindNextUnreadChannel(_controller, _history->peer);
+		if (_next && !_next->isReadyFor(ShowAtUnreadMsgId)) {
+			[[maybe_unused]] const auto id = Support::SendPreloadRequest(
+				_next,
+				[] {});
+		}
+		if (_next) {
+			PreloadPinnedBar(_next);
+		}
 	} else {
 		_accumulated = std::max(0., _accumulated - deltaY);
 	}
@@ -627,10 +679,7 @@ bool PullToNextChannel::release() {
 		&& next->unreadCount() > 0;
 	clearState();
 	if (ready) {
-		applyShift(0);
-		_indicator->hideNow();
-		_hint->hideNow();
-		crl::on_main(_parent.get(), [=] { jumpTo(next); });
+		crl::on_main(_parent.get(), [=] { jumpWhenReady(next, 0); });
 	} else {
 		startRetract(from, next);
 	}
@@ -682,7 +731,9 @@ void PullToNextChannel::clearState() {
 void PullToNextChannel::reset() {
 	_retract.stop();
 	clearState();
-	push(0., false, false, nullptr);
+	applyShift(0);
+	_indicator->hideNow();
+	_hint->hideNow();
 }
 
 void PullToNextChannel::updateGeometry() {
@@ -702,10 +753,27 @@ void PullToNextChannel::updateGeometry() {
 	}
 }
 
+void PullToNextChannel::jumpWhenReady(
+		not_null<History*> next,
+		crl::time waited) {
+	constexpr auto kInterval = crl::time(100);
+	constexpr auto kMaxWait = crl::time(1500);
+	constexpr auto kPinnedMaxWait = crl::time(600);
+	const auto historyReady = next->isReadyFor(ShowAtUnreadMsgId);
+	const auto pinnedReady = (waited >= kPinnedMaxWait) || PinnedBarReady(next);
+	if ((historyReady && pinnedReady) || waited >= kMaxWait) {
+		jumpTo(next);
+		return;
+	}
+	base::call_delayed(kInterval, _parent.get(), [=] {
+		jumpWhenReady(next, waited + kInterval);
+	});
+}
+
 void PullToNextChannel::jumpTo(not_null<History*> history) {
-	_controller->showPeerHistory(
-		history,
-		Window::SectionShow::Way::ClearStack);
+	auto params = Window::SectionShow(Window::SectionShow::Way::ClearStack);
+	params.slideFromBottom = true;
+	_controller->showPeerHistory(history, params);
 }
 
 } // namespace HistoryView

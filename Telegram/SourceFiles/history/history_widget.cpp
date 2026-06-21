@@ -5372,16 +5372,21 @@ void HistoryWidget::showAnimated(
 	if (_requestsBar) {
 		_requestsBar->finishAnimating();
 	}
-	_topShadow->setVisible(params.withTopBarShadow ? false : true);
+	const auto fromBottom = (direction == Window::SlideDirection::FromBottom);
+	_topShadow->setVisible(fromBottom
+		? params.withTopBarShadow
+		: !params.withTopBarShadow);
 	_preserveScrollTop = false;
 	_stickerToast = nullptr;
 
 	auto newContentCache = Ui::GrabWidget(this);
 
 	hideChildWidgets();
-	if (params.withTopBarShadow) _topShadow->show();
+	if (params.withTopBarShadow && !fromBottom) {
+		_topShadow->show();
+	}
 
-	if (_history) {
+	if (_history && !fromBottom) {
 		_topBar->show();
 		_topBar->setAnimatingMode(true);
 	}

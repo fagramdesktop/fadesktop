@@ -214,6 +214,7 @@ struct SectionShow {
 	bool reapplyLocalDraft = false;
 	bool dropSameFromStack = false;
 	bool allowDuplicateInStack = false;
+	bool slideFromBottom = false;
 	Origin origin;
 
 };
