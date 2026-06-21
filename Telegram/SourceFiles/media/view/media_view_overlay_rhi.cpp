@@ -1343,11 +1343,25 @@ void OverlayWidget::RendererRhi::paintRecognitionOverlay(
 				QRhiTextureSubresourceUploadDescription(overlay))));
 
 	const auto rRect = scaleRect(transformRect(rect), geometry.scale);
+	const auto centerx = rRect.x() + rRect.width() / 2;
+	const auto centery = rRect.y() + rRect.height() / 2;
+	const auto rsin = float(std::sin(geometry.rotation * M_PI / 180.));
+	const auto rcos = float(std::cos(geometry.rotation * M_PI / 180.));
+	const auto rotated = [&](float x, float y) -> std::array<float, 2> {
+		x -= centerx;
+		y -= centery;
+		return { centerx + x * rcos + y * rsin,
+		         centery + y * rcos - x * rsin };
+	};
+	const auto tl = rotated(rRect.left(), rRect.bottom());
+	const auto tr = rotated(rRect.right(), rRect.bottom());
+	const auto bl = rotated(rRect.left(), rRect.top());
+	const auto br = rotated(rRect.right(), rRect.top());
 	const float coords[] = {
-		rRect.left(), rRect.bottom(), 0.f, 0.f,
-		rRect.right(), rRect.bottom(), 1.f, 0.f,
-		rRect.left(), rRect.top(), 0.f, 1.f,
-		rRect.right(), rRect.top(), 1.f, 1.f,
+		tl[0], tl[1], 0.f, 0.f,
+		tr[0], tr[1], 1.f, 0.f,
+		bl[0], bl[1], 0.f, 1.f,
+		br[0], br[1], 1.f, 1.f,
 	};
 	drawTexturedQuad(_imagePipeline, tex, coords, 1.f, true);
 }
