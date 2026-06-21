@@ -3471,8 +3471,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 
 					const auto hasMediaWithCaption = ranges::any_of(
 						_selected,
-						[](const auto &pair) {
-							const auto item = pair.first;
+						[](const auto &item) {
 							return item->media() && item->media()->allowsEditCaption();
 						});
 
@@ -3902,8 +3901,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 
 					const auto hasMediaWithCaption = ranges::any_of(
 						_selected,
-						[](const auto &pair) {
-							const auto item = pair.first;
+						[](const auto &item) {
 							return item->media() && item->media()->allowsEditCaption();
 						});
 
