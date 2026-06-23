@@ -186,13 +186,19 @@ task list or image contents back, the main thread reads `implementing.md` itself
 ```
 
 For **extend** mode, instead instruct the planner to FIRST read the existing `implementing.md`, then
-APPEND new lettered tasks (continuing the letter sequence) after the existing ones, leaving existing
-entries and their statuses untouched. It must append ONLY tasks from SOURCE not already represented
-in `implementing.md` — so re-running `implement <project>` against an unchanged default
-`tasks/about.md` appends nothing (the planner replies `ready — appended (none)`) and Phase C just
-finishes whatever is still unfinished. (Any `todo`/`in-progress` leftovers from an interrupted run
-are picked up by Phase C regardless, so defaulting to extend never loses an in-flight batch — it is a
-superset of resume.)
+rewrite it as: (1) a TRIMMED completed-history — keep only the **three most recent** `Status: approved`
+task blocks (the three nearest the bottom of the file) and drop all earlier approved ones; (2) every
+still-unfinished task left untouched, in place and with its status — that is all `todo`, `in-progress`,
+and `blocked` blocks (never drop these); then (3) APPEND new lettered tasks (continuing the letter
+sequence from the highest letter still present after the trim) after them. The trim only removes
+already-approved entries from the list — it never touches the per-task `.ai/<project>/<letter>/`
+artifacts on disk, so a follow-up letter can still read an earlier letter's `context.md` even after its
+block was trimmed out of `implementing.md`. It must append ONLY tasks from SOURCE not already
+represented in `implementing.md` — so re-running `implement <project>` against an unchanged default
+`tasks/about.md` appends nothing (the planner replies `ready — appended (none)`, still applying the
+completed-history trim) and Phase C just finishes whatever is still unfinished. (Any
+`todo`/`in-progress` leftovers from an interrupted run are picked up by Phase C regardless, so
+defaulting to extend never loses an in-flight batch — it is a superset of resume.)
 
 After the planner replies `ready`, read `implementing.md` back ONCE (your first and only load of the
 task prose; you never read the images). Initialize a progress list mirroring the tasks so progress
