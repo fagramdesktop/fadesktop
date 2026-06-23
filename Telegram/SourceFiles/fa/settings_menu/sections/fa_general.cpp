@@ -106,27 +106,27 @@ namespace Settings {
 
         SettingsMenuJsonSwitch(fa_disable_ads, disable_ads, u"fa/general/disable-ads"_q);
         Ui::AddDividerText(container, fatr::fa_disable_ads_desc());
-		const auto disableAiTextEditor = container->add(object_ptr<Button>(
+		const auto disableAi = container->add(object_ptr<Button>(
 			container,
-			fatr::fa_disable_ai_text_editor(),
+			fatr::fa_disable_ai(),
 			st::settingsButtonNoIcon
 		));
 		const auto hideAiOption = &base::options::lookup<bool>(Ui::kOptionHideAiButton);
-		disableAiTextEditor->toggleOn(
-			rpl::single(hideAiOption->value())
+		disableAi->toggleOn(
+			rpl::single(::FASettings::JsonSettings::GetBool(u"disable_ai"_q))
 		)->toggledValue(
 		) | rpl::filter([=](bool enabled) {
-			return (enabled != hideAiOption->value());
+			return (enabled != ::FASettings::JsonSettings::GetBool(u"disable_ai"_q));
 		}) | rpl::on_next([=](bool enabled) {
 			hideAiOption->set(enabled);
-			::FASettings::JsonSettings::Set(u"disable_ai_text_editor"_q, enabled);
+			::FASettings::JsonSettings::Set(u"disable_ai"_q, enabled);
 			::FASettings::JsonSettings::Write();
 		}, container->lifetime());
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-			disableAiTextEditor,
-			u"fa/general/disable-ai-text-editor"_q,
+			disableAi,
+			u"fa/general/disable-ai"_q,
 			controller);
-		Ui::AddDividerText(container, fatr::fa_disable_ai_text_editor_desc());
+		Ui::AddDividerText(container, fatr::fa_disable_ai_desc());
 		const auto disableAutoDownload = container->add(object_ptr<Button>(
 			container,
 			fatr::fa_disable_auto_download(),

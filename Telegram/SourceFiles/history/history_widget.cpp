@@ -6478,7 +6478,7 @@ bool HistoryWidget::fieldOrDisabledShown() const {
 }
 
 bool HistoryWidget::hasEnoughLinesForAi() const {
-	if (FASettings::JsonSettings::GetBool(u"disable_ai_text_editor"_q)) {
+	if (FASettings::JsonSettings::GetBool(u"disable_ai"_q)) {
 		return false;
 	}
 	return _history

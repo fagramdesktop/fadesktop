@@ -142,9 +142,9 @@ const auto kFAGeneralMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
-			.id = u"fa/general/disable-ai-text-editor"_q,
-			.title = fatr::fa_disable_ai_text_editor(fatr::now),
-			.keywords = { u"ai"_q, u"compose"_q, u"text"_q, u"editor"_q, u"disable"_q },
+			.id = u"fa/general/disable-ai"_q,
+			.title = fatr::fa_disable_ai(fatr::now),
+			.keywords = { u"ai"_q, u"compose"_q, u"text"_q, u"editor"_q, u"disable"_q, u"summaries"_q, u"summary"_q },
 			.icon = { &st::menuIconShowAll },
 		};
 	});

@@ -166,7 +166,7 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "disable_ads", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
-	{ "disable_ai_text_editor", {
+	{ "disable_ai", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
 	{ "disable_auto_download", {
@@ -316,6 +316,7 @@ using NewOptionKey = QString;
 
 const std::map<OldOptionKey, NewOptionKey, std::greater<OldOptionKey>> ReplacedOptionsMap {
 	{ "adaptive_baloons", "adaptive_bubbles" },
+	{ "disable_ai_text_editor", "disable_ai" },
 };
 
 QString DefaultFilePath() {
@@ -881,7 +882,7 @@ void Load() {
 	if (!Data) return;
 
 	Data->load();
-	const auto disabled = GetBool(u"disable_ai_text_editor"_q);
+	const auto disabled = GetBool(u"disable_ai"_q);
 	if (disabled && QCoreApplication::instance()) {
 		const auto hideAiOption = &base::options::lookup<bool>(Ui::kOptionHideAiButton);
 		if (!hideAiOption->value()) {

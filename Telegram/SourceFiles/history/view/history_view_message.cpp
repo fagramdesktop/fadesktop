@@ -1260,7 +1260,9 @@ QSize Message::performCountOptimalSize() {
 
 	const auto replyData = item->Get<HistoryMessageReply>();
 	const auto &summary = item->summaryEntry();
-	const auto showSummaryReply = !summary.result.empty() && summary.shown;
+	const auto showSummaryReply = !summary.result.empty()
+		&& summary.shown
+		&& !FASettings::JsonSettings::GetBool(u"disable_ai"_q);
 
 	if (replyData && !_hideReply) {
 		AddComponents(Reply::Bit());
@@ -6875,7 +6877,7 @@ const HistoryMessageEdited *Message::displayedEditBadge() const {
 
 void Message::ensureSummarizeButton() const {
 	if (data()->canBeSummarized()
-		/*&& item->originalText().text.size() >= kSummarizeThreshold*/) {
+		&& !FASettings::JsonSettings::GetBool(u"disable_ai"_q)) {
 		if (!_summarize) {
 			_summarize
 				= std::make_unique<TranscribeButton>(data(), false, true);

@@ -185,7 +185,7 @@ void AddOption(
 		}
 		option.set(toggled);
 		if (option.id() == Ui::kOptionHideAiButton) {
-			FASettings::JsonSettings::Set(u"disable_ai_text_editor"_q, toggled);
+			FASettings::JsonSettings::Set(u"disable_ai"_q, toggled);
 			FASettings::JsonSettings::Write();
 		}
 		if (restarter) {

@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/view/history_view_element.h"
 
 #include "apiwrap.h"
+#include "fa/settings/fa_settings.h"
 #include "api/api_transcribes.h"
 #include "history/view/history_view_service_message.h"
 #include "history/view/history_view_message.h"
@@ -1966,7 +1967,9 @@ void Element::validateText() {
 
 	const auto &summary = item->summaryEntry();
 	const auto summaryShownWas = (_flags & Flag::SummaryShown) != 0;
-	const auto summaryShownNow = !summary.result.empty() && summary.shown;
+	const auto summaryShownNow = !summary.result.empty()
+		&& summary.shown
+		&& !FASettings::JsonSettings::GetBool(u"disable_ai"_q);
 	const auto summaryShownChanged = (summaryShownWas != summaryShownNow);
 	if (summaryShownNow) {
 		_flags |= Flag::SummaryShown;
