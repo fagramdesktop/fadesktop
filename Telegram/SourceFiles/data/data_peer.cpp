@@ -57,7 +57,20 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "storage/storage_facade.h"
 #include "storage/storage_shared_media.h"
 
+#include <atomic>
+#include <mutex>
+#include <QtCore/QMutex>
+#include <QtCore/QMutexLocker>
+#include <QtCore/QHash>
+
 namespace {
+
+std::atomic<int> ScreenshotModeVersion = 0;
+std::atomic<bool> LastScreenshotMode = false;
+QMutex FakeNameMutex;
+
+QHash<const PeerData*, bool> EmptyUserpicScreenshotMode;
+QMutex EmptyUserpicScreenshotModeMutex;
 
 constexpr auto kUpdateFullPeerTimeout = crl::time(5000); // Not more than once in 5 seconds.
 constexpr auto kUserpicSize = 160;
@@ -381,15 +394,21 @@ void PeerData::updateNameDelayed(
 
 not_null<Ui::EmptyUserpic*> PeerData::ensureEmptyUserpic() const {
 	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
-	if (!_userpicEmpty || screenshotMode != _previousMode) {
-		_previousMode = screenshotMode;
-		_fakeName.clear();
+	{
+		QMutexLocker lock(&EmptyUserpicScreenshotModeMutex);
+		if (_userpicEmpty && EmptyUserpicScreenshotMode.value(this, !screenshotMode) != screenshotMode) {
+			_userpicEmpty = nullptr;
+		}
+	}
+	if (!_userpicEmpty) {
 		const auto user = asUser();
 		_userpicEmpty = std::make_unique<Ui::EmptyUserpic>(
 			Ui::EmptyUserpic::UserpicColor(colorIndex()),
 			((user && user->isInaccessible())
 				? Ui::EmptyUserpic::InaccessibleName()
 				: name()));
+		QMutexLocker lock(&EmptyUserpicScreenshotModeMutex);
+		EmptyUserpicScreenshotMode.insert(this, screenshotMode);
 	}
 	return _userpicEmpty.get();
 }
@@ -1178,7 +1197,10 @@ void PeerData::fillNames() {
 	}
 }
 
-PeerData::~PeerData() = default;
+PeerData::~PeerData() {
+	QMutexLocker lock(&EmptyUserpicScreenshotModeMutex);
+	EmptyUserpicScreenshotMode.remove(this);
+}
 
 void PeerData::updateFull() {
 	if (!_lastFullUpdate
@@ -1361,11 +1383,6 @@ const QString &PeerData::topBarNameText() const {
 		return to->topBarNameText();
 	}
 	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
-	// Clear cached fake name when mode changes
-	if (screenshotMode != _previousMode) {
-		_previousMode = screenshotMode;
-		_fakeName.clear();
-	}
 	if (const auto user = asUser()) {
 		if (!user->nameOrPhone.isEmpty() && !screenshotMode) {
 			// Always show name
@@ -1376,28 +1393,7 @@ const QString &PeerData::topBarNameText() const {
 		&& !isServiceUser()
 		&& !isVerified()
 		&& screenshotMode) {
-		if (const auto user = asUser()) {
-			if (user->isInaccessible()) {
-				return _name;
-			}
-		}
-		if (_randomNumber == 0) {
-			_randomNumber = QRandomGenerator::global()->bounded(10000000);
-		}
-		if (!_fakeName.isEmpty()) {
-			return _fakeName;
-		}
-		_fakeName = QString(isUser()
-			? (asUser()->isBot() ? "Bot " : "User ")
-			: isBroadcast()
-			? "Channel "
-			: isForum()
-			? "Forum "
-			: isMegagroup()
-			? "Group "
-			: "Chat ")
-			+ QString::number(_randomNumber);
-		return _fakeName;
+		return screenshotModeName();
 	}
 	return _name;
 }
@@ -1414,6 +1410,7 @@ const QString &PeerData::screenshotModeName() const {
 			return _name;
 		}
 	}
+	QMutexLocker lock(&FakeNameMutex);
 	if (_randomNumber == 0) {
 		_randomNumber = QRandomGenerator::global()->bounded(10000000);
 	}
@@ -1433,11 +1430,6 @@ const QString &PeerData::screenshotModeName() const {
 	return _fakeName;
 }
 
-namespace {
-int ScreenshotModeVersion = 0;
-bool LastScreenshotMode = false;
-} // namespace
-
 int PeerData::nameVersion() const {
 	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
 	if (screenshotMode != LastScreenshotMode) {
@@ -1454,72 +1446,23 @@ const QString &PeerData::name() const {
 		return broadcast->name();
 	}
 	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
-	// Clear cached fake name when mode changes
-	if (screenshotMode != _previousMode) {
-		_previousMode = screenshotMode;
-		_fakeName.clear();
-	}
+	
 	if (isLoaded()
 		&& !isServiceUser()
 		&& !isVerified()
 		&& screenshotMode) {
-		if (const auto user = asUser()) {
-			if (user->isInaccessible()) {
-				return _name;
-			}
-		}
-		if (_randomNumber == 0) {
-			_randomNumber = QRandomGenerator::global()->bounded(10000000);
-		}
-		if (!_fakeName.isEmpty()) {
-			return _fakeName;
-		}
-		_fakeName = QString(isUser()
-				? (asUser()->isBot() ? "Bot " : "User ")
-				: isBroadcast()
-				? "Channel "
-				: isForum()
-				? "Forum "
-				: isMegagroup()
-				? "Group "
-				: "Chat ")
-			+ QString::number(_randomNumber);
-		return _fakeName;
+		return screenshotModeName();
 	}
 	return _name;
 }
 
 const QString &PeerData::shortName() const {
 	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
-	// Clear cached fake name when mode changes
-	if (screenshotMode != _previousMode) {
-		_previousMode = screenshotMode;
-		_fakeName.clear();
-	}
 	if (isLoaded()
 		&& !isServiceUser()
 		&& !isVerified()
 		&& screenshotMode) {
-		const auto user = asUser();
-		if (!user || !user->isInaccessible()) {
-			if (_randomNumber == 0) {
-				_randomNumber = QRandomGenerator::global()->bounded(10000000);
-			}
-			if (!_fakeName.isEmpty()) {
-				return _fakeName;
-			}
-			_fakeName = QString(isUser()
-					? (asUser()->isBot() ? "Bot " : "User ")
-					: isBroadcast()
-					? "Channel "
-					: isForum()
-					? "Forum "
-					: isMegagroup()
-					? "Group "
-					: "Chat ")
-				+ QString::number(_randomNumber);
-			return _fakeName;
-		}
+		return screenshotModeName();
 	}
 	if (const auto user = asUser()) {
 		return user->firstName.isEmpty() ? user->lastName : user->firstName;

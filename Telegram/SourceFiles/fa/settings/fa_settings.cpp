@@ -25,6 +25,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonValue>
 #include <QtCore/QTimer>
+#include <QtCore/QReadWriteLock>
 #include <QtCore/QCoreApplication>
 
 namespace FASettings {
@@ -91,6 +92,7 @@ private:
 	rpl::event_stream<QString> _pendingEventStream;
 	QHash<QString, QVariant> _settingsHashMap;
 	QHash<QString, QVariant> _defaultSettingsHashMap;
+	mutable QReadWriteLock _lock;
 
 };
 
@@ -523,30 +525,50 @@ void Manager::write(bool force) {
 
 QVariant Manager::get(const QString &key, uint64 accountId, bool isTestAccount) {
 	const auto mapKey = MakeMapKey(key, accountId, isTestAccount);
+	_lock.lockForRead();
 	auto result = _settingsHashMap.contains(mapKey)
 		? _settingsHashMap.value(mapKey)
 		: QVariant();
+	_lock.unlock();
 	if (!result.isValid()) {
-		result = _settingsHashMap.contains(key)
-					? _settingsHashMap.value(key)
-					: getDefault(key);
-		_settingsHashMap.insert(mapKey, result);
+		_lock.lockForWrite();
+		result = _settingsHashMap.contains(mapKey)
+			? _settingsHashMap.value(mapKey)
+			: QVariant();
+		if (!result.isValid()) {
+			result = _settingsHashMap.contains(key)
+						? _settingsHashMap.value(key)
+						: getDefault(key);
+			_settingsHashMap.insert(mapKey, result);
+		}
+		_lock.unlock();
 	}
 	return result;
 }
 
 QVariant Manager::getWithPending(const QString &key, uint64 accountId, bool isTestAccount) {
 	const auto mapKey = MakeMapKey(key, accountId, isTestAccount);
+	_lock.lockForRead();
 	auto result = _defaultSettingsHashMap.contains(mapKey)
 		? _defaultSettingsHashMap.value(mapKey)
 		: _settingsHashMap.contains(mapKey)
 		? _settingsHashMap.value(mapKey)
 		: QVariant();
+	_lock.unlock();
 	if (!result.isValid()) {
-		result = _settingsHashMap.contains(key)
-					? _settingsHashMap.value(key)
-					: getDefault(key);
-		_settingsHashMap.insert(mapKey, result);
+		_lock.lockForWrite();
+		result = _defaultSettingsHashMap.contains(mapKey)
+			? _defaultSettingsHashMap.value(mapKey)
+			: _settingsHashMap.contains(mapKey)
+			? _settingsHashMap.value(mapKey)
+			: QVariant();
+		if (!result.isValid()) {
+			result = _settingsHashMap.contains(key)
+						? _settingsHashMap.value(key)
+						: getDefault(key);
+			_settingsHashMap.insert(mapKey, result);
+		}
+		_lock.unlock();
 	}
 	return result;
 }
@@ -554,12 +576,14 @@ QVariant Manager::getWithPending(const QString &key, uint64 accountId, bool isTe
 QVariantMap Manager::getAllWithPending(const QString &key) {
 	auto resultMap = QVariantMap();
 
+	_lock.lockForRead();
 	if (_defaultSettingsHashMap.contains(key) || _settingsHashMap.contains(key)) {
 		resultMap.insert(
 			qsl("0"),
 			_defaultSettingsHashMap.contains(key)
 				? _defaultSettingsHashMap.value(key)
 				: _settingsHashMap.value(key));
+		_lock.unlock();
 		return resultMap;
 	}
 
@@ -584,6 +608,7 @@ QVariantMap Manager::getAllWithPending(const QString &key) {
 		const auto accountKey = mapKey.mid(prefix.size());
 		resultMap.insert(accountKey, i.value());
 	}
+	_lock.unlock();
 
 	return resultMap;
 }
@@ -629,12 +654,15 @@ rpl::producer<QString> Manager::eventsWithPending(const QString &key, uint64 acc
 
 void Manager::set(const QString &key, QVariant value, uint64 accountId, bool isTestAccount) {
 	const auto mapKey = MakeMapKey(key, accountId, isTestAccount);
+	_lock.lockForWrite();
 	_settingsHashMap.insert(mapKey, value);
+	_lock.unlock();
 	_eventStream.fire_copy(mapKey);
 }
 
 void Manager::setAfterRestart(const QString &key, QVariant value, uint64 accountId, bool isTestAccount) {
 	const auto mapKey = MakeMapKey(key, accountId, isTestAccount);
+	_lock.lockForWrite();
 	if (!_settingsHashMap.contains(mapKey)
 		|| _settingsHashMap.value(mapKey) != value) {
 		_defaultSettingsHashMap.insert(mapKey, value);
@@ -642,6 +670,7 @@ void Manager::setAfterRestart(const QString &key, QVariant value, uint64 account
 		&& _settingsHashMap.value(mapKey) == value) {
 		_defaultSettingsHashMap.remove(mapKey);
 	}
+	_lock.unlock();
 	_pendingEventStream.fire_copy(mapKey);
 }
 
