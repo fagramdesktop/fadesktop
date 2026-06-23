@@ -246,6 +246,7 @@ private:
 	UserData *_requestedBy = nullptr;
 	Ui::Text::String _suggest;
 	Ui::Text::String _members;
+	Ui::Text::String _onlyMembers;
 	int _userWidth = 0;
 	std::unique_ptr<Ui::RippleAnimation> _acceptRipple;
 	std::unique_ptr<Ui::RippleAnimation> _rejectRipple;
@@ -278,11 +279,6 @@ Row::Row(
 			lt_user,
 			tr::link(user),
 			tr::marked);
-	if (!request.visible) {
-		suggest.append(QString::fromUtf8(" \xE2\x80\xA2 "));
-		suggest.append(
-			tr::lng_community_request_only_members(tr::now));
-	}
 	_suggest.setMarkedText(
 		st::requestSuggestStyle,
 		suggest,
@@ -299,6 +295,15 @@ Row::Row(
 		_members.setMarkedText(
 			st::requestMembersStyle,
 			members,
+			Ui::NameTextOptions());
+	}
+
+	if (!request.visible) {
+		auto text = Ui::Text::IconEmoji(&st::requestVisibleIcon)
+			.append(tr::lng_community_request_only_members(tr::now));
+		_onlyMembers.setMarkedText(
+			st::requestMembersStyle,
+			text,
 			Ui::NameTextOptions());
 	}
 
@@ -375,6 +380,15 @@ void Row::paintStatusText(
 	if (!_members.isEmpty()) {
 		_members.draw(p, {
 			.position = st::requestMembersPosition,
+			.availableWidth = availableWidth,
+			.palette = &st::defaultTextPalette,
+			.now = now,
+			.elisionLines = 1,
+		});
+	}
+	if (!_onlyMembers.isEmpty()) {
+		_onlyMembers.draw(p, {
+			.position = st::requestOnlyMembersPosition,
 			.availableWidth = availableWidth,
 			.palette = &st::defaultTextPalette,
 			.now = now,

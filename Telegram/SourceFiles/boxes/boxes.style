@@ -1060,7 +1060,7 @@ requestPeerRestriction: FlatLabel(defaultFlatLabel) {
 }
 
 requestsBoxItem: PeerListItem(peerListBoxItem) {
-	height: 104px;
+	height: 124px;
 	namePosition: point(74px, 26px);
 	button: OutlineButton(defaultPeerListButton) {
 		textBg: contactsBg;
@@ -1102,7 +1102,7 @@ requestsRejectButton: RoundButton(defaultLightButton) {
 	height: 30px;
 	textTop: 6px;
 }
-requestAcceptPosition: point(71px, 70px);
+requestAcceptPosition: point(71px, 90px);
 requestButtonsSkip: 9px;
 requestSuggestStyle: TextStyle(defaultTextStyle) {
 	font: contactsStatusFont;
@@ -1111,7 +1111,7 @@ requestSuggestPosition: point(74px, 6px);
 requestMembersStyle: TextStyle(defaultTextStyle) {
 	font: contactsStatusFont;
 }
-requestMembersPosition: point(74px, 48px);
+requestMembersPosition: point(74px, 46px);
 requestMembersIcon: IconEmoji {
 	icon: icon{{ "chat/mini_subscribers", contactsStatusFg }};
 	padding: margins(0px, 3px, 4px, 0px);
@@ -1120,6 +1120,12 @@ requestMembersIcon: IconEmoji {
 requestSuggestBadgeSize: 18px;
 requestSuggestBadgeBorder: 1px;
 requestSuggestBadgeSkip: point(0px, 0px);
+requestOnlyMembersPosition: point(74px, 66px);
+requestVisibleIcon: IconEmoji {
+	icon: icon{{ "chat/mini_hidden", contactsStatusFg }};
+	padding: margins(0px, 2px, 4px, 0px);
+	useIconColor: false;
+}
 
 ringtonesBoxButton: SettingsButton(defaultSettingsButton) {
 	textFg: lightButtonFg;
