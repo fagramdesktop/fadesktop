@@ -1219,18 +1219,17 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 		channel->setPhoto(data.vphoto());
 
 		using Flag = ChannelDataFlag;
-		const auto collapsed = data.vcollapsed_in_dialogs();
+		const auto collapsed = data.is_collapsed_in_dialogs();
 		const auto flagsMask = Flag::Community
 			| Flag::Forbidden
-			| (collapsed ? Flag::CommunityCollapsed : Flag())
-			| (!minimal ? (Flag::Left | Flag::Creator) : Flag());
+			| (!minimal
+				? (Flag::Left | Flag::Creator | Flag::CommunityCollapsed)
+				: Flag());
 		const auto flagsSet = Flag::Community
-			| ((collapsed && mtpIsTrue(*collapsed))
-				? Flag::CommunityCollapsed
-				: Flag())
 			| (!minimal
 				? ((data.is_left() ? Flag::Left : Flag())
-					| (data.is_creator() ? Flag::Creator : Flag()))
+					| (data.is_creator() ? Flag::Creator : Flag())
+					| (collapsed ? Flag::CommunityCollapsed : Flag()))
 				: Flag());
 		channel->setFlags((channel->flags() & ~flagsMask) | flagsSet);
 	}, [&](const MTPDcommunityForbidden &data) {
