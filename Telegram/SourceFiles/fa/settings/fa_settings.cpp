@@ -25,6 +25,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonValue>
 #include <QtCore/QTimer>
+#include <QtCore/QCoreApplication>
 
 namespace FASettings {
 namespace JsonSettings {
@@ -846,7 +847,7 @@ void Load() {
 
 	Data->load();
 	const auto disabled = GetBool(u"disable_ai_text_editor"_q);
-	if (disabled) {
+	if (disabled && QCoreApplication::instance()) {
 		const auto hideAiOption = &base::options::lookup<bool>(Ui::kOptionHideAiButton);
 		if (!hideAiOption->value()) {
 			hideAiOption->set(true);
