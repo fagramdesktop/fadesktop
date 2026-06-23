@@ -245,6 +245,11 @@ void ShowAddPeerToCommunity(
 						show->hideLayer();
 						show->showToast(
 							tr::lng_community_request_sent(tr::now));
+					} else if (error == Api::kCommunityPeersTooMuch.utf16()) {
+						show->showToast(tr::lng_community_peers_limit(
+							tr::now,
+							lt_count,
+							Api::CommunityPeersLimit(&community->session())));
 					} else {
 						show->showToast(error.isEmpty()
 							? Lang::Hard::ServerError()

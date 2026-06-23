@@ -806,7 +806,15 @@ void Controller::performNow(const std::shared_ptr<PendingAction> &action) {
 			}
 		}),
 		crl::guard(this, [=](const QString &error) {
-			delegate()->peerListUiShow()->showToast(error);
+			const auto show = delegate()->peerListUiShow();
+			if (error == Api::kCommunityPeersTooMuch.utf16()) {
+				show->showToast(tr::lng_community_peers_limit(
+					tr::now,
+					lt_count,
+					Api::CommunityPeersLimit(&session())));
+			} else {
+				show->showToast(error);
+			}
 		}));
 }
 
@@ -953,7 +961,16 @@ void ShowCommunityPendingRequestsBox(
 								count));
 					}),
 					crl::guard(box, [=](const QString &error) {
-						box->uiShow()->showToast(error);
+						const auto show = box->uiShow();
+						if (error == Api::kCommunityPeersTooMuch.utf16()) {
+							show->showToast(tr::lng_community_peers_limit(
+								tr::now,
+								lt_count,
+								Api::CommunityPeersLimit(
+									&community->session())));
+						} else {
+							show->showToast(error);
+						}
 					}));
 			};
 			box->uiShow()->showBox(Ui::MakeConfirmBox({

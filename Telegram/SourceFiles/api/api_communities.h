@@ -22,6 +22,8 @@ namespace Api {
 
 inline constexpr auto kCommunityRequestCreated
 	= "COMMUNITY_REQUEST_CREATED"_cs;
+inline constexpr auto kCommunityPeersTooMuch
+	= "COMMUNITY_PEERS_TOO_MUCH"_cs;
 
 struct CommunityPeerRequest {
 	not_null<PeerData*> peer;
@@ -125,5 +127,7 @@ private:
 	mtpRequestId _joinedRequestId = 0;
 
 };
+
+[[nodiscard]] int CommunityPeersLimit(not_null<Main::Session*> session);
 
 } // namespace Api

@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_user.h"
 #include "history/history.h"
+#include "main/main_app_config.h"
 #include "main/main_session.h"
 
 namespace Api {
@@ -46,6 +47,12 @@ namespace {
 }
 
 } // namespace
+
+int CommunityPeersLimit(not_null<Main::Session*> session) {
+	return session->appConfig().get<int>(
+		u"community_peers_limit"_q,
+		session->isTestMode() ? 10 : 100);
+}
 
 Communities::Communities(not_null<ApiWrap*> api)
 : _session(&api->session())
