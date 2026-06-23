@@ -18,6 +18,9 @@ adds the impl⇄test loop defined in `.agents/shared/test-loop.md`.
 - an inline task description (e.g. `add a dark-mode toggle to settings`)
 - a path to a task-list file (e.g. `.ai/communities/tasks.txt` — a rough list of tasks to refine)
 - an existing project name to resume (e.g. `communities`), optionally followed by extra work
+- **just a project name with a prepared `.ai/<project>/tasks/about.md`** — the default task source
+  (see Artifacts). With no other input, `/implement <project>` plans and implements straight from
+  that file, so `/implement communities` alone fires the full pipeline off `.ai/communities/tasks/about.md`.
 May also reference attached images.
 
 ## Config
@@ -41,6 +44,11 @@ separate test accounts.
 
 ## Artifacts (per project)
 
+- `.ai/<project>/tasks/about.md` — the **default task source**: a human-prepared description (or
+  rough list) of the batch to implement, with any mockups dropped beside it in `.ai/<project>/tasks/`.
+  This is the file you prepare; the planner reads it as SOURCE when `/implement <project>` is invoked
+  with no other input. It is **distinct** from the project blueprint `.ai/<project>/about.md` (the
+  `tasks/` subdir is what disambiguates them).
 - `.ai/<project>/implementing.md` — the canonical, final, testability-split task list (descriptions
   + status). Your single source of truth; you are its only writer.
 - `.ai/<project>/images/` — illustrations referenced by tasks (`images/01.png`, ...).
@@ -69,14 +77,23 @@ first unfinished task.
      and set SOURCE = that path. If the path is under `.ai/<name>/`, project = `<name>`; else derive
      a short kebab name from the filename. Mode = **extend** if that project already has
      `implementing.md`, else new.
-   - **Existing project** — else if `.ai/<FIRST_TOKEN>/` exists: project = `FIRST_TOKEN`. If the
-     remainder is empty AND `implementing.md` exists → mode = **resume**. If there is a remainder →
-     mode = **extend**: if the remainder is itself a path to an existing file, SOURCE = that path
-     (confirm with `Test-Path`, do NOT read it); otherwise SOURCE = the remainder text.
+   - **Existing project** — else if `.ai/<FIRST_TOKEN>/` exists: project = `FIRST_TOKEN`.
+     - If there is a **remainder** → mode = **extend**: if the remainder is itself a path to an
+       existing file, SOURCE = that path (confirm with `Test-Path`, do NOT read it); otherwise
+       SOURCE = the remainder text.
+     - If the remainder is **empty**, resolve SOURCE in this priority order (existence checks only,
+       `Test-Path`, do NOT read):
+       1. If `.ai/<project>/tasks/about.md` exists → SOURCE = that file (the **default task
+          source**); mode = **extend** if `implementing.md` already exists, else **new**. This is
+          the `/implement <project>` with a prepared task source path — it fires the full pipeline.
+       2. Else if `implementing.md` exists → mode = **resume** (no SOURCE; Phase C finishes the
+          still-unfinished tasks).
+       3. Else there is nothing to implement — tell the user to prepare `.ai/<project>/tasks/about.md`
+          (or pass a description / task-file path) and stop.
    - **New inline** — else SOURCE = the `$ARGUMENTS` text; pick a unique short kebab-case project
      name (consult `ls .ai/`).
-   After this step you always have a project name and a SOURCE (inline text or a confirmed path) —
-   and you have read neither the file nor any image.
+   After this step you always have a project name and either a SOURCE (inline text or a confirmed
+   path) or mode = **resume** — and you have read neither the file nor any image.
 4. Create `.ai/<project>/` and `.ai/<project>/images/` if new.
 5. **Images must be on disk.** The planner reads images as files, and subagents cannot see chat
    attachments — so every image a task needs must exist as a file (referenced by the SOURCE file, or
@@ -102,7 +119,9 @@ the request:
 PROJECT: <project>     MODE: <new | extend>
 
 IMAGES — the SOURCE and/or its task file may reference images by path (resolve them relative to the
-SOURCE file's directory, or use absolute paths). READ every referenced image yourself, then COPY
+SOURCE file's directory, or use absolute paths; when SOURCE is `.ai/<project>/tasks/about.md`, its
+sibling files in `.ai/<project>/tasks/` — e.g. the mockup PNGs there — are those images). READ every
+referenced image yourself, then COPY
 each into `.ai/<project>/images/` with a descriptive kebab-case name, and reference it from the
 specific task(s) it pertains to (see "Images per task" below). The main thread did NOT read or move
 these — that is your job. If an image exists only as a textual description (because the user pasted
@@ -157,8 +176,14 @@ compact confirmation — `ready — <N> tasks` (extend: `ready — appended <let
 task list or image contents back, the main thread reads `implementing.md` itself.
 ```
 
-For **extend** mode, instead instruct the planner to APPEND new lettered tasks (continuing the
-letter sequence) after the existing ones, leaving existing entries and their statuses untouched.
+For **extend** mode, instead instruct the planner to FIRST read the existing `implementing.md`, then
+APPEND new lettered tasks (continuing the letter sequence) after the existing ones, leaving existing
+entries and their statuses untouched. It must append ONLY tasks from SOURCE not already represented
+in `implementing.md` — so re-running `/implement <project>` against an unchanged default
+`tasks/about.md` appends nothing (the planner replies `ready — appended (none)`) and Phase C just
+finishes whatever is still unfinished. (Any `todo`/`in-progress` leftovers from an interrupted run
+are picked up by Phase C regardless, so defaulting to extend never loses an in-flight batch — it is a
+superset of resume.)
 
 After the planner replies `ready`, read `implementing.md` back ONCE (your first and only load of the
 task prose; you never read the images). Initialize a TodoWrite list mirroring the tasks so progress
