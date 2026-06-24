@@ -74,8 +74,6 @@ QString getIpDC(int dc_id, bool test);
 
 void cleanDebugLogs();
 
-bool is_me(FaID userId);
-
 void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item);
 
 FaID getUserIdFromPackId(uint64 id);

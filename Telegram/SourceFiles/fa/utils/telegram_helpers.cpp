@@ -21,9 +21,12 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <QtCore/QEventLoop>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QDebug>
+#include <QtCore/QThread>
+#include <QtCore/QCoreApplication>
 
 #include <list>
 #include <optional>
+#include <algorithm>
 
 namespace {
 
@@ -347,19 +350,6 @@ void cleanDebugLogs() {
     }
 
     return;
-}
-
-bool is_me(FaID userId) {
-    for (const auto &accountWithIndex : Core::App().domain().accounts()) {
-        if (const auto *account = accountWithIndex.account.get()) {
-            if (const auto *session = account->maybeSession()) {
-                if (session->userId().bare == userId) {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
 }
 
 QString getMediaSize(not_null<HistoryItem*> message) {

@@ -8,7 +8,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_user.h"
 
 #include "fa/settings/fa_settings.h"
-#include "fa/utils/telegram_helpers.h"
 
 #include "api/api_credits.h"
 #include "api/api_global_privacy.h"
@@ -606,13 +605,8 @@ bool UserData::isFake() const {
 }
 
 bool UserData::isPremium() const {
-	if (id) {
-		bool local_premium = FASettings::JsonSettings::GetBool("local_premium");
-		if (local_premium) {
-			if (is_me(id.value)) {
-				return true;
-			}
-		}
+	if (FASettings::JsonSettings::GetBool("local_premium") && isSelf()) {
+		return true;
 	}
 
 	return flags() & UserDataFlag::Premium;
