@@ -78,7 +78,8 @@ struct ShowWindowDescriptor {
 	Fn<void(
 		not_null<Widget*>,
 		QPointer<QWidget>,
-		std::optional<State::ReplaceTarget>)> requestMedia;
+		std::optional<State::ReplaceTarget>,
+		RequestMediaType)> requestMedia;
 	Fn<void(not_null<Widget*>, Ui::PreparedList, PreparedMediaPasteTarget)>
 		applyPreparedMedia;
 	Fn<void(not_null<Widget*>, QPointer<QWidget>, rpl::producer<>)> requestMap;

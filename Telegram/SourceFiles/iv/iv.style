@@ -161,6 +161,7 @@ ivEditorToolbarBulletListIcon: icon {{ "menu/rich/bullet_list-24x24", menuIconCo
 ivEditorToolbarTaskListIcon: icon {{ "menu/rich/task_list-24x24", menuIconColor }};
 ivEditorToolbarPullquoteIcon: icon {{ "menu/rich/pullquote-24x24", menuIconColor }};
 ivEditorToolbarAttachIcon: icon {{ "menu/rich/attach-24x24", menuIconColor }};
+ivEditorToolbarAudioIcon: icon {{ "menu/rich/audio-24x24", menuIconColor }};
 ivEditorToolbarDetailsIcon: icon {{ "menu/rich/details-24x24", menuIconColor }};
 ivEditorToolbarTableIcon: icon {{ "menu/rich/table-24x24", menuIconColor }};
 ivEditorToolbarLocationIcon: icon {{ "menu/rich/location-24x24", menuIconColor }};

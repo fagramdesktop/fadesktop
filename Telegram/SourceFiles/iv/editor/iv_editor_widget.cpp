@@ -2885,12 +2885,15 @@ void Widget::insertPreparedBlock(RichPage::Block block) {
 	insertPreparedBlocks(std::move(blocks));
 }
 
-void Widget::requestMedia(std::optional<State::ReplaceTarget> replaceTarget) {
+void Widget::requestMedia(
+		std::optional<State::ReplaceTarget> replaceTarget,
+		RequestMediaType type) {
 	if (_requestMedia) {
 		_requestMedia(
 			not_null<Widget*>(this),
 			QPointer<QWidget>(_outer.get()),
-			std::move(replaceTarget));
+			std::move(replaceTarget),
+			type);
 	}
 }
 

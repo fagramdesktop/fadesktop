@@ -876,6 +876,12 @@ private:
 
 };
 
+enum class RequestMediaType : uchar {
+	PhotoVideo,
+	Audio,
+	PhotoVideoAudio,
+};
+
 [[nodiscard]] bool CanEditRichPage(const RichPage &page);
 [[nodiscard]] bool CanEditRichPage(
 	const std::shared_ptr<const RichPage> &page);

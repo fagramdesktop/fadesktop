@@ -209,6 +209,8 @@ private:
 	void showListStyleMenu(not_null<Ui::IconButton*> button);
 	void fillTableStyleMenu(not_null<Ui::PopupMenu*> menu);
 	void showTableStyleMenu(not_null<Ui::IconButton*> button);
+	void fillAttachMenu(not_null<Ui::PopupMenu*> menu);
+	void showAttachMenu(not_null<Ui::IconButton*> button);
 	void applyBlockText();
 	void updateFromEditorState();
 
@@ -566,21 +568,25 @@ void Toolbar::buildPills() {
 		ToolbarActionId::Math,
 		&st::ivEditorToolbarMathIcon,
 		[=] {
-			if (_editor) {
-				_editor->editMathFromToolbar();
+			if (!_editor) {
+				return;
 			}
-		},
-		Widget::ToolbarFormatAction::Math);
+			if (_editor->inlineToolbarModeActive()) {
+				_editor->editMathFromToolbar();
+			} else {
+				_editor->insertBlock({ .type = State::InsertBlockType::Math });
+			}
+		});
 	if (_hasRequestMedia) {
-		addPillButton(
+		const auto attach = addPillButton(
 			controls,
 			ToolbarActionId::Attach,
 			&st::ivEditorToolbarAttachIcon,
-			[=] {
-				if (_editor) {
-					_editor->requestMedia(std::nullopt);
-				}
-			});
+			nullptr);
+		attach->setIsMenuButton(true);
+		attach->setClickedCallback([=] {
+			showAttachMenu(attach);
+		});
 	}
 
 	_emojiButton = addPillButton(
@@ -761,6 +767,43 @@ void Toolbar::showTextStyleMenu(not_null<Ui::IconButton*> button) {
 	if (menu->empty()) {
 		return;
 	}
+	_menu = std::move(menu);
+	_menu->popup(button->mapToGlobal(QPoint(0, button->height())));
+}
+
+void Toolbar::fillAttachMenu(not_null<Ui::PopupMenu*> menu) {
+	menu->addAction(
+		tr::lng_attach_photo_or_video(tr::now),
+		[=] {
+			if (_editor) {
+				_editor->requestMedia(
+					std::nullopt,
+					RequestMediaType::PhotoVideo);
+			}
+		},
+		&st::menuIconPhoto,
+		&st::menuIconPhoto);
+	menu->addAction(
+		tr::lng_in_dlg_audio_file(tr::now),
+		[=] {
+			if (_editor) {
+				_editor->requestMedia(
+					std::nullopt,
+					RequestMediaType::Audio);
+			}
+		},
+		&st::ivEditorToolbarAudioIcon,
+		&st::ivEditorToolbarAudioIcon);
+}
+
+void Toolbar::showAttachMenu(not_null<Ui::IconButton*> button) {
+	if (_menu) {
+		return;
+	}
+	auto menu = base::make_unique_q<Ui::PopupMenu>(
+		this,
+		st::popupMenuWithIcons);
+	fillAttachMenu(not_null<Ui::PopupMenu*>(menu.get()));
 	_menu = std::move(menu);
 	_menu->popup(button->mapToGlobal(QPoint(0, button->height())));
 }

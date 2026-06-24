@@ -75,7 +75,8 @@ struct WidgetServices {
 	Fn<void(
 		not_null<Widget*>,
 		QPointer<QWidget>,
-		std::optional<State::ReplaceTarget>)> requestMedia;
+		std::optional<State::ReplaceTarget>,
+		RequestMediaType)> requestMedia;
 	Fn<void(not_null<Widget*>, Ui::PreparedList, PreparedMediaPasteTarget)>
 		applyPreparedMedia;
 	rpl::producer<> imeCompositionStarts;
@@ -102,7 +103,9 @@ public:
 	void applyExternalRichPageMutation(Fn<bool(RichPage&)> mutation);
 	void syncInlineFieldGeometry();
 	void insertBlock(State::InsertAction action);
-	void requestMedia(std::optional<State::ReplaceTarget> replaceTarget);
+	void requestMedia(
+		std::optional<State::ReplaceTarget> replaceTarget,
+		RequestMediaType type = RequestMediaType::PhotoVideoAudio);
 	void insertPreparedBlock(RichPage::Block block);
 	void replacePreparedBlock(State::ReplaceTarget target, RichPage::Block block);
 	void insertPreparedBlocks(std::vector<RichPage::Block> blocks);
@@ -169,6 +172,7 @@ public:
 	void applyToolbarFormatAction(ToolbarFormatAction action);
 	void editLinkFromToolbar();
 	void editMathFromToolbar();
+	[[nodiscard]] bool inlineToolbarModeActive() const;
 	struct ActiveBlockInfo {
 		RichPage::BlockKind kind = RichPage::BlockKind::Unsupported;
 		bool pullquote = false;
@@ -557,7 +561,6 @@ private:
 	[[nodiscard]] bool performFieldUndoRedo(bool redo);
 	void performUndoRedo(bool redo, bool allowFieldLocal = true);
 	void notifyToolbarStateChanged();
-	[[nodiscard]] bool inlineToolbarModeActive() const;
 	[[nodiscard]] ToolbarLinkMode toolbarLinkMode() const;
 	[[nodiscard]] ToolbarActionState toolbarActionState(
 		ToolbarFormatAction action) const;
@@ -715,7 +718,8 @@ private:
 	const Fn<void(
 		not_null<Widget*>,
 		QPointer<QWidget>,
-		std::optional<State::ReplaceTarget>)> _requestMedia;
+		std::optional<State::ReplaceTarget>,
+		RequestMediaType)> _requestMedia;
 	const Fn<void(not_null<Widget*>, Ui::PreparedList, PreparedMediaPasteTarget)>
 		_applyPreparedMedia;
 	const not_null<PeerData*> _peer;

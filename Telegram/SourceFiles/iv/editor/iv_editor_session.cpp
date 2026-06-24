@@ -1232,7 +1232,8 @@ private:
 	void requestMedia(
 			not_null<Widget*> editor,
 			QPointer<QWidget> parent,
-			std::optional<State::ReplaceTarget> replaceTarget) {
+			std::optional<State::ReplaceTarget> replaceTarget,
+			RequestMediaType type) {
 		if (!parent) {
 			return;
 		}
@@ -1240,6 +1241,11 @@ private:
 		const auto weak = base::make_weak(this);
 		const auto editorPointer = QPointer<Widget>(editor.get());
 		const auto replacing = replaceTarget.has_value();
+		const auto filter = (type == RequestMediaType::PhotoVideo)
+			? FileDialog::PhotoVideoFilesFilter()
+			: (type == RequestMediaType::Audio)
+			? FileDialog::AudioFilesFilter()
+			: FileDialog::PhotoVideoAudioFilesFilter();
 		auto callback = [weak, editorPointer, replaceTarget = std::move(
 				replaceTarget)](FileDialog::OpenResult &&result) mutable {
 			if (const auto session = weak.get()) {
@@ -1253,13 +1259,13 @@ private:
 			FileDialog::GetOpenPath(
 				std::move(parent),
 				tr::lng_choose_file(tr::now),
-				FileDialog::PhotoVideoAudioFilesFilter(),
+				filter,
 				std::move(callback));
 		} else {
 			FileDialog::GetOpenPaths(
 				std::move(parent),
 				tr::lng_choose_files(tr::now),
-				FileDialog::PhotoVideoAudioFilesFilter(),
+				filter,
 				std::move(callback));
 		}
 	}
@@ -1334,11 +1340,13 @@ private:
 			.requestMedia = [session = shared_from_this()](
 					not_null<Widget*> editor,
 					QPointer<QWidget> parent,
-					std::optional<State::ReplaceTarget> replaceTarget) {
+					std::optional<State::ReplaceTarget> replaceTarget,
+					RequestMediaType type) {
 				session->requestMedia(
 					editor,
 					std::move(parent),
-					std::move(replaceTarget));
+					std::move(replaceTarget),
+					type);
 			},
 			.applyPreparedMedia = [session = shared_from_this()](
 					not_null<Widget*> editor,
