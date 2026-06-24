@@ -878,10 +878,9 @@ void Start() {
 	Data->fill();
 }
 
-void Load() {
+void SyncExperimentalOptions() {
 	if (!Data) return;
 
-	Data->load();
 	const auto disabled = GetBool(u"disable_ai"_q);
 	if (disabled && QCoreApplication::instance()) {
 		const auto hideAiOption = &base::options::lookup<bool>(Ui::kOptionHideAiButton);
@@ -889,6 +888,13 @@ void Load() {
 			hideAiOption->set(true);
 		}
 	}
+}
+
+void Load() {
+	if (!Data) return;
+
+	Data->load();
+	SyncExperimentalOptions();
 }
 
 void Write() {

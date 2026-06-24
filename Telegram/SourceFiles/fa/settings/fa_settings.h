@@ -23,6 +23,7 @@ void Start();
 void Load();
 void Write();
 void Finish();
+void SyncExperimentalOptions();
 
 [[nodiscard]] QVariant Get(
 	const QString &key,
