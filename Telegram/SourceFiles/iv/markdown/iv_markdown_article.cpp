@@ -3215,10 +3215,15 @@ public:
 	void updatePreparedLeaf(
 		const PreparedEditLeafSource &source,
 		const MarkdownArticleContent &prepared);
+	void setEditableMaxLineWidthOverride(
+		const PreparedEditLeafSource &source,
+		int width);
 
 	void setEditableHeightOverride(int editableIndex, int height);
 
 	void setEditableHeightOverrideForSegment(int segmentIndex, int height);
+
+	void clearEditableMaxLineWidthOverride();
 
 	void clearEditableHeightOverride();
 
@@ -3522,6 +3527,8 @@ private:
 		int,
 		MarkdownArticleScrollOwnerIdentityHasher> _capturedScrollLefts;
 	std::optional<ActiveHorizontalScrollDrag> _activeHorizontalScrollDrag;
+	std::optional<PreparedEditLeafSource> _editableMaxLineWidthOverrideLeaf;
+	int _editableMaxLineWidthOverride = 0;
 	int _editableHeightOverrideIndex = -1;
 	int _editableHeightOverride = 0;
 	bool _blocksPainted = false;
@@ -3714,6 +3721,20 @@ void MarkdownArticle::Impl::updatePreparedLeaf(
 	}
 }
 
+void MarkdownArticle::Impl::setEditableMaxLineWidthOverride(
+		const PreparedEditLeafSource &source,
+		int width) {
+	width = std::max(width, 0);
+	if (_editableMaxLineWidthOverrideLeaf
+		&& (*_editableMaxLineWidthOverrideLeaf == source)
+		&& (_editableMaxLineWidthOverride == width)) {
+		return;
+	}
+	_editableMaxLineWidthOverrideLeaf = source;
+	_editableMaxLineWidthOverride = width;
+	invalidateGeometry();
+}
+
 void MarkdownArticle::Impl::setEditableHeightOverride(
 		int editableIndex,
 		int height) {
@@ -3732,6 +3753,16 @@ void MarkdownArticle::Impl::setEditableHeightOverrideForSegment(
 		int segmentIndex,
 		int height) {
 	setEditableHeightOverride(editableIndexForSegment(segmentIndex), height);
+}
+
+void MarkdownArticle::Impl::clearEditableMaxLineWidthOverride() {
+	if (!_editableMaxLineWidthOverrideLeaf
+		&& (_editableMaxLineWidthOverride == 0)) {
+		return;
+	}
+	_editableMaxLineWidthOverrideLeaf = std::nullopt;
+	_editableMaxLineWidthOverride = 0;
+	invalidateGeometry();
 }
 
 void MarkdownArticle::Impl::clearEditableHeightOverride() {
@@ -4147,7 +4178,9 @@ MarkdownArticleTextLeafStyle MarkdownArticle::Impl::textLeafStyleForSegment(
 		.markBg = MarkBgColorForStyle(st),
 		.lineHeight = TextLineHeight(textStyle),
 		.align = segment->align,
-		.italic = segment->block && segment->block->pullquote,
+		.italic = segment->block
+			&& segment->block->pullquote
+			&& !segment->block->quoteAuthor,
 	};
 }
 
@@ -5366,6 +5399,15 @@ void MarkdownArticle::Impl::relayout(int width) {
 		.repaintRect = _textRepaintRect,
 		.spoilerLinkFilter = _textSpoilerLinkFilter,
 	};
+	if (_editableMaxLineWidthOverrideLeaf
+		&& (_editableMaxLineWidthOverride > 0)) {
+		context.editableMaxLineWidthOverride
+			= std::make_shared<EditableMaxLineWidthOverride>(
+				EditableMaxLineWidthOverride{
+					.leaf = *_editableMaxLineWidthOverrideLeaf,
+					.width = _editableMaxLineWidthOverride,
+				});
+	}
 	if (_editableHeightOverrideIndex >= 0 && _editableHeightOverride > 0) {
 		context.editableHeightOverride
 			= std::make_shared<EditableHeightOverride>(
@@ -5430,6 +5472,15 @@ void MarkdownArticle::Impl::relayoutRetained(int width) {
 		.repaintRect = _textRepaintRect,
 		.spoilerLinkFilter = _textSpoilerLinkFilter,
 	};
+	if (_editableMaxLineWidthOverrideLeaf
+		&& (_editableMaxLineWidthOverride > 0)) {
+		context.editableMaxLineWidthOverride
+			= std::make_shared<EditableMaxLineWidthOverride>(
+				EditableMaxLineWidthOverride{
+					.leaf = *_editableMaxLineWidthOverrideLeaf,
+					.width = _editableMaxLineWidthOverride,
+				});
+	}
 	if (_editableHeightOverrideIndex >= 0 && _editableHeightOverride > 0) {
 		context.editableHeightOverride
 			= std::make_shared<EditableHeightOverride>(
@@ -5505,6 +5556,12 @@ void MarkdownArticle::updatePreparedLeaf(
 	_impl->updatePreparedLeaf(source, prepared);
 }
 
+void MarkdownArticle::setEditableMaxLineWidthOverride(
+		const PreparedEditLeafSource &source,
+		int width) {
+	_impl->setEditableMaxLineWidthOverride(source, width);
+}
+
 void MarkdownArticle::setEditableHeightOverride(
 		int editableIndex,
 		int height) {
@@ -5515,6 +5572,10 @@ void MarkdownArticle::setEditableHeightOverrideForSegment(
 		int segmentIndex,
 		int height) {
 	_impl->setEditableHeightOverrideForSegment(segmentIndex, height);
+}
+
+void MarkdownArticle::clearEditableMaxLineWidthOverride() {
+	_impl->clearEditableMaxLineWidthOverride();
 }
 
 void MarkdownArticle::clearEditableHeightOverride() {

@@ -90,7 +90,16 @@ namespace {
 
 void RefreshLogicalGeometry(LaidOutBlock *block);
 
-[[nodiscard]] int FlowBlockVisibleTextWidth(const LaidOutBlock &block) {
+[[nodiscard]] int FlowBlockVisibleTextWidth(
+		const LaidOutBlock &block,
+		const EditableMaxLineWidthOverride *override) {
+	if (override
+		&& block.editLeaf
+		&& (*block.editLeaf == override->leaf)) {
+		return std::min(
+			std::max(override->width, 1),
+			std::max(block.textRect.width(), 1));
+	}
 	const auto &leaf = block.placeholderLeaf.isEmpty()
 		? block.leaf
 		: block.placeholderLeaf;
@@ -108,13 +117,14 @@ void RefreshLogicalGeometry(LaidOutBlock *block);
 }
 
 [[nodiscard]] int TightPullquoteTextWidth(
-		const std::vector<LaidOutBlock> &children) {
+		const std::vector<LaidOutBlock> &children,
+		const EditableMaxLineWidthOverride *override) {
 	auto result = 0;
 	for (const auto &child : children) {
 		if (!CanTightenPullquoteChild(child)) {
 			return 0;
 		}
-		result = std::max(result, FlowBlockVisibleTextWidth(child));
+		result = std::max(result, FlowBlockVisibleTextWidth(child, override));
 	}
 	return result;
 }
@@ -865,7 +875,6 @@ void FinalizeOwnerSelection(
 			: BlockquotePadding(st.body.blockquote);
 		const auto paddingWidth = HorizontalMarginsWidth(padding);
 		const auto pullquoteReserveWidth = prepared.pullquote
-			&& !context.editMode
 			? (2 * PullquoteIconReserveWidth(st.body.blockquote))
 			: 0;
 		auto childWidth = std::max(
@@ -1502,7 +1511,6 @@ void FinalizeOwnerSelection(
 			: BlockquotePadding(st.body.blockquote);
 		const auto paddingWidth = HorizontalMarginsWidth(padding);
 		const auto pullquoteReserveWidth = prepared.pullquote
-			&& !context.editMode
 			? (2 * PullquoteIconReserveWidth(st.body.blockquote))
 			: 0;
 		auto childWidth = std::max(
@@ -2986,7 +2994,6 @@ int LayoutBlocks(
 		? st.pullquote.padding
 		: BlockquotePadding(st.body.blockquote);
 	const auto pullquoteReserveWidth = prepared.pullquote
-		&& !context.editMode
 		? PullquoteIconReserveWidth(st.body.blockquote)
 		: 0;
 	const auto availableWidth = std::max(
@@ -3082,26 +3089,26 @@ int LayoutBlocks(
 			+ contentWidth
 			+ padding.right();
 		outerLeft = quoteLeft + ((quoteWidth - outerWidth) / 2);
-		if (!context.editMode) {
-			const auto tightTextWidth = TightPullquoteTextWidth(block->children);
-			if ((tightTextWidth > 0) && (tightTextWidth < contentWidth)) {
-				finalContentWidth = tightTextWidth;
-				finalContentLeft = quoteLeft
-					+ padding.left()
-					+ pullquoteReserveWidth
-					+ ((availableWidth - finalContentWidth) / 2);
-				for (auto &child : block->children) {
-					RecenterPullquoteChild(
-						&child,
-						finalContentLeft,
-						finalContentWidth);
-				}
-				outerWidth = padding.left()
-					+ 2 * pullquoteReserveWidth
-					+ finalContentWidth
-					+ padding.right();
-				outerLeft = quoteLeft + ((quoteWidth - outerWidth) / 2);
+		const auto tightTextWidth = TightPullquoteTextWidth(
+			block->children,
+			context.editableMaxLineWidthOverride.get());
+		if ((tightTextWidth > 0) && (tightTextWidth < contentWidth)) {
+			finalContentWidth = tightTextWidth;
+			finalContentLeft = quoteLeft
+				+ padding.left()
+				+ pullquoteReserveWidth
+				+ ((availableWidth - finalContentWidth) / 2);
+			for (auto &child : block->children) {
+				RecenterPullquoteChild(
+					&child,
+					finalContentLeft,
+					finalContentWidth);
 			}
+			outerWidth = padding.left()
+				+ 2 * pullquoteReserveWidth
+				+ finalContentWidth
+				+ padding.right();
+			outerLeft = quoteLeft + ((quoteWidth - outerWidth) / 2);
 		}
 	}
 	block->outer = QRect(outerLeft, top, outerWidth, quoteHeight);

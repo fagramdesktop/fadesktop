@@ -372,6 +372,7 @@ private:
 	void recreateInlineField(const style::InputField &st);
 	void refreshInlineFieldPlaceholder();
 	void refreshInlineFieldPlaceholderColor();
+	void refreshInlineFieldMaxLineWidthOverride();
 	void activateTrailingParagraph();
 	void setInlineFieldFromActiveState(int selectionFrom, int selectionTo);
 	void revertInlineFieldToState();
@@ -402,6 +403,7 @@ private:
 	[[nodiscard]] int richOffsetForFieldOffset(
 		const TextWithEntities &text,
 		int offset) const;
+	[[nodiscard]] int inlineFieldMaxVisualLineWidth() const;
 	struct MathEditResult {
 		QString source;
 		bool separateLine = false;
@@ -756,6 +758,7 @@ private:
 	HorizontalScrollDrag _horizontalScrollDrag = HorizontalScrollDrag::None;
 	std::optional<QPoint> _pendingTouchHorizontalScrollPoint;
 	bool _syncingInlineFieldGeometry = false;
+	bool _refreshingInlineFieldMaxLineWidthOverride = false;
 	bool _pendingHeightOverrideUpdate = false;
 	int _articleRelayoutDeferralDepth = 0;
 	bool _articleRelayoutDeferred = false;

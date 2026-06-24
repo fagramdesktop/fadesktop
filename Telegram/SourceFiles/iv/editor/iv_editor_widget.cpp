@@ -66,6 +66,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QMouseEvent>
 #include <QtGui/QResizeEvent>
 #include <QtGui/QTextBlock>
+#include <QtGui/QTextLayout>
 #include <QtGui/QTouchEvent>
 #include <QtGui/QWheelEvent>
 #include <QtGui/QTextCursor>
@@ -6310,6 +6311,7 @@ void Widget::setupInlineField() {
 				if (!field || (_field.get() != field.data())) {
 					return;
 				}
+				refreshInlineFieldMaxLineWidthOverride();
 				_fieldUndoAvailable = field->isUndoAvailable();
 				_fieldRedoAvailable = field->isRedoAvailable();
 				notifyToolbarStateChanged();
@@ -6409,6 +6411,65 @@ void Widget::refreshInlineFieldPlaceholderColor() {
 	}
 	_field->setPlaceholderColorOverride(
 		_inlineFieldPlaceholderColorOverride->color());
+}
+
+int Widget::inlineFieldMaxVisualLineWidth() const {
+	if (_field->isHidden()) {
+		return 0;
+	}
+	auto result = 0.;
+	for (auto block = _field->rawTextEdit()->document()->begin();
+			block.isValid();
+			block = block.next()) {
+		const auto layout = block.layout();
+		if (!layout) {
+			continue;
+		}
+		for (auto i = 0, count = layout->lineCount(); i != count; ++i) {
+			result = std::max(
+				result,
+				double(layout->lineAt(i).naturalTextWidth()));
+		}
+	}
+	return std::max(int(std::ceil(result)), 0);
+}
+
+void Widget::refreshInlineFieldMaxLineWidthOverride() {
+	if (!_article || _refreshingInlineFieldMaxLineWidthOverride) {
+		return;
+	}
+	_refreshingInlineFieldMaxLineWidthOverride = true;
+	const auto guard = gsl::finally([&] {
+		_refreshingInlineFieldMaxLineWidthOverride = false;
+	});
+	for (auto pass = 0; pass != 2; ++pass) {
+		const auto livePullquoteWidthRelevant = !_field->isHidden()
+			&& (_activeSegmentIndex >= 0)
+			&& !_settingField
+			&& (inlineFieldStyleForSegment(_activeSegmentIndex).italic
+				|| _state->activeLeafUsesQuoteCaptionColor());
+		auto source = livePullquoteWidthRelevant
+			? _state->activePreparedLeafSource()
+			: std::optional<Markdown::PreparedEditLeafSource>();
+		if (source) {
+			const auto width = inlineFieldMaxVisualLineWidth();
+			if (width > 0) {
+				_article->setEditableMaxLineWidthOverride(*source, width);
+			} else {
+				_article->clearEditableMaxLineWidthOverride();
+			}
+		} else {
+			_article->clearEditableMaxLineWidthOverride();
+		}
+		relayoutCurrentContent();
+		if (_field->isHidden()) {
+			break;
+		}
+		syncInlineFieldGeometry();
+	}
+	if (!_field->isHidden()) {
+		updateInlineFieldHeightOverride();
+	}
 }
 
 void Widget::setInlineFieldFromActiveState(int selectionFrom, int selectionTo) {
@@ -8317,6 +8378,7 @@ void Widget::clearInlineFieldEditSession(
 	clearDisplayMathEditSession();
 	if (_article) {
 		clearArticleEditableHeightOverride();
+		_article->clearEditableMaxLineWidthOverride();
 	}
 	if (!_field->isHidden()
 		|| !_fieldLeaf) {
@@ -8679,6 +8741,7 @@ void Widget::syncInlineFieldGeometry(int width) {
 		_pendingCursorOffset = _field->textCursor().position();
 		hideInlineField();
 		clearArticleEditableHeightOverride();
+		_article->clearEditableMaxLineWidthOverride();
 		return;
 	}
 	const auto margins = _field->fullTextMargins();
@@ -8697,6 +8760,7 @@ void Widget::syncInlineFieldGeometry(int width) {
 		_pendingHeightOverrideUpdate = false;
 		updateInlineFieldHeightOverride();
 	}
+	refreshInlineFieldMaxLineWidthOverride();
 }
 
 void Widget::setStructuralSelection(

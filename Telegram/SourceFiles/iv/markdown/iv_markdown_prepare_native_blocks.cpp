@@ -665,6 +665,10 @@ void ApplyBlockCaptionEditSource(
 void ApplyNativeIvEditPlaceholderText(PreparedBlock *block) {
 	if (!block->editLeaf) {
 		return;
+	} else if (block->quoteAuthor
+		&& (block->editLeaf->kind == PreparedEditLeafKind::BlockCaption)) {
+		block->editPlaceholderText = u"Add author"_q;
+		return;
 	}
 	block->editPlaceholderText = NativeIvEditPlaceholderText(
 		block->kind,

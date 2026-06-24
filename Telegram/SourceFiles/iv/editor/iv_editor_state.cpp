@@ -1761,6 +1761,7 @@ QString State::activePlaceholderText() const {
 	case LeafKind::BlockCaption:
 		switch (owner->kind) {
 		case BlockKind::Quote:
+			return u"Add author"_q;
 		case BlockKind::Photo:
 		case BlockKind::Video:
 		case BlockKind::Audio:
@@ -3399,7 +3400,7 @@ bool State::activeLeafUsesQuoteCaptionColor() const {
 		return false;
 	}
 	const auto owner = block(descriptor->leaf.block);
-	return owner && owner->kind == BlockKind::Quote && !owner->pullquote;
+	return owner && owner->kind == BlockKind::Quote;
 }
 
 bool State::activeLeafUsesQuotePlaceholderColor() const {

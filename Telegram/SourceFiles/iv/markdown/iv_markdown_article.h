@@ -321,8 +321,12 @@ public:
 	void updatePreparedLeaf(
 		const PreparedEditLeafSource &source,
 		const MarkdownArticleContent &prepared);
+	void setEditableMaxLineWidthOverride(
+		const PreparedEditLeafSource &source,
+		int width);
 	void setEditableHeightOverride(int editableIndex, int height);
 	void setEditableHeightOverrideForSegment(int segmentIndex, int height);
+	void clearEditableMaxLineWidthOverride();
 	void clearEditableHeightOverride();
 	void setTextLeafHeightOverride(int textLeafIndex, int height);
 	void clearTextLeafHeightOverride();

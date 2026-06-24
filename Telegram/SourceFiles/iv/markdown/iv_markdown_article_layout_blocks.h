@@ -198,6 +198,11 @@ struct EditableHeightOverride {
 	int nextEditableIndex = 0;
 };
 
+struct EditableMaxLineWidthOverride {
+	PreparedEditLeafSource leaf;
+	int width = 0;
+};
+
 enum class CachedTextLeafSlot {
 	Leaf,
 	Placeholder,
@@ -313,6 +318,8 @@ struct LayoutContext {
 	Fn<bool(const ClickContext&)> spoilerLinkFilter;
 	std::vector<int> preparedPath;
 	std::shared_ptr<EditableHeightOverride> editableHeightOverride;
+	std::shared_ptr<EditableMaxLineWidthOverride>
+		editableMaxLineWidthOverride;
 	std::function<std::shared_ptr<MediaBlock>(const PreparedBlock&)> mediaBlockFactory;
 	std::function<std::shared_ptr<PlaceholderBlockRuntime>(
 		PreparedPlaceholderBlockId)> placeholderRuntimeFactory;
