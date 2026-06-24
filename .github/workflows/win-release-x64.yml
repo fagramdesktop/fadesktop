@@ -15,10 +15,6 @@ on:
         options:
           - ci
           - rel
-      libs_run_id:
-        description: "Run ID to reuse libraries from (skip rebuild)"
-        type: string
-        required: false
   workflow_call:
     inputs:
       tagname:
@@ -35,15 +31,10 @@ on:
         type: boolean
         required: false
         default: false
-      libs_run_id:
-        description: "Run ID to reuse libraries from (skip rebuild)"
-        type: string
-        required: false
 
 jobs:
   prepare-libraries:
     name: Prepare Libraries
-    if: ${{ !inputs.libs_run_id }}
     runs-on: windows-latest
 
     env:
@@ -87,6 +78,16 @@ jobs:
           git config --global user.email "you@example.com"
           git config --global user.name "Sample"
 
+      - name: Restore libraries cache
+        id: cache-libs
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ env.TBUILD }}/Libraries
+            ${{ env.TBUILD }}/ThirdParty
+          key: ${{ runner.os }}-libs-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.os }}-libs-
+
       - uses: Eden-CI/msvc-dev-cmd@master
         name: Native Tools Command Prompt
         with:
@@ -95,6 +96,7 @@ jobs:
           toolset: 14.44
 
       - name: Install ATL
+        if: steps.cache-libs.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
@@ -105,16 +107,19 @@ jobs:
           if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { exit $p.ExitCode }
 
       - name: NuGet sources
+        if: steps.cache-libs.outputs.cache-hit != 'true'
         run: |
           nuget sources Disable -Name "Microsoft Visual Studio Offline Packages"
           nuget sources Add -Source https://api.nuget.org/v3/index.json & exit 0
 
       - name: Prepare Libraries
+        if: steps.cache-libs.outputs.cache-hit != 'true'
         run: |
           cd %TBUILD%
           %REPO_NAME%\Telegram\build\prepare\win.bat silent
 
       - name: Clean up build intermediates
+        if: steps.cache-libs.outputs.cache-hit != 'true'
         run: |
           cd %TBUILD%
           del /S /Q Libraries\*.pdb 2>nul
@@ -124,22 +129,6 @@ jobs:
           del /S /Q Libraries\*.log 2>nul
           del /S /Q Libraries\*.tlog 2>nul
           for /d /r Libraries %%d in (.git) do @if exist "%%d" rd /s /q "%%d"
-
-      - name: Upload Libraries
-        uses: actions/upload-artifact@v7
-        with:
-          name: libraries-x64
-          path: ${{ env.TBUILD }}/Libraries
-          retention-days: 90
-          compression-level: 1
-
-      - name: Upload ThirdParty
-        uses: actions/upload-artifact@v7
-        with:
-          name: thirdparty-x64
-          path: ${{ env.TBUILD }}/ThirdParty
-          retention-days: 90
-          compression-level: 1
 
   build-fagram:
     name: Build FAgram Desktop
@@ -154,6 +143,7 @@ jobs:
 
     env:
       UPLOAD_ARTIFACT: "true"
+      PREPARE_PATH: "Telegram/build/prepare/prepare.py"
 
     defaults:
       run:
@@ -193,6 +183,10 @@ jobs:
 
           sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/${_Zi}//' "$PROGRAMFILES"/CMake/share/cmake*/Modules/Platform/Windows-MSVC.cmake
 
+          echo "$(sha256sum $TBUILD/$REPO_NAME/$PREPARE_PATH | awk '{ print $1 }')" >> CACHE_KEY.txt
+          echo "$SDK" >> CACHE_KEY.txt
+          echo "CACHE_KEY=$(sha256sum CACHE_KEY.txt | awk '{ print $1 }')" >> $GITHUB_ENV
+
       - uses: Eden-CI/msvc-dev-cmd@master
         name: Native Tools Command Prompt
         with:
@@ -200,21 +194,14 @@ jobs:
           sdk: ${{ env.SDK }}
           toolset: 14.44
 
-      - name: Download Libraries
-        uses: actions/download-artifact@v8
+      - name: Restore libraries cache
+        uses: actions/cache@v5
         with:
-          name: libraries-x64
-          path: ${{ env.TBUILD }}/Libraries
-          run-id: ${{ inputs.libs_run_id || github.run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Download ThirdParty
-        uses: actions/download-artifact@v8
-        with:
-          name: thirdparty-x64
-          path: ${{ env.TBUILD }}/ThirdParty
-          run-id: ${{ inputs.libs_run_id || github.run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: |
+            ${{ env.TBUILD }}/Libraries
+            ${{ env.TBUILD }}/ThirdParty
+          key: ${{ runner.os }}-libs-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.os }}-libs-
 
       - name: Build Configuration
         shell: bash
