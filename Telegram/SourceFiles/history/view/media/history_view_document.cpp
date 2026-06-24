@@ -1911,6 +1911,17 @@ bool Document::voiceProgressAnimationCallback(crl::time now) {
 	return false;
 }
 
+void Document::clickHandlerActiveChanged(const ClickHandlerPtr &p, bool active) {
+	if (!active && _voiceHoverProgress >= 0) {
+		if (const auto voice = Get<HistoryDocumentVoice>()) {
+			if (p == voice->seekl) {
+				_voiceHoverProgress = -1;
+				repaint();
+			}
+		}
+	}
+}
+
 void Document::clickHandlerPressedChanged(const ClickHandlerPtr &p, bool pressed) {
 	if (auto voice = Get<HistoryDocumentVoice>()) {
 		if (pressed && p == voice->seekl && !voice->seeking()) {

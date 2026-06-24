@@ -90,6 +90,7 @@ public:
 
 	bool voiceProgressAnimationCallback(crl::time now);
 
+	void clickHandlerActiveChanged(const ClickHandlerPtr &p, bool active) override;
 	void clickHandlerPressedChanged(const ClickHandlerPtr &p, bool pressed) override;
 
 	void refreshParentId(not_null<HistoryItem*> realParent) override;
