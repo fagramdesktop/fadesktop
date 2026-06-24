@@ -1,3 +1,11 @@
+2.2.9 (24.06.26)
+
+- Updated disable AI option to include AI summaries
+- Refactored screenshot mode
+- Updated FAsettings DefinitationMap
+- Fixed startup crash
+- Bug fixes
+
 2.2.8 (21.06.26)
 
 - Updated tdesktop to v6.9.3
