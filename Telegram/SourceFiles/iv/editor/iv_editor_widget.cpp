@@ -4588,6 +4588,43 @@ State::ListSelectionInfo Widget::listSelectionInfo(
 	return _state->listSelectionInfo(range);
 }
 
+std::optional<PreparedEditTableCellRange>
+Widget::currentTableRangeAtCaret() const {
+	const auto activeLeaf = _state->activePreparedLeafSource();
+	if (!activeLeaf
+		|| activeLeaf->kind != PreparedEditLeafKind::TableCellText
+		|| activeLeaf->tableRowIndex < 0
+		|| activeLeaf->tableCellIndex < 0) {
+		return std::nullopt;
+	}
+	const auto path = _state->convertBlockPath(activeLeaf->block);
+	const auto block = path
+		? BlockFromPath(_state->richPage(), *path)
+		: nullptr;
+	if (!block || block->kind != RichPage::BlockKind::Table) {
+		return std::nullopt;
+	}
+	const auto grid = BuildTableGrid(*block);
+	for (const auto &cell : grid.cells) {
+		if (cell.rowIndex != activeLeaf->tableRowIndex
+			|| cell.cellIndex != activeLeaf->tableCellIndex) {
+			continue;
+		}
+		auto range = PreparedEditTableCellRange{
+			.block = activeLeaf->block,
+			.rowFrom = cell.rowFrom,
+			.rowTill = cell.rowTill,
+			.columnFrom = cell.columnFrom,
+			.columnTill = cell.columnTill,
+		};
+		if (range.empty() || !_state->tableSelectionInfo(range).valid) {
+			return std::nullopt;
+		}
+		return range;
+	}
+	return std::nullopt;
+}
+
 void Widget::showListContextMenu(
 		const PreparedListItemRange &range,
 		QPoint globalPos) {

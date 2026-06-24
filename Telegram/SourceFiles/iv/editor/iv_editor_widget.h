@@ -177,6 +177,8 @@ public:
 	[[nodiscard]] ActiveBlockInfo activeBlockInfo() const;
 	[[nodiscard]] std::optional<Markdown::PreparedEditListItemRange>
 		currentListRangeAtCaret() const;
+	[[nodiscard]] std::optional<Markdown::PreparedEditTableCellRange>
+		currentTableRangeAtCaret() const;
 	[[nodiscard]] std::optional<Markdown::PreparedEditListItemRange>
 		currentListItemRangeAtCaret();
 	[[nodiscard]] State::ListSelectionInfo listSelectionInfo(
@@ -187,6 +189,9 @@ public:
 	void fillListItemChangeMenu(
 		not_null<Ui::PopupMenu*> menu,
 		const Markdown::PreparedEditListItemRange &range);
+	void fillTableChangeMenu(
+		not_null<Ui::PopupMenu*> menu,
+		const Markdown::PreparedEditTableCellRange &range);
 	void setInlineFieldExternalInteractionActive(bool active);
 	void setTopContentPadding(int value);
 
@@ -668,9 +673,6 @@ private:
 	void showTableContextMenu(
 		const Markdown::PreparedEditTableCellRange &range,
 		QPoint globalPos);
-	void fillTableChangeMenu(
-		not_null<Ui::PopupMenu*> menu,
-		const Markdown::PreparedEditTableCellRange &range);
 	void applyTableChange(Fn<bool()> change);
 	[[nodiscard]] std::optional<State::BlockPath> simpleMediaBlockPathFromHit(
 		const Markdown::PreparedEditHit &hit) const;

@@ -207,6 +207,8 @@ private:
 	void showTextStyleMenu(not_null<Ui::IconButton*> button);
 	void fillListStyleMenu(not_null<Ui::PopupMenu*> menu);
 	void showListStyleMenu(not_null<Ui::IconButton*> button);
+	void fillTableStyleMenu(not_null<Ui::PopupMenu*> menu);
+	void showTableStyleMenu(not_null<Ui::IconButton*> button);
 	void applyBlockText();
 	void updateFromEditorState();
 
@@ -223,6 +225,7 @@ private:
 	Ui::IconButton *_linkButton = nullptr;
 	Ui::IconButton *_emojiButton = nullptr;
 	Ui::IconButton *_listButton = nullptr;
+	Ui::IconButton *_tableButton = nullptr;
 	base::unique_qptr<Ui::PopupMenu> _menu;
 
 };
@@ -534,11 +537,20 @@ void Toolbar::buildPills() {
 		showListStyleMenu(listStyle);
 	});
 	_listButton = listStyle;
-	addPillButton(
+	const auto tableStyle = addPillButton(
 		controls,
 		ToolbarActionId::Table,
 		&st::ivEditorToolbarTableIcon,
-		[=] { insertType(State::InsertBlockType::Table); });
+		nullptr);
+	tableStyle->setIsMenuButton(true);
+	tableStyle->setClickedCallback([=] {
+		if (_editor && _editor->currentTableRangeAtCaret()) {
+			showTableStyleMenu(tableStyle);
+		} else {
+			insertType(State::InsertBlockType::Table);
+		}
+	});
+	_tableButton = tableStyle;
 	_linkButton = addPillButton(
 		controls,
 		ToolbarActionId::Link,
@@ -838,6 +850,32 @@ void Toolbar::showListStyleMenu(not_null<Ui::IconButton*> button) {
 	_menu->popup(button->mapToGlobal(QPoint(0, button->height())));
 }
 
+void Toolbar::fillTableStyleMenu(not_null<Ui::PopupMenu*> menu) {
+	if (!_editor) {
+		return;
+	}
+	const auto range = _editor->currentTableRangeAtCaret();
+	if (!range) {
+		return;
+	}
+	_editor->fillTableChangeMenu(menu, *range);
+}
+
+void Toolbar::showTableStyleMenu(not_null<Ui::IconButton*> button) {
+	if (_menu) {
+		return;
+	}
+	auto menu = base::make_unique_q<Ui::PopupMenu>(
+		this,
+		st::popupMenuWithIcons);
+	fillTableStyleMenu(not_null<Ui::PopupMenu*>(menu.get()));
+	if (menu->empty()) {
+		return;
+	}
+	_menu = std::move(menu);
+	_menu->popup(button->mapToGlobal(QPoint(0, button->height())));
+}
+
 void Toolbar::updateFromEditorState() {
 	for (const auto &pb : _stateButtons) {
 		const auto &state = _toolbarState[pb.format];
@@ -858,6 +896,15 @@ void Toolbar::updateFromEditorState() {
 		SetupToolbarButton(
 			not_null<Ui::IconButton*>(_listButton),
 			inList
+				? ToolbarButtonState::Active
+				: ToolbarButtonState::Inactive);
+	}
+	if (_tableButton) {
+		const auto inTable = _editor
+			&& _editor->currentTableRangeAtCaret().has_value();
+		SetupToolbarButton(
+			not_null<Ui::IconButton*>(_tableButton),
+			inTable
 				? ToolbarButtonState::Active
 				: ToolbarButtonState::Inactive);
 	}
