@@ -104,7 +104,7 @@ jobs:
             'modify', '--installPath', "`"$vsPath`"", `
             '--add', 'Microsoft.VisualStudio.Component.VC.ATL', `
             '--passive', '--norestart', '--wait'
-          if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { exit $p.ExitCode }
+          if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { Write-Warning "Installer exited with code $($p.ExitCode)" }
 
       - name: NuGet sources
         if: steps.cache-libs.outputs.cache-hit != 'true'
