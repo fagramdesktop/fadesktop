@@ -100,7 +100,7 @@ jobs:
         shell: pwsh
         run: |
           $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
-          $p = Start-Process -FilePath "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -Wait -PassThru -ArgumentList `
+          $p = Start-Process -FilePath "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe" -Wait -PassThru -ArgumentList `
             'modify', '--installPath', "`"$vsPath`"", `
             '--add', 'Microsoft.VisualStudio.Component.VC.ATL', `
             '--passive', '--norestart', '--wait'
