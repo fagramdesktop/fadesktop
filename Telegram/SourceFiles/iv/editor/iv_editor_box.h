@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/basic_types.h"
 #include "iv/editor/iv_editor_state.h"
+#include "ui/effects/animations.h"
 
 #include <rpl/producer.h>
 
@@ -32,6 +33,7 @@ class Session;
 namespace Ui {
 struct PreparedList;
 class RpWidget;
+class IconButton;
 } // namespace Ui
 
 namespace Iv {
@@ -43,6 +45,17 @@ namespace Iv::Editor {
 class State;
 class Widget;
 struct PreparedMediaPasteTarget;
+
+enum class ToolbarButtonState {
+	Disabled,
+	Inactive,
+	Active,
+};
+
+void SetupToolbarButton(
+	not_null<Ui::IconButton*> button,
+	ToolbarButtonState state,
+	anim::type animated = anim::type::normal);
 
 struct ShowWindowDescriptor {
 	enum class SubmitType {

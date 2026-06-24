@@ -1814,4 +1814,25 @@ std::unique_ptr<WindowHost> ShowWindow(ShowWindowDescriptor descriptor) {
 	return std::unique_ptr<WindowHost>(new WindowHost(std::move(descriptor)));
 }
 
+void SetupToolbarButton(
+		not_null<Ui::IconButton*> button,
+		ToolbarButtonState state,
+		anim::type animated) {
+	const auto disabled = (state == ToolbarButtonState::Disabled);
+	const auto active = (state == ToolbarButtonState::Active);
+	button->setAttribute(Qt::WA_TransparentForMouseEvents, disabled);
+	button->setPointerCursor(!disabled);
+	if (active) {
+		button->setRippleColorOverride(&st::lightButtonBgOver);
+		button->setForceRippled(true, animated);
+		button->setIconColorOverride(st::windowActiveTextFg->c);
+	} else {
+		button->setForceRippled(false, animated);
+		button->setRippleColorOverride(nullptr);
+		button->setIconColorOverride(disabled
+			? std::optional<QColor>(st::windowSubTextFg->c)
+			: std::nullopt);
+	}
+}
+
 } // namespace Iv::Editor
