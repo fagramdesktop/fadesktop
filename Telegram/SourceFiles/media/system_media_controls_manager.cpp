@@ -87,6 +87,10 @@ SystemMediaControlsManager::SystemMediaControlsManager()
 		return PlaybackStatus::Playing;
 	}) | rpl::distinct_until_changed(
 	) | rpl::on_next([=](PlaybackStatus status) {
+		if (_controls->seekingSupported()) {
+			const auto type = mediaPlayer->getActiveType();
+			_controls->setPosition(mediaPlayer->getState(type).position);
+		}
 		_controls->setPlaybackStatus(status);
 	}, _lifetime);
 
