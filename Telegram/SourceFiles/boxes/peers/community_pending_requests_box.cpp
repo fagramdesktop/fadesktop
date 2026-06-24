@@ -223,9 +223,6 @@ public:
 		int outerWidth,
 		bool selected) override;
 
-	PaintRoundImageCallback generatePaintUserpicCallback(
-		bool forceRound) override;
-
 	int elementsCount() const override;
 	QRect elementGeometry(int element, int outerWidth) const override;
 	bool elementDisabled(int element) const override;
@@ -242,6 +239,9 @@ public:
 		int selectedElement) override;
 
 private:
+	[[nodiscard]] int statusTextLeft() const;
+	void paintPill(Painter &p, QRect pill) const;
+
 	const not_null<RowDelegate*> _delegate;
 	UserData *_requestedBy = nullptr;
 	Ui::Text::String _suggest;
@@ -251,10 +251,7 @@ private:
 	std::unique_ptr<Ui::RippleAnimation> _acceptRipple;
 	std::unique_ptr<Ui::RippleAnimation> _rejectRipple;
 	bool _pending = false;
-	std::shared_ptr<Ui::DynamicImage> _chatUserpic;
 	std::shared_ptr<Ui::DynamicImage> _suggestUserpic;
-	QImage _composedCache;
-	int _composedCacheSize = 0;
 
 };
 
@@ -307,56 +304,27 @@ Row::Row(
 			Ui::NameTextOptions());
 	}
 
-	_chatUserpic = Ui::MakeUserpicThumbnail(request.peer);
 	if (request.requestedBy) {
 		_suggestUserpic = Ui::MakeUserpicThumbnail(request.requestedBy);
-	}
-	const auto invalidate = [this] {
-		_composedCache = QImage();
-		_delegate->rowUpdateRow(this);
-	};
-	_chatUserpic->subscribeToUpdates(invalidate);
-	if (_suggestUserpic) {
-		_suggestUserpic->subscribeToUpdates(invalidate);
+		_suggestUserpic->subscribeToUpdates([this] {
+			_delegate->rowUpdateRow(this);
+		});
 	}
 }
 
-PaintRoundImageCallback Row::generatePaintUserpicCallback(bool forceRound) {
-	return [=](Painter &p, int x, int y, int outerWidth, int size) {
-		if (_composedCache.isNull() || _composedCacheSize != size) {
-			_composedCacheSize = size;
-			_composedCache = _chatUserpic->image(size);
-			if (_suggestUserpic && !_composedCache.isNull()) {
-				_composedCache = _composedCache.copy();
-				auto q = QPainter(&_composedCache);
-				auto hq = PainterHighQualityEnabler(q);
+int Row::statusTextLeft() const {
+	const auto left = st::requestSuggestPosition.x();
+	return _suggestUserpic
+		? (left + st::requestSuggestAvatar + st::requestSuggestAvatarSkip)
+		: left;
+}
 
-				const auto badge = st::requestSuggestBadgeSize;
-				const auto border = st::requestSuggestBadgeBorder;
-				const auto &skip = st::requestSuggestBadgeSkip;
-				const auto bx = size - skip.x() - badge;
-				const auto by = skip.y();
-				const auto cut = QRectF(
-					bx - border,
-					by - border,
-					badge + 2 * border,
-					badge + 2 * border);
-
-				q.setCompositionMode(QPainter::CompositionMode_Source);
-				auto pen = QPen(Qt::transparent);
-				pen.setWidthF(border);
-				q.setPen(pen);
-				q.setBrush(Qt::transparent);
-				q.drawEllipse(cut);
-
-				q.setCompositionMode(QPainter::CompositionMode_SourceOver);
-				q.drawImage(
-					QRectF(bx, by, badge, badge),
-					_suggestUserpic->image(badge));
-			}
-		}
-		p.drawImage(QRect(x, y, size, size), _composedCache);
-	};
+void Row::paintPill(Painter &p, QRect pill) const {
+	auto hq = PainterHighQualityEnabler(p);
+	const auto radius = st::requestPillHeight / 2;
+	p.setPen(Qt::NoPen);
+	p.setBrush(st::windowBgOver);
+	p.drawRoundedRect(pill, radius, radius);
 }
 
 void Row::paintStatusText(
@@ -369,27 +337,61 @@ void Row::paintStatusText(
 		bool selected) {
 	const auto now = crl::now();
 	const auto grey = selected ? st.statusFgOver : st.statusFg;
+	const auto lineHeight = st::requestSuggestStyle.font->height;
+
+	if (_suggestUserpic) {
+		const auto d = st::requestSuggestAvatar;
+		const auto avatarTop = st::requestSuggestPosition.y()
+			+ (lineHeight - d) / 2;
+		p.drawImage(
+			QRect(st::requestSuggestPosition.x(), avatarTop, d, d),
+			_suggestUserpic->image(d));
+	}
 	p.setPen(grey);
 	_suggest.draw(p, {
-		.position = st::requestSuggestPosition,
+		.position = QPoint(statusTextLeft(), st::requestSuggestPosition.y()),
 		.availableWidth = availableWidth,
 		.palette = &st::defaultTextPalette,
 		.now = now,
 		.elisionLines = 1,
 	});
+
 	if (!_members.isEmpty()) {
+		const auto pillWidth = _members.maxWidth()
+			+ 2 * st::requestPillPaddingH;
+		const auto pillLeft = outerWidth
+			- st::requestMembersRightSkip
+			- pillWidth;
+		const auto textTop = st::requestMembersTop;
+		const auto pillTop = textTop
+			- (st::requestPillHeight - lineHeight) / 2;
+		paintPill(
+			p,
+			QRect(pillLeft, pillTop, pillWidth, st::requestPillHeight));
+		p.setPen(grey);
 		_members.draw(p, {
-			.position = st::requestMembersPosition,
-			.availableWidth = availableWidth,
+			.position = QPoint(pillLeft + st::requestPillPaddingH, textTop),
+			.availableWidth = _members.maxWidth(),
 			.palette = &st::defaultTextPalette,
 			.now = now,
 			.elisionLines = 1,
 		});
 	}
+
 	if (!_onlyMembers.isEmpty()) {
+		const auto pillWidth = _onlyMembers.maxWidth()
+			+ 2 * st::requestPillPaddingH;
+		const auto pillLeft = st::requestOnlyMembersPosition.x();
+		const auto textTop = st::requestOnlyMembersPosition.y();
+		const auto pillTop = textTop
+			- (st::requestPillHeight - lineHeight) / 2;
+		paintPill(
+			p,
+			QRect(pillLeft, pillTop, pillWidth, st::requestPillHeight));
+		p.setPen(grey);
 		_onlyMembers.draw(p, {
-			.position = st::requestOnlyMembersPosition,
-			.availableWidth = availableWidth,
+			.position = QPoint(pillLeft + st::requestPillPaddingH, textTop),
+			.availableWidth = _onlyMembers.maxWidth(),
 			.palette = &st::defaultTextPalette,
 			.now = now,
 			.elisionLines = 1,
@@ -431,10 +433,9 @@ QRect Row::elementGeometry(int element, int outerWidth) const {
 			size);
 	} break;
 	case kUserLink: {
-		const auto pos = st::requestSuggestPosition;
 		return QRect(
-			pos.x(),
-			pos.y(),
+			statusTextLeft(),
+			st::requestSuggestPosition.y(),
 			_userWidth,
 			st::requestSuggestStyle.font->height);
 	} break;

@@ -1061,7 +1061,7 @@ requestPeerRestriction: FlatLabel(defaultFlatLabel) {
 
 requestsBoxItem: PeerListItem(peerListBoxItem) {
 	height: 124px;
-	namePosition: point(74px, 26px);
+	namePosition: point(74px, 9px);
 	button: OutlineButton(defaultPeerListButton) {
 		textBg: contactsBg;
 		textBgOver: contactsBg;
@@ -1108,20 +1108,22 @@ requestButtonsSkip: 9px;
 requestSuggestStyle: TextStyle(defaultTextStyle) {
 	font: contactsStatusFont;
 }
-requestSuggestPosition: point(74px, 6px);
+requestSuggestPosition: point(74px, 30px);
+requestSuggestAvatar: 18px;
+requestSuggestAvatarSkip: 5px;
 requestMembersStyle: TextStyle(defaultTextStyle) {
 	font: contactsStatusFont;
 }
-requestMembersPosition: point(74px, 46px);
+requestMembersTop: 9px;
+requestMembersRightSkip: 14px;
+requestPillHeight: 22px;
+requestPillPaddingH: 7px;
 requestMembersIcon: IconEmoji {
 	icon: icon{{ "chat/mini_subscribers", contactsStatusFg }};
 	padding: margins(0px, 3px, 4px, 0px);
 	useIconColor: false;
 }
-requestSuggestBadgeSize: 18px;
-requestSuggestBadgeBorder: 1px;
-requestSuggestBadgeSkip: point(0px, 0px);
-requestOnlyMembersPosition: point(74px, 66px);
+requestOnlyMembersPosition: point(74px, 50px);
 requestVisibleIcon: IconEmoji {
 	icon: icon{{ "chat/mini_hidden", contactsStatusFg }};
 	padding: margins(0px, 2px, 4px, 0px);
