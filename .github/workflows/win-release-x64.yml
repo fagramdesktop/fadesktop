@@ -101,7 +101,7 @@ jobs:
           $p = Start-Process -FilePath "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -Wait -PassThru -ArgumentList `
             'modify', '--installPath', "`"$vsPath`"", `
             '--add', 'Microsoft.VisualStudio.Component.VC.ATL', `
-            '--passive', '--norestart'
+            '--passive', '--norestart', '--wait'
           if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { exit $p.ExitCode }
 
       - name: NuGet sources
