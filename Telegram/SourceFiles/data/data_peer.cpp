@@ -394,11 +394,9 @@ void PeerData::updateNameDelayed(
 
 not_null<Ui::EmptyUserpic*> PeerData::ensureEmptyUserpic() const {
 	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
-	{
-		QMutexLocker lock(&EmptyUserpicScreenshotModeMutex);
-		if (_userpicEmpty && EmptyUserpicScreenshotMode.value(this, !screenshotMode) != screenshotMode) {
-			_userpicEmpty = nullptr;
-		}
+	QMutexLocker lock(&EmptyUserpicScreenshotModeMutex);
+	if (_userpicEmpty && EmptyUserpicScreenshotMode.value(this, !screenshotMode) != screenshotMode) {
+		_userpicEmpty = nullptr;
 	}
 	if (!_userpicEmpty) {
 		const auto user = asUser();
@@ -407,13 +405,13 @@ not_null<Ui::EmptyUserpic*> PeerData::ensureEmptyUserpic() const {
 			((user && user->isInaccessible())
 				? Ui::EmptyUserpic::InaccessibleName()
 				: name()));
-		QMutexLocker lock(&EmptyUserpicScreenshotModeMutex);
 		EmptyUserpicScreenshotMode.insert(this, screenshotMode);
 	}
 	return _userpicEmpty.get();
 }
 
 void PeerData::invalidateEmptyUserpic() {
+	QMutexLocker lock(&EmptyUserpicScreenshotModeMutex);
 	_userpicEmpty = nullptr;
 }
 
@@ -466,7 +464,10 @@ QImage *PeerData::userpicCloudImage(Ui::PeerUserpicView &view) const {
 		view.cached = QImage();
 	}
 	if (const auto image = view.cloud.get(); image && !image->isNull()) {
-		_userpicEmpty = nullptr;
+		{
+			QMutexLocker lock(&EmptyUserpicScreenshotModeMutex);
+			_userpicEmpty = nullptr;
+		}
 		return image;
 	} else if (isNotificationsUser()) {
 		static auto result = Window::LogoNoMargin().scaledToWidth(
@@ -1432,11 +1433,10 @@ const QString &PeerData::screenshotModeName() const {
 
 int PeerData::nameVersion() const {
 	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
-	if (screenshotMode != LastScreenshotMode) {
-		LastScreenshotMode = screenshotMode;
+	if (LastScreenshotMode.exchange(screenshotMode) != screenshotMode) {
 		++ScreenshotModeVersion;
 	}
-	return _nameVersion + ScreenshotModeVersion;
+	return _nameVersion + ScreenshotModeVersion.load();
 }
 
 const QString &PeerData::name() const {

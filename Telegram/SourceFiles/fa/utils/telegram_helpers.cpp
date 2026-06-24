@@ -21,6 +21,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <QtCore/QEventLoop>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QDebug>
+#include <QtCore/QThread>
+#include <QtCore/QCoreApplication>
 
 #include <list>
 #include <optional>
@@ -67,6 +69,9 @@ private:
 };
 
 OnlineStateLRUCache onlineStateCache;
+
+QMutex ActiveSelfIdsMutex;
+std::vector<FaID> ActiveSelfIds;
 
 } // namespace
 
@@ -350,16 +355,26 @@ void cleanDebugLogs() {
 }
 
 bool is_me(FaID userId) {
-    for (const auto &accountWithIndex : Core::App().domain().accounts()) {
-        if (const auto *account = accountWithIndex.account.get()) {
-            if (const auto *session = account->maybeSession()) {
-                if (session->userId().bare == userId) {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
+	if (QThread::currentThread() == QCoreApplication::instance()->thread()) {
+		std::vector<FaID> currentIds;
+		for (const auto &accountWithIndex : Core::App().domain().accounts()) {
+			if (const auto *account = accountWithIndex.account.get()) {
+				if (const auto *session = account->maybeSession()) {
+					currentIds.push_back(session->userId().bare);
+				}
+			}
+		}
+		QMutexLocker lock(&ActiveSelfIdsMutex);
+		ActiveSelfIds = std::move(currentIds);
+	}
+
+	QMutexLocker lock(&ActiveSelfIdsMutex);
+	for (const auto id : ActiveSelfIds) {
+		if (id == userId) {
+			return true;
+		}
+	}
+	return false;
 }
 
 QString getMediaSize(not_null<HistoryItem*> message) {
