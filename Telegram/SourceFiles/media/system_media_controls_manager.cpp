@@ -31,6 +31,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Media {
 namespace {
 
+constexpr auto kSkipMs = crl::time(15 * 1000);
+
 [[nodiscard]] auto RepeatModeToLoopStatus(Media::RepeatMode mode) {
 	using Mode = Media::RepeatMode;
 	using Status = base::Platform::SystemMediaControls::LoopStatus;
@@ -328,6 +330,23 @@ SystemMediaControlsManager::SystemMediaControlsManager()
 		}
 		case Command::Quit: {
 			Media::Player::instance()->stopAndClose();
+			break;
+		}
+		case Command::SkipForward:
+		case Command::SkipBackward: {
+			const auto state = mediaPlayer->getState(type);
+			if (state.length > 0) {
+				const auto delta = (command == Command::SkipForward)
+					? kSkipMs
+					: -kSkipMs;
+				const auto position = std::clamp(
+					crl::time(state.position + delta),
+					crl::time(0),
+					crl::time(state.length));
+				mediaPlayer->finishSeeking(
+					type,
+					position / float64(state.length));
+			}
 			break;
 		}
 		}
