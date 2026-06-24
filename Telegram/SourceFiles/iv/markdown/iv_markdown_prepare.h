@@ -705,6 +705,7 @@ struct PreparedBlock {
 	bool tight = false;
 	bool supplementary = false;
 	bool pullquote = false;
+	bool quoteAuthor = false;
 	bool forceTextSegment = false;
 	bool orderedReversed = false;
 	std::optional<PreparedEditBlockSource> editBlock;

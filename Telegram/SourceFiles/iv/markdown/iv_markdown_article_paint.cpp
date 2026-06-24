@@ -70,6 +70,13 @@ void PaintImageCenterCrop(Painter &p, QRect rect, const QImage &image) {
 		&& (image.height() / ratio >= rect.height());
 }
 
+[[nodiscard]] int PullquoteIconReserveWidth(
+		const style::QuoteStyle &style) {
+	return style.icon.empty()
+		? 0
+		: (style.icon.width() + style.iconPosition.x());
+}
+
 [[nodiscard]] bool PaintDynamicImage(
 		Painter &p,
 		const std::shared_ptr<Ui::DynamicImage> &image,
@@ -1875,12 +1882,11 @@ void PaintQuoteBlock(
 	}
 
 	if (context.caches.blockquote) {
+		const auto &quoteStyle = st.body.blockquote;
+		Ui::Text::ValidateQuotePaintCache(
+			*context.caches.blockquote,
+			quoteStyle);
 		if (!block.pullquote) {
-			const auto &quoteStyle = st.body.blockquote;
-			Ui::Text::ValidateQuotePaintCache(
-				*context.caches.blockquote,
-				quoteStyle);
-
 			p.save();
 			p.setClipRect(quoteClip);
 			Ui::Text::FillQuotePaint(
@@ -1889,16 +1895,59 @@ void PaintQuoteBlock(
 				*context.caches.blockquote,
 				quoteStyle);
 			p.restore();
+		} else {
+			p.save();
+			p.setClipRect(quoteClip);
+			p.setPen(Qt::NoPen);
+			p.setBrush(context.caches.blockquote->bg);
+			auto hq = PainterHighQualityEnabler(p);
+			p.drawRoundedRect(block.outer, quoteStyle.radius, quoteStyle.radius);
+			if (!quoteStyle.icon.empty()) {
+				const auto icon = quoteStyle.icon.instance(
+					context.caches.blockquote->icon);
+				if (!icon.isNull()) {
+					const auto reserve = PullquoteIconReserveWidth(quoteStyle);
+					const auto left = block.contentRect.x()
+						- reserve
+						+ quoteStyle.iconPosition.x();
+					const auto top = block.outer.y()
+						+ st.pullquote.padding.top()
+						+ quoteStyle.iconPosition.y();
+					const auto right = block.contentRect.x()
+						+ block.contentRect.width()
+						+ reserve
+						- quoteStyle.iconPosition.x()
+						- quoteStyle.icon.width();
+					const auto bottom = block.outer.y()
+						+ block.outer.height()
+						- st.pullquote.padding.bottom()
+						- quoteStyle.iconPosition.y()
+						- quoteStyle.icon.height();
+					p.drawImage(
+						QRect(
+							left,
+							top,
+							quoteStyle.icon.width(),
+							quoteStyle.icon.height()),
+						icon);
+					p.drawImage(
+						QRect(
+							right,
+							bottom,
+							quoteStyle.icon.width(),
+							quoteStyle.icon.height()),
+						icon.mirrored(true, false));
+				}
+			}
+			p.restore();
 		}
 	}
 
 	auto local = ClippedContext(
 		context,
 		context.clip.intersected(block.contentRect));
-	if (!block.pullquote) {
-		local.caches.supplementaryColorOverride
-			= NonPullquoteQuoteCaptionColor(context, st);
-	}
+	local.caches.supplementaryColorOverride
+		= NonPullquoteQuoteCaptionColor(context, st);
 	PaintBlocks(
 		p,
 		block.children,
@@ -3086,10 +3135,7 @@ QColor NonPullquoteQuoteCaptionColor(
 	if (!context.caches.blockquote) {
 		return PaintStyle(context, st).supplementaryTextColor->c;
 	}
-	return anim::color(
-		context.caches.blockquote->bg,
-		context.caches.blockquote->outlines[0],
-		0.9);
+	return context.caches.blockquote->icon;
 }
 
 void PaintBlocks(

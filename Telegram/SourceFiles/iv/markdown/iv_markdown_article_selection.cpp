@@ -1015,6 +1015,8 @@ const style::TextStyle &TextStyleForSegment(
 		return st.embedPost.dateStyle;
 	} else if (segment.kind == SelectableSegmentKind::CodeBlock) {
 		return st.code;
+	} else if (segment.block && segment.block->quoteAuthor) {
+		return st.quoteAuthorStyle;
 	} else if (!segment.block) {
 		return st.body;
 	}

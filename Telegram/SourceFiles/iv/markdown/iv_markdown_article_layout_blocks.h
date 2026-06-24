@@ -162,6 +162,7 @@ struct LaidOutBlock {
 	bool tableStriped = false;
 	bool supplementary = false;
 	bool pullquote = false;
+	bool quoteAuthor = false;
 	bool insideHorizontalScroll = false;
 	int horizontalScrollLeft = 0;
 	int horizontalScrollMax = 0;

@@ -432,6 +432,7 @@ Markdown {
 	quoteReadableMinWidth: pixels;
 	quotePaintColors: MarkdownQuotePaintColors;
 	pullquote: MarkdownPullquote;
+	quoteAuthorStyle: TextStyle;
 	rule: MarkdownRule;
 	displayMath: MarkdownDisplayMath;
 	table: MarkdownTable;
@@ -459,6 +460,10 @@ defaultMarkdownCodeStyle: TextStyle(defaultMarkdownBodyStyle) {
 defaultMarkdownDisplayMathFallbackStyle: TextStyle(defaultMarkdownCodeStyle) {
 }
 defaultMarkdownTableHeaderStyle: TextStyle(defaultMarkdownBodyStyle) {
+	font: font(16px semibold);
+	lineHeight: 24px;
+}
+defaultMarkdownQuoteAuthorStyle: TextStyle(defaultMarkdownBodyStyle) {
 	font: font(16px semibold);
 	lineHeight: 24px;
 }
@@ -793,6 +798,7 @@ defaultMarkdown: Markdown {
 	quoteReadableMinWidth: 160px;
 	quotePaintColors: defaultMarkdownQuotePaintColors;
 	pullquote: defaultMarkdownPullquote;
+	quoteAuthorStyle: defaultMarkdownQuoteAuthorStyle;
 	rule: defaultMarkdownRule;
 	displayMath: defaultMarkdownDisplayMath;
 	table: defaultMarkdownTable;
@@ -819,6 +825,10 @@ messageMarkdownTableHeaderStyle: TextStyle(messageMarkdownBodyStyle) {
 	lineHeight: 20px;
 }
 messageMarkdownDisplayMathFallbackStyle: TextStyle(messageMarkdownCodeStyle) {
+}
+messageMarkdownQuoteAuthorStyle: TextStyle(messageMarkdownBodyStyle) {
+	font: font(13px semibold);
+	lineHeight: 20px;
 }
 messageMarkdownHeading1Style: TextStyle(messageMarkdownBodyStyle) {
 	font: font(19px semibold);
@@ -1047,6 +1057,7 @@ messageMarkdown: Markdown(defaultMarkdown) {
 	quoteReadableMinWidth: 160px;
 	quotePaintColors: messageMarkdownQuotePaintColors;
 	pullquote: messageMarkdownPullquote;
+	quoteAuthorStyle: messageMarkdownQuoteAuthorStyle;
 	rule: messageMarkdownRule;
 	table: messageMarkdownTable;
 	displayMath: messageMarkdownDisplayMath;

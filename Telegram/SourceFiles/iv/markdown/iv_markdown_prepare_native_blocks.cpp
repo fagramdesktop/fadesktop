@@ -206,8 +206,9 @@ bool AppendPreparedQuoteParagraph(
 		bool pullquote,
 		bool supplementary = false,
 		bool allowEmpty = false,
+		bool quoteAuthor = false,
 		std::optional<PreparedEditLeafSource> editLeaf = std::nullopt) {
-	if (pullquote) {
+	if (pullquote && !quoteAuthor) {
 		WrapPreparedIvRichTextItalic(&prepared);
 	}
 	const auto count = result->size();
@@ -227,6 +228,7 @@ bool AppendPreparedQuoteParagraph(
 		if (allowEmpty) {
 			ApplyNativeIvEditPlaceholderText(&result->back());
 		}
+		result->back().quoteAuthor = quoteAuthor;
 		if (pullquote) {
 			result->back().flowAlignment = TableAlignment::Center;
 			result->back().pullquote = true;
@@ -1269,6 +1271,7 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 			data.pullquote,
 			false,
 			state->editMode,
+			false,
 			BlockTextLeafSource(path))) {
 		return false;
 	}
@@ -1292,6 +1295,7 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 			data.pullquote,
 			true,
 			state->editMode,
+			true,
 			BlockCaptionLeafSource(path))) {
 		return false;
 	}

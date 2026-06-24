@@ -2390,6 +2390,8 @@ const style::TextStyle &TextStyleFor(
 		const style::Markdown &st) {
 	if (block.kind == PreparedBlockKind::CodeBlock) {
 		return st.code;
+	} else if (block.quoteAuthor) {
+		return st.quoteAuthorStyle;
 	} else if (block.kind != PreparedBlockKind::Heading) {
 		return st.body;
 	}
@@ -2802,6 +2804,7 @@ LaidOutBlock LayoutFlowBlock(
 	block.headingLevel = prepared.headingLevel;
 	block.supplementary = prepared.supplementary;
 	block.pullquote = prepared.pullquote;
+	block.quoteAuthor = prepared.quoteAuthor;
 	block.flowTextAlign = CellAlign(prepared.flowAlignment);
 	const auto &textStyle = TextStyleFor(prepared, st);
 	if (!IsAnchorOnlyBlock(prepared)) {
