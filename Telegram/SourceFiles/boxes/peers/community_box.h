@@ -11,6 +11,7 @@ class ChannelData;
 class PeerData;
 
 namespace Ui {
+class RoundButton;
 class Show;
 class VerticalLayout;
 } // namespace Ui
@@ -33,6 +34,10 @@ void SetupCommunityContent(
 void ShowChooseChatToAddBox(
 	not_null<Window::SessionNavigation*> navigation,
 	not_null<ChannelData*> community);
+
+[[nodiscard]] not_null<Ui::RoundButton*> MakeCommunityAddChatButton(
+	not_null<QWidget*> parent,
+	Fn<void()> clicked);
 
 void BanFromCommunityWithWarning(
 	std::shared_ptr<Ui::Show> show,

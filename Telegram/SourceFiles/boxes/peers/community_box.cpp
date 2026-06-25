@@ -284,18 +284,21 @@ void SetupCommunityContent(
 		tr::lng_community_chats_requestable(),
 		rpl::duplicate(requestable));
 
-	Settings::AddButtonWithIcon(
-		container,
-		tr::lng_community_add_chat(),
-		st::settingsButton,
-		{ &st::menuIconGroups }
-	)->addClickHandler([=] {
-		ShowChooseChatToAddBox(controller, community);
-	});
-
 	if (!community->wasFullUpdated()) {
 		community->session().api().requestFullPeer(community);
 	}
+}
+
+not_null<Ui::RoundButton*> MakeCommunityAddChatButton(
+		not_null<QWidget*> parent,
+		Fn<void()> clicked) {
+	const auto button = Ui::CreateChild<Ui::RoundButton>(
+		parent,
+		tr::lng_community_add_chat(),
+		st::communityAddChatButton);
+	button->setFullRadius(true);
+	button->setClickedCallback(std::move(clicked));
+	return button;
 }
 
 namespace {

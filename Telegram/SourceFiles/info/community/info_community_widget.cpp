@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "ui/text/text_utilities.h"
+#include "ui/widgets/buttons.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/rp_widget.h"
 #include "ui/ui_utility.h"
@@ -196,6 +197,47 @@ Widget::Widget(
 			},
 			_flexibleScroll);
 	}
+
+	if (const auto channel = peer->asChannel()) {
+		if (channel->isCommunity()) {
+			_bottom = setupAddChatButton();
+		}
+	}
+}
+
+std::unique_ptr<Ui::RpWidget> Widget::setupAddChatButton() {
+	const auto controller = this->controller()->parentController();
+	const auto community = peer()->asChannel();
+
+	auto result = std::make_unique<Ui::VerticalLayout>(this);
+	const auto wrap = result.get();
+
+	const auto row = wrap->add(
+		object_ptr<Ui::RpWidget>(wrap),
+		st::communityAddChatButtonMargin);
+	const auto button = MakeCommunityAddChatButton(row, [=] {
+		ShowChooseChatToAddBox(controller, community);
+	});
+
+	row->resize(row->width(), st::communityAddChatButton.height);
+	row->widthValue() | rpl::on_next([=](int width) {
+		button->setFullWidth(width);
+		button->moveToLeft(0, 0, width);
+	}, row->lifetime());
+
+	widthValue() | rpl::on_next([=](int width) {
+		wrap->resizeToWidth(width);
+	}, wrap->lifetime());
+
+	rpl::combine(
+		wrap->heightValue(),
+		heightValue()
+	) | rpl::on_next([=](int height, int fullHeight) {
+		setScrollBottomSkip(height);
+		wrap->move(0, fullHeight - height);
+	}, wrap->lifetime());
+
+	return result;
 }
 
 void Widget::enableBackButton() {

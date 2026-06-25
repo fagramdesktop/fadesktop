@@ -58,10 +58,13 @@ private:
 
 	std::shared_ptr<ContentMemento> doCreateMemento() override;
 
+	std::unique_ptr<Ui::RpWidget> setupAddChatButton();
+
 	FlexibleScrollData _flexibleScroll;
 	InnerWidget *_inner = nullptr;
 	base::weak_qptr<Ui::RpWidget> _pinnedToTop;
 	std::unique_ptr<FlexibleScrollHelper> _flexibleScrollHelper;
+	std::unique_ptr<Ui::RpWidget> _bottom;
 
 };
 
