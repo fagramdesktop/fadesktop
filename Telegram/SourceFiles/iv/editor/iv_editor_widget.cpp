@@ -10549,13 +10549,10 @@ int Widget::articleWidth(int outerWidth) const {
 	const auto available = std::max(
 		outerWidth - padding.left() - padding.right(),
 		1);
-	auto result = _article
-		? std::min(available, _article->maxWidth())
-		: available;
-	if (_contentMaxWidth > 0) {
-		result = std::min(result, _contentMaxWidth);
-	}
-	return result;
+	const auto maxWidth = (_contentMaxWidth > 0)
+		? _contentMaxWidth
+		: (_article ? _article->maxWidth() : available);
+	return std::min(available, maxWidth);
 }
 
 Widget::ArticleColumn Widget::articleColumnForWidth(int outerWidth) const {
