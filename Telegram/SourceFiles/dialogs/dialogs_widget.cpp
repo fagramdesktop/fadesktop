@@ -27,6 +27,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_group_call_bar.h"
 #include "history/view/history_view_requests_bar.h"
 #include "history/view/history_view_top_bar_widget.h"
+#include "boxes/peers/community_box.h"
 #include "boxes/peers/community_pending_requests_box.h"
 #include "boxes/peers/edit_peer_requests_box.h"
 #include "boxes/choose_filter_box.h"
@@ -1304,6 +1305,62 @@ void Widget::updateCommunityRequestsBubble() {
 	}, _communityRequestsLifetime);
 }
 
+void Widget::updateCommunityAddChatButton() {
+	_communityAddChatLifetime.destroy();
+	_communityAddChatPlaceholder = nullptr;
+	_communityAddChat = nullptr;
+
+	const auto channel = _openedCommunity
+		? _openedCommunity->channel().get()
+		: nullptr;
+	if (!channel || !channel->canManageLinkedPeers()) {
+		return;
+	}
+
+	auto wrap = object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+		this,
+		object_ptr<Ui::VerticalLayout>(this));
+	const auto entity = wrap->entity();
+	const auto row = entity->add(
+		object_ptr<Ui::RpWidget>(entity),
+		st::communityAddChatButtonMargin);
+	const auto button = MakeCommunityAddChatButton(row, [=] {
+		ShowChooseChatToAddBox(controller(), channel);
+	});
+	row->resize(row->width(), st::communityAddChatButton.height);
+	row->widthValue() | rpl::on_next([=](int width) {
+		button->setFullWidth(width);
+		button->moveToLeft(0, 0, width);
+	}, row->lifetime());
+
+	_communityAddChat.reset(wrap.release());
+	const auto raw = _communityAddChat.get();
+
+	_communityAddChatPlaceholder.reset(_innerList->add(
+		object_ptr<Ui::RpWidget>(_innerList)));
+	const auto placeholder = _communityAddChatPlaceholder.get();
+	placeholder->paintOn([placeholder](QPainter &p) {
+		p.fillRect(placeholder->rect(), st::dialogsBg);
+	});
+
+	raw->setParent(_scroll);
+	raw->raise();
+
+	const auto pinToBottom = [=] {
+		const auto height = raw->height();
+		placeholder->resize(placeholder->width(), height);
+		raw->resizeToWidth(_scroll->width());
+		raw->moveToLeft(0, std::max(0, _scroll->height() - height));
+	};
+	_scroll->sizeValue(
+	) | rpl::to_empty | rpl::on_next(pinToBottom, _communityAddChatLifetime);
+	raw->heightValue(
+	) | rpl::to_empty | rpl::on_next(pinToBottom, _communityAddChatLifetime);
+	pinToBottom();
+
+	raw->toggle(true, anim::type::instant);
+}
+
 void Widget::setupMoreChatsBar() {
 	if (_layout == Layout::Child) {
 		return;
@@ -2157,6 +2214,7 @@ void Widget::changeOpenedCommunity(
 		updateFrozenAccountBar();
 		updateTopBarSuggestions();
 		updateCommunityRequestsBubble();
+		updateCommunityAddChatButton();
 	}, (community != nullptr), animated);
 }
 
