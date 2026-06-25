@@ -2148,10 +2148,19 @@ void ListWidget::performDrag() {
 	auto mimeData = std::make_unique<QMimeData>();
 	mimeData->setUrls({ QUrl::fromLocalFile(filepath) });
 
+	auto pixmap = QPixmap();
+	if (const auto layout = _provider->lookupLayout(_pressState.item)) {
+		if (const auto file = dynamic_cast<Overview::Layout::Document*>(
+				layout)) {
+			pixmap = Ui::PixmapFromImage(file->dragPreviewImage());
+		}
+	}
+
 	// This call enters event loop and can destroy any QObject.
 	_controller->parentController()->widget()->launchDrag(
 		std::move(mimeData),
-		crl::guard(this, [=] { mouseActionUpdate(QCursor::pos()); }));
+		crl::guard(this, [=] { mouseActionUpdate(QCursor::pos()); }),
+		std::move(pixmap));
 }
 
 void ListWidget::mouseActionFinish(

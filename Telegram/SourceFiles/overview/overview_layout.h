@@ -422,6 +422,8 @@ public:
 
 	void clearHeavyPart() override;
 
+	[[nodiscard]] QImage dragPreviewImage();
+
 protected:
 	float64 dataProgress() const override;
 	bool dataFinished() const override;
@@ -438,6 +440,7 @@ private:
 
 	[[nodiscard]] bool songLayout() const;
 	void ensureDataMediaCreated() const;
+	void paintThumbnail(Painter &p, QRect rthumb, bool wthumb, bool withExt);
 
 	not_null<DocumentData*> _data;
 	mutable std::shared_ptr<Data::DocumentMedia> _dataMedia;
