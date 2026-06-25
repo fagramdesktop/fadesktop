@@ -233,8 +233,22 @@ For each task whose `Status` is not `approved`/`blocked`, in order:
 4. Append any `DISCOVERED` tasks as new lettered `### <letter>:` blocks (`Status: todo`) after the
    remaining ones, and add them to the progress list. The main thread is the only writer of
    `implementing.md`.
-5. On BLOCKED, stop and report — do not start the next task. Under Goal run mode, surfacing the
-   blocker is the correct stop; the loop should not spin on a blocked task.
+5. On BLOCKED, **do NOT stop the loop — prioritize continuing development.** This often runs
+   unattended for hours, so NEVER pause to ask the user whether to go on; record the blocker and
+   move to the next task as long as further progress is possible:
+   - **Test-blocked** — the runner committed a building impl and only its in-app verification could
+     not complete (a harness limit, or the attempt cap hit on a test flaw, not a real bug). The code
+     is on disk, so CONTINUE; capture EXACTLY what was left unverified for the loud final report.
+   - **Impl-blocked but checkout clean** — no green impl for this task, but HEAD is left at a prior
+     committed, buildable commit. CONTINUE — later tasks may be independent; record the missing
+     behavior.
+   - **Hard stop ONLY when continuing is truly impossible** — a broken / uncommitted / non-buildable
+     checkout, or a global environment failure (file lock needing the user to close `Telegram.exe`,
+     the test-account gate). Only then stop and report.
+   Before spawning the next task, confirm the working tree is clean and at a buildable commit
+   (`git status` + the runner's summary); if a blocked runner left it dirty or broken, reset to the
+   last known-good commit first, else hard-stop. Every blocked/unverified task MUST be surfaced
+   LOUDLY in Completion — continuing is never the same as silently passing.
 
 ### task-runner prompt
 
@@ -296,23 +310,39 @@ YOUR context, not the orchestrator's), writing prompt/progress/result logs per t
 Skip TEST only for docs/config-only tasks (say so). On Windows, after approval run task-think
 Phase 7 (CRLF / no-BOM) on the task's touched source/config files.
 
+If you must return `STATUS: BLOCKED`, FIRST leave the checkout clean and buildable for the next
+task: `git reset --hard` to your last green IMPL_SHA if you have one, else the prior task's HEAD
+(never leave uncommitted or non-building changes). State the blocker TYPE in the summary:
+`BLOCKED(test)` = impl committed & building, only verification incomplete (give the exact unverified
+behavior + SHA); `BLOCKED(impl)` = no green impl (say whether HEAD is left clean/buildable). Reserve
+a true unrecoverable stop for a broken checkout you cannot reset to a buildable commit.
+
 Reply with only the compact summary block from test-loop.md
 (TASK/STATUS/VERDICT/ATTEMPTS/TOUCHED/DISCOVERED/NOTES).
 ```
 
 ## Completion
 
-When the loop ends (all tasks approved/blocked, or a blocked task stopped it):
-1. Summarize per task: approved vs blocked, attempts, files touched, key test evidence.
-2. List any discovered tasks that were added.
-3. Note the project name for `implement <project> <follow-up>`.
-4. Show total elapsed time (`Xh Ym Zs`, omit zero components).
-5. Remind that test overlays are saved as `.ai/<project>/<letter>/test-overlay.patch` and the
+When the loop ends (every task is `approved` or `blocked`):
+1. **FIRST — LOUDLY AND IN BOLD — list everything that did NOT fully succeed.** Every `blocked`
+   task and every task whose tests could not fully verify it gets its own bold line stating EXACTLY
+   what failed or what is still UNVERIFIED and the manual follow-up needed, e.g.
+   **"⚠️ <letter> — impl committed (<sha>) & review-approved, but <behavior> is UNVERIFIED
+   (<why, e.g. test-harness limit>); verify manually"**. Make this block impossible to miss. If
+   everything passed AND verified, say that explicitly instead.
+2. Summarize per task: approved vs blocked, attempts, files touched, key test evidence.
+3. List any discovered tasks that were added.
+4. Note the project name for `implement <project> <follow-up>`.
+5. Show total elapsed time (`Xh Ym Zs`, omit zero components).
+6. Remind that test overlays are saved as `.ai/<project>/<letter>/test-overlay.patch` and the
    checkout is left at each task's implementation commit (overlays reset away).
 
 ## Error handling
 
-- Follow task-think's retry ladder for stuck phases; a task-runner returning BLOCKED stops the loop.
+- Follow task-think's retry ladder for stuck phases. A task-runner returning BLOCKED does NOT stop
+  the loop by default — record it and continue while the checkout stays clean and buildable (Phase C
+  step 5); stop only when continuing is impossible (broken/non-buildable checkout, or a global
+  environment failure). Report every blocker LOUDLY in Completion.
 - If `implementing.md` or any artifact is malformed, re-spawn that step with tighter instructions.
 - For file-lock build errors, run the autonomous path-scoped kill from test-loop.md and retry once.
   Kill only the resolved `EXE` for this checkout; `taskkill /IM Telegram.exe /F` and other
