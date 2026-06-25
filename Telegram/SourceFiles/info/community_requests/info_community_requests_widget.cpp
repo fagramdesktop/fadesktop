@@ -395,15 +395,15 @@ Row::Row(
 		Ui::NameTextOptions());
 
 	const auto channel = request.peer->asChannel();
-	if (channel && channel->membersCountKnown()) {
-		const auto count = channel->membersCount();
-		auto members = Ui::Text::IconEmoji(&st::requestMembersIcon)
-			.append(Lang::FormatCountToShort(count).string);
-		_members.setMarkedText(
-			st::requestMembersStyle,
-			members,
-			Ui::NameTextOptions());
-	}
+	const auto count = (channel && channel->membersCountKnown())
+		? channel->membersCount()
+		: 0;
+	auto members = Ui::Text::IconEmoji(&st::requestMembersIcon)
+		.append(Lang::FormatCountToShort(count).string);
+	_members.setMarkedText(
+		st::requestMembersStyle,
+		members,
+		Ui::NameTextOptions());
 
 	_hiddenChat = !request.visible;
 	if (!request.visible) {

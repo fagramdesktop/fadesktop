@@ -1090,7 +1090,7 @@ requestsRejectButton: RoundButton(defaultBoxButton) {
 }
 requestButtonsSkip: 9px;
 communityRequestsBoxItem: PeerListItem(peerListBoxItem) {
-	height: 112px;
+	height: 89px;
 	button: OutlineButton(defaultPeerListButton) {
 		textBg: contactsBg;
 		textBgOver: contactsBg;
