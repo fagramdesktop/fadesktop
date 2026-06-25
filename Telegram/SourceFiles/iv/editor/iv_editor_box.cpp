@@ -517,7 +517,7 @@ void Toolbar::buildPills() {
 	const auto heading = addPillButton(
 		controls,
 		ToolbarActionId::Heading,
-		&st::ivEditorToolbarHeadingIcon,
+		&st::ivEditorToolbarTextStyleIcon,
 		nullptr);
 	heading->setIsMenuButton(true);
 	heading->setClickedCallback([=] {

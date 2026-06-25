@@ -157,6 +157,7 @@ ivEditorToolbarHeading3Icon: icon {{ "menu/rich/heading3-24x24", menuIconColor }
 ivEditorToolbarHeading4Icon: icon {{ "menu/rich/heading4-24x24", menuIconColor }};
 ivEditorToolbarHeading5Icon: icon {{ "menu/rich/heading5-24x24", menuIconColor }};
 ivEditorToolbarHeading6Icon: icon {{ "menu/rich/heading6-24x24", menuIconColor }};
+ivEditorToolbarTextStyleIcon: icon {{ "menu/rich/text_style-24x24", menuIconColor }};
 ivEditorToolbarEmojiIcon: icon {{ "menu/rich/emoji-24x24", menuIconColor }};
 ivEditorToolbarBlockquoteIcon: icon {{ "menu/rich/blockquote-24x24", menuIconColor }};
 ivEditorToolbarCodeIcon: icon {{ "menu/rich/code-24x24", menuIconColor }};
