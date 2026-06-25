@@ -53,6 +53,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 #include <QtGui/QKeyEvent>
 #include <QtGui/QPainter>
+#include <QtGui/QRegion>
 #include <QtGui/QScreen>
 
 #include <algorithm>
@@ -214,6 +215,7 @@ private:
 	void showAttachMenu(not_null<Ui::IconButton*> button);
 	void applyBlockText();
 	void updateFromEditorState();
+	void updateInputMask();
 
 	const QPointer<Widget> _editor;
 	const QPointer<QWidget> _tooltipParent;
@@ -992,7 +994,25 @@ int Toolbar::resizeGetHeight(int width) {
 		- skip
 		- _emojiPill->naturalSize().width();
 	_emojiPill->moveToLeft(emojiLeft, top, width);
+	updateInputMask();
 	return top + _controlsPill->naturalSize().height() + padding.bottom();
+}
+
+void Toolbar::updateInputMask() {
+	auto region = QRegion();
+	const auto add = [&](not_null<const ToolbarPill*> pill) {
+		if (!pill->isHidden()) {
+			region += pill->geometry();
+		}
+	};
+	add(not_null<const ToolbarPill*>(_undoRedoPill.data()));
+	add(not_null<const ToolbarPill*>(_controlsPill.data()));
+	add(not_null<const ToolbarPill*>(_emojiPill.data()));
+	if (region.isEmpty()) {
+		clearMask();
+	} else {
+		setMask(region);
+	}
 }
 
 void Toolbar::hideShownTooltip() {
@@ -1140,7 +1160,7 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 	setupEmojiColumn(descriptor);
 
 	_toolbar = object_ptr<Toolbar>(
-		_top.data(),
+		window->body().get(),
 		editor,
 		body,
 		hasRequestMedia,
@@ -1211,6 +1231,8 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 	_bottom->show();
 	_scroll->show();
 	_top->raise();
+	_toolbar->show();
+	_toolbar->raise();
 	_bottom->raise();
 	window->show();
 	editor->activateInitialNode();
@@ -1295,6 +1317,7 @@ void WindowHost::Impl::layout() {
 	const auto buttonsTop = padding.top();
 	_top->setGeometry(0, 0, editorWidth, toolbarHeight);
 	_toolbar->setGeometry(0, 0, editorWidth, toolbarHeight);
+	_toolbar->raise();
 	_bottom->setGeometry(
 		0,
 		std::max(height - bottomHeight, toolbarHeight),
