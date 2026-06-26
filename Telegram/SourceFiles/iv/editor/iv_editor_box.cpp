@@ -991,21 +991,22 @@ void Toolbar::setEmojiColumnOpen(bool open) {
 }
 
 int Toolbar::minimalWidth() const {
-	const auto skip = st::ivEditorToolbarEmojiSkip;
-	return 4 * skip
+	return st::ivEditorToolbarPadding.left()
+		+ st::ivEditorToolbarPadding.right()
+		+ 2 * st::ivEditorToolbarGroupsSkip
 		+ _undoRedoPill->naturalSize().width()
 		+ _controlsPill->naturalSize().width()
 		+ _emojiPill->naturalSize().width();
 }
 
 int Toolbar::contentMaxWidth() const {
-	return minimalWidth() - 2 * st::ivEditorToolbarEmojiSkip;
+	const auto padding = st::ivEditorToolbarPadding;
+	return minimalWidth() - padding.left() - padding.right();
 }
 
 int Toolbar::resizeGetHeight(int width) {
 	const auto padding = st::ivEditorToolbarPadding;
 	const auto top = padding.top();
-	const auto skip = st::ivEditorToolbarEmojiSkip;
 	const auto column = _editor
 		? _editor->articleColumnForWidth(width)
 		: Widget::ArticleColumn{ 0, width };
@@ -1016,7 +1017,7 @@ int Toolbar::resizeGetHeight(int width) {
 	_undoRedoPill->moveToLeft(undoRedoLeft, top, width);
 	const auto controlsLeft = undoRedoLeft
 		+ _undoRedoPill->naturalSize().width()
-		+ skip;
+		+ st::ivEditorToolbarGroupsSkip;
 	_controlsPill->moveToLeft(controlsLeft, top, width);
 	const auto emojiLeft = right - _emojiPill->naturalSize().width();
 	_emojiPill->moveToLeft(emojiLeft, top, width);

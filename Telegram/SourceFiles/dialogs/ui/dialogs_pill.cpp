@@ -13,22 +13,29 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace Dialogs {
 
-void PaintPillTopSheen(QPainter &p, const QRect &pill, int radius) {
-	if (pill.isEmpty() || st::dialogsBg->c.lightness() >= 128) {
+void PaintPillOutline(QPainter &p, const QRect &pill, int radius) {
+	if (pill.isEmpty()) {
 		return;
 	}
-	auto top = QColor(255, 255, 255, 40);
-	auto mid = QColor(255, 255, 255, 0);
-	auto bottom = QColor(255, 255, 255, 20);
-	auto grad = QLinearGradient(0, pill.top(), 0, pill.bottom());
-	grad.setColorAt(0., top);
-	grad.setColorAt(0.5, mid);
-	grad.setColorAt(1., bottom);
-	p.setPen(QPen(QBrush(grad), st::lineWidth));
+	auto hq = PainterHighQualityEnabler(p);
+	const auto light = (st::dialogsBg->c.lightness() >= 128);
+	const auto width = light ? (0.6 * st::lineWidth) : double(st::lineWidth);
+	if (light) {
+		p.setPen(QPen(QColor(0, 0, 0, 20), width));
+	} else {
+		auto grad = QLinearGradient(0, pill.top(), 0, pill.bottom());
+		grad.setColorAt(0., QColor(255, 255, 255, 40));
+		grad.setColorAt(0.5, QColor(255, 255, 255, 0));
+		grad.setColorAt(1., QColor(255, 255, 255, 20));
+		p.setPen(QPen(QBrush(grad), width));
+	}
 	p.setBrush(Qt::NoBrush);
-	const auto half = 0.5 * st::lineWidth;
-	const auto stroke = QRectF(pill).adjusted(half, half, -half, -half);
-	p.drawRoundedRect(stroke, radius - half, radius - half);
+	const auto half = 0.5 * width;
+	const auto stroke = light
+		? QRectF(pill).marginsAdded(QMarginsF(half, half, half, half))
+		: QRectF(pill).adjusted(half, half, -half, -half);
+	const auto strokeRadius = light ? (radius + half) : (radius - half);
+	p.drawRoundedRect(stroke, strokeRadius, strokeRadius);
 }
 
 void PaintTopFade(QPainter &p, int outerWidth, int fadeHeight, QColor bg) {

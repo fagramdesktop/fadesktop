@@ -84,19 +84,18 @@ ivEditorWindowDefaultSize: size(800px, 600px);
 ivEditorBodyPadding: margins(0px, 8px, 0px, 8px);
 ivEditorToolbarButtonSize: 36px;
 ivEditorEmojiColumnCloseSize: 30px;
-ivEditorToolbarPadding: margins(8px, defaultVerticalListSkip, 8px, defaultVerticalListSkip);
-ivEditorToolbarButtonSkip: 6px;
+ivEditorToolbarPadding: margins(9px, 10px, 9px, 10px);
 ivEditorToolbarDividerSkip: 6px;
 ivEditorToolbarDividerHeight: 18px;
-ivEditorToolbarEmojiSkip: 8px;
-ivEditorBottomControlsPadding: margins(8px, defaultVerticalListSkip, 8px, defaultVerticalListSkip);
+ivEditorToolbarGroupsSkip: 6px;
+ivEditorBottomControlsPadding: margins(9px, 10px, 9px, 10px);
 ivEditorBottomControlsButtonSkip: 6px;
-ivEditorPillPadding: 4px;
+ivEditorPillPadding: 2px;
 ivEditorPillButtonSkip: 6px;
 ivEditorPillShadow: BoxShadow {
-	blurRadius: 8px;
-	offset: point(0px, 2px);
-	opacity: 0.18;
+	blurRadius: 3px;
+	offset: point(0px, 1px);
+	opacity: 0.09;
 }
 ivEditorEmojiColumnCloseScrollSkip: 4px;
 ivEditorToolbarUndoIcon: icon {{ "menu/tabs_undo-24x24", menuIconColor }};

@@ -181,7 +181,7 @@ not_null<UnconfirmedAuthWrap*> CreateUnconfirmedAuthContent(
 		p.setBrush(st::dialogsBg);
 		p.setPen(Qt::NoPen);
 		p.drawRoundedRect(pill, radius, radius);
-		PaintPillTopSheen(p, pill, radius);
+		PaintPillOutline(p, pill, radius);
 	});
 
 	const auto &basePadding = st::dialogsUnconfirmedAuthPadding;
@@ -377,7 +377,7 @@ void TopBarSuggestionContent::draw(QPainter &p) {
 	p.setBrush(st::dialogsBg);
 	p.setPen(Qt::NoPen);
 	p.drawRoundedRect(pill, radius, radius);
-	PaintPillTopSheen(p, pill, radius);
+	PaintPillOutline(p, pill, radius);
 
 	auto clipPath = QPainterPath();
 	clipPath.addRoundedRect(pill, radius, radius);

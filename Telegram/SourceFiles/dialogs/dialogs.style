@@ -909,9 +909,9 @@ dialogsTopBarSuggestionAboutStyle: TextStyle(defaultTextStyle) {
 }
 dialogsTopBarSuggestionMargins: margins(8px, 8px, 8px, 8px);
 dialogsTopBarSuggestionShadow: BoxShadow {
-	blurRadius: 8px;
-	offset: point(0px, 2px);
-	opacity: 0.18;
+	blurRadius: 3px;
+	offset: point(0px, 1px);
+	opacity: 0.09;
 }
 dialogsSuggestionDeniedAuthLottie: size(70px, 70px);
 dialogsSuggestionDeniedAuthLottieCircle: size(90px, 90px);

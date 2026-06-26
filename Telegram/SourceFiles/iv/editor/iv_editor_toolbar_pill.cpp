@@ -101,7 +101,7 @@ void ToolbarPill::paintEvent(QPaintEvent *e) {
 	p.setPen(Qt::NoPen);
 	p.drawRoundedRect(pill, radius, radius);
 
-	Dialogs::PaintPillTopSheen(p, pill, radius);
+	Dialogs::PaintPillOutline(p, pill, radius);
 }
 
 } // namespace Iv::Editor
