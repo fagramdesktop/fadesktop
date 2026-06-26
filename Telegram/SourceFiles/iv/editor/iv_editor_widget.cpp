@@ -1669,23 +1669,31 @@ void EditMathBox(
 		host->resize(cardWidth, desiredHeight);
 	}, host->lifetime());
 	preview->setSource(startSource);
-	const auto interacted = box->lifetime().make_state<bool>(false);
-	if (startSource.isEmpty()) {
+	const auto applyRandomSample = [=] {
 		const auto &sample = kFormulaSamples[
 			base::RandomIndex(int(kFormulaSamples.size()))];
 		source->setPlaceholder(rpl::single(sample));
 		preview->setColor(st::windowSubTextFg);
 		preview->setSource(sample);
+	};
+	const auto wasEmpty = box->lifetime().make_state<bool>(
+		startSource.isEmpty());
+	if (startSource.isEmpty()) {
+		applyRandomSample();
 	}
 	source->changes(
 	) | rpl::on_next([=] {
-		if (!*interacted) {
-			*interacted = true;
+		const auto text = source->getLastText();
+		if (text.isEmpty()) {
+			if (!*wasEmpty) {
+				*wasEmpty = true;
+				applyRandomSample();
+			}
+		} else {
+			*wasEmpty = false;
 			preview->setColor(st::ivFormulaPreviewFg);
-			source->setPlaceholder(
-				tr::lng_formatting_math_source_placeholder());
+			preview->setSource(text);
 		}
-		preview->setSource(source->getLastText());
 	}, source->lifetime());
 
 	box->setTitle(editingExisting

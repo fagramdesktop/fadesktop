@@ -577,9 +577,13 @@ ivFormulaPreviewRadius: 8px;
 ivFormulaPreviewBg: windowBgOver;
 ivFormulaPreviewFg: windowFg;
 ivFormulaSourceField: InputField(defaultInputField) {
+	textMargins: margins(0px, 6px, 0px, 4px);
+	placeholderFg: placeholderFg;
+	placeholderFgActive: placeholderFgActive;
 	placeholderScale: 0.;
 	placeholderFont: normalFont;
 	placeholderShift: -50px;
+	heightMin: 33px;
 }
 defaultMarkdownTable: MarkdownTable {
 	cellPadding: margins(8px, 10px, 8px, 10px);
