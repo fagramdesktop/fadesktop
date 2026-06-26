@@ -430,7 +430,9 @@ void SearchWithGroups::scrollGroupsTo(int left) {
 
 void SearchWithGroups::initEdges() {
 	paintRequest() | rpl::on_next([=](QRect clip) {
-		QPainter(this).fillRect(clip, _st.bg);
+		const auto usable = std::max(width() - _rightReserved, 0);
+		const auto fill = clip.intersected(QRect(0, 0, usable, height()));
+		QPainter(this).fillRect(fill, _st.bg);
 	}, lifetime());
 
 	const auto makeEdge = [&](bool left) {
@@ -441,10 +443,7 @@ void SearchWithGroups::initEdges() {
 		if (left) {
 			edge->move(0, 0);
 		} else {
-			widthValue(
-			) | rpl::on_next([=](int width) {
-				edge->move(width - edge->width(), 0);
-			}, edge->lifetime());
+			_rightEdge = edge;
 		}
 		edge->paintRequest(
 		) | rpl::on_next([=] {
@@ -581,6 +580,9 @@ int SearchWithGroups::resizeGetHeight(int newWidth) {
 	_back->moveToLeft(0, 0, newWidth);
 	_search->moveToLeft(0, 0, newWidth);
 	_cancel->moveToRight(0, 0, usable);
+	if (_rightEdge) {
+		_rightEdge->move(usable - _rightEdge->width(), 0);
+	}
 
 	moveGroupsBy(usable, 0);
 
@@ -597,6 +599,7 @@ void SearchWithGroups::setRightReserved(int value) {
 	}
 	_rightReserved = value;
 	resizeToWidth(width());
+	update();
 }
 
 void SearchWithGroups::wheelEvent(QWheelEvent *e) {

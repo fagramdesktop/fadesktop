@@ -99,6 +99,7 @@ private:
 	QPointer<QWidget> _focusTakenFrom;
 	not_null<FadeWrap<RpWidget>*> _groups;
 	not_null<RpWidget*> _fade;
+	QPointer<RpWidget> _rightEdge;
 	rpl::variable<float64> _fadeOpacity = 0.;
 	int _fadeLeftStart = 0;
 	int _rightReserved = 0;
