@@ -2141,15 +2141,17 @@ RichPage SplitTextIntoRichPage(TextWithEntities text) {
 			continue;
 		}
 		emitParagraphs(cursor, segment.offset);
-		auto body = Ui::Text::Mid(text, segment.offset, segment.length);
-		const auto fullSize = int(body.text.size());
-		body.entities.erase(
-			ranges::remove_if(body.entities, [&](const EntityInText &e) {
-				return (e.type() == segment.type)
-					&& (e.offset() == 0)
-					&& (e.length() == fullSize);
-			}),
-			body.entities.end());
+		auto source = text;
+		for (auto i = 0; i != int(source.entities.size()); ++i) {
+			const auto &e = source.entities[i];
+			if ((e.type() == segment.type)
+				&& (e.offset() == segment.offset)
+				&& (e.length() == segment.length)) {
+				source.entities.erase(source.entities.begin() + i);
+				break;
+			}
+		}
+		auto body = Ui::Text::Mid(source, segment.offset, segment.length);
 		TextUtilities::Trim(body);
 		cursor = segment.offset + segment.length;
 		if (body.empty()) {
