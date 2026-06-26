@@ -99,12 +99,12 @@ ivEditorPillShadow: BoxShadow {
 	opacity: 0.18;
 }
 ivEditorEmojiColumnCloseScrollSkip: 4px;
-ivEditorToolbarUndoIcon: icon {{ "photo_editor/undo", menuIconColor }};
-ivEditorToolbarUndoIconOver: icon {{ "photo_editor/undo", menuIconColor }};
-ivEditorToolbarUndoIconDisabled: icon {{ "photo_editor/undo", windowSubTextFg }};
-ivEditorToolbarRedoIcon: icon {{ "photo_editor/undo-flip_horizontal", menuIconColor }};
-ivEditorToolbarRedoIconOver: icon {{ "photo_editor/undo-flip_horizontal", menuIconColor }};
-ivEditorToolbarRedoIconDisabled: icon {{ "photo_editor/undo-flip_horizontal", windowSubTextFg }};
+ivEditorToolbarUndoIcon: icon {{ "menu/tabs_undo-24x24", menuIconColor }};
+ivEditorToolbarUndoIconOver: icon {{ "menu/tabs_undo-24x24", menuIconColor }};
+ivEditorToolbarUndoIconDisabled: icon {{ "menu/tabs_undo-24x24", windowSubTextFg }};
+ivEditorToolbarRedoIcon: icon {{ "menu/tabs_redo-24x24", menuIconColor }};
+ivEditorToolbarRedoIconOver: icon {{ "menu/tabs_redo-24x24", menuIconColor }};
+ivEditorToolbarRedoIconDisabled: icon {{ "menu/tabs_redo-24x24", windowSubTextFg }};
 ivEditorToolbarOverflowIcon: icon {{ "title_menu_dots", menuIconColor, point(0px, -2px) }};
 ivEditorToolbarOverflowIconOver: icon {{ "title_menu_dots", menuIconColor, point(0px, -2px) }};
 ivEditorToolbarBoldIcon: icon {{ "menu/rich/bold-24x24", menuIconColor }};
