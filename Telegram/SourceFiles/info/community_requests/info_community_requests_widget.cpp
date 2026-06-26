@@ -210,7 +210,7 @@ void MessageGroupOwnerBox(
 		not_null<PeerData*> chat,
 		UserData *owner,
 		not_null<Window::SessionNavigation*> navigation) {
-	box->setStyle(st::boostBox);
+	box->setStyle(st::futureOwnerBox);
 	box->setWidth(st::boxWideWidth);
 
 	const auto content = box->verticalLayout();
@@ -259,7 +259,7 @@ void MessageGroupOwnerBox(
 		style::al_top
 	)->setTryMakeSimilarLines(true);
 
-	Ui::AddSkip(content);
+	Ui::AddSkip(content, st::boostTextSkip);
 	const auto message = content->add(
 		object_ptr<Ui::RoundButton>(
 			content,
@@ -288,6 +288,10 @@ void MessageGroupOwnerBox(
 		box->closeBox();
 	});
 	Ui::AddSkip(content);
+
+	for (const auto &b : { message, cancel }) {
+		b->setFullRadius(true);
+	}
 }
 
 class Row final : public PeerListRow {
