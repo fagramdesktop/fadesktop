@@ -1462,7 +1462,10 @@ auto CachedPageMediaRuntime::hostedMediaBlockFactory() const
 			const auto medias = std::make_shared<
 				std::vector<std::unique_ptr<::Data::Media>>>();
 			medias->reserve(prepared.items.size());
-			for (const auto &item : prepared.items) {
+			for (auto i = 0, count = int(prepared.items.size())
+					; i != count
+					; ++i) {
+				const auto &item = prepared.items[i];
 				const auto kind = item.media.kind;
 				if (kind == Markdown::PreparedMediaItemKind::Photo) {
 					const auto photo = session->data().photo(
@@ -1482,6 +1485,7 @@ auto CachedPageMediaRuntime::hostedMediaBlockFactory() const
 							photo,
 							origin,
 							host->item()->fullId()));
+					descriptor.groupedItemIndices.emplace(photo->id, i);
 				} else {
 					const auto document = session->data().document(
 						DocumentId(item.media.id));
@@ -1504,6 +1508,7 @@ auto CachedPageMediaRuntime::hostedMediaBlockFactory() const
 							document,
 							origin,
 							host->item()->fullId()));
+					descriptor.groupedItemIndices.emplace(document->id, i);
 				}
 				if (!medias->back()->canBeGrouped()) {
 					return std::shared_ptr<Markdown::MediaBlock>();

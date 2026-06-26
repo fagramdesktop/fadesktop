@@ -227,6 +227,7 @@ private:
 	const base::flat_map<
 		uint64,
 		std::shared_ptr<DocumentRuntime>> _groupedDocumentRuntimes;
+	const base::flat_map<uint64, int> _groupedItemIndices;
 	const std::shared_ptr<IvHistoryViewMediaHost> _host;
 	const std::vector<std::shared_ptr<void>> _keepAlive;
 	std::unique_ptr<HistoryView::Media> _media;
@@ -246,6 +247,7 @@ IvHistoryViewBlock::IvHistoryViewBlock(
 , _documentRuntime(std::move(descriptor.document))
 , _groupedPhotoRuntimes(std::move(descriptor.groupedPhotos))
 , _groupedDocumentRuntimes(std::move(descriptor.groupedDocuments))
+, _groupedItemIndices(std::move(descriptor.groupedItemIndices))
 , _host(std::move(descriptor.host))
 , _keepAlive(std::move(descriptor.keepAlive)) {
 	if (descriptor.mediaFactory) {
@@ -427,6 +429,11 @@ IvHistoryViewHit IvHistoryViewBlock::classifyHandler(
 			if (i != end(_groupedPhotoRuntimes)) {
 				result.activation.kind = MediaActivationKind::Photo;
 				result.activation.photo = i->second;
+				const auto j = _groupedItemIndices.find(
+					photoOpen->photo()->id);
+				if (j != end(_groupedItemIndices)) {
+					result.activation.itemIndex = j->second;
+				}
 				return result;
 			}
 		} else if (const auto documentOpen
@@ -436,6 +443,11 @@ IvHistoryViewHit IvHistoryViewBlock::classifyHandler(
 			if (i != end(_groupedDocumentRuntimes)) {
 				result.activation.kind = MediaActivationKind::Document;
 				result.activation.document = i->second;
+				const auto j = _groupedItemIndices.find(
+					documentOpen->document()->id);
+				if (j != end(_groupedItemIndices)) {
+					result.activation.itemIndex = j->second;
+				}
 				return result;
 			}
 		}

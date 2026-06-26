@@ -92,6 +92,7 @@ struct IvHistoryViewMediaDescriptor {
 	base::flat_map<
 		uint64,
 		std::shared_ptr<DocumentRuntime>> groupedDocuments;
+	base::flat_map<uint64, int> groupedItemIndices;
 };
 
 class IvHistoryViewMediaBlockFactory final : public HostedMediaBlockFactory {
