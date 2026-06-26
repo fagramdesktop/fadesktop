@@ -921,6 +921,7 @@ void InnerWidget::changeOpenedCommunity(Data::CommunityInfo *community) {
 	_openedCommunity = community;
 	refreshShownList();
 	_openedCommunityLifetime.destroy();
+	_communityRequestableList.destroy();
 	if (community) {
 		_communityRequestableList = object_ptr<CommunityRequestableList>(
 			this,
@@ -947,7 +948,6 @@ void InnerWidget::changeOpenedCommunity(Data::CommunityInfo *community) {
 			update();
 		}, _openedCommunityLifetime);
 	} else {
-		_communityRequestableList = { nullptr };
 		rebuildCommunitySections();
 	}
 	refreshWithCollapsedRows(true);
