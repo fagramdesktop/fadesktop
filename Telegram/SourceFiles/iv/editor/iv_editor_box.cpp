@@ -36,6 +36,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "menu/menu_checked_action.h"
 #include "menu/menu_send_details.h"
 #include "ui/boxes/confirm_box.h"
+#include "ui/controls/send_button.h"
 #include "ui/delayed_activation.h"
 #include "ui/rp_widget.h"
 #include "ui/ui_utility.h"
@@ -1090,6 +1091,7 @@ private:
 	object_ptr<ToolbarPill> _discard = { nullptr };
 	object_ptr<ToolbarPill> _cancel = { nullptr };
 	object_ptr<ToolbarPill> _submit = { nullptr };
+	object_ptr<Ui::SendButton> _send = { nullptr };
 	Ui::IconButton *_submitButton = nullptr;
 	object_ptr<ChatHelpers::TabbedSelector> _emojiColumn = { nullptr };
 	object_ptr<Ui::PlainShadow> _emojiColumnShadow = { nullptr };
@@ -1253,19 +1255,33 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 	}
 	const auto save = (descriptor.submitType
 		== ShowWindowDescriptor::SubmitType::Save);
-	_submit = object_ptr<ToolbarPill>(
-		_bottom.data(),
-		st::ivEditorPillShadow);
-	_submitButton = _submit->addButton(
-		save ? st::ivEditorBottomSaveButton : st::ivEditorBottomSendButton,
-		save ? &st::ivEditorBottomSaveIcon : &st::ivEditorBottomSendIcon,
-		save ? &st::ivEditorBottomSaveIcon : &st::ivEditorBottomSendIcon,
-		ToolbarButtonState::Inactive);
-	_submitButton->setAccessibleName(SubmitText(descriptor));
-	_submitButton->setClickedCallback([=] { submit(); });
-	if (descriptor.setupSubmitButton) {
-		descriptor.setupSubmitButton(
-			not_null<Ui::RpWidget*>(_submitButton));
+	if (save) {
+		_submit = object_ptr<ToolbarPill>(
+			_bottom.data(),
+			st::ivEditorPillShadow);
+		_submitButton = _submit->addButton(
+			st::ivEditorBottomSaveButton,
+			&st::ivEditorBottomSaveIcon,
+			&st::ivEditorBottomSaveIcon,
+			ToolbarButtonState::Inactive);
+		_submitButton->setAccessibleName(SubmitText(descriptor));
+		_submitButton->setClickedCallback([=] { submit(); });
+		if (descriptor.setupSubmitButton) {
+			descriptor.setupSubmitButton(
+				not_null<Ui::RpWidget*>(_submitButton));
+		}
+	} else {
+		_send = object_ptr<Ui::SendButton>(
+			_bottom.data(),
+			st::ivEditorBottomSend);
+		const auto raw = _send.data();
+		raw->setAccessibleName(SubmitText(descriptor));
+		raw->setClickedCallback([=] { submit(); });
+		raw->show();
+		if (descriptor.setupSubmitButton) {
+			descriptor.setupSubmitButton(
+				not_null<Ui::RpWidget*>(raw));
+		}
 	}
 
 	_discarded = std::move(descriptor.discarded);
@@ -1385,7 +1401,9 @@ void WindowHost::Impl::layout() {
 	const auto editorWidth = std::max(width - emojiWidth, 0);
 	_editor->setContentMaxWidth(_toolbar->contentMaxWidth());
 	const auto toolbarHeight = _toolbar->resizeGetHeight(editorWidth);
-	auto buttonsHeight = _submit->naturalSize().height();
+	auto buttonsHeight = _send
+		? _send->height()
+		: _submit->naturalSize().height();
 	if (_cancel) {
 		buttonsHeight = std::max(
 			buttonsHeight,
@@ -1409,31 +1427,45 @@ void WindowHost::Impl::layout() {
 	const auto right = fitsArticle
 		? (column.left + column.width)
 		: editorWidth;
+	const auto shadowSkipRight = _discard
+		? _discard->shadowMargins().right()
+		: 0;
+	const auto shadowSkipTop = _discard
+		? _discard->shadowMargins().top()
+		: 0;
+	if (_send) {
+		_send->moveToLeft(
+			right - shadowSkipRight - _send->width(),
+			buttonsTop + shadowSkipTop,
+			editorWidth);
+	} else {
+		_submit->moveToLeft(
+			right - _submit->naturalSize().width(),
+			buttonsTop,
+			editorWidth);
+	}
 	if (_discard) {
 		_discard->moveToLeft(left, buttonsTop, editorWidth);
 	}
-	_submit->moveToLeft(
-		right - _submit->naturalSize().width(),
-		buttonsTop,
-		editorWidth);
 	if (_cancel) {
 		_cancel->moveToLeft(
 			right
 				- _submit->naturalSize().width()
-				- st::ivEditorBottomControlsButtonSkip
+				- st::ivEditorToolbarGroupsSkip
 				- _cancel->naturalSize().width(),
 			buttonsTop,
 			editorWidth);
 	}
 	auto bottomMask = QRegion();
-	const auto addMask = [&](ToolbarPill *button) {
-		if (button && !button->isHidden()) {
-			bottomMask += button->geometry();
+	const auto addMask = [&](Ui::RpWidget *widget) {
+		if (widget && !widget->isHidden()) {
+			bottomMask += widget->geometry();
 		}
 	};
 	addMask(_discard.data());
 	addMask(_cancel.data());
 	addMask(_submit.data());
+	addMask(_send.data());
 	if (bottomMask.isEmpty()) {
 		_bottom->clearMask();
 	} else {

@@ -89,9 +89,9 @@ ivEditorToolbarDividerSkip: 6px;
 ivEditorToolbarDividerHeight: 18px;
 ivEditorToolbarGroupsSkip: 6px;
 ivEditorBottomControlsPadding: margins(9px, 10px, 9px, 10px);
-ivEditorBottomControlsButtonSkip: 6px;
 ivEditorPillPadding: 2px;
 ivEditorPillButtonSkip: 6px;
+ivEditorBottomCircleSize: 40px;
 ivEditorPillShadow: BoxShadow {
 	blurRadius: 3px;
 	offset: point(0px, 1px);
@@ -116,9 +116,8 @@ ivEditorToolbarSuperscriptIcon: icon {{ "menu/rich/superscript-24x24", menuIconC
 ivEditorToolbarMarkedIcon: icon {{ "menu/rich/marked-24x24", menuIconColor }};
 ivEditorToolbarPlainTextIcon: icon {{ "menu/rich/plain_text-24x24", menuIconColor }};
 ivEditorToolbarLinkIcon: icon {{ "menu/rich/link-24x24", menuIconColor }};
-ivEditorBottomDiscardIcon: icon {{ "menu/delete", menuIconAttentionColor }};
+ivEditorBottomDiscardIcon: icon {{ "menu/rich/discard", menuIconColor }};
 ivEditorBottomCancelIcon: icon {{ "box_button_close", windowActiveTextFg }};
-ivEditorBottomSendIcon: icon {{ "chat/input_send", windowActiveTextFg }};
 ivEditorBottomSaveIcon: icon {{ "chat/input_save", windowActiveTextFg }};
 ivEditorToolbarButton: IconButton(defaultIconButton) {
 	width: ivEditorToolbarButtonSize;
@@ -131,21 +130,10 @@ ivEditorToolbarButton: IconButton(defaultIconButton) {
 ivEditorBottomDiscardButton: IconButton(ivEditorToolbarButton) {
 	icon: ivEditorBottomDiscardIcon;
 	iconOver: ivEditorBottomDiscardIcon;
-	ripple: RippleAnimation(defaultRippleAnimation) {
-		color: attentionButtonBgRipple;
-	}
 }
 ivEditorBottomCancelButton: IconButton(ivEditorToolbarButton) {
 	icon: ivEditorBottomCancelIcon;
 	iconOver: ivEditorBottomCancelIcon;
-}
-ivEditorBottomSendButton: IconButton(ivEditorToolbarButton) {
-	icon: ivEditorBottomSendIcon;
-	iconOver: ivEditorBottomSendIcon;
-	iconPosition: point(10px, -1px);
-	ripple: RippleAnimation(defaultRippleAnimation) {
-		color: lightButtonBgOver;
-	}
 }
 ivEditorBottomSaveButton: IconButton(ivEditorToolbarButton) {
 	icon: ivEditorBottomSaveIcon;
@@ -153,6 +141,19 @@ ivEditorBottomSaveButton: IconButton(ivEditorToolbarButton) {
 	ripple: RippleAnimation(defaultRippleAnimation) {
 		color: lightButtonBgOver;
 	}
+}
+ivEditorBottomSend: SendButton(historySend) {
+	sendIconPosition: point(8px, 8px);
+	sendIconFillPadding: 8px;
+	inner: IconButton(historyAttach) {
+		width: ivEditorBottomCircleSize;
+		height: ivEditorBottomCircleSize;
+		icon: icon {{ "menu/rich/send-24x24", windowFgActive }};
+		iconOver: icon {{ "menu/rich/send-24x24", windowFgActive }};
+		rippleAreaSize: ivEditorBottomCircleSize;
+		rippleAreaPosition: point(0px, 0px);
+	}
+	sendIconFg: windowFgActive;
 }
 ivEditorToolbarOverflowButton: IconButton(ivEditorToolbarButton) {
 	icon: ivEditorToolbarOverflowIcon;
