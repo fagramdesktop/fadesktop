@@ -214,15 +214,16 @@ CommunityAddChatNarrowButton::CommunityAddChatNarrowButton(
 void CommunityAddChatNarrowButton::paintEvent(QPaintEvent *e) {
 	auto p = QPainter(this);
 	auto hq = PainterHighQualityEnabler(p);
+	const auto radius = height() / 2.;
 	p.setPen(Qt::NoPen);
 	p.setBrush(st::activeButtonBg);
-	p.drawEllipse(rect());
+	p.drawRoundedRect(rect(), radius, radius);
 	paintRipple(p, 0, 0);
 	st::communityAddChatButton.icon.paintInCenter(p, rect());
 }
 
 QImage CommunityAddChatNarrowButton::prepareRippleMask() const {
-	return Ui::RippleAnimation::EllipseMask(size());
+	return Ui::RippleAnimation::RoundRectMask(size(), height() / 2);
 }
 
 } // namespace
@@ -1393,16 +1394,18 @@ void Widget::updateCommunityAddChatButton() {
 		ShowChooseChatToAddBox(controller(), channel);
 	});
 	narrowButton->resize(
-		st::defaultDialogRow.photoSize,
-		st::defaultDialogRow.photoSize);
+		st::communityAddChatButton.height + st::communityAddChatNarrowAddedWidth,
+		st::communityAddChatButton.height);
 	narrowButton->raise();
 	narrowButton->hide();
 
 	const auto pinToBottom = [=] {
 		const auto narrow
 			= (_scroll->width() < st::columnMinimalWidthLeft / 2);
-		const auto side = st::defaultDialogRow.photoSize;
-		const auto stripHeight = side
+		const auto buttonHeight = st::communityAddChatButton.height;
+		const auto buttonWidth = buttonHeight
+			+ st::communityAddChatNarrowAddedWidth;
+		const auto stripHeight = buttonHeight
 			+ st::defaultDialogRow.padding.top()
 			+ st::defaultDialogRow.padding.bottom();
 		const auto height = narrow ? stripHeight : raw->height();
@@ -1411,7 +1414,7 @@ void Widget::updateCommunityAddChatButton() {
 		if (narrow) {
 			raw->toggle(false, anim::type::instant);
 			narrowButton->moveToLeft(
-				(_scroll->width() - side) / 2,
+				(_scroll->width() - buttonWidth) / 2,
 				bottom + st::defaultDialogRow.padding.top());
 			narrowButton->show();
 		} else {
