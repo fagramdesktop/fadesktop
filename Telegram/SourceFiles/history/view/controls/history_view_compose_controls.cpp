@@ -2108,8 +2108,15 @@ bool ComposeControls::hasRichDraftThreadScope() const {
 	return draftKey(DraftType::Normal).isLocal();
 }
 
+bool ComposeControls::hasEditDraft() const {
+	return _history
+		&& (_history->draft(draftKey(DraftType::Edit)) != nullptr);
+}
+
 bool ComposeControls::bypassNormalDraftHandling() const {
-	return !isEditingMessage() && isComposeBoxOpen();
+	return !isEditingMessage()
+		&& !hasEditDraft()
+		&& isComposeBoxOpen();
 }
 
 bool ComposeControls::shouldShowRichDraftPreview() const {

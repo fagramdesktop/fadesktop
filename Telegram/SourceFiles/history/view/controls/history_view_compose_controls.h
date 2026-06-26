@@ -441,6 +441,7 @@ private:
 	[[nodiscard]] bool isComposeBoxOpen() const;
 	[[nodiscard]] bool hasRichDraftThreadScope() const;
 	[[nodiscard]] bool bypassNormalDraftHandling() const;
+	[[nodiscard]] bool hasEditDraft() const;
 	[[nodiscard]] bool shouldShowRichDraftPreview() const;
 	[[nodiscard]] std::unique_ptr<Data::Draft> readThreadFieldDraft() const;
 	void saveThreadFieldDraft(std::unique_ptr<Data::Draft> draft);
