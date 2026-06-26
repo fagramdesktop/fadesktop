@@ -364,6 +364,7 @@ void FiltersMenu::refresh() {
 	// Re-establish the list's Tab-stop on the folder that was focused (if it
 	// survived the rebuild), else on the active one, so a refresh - rename,
 	// deletion, Premium-state change - never leaves the list without a Tab-stop.
+	auto refocus = (Ui::SideBarButton*)nullptr;
 	if (Ui::ScreenReaderModeActive()) {
 		auto i = focusedId ? _filters.find(*focusedId) : end(_filters);
 		if (i == end(_filters)) {
@@ -371,6 +372,15 @@ void FiltersMenu::refresh() {
 		}
 		if (i != end(_filters)) {
 			setListTabStop(i->second.get());
+			// setListTabStop only fixes the Tab order; the std::move above
+			// destroyed the focused button, so Qt also dropped keyboard focus
+			// (to the menu, the edit button or nowhere). If a folder held it,
+			// restore focus to the replacement - or the active fallback - below,
+			// once the scroll is restored, so it lands focused and visible and a
+			// screen reader keeps reading a folder rather than where focus fell.
+			if (focusedId) {
+				refocus = i->second.get();
+			}
 		}
 	}
 	_reorder->start();
@@ -380,6 +390,11 @@ void FiltersMenu::refresh() {
 	// After the filters are refreshed, the scroll is reset,
 	// so we have to restore it.
 	_scroll.scrollToY(oldTop);
+
+	if (refocus) {
+		refocus->setFocus();
+		scrollToButton(refocus);
+	}
 }
 
 void FiltersMenu::setupList() {
