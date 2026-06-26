@@ -1129,6 +1129,7 @@ requestHiddenIcon: IconEmoji {
 	padding: margins(0px, 4px, 0px, 0px);
 	useIconColor: false;
 }
+messageOwnerInfoSkip: 12px;
 requestsSectionBottomMargin: margins(12px, 10px, 12px, 10px);
 requestsAddAllButton: RoundButton(defaultActiveButton) {
 	height: 32px;

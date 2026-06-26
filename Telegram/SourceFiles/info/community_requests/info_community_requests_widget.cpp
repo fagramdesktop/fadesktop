@@ -259,7 +259,7 @@ void MessageGroupOwnerBox(
 		style::al_top
 	)->setTryMakeSimilarLines(true);
 
-	Ui::AddSkip(content, st::boostTextSkip);
+	Ui::AddSkip(content, st::messageOwnerInfoSkip);
 	const auto message = content->add(
 		object_ptr<Ui::RoundButton>(
 			content,
