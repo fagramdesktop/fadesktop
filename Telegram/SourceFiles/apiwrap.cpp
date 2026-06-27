@@ -2334,6 +2334,25 @@ mtpRequestId ApiWrap::savePreparedDraftToCloud(
 		_session,
 		TextUtilities::ConvertTextTagsToEntities(textWithTags.tags),
 		Api::ConvertOption::SkipLocal);
+	const auto richDraftOrigin = Data::FileOrigin(Data::FileOriginCloudDraft{
+		.peerId = history->peer->id,
+		.topicRootId = topicRootId,
+		.monoforumPeerId = monoforumPeerId,
+	});
+	const auto serializeCurrent = [=]() -> std::optional<MTPInputRichMessage> {
+		if (!draft.hasRichMessage()) {
+			return MTPInputRichMessage();
+		}
+		const auto serialized = Iv::SerializeInputRichMessage(
+			_session,
+			*draft.richMessage,
+			Iv::SerializeInputRichMessageMode::Draft);
+		return (serialized.status
+				== Iv::SerializeInputRichMessageStatus::Success)
+			&& serialized.value
+			? std::make_optional(std::move(*serialized.value))
+			: std::nullopt;
+	};
 
 	const auto currentCloudDraft = history->cloudDraft(
 		topicRootId,
@@ -2345,43 +2364,21 @@ mtpRequestId ApiWrap::savePreparedDraftToCloud(
 	}
 
 	history->startSavingCloudDraft(topicRootId, monoforumPeerId);
-	const auto requestId = request(MTPmessages_SaveDraft(
-		MTP_flags(flags),
-		ReplyToForMTP(history, draft.reply),
-		history->peer->input(),
-		MTP_string(textWithTags.text),
-		entities,
-		Data::WebPageForMTP(
-			draft.webpage,
-			textWithTags.text.isEmpty()),
-		MTP_long(0), // effect
-		Api::SuggestToMTP(draft.suggest),
-		std::move(richMessage)
-	)).done([=](const MTPBool &, const MTP::Response &response) {
-		const auto requestId = response.requestId;
-		history->finishSavingCloudDraft(
-			topicRootId,
-			monoforumPeerId,
-			Api::UnixtimeFromMsgId(response.outerMsgId));
+	const auto trackRequestId = [=](mtpRequestId id) {
 		const auto cloudDraft = history->cloudDraft(
 			topicRootId,
 			monoforumPeerId);
 		if (cloudDraft) {
-			if (cloudDraft->saveRequestId == requestId) {
-				cloudDraft->saveRequestId = 0;
-				history->draftSavedToCloud(topicRootId, monoforumPeerId);
-			}
+			cloudDraft->saveRequestId = id;
 		}
 		const auto i = _draftsSaveRequestIds.find(weak);
-		if (i != _draftsSaveRequestIds.cend()
-			&& i->second == requestId) {
-			_draftsSaveRequestIds.erase(i);
-			checkQuitPreventFinished();
+		if (i != _draftsSaveRequestIds.cend()) {
+			i->second = id;
 		}
-		if (callbacks && callbacks->done) {
-			callbacks->done();
-		}
-	}).fail([=](const MTP::Error &error, const MTP::Response &response) {
+	};
+	const auto failCleanup = [=](
+			const MTP::Error &error,
+			const MTP::Response &response) {
 		const auto requestId = response.requestId;
 		history->finishSavingCloudDraft(
 			topicRootId,
@@ -2407,7 +2404,73 @@ mtpRequestId ApiWrap::savePreparedDraftToCloud(
 		if (callbacks && callbacks->fail) {
 			callbacks->fail(error);
 		}
-	}).send();
+	};
+	const auto performRequest = [=](
+			const auto &repeatRequest,
+			MTPInputRichMessage currentRichMessage,
+			bool refreshed) -> mtpRequestId {
+		const auto requestId = request(MTPmessages_SaveDraft(
+			MTP_flags(flags),
+			ReplyToForMTP(history, draft.reply),
+			history->peer->input(),
+			MTP_string(textWithTags.text),
+			entities,
+			Data::WebPageForMTP(
+				draft.webpage,
+				textWithTags.text.isEmpty()),
+			MTP_long(0), // effect
+			Api::SuggestToMTP(draft.suggest),
+			std::move(currentRichMessage)
+		)).done([=](const MTPBool &, const MTP::Response &response) {
+			const auto requestId = response.requestId;
+			history->finishSavingCloudDraft(
+				topicRootId,
+				monoforumPeerId,
+				Api::UnixtimeFromMsgId(response.outerMsgId));
+			const auto cloudDraft = history->cloudDraft(
+				topicRootId,
+				monoforumPeerId);
+			if (cloudDraft) {
+				if (cloudDraft->saveRequestId == requestId) {
+					cloudDraft->saveRequestId = 0;
+					history->draftSavedToCloud(topicRootId, monoforumPeerId);
+				}
+			}
+			const auto i = _draftsSaveRequestIds.find(weak);
+			if (i != _draftsSaveRequestIds.cend()
+				&& i->second == requestId) {
+				_draftsSaveRequestIds.erase(i);
+				checkQuitPreventFinished();
+			}
+			if (callbacks && callbacks->done) {
+				callbacks->done();
+			}
+		}).fail([=](const MTP::Error &error, const MTP::Response &response) {
+			if (!refreshed
+				&& (error.code() == 400)
+				&& error.type().startsWith(u"FILE_REFERENCE_"_q)
+				&& draft.hasRichMessage()) {
+				refreshFileReference(richDraftOrigin, [=](const auto &) {
+					if (auto refreshedRichMessage = serializeCurrent()) {
+						const auto newId = repeatRequest(
+							repeatRequest,
+							std::move(*refreshedRichMessage),
+							true);
+						trackRequestId(newId);
+					} else {
+						failCleanup(error, response);
+					}
+				});
+				return;
+			}
+			failCleanup(error, response);
+		}).send();
+		return requestId;
+	};
+	const auto requestId = performRequest(
+		performRequest,
+		std::move(richMessage),
+		false);
 	const auto cloudDraft = history->cloudDraft(
 		topicRootId,
 		monoforumPeerId);

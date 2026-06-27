@@ -56,6 +56,7 @@ constexpr auto kNoEntityIndex = -1;
 
 struct SerializeContext {
 	not_null<Main::Session*> session;
+	bool skipUnuploadedMedia = false;
 	base::flat_map<uint64, MTPInputPhoto> photos;
 	base::flat_map<uint64, MTPInputDocument> documents;
 	base::flat_map<uint64, MTPInputUser> users;
@@ -860,6 +861,33 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 	}
 }
 
+[[nodiscard]] bool BlockMediaFullyUploaded(
+		const Block &block,
+		SerializeContext *context) {
+	switch (block.kind) {
+	case BlockKind::Photo:
+		return ResolveInputPhoto(
+			context,
+			block.photoId,
+			block.photo).has_value();
+	case BlockKind::Video:
+	case BlockKind::Audio:
+		return ResolveInputDocument(
+			context,
+			block.documentId,
+			block.document).has_value();
+	case BlockKind::GroupedMedia:
+		for (const auto &item : block.mediaItems) {
+			if (!GroupedMediaItemHasMeaningfulContent(item, context)) {
+				return false;
+			}
+		}
+		return true;
+	default:
+		return true;
+	}
+}
+
 [[nodiscard]] bool BlockHasOwnMeaningfulContent(
 		const Block &block,
 		SerializeContext *context) {
@@ -1610,6 +1638,10 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 	auto result = QVector<MTPPageBlock>();
 	result.reserve(blocks.size());
 	for (const auto &block : blocks) {
+		if (context->skipUnuploadedMedia
+			&& !BlockMediaFullyUploaded(block, context)) {
+			continue;
+		}
 		const auto serialized = SerializeBlock(block, context);
 		switch (serialized.state) {
 		case SerializeBlockState::Success:
@@ -1647,6 +1679,8 @@ SerializeInputRichMessageResult SerializeInputRichMessage(
 		const RichPage &page,
 		SerializeInputRichMessageMode mode) {
 	auto context = SerializeContext{ session };
+	context.skipUnuploadedMedia
+		= (mode == SerializeInputRichMessageMode::Draft);
 	auto normalizedBlocks = FinalSubmitNormalizedBlocks();
 	const auto *sourceBlocks = &page.blocks;
 	if (mode == SerializeInputRichMessageMode::FinalSubmit) {

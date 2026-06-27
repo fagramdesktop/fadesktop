@@ -2250,7 +2250,8 @@ private:
 			_state->resyncAfterExternalRichPageMutation();
 			requestEditorUpdate();
 		}
-		retryRichDraftAutosaveIfNeeded();
+		_richDraftAutosaveTimer.cancel();
+		saveRichDraftNow();
 		retryRichDraftCloseSaveIfNeeded();
 		maybeContinueSubmittedRequest();
 	}
@@ -2323,7 +2324,8 @@ private:
 			_state->resyncAfterExternalRichPageMutation();
 			requestEditorUpdate();
 		}
-		retryRichDraftAutosaveIfNeeded();
+		_richDraftAutosaveTimer.cancel();
+		saveRichDraftNow();
 		retryRichDraftCloseSaveIfNeeded();
 		maybeContinueSubmittedRequest();
 	}
