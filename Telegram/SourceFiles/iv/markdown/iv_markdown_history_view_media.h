@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "iv/markdown/iv_markdown_common.h"
 #include "base/flat_map.h"
+#include "base/flat_set.h"
 #include "base/weak_ptr.h"
 
 #include <functional>
@@ -96,6 +97,8 @@ struct IvHistoryViewMediaDescriptor {
 		uint64,
 		std::shared_ptr<DocumentRuntime>> groupedDocuments;
 	base::flat_map<uint64, int> groupedItemIndices;
+	base::flat_set<uint64> groupedSpoileredIds;
+	bool spoiler = false;
 };
 
 class IvHistoryViewMediaBlockFactory final : public HostedMediaBlockFactory {

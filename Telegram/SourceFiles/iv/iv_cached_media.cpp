@@ -1306,6 +1306,7 @@ auto CachedPageMediaRuntime::hostedMediaBlockFactory() const
 			descriptor.copyText = u"Photo"_q;
 			descriptor.layoutHint = QSize(prepared.width, prepared.height);
 			descriptor.host = host;
+			descriptor.spoiler = prepared.spoiler;
 			descriptor.mediaFactory = [photo, spoiler = prepared.spoiler](
 					not_null<HistoryView::Element*> view) {
 				return std::make_unique<HistoryView::Photo>(
@@ -1353,6 +1354,7 @@ auto CachedPageMediaRuntime::hostedMediaBlockFactory() const
 				prepared.media.width,
 				prepared.media.height);
 			descriptor.host = host;
+			descriptor.spoiler = prepared.media.spoiler;
 			descriptor.mediaFactory = [media](
 					not_null<HistoryView::Element*> view) {
 				return media->createView(
@@ -1492,6 +1494,9 @@ auto CachedPageMediaRuntime::hostedMediaBlockFactory() const
 						host->item()->fullId());
 					descriptor.groupedPhotos.emplace(photo->id, runtime);
 					descriptor.groupedItemIndices.emplace(photo->id, i);
+					if (item.media.spoiler) {
+						descriptor.groupedSpoileredIds.emplace(photo->id);
+					}
 					if (slideshow) {
 						slideSizes.push_back(QSize(
 							std::max(item.media.width, 1),
@@ -1528,6 +1533,9 @@ auto CachedPageMediaRuntime::hostedMediaBlockFactory() const
 						host->item()->fullId());
 					descriptor.groupedDocuments.emplace(document->id, runtime);
 					descriptor.groupedItemIndices.emplace(document->id, i);
+					if (item.media.spoiler) {
+						descriptor.groupedSpoileredIds.emplace(document->id);
+					}
 					if (slideshow) {
 						const auto media = medias->back().get();
 						slideSizes.push_back(QSize(

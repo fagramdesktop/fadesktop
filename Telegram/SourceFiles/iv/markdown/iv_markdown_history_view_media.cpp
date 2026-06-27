@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "iv/markdown/iv_markdown_article.h"
 #include "base/unixtime.h"
+#include "base/flat_set.h"
 #include "iv/markdown/iv_markdown_media_block.h"
 #include "iv/markdown/iv_markdown_slideshow_chrome.h"
 
@@ -36,6 +37,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_element.h"
 #include "history/view/history_view_message.h"
 #include "history/view/media/history_view_media.h"
+#include "history/view/media/history_view_media_grouped.h"
 #include "ui/basic_click_handlers.h"
 #include "window/window_session_controller.h"
 #include "styles/style_chat.h"
@@ -203,6 +205,50 @@ struct IvHistoryViewHit {
 	return result;
 }
 
+[[nodiscard]] IvHistoryViewHit ClassifyGroupedSpoiler(
+		HistoryView::Media *partMedia,
+		const base::flat_map<
+			uint64,
+			std::shared_ptr<PhotoRuntime>> &photos,
+		const base::flat_map<
+			uint64,
+			std::shared_ptr<DocumentRuntime>> &documents,
+		const base::flat_map<uint64, int> &indices,
+		const base::flat_set<uint64> &spoileredIds) {
+	auto result = IvHistoryViewHit();
+	if (!partMedia) {
+		return result;
+	}
+	if (const auto photo = partMedia->getPhoto()) {
+		if (!spoileredIds.contains(photo->id)) {
+			return result;
+		}
+		const auto i = photos.find(photo->id);
+		if (i != end(photos)) {
+			result.activation.kind = MediaActivationKind::Photo;
+			result.activation.photo = i->second;
+			const auto j = indices.find(photo->id);
+			if (j != end(indices)) {
+				result.activation.itemIndex = j->second;
+			}
+		}
+	} else if (const auto document = partMedia->getDocument()) {
+		if (!spoileredIds.contains(document->id)) {
+			return result;
+		}
+		const auto i = documents.find(document->id);
+		if (i != end(documents)) {
+			result.activation.kind = MediaActivationKind::Document;
+			result.activation.document = i->second;
+			const auto j = indices.find(document->id);
+			if (j != end(indices)) {
+				result.activation.itemIndex = j->second;
+			}
+		}
+	}
+	return result;
+}
+
 [[nodiscard]] not_null<HistoryItem*> CreateIvHostMessage(
 		not_null<History*> history,
 		QString pageUrl) {
@@ -256,10 +302,12 @@ private:
 	[[nodiscard]] IvHistoryViewHit resolveLocalHit(QPoint point) const;
 
 	[[nodiscard]] IvHistoryViewHit classifyState(
-			const HistoryView::TextState &state) const;
+			const HistoryView::TextState &state,
+			QPoint localPoint) const;
 
 	[[nodiscard]] IvHistoryViewHit classifyHandler(
-			const ClickHandlerPtr &handler) const;
+			const ClickHandlerPtr &handler,
+			QPoint localPoint) const;
 
 	[[nodiscard]] bool probeSupport();
 
@@ -280,6 +328,8 @@ private:
 		uint64,
 		std::shared_ptr<DocumentRuntime>> _groupedDocumentRuntimes;
 	const base::flat_map<uint64, int> _groupedItemIndices;
+	const base::flat_set<uint64> _groupedSpoileredIds;
+	const bool _spoiler = false;
 	const std::shared_ptr<IvHistoryViewMediaHost> _host;
 	const std::vector<std::shared_ptr<void>> _keepAlive;
 	std::unique_ptr<HistoryView::Media> _media;
@@ -300,6 +350,8 @@ IvHistoryViewBlock::IvHistoryViewBlock(
 , _groupedPhotoRuntimes(std::move(descriptor.groupedPhotos))
 , _groupedDocumentRuntimes(std::move(descriptor.groupedDocuments))
 , _groupedItemIndices(std::move(descriptor.groupedItemIndices))
+, _groupedSpoileredIds(std::move(descriptor.groupedSpoileredIds))
+, _spoiler(descriptor.spoiler)
 , _host(std::move(descriptor.host))
 , _keepAlive(std::move(descriptor.keepAlive)) {
 	if (descriptor.mediaFactory) {
@@ -426,22 +478,29 @@ IvHistoryViewHit IvHistoryViewBlock::resolveLocalHit(QPoint point) const {
 			.flags = Ui::Text::StateRequest::Flag::LookupLink
 				| Ui::Text::StateRequest::Flag::LookupCustomTooltip,
 		});
-	return classifyState(state);
+	return classifyState(state, point);
 }
 
 IvHistoryViewHit IvHistoryViewBlock::classifyState(
-		const HistoryView::TextState &state) const {
-	return classifyHandler(state.link);
+		const HistoryView::TextState &state,
+		QPoint localPoint) const {
+	return classifyHandler(state.link, localPoint);
 }
 
 IvHistoryViewHit IvHistoryViewBlock::classifyHandler(
-		const ClickHandlerPtr &handler) const {
+		const ClickHandlerPtr &handler,
+		QPoint localPoint) const {
 	auto result = IvHistoryViewHit();
 	if (!handler) {
 		return result;
 	}
 	if (_kind == IvHistoryViewMediaKind::Photo) {
 		if (std::dynamic_pointer_cast<LambdaClickHandler>(handler)) {
+			if (_spoiler && _photoRuntime) {
+				result.activation.kind = MediaActivationKind::Photo;
+				result.activation.photo = _photoRuntime;
+				return result;
+			}
 			result.link = handler;
 			return result;
 		}
@@ -458,6 +517,28 @@ IvHistoryViewHit IvHistoryViewBlock::classifyHandler(
 		}
 		result.supported = false;
 		return result;
+	}
+	if (std::dynamic_pointer_cast<LambdaClickHandler>(handler)) {
+		if (_kind == IvHistoryViewMediaKind::Document
+			&& _spoiler
+			&& _documentRuntime) {
+			result.activation.kind = MediaActivationKind::Document;
+			result.activation.document = _documentRuntime;
+			return result;
+		}
+		if (_kind == IvHistoryViewMediaKind::GroupedMedia) {
+			const auto grouped = dynamic_cast<HistoryView::GroupedMedia*>(
+				_media.get());
+			auto spoiler = ClassifyGroupedSpoiler(
+				grouped ? grouped->partMediaAt(localPoint) : nullptr,
+				_groupedPhotoRuntimes,
+				_groupedDocumentRuntimes,
+				_groupedItemIndices,
+				_groupedSpoileredIds);
+			if (spoiler.activation.kind != MediaActivationKind::None) {
+				return spoiler;
+			}
+		}
 	}
 	if (IsSupportedInteractionHandler(handler)) {
 		result.link = handler;
@@ -603,6 +684,7 @@ private:
 
 	[[nodiscard]] IvHistoryViewHit classifyState(
 		const HistoryView::TextState &state,
+		HistoryView::Media *media,
 		int index) const;
 
 	[[nodiscard]] IvHistoryViewHit resolveHit(QPoint point) const;
@@ -622,6 +704,7 @@ private:
 		uint64,
 		std::shared_ptr<DocumentRuntime>> _groupedDocumentRuntimes;
 	const base::flat_map<uint64, int> _groupedItemIndices;
+	const base::flat_set<uint64> _groupedSpoileredIds;
 	std::vector<std::unique_ptr<HistoryView::Media>> _slides;
 	std::vector<QSize> _slideOriginalSizes;
 	QRect _geometry;
@@ -645,6 +728,7 @@ IvHistoryViewSlideshowBlock::IvHistoryViewSlideshowBlock(
 , _groupedPhotoRuntimes(std::move(descriptor.groupedPhotos))
 , _groupedDocumentRuntimes(std::move(descriptor.groupedDocuments))
 , _groupedItemIndices(std::move(descriptor.groupedItemIndices))
+, _groupedSpoileredIds(std::move(descriptor.groupedSpoileredIds))
 , _slideOriginalSizes(std::move(descriptor.slideOriginalSizes)) {
 	_slides.reserve(descriptor.slideMediaFactories.size());
 	for (const auto &factory : descriptor.slideMediaFactories) {
@@ -812,12 +896,26 @@ void IvHistoryViewSlideshowBlock::stepActiveIndex(int delta) {
 
 IvHistoryViewHit IvHistoryViewSlideshowBlock::classifyState(
 		const HistoryView::TextState &state,
+		HistoryView::Media *media,
 		int index) const {
 	auto result = IvHistoryViewHit();
 	const auto &handler = state.link;
 	if (!handler) {
 		return result;
-	} else if (IsSupportedInteractionHandler(handler)) {
+	}
+	if (std::dynamic_pointer_cast<LambdaClickHandler>(handler) && media) {
+		auto spoiler = ClassifyGroupedSpoiler(
+			media,
+			_groupedPhotoRuntimes,
+			_groupedDocumentRuntimes,
+			_groupedItemIndices,
+			_groupedSpoileredIds);
+		if (spoiler.activation.kind != MediaActivationKind::None) {
+			spoiler.activation.itemIndex = index;
+			return spoiler;
+		}
+	}
+	if (IsSupportedInteractionHandler(handler)) {
 		result.link = handler;
 		return result;
 	}
@@ -843,7 +941,7 @@ IvHistoryViewHit IvHistoryViewSlideshowBlock::resolveHit(QPoint point) const {
 			.flags = Ui::Text::StateRequest::Flag::LookupLink
 				| Ui::Text::StateRequest::Flag::LookupCustomTooltip,
 		});
-	return classifyState(state, _activeIndex);
+	return classifyState(state, media, _activeIndex);
 }
 
 bool IvHistoryViewSlideshowBlock::probeSupport() {
@@ -873,7 +971,7 @@ bool IvHistoryViewSlideshowBlock::probeSupport() {
 					.flags = Ui::Text::StateRequest::Flag::LookupLink
 						| Ui::Text::StateRequest::Flag::LookupCustomTooltip,
 				});
-			if (!classifyState(state, i).supported) {
+			if (!classifyState(state, media, i).supported) {
 				return false;
 			}
 		}
