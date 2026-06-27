@@ -5609,6 +5609,9 @@ void Widget::showGroupedMediaMenu(
 					|| current->kind != RichPage::BlockKind::GroupedMedia) {
 					return false;
 				}
+				if (hasItem) {
+					return _state->removeGroupedItem(path, itemIndex);
+				}
 				target = _state->removeBlock(path, true);
 				return true;
 			});

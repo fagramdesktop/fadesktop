@@ -482,6 +482,9 @@ public:
 		const Markdown::PreparedEditSelection &selection,
 		RichPage::GroupedMediaIntent intent);
 	[[nodiscard]] bool ungroupGroupedMediaBlock(const BlockPath &path);
+	[[nodiscard]] bool removeGroupedItem(
+		const BlockPath &path,
+		int itemIndex);
 	[[nodiscard]] bool setGroupedMediaIntent(
 		const BlockPath &path,
 		RichPage::GroupedMediaIntent intent);

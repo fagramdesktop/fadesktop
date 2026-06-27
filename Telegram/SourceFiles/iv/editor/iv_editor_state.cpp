@@ -2204,6 +2204,55 @@ bool State::ungroupGroupedMediaBlock(const BlockPath &path) {
 	});
 }
 
+bool State::removeGroupedItem(
+		const BlockPath &path,
+		int itemIndex) {
+	if (itemIndex < 0) {
+		return false;
+	}
+	return applyCheckedMutation(false, [path, itemIndex](State &candidate) {
+		auto *blocks = candidate.blockContainer(path.container);
+		if (!blocks
+			|| path.index < 0
+			|| path.index >= int(blocks->size())) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		auto &current = (*blocks)[path.index];
+		if (current.kind != BlockKind::GroupedMedia
+			|| itemIndex >= int(current.mediaItems.size())) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		current.mediaItems.erase(current.mediaItems.begin() + itemIndex);
+		if (current.mediaItems.size() >= 2) {
+			candidate.rebuild();
+			return CheckedMutationResult<bool>{
+				.apply = true,
+				.result = true,
+			};
+		}
+		if (current.mediaItems.empty()) {
+			blocks->erase(blocks->begin() + path.index);
+			candidate.rebuild();
+			return CheckedMutationResult<bool>{
+				.apply = true,
+				.result = true,
+			};
+		}
+		auto single = PhotoVideoBlockFromGroupedItem(current.mediaItems.front());
+		if (!single) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		single->caption = std::move(current.caption);
+		single->anchorId = std::move(current.anchorId);
+		(*blocks)[path.index] = std::move(*single);
+		candidate.rebuild();
+		return CheckedMutationResult<bool>{
+			.apply = true,
+			.result = true,
+		};
+	});
+}
+
 bool State::setGroupedMediaIntent(
 		const BlockPath &path,
 		RichPage::GroupedMediaIntent intent) {
