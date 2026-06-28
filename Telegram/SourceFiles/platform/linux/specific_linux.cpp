@@ -466,19 +466,67 @@ bool GenerateServiceFile(bool silent = false) {
 }
 
 void InstallLauncher() {
-	static const auto DisabledByEnv = !qEnvironmentVariableIsEmpty(
-		"DESKTOPINTEGRATION");
-
-	// don't update desktop file for alpha version or if updater is disabled
-	if (cAlphaVersion()
-			|| Core::UpdaterDisabled()
-			|| KSandbox::isInside()
-			|| DisabledByEnv) {
+	if (KSandbox::isInside()) {
 		return;
 	}
 
 	const auto applicationsPath = QStandardPaths::writableLocation(
 		QStandardPaths::ApplicationsLocation) + '/';
+	auto appsDir = QDir(applicationsPath);
+	if (appsDir.exists()) {
+		const auto list = appsDir.entryList({
+			u"org.fagram._*.desktop"_q,
+			u"org.fagram.*.desktop"_q,
+			u"org.fagram.desktop._*.desktop"_q,
+			u"org.fagram.desktop.*.desktop"_q,
+		}, QDir::Files);
+		for (const auto &filename : list) {
+			if (filename != u"org.fagram.desktop"_q) {
+				appsDir.remove(filename);
+			}
+		}
+	}
+
+	const auto servicesPath = QStandardPaths::writableLocation(
+		QStandardPaths::GenericDataLocation) + u"/dbus-1/services/"_q;
+	auto servicesDir = QDir(servicesPath);
+	if (servicesDir.exists()) {
+		const auto list = servicesDir.entryList({
+			u"org.fagram._*.service"_q,
+			u"org.fagram.*.service"_q,
+		}, QDir::Files);
+		for (const auto &filename : list) {
+			if (filename != u"org.fagram.service"_q) {
+				servicesDir.remove(filename);
+			}
+		}
+	}
+
+	const auto autostartPath = QStandardPaths::writableLocation(
+		QStandardPaths::GenericConfigLocation) + u"/autostart/"_q;
+	auto autostartDir = QDir(autostartPath);
+	if (autostartDir.exists()) {
+		const auto list = autostartDir.entryList({
+			u"org.fagram._*.desktop"_q,
+			u"org.fagram.*.desktop"_q,
+			u"org.fagram.desktop._*.desktop"_q,
+			u"org.fagram.desktop.*.desktop"_q,
+		}, QDir::Files);
+		for (const auto &filename : list) {
+			if (filename != u"org.fagram.desktop"_q) {
+				autostartDir.remove(filename);
+			}
+		}
+	}
+
+	static const auto DisabledByEnv = !qEnvironmentVariableIsEmpty(
+		"DESKTOPINTEGRATION");
+
+	if (cAlphaVersion()
+			|| Core::UpdaterDisabled()
+			|| DisabledByEnv) {
+		return;
+	}
 
 	GenerateDesktopFile(applicationsPath);
 	GenerateServiceFile();
