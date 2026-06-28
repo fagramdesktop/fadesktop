@@ -145,6 +145,9 @@ public:
 	}
 	void paintStatusIcon(Painter &p, crl::time now, bool paused);
 
+	void rememberUserpicKey();
+	[[nodiscard]] bool userpicKeyChanged();
+
 	virtual QSize rightActionSize() const {
 		return QSize();
 	}
@@ -324,6 +327,7 @@ private:
 	PeerListRowId _id = 0;
 	PeerData *_peer = nullptr;
 	mutable Ui::PeerUserpicView _userpic;
+	std::pair<uint64, uint64> _userpicKey;
 	std::unique_ptr<Ui::RippleAnimation> _ripple;
 	std::unique_ptr<Ui::RoundImageCheckbox> _checkbox;
 	Ui::Text::String _name;
@@ -855,6 +859,7 @@ private:
 
 	void selectByMouse(QPoint globalPosition);
 	void loadProfilePhotos();
+	void invalidateLoadedUserpics();
 	void checkScrollForPreload();
 
 	void updateRow(not_null<PeerListRow*> row, RowIndex hint);

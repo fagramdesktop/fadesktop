@@ -855,6 +855,17 @@ PaintRoundImageCallback PeerListRow::generatePaintUserpicCallback(
 }
 
 
+void PeerListRow::rememberUserpicKey() {
+	if (!special()) {
+		_userpicKey = peer()->userpicUniqueKey(ensureUserpicView());
+	}
+}
+
+bool PeerListRow::userpicKeyChanged() {
+	return !special()
+		&& (peer()->userpicUniqueKey(ensureUserpicView()) != _userpicKey);
+}
+
 auto PeerListRow::generateNameFirstLetters() const
 -> const base::flat_set<QChar> & {
 	return peer()->nameFirstLetters();
@@ -1024,6 +1035,7 @@ void PeerListRow::paintUserpic(
 	} else if (const auto callback = generatePaintUserpicCallback(false)) {
 		callback(p, x, y, outerWidth, st.photoSize);
 	}
+	rememberUserpicKey();
 	paintUserpicOverlay(p, st, x, y, outerWidth);
 }
 
@@ -1146,6 +1158,7 @@ PeerListContent::PeerListContent(
 , _rowsScrollCache([this] { update(); }) {
 	_controller->session().downloaderTaskFinished(
 	) | rpl::on_next([=] {
+		invalidateLoadedUserpics();
 		update();
 	}, lifetime());
 
@@ -1157,6 +1170,7 @@ PeerListContent::PeerListContent(
 			handleNameChanged(update.peer);
 		}
 		if (update.flags & UpdateFlag::Photo) {
+			invalidateLoadedUserpics();
 			this->update();
 		}
 	}, lifetime());
@@ -2306,6 +2320,32 @@ void PeerListContent::loadProfilePhotos() {
 			for (auto index = from; index != to; ++index) {
 				getRow(RowIndex(index))->preloadUserpic();
 			}
+		}
+	}
+}
+
+void PeerListContent::invalidateLoadedUserpics() {
+	if (!_rowsScrollCache.scrolling() || _visibleTop >= _visibleBottom) {
+		return;
+	}
+	const auto rowsCount = shownRowsCount();
+	if (rowsCount <= 0) {
+		return;
+	}
+	auto from = _visibleTop / _rowHeight;
+	if (from < 0) {
+		from = 0;
+	} else if (from >= rowsCount) {
+		return;
+	}
+	auto to = (_visibleBottom / _rowHeight) + 1;
+	if (to > rowsCount) {
+		to = rowsCount;
+	}
+	for (auto index = from; index != to; ++index) {
+		const auto row = getRow(RowIndex(index));
+		if (row->userpicKeyChanged()) {
+			_rowsScrollCache.invalidate(row->id());
 		}
 	}
 }
