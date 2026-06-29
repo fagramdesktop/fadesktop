@@ -42,7 +42,7 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: ${{ env.REPO_NAME }}
           submodules: recursive
@@ -122,7 +122,7 @@ jobs:
           echo "tagname=$TAGNAME" >> $GITHUB_OUTPUT
 
       - name: Clone repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: ${{ env.REPO_NAME }}
           submodules: recursive
@@ -207,7 +207,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           sparse-checkout: |
             scripts/tgupload.py
