@@ -56,6 +56,10 @@ settingsOptionDisabled: SettingsButton(settingsButtonNoIcon) {
 	textBgOver: windowBg;
 	toggleOver: infoProfileToggle;
 }
+settingsButtonDisabledWithIcon: SettingsButton(settingsButton) {
+	textFg: windowSubTextFg;
+	textFgOver: windowSubTextFg;
+}
 settingsButtonRightSkip: 23px;
 settingsScalePadding: margins(60px, 7px, 22px, 4px);
 settingsBigScalePadding: margins(21px, 7px, 21px, 4px);

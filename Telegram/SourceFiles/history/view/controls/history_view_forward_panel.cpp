@@ -501,6 +501,16 @@ bool CanHideForwardAuthor(
 	return session->premium() || !HasRichPage(list);
 }
 
+bool HideForwardAuthorPremiumRequired(
+		not_null<Main::Session*> session,
+		const HistoryItemsList &list) {
+	return !list.empty()
+		&& !session->premium()
+		&& !HasOnlyForcedForwardedInfo(list)
+		&& HasRichPage(list)
+		&& HasDropForwardedInfoSetting(list);
+}
+
 Data::ForwardOptions NormalizeForwardOptions(
 		not_null<Main::Session*> session,
 		const HistoryItemsList &list,

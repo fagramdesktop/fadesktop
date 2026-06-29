@@ -31,6 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item_helpers.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
+#include "settings/sections/settings_premium.h"
 #include "settings/settings_common.h"
 #include "ui/chat/chat_style.h"
 #include "ui/chat/chat_theme.h"
@@ -976,11 +977,33 @@ void DraftOptionsBox(
 			items);
 		const auto canDropNames = canHideAuthor
 			&& HasDropForwardedInfoSetting(items);
+		const auto premiumRequiredHide = HideForwardAuthorPremiumRequired(
+			&show->session(),
+			items);
 		const auto dropCaptions = (now == Options::NoNamesAndCaptions);
 
 		AddFilledSkip(bottom);
 
-		if (canDropNames) {
+		if (premiumRequiredHide) {
+			Settings::AddButtonWithIcon(
+				bottom,
+				(sendersCount == 1
+					? tr::lng_forward_action_hide_sender
+					: tr::lng_forward_action_hide_senders)(),
+				st::settingsButtonDisabledWithIcon,
+				{ &st::menuIconUserHide }
+			)->setClickedCallback([=] {
+				Settings::ShowPremiumPromoToast(
+					show,
+					tr::lng_article_premium_required(
+						tr::now,
+						lt_link,
+						tr::link(tr::bold(
+							tr::lng_article_premium_required_link(tr::now))),
+						tr::marked),
+					u"rich_message"_q);
+			});
+		} else if (canDropNames) {
 			Settings::AddButtonWithIcon(
 				bottom,
 				(dropNames
