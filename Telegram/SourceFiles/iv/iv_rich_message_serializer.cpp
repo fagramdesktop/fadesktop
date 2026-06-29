@@ -66,6 +66,7 @@ template <typename Value>
 struct FinalSubmitNormalizationResult {
 	Value value;
 	bool hasMeaningfulContent = false;
+	bool hasRealContent = false;
 };
 
 struct FinalSubmitHybridSurface {
@@ -966,6 +967,7 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 		result.value.text = std::move(combined.front().text);
 		result.value.anchorId = std::move(combined.front().anchorId);
 		result.hasMeaningfulContent = RichTextHasVisibleText(result.value.text);
+		result.hasRealContent = RichTextHasVisibleText(result.value.text);
 	}
 	result.value.blocks.reserve(std::max(range.till - std::max(range.from, 1), 0));
 	for (auto index = std::max(range.from, 1); index < range.till; ++index) {
@@ -973,6 +975,8 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 	}
 	result.hasMeaningfulContent = result.hasMeaningfulContent
 		|| normalizedBlocks.hasMeaningfulContent;
+	result.hasRealContent = result.hasRealContent
+		|| normalizedBlocks.hasRealContent;
 	return result;
 }
 
@@ -981,6 +985,7 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 	auto result = FinalSubmitNormalizedTableCell();
 	result.value = std::move(cell);
 	result.hasMeaningfulContent = RichTextHasVisibleText(result.value.text);
+	result.hasRealContent = result.hasMeaningfulContent;
 	return result;
 }
 
@@ -996,6 +1001,8 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 		auto normalized = NormalizeFinalSubmitTableCell(std::move(cell));
 		result.hasMeaningfulContent = result.hasMeaningfulContent
 			|| normalized.hasMeaningfulContent;
+		result.hasRealContent = result.hasRealContent
+			|| normalized.hasRealContent;
 		normalizedRow.cells.push_back(std::move(normalized.value));
 	}
 	result.value = std::move(normalizedRow);
@@ -1009,6 +1016,7 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 	result.value = std::move(item);
 	if (result.value.blocks.empty()) {
 		result.hasMeaningfulContent = RichTextHasVisibleText(result.value.text);
+		result.hasRealContent = result.hasMeaningfulContent;
 		return result;
 	}
 	auto surface = NormalizeFinalSubmitHybridSurface(
@@ -1020,6 +1028,7 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 	result.value.anchorId = std::move(surface.value.anchorId);
 	result.value.blocks = std::move(surface.value.blocks);
 	result.hasMeaningfulContent = surface.hasMeaningfulContent;
+	result.hasRealContent = surface.hasRealContent;
 	return result;
 }
 
@@ -1039,6 +1048,7 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 			return result;
 		}
 		result.hasMeaningfulContent = true;
+		result.hasRealContent = true;
 		return result;
 	case BlockKind::Math:
 		if (StringIsEmpty(normalized.formula)) {
@@ -1046,6 +1056,7 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 			return result;
 		}
 		result.hasMeaningfulContent = true;
+		result.hasRealContent = true;
 		return result;
 	case BlockKind::Quote:
 		if (!normalized.blocks.empty() && !normalized.pullquote) {
@@ -1057,16 +1068,20 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 			normalized.text = std::move(surface.value.text);
 			normalized.blocks = std::move(surface.value.blocks);
 			result.hasMeaningfulContent = surface.hasMeaningfulContent;
+			result.hasRealContent = surface.hasRealContent;
 		} else if (!normalized.blocks.empty()) {
 			auto blocks = NormalizeFinalSubmitBlocks(
 				std::move(normalized.blocks),
 				context);
 			normalized.blocks = std::move(blocks.value);
 			result.hasMeaningfulContent = blocks.hasMeaningfulContent;
+			result.hasRealContent = blocks.hasRealContent;
 		}
 		result.hasMeaningfulContent = result.hasMeaningfulContent
 			|| RichTextHasVisibleText(normalized.text)
 			|| RichTextHasVisibleText(normalized.caption);
+		result.hasRealContent = result.hasRealContent
+			|| RichTextHasVisibleText(normalized.text);
 		if (normalized.blocks.empty() && !result.hasMeaningfulContent) {
 			result.value.reset();
 		}
@@ -1080,6 +1095,8 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 				context);
 			result.hasMeaningfulContent = result.hasMeaningfulContent
 				|| normalizedItem.hasMeaningfulContent;
+			result.hasRealContent = result.hasRealContent
+				|| normalizedItem.hasRealContent;
 			items.push_back(std::move(normalizedItem.value));
 		}
 		normalized.listItems = std::move(items);
@@ -1095,15 +1112,14 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 			auto normalizedRow = NormalizeFinalSubmitTableRow(std::move(row));
 			result.hasMeaningfulContent = result.hasMeaningfulContent
 				|| normalizedRow.hasMeaningfulContent;
+			result.hasRealContent = result.hasRealContent
+				|| normalizedRow.hasRealContent;
 			if (normalizedRow.value) {
 				rows.push_back(std::move(*normalizedRow.value));
 			}
 		}
 		normalized.tableRows = std::move(rows);
-		result.hasMeaningfulContent = result.hasMeaningfulContent
-			|| RichTextHasVisibleText(normalized.text);
-		if (normalized.tableRows.empty()
-			&& !RichTextHasVisibleText(normalized.text)) {
+		if (!result.hasMeaningfulContent) {
 			result.value.reset();
 		}
 		return result;
@@ -1113,10 +1129,9 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 			std::move(normalized.blocks),
 			context);
 		normalized.blocks = std::move(blocks.value);
-		result.hasMeaningfulContent = blocks.hasMeaningfulContent
-			|| RichTextHasVisibleText(normalized.text);
-		if (normalized.blocks.empty()
-			&& !RichTextHasVisibleText(normalized.text)) {
+		result.hasMeaningfulContent = blocks.hasMeaningfulContent;
+		result.hasRealContent = blocks.hasRealContent;
+		if (normalized.blocks.empty()) {
 			result.value.reset();
 		}
 		return result;
@@ -1130,6 +1145,7 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 			context);
 		normalized.blocks = std::move(blocks.value);
 		result.hasMeaningfulContent = blocks.hasMeaningfulContent;
+		result.hasRealContent = result.hasRealContent || blocks.hasRealContent;
 	}
 	if (!normalized.listItems.empty()) {
 		auto items = std::vector<RichPage::ListItem>();
@@ -1140,6 +1156,8 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 				context);
 			result.hasMeaningfulContent = result.hasMeaningfulContent
 				|| normalizedItem.hasMeaningfulContent;
+			result.hasRealContent = result.hasRealContent
+				|| normalizedItem.hasRealContent;
 			items.push_back(std::move(normalizedItem.value));
 		}
 		normalized.listItems = std::move(items);
@@ -1151,6 +1169,8 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 			auto normalizedRow = NormalizeFinalSubmitTableRow(std::move(row));
 			result.hasMeaningfulContent = result.hasMeaningfulContent
 				|| normalizedRow.hasMeaningfulContent;
+			result.hasRealContent = result.hasRealContent
+				|| normalizedRow.hasRealContent;
 			if (normalizedRow.value) {
 				rows.push_back(std::move(*normalizedRow.value));
 			}
@@ -1158,6 +1178,8 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 		normalized.tableRows = std::move(rows);
 	}
 	result.hasMeaningfulContent = result.hasMeaningfulContent
+		|| BlockHasOwnMeaningfulContent(normalized, context);
+	result.hasRealContent = result.hasRealContent
 		|| BlockHasOwnMeaningfulContent(normalized, context);
 	return result;
 }
@@ -1172,6 +1194,8 @@ void TrimEmptyParagraphEdges(std::vector<Block> *blocks) {
 		auto normalized = NormalizeFinalSubmitBlock(std::move(block), context);
 		result.hasMeaningfulContent = result.hasMeaningfulContent
 			|| normalized.hasMeaningfulContent;
+		result.hasRealContent = result.hasRealContent
+			|| normalized.hasRealContent;
 		if (normalized.value) {
 			result.value.push_back(std::move(*normalized.value));
 		}
@@ -1692,7 +1716,7 @@ SerializeInputRichMessageResult SerializeInputRichMessage(
 		return FailedSerializeInputRichMessage();
 	}
 	if (mode == SerializeInputRichMessageMode::FinalSubmit
-		&& !normalizedBlocks.hasMeaningfulContent) {
+		&& !normalizedBlocks.hasRealContent) {
 		return EmptySerializeInputRichMessage();
 	}
 	auto photos = QVector<MTPInputPhoto>();
