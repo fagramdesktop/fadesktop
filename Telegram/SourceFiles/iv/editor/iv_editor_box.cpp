@@ -39,6 +39,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/boxes/confirm_box.h"
 #include "ui/controls/send_button.h"
 #include "ui/delayed_activation.h"
+#include "ui/effects/premium_graphics.h"
 #include "ui/rp_widget.h"
 #include "data/data_peer_values.h"
 #include "ui/ui_utility.h"
@@ -61,6 +62,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QPainter>
 #include <QtGui/QRegion>
 #include <QtGui/QScreen>
+#include <QtSvg/QSvgRenderer>
 
 #include <algorithm>
 #include <array>
@@ -196,7 +198,8 @@ public:
 		QPointer<QWidget> tooltipParent,
 		bool hasRequestMedia,
 		Fn<void(not_null<Widget*>, QPointer<QWidget>, rpl::producer<>)> requestMap,
-		Fn<void()> toggleEmoji);
+		Fn<void()> toggleEmoji,
+		not_null<Main::Session*> session);
 
 	int resizeGetHeight(int width) override;
 	bool eventFilter(QObject *object, QEvent *event) override;
@@ -218,6 +221,7 @@ private:
 		Fn<void()> callback,
 		std::optional<Widget::ToolbarFormatAction> format = std::nullopt,
 		Fn<QString()> tooltip = nullptr);
+	void addPremiumStar(not_null<Ui::IconButton*> button);
 	void buildPills();
 	void showTooltip(not_null<Ui::IconButton*> button);
 	void hideTooltip();
@@ -239,6 +243,7 @@ private:
 	void updateInputMask();
 
 	const QPointer<Widget> _editor;
+	const not_null<Main::Session*> _session;
 	const QPointer<QWidget> _tooltipParent;
 	const bool _hasRequestMedia = false;
 	const Fn<void(not_null<Widget*>, QPointer<QWidget>, rpl::producer<>)> _requestMap;
@@ -463,9 +468,11 @@ Toolbar::Toolbar(
 	QPointer<QWidget> tooltipParent,
 	bool hasRequestMedia,
 	Fn<void(not_null<Widget*>, QPointer<QWidget>, rpl::producer<>)> requestMap,
-	Fn<void()> toggleEmoji)
+	Fn<void()> toggleEmoji,
+	not_null<Main::Session*> session)
 : Ui::RpWidget(parent)
 , _editor(editor.get())
+, _session(session)
 , _tooltipParent(std::move(tooltipParent))
 , _hasRequestMedia(hasRequestMedia)
 , _requestMap(std::move(requestMap))
@@ -513,6 +520,37 @@ not_null<Ui::IconButton*> Toolbar::addPillButton(
 		raw->installEventFilter(this);
 	}
 	return raw;
+}
+
+void Toolbar::addPremiumStar(not_null<Ui::IconButton*> button) {
+	const auto factor = style::DevicePixelRatio();
+	const auto side = st::ivEditorToolbarPremiumStarSize;
+	const auto size = QSize(side, side);
+	auto image = QImage(
+		size * factor,
+		QImage::Format_ARGB32_Premultiplied);
+	image.setDevicePixelRatio(factor);
+	image.fill(Qt::transparent);
+	{
+		auto p = QPainter(&image);
+		auto svg = QSvgRenderer(
+			Ui::Premium::ColorizedSvg(Ui::Premium::ButtonGradientStops()));
+		svg.render(&p, QRectF(QPointF(), QSizeF(size)));
+	}
+	const auto star = Ui::CreateChild<Ui::RpWidget>(button.get());
+	star->setAttribute(Qt::WA_TransparentForMouseEvents);
+	star->resize(size);
+	star->paintRequest() | rpl::on_next([=] {
+		auto p = QPainter(star);
+		p.drawImage(0, 0, image);
+	}, star->lifetime());
+	const auto skip = st::ivEditorToolbarPremiumStarSkip;
+	star->move(
+		button->width() - star->width() - skip.x(),
+		button->height() - star->height() - skip.y());
+	star->showOn(Data::AmPremiumValue(_session)
+		| rpl::map([](bool premium) { return !premium; }));
+	star->raise();
 }
 
 void Toolbar::buildPills() {
@@ -593,6 +631,7 @@ void Toolbar::buildPills() {
 		showListStyleMenu(listStyle);
 	});
 	_listButton = listStyle;
+	addPremiumStar(listStyle);
 	const auto tableStyle = addPillButton(
 		controls,
 		ToolbarActionId::Table,
@@ -615,6 +654,7 @@ void Toolbar::buildPills() {
 		}
 	});
 	_tableButton = tableStyle;
+	addPremiumStar(tableStyle);
 	_linkButton = addPillButton(
 		controls,
 		ToolbarActionId::Link,
@@ -642,8 +682,9 @@ void Toolbar::buildPills() {
 		attach->setClickedCallback([=] {
 			showAttachMenu(attach);
 		});
+		addPremiumStar(attach);
 	}
-	addPillButton(
+	const auto math = addPillButton(
 		controls,
 		ToolbarActionId::Math,
 		&st::ivEditorToolbarMathIcon,
@@ -659,6 +700,7 @@ void Toolbar::buildPills() {
 		},
 		std::nullopt,
 		[] { return tr::lng_article_tooltip_formula(tr::now); });
+	addPremiumStar(math);
 
 	_emojiButton = addPillButton(
 		not_null<ToolbarPill*>(_emojiPill.data()),
@@ -1381,7 +1423,8 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		[=] {
 			_toolbar->hideShownTooltip();
 			toggleEmojiColumn();
-		});
+		},
+		descriptor.session);
 	window->setMinimumWidth(minimalWindowWidth());
 	if (descriptor.discarded) {
 		_discard = object_ptr<ToolbarPill>(

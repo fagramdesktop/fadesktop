@@ -93,6 +93,8 @@ ivEditorPillPadding: 2px;
 ivEditorPillButtonSkip: 6px;
 ivEditorBottomCircleSize: 40px;
 ivEditorSendLockBadgePosition: point(2px, 2px);
+ivEditorToolbarPremiumStarSize: 11px;
+ivEditorToolbarPremiumStarSkip: point(2px, 2px);
 ivEditorPillShadow: BoxShadow {
 	blurRadius: 3px;
 	offset: point(0px, 1px);
