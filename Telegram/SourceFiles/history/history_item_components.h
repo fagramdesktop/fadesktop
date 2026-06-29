@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "data/data_cloud_file.h"
+#include "data/data_file_origin.h"
 #include "data/data_poll.h"
 #include "history/history_item.h"
 #include "spellcheck/spellcheck_types.h" // LanguageId.
@@ -155,6 +156,7 @@ struct HistoryMessageRichPageSource
 : RuntimeComponent<HistoryMessageRichPageSource, HistoryItem> {
 	std::shared_ptr<const Iv::RichPage> page;
 	std::shared_ptr<const Iv::RichPage> fullPage;
+	std::optional<Data::FileOriginCloudDraft> draftOrigin;
 	uint64 fullPageVersion = 0;
 	bool canEdit = false;
 };

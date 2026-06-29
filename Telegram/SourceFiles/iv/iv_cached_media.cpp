@@ -982,7 +982,8 @@ public:
 		not_null<Main::Session*> session,
 		FullMsgId itemId,
 		Fn<void(QString)> openChannel,
-		Fn<void(QString)> joinChannel);
+		Fn<void(QString)> joinChannel,
+		::Data::FileOrigin draftOrigin = {});
 	CachedPageMediaRuntime(
 		not_null<Main::Session*> session,
 		not_null<HistoryView::Element*> view,
@@ -1047,6 +1048,7 @@ private:
 	const not_null<Main::Session*> _session;
 	const ::Data::FileOrigin _origin;
 	const FullMsgId _itemId;
+	const ::Data::FileOrigin _draftOrigin;
 	const QString _pageUrl;
 	const bool _useExistingView = false;
 	const base::weak_ptr<HistoryView::Element> _view;
@@ -1076,10 +1078,12 @@ CachedPageMediaRuntime::CachedPageMediaRuntime(
 	not_null<Main::Session*> session,
 	FullMsgId itemId,
 	Fn<void(QString)> openChannel,
-	Fn<void(QString)> joinChannel)
+	Fn<void(QString)> joinChannel,
+	::Data::FileOrigin draftOrigin)
 : _session(session)
 , _origin(itemId)
 , _itemId(itemId)
+, _draftOrigin(std::move(draftOrigin))
 , _pageUrl()
 , _openChannel(std::move(openChannel))
 , _joinChannel(std::move(joinChannel)) {
@@ -1270,6 +1274,10 @@ auto CachedPageMediaRuntime::hostedMediaHost(
 				controller,
 				history,
 				_pageUrl);
+		if (const auto cloudDraft = std::get_if<::Data::FileOriginCloudDraft>(
+				&_draftOrigin.data)) {
+			_hostedMediaHost->item()->setRichDraftOrigin(*cloudDraft);
+		}
 	}
 	return _hostedMediaHost;
 }
@@ -1687,13 +1695,15 @@ auto CreateMessageMediaRuntime(
 	not_null<Main::Session*> session,
 	FullMsgId itemId,
 	Fn<void(QString)> openChannel,
-	Fn<void(QString)> joinChannel)
+	Fn<void(QString)> joinChannel,
+	::Data::FileOrigin draftOrigin)
 -> std::shared_ptr<Markdown::MediaRuntime> {
 	return std::make_shared<CachedPageMediaRuntime>(
 		session,
 		itemId,
 		std::move(openChannel),
-		std::move(joinChannel));
+		std::move(joinChannel),
+		std::move(draftOrigin));
 }
 
 auto CreateMessageMediaRuntime(

@@ -2762,6 +2762,14 @@ void ApiWrap::refreshFileReference(
 						std::move(handler));
 				}
 			}
+			if (const auto source
+					= item->Get<HistoryMessageRichPageSource>()) {
+				if (source->draftOrigin) {
+					return refreshFileReference(
+						Data::FileOrigin(*source->draftOrigin),
+						std::move(handler));
+				}
+			}
 			const auto media = item->media();
 			const auto mediaStory = media ? media->storyId() : FullStoryId();
 			const auto storyId = mediaStory

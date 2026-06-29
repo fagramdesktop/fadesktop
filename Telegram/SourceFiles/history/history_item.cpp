@@ -4266,6 +4266,12 @@ void HistoryItem::setRichPage(std::shared_ptr<const Iv::RichPage> page) {
 	}
 }
 
+void HistoryItem::setRichDraftOrigin(Data::FileOriginCloudDraft origin) {
+	AddComponents(HistoryMessageRichPageSource::Bit());
+	const auto source = Get<HistoryMessageRichPageSource>();
+	source->draftOrigin = origin;
+}
+
 void HistoryItem::setFullRichPage(std::shared_ptr<const Iv::RichPage> page) {
 	if (page) {
 		AddComponents(HistoryMessageRichPageSource::Bit());

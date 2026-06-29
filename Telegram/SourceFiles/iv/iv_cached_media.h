@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "base/basic_types.h"
+#include "data/data_file_origin.h"
 #include "data/data_msg_id.h"
 
 #include <QtCore/QString>
@@ -41,7 +42,8 @@ namespace Iv {
 	not_null<Main::Session*> session,
 	FullMsgId itemId,
 	Fn<void(QString)> openChannel,
-	Fn<void(QString)> joinChannel)
+	Fn<void(QString)> joinChannel,
+	::Data::FileOrigin draftOrigin = {})
 -> std::shared_ptr<Markdown::MediaRuntime>;
 
 [[nodiscard]] auto CreateMessageMediaRuntime(

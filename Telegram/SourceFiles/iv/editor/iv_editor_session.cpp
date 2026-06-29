@@ -728,7 +728,8 @@ private:
 		[](QString) {
 		},
 		[](QString) {
-		}))
+		},
+		composeDraftOrigin()))
 	, _limits(ResolveRichMessageLimits(_session))
 	, _state(std::make_shared<State>(_page, _runtime, _limits))
 	, _submitOptions(_composeAction ? _composeAction->options : Api::SendOptions())
