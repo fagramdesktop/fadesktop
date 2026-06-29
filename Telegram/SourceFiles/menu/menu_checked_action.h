@@ -25,4 +25,13 @@ not_null<QAction*> AddCheckedAction(
 	const style::icon *icon,
 	bool checked);
 
+// Like a usual menu action, but when `active` the whole item (icon, text and
+// shortcut) is painted in st::windowActiveTextFg instead of showing a check.
+not_null<QAction*> AddActiveColorAction(
+	not_null<Ui::PopupMenu*> menu,
+	const QString &text,
+	Fn<void()> callback,
+	const style::icon *icon,
+	bool active);
+
 } // namespace Menu

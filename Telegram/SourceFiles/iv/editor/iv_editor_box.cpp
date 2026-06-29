@@ -41,6 +41,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/rp_widget.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/buttons.h"
+#include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/widgets/elastic_scroll.h"
@@ -644,6 +645,12 @@ void Toolbar::fillBlockStyleMenu(not_null<Ui::PopupMenu*> menu) {
 			_editor->insertBlock({ .type = type });
 		}
 	};
+	const auto withShortcut = [](const QString &label, QKeySequence seq) {
+		const auto shortcut = seq.toString(QKeySequence::NativeText);
+		return shortcut.isEmpty()
+			? label
+			: (label + QChar('\t') + shortcut);
+	};
 
 	auto sub = std::make_unique<Ui::PopupMenu>(menu, st::popupMenuWithIcons);
 	fillHeadingMenu(not_null<Ui::PopupMenu*>(sub.get()));
@@ -653,27 +660,31 @@ void Toolbar::fillBlockStyleMenu(not_null<Ui::PopupMenu*> menu) {
 		&st::ivEditorToolbarHeadingIcon,
 		&st::ivEditorToolbarHeadingIcon);
 
-	Menu::AddCheckedAction(
+	Menu::AddActiveColorAction(
 		menu,
 		tr::lng_article_insert_text(tr::now),
 		[=] { applyBlockText(); },
 		&st::ivEditorToolbarPlainTextIcon,
 		(kind == Kind::Paragraph));
-	Menu::AddCheckedAction(
+	Menu::AddActiveColorAction(
 		menu,
-		tr::lng_article_insert_blockquote(tr::now),
+		withShortcut(
+			tr::lng_article_insert_blockquote(tr::now),
+			Ui::kBlockquoteSequence),
 		[=] { insertType(State::InsertBlockType::Blockquote); },
 		&st::ivEditorToolbarBlockquoteIcon,
 		(kind == Kind::Quote && !info.pullquote));
-	Menu::AddCheckedAction(
+	Menu::AddActiveColorAction(
 		menu,
 		tr::lng_article_insert_pullquote(tr::now),
 		[=] { insertType(State::InsertBlockType::Pullquote); },
 		&st::ivEditorToolbarPullquoteIcon,
 		(kind == Kind::Quote && info.pullquote));
-	Menu::AddCheckedAction(
+	Menu::AddActiveColorAction(
 		menu,
-		tr::lng_article_insert_code(tr::now),
+		withShortcut(
+			tr::lng_article_insert_code(tr::now),
+			Ui::kMonospaceSequence),
 		[=] { insertType(State::InsertBlockType::Code); },
 		&st::ivEditorToolbarCodeIcon,
 		(kind == Kind::Code));
@@ -721,17 +732,24 @@ void Toolbar::showBlockStyleMenu(not_null<Ui::IconButton*> button) {
 
 void Toolbar::fillTextStyleMenu(not_null<Ui::PopupMenu*> menu) {
 	using Action = Widget::ToolbarFormatAction;
+	const auto withShortcut = [](const QString &label, QKeySequence seq) {
+		const auto shortcut = seq.toString(QKeySequence::NativeText);
+		return shortcut.isEmpty()
+			? label
+			: (label + QChar('\t') + shortcut);
+	};
 	const auto add = [&](
 			Action action,
 			const QString &label,
-			const style::icon *icon) {
+			const style::icon *icon,
+			QKeySequence shortcut = QKeySequence()) {
 		const auto &state = _toolbarState[action];
 		if (!state.shown) {
 			return;
 		}
-		Menu::AddCheckedAction(
+		Menu::AddActiveColorAction(
 			menu,
-			label,
+			withShortcut(label, shortcut),
 			[=] {
 				if (_editor) {
 					_editor->applyToolbarFormatAction(action);
@@ -742,19 +760,24 @@ void Toolbar::fillTextStyleMenu(not_null<Ui::PopupMenu*> menu) {
 	};
 	add(Action::Bold,
 		tr::lng_menu_formatting_bold(tr::now),
-		&st::ivEditorToolbarBoldIcon);
+		&st::ivEditorToolbarBoldIcon,
+		QKeySequence::Bold);
 	add(Action::Italic,
 		tr::lng_menu_formatting_italic(tr::now),
-		&st::ivEditorToolbarItalicIcon);
+		&st::ivEditorToolbarItalicIcon,
+		QKeySequence::Italic);
 	add(Action::Underline,
 		tr::lng_menu_formatting_underline(tr::now),
-		&st::ivEditorToolbarUnderlineIcon);
+		&st::ivEditorToolbarUnderlineIcon,
+		QKeySequence::Underline);
 	add(Action::StrikeOut,
 		tr::lng_menu_formatting_strike_out(tr::now),
-		&st::ivEditorToolbarStrikeOutIcon);
+		&st::ivEditorToolbarStrikeOutIcon,
+		Ui::kStrikeOutSequence);
 	add(Action::Spoiler,
 		tr::lng_menu_formatting_spoiler(tr::now),
-		&st::ivEditorToolbarSpoilerIcon);
+		&st::ivEditorToolbarSpoilerIcon,
+		Ui::kSpoilerSequence);
 	add(Action::Subscript,
 		tr::lng_menu_formatting_subscript(tr::now),
 		&st::ivEditorToolbarSubscriptIcon);
