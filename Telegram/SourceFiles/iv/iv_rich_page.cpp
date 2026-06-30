@@ -1667,27 +1667,15 @@ void AppendSummaryBlock(TextWithEntities *result, const Block &block) {
 	case BlockKind::Math:
 		AppendSummaryLine(result, TextWithEntities::Simple(block.formula));
 		return;
-	case BlockKind::Table: {
-		AppendSummaryLine(result, block.text);
-		for (const auto &row : block.tableRows) {
-			auto line = TextWithEntities();
-			auto first = true;
-			for (const auto &cell : row.cells) {
-				auto cellText = TextUtilities::SingleLine(cell.text.text);
-				TextUtilities::Trim(cellText);
-				if (cellText.empty()) {
-					continue;
-				}
-				if (!first) {
-					line.append(u" | "_q);
-				}
-				line.append(cellText);
-				first = false;
-			}
-			AppendSummaryLine(result, std::move(line));
+	case BlockKind::Table:
+		if (!block.text.text.empty()) {
+			AppendSummaryLine(result, block.text);
+		} else {
+			AppendSummaryLine(
+				result,
+				TextWithEntities::Simple(tr::lng_in_dlg_table(tr::now)));
 		}
 		return;
-	}
 	case BlockKind::Details:
 		AppendSummaryLine(result, block.text);
 		AppendSummaryBlocks(result, block.blocks);
