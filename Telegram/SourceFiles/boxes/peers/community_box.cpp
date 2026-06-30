@@ -49,10 +49,12 @@ namespace {
 	auto row = std::make_unique<PeerListRow>(peer);
 	const auto channel = peer->asChannel();
 	if (channel && channel->membersCountKnown()) {
-		row->setCustomStatus(tr::lng_chat_status_members(
-			tr::now,
-			lt_count_decimal,
-			channel->membersCount()));
+		row->setCustomStatus((channel->isBroadcast()
+			? tr::lng_chat_status_subscribers
+			: tr::lng_chat_status_members)(
+				tr::now,
+				lt_count_decimal,
+				channel->membersCount()));
 	}
 	return row;
 }
