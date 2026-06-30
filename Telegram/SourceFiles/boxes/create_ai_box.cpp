@@ -17,13 +17,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "iv/markdown/iv_markdown_article.h"
 #include "iv/markdown/iv_markdown_common.h"
 #include "iv/markdown/iv_markdown_prepare.h"
-#include "iv/markdown/iv_markdown_view.h"
-#include "iv/markdown/iv_markdown_view_widget.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "mtproto/mtproto_response.h"
 #include "spellcheck/spellcheck_types.h"
 #include "ui/boxes/choose_language_box.h"
+#include "ui/chat/chat_style.h"
+#include "ui/chat/chat_theme.h"
 #include "ui/layers/generic_box.h"
 #include "ui/painter.h"
 #include "ui/rp_widget.h"
@@ -31,7 +31,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/labels.h"
+#include "window/themes/window_theme.h"
 #include "styles/style_boxes.h"
+#include "styles/style_chat.h"
 #include "styles/style_iv.h"
 #include "styles/style_layers.h"
 
@@ -131,13 +133,23 @@ private:
 	void paintEvent(QPaintEvent *e) override;
 	void resizeEvent(QResizeEvent *e) override;
 
-	[[nodiscard]] int controlRowHeight() const;
+	void paintArticle(Painter &p, QRect clip);
+	void requestArticleRepaint(QRect articleRect);
 
+	[[nodiscard]] int controlRowHeight() const;
+	[[nodiscard]] QRect articleRect() const;
+
+	const not_null<Main::Session*> _session;
 	const object_ptr<Ui::FlatLabel> _selector;
 	const object_ptr<Ui::RpWidget> _arrows;
 	const object_ptr<Ui::Checkbox> _emojify;
-	std::shared_ptr<Iv::Markdown::MarkdownArticle> _article;
-	Iv::Markdown::MarkdownDocumentWidget *_preview = nullptr;
+	std::unique_ptr<Ui::ChatTheme> _theme;
+	std::unique_ptr<Ui::ChatStyle> _style;
+	Iv::Markdown::MarkdownArticle _article;
+	std::shared_ptr<Iv::Markdown::MediaRuntime> _mediaRuntime;
+	int _articleHeight = 0;
+	int _paletteVersion = -1;
+	bool _hasArticle = false;
 
 };
 
@@ -150,13 +162,20 @@ ResponseIsland::ResponseIsland(
 	Fn<void()> chooseLanguage,
 	Fn<void(bool)> emojifyChanged)
 : RpWidget(parent)
+, _session(session)
 , _selector(this, st::aiComposeCardTitle)
 , _arrows(this)
 , _emojify(
 	this,
 	tr::lng_ai_compose_emojify(tr::now),
 	st::aiComposeEmojifyCheckbox,
-	std::make_unique<Ui::RoundCheckView>(st::defaultCheck, emojify)) {
+	std::make_unique<Ui::RoundCheckView>(st::defaultCheck, emojify))
+, _theme(Window::Theme::DefaultChatThemeOn(lifetime()))
+, _style(std::make_unique<Ui::ChatStyle>(session->colorIndicesValue()))
+, _article(st::messageMarkdown) {
+	_style->apply(_theme.get());
+	_paletteVersion = _style->paletteVersion();
+
 	_selector->setMarkedText(SelectorTitle(language));
 	_selector->setClickHandlerFilter([=](const auto &...) {
 		if (chooseLanguage) {
@@ -179,7 +198,12 @@ ResponseIsland::ResponseIsland(
 		}
 	}, _emojify->lifetime());
 
-	auto runtime = Iv::CreateMessageMediaRuntime(
+	_article.setTextRepaintCallbacks(
+		[=] { requestArticleRepaint(QRect()); },
+		[=](QRect rect) { requestArticleRepaint(rect); });
+
+	const auto richLimits = Iv::ResolveRichMessageLimits(session);
+	_mediaRuntime = Iv::CreateMessageMediaRuntime(
 		session,
 		FullMsgId(),
 		[](QString) {},
@@ -187,21 +211,76 @@ ResponseIsland::ResponseIsland(
 		::Data::FileOrigin());
 	auto prepared = Iv::Markdown::TryPrepareNativeInstantView({
 		.richPage = page,
-		.mediaRuntime = runtime,
+		.mediaRuntime = _mediaRuntime,
+		.dimensionsOverride = Iv::Markdown::CaptureMarkdownPrepareDimensions(
+			st::messageMarkdown),
+		.tableRenderLimits
+			= Iv::Markdown::PrepareTableRenderLimitsForRichMessage(richLimits),
 	});
 	if (prepared.supported()) {
-		_article = std::make_shared<Iv::Markdown::MarkdownArticle>(
-			st::defaultMarkdown);
-		_article->setContent(std::move(prepared.content));
-		_preview = Ui::CreateChild<Iv::Markdown::MarkdownDocumentWidget>(this);
-		_preview->setArticle(_article);
-		_preview->heightValue() | rpl::on_next([=](int height) {
-			_preview->setVisibleTopBottom(0, height);
-			if (width() > 0) {
-				resizeToWidth(width());
-			}
-		}, _preview->lifetime());
+		_article.setContent(std::move(prepared.content));
+		_hasArticle = true;
 	}
+}
+
+void ResponseIsland::requestArticleRepaint(QRect rect) {
+	crl::on_main(this, [=] {
+		if (rect.isEmpty()) {
+			update();
+		} else {
+			update(rect.translated(articleRect().topLeft()));
+		}
+	});
+}
+
+QRect ResponseIsland::articleRect() const {
+	const auto &padding = st::aiComposeCardPadding;
+	const auto inner = std::max(width() - padding.left() - padding.right(), 0);
+	const auto top = padding.top()
+		+ controlRowHeight()
+		+ st::aiComposeCardSectionSkip;
+	return QRect(padding.left(), top, inner, _articleHeight);
+}
+
+void ResponseIsland::paintArticle(Painter &p, QRect clip) {
+	if (!_hasArticle) {
+		return;
+	}
+	if (_paletteVersion != _style->paletteVersion()) {
+		_paletteVersion = _style->paletteVersion();
+		_article.invalidatePaletteCache();
+	}
+	const auto content = articleRect();
+	if (content.isEmpty()) {
+		return;
+	}
+	const auto articleClip = content.intersected(clip).translated(
+		-content.topLeft());
+	if (articleClip.isEmpty()) {
+		return;
+	}
+	auto context = Iv::Markdown::MarkdownArticlePaintContext(
+		_theme->preparePaintContext(
+			_style.get(),
+			QRect(QPoint(), content.size()),
+			QRect(QPoint(), content.size()),
+			articleClip,
+			false));
+	const auto messageStyle = context.messageStyle();
+	context.caches = {
+		.pre = messageStyle->preCache.get(),
+		.blockquote = context.quoteCache({}, 0),
+		.colors = _style->highlightColors(),
+		.st = &messageStyle->richPageStyle,
+		.repaint = [=] { requestArticleRepaint(QRect()); },
+		.repaintRect = [=](QRect rect) { requestArticleRepaint(rect); },
+	};
+	_article.setVisibleTopBottom(0, content.height());
+	p.save();
+	p.setClipRect(content.intersected(clip));
+	p.translate(content.topLeft());
+	_article.paint(p, context);
+	p.restore();
 }
 
 int ResponseIsland::controlRowHeight() const {
@@ -210,13 +289,16 @@ int ResponseIsland::controlRowHeight() const {
 
 void ResponseIsland::paintEvent(QPaintEvent *e) {
 	auto p = Painter(this);
-	auto hq = PainterHighQualityEnabler(p);
-	p.setPen(Qt::NoPen);
-	p.setBrush(st::aiComposeCardBg);
-	p.drawRoundedRect(
-		rect(),
-		st::aiComposeCardRadius,
-		st::aiComposeCardRadius);
+	{
+		auto hq = PainterHighQualityEnabler(p);
+		p.setPen(Qt::NoPen);
+		p.setBrush(st::aiComposeCardBg);
+		p.drawRoundedRect(
+			rect(),
+			st::aiComposeCardRadius,
+			st::aiComposeCardRadius);
+	}
+	paintArticle(p, e->rect());
 }
 
 void ResponseIsland::resizeEvent(QResizeEvent *e) {
@@ -247,11 +329,10 @@ void ResponseIsland::resizeEvent(QResizeEvent *e) {
 		padding.top() + (rowHeight - _arrows->height()) / 2);
 
 	auto y = padding.top() + rowHeight;
-	if (_preview) {
+	if (_hasArticle && inner > 0) {
 		y += st::aiComposeCardSectionSkip;
-		_preview->resizeToWidth(inner);
-		_preview->moveToLeft(padding.left(), y);
-		y += _preview->height();
+		_articleHeight = _article.resizeGetHeight(inner);
+		y += _articleHeight;
 	}
 	y += padding.bottom();
 	if (height() != y) {
