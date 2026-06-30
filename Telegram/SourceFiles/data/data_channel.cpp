@@ -234,6 +234,7 @@ void ChannelData::setFlags(ChannelDataFlags which) {
 					if (const auto history = owner().historyLoaded(this)) {
 						info->refreshOneMembership(history);
 					}
+					community->session().api().reloadFullPeer(community);
 				}
 			}
 		}
