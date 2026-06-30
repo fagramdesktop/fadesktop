@@ -124,7 +124,8 @@ CommunityRequestableList::CommunityRequestableList(
 		const auto joinable = channel
 			&& (!community->isHidden(peer) || channel->amCreator());
 		if (!joinable) {
-			_controller->showToast(tr::lng_group_not_accessible(tr::now));
+			_controller->showToast(
+				tr::lng_community_hidden_not_accessible(tr::now));
 			return;
 		}
 		const auto join = [=](Fn<void()> close) {

@@ -2287,6 +2287,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_community_hidden_chat_about" = "Only invited members and community admins will see this chat.";
 "lng_community_hidden_status" = "Hidden";
 "lng_community_hidden_chat_title" = "Hidden Chat";
+"lng_community_hidden_not_accessible" = "You can't join or view this group until an admin invites you.";
 "lng_community_join_sure" = "Do you want to join {group}?";
 "lng_community_admin_title" = "You are a community admin";
 "lng_community_admin_about" = "You can now edit {community} info and use other admin tools.";
