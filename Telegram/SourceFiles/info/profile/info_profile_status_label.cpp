@@ -7,16 +7,22 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/profile/info_profile_status_label.h"
 
-#include "data/data_peer_values.h"
+#include "data/data_changes.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
+#include "data/data_community.h"
 #include "data/data_peer.h"
+#include "data/data_peer_values.h"
+#include "data/data_session.h"
 #include "data/data_user.h"
 #include "lang/lang_keys.h"
+#include "main/main_session.h"
 #include "ui/widgets/labels.h"
 #include "ui/text/text_utilities.h"
 #include "ui/basic_click_handlers.h"
 #include "base/unixtime.h"
+
+#include "styles/style_info.h"
 
 namespace Info::Profile {
 namespace {
@@ -68,6 +74,34 @@ namespace {
 			: tr::lng_create_private_channel_title(tr::now))).toLower();
 };
 
+[[nodiscard]] bool PeerHiddenInCommunity(not_null<PeerData*> peer) {
+	const auto channel = peer->asChannel();
+	if (!channel) {
+		return false;
+	}
+	const auto communityId = channel->linkedCommunityId();
+	if (!communityId) {
+		return false;
+	}
+	const auto community = channel->owner().channel(communityId);
+	const auto info = community->communityInfo();
+	return info && info->isHidden(channel);
+}
+
+[[nodiscard]] TextWithEntities MaybeHiddenPrefixed(
+		TextWithEntities body,
+		bool hidden) {
+	if (!hidden) {
+		return body;
+	}
+	using namespace Ui::Text;
+	return IconEmoji(&st::infoStatusHiddenIcon)
+		.append(' ')
+		.append(Link(tr::lng_community_hidden_status(tr::now), 2))
+		.append(QString::fromUtf8(" \xC2\xB7 "))
+		.append(std::move(body));
+}
+
 } // namespace
 
 StatusLabel::StatusLabel(
@@ -76,6 +110,17 @@ StatusLabel::StatusLabel(
 : _label(label)
 , _peer(peer)
 , _refreshTimer([=] { refresh(); }) {
+	if (const auto channel = _peer->asChannel()) {
+		if (const auto communityId = channel->linkedCommunityId()) {
+			const auto community = channel->owner().channel(communityId);
+			community->session().changes().peerFlagsValue(
+				community,
+				Data::PeerUpdate::Flag::FullInfo
+			) | rpl::on_next([=] {
+				refresh();
+			}, _lifetime);
+		}
+	}
 }
 
 void StatusLabel::setOnlineCount(int count) {
@@ -84,6 +129,7 @@ void StatusLabel::setOnlineCount(int count) {
 }
 
 void StatusLabel::refresh() {
+	const auto hidden = PeerHiddenInCommunity(_peer);
 	auto hasMembersLink = [&] {
 		if (auto megagroup = _peer->asMegagroup()) {
 			return megagroup->canViewMembers();
@@ -117,10 +163,9 @@ void StatusLabel::refresh() {
 			const auto fullCount = std::max(
 				chat->count,
 				int(chat->participants.size()));
-			return { .text = ChatStatusText(
-				fullCount,
-				onlineCount,
-				true) };
+			return MaybeHiddenPrefixed(
+				{ .text = ChatStatusText(fullCount, onlineCount, true) },
+				hidden);
 		} else if (auto broadcast = _peer->monoforumBroadcast()) {
 			if (!broadcast->membersCountKnown()) {
 				return TextWithEntities{ .text = ChannelTypeText(broadcast) };
@@ -133,9 +178,11 @@ void StatusLabel::refresh() {
 		} else if (auto channel = _peer->asChannel()) {
 			if (!channel->membersCountKnown()) {
 				auto result = ChannelTypeText(channel);
-				return hasMembersLink
-					? tr::link(result)
-					: TextWithEntities{ .text = result };
+				return MaybeHiddenPrefixed(
+					hasMembersLink
+						? tr::link(result)
+						: TextWithEntities{ .text = result },
+					hidden);
 			}
 			const auto onlineCount = _onlineCount;
 			const auto fullCount = channel->membersCount();
@@ -143,9 +190,11 @@ void StatusLabel::refresh() {
 				fullCount,
 				onlineCount,
 				channel->isMegagroup());
-			return hasMembersLink
-				? tr::link(result)
-				: TextWithEntities{ .text = result };
+			return MaybeHiddenPrefixed(
+				hasMembersLink
+					? tr::link(result)
+					: TextWithEntities{ .text = result },
+				hidden);
 		}
 		return tr::lng_chat_status_unaccessible(tr::now, WithEntities);
 	}();
@@ -155,6 +204,19 @@ void StatusLabel::refresh() {
 			1,
 			std::make_shared<LambdaClickHandler>(_membersLinkCallback));
 	}
+	if (hidden && _hiddenLinkCallback) {
+		_label->setLink(
+			2,
+			std::make_shared<LambdaClickHandler>(_hiddenLinkCallback));
+	}
+}
+
+void StatusLabel::setHiddenLinkCallback(Fn<void()> callback) {
+	_hiddenLinkCallback = std::move(callback);
+}
+
+Fn<void()> StatusLabel::hiddenLinkCallback() const {
+	return _hiddenLinkCallback;
 }
 
 void StatusLabel::setMembersLinkCallback(Fn<void()> callback) {

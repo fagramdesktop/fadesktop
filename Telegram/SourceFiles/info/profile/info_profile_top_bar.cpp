@@ -96,7 +96,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_theme.h"
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
-#include "ui/text/text_utilities.h"
 #include "ui/toast/toast.h"
 #include "boxes/sticker_set_box.h"
 #include "styles/style_boxes.h"
@@ -392,6 +391,15 @@ TopBar::TopBar(
 				? std::make_shared<Info::Memento>(topic, section)
 				: std::make_shared<Info::Memento>(shown, section));
 		});
+		_statusLabel->setHiddenLinkCallback([=] {
+			controller->showToast(Ui::Toast::Config{
+				.title = tr::lng_community_hidden_chat_title(tr::now),
+				.text = tr::lng_community_hidden_chat_about(
+					tr::now,
+					tr::marked),
+				.icon = &st::infoStatusHiddenToastIcon,
+			});
+		});
 	}
 	if (!_peer->isMegagroup() && !_topic) {
 		setupStatusWithRating();
@@ -560,6 +568,7 @@ void TopBar::adjustColors(const std::optional<QColor> &edgeColor) {
 	}
 	{
 		const auto membersLinkCallback = _statusLabel->membersLinkCallback();
+		const auto hiddenLinkCallback = _statusLabel->hiddenLinkCallback();
 		{
 			_statusLabel = nullptr;
 			delete _status.release();
@@ -585,6 +594,7 @@ void TopBar::adjustColors(const std::optional<QColor> &edgeColor) {
 		}, _status->lifetime());
 		_statusLabel = std::make_unique<StatusLabel>(_status.data(), _peer);
 		_statusLabel->setMembersLinkCallback(membersLinkCallback);
+		_statusLabel->setHiddenLinkCallback(hiddenLinkCallback);
 		if (_customStatus) {
 			rpl::duplicate(
 				_customStatus

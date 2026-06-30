@@ -2285,6 +2285,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_community_profile_status#one" = "Community with {count} chat";
 "lng_community_profile_status#other" = "Community with {count} chats";
 "lng_community_hidden_chat_about" = "Only invited members and community admins will see this chat.";
+"lng_community_hidden_status" = "Hidden";
+"lng_community_hidden_chat_title" = "Hidden Chat";
 "lng_community_admin_title" = "You are a community admin";
 "lng_community_admin_about" = "You can now edit {community} info and use other admin tools.";
 "lng_community_admin_continue" = "Continue";

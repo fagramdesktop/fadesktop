@@ -522,6 +522,12 @@ infoProfileStatus: FlatLabel(defaultFlatLabel) {
 	maxHeight: 18px;
 	textFg: windowSubTextFg;
 }
+infoStatusHiddenIcon: IconEmoji {
+	icon: icon{{ "community/requests_hidden", windowSubTextFg }};
+	padding: margins(0px, 4px, 0px, 0px);
+	useIconColor: false;
+}
+infoStatusHiddenToastIcon: icon{{ "community/requests_hidden", toastFg }};
 infoProfileCover: InfoProfileCover {
 	height: 108px;
 	photo: UserpicButton(defaultUserpicButton) {
