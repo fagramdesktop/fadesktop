@@ -2296,6 +2296,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_community_admin_dismiss_title" = "Dismiss yourself as community admin";
 "lng_community_admin_dismiss_text" = "You'll lose access to community admin tools, but keep your group admin rights.";
 "lng_community_removed_list_about" = "Users removed from the community will be shown here.";
+"lng_community_chat_view_channel" = "View Channel";
+"lng_community_chat_view_group" = "View Group";
+"lng_community_chat_remove_channel" = "Remove Channel";
+"lng_community_chat_remove_group" = "Remove Group";
 "lng_community_peers_limit#one" = "Limit of {count} chat reached.";
 "lng_community_peers_limit#other" = "Limit of {count} chats reached.";
 

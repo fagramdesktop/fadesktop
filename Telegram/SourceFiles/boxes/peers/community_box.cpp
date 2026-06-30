@@ -32,8 +32,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/layers/generic_box.h"
 #include "ui/text/text_utilities.h"
 #include "ui/vertical_list.h"
+#include "ui/widgets/menu/menu_add_action_callback.h"
+#include "ui/widgets/menu/menu_add_action_callback_factory.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
+#include "ui/widgets/popup_menu.h"
 #include "ui/wrap/padding_wrap.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
@@ -66,11 +69,15 @@ public:
 	ChatsController(
 		not_null<Main::Session*> session,
 		rpl::producer<std::vector<not_null<PeerData*>>> chats,
-		Fn<void(not_null<PeerData*>)> callback);
+		Fn<void(not_null<PeerData*>)> callback,
+		Fn<void(not_null<PeerListRow*>)> remove = nullptr);
 
 	Main::Session &session() const override;
 	void prepare() override;
 	void rowClicked(not_null<PeerListRow*> row) override;
+	base::unique_qptr<Ui::PopupMenu> rowContextMenu(
+		QWidget *parent,
+		not_null<PeerListRow*> row) override;
 
 	[[nodiscard]] rpl::producer<int> countValue() const {
 		return _count.value();
@@ -80,6 +87,7 @@ private:
 	const not_null<Main::Session*> _session;
 	rpl::producer<std::vector<not_null<PeerData*>>> _chats;
 	Fn<void(not_null<PeerData*>)> _callback;
+	Fn<void(not_null<PeerListRow*>)> _remove;
 	rpl::variable<int> _count = 0;
 
 };
@@ -87,10 +95,12 @@ private:
 ChatsController::ChatsController(
 	not_null<Main::Session*> session,
 	rpl::producer<std::vector<not_null<PeerData*>>> chats,
-	Fn<void(not_null<PeerData*>)> callback)
+	Fn<void(not_null<PeerData*>)> callback,
+	Fn<void(not_null<PeerListRow*>)> remove)
 : _session(session)
 , _chats(std::move(chats))
-, _callback(std::move(callback)) {
+, _callback(std::move(callback))
+, _remove(std::move(remove)) {
 }
 
 Main::Session &ChatsController::session() const {
@@ -116,6 +126,37 @@ void ChatsController::prepare() {
 
 void ChatsController::rowClicked(not_null<PeerListRow*> row) {
 	_callback(row->peer());
+}
+
+base::unique_qptr<Ui::PopupMenu> ChatsController::rowContextMenu(
+		QWidget *parent,
+		not_null<PeerListRow*> row) {
+	if (!_remove) {
+		return nullptr;
+	}
+	const auto peer = row->peer();
+	const auto channel = peer->asChannel();
+	const auto broadcast = channel && channel->isBroadcast();
+	auto result = base::make_unique_q<Ui::PopupMenu>(
+		parent,
+		st::popupMenuWithIcons);
+	const auto addAction = Ui::Menu::CreateAddActionCallback(result);
+	addAction({
+		.text = (broadcast
+			? tr::lng_community_chat_view_channel
+			: tr::lng_community_chat_view_group)(tr::now),
+		.handler = [=] { _callback(peer); },
+		.icon = &st::menuIconShowInChat,
+	});
+	addAction({
+		.text = (broadcast
+			? tr::lng_community_chat_remove_channel
+			: tr::lng_community_chat_remove_group)(tr::now),
+		.handler = [=] { _remove(row); },
+		.icon = &st::menuIconDeleteAttention,
+		.isAttention = true,
+	});
+	return result;
 }
 
 } // namespace
@@ -323,9 +364,27 @@ void SetupCommunityEditChatsList(
 	const auto delegate = container->lifetime().make_state<
 		PeerListContentDelegateShow
 	>(show);
+	const auto removeChat = [=](not_null<PeerListRow*> row) {
+		const auto peer = row->peer();
+		community->session().api().communities().removePeerLink(
+			community,
+			peer,
+			crl::guard(container, [=] {
+				if (const auto found = delegate->peerListFindRow(
+						peer->id.value)) {
+					delegate->peerListRemoveRow(found);
+					delegate->peerListRefreshRows();
+				}
+			}),
+			crl::guard(container, [=](const QString &error) {
+				show->showToast(error.isEmpty()
+					? Lang::Hard::ServerError()
+					: error);
+			}));
+	};
 	const auto controller = container->lifetime().make_state<
 		ChatsController
-	>(&community->session(), std::move(chats), openChat);
+	>(&community->session(), std::move(chats), openChat, removeChat);
 	controller->setStyleOverrides(&st::peerListBox);
 
 	const auto content = container->add(
