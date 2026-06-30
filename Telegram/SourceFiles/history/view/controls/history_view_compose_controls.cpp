@@ -4089,7 +4089,8 @@ void ComposeControls::updateExpandButtonVisibility() {
 		|| _recording.current()
 		|| !_field->isVisible()
 		|| !hasEnoughLinesForExpand()
-		|| textExceedsMaxSize();
+		|| textExceedsMaxSize()
+		|| !Iv::Editor::CanAuthorRichMessages(&_show->session());
 	if (_expand->isHidden() != hidden) {
 		_expand->setVisible(!hidden);
 	}

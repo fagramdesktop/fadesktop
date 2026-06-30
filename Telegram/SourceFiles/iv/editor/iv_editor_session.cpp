@@ -250,6 +250,25 @@ private:
 	return session->premium();
 }
 
+enum class RichMessagePosting {
+	Disabled,
+	Premium,
+	Enabled,
+};
+
+[[nodiscard]] RichMessagePosting RichMessagePostingMode(
+		not_null<Main::Session*> session) {
+	const auto value = session->appConfig().get<QString>(
+		u"rich_message_posting"_q,
+		u"disabled"_q);
+	if (value == u"enabled"_q) {
+		return RichMessagePosting::Enabled;
+	} else if (value == u"premium"_q) {
+		return RichMessagePosting::Premium;
+	}
+	return RichMessagePosting::Disabled;
+}
+
 void ShowRichMessagesPremiumToast(std::shared_ptr<ChatHelpers::Show> show) {
 	if (!show) {
 		return;
@@ -4049,8 +4068,15 @@ void OfferRichMessagePremiumChoice(
 	}));
 }
 
+bool CanAuthorRichMessages(not_null<Main::Session*> session) {
+	return RichMessagePostingMode(session) != RichMessagePosting::Disabled;
+}
+
 bool CheckRichMessagesPremium(
 		not_null<Window::SessionController*> controller) {
+	if (!CanAuthorRichMessages(&controller->session())) {
+		return false;
+	}
 	if (CanUseRichMessages(&controller->session())) {
 		return true;
 	}
@@ -4073,6 +4099,9 @@ void ShowComposeBox(
 void ShowEditBox(
 		not_null<Window::SessionController*> controller,
 		not_null<HistoryItem*> item) {
+	if (!CanAuthorRichMessages(&controller->session())) {
+		return;
+	}
 	if (!CanUseRichMessages(&controller->session())) {
 		ShowRichMessagesPremiumToast(controller->uiShow());
 		return;

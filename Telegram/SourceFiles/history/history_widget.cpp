@@ -6940,7 +6940,8 @@ void HistoryWidget::updateExpandButtonVisibility() {
 		|| !_field->isVisible()
 		|| _voiceRecordBar->isActive()
 		|| !hasEnoughLinesForExpand()
-		|| (textExceedsMaxSize() && !editingMessage());
+		|| (textExceedsMaxSize() && !editingMessage())
+		|| !Iv::Editor::CanAuthorRichMessages(&session());
 	if (_expand->isHidden() != hidden) {
 		_expand->setVisible(!hidden);
 	}

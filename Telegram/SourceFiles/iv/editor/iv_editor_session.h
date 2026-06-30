@@ -54,6 +54,7 @@ extern const char kOptionRichMessagesEditor[];
 
 [[nodiscard]] bool CheckRichMessagesPremium(
 	not_null<Window::SessionController*> controller);
+[[nodiscard]] bool CanAuthorRichMessages(not_null<Main::Session*> session);
 void OfferRichMessagePremiumChoice(
 	std::shared_ptr<ChatHelpers::Show> show,
 	not_null<Main::Session*> session,
