@@ -8366,6 +8366,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_ai_compose_before" = "Before";
 "lng_ai_compose_after" = "After";
 "lng_ai_compose_to_language" = "To {language}";
+"lng_ai_compose_in_language" = "In {language}";
 "lng_ai_compose_name_style" = "{name} ({style})";
 "lng_ai_compose_style_neutral" = "Neutral";
 "lng_ai_compose_emojify" = "emojify";

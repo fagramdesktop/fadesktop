@@ -1591,7 +1591,7 @@ aiComposeBoxInfoButton: IconButton(boxTitleClose) {
 aiComposeShadowOpacity: 0.3;
 
 createAiSelectorArrowsIcon: icon{{ "arrows_select", windowSubTextFg }};
-createAiReloadIcon: icon{{ "chat/refresh-18x18", windowFgActive }};
+createAiReloadIcon: icon{{ "menu/restore", windowFgActive }};
 createAiReloadButton: RoundButton(defaultActiveButton) {
 	width: 40px;
 	height: 40px;

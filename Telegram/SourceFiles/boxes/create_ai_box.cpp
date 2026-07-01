@@ -58,7 +58,7 @@ namespace {
 }
 
 [[nodiscard]] TextWithEntities SelectorTitle(LanguageId id) {
-	return tr::lng_ai_compose_to_language(
+	return tr::lng_ai_compose_in_language(
 		tr::now,
 		lt_language,
 		tr::link(Ui::LanguageName(id)),
@@ -281,10 +281,7 @@ void ResponseIsland::resizeEvent(QResizeEvent *e) {
 	const auto rowHeight = controlRowHeight();
 
 	_emojify->resizeToNaturalWidth(inner);
-	_emojify->moveToRight(
-		padding.right(),
-		padding.top() + (rowHeight - _emojify->height()) / 2,
-		width());
+	_emojify->moveToRight(padding.right(), padding.top(), width());
 
 	const auto arrowsSkip = st::aiComposeCardControlSkip;
 	const auto selectorWidth = std::max(
@@ -295,12 +292,10 @@ void ResponseIsland::resizeEvent(QResizeEvent *e) {
 			- arrowsSkip,
 		0);
 	_selector->resizeToWidth(selectorWidth);
-	_selector->moveToLeft(
-		padding.left(),
-		padding.top() + (rowHeight - _selector->height()) / 2);
+	_selector->moveToLeft(padding.left(), padding.top());
 	_arrows->moveToLeft(
 		padding.left() + _selector->textMaxWidth() + arrowsSkip,
-		padding.top() + (rowHeight - _arrows->height()) / 2);
+		padding.top() + (_selector->height() - _arrows->height()) / 2);
 
 	auto y = padding.top() + rowHeight;
 	if (_hasArticle && inner > 0) {
@@ -414,9 +409,9 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 					state->generate();
 				}),
 			style::margins(
-				st::boxRowPadding.left(),
+				st::aiComposeContentMargin.left(),
 				st::aiComposeCardSectionSkip,
-				st::boxRowPadding.right(),
+				st::aiComposeContentMargin.right(),
 				0));
 	};
 
