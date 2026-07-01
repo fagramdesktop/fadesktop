@@ -96,6 +96,9 @@ ivEditorSendLockBadgePosition: point(-3px, -3px);
 ivComposeSendLockBadgePosition: point(1px, 2px);
 ivEditorSendLockBadgePadding: 3px;
 ivEditorPremiumChoiceAboutSkip: 10px;
+ivEditorPremiumChoiceBox: Box(defaultBox) {
+	buttonHeight: 0px;
+}
 ivEditorSendLockIcon: icon{{ "chat/mini_lock", windowFgActive }};
 ivEditorToolbarPremiumStarSize: 11px;
 ivEditorToolbarPremiumStarSkip: point(5px, 5px);
@@ -126,7 +129,7 @@ ivEditorToolbarPlainTextIcon: icon {{ "menu/rich/plain_text-24x24", menuIconColo
 ivEditorToolbarLinkIcon: icon {{ "menu/rich/link-24x24", menuIconColor }};
 ivEditorBottomDiscardIcon: icon {{ "menu/rich/discard-24x24", menuIconColor }};
 ivEditorBottomCancelIcon: icon {{ "menu/rich/cancel-24x24", menuIconColor }};
-ivEditorPremiumChoiceIcon: icon {{ "menu/rich/plain_text-24x24", windowFgActive }};
+ivEditorPremiumChoiceIcon: icon {{ "menu/article_rich-24x24", windowFgActive }};
 ivEditorPremiumChoiceIconCircle: 64px;
 ivEditorPremiumChoiceIconPadding: margins(0px, 8px, 0px, 12px);
 ivEditorToolbarButton: IconButton(defaultIconButton) {

@@ -4046,7 +4046,8 @@ void OfferRichMessagePremiumChoice(
 		return;
 	}
 	show->showBox(Box([=](not_null<Ui::GenericBox*> box) {
-		box->setWidth(st::boxWideWidth);
+		box->setWidth(st::boxWidth);
+		box->setStyle(st::ivEditorPremiumChoiceBox);
 
 		const auto icon = box->addRow(
 			object_ptr<Ui::RpWidget>(box),
@@ -4098,7 +4099,7 @@ void OfferRichMessagePremiumChoice(
 			object_ptr<Ui::RoundButton>(
 				box,
 				tr::lng_posts_subscribe(),
-				st::defaultLightButton),
+				st::defaultActiveButton),
 			st::boxRowPadding,
 			style::al_justify);
 		subscribe->setClickedCallback([=] {
@@ -4130,6 +4131,9 @@ void OfferRichMessagePremiumChoice(
 		cancel->setClickedCallback([=] {
 			box->closeBox();
 		});
+		for (const auto &button : { subscribe, plain, cancel }) {
+			button->setFullRadius(true);
+		}
 		Ui::AddSkip(box->verticalLayout());
 	}));
 }
