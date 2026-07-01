@@ -326,9 +326,11 @@ struct State {
 	std::shared_ptr<const RichPage> page;
 	Ui::SlideWrap<ResponseIsland> *responseWrap = nullptr;
 	Ui::RoundButton *reloadButton = nullptr;
+	Ui::RoundButton *primaryButton = nullptr;
 	Fn<void()> generate;
 	Fn<void()> rebuildButtons;
 	Fn<void()> rebuildResponseIsland;
+	Fn<void()> enterLoading;
 };
 
 } // namespace
@@ -460,6 +462,7 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 			state->reloadButton = nullptr;
 		}
 		box->clearButtons();
+		state->primaryButton = nullptr;
 		if (state->phase == State::Phase::HasResult) {
 			box->setStyle(st::aiComposeBoxWithSend);
 			const auto pill = box->addButton(
@@ -471,6 +474,7 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 					box->closeBox();
 				});
 			pill->setFullRadius(true);
+			state->primaryButton = pill;
 
 			const auto reload = Ui::CreateChild<Ui::RoundButton>(
 				pill->parentWidget(),
@@ -503,11 +507,32 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 			state->reloadButton = reload;
 		} else {
 			box->setStyle(st::aiComposeBox);
-			box->addButton(
+			const auto pill = box->addButton(
 				tr::lng_ai_compose_generate(),
-				[=] { state->generate(); }
-			)->setFullRadius(true);
+				[=] { state->generate(); });
+			pill->setFullRadius(true);
+			state->primaryButton = pill;
 		}
+	};
+
+	state->enterLoading = [=] {
+		if (state->reloadButton) {
+			state->reloadButton->hide();
+			state->reloadButton->setParent(nullptr);
+			state->reloadButton->deleteLater();
+			state->reloadButton = nullptr;
+		}
+		const auto pill = state->primaryButton;
+		if (!pill) {
+			state->rebuildButtons();
+			return;
+		}
+		pill->setText(rpl::single(tr::lng_ai_compose_add_to_page(tr::now)));
+		pill->setDisabled(true);
+		pill->setAttribute(Qt::WA_TransparentForMouseEvents);
+		pill->setTextFgOverride(
+			anim::color(st::activeButtonBg, st::activeButtonFg, 0.5));
+		pill->setClickedCallback([] {});
 	};
 
 	state->generate = [=] {
@@ -520,7 +545,7 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 			state->requestId = 0;
 		}
 		state->phase = State::Phase::Loading;
-		state->rebuildButtons();
+		state->enterLoading();
 
 		using Flag = MTPmessages_composeRichMessageWithAI::Flag;
 		auto flags = MTPmessages_composeRichMessageWithAI::Flags(0)
