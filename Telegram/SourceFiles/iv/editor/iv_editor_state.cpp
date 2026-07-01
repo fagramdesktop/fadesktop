@@ -7588,6 +7588,81 @@ State::ActiveTextBlockActionResult State::applyActiveTextBlockAction(
 	});
 }
 
+State::ActiveTextBlockActionResult
+State::replaceActiveTextSelectionWithRichPage(
+		std::shared_ptr<const RichPage> page,
+		ActiveTextInsertContext context) {
+	return applyCheckedMutation(ActiveTextBlockActionResult{
+		.result = ApplyResult::Failed,
+	}, [page = std::move(page), context = std::move(context)](
+			State &candidate) mutable {
+		ActiveTextBlockActionResult result{
+			.result = ApplyResult::Failed,
+		};
+		const auto failed = [&] {
+			return CheckedMutationResult<ActiveTextBlockActionResult>{
+				.result = result,
+			};
+		};
+		if (!page || page->blocks.empty()) {
+			return failed();
+		}
+		const auto descriptor = candidate.textNode(
+			candidate._activeTextOrdinal);
+		if (!descriptor || (descriptor->leaf.kind == LeafKind::MathFormula)) {
+			return failed();
+		}
+		const auto singleParagraph = (page->blocks.size() == 1)
+			&& (page->blocks.front().kind == BlockKind::Paragraph)
+			&& page->blocks.front().blocks.empty()
+			&& (descriptor->leaf.kind != LeafKind::TableCellText);
+		if (singleParagraph) {
+			const auto &inner = page->blocks.front().text.text;
+			const auto selectionFrom = int(context.before.text.size());
+			const auto selectionTo = selectionFrom + int(inner.text.size());
+			const auto applied = candidate.applyActiveTextUnchecked(JoinText(
+				context.before,
+				inner,
+				context.after));
+			if (applied == ApplyResult::Failed) {
+				return failed();
+			}
+			const auto updated = candidate.textNode(
+				candidate._activeTextOrdinal);
+			return CheckedMutationResult<ActiveTextBlockActionResult>{
+				.apply = true,
+				.result = {
+					.result = ApplyResult::Changed,
+					.destinationLeaf = (updated
+						? updated->leaf
+						: descriptor->leaf),
+					.selectionFrom = selectionFrom,
+					.selectionTo = selectionTo,
+				},
+			};
+		}
+		auto blocks = page->blocks;
+		const auto applied = candidate.insertBlocksAfterActiveUnchecked(
+			std::move(blocks),
+			context);
+		if (!applied) {
+			return failed();
+		}
+		const auto updated = candidate.textNode(candidate._activeTextOrdinal);
+		return CheckedMutationResult<ActiveTextBlockActionResult>{
+			.apply = true,
+			.result = {
+				.result = ApplyResult::Changed,
+				.destinationLeaf = (updated
+					? updated->leaf
+					: descriptor->leaf),
+				.selectionFrom = 0,
+				.selectionTo = 0,
+			},
+		};
+	});
+}
+
 bool State::insertBlockAfterActive(
 		InsertAction action,
 		std::optional<ActiveTextInsertContext> context) {

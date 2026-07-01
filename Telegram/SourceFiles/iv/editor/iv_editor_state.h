@@ -412,6 +412,10 @@ public:
 	[[nodiscard]] ActiveTextBlockActionResult applyActiveTextBlockAction(
 		InsertAction action,
 		ActiveTextInsertContext context);
+	[[nodiscard]] ActiveTextBlockActionResult
+		replaceActiveTextSelectionWithRichPage(
+			std::shared_ptr<const RichPage> page,
+			ActiveTextInsertContext context);
 	[[nodiscard]] bool insertPreparedBlockAfterActive(RichPage::Block block);
 	[[nodiscard]] bool insertPreparedBlocksAfterActive(
 		std::vector<RichPage::Block> blocks,

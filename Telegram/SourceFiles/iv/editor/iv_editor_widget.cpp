@@ -3678,6 +3678,100 @@ void Widget::replaceCurrentSelectionWithRichPage(
 				return;
 			}
 		}
+		auto data = ClipboardBlockData();
+		data.blocks = page->blocks;
+		pasteStructuredClipboardData(ClipboardData(std::move(data)));
+		return;
+	}
+	if (auto context = activeTextInsertContext()) {
+		recordMutationTransaction([&] {
+			const auto restoreLeaf = _fieldLeaf;
+			const auto restoreStyleKey = _activeFieldStyleKey;
+			const auto restoreMode = _fieldMode;
+			const auto restoreSelection
+				= captureHistoryViewState().leafSelection;
+			_pendingOrdinal = -1;
+			_pendingCursorOffset = 0;
+			hideInlineField();
+			clearInlineFieldEditSession(true);
+			auto restore = true;
+			const auto restoreInlineField = gsl::finally([&] {
+				if (!restore) {
+					return;
+				}
+				if (restoreLeaf && restoreStyleKey) {
+					if (auto revived = reviveRetainedLeafField(
+							_historyIndex,
+							*restoreLeaf,
+							restoreMode,
+							*restoreStyleKey)) {
+						_field = std::move(revived);
+						_activeFieldStyleKey = restoreStyleKey;
+						_fieldMode = restoreMode;
+						_fieldLeaf = *restoreLeaf;
+						refreshInlineFieldPlaceholder();
+						_fieldUndoAvailable = _field->isUndoAvailable();
+						_fieldRedoAvailable = _field->isRedoAvailable();
+						clearFieldUndoRedoNoopState();
+					}
+				}
+				if (!_fieldLeaf && restoreSelection) {
+					const auto ordinal = _state->textOrdinalForLeafPath(
+						restoreSelection->leaf);
+					if (ordinal >= 0) {
+						activateTextOrdinal(
+							ordinal,
+							restoreSelection->anchorOffset,
+							restoreSelection->cursorOffset);
+						return;
+					}
+				}
+				_field->show();
+				syncInlineFieldGeometry();
+				updateInlineFieldHeightOverride();
+				syncArticleVisibleTopBottom();
+				revealActiveInlineField();
+				_field->raise();
+				_field->setFocusFast();
+				notifyToolbarStateChanged();
+			});
+			const auto applied = _state->replaceActiveTextSelectionWithRichPage(
+				page,
+				*context);
+			if (applied.result != ApplyResult::Changed) {
+				showLastLimitToast();
+				return MutationTransactionResult{
+					.committed = ApplyResult::Unchanged,
+				};
+			}
+			restore = false;
+			refreshPreparedContent();
+			auto restored = false;
+			if (applied.destinationLeaf) {
+				const auto ordinal = _state->textOrdinalForLeafPath(
+					*applied.destinationLeaf);
+				if (ordinal >= 0) {
+					activateTextOrdinal(
+						ordinal,
+						applied.selectionFrom,
+						applied.selectionTo);
+					restored = true;
+				}
+			}
+			if (!restored) {
+				const auto ordinal = _state->activeTextOrdinal();
+				if (ordinal >= 0 && ordinal < _state->textNodeCount()) {
+					activateTextOrdinal(ordinal, 0);
+				} else {
+					activateInitialNode();
+				}
+			}
+			return MutationTransactionResult{
+				.committed = ApplyResult::Unchanged,
+				.changed = true,
+			};
+		});
+		return;
 	}
 	auto data = ClipboardBlockData();
 	data.blocks = page->blocks;
