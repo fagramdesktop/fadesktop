@@ -368,14 +368,17 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 		1024));
 	state->prompt = prompt;
 
-	const auto promptPlaceholder = AddAiComposeFieldDecor(
+	AddAiComposeFieldDecor(
 		prompt,
 		tr::lng_ai_compose_create_placeholder());
-	promptPlaceholder->heightValue(
-	) | rpl::on_next([=](int phHeight) {
-		const auto pad = st::aiToneFieldPadding;
-		prompt->setMinHeight(phHeight + pad.top() + pad.bottom());
-	}, prompt->lifetime());
+
+	// The prompt is pinned to the top of the box, so a text-driven auto-grow
+	// would resize the pinned content and re-enter the box layout during a
+	// text-change event (which crashes). Keep the island at a fixed tall
+	// height and let long prompts scroll inside it instead of growing.
+	const auto promptHeight = st::aiTonePromptField.heightMin;
+	prompt->setMinHeight(promptHeight);
+	prompt->setMaxHeight(promptHeight);
 
 	const auto chooseLanguage = [=] {
 		box->uiShow()->showBox(Box([=](not_null<Ui::GenericBox*> chooser) {
