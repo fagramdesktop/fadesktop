@@ -23,6 +23,22 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_dialogs.h"
 
 namespace Dialogs {
+namespace {
+
+[[nodiscard]] const style::DialogRow &ComputeCommunityInfoSt(
+		not_null<const Row*> row) {
+	const auto &base = Row::ComputeSt(row->entry(), FilterId());
+	if (&base == &st::taggedForumDialogRow) {
+		return st::communityInfoTaggedForumDialogRow;
+	} else if (&base == &st::forumDialogRow) {
+		return st::communityInfoForumDialogRow;
+	} else if (&base == &st::taggedDialogRow) {
+		return st::communityInfoTaggedDialogRow;
+	}
+	return st::communityInfoDialogRow;
+}
+
+} // namespace
 
 CommunityChatsList::CommunityChatsList(
 	QWidget *parent,
@@ -33,7 +49,7 @@ CommunityChatsList::CommunityChatsList(
 , _controller(controller)
 , _community(community)
 , _kind(kind)
-, _st(&st::defaultDialogRow) {
+, _st(&st::communityInfoDialogRow) {
 	setMouseTracking(true);
 	_view.setRepaint([=] { update(); });
 
@@ -138,7 +154,7 @@ void CommunityChatsList::paintEvent(QPaintEvent *e) {
 		context.selected = pressed
 			? (_pressed == index)
 			: (_selected == index);
-		context.st = &Row::ComputeSt(row->entry(), FilterId());
+		context.st = &ComputeCommunityInfoSt(row);
 		p.translate(0, top);
 		Ui::RowPainter::Paint(p, row.get(), nullptr, context);
 		p.translate(0, -top);

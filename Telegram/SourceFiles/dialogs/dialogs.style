@@ -101,11 +101,11 @@ defaultDialogRow: DialogRow {
 	textTop: 34px;
 }
 communityRequestableListItem: PeerListItem(defaultPeerListItem) {
-	height: dialogsRowHeight;            // == st::defaultDialogRow.height (62px)
-	photoSize: 46px;                     // == st::defaultDialogRow.photoSize
-	photoPosition: point(10px, 8px);     // == st::defaultDialogRow.padding left/top (10,8)
-	namePosition: point(68px, 10px);     // == st::defaultDialogRow.nameLeft / nameTop
-	statusPosition: point(68px, 34px);   // == st::defaultDialogRow.textLeft / textTop
+	height: dialogsRowHeight;            // == st::communityInfoDialogRow.height (62px)
+	photoSize: 46px;                     // == st::communityInfoDialogRow.photoSize
+	photoPosition: point(22px, 8px);     // == st::communityInfoDialogRow.padding left/top (22,8)
+	namePosition: point(80px, 10px);     // == st::communityInfoDialogRow.nameLeft / nameTop
+	statusPosition: point(80px, 34px);   // == st::communityInfoDialogRow.textLeft / textTop
 }
 communityRequestableList: PeerList(defaultPeerList) {
 	item: communityRequestableListItem;
@@ -125,6 +125,26 @@ forumDialogRow: DialogRow(defaultDialogRow) {
 taggedForumDialogRow: DialogRow(forumDialogRow) {
 	height: 96px;
 	tagTop: 77px;
+}
+communityInfoDialogRow: DialogRow(defaultDialogRow) {
+	padding: margins(22px, 8px, 18px, 8px);
+	nameLeft: 80px;
+	textLeft: 80px;
+}
+communityInfoTaggedDialogRow: DialogRow(taggedDialogRow) {
+	padding: margins(22px, 8px, 18px, 8px);
+	nameLeft: 80px;
+	textLeft: 80px;
+}
+communityInfoForumDialogRow: DialogRow(forumDialogRow) {
+	padding: margins(22px, 8px, 18px, 8px);
+	nameLeft: 80px;
+	textLeft: 80px;
+}
+communityInfoTaggedForumDialogRow: DialogRow(taggedForumDialogRow) {
+	padding: margins(22px, 8px, 18px, 8px);
+	nameLeft: 80px;
+	textLeft: 80px;
 }
 dialogRowFilterTagSkip: 4px;
 dialogRowFilterTagStyle: TextStyle(defaultTextStyle) {

@@ -42,6 +42,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
 #include "styles/style_boxes.h"
+#include "styles/style_dialogs.h"
 #include "styles/style_info.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
@@ -307,6 +308,7 @@ void SetupCommunityContent(
 		const auto chatsController = inner->lifetime().make_state<
 			ChatsController
 		>(&community->session(), std::move(list), openChat);
+		chatsController->setStyleOverrides(&st::communityRequestableList);
 		const auto content = inner->add(object_ptr<PeerListContent>(
 			inner,
 			chatsController));
