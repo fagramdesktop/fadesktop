@@ -909,6 +909,13 @@ manageDeleteGroupButton: SettingsCountButton(manageGroupNoIconButton) {
 	}
 }
 
+manageGroupAttentionButton: SettingsCountButton(manageGroupButton) {
+	button: SettingsButton(manageGroupButtonInner) {
+		textFg: attentionButtonFg;
+		textFgOver: attentionButtonFg;
+	}
+}
+
 manageGroupReactions: IconButton(defaultIconButton) {
 	width: 24px;
 	height: 36px;

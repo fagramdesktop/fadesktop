@@ -124,13 +124,14 @@ void AddButtonWithCount(
 		rpl::producer<QString> &&text,
 		rpl::producer<QString> &&count,
 		Fn<void()> callback,
-		Settings::IconDescriptor &&descriptor) {
+		Settings::IconDescriptor &&descriptor,
+		const style::SettingsCountButton &st = st::manageGroupButton) {
 	parent->add(EditPeerInfoBox::CreateButton(
 		parent,
 		std::move(text),
 		std::move(count),
 		std::move(callback),
-		st::manageGroupButton,
+		st,
 		std::move(descriptor)));
 }
 
@@ -1808,7 +1809,8 @@ void Controller::fillManageSection() {
 					.confirmStyle = &st::attentionBoxButton,
 				}));
 			},
-			{ &st::menuIconLeaveAttention });
+			{ &st::menuIconLeaveAttention },
+			st::manageGroupAttentionButton);
 		::AddSkip(_controls.buttonsLayout);
 	}
 
