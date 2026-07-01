@@ -3570,6 +3570,120 @@ void Widget::pasteStructuredClipboardData(const ClipboardData &data) {
 	});
 }
 
+bool Widget::hasActiveSelection() const {
+	return hasStructuralSelection() || !_selection.empty();
+}
+
+std::shared_ptr<const RichPage> Widget::richPageForCurrentSelection() const {
+	if (hasStructuralSelection()) {
+		const auto kind = _structuralSelection.kind;
+		if (kind == PreparedEditSelectionKind::TableRows
+			|| kind == PreparedEditSelectionKind::TableCells) {
+			return _state->richPageForTableSelection(_structuralSelection);
+		}
+		const auto data = _state->structuredClipboardDataForSelection(
+			_structuralSelection);
+		if (!data) {
+			return nullptr;
+		}
+		auto page = std::make_shared<RichPage>();
+		if (const auto blocks = std::get_if<ClipboardBlockData>(&*data)) {
+			page->blocks = blocks->blocks;
+		} else if (const auto items
+				= std::get_if<ClipboardListItemsData>(&*data)) {
+			auto list = RichPage::Block();
+			list.kind = RichPage::BlockKind::List;
+			list.listKind = items->listKind;
+			list.orderedList = items->orderedList;
+			list.listItems = items->items;
+			page->blocks.push_back(std::move(list));
+		}
+		if (page->blocks.empty()) {
+			return nullptr;
+		}
+		return page;
+	}
+	if (_selection.empty()) {
+		return nullptr;
+	}
+	auto rich = currentSelectionTextForClipboard().rich;
+	if (rich.text.isEmpty()) {
+		return nullptr;
+	}
+	return std::make_shared<RichPage>(
+		Iv::SplitTextIntoRichPage(std::move(rich)));
+}
+
+void Widget::replaceCurrentSelectionWithRichPage(
+		std::shared_ptr<const RichPage> page) {
+	if (!page || page->blocks.empty()) {
+		return;
+	}
+	if (hasStructuralSelection()) {
+		const auto kind = _structuralSelection.kind;
+		if (kind == PreparedEditSelectionKind::TableRows
+			|| kind == PreparedEditSelectionKind::TableCells) {
+			auto blocks = page->blocks;
+			recordMutationTransaction([&] {
+				auto committed = ApplyResult::Unchanged;
+				if (!_field->isHidden()) {
+					committed = commitInlineField();
+					if (committed == ApplyResult::Failed) {
+						return MutationTransactionResult{
+							.committed = committed,
+							.failed = true,
+						};
+					}
+				}
+				if (!_state->insertPreparedBlocksAfterTableSelection(
+						_structuralSelection,
+						std::move(blocks))) {
+					showLastLimitToast();
+					return MutationTransactionResult{
+						.committed = committed,
+						.changed = (committed == ApplyResult::Changed),
+					};
+				}
+				_pendingOrdinal = -1;
+				_pendingCursorOffset = 0;
+				hideInlineField();
+				clearInlineFieldEditSession();
+				clearTextSelection();
+				clearStructuralSelection();
+				refreshPreparedContent();
+				const auto ordinal = _state->activeTextOrdinal();
+				if (ordinal >= 0 && ordinal < _state->textNodeCount()) {
+					activateTextOrdinal(ordinal, 0);
+				}
+				return MutationTransactionResult{
+					.committed = committed,
+					.changed = true,
+				};
+			});
+			return;
+		}
+		if (kind == PreparedEditSelectionKind::ListItems
+			&& page->blocks.size() == 1
+			&& page->blocks.front().kind == RichPage::BlockKind::List) {
+			const auto &list = page->blocks.front();
+			auto data = ClipboardListItemsData();
+			data.listKind = list.listKind;
+			data.orderedList = list.orderedList;
+			data.items = list.listItems;
+			data.taskList = !data.items.empty()
+				&& (data.items.front().taskState
+					!= RichPage::TaskState::None);
+			if (!data.items.empty()) {
+				pasteStructuredClipboardData(ClipboardData(std::move(data)));
+				return;
+			}
+		}
+	}
+	auto data = ClipboardBlockData();
+	data.blocks = page->blocks;
+	pasteStructuredClipboardData(ClipboardData(std::move(data)));
+}
+
 bool Widget::handleClipboardKey(QKeyEvent *e) {
 	if (e == QKeySequence::Copy) {
 		if (_selection.empty() && !hasStructuralSelection()) {

@@ -327,6 +327,11 @@ public:
 	[[nodiscard]] auto structuredClipboardDataForSelection(
 		const Markdown::PreparedEditSelection &selection) const
 	-> std::optional<ClipboardData>;
+	[[nodiscard]] std::shared_ptr<const RichPage> richPageForTableSelection(
+		const Markdown::PreparedEditSelection &selection) const;
+	[[nodiscard]] bool insertPreparedBlocksAfterTableSelection(
+		const Markdown::PreparedEditSelection &selection,
+		std::vector<RichPage::Block> blocks);
 	[[nodiscard]] bool addTableRow(
 		const Markdown::PreparedEditTableCellRange &range,
 		bool after);

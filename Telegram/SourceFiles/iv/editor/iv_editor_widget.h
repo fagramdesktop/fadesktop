@@ -121,6 +121,11 @@ public:
 	void insertPreparedBlock(RichPage::Block block);
 	void replacePreparedBlock(State::ReplaceTarget target, RichPage::Block block);
 	void insertPreparedBlocks(std::vector<RichPage::Block> blocks);
+	[[nodiscard]] bool hasActiveSelection() const;
+	[[nodiscard]] std::shared_ptr<const RichPage>
+		richPageForCurrentSelection() const;
+	void replaceCurrentSelectionWithRichPage(
+		std::shared_ptr<const RichPage> page);
 	void pastePreparedBlock(
 		RichPage::Block block,
 		PreparedMediaPasteTarget target);

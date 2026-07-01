@@ -37,4 +37,15 @@ void ShowCreateAiBox(
 	std::shared_ptr<ChatHelpers::Show> show,
 	CreateAiBoxArgs &&args);
 
+struct AiEditorBoxArgs {
+	not_null<Main::Session*> session;
+	std::shared_ptr<const RichPage> source;
+	Fn<void(std::shared_ptr<const RichPage>)> apply;
+};
+
+void AiEditorBox(not_null<Ui::GenericBox*> box, AiEditorBoxArgs &&args);
+void ShowAiEditorBox(
+	std::shared_ptr<ChatHelpers::Show> show,
+	AiEditorBoxArgs &&args);
+
 } // namespace Iv::Editor

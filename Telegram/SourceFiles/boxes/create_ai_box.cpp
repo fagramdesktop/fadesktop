@@ -12,9 +12,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/weak_ptr.h"
 #include "boxes/create_ai_tone_box.h"
 #include "chat_helpers/compose/compose_show.h"
+#include "data/data_ai_compose_tones.h"
 #include "data/data_file_origin.h"
 #include "data/data_msg_id.h"
+#include "data/data_session.h"
 #include "iv/iv_cached_media.h"
+#include "iv/iv_rich_message_serializer.h"
 #include "iv/iv_rich_page.h"
 #include "iv/markdown/iv_markdown_article.h"
 #include "iv/markdown/iv_markdown_common.h"
@@ -28,6 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/chat/chat_style.h"
 #include "ui/chat/chat_theme.h"
 #include "ui/layers/generic_box.h"
+#include "ui/effects/ripple_animation.h"
 #include "ui/painter.h"
 #include "ui/rp_widget.h"
 #include "ui/widgets/buttons.h"
@@ -64,6 +68,214 @@ namespace {
 		lt_language,
 		tr::link(Ui::LanguageName(id)),
 		tr::marked);
+}
+
+enum class AiEditorMode {
+	Translate,
+	Style,
+	Fix,
+};
+
+[[nodiscard]] QColor AiEditorColorWithAlpha(
+		const style::color &color,
+		float64 alpha) {
+	auto result = color->c;
+	result.setAlphaF(result.alphaF() * alpha);
+	return result;
+}
+
+[[nodiscard]] const style::icon &AiEditorModeIcon(
+		AiEditorMode mode,
+		bool active) {
+	switch (mode) {
+	case AiEditorMode::Translate:
+		return active
+			? st::aiComposeTabTranslateIconActive
+			: st::aiComposeTabTranslateIcon;
+	case AiEditorMode::Style:
+		return active
+			? st::aiComposeTabStyleIconActive
+			: st::aiComposeTabStyleIcon;
+	case AiEditorMode::Fix:
+		return active
+			? st::aiComposeTabFixIconActive
+			: st::aiComposeTabFixIcon;
+	}
+	return active
+		? st::aiComposeTabTranslateIconActive
+		: st::aiComposeTabTranslateIcon;
+}
+
+class AiEditorModeButton final : public Ui::RippleButton {
+public:
+	AiEditorModeButton(QWidget *parent, AiEditorMode mode, QString label);
+
+	void setSelected(bool selected);
+	[[nodiscard]] AiEditorMode mode() const;
+
+protected:
+	void paintEvent(QPaintEvent *e) override;
+	[[nodiscard]] QImage prepareRippleMask() const override;
+
+private:
+	const AiEditorMode _mode;
+	const QString _label;
+	bool _selected = false;
+
+};
+
+class AiEditorModeTabs final : public Ui::RpWidget {
+public:
+	explicit AiEditorModeTabs(QWidget *parent);
+
+	void setActive(AiEditorMode mode);
+	void setChangedCallback(Fn<void(AiEditorMode)> callback);
+
+protected:
+	int resizeGetHeight(int newWidth) override;
+	void paintEvent(QPaintEvent *e) override;
+
+private:
+	const not_null<AiEditorModeButton*> _translate;
+	const not_null<AiEditorModeButton*> _style;
+	const not_null<AiEditorModeButton*> _fix;
+	Fn<void(AiEditorMode)> _changed;
+
+};
+
+AiEditorModeButton::AiEditorModeButton(
+	QWidget *parent,
+	AiEditorMode mode,
+	QString label)
+: RippleButton(parent, st::aiComposeButtonRippleInactive)
+, _mode(mode)
+, _label(std::move(label)) {
+	setCursor(style::cur_pointer);
+	setAccessibleName(_label);
+}
+
+void AiEditorModeButton::setSelected(bool selected) {
+	if (_selected == selected) {
+		return;
+	}
+	_selected = selected;
+	update();
+}
+
+AiEditorMode AiEditorModeButton::mode() const {
+	return _mode;
+}
+
+void AiEditorModeButton::paintEvent(QPaintEvent *e) {
+	Painter p(this);
+	PainterHighQualityEnabler hq(p);
+
+	const auto radius = height() / 2.;
+	if (_selected) {
+		p.setPen(Qt::NoPen);
+		p.setBrush(AiEditorColorWithAlpha(
+			st::aiComposeTabButtonBgActive,
+			st::aiComposeButtonBgActiveOpacity));
+		p.drawRoundedRect(rect(), radius, radius);
+	}
+	const auto ripple = AiEditorColorWithAlpha(
+		(_selected
+			? st::aiComposeButtonRippleActive
+			: st::aiComposeButtonRippleInactive).color,
+		_selected
+			? st::aiComposeButtonRippleActiveOpacity
+			: st::aiComposeButtonRippleInactiveOpacity);
+	paintRipple(p, 0, 0, &ripple);
+
+	const auto &icon = AiEditorModeIcon(_mode, _selected);
+	const auto iconLeft = (width() - icon.width()) / 2;
+	icon.paint(p, iconLeft, st::aiComposeTabIconTop, width());
+
+	p.setPen(_selected
+		? st::aiComposeTabLabelFgActive
+		: st::aiComposeTabLabelFg);
+	p.setFont(st::aiComposeTabLabelFont);
+	p.drawText(
+		QRect(
+			0,
+			st::aiComposeTabLabelTop,
+			width(),
+			height() - st::aiComposeTabLabelTop),
+		Qt::AlignHCenter | Qt::AlignTop,
+		_label);
+}
+
+QImage AiEditorModeButton::prepareRippleMask() const {
+	return Ui::RippleAnimation::MaskByDrawer(size(), false, [&](QPainter &p) {
+		p.setPen(Qt::NoPen);
+		p.setBrush(Qt::white);
+		const auto radius = height() / 2.;
+		p.drawRoundedRect(rect(), radius, radius);
+	});
+}
+
+AiEditorModeTabs::AiEditorModeTabs(QWidget *parent)
+: RpWidget(parent)
+, _translate(Ui::CreateChild<AiEditorModeButton>(
+	this,
+	AiEditorMode::Translate,
+	tr::lng_ai_compose_tab_translate(tr::now)))
+, _style(Ui::CreateChild<AiEditorModeButton>(
+	this,
+	AiEditorMode::Style,
+	tr::lng_ai_compose_tab_style(tr::now)))
+, _fix(Ui::CreateChild<AiEditorModeButton>(
+	this,
+	AiEditorMode::Fix,
+	tr::lng_ai_compose_tab_fix(tr::now))) {
+	const auto bind = [=](not_null<AiEditorModeButton*> button) {
+		button->setClickedCallback([=] {
+			setActive(button->mode());
+			if (_changed) {
+				_changed(button->mode());
+			}
+		});
+	};
+	bind(_translate);
+	bind(_style);
+	bind(_fix);
+	setActive(AiEditorMode::Translate);
+}
+
+void AiEditorModeTabs::setActive(AiEditorMode mode) {
+	_translate->setSelected(mode == AiEditorMode::Translate);
+	_style->setSelected(mode == AiEditorMode::Style);
+	_fix->setSelected(mode == AiEditorMode::Fix);
+}
+
+void AiEditorModeTabs::setChangedCallback(Fn<void(AiEditorMode)> callback) {
+	_changed = std::move(callback);
+}
+
+int AiEditorModeTabs::resizeGetHeight(int newWidth) {
+	const auto padding = st::aiComposeTabsPadding;
+	const auto skip = st::aiComposeTabsSkip;
+	const auto innerWidth = newWidth - padding.left() - padding.right();
+	const auto buttonWidth = (innerWidth - (2 * skip)) / 3;
+	const auto buttonHeight = st::aiComposeTabsHeight
+		- padding.top()
+		- padding.bottom();
+	const auto top = padding.top();
+	auto left = padding.left();
+	for (const auto &button : { _translate, _style, _fix }) {
+		button->setGeometry(left, top, buttonWidth, buttonHeight);
+		left += buttonWidth + skip;
+	}
+	return st::aiComposeTabsHeight;
+}
+
+void AiEditorModeTabs::paintEvent(QPaintEvent *e) {
+	Painter p(this);
+	PainterHighQualityEnabler hq(p);
+	p.setPen(Qt::NoPen);
+	p.setBrush(st::aiComposeTabsBg);
+	const auto radius = st::aiComposeTabsRadius;
+	p.drawRoundedRect(rect(), radius, radius);
 }
 
 class ResponseIsland final : public Ui::RpWidget {
@@ -594,6 +806,233 @@ void ShowCreateAiBox(
 		std::shared_ptr<ChatHelpers::Show> show,
 		CreateAiBoxArgs &&args) {
 	show->show(Box(CreateAiBox, std::move(args)));
+}
+
+namespace {
+
+struct AiEditorState {
+	not_null<Main::Session*> session;
+	std::shared_ptr<const RichPage> source;
+	Fn<void(std::shared_ptr<const RichPage>)> apply;
+	AiEditorMode mode = AiEditorMode::Translate;
+	LanguageId language;
+	bool emojify = false;
+	mtpRequestId requestId = 0;
+	std::shared_ptr<const RichPage> result;
+	enum class Phase {
+		Initial,
+		Loading,
+		HasResult,
+	};
+	Phase phase = Phase::Initial;
+	Ui::SlideWrap<ResponseIsland> *responseWrap = nullptr;
+	Ui::RoundButton *primaryButton = nullptr;
+	Fn<void()> generate;
+	Fn<void()> rebuildButtons;
+	Fn<void()> rebuildResponseIsland;
+};
+
+[[nodiscard]] const ::Data::AiComposeTone *DefaultStyleTone(
+		not_null<Main::Session*> session) {
+	auto &tones = session->data().aiComposeTones();
+	for (const auto &tone : tones.list()) {
+		if (tone.isDefault) {
+			return &tone;
+		}
+	}
+	tones.refresh();
+	return nullptr;
+}
+
+} // namespace
+
+void AiEditorBox(not_null<Ui::GenericBox*> box, AiEditorBoxArgs &&args) {
+	const auto state = box->lifetime().make_state<AiEditorState>(AiEditorState{
+		.session = args.session,
+		.source = std::move(args.source),
+		.apply = std::move(args.apply),
+		.language = DefaultAiTranslateTo(LanguageId()),
+	});
+
+	box->setWidth(st::boxWideWidth);
+	box->setTitle(tr::lng_ai_editor_title());
+	box->addTopButton(st::aiComposeBoxClose, [=] {
+		box->closeBox();
+	});
+	box->setStyle(st::aiComposeBox);
+
+	const auto tabs = box->addRow(
+		object_ptr<AiEditorModeTabs>(box),
+		st::aiComposeContentMargin);
+
+	const auto chooseLanguage = [=] {
+		box->uiShow()->showBox(Box([=](not_null<Ui::GenericBox*> chooser) {
+			Ui::ChooseLanguageBox(
+				chooser,
+				tr::lng_languages(),
+				[=](std::vector<LanguageId> ids) {
+					if (ids.empty()) {
+						return;
+					}
+					state->language = ids.front();
+					state->generate();
+				},
+				{ state->language },
+				false,
+				nullptr);
+		}));
+	};
+
+	state->rebuildResponseIsland = [=] {
+		if (state->responseWrap) {
+			delete state->responseWrap;
+			state->responseWrap = nullptr;
+		}
+		const auto page = (state->phase == AiEditorState::Phase::HasResult)
+			? state->result
+			: state->source;
+		if (!page) {
+			return;
+		}
+		const auto content = box->verticalLayout();
+		auto wrap = object_ptr<Ui::SlideWrap<ResponseIsland>>(
+			content,
+			object_ptr<ResponseIsland>(
+				content,
+				state->session,
+				page,
+				state->language,
+				state->emojify,
+				chooseLanguage,
+				[=](bool checked) {
+					state->emojify = checked;
+					state->generate();
+				}),
+			style::margins(
+				st::aiComposeContentMargin.left(),
+				st::aiComposeCardSectionSkip,
+				st::aiComposeContentMargin.right(),
+				0));
+		const auto ptr = wrap.data();
+		content->add(std::move(wrap));
+		state->responseWrap = ptr;
+		ptr->toggle(false, anim::type::instant);
+		ptr->toggle(true, anim::type::normal);
+	};
+
+	state->rebuildButtons = [=] {
+		box->clearButtons();
+		state->primaryButton = nullptr;
+		if (state->phase == AiEditorState::Phase::HasResult) {
+			box->setStyle(st::aiComposeBoxWithSend);
+			const auto pill = box->addButton(
+				(state->mode == AiEditorMode::Style)
+					? tr::lng_ai_compose_apply_style()
+					: tr::lng_ai_compose_apply(),
+				[=] {
+					if (state->apply && state->result) {
+						state->apply(state->result);
+					}
+					box->closeBox();
+				});
+			pill->setFullRadius(true);
+			state->primaryButton = pill;
+		} else {
+			box->setStyle(st::aiComposeBox);
+			const auto pill = box->addButton(
+				tr::lng_ai_compose_generate(),
+				[=] { state->generate(); });
+			pill->setFullRadius(true);
+			state->primaryButton = pill;
+		}
+	};
+
+	state->generate = [=] {
+		if (!state->source) {
+			return;
+		}
+		if (state->requestId) {
+			state->session->api().request(state->requestId).cancel();
+			state->requestId = 0;
+		}
+		const auto serialized = Iv::SerializeInputRichMessage(
+			state->session,
+			*state->source,
+			Iv::SerializeInputRichMessageMode::Draft);
+		if (serialized.status != Iv::SerializeInputRichMessageStatus::Success
+			|| !serialized.value) {
+			return;
+		}
+		state->phase = AiEditorState::Phase::Loading;
+
+		using Flag = MTPmessages_composeRichMessageWithAI::Flag;
+		auto flags = MTPmessages_composeRichMessageWithAI::Flags(0)
+			| Flag::f_text;
+		if (state->emojify && state->mode != AiEditorMode::Fix) {
+			flags |= Flag::f_emojify;
+		}
+		auto lang = QString();
+		auto tone = MTPInputAiComposeTone();
+		switch (state->mode) {
+		case AiEditorMode::Translate:
+			lang = state->language ? state->language.twoLetterCode() : QString();
+			if (!lang.isEmpty()) {
+				flags |= Flag::f_translate_to_lang;
+			}
+			break;
+		case AiEditorMode::Style:
+			if (const auto styleTone = DefaultStyleTone(state->session)) {
+				tone = state->session->data().aiComposeTones().toneToMTP(
+					*styleTone);
+				flags |= Flag::f_tone;
+			}
+			break;
+		case AiEditorMode::Fix:
+			flags |= Flag::f_proofread;
+			break;
+		}
+
+		state->requestId = state->session->api().request(
+			MTPmessages_ComposeRichMessageWithAI(
+				MTP_flags(flags),
+				*serialized.value,
+				lang.isEmpty() ? MTPstring() : MTP_string(lang),
+				tone)
+		).done([=](const MTPmessages_ComposedRichMessageWithAI &result) {
+			state->requestId = 0;
+			state->result = Iv::ParseRichPage(
+				state->session,
+				result.data().vresult());
+			state->phase = AiEditorState::Phase::HasResult;
+			state->rebuildResponseIsland();
+			state->rebuildButtons();
+		}).fail([=](const MTP::Error &error) {
+			state->requestId = 0;
+			state->phase = state->result
+				? AiEditorState::Phase::HasResult
+				: AiEditorState::Phase::Initial;
+			state->rebuildButtons();
+			if (MTP::IgnoreError(error)) {
+				return;
+			}
+			box->showToast(error.type());
+		}).handleFloodErrors().send();
+	};
+
+	tabs->setChangedCallback([=](AiEditorMode mode) {
+		state->mode = mode;
+		state->generate();
+	});
+	tabs->setActive(state->mode);
+
+	state->rebuildResponseIsland();
+	state->rebuildButtons();
+}
+
+void ShowAiEditorBox(
+		std::shared_ptr<ChatHelpers::Show> show,
+		AiEditorBoxArgs &&args) {
+	show->show(Box(AiEditorBox, std::move(args)));
 }
 
 } // namespace Iv::Editor

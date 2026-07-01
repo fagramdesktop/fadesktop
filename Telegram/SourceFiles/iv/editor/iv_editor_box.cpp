@@ -1577,6 +1577,24 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 				return;
 			}
 			const auto editor = _editor;
+			if (editor && editor->hasActiveSelection()) {
+				auto source = editor->richPageForCurrentSelection();
+				if (source && !source->blocks.empty()) {
+					ShowAiEditorBox(_show, {
+						.session = session,
+						.source = std::move(source),
+						.apply = [editor](
+								std::shared_ptr<const RichPage> page) {
+							if (!editor || !page || page->blocks.empty()) {
+								return;
+							}
+							editor->replaceCurrentSelectionWithRichPage(
+								std::move(page));
+						},
+					});
+					return;
+				}
+			}
 			ShowCreateAiBox(_show, {
 				.session = session,
 				.applyToPage = [editor](std::shared_ptr<const RichPage> page) {
