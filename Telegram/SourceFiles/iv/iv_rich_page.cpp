@@ -2080,18 +2080,23 @@ std::shared_ptr<const RichPage> ParseRichPage(
 	return ParsePage(session, *cachedPage, &webpage);
 }
 
-TextWithEntities FlattenRichPageSummary(const RichPage &page) {
+TextWithEntities FlattenRichPageSummary(
+		const RichPage &page,
+		bool emptyFallback) {
 	auto result = FlattenSummaryBlocks(page.blocks);
 	TextUtilities::Trim(result);
-	if (result.empty()) {
+	if (result.empty() && emptyFallback) {
 		result = TextWithEntities::Simple(tr::lng_message_empty(tr::now));
 	}
 	return result;
 }
 
 TextWithEntities FlattenRichPageSummary(
-		const std::shared_ptr<const RichPage> &page) {
-	return page ? FlattenRichPageSummary(*page) : TextWithEntities();
+		const std::shared_ptr<const RichPage> &page,
+		bool emptyFallback) {
+	return page
+		? FlattenRichPageSummary(*page, emptyFallback)
+		: TextWithEntities();
 }
 
 TextWithEntities FlattenRichPageToSimpleText(const RichPage &page) {

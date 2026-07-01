@@ -289,9 +289,11 @@ struct RichPageLinkUrl {
 [[nodiscard]] bool RichPageUsesPremiumFormatting(const RichPage &page);
 [[nodiscard]] RichPage SplitTextIntoRichPage(TextWithEntities text);
 [[nodiscard]] TextWithEntities FlattenRichPageSummary(
-	const RichPage &page);
+	const RichPage &page,
+	bool emptyFallback = true);
 [[nodiscard]] TextWithEntities FlattenRichPageSummary(
-	const std::shared_ptr<const RichPage> &page);
+	const std::shared_ptr<const RichPage> &page,
+	bool emptyFallback = true);
 [[nodiscard]] TextWithEntities FlattenRichPageToSimpleText(
 	const RichPage &page);
 
