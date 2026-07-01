@@ -1177,6 +1177,9 @@ ComposeAiContent::ComposeAiContent(
 , _authorLabel(Ui::CreateChild<Ui::FlatLabel>(
 	this,
 	st::aiComposeAuthorLabel)) {
+	if (_richSource && _tones.empty()) {
+		_session->data().aiComposeTones().refresh();
+	}
 	_preview->setResizeCallback([=] { refreshLayout(); });
 	_preview->setChooseCallback([=] { chooseLanguage(); });
 	_preview->setCopyCallback([=] { copyResult(); });
