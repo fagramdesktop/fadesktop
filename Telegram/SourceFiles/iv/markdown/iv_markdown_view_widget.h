@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "iv/markdown/iv_markdown_article.h"
 #include "iv/markdown/iv_markdown_view.h"
 
+#include "base/timer.h"
 #include "base/unique_qptr.h"
 #include "rpl/lifetime.h"
 #include "ui/click_handler.h"
@@ -161,6 +162,8 @@ private:
 	int _dragSegment = -1;
 	int _dragSymbol = 0;
 	TextSelection _dragExpandedSelection;
+	QPoint _tripleClickPoint;
+	base::Timer _tripleClickTimer;
 	std::optional<PreparedLink> _selectionClickPreparedLink;
 	PreparedPlaceholderBlockId _pressedPlaceholderId;
 	bool _dragStartHadSelection = false;

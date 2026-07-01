@@ -724,6 +724,8 @@ void MarkdownDocumentWidget::mouseDoubleClickEvent(QMouseEvent *e) {
 			uint16(_selection.from.offset),
 			uint16(_selection.to.offset));
 	}
+	_tripleClickPoint = e->pos();
+	_tripleClickTimer.callOnce(QApplication::doubleClickInterval());
 	setFocus();
 	updateHover(state);
 	update();
@@ -1058,6 +1060,7 @@ void MarkdownDocumentWidget::resetSelection() {
 	_dragExpandedSelection = {};
 	_selectionClickPreparedLink = std::nullopt;
 	_dragStartHadSelection = false;
+	_tripleClickTimer.cancel();
 }
 
 void MarkdownDocumentWidget::clearSelection() {
@@ -1211,6 +1214,23 @@ void MarkdownDocumentWidget::dragActionStart(
 	};
 	_savedSelectionEndpoints = {};
 	_dragAction = Selecting;
+	if (_tripleClickTimer.isActive()
+		&& (point - _tripleClickPoint).manhattanLength()
+			< QApplication::startDragDistance()
+		&& _article->segmentIsText(state.segmentIndex)
+		&& state.direct
+		&& state.state.uponSymbol) {
+		_selectionType = TextSelectType::Paragraphs;
+		_selection = selectionFromHit(state);
+		if (_selection.from.segment == _dragSegment
+			&& _selection.to.segment == _dragSegment) {
+			_dragExpandedSelection = TextSelection(
+				uint16(_selection.from.offset),
+				uint16(_selection.to.offset));
+		}
+		_tripleClickPoint = point;
+		_tripleClickTimer.callOnce(QApplication::doubleClickInterval());
+	}
 	update();
 }
 
