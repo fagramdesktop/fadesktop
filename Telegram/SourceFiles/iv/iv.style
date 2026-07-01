@@ -97,7 +97,7 @@ ivEditorSendLockBadgePadding: 3px;
 ivEditorPremiumChoiceAboutSkip: 10px;
 ivEditorSendLockIcon: icon{{ "chat/mini_lock", windowFgActive }};
 ivEditorToolbarPremiumStarSize: 11px;
-ivEditorToolbarPremiumStarSkip: point(2px, 2px);
+ivEditorToolbarPremiumStarSkip: point(5px, 5px);
 ivEditorStyleMenuPremiumStarSize: 16px;
 ivEditorPillShadow: BoxShadow {
 	blurRadius: 3px;
