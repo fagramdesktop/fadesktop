@@ -863,9 +863,6 @@ void Toolbar::fillTextStyleMenu(not_null<Ui::PopupMenu*> menu) {
 		? 0
 		: st::ivEditorStyleMenuPremiumStarSize;
 	const auto withShortcut = [&](const QString &label, QKeySequence seq) {
-		if (!premium) {
-			return label;
-		}
 		const auto shortcut = seq.toString(QKeySequence::NativeText);
 		return shortcut.isEmpty()
 			? label
@@ -875,7 +872,8 @@ void Toolbar::fillTextStyleMenu(not_null<Ui::PopupMenu*> menu) {
 			Action action,
 			const QString &label,
 			const style::icon *icon,
-			QKeySequence shortcut = QKeySequence()) {
+			QKeySequence shortcut = QKeySequence(),
+			bool premiumOnly = false) {
 		const auto &state = _toolbarState[action];
 		if (!state.shown) {
 			return;
@@ -890,8 +888,10 @@ void Toolbar::fillTextStyleMenu(not_null<Ui::PopupMenu*> menu) {
 			},
 			icon,
 			state.active,
-			starSize);
+			premiumOnly ? starSize : 0);
 	};
+	// Bold..Spoiler exist in regular messages too, so they are not marked
+	// as premium - only the rich-message-only entities below are.
 	add(Action::Bold,
 		tr::lng_menu_formatting_bold(tr::now),
 		&st::ivEditorToolbarBoldIcon,
@@ -914,13 +914,19 @@ void Toolbar::fillTextStyleMenu(not_null<Ui::PopupMenu*> menu) {
 		Ui::kSpoilerSequence);
 	add(Action::Subscript,
 		tr::lng_menu_formatting_subscript(tr::now),
-		&st::ivEditorToolbarSubscriptIcon);
+		&st::ivEditorToolbarSubscriptIcon,
+		QKeySequence(),
+		true);
 	add(Action::Superscript,
 		tr::lng_menu_formatting_superscript(tr::now),
-		&st::ivEditorToolbarSuperscriptIcon);
+		&st::ivEditorToolbarSuperscriptIcon,
+		QKeySequence(),
+		true);
 	add(Action::Marked,
 		tr::lng_menu_formatting_marked(tr::now),
-		&st::ivEditorToolbarMarkedIcon);
+		&st::ivEditorToolbarMarkedIcon,
+		QKeySequence(),
+		true);
 }
 
 void Toolbar::showTextStyleMenu(not_null<Ui::IconButton*> button) {
