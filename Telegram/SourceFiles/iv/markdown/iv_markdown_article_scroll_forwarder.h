@@ -24,6 +24,8 @@ class MarkdownArticle;
 
 class MarkdownArticleScrollForwarder final {
 public:
+	[[nodiscard]] static bool IsTouchEvent(QEvent *e);
+
 	void handleWheel(
 		MarkdownArticle *article,
 		QWheelEvent *e,

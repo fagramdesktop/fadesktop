@@ -255,7 +255,8 @@ void ResponseIsland::mouseReleaseEvent(QMouseEvent *e) {
 }
 
 bool ResponseIsland::eventHook(QEvent *e) {
-	if (_scrollForwarder.handleTouchHook(
+	if (Iv::Markdown::MarkdownArticleScrollForwarder::IsTouchEvent(e)
+		&& _scrollForwarder.handleTouchHook(
 			scrollTarget(),
 			this,
 			e,

@@ -31,6 +31,14 @@ namespace {
 
 } // namespace
 
+bool MarkdownArticleScrollForwarder::IsTouchEvent(QEvent *e) {
+	const auto type = e->type();
+	return (type == QEvent::TouchBegin)
+		|| (type == QEvent::TouchUpdate)
+		|| (type == QEvent::TouchEnd)
+		|| (type == QEvent::TouchCancel);
+}
+
 void MarkdownArticleScrollForwarder::handleWheel(
 		MarkdownArticle *article,
 		QWheelEvent *e,
@@ -110,10 +118,7 @@ bool MarkdownArticleScrollForwarder::handleTouchHook(
 		QWidget *widget,
 		QEvent *e,
 		QPoint articleTopLeft) {
-	if (e->type() != QEvent::TouchBegin
-		&& e->type() != QEvent::TouchUpdate
-		&& e->type() != QEvent::TouchEnd
-		&& e->type() != QEvent::TouchCancel) {
+	if (!IsTouchEvent(e)) {
 		return false;
 	}
 	const auto touch = static_cast<QTouchEvent*>(e);

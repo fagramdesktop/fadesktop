@@ -1142,7 +1142,12 @@ void ComposeAiRichBody::mouseReleaseEvent(QMouseEvent *e) {
 }
 
 bool ComposeAiRichBody::eventHook(QEvent *e) {
-	if (_scrollForwarder.handleTouchHook(scrollTarget(), this, e, QPoint())) {
+	if (Iv::Markdown::MarkdownArticleScrollForwarder::IsTouchEvent(e)
+		&& _scrollForwarder.handleTouchHook(
+			scrollTarget(),
+			this,
+			e,
+			QPoint())) {
 		return true;
 	}
 	return RpWidget::eventHook(e);
