@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "chat_helpers/compose/compose_show.h"
 #include "data/data_file_origin.h"
 #include "data/data_msg_id.h"
+#include "info/channel_statistics/boosts/giveaway/boost_badge.h" // InfiniteRadialAnimationWidget.
 #include "iv/iv_cached_media.h"
 #include "iv/iv_rich_page.h"
 #include "iv/markdown/iv_markdown_article.h"
@@ -325,9 +326,9 @@ struct State {
 		HasResult,
 	};
 	Phase phase = Phase::Initial;
+	rpl::variable<bool> loading = false;
 	std::shared_ptr<const RichPage> page;
 	Ui::SlideWrap<ResponseIsland> *responseWrap = nullptr;
-	Ui::RoundButton *reloadButton = nullptr;
 	Ui::RoundButton *primaryButton = nullptr;
 	Fn<void()> generate;
 	Fn<void()> rebuildButtons;
@@ -417,6 +418,11 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 		}
 		state->page = nullptr;
 		state->phase = State::Phase::Initial;
+		if (state->requestId) {
+			state->session->api().request(state->requestId).cancel();
+			state->requestId = 0;
+		}
+		state->loading = false;
 		state->rebuildButtons();
 	}, prompt->lifetime());
 
@@ -472,88 +478,50 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 		ptr->toggle(true, anim::type::normal);
 	};
 
+	const auto addPill = [=](
+			rpl::producer<QString> text,
+			Fn<void()> callback) {
+		const auto pill = box->addButton(
+			rpl::conditional(
+				state->loading.value(),
+				rpl::single(QString()),
+				std::move(text)),
+			std::move(callback));
+		pill->setFullRadius(true);
+		using namespace Info::Statistics;
+		const auto animation = InfiniteRadialAnimationWidget(
+			pill,
+			pill->height() / 2);
+		AddChildToWidgetCenter(pill, animation);
+		animation->showOn(state->loading.value());
+		state->primaryButton = pill;
+	};
+
 	state->rebuildButtons = [=] {
-		if (state->reloadButton) {
-			// May be invoked from inside the reload button's own click
-			// handler (generate() -> rebuildButtons()), so destroy it
-			// without freeing the object that is still on the stack.
-			state->reloadButton->hide();
-			state->reloadButton->setParent(nullptr);
-			state->reloadButton->deleteLater();
-			state->reloadButton = nullptr;
-		}
 		box->clearButtons();
 		state->primaryButton = nullptr;
 		if (state->phase == State::Phase::HasResult) {
-			box->setStyle(st::aiComposeBoxWithSend);
-			const auto pill = box->addButton(
-				tr::lng_ai_compose_add_to_page(),
-				[=] {
-					if (state->applyToPage) {
-						state->applyToPage(state->page);
-					}
-					box->closeBox();
-				});
-			pill->setFullRadius(true);
-			state->primaryButton = pill;
-
-			const auto reload = Ui::CreateChild<Ui::RoundButton>(
-				pill->parentWidget(),
-				rpl::single(QString()),
-				st::createAiReloadButton);
-			reload->setFullRadius(true);
-			reload->show();
-			const auto icon = Ui::CreateChild<Ui::RpWidget>(reload);
-			icon->setAttribute(Qt::WA_TransparentForMouseEvents);
-			icon->resize(st::createAiReloadIcon.size());
-			icon->show();
-			icon->paintRequest() | rpl::on_next([=] {
-				auto p = QPainter(icon);
-				st::createAiReloadIcon.paint(p, 0, 0, icon->width());
-			}, icon->lifetime());
-			icon->move(
-				(reload->width() - icon->width()) / 2,
-				(reload->height() - icon->height()) / 2);
-			pill->geometryValue() | rpl::on_next([=](QRect geometry) {
-				const auto size = st::createAiReloadButton.height;
-				reload->moveToLeft(
-					geometry.x()
-						+ geometry.width()
-						+ st::aiComposeSendButtonSkip,
-					geometry.y() + (geometry.height() - size) / 2);
-			}, reload->lifetime());
-			reload->setClickedCallback([=] {
+			addPill(tr::lng_ai_compose_add_to_page(), [=] {
+				if (state->applyToPage) {
+					state->applyToPage(state->page);
+				}
+				box->closeBox();
+			});
+		} else {
+			addPill(tr::lng_ai_compose_generate(), [=] {
 				state->generate();
 			});
-			state->reloadButton = reload;
-		} else {
-			box->setStyle(st::aiComposeBox);
-			const auto pill = box->addButton(
-				tr::lng_ai_compose_generate(),
-				[=] { state->generate(); });
-			pill->setFullRadius(true);
-			state->primaryButton = pill;
 			state->updateGenerateEnabled();
 		}
 	};
 
 	state->enterLoading = [=] {
-		if (state->reloadButton) {
-			state->reloadButton->hide();
-			state->reloadButton->setParent(nullptr);
-			state->reloadButton->deleteLater();
-			state->reloadButton = nullptr;
+		if (!state->primaryButton) {
+			state->rebuildButtons();
 		}
 		const auto pill = state->primaryButton;
-		if (!pill) {
-			state->rebuildButtons();
-			return;
-		}
-		pill->setText(rpl::single(tr::lng_ai_compose_add_to_page(tr::now)));
 		pill->setDisabled(true);
 		pill->setAttribute(Qt::WA_TransparentForMouseEvents);
-		pill->setTextFgOverride(
-			anim::color(st::activeButtonBg, st::activeButtonFg, 0.5));
 		pill->setClickedCallback([] {});
 	};
 
@@ -568,6 +536,7 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 			state->requestId = 0;
 		}
 		state->phase = State::Phase::Loading;
+		state->loading = true;
 		state->enterLoading();
 
 		using Flag = MTPmessages_composeRichMessageWithAI::Flag;
@@ -590,6 +559,7 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 				MTP_inputAiComposeToneSingleUse(MTP_string(prompt)))
 		).done([=](const MTPmessages_ComposedRichMessageWithAI &result) {
 			state->requestId = 0;
+			state->loading = false;
 			state->page = Iv::ParseRichPage(
 				state->session,
 				result.data().vresult());
@@ -599,6 +569,7 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 			state->prompt->clearFocus();
 		}).fail([=](const MTP::Error &error) {
 			state->requestId = 0;
+			state->loading = false;
 			state->phase = state->page
 				? State::Phase::HasResult
 				: State::Phase::Initial;

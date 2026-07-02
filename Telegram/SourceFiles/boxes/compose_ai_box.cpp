@@ -30,6 +30,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_user.h"
 #include "data/stickers/data_custom_emoji.h"
+#include "info/channel_statistics/boosts/giveaway/boost_badge.h" // InfiniteRadialAnimationWidget.
 #include "iv/markdown/iv_markdown_article.h"
 #include "iv/markdown/iv_markdown_common.h"
 #include "iv/markdown/iv_markdown_prepare.h"
@@ -2117,13 +2118,30 @@ void ComposeAiBox(not_null<Ui::GenericBox*> box, ComposeAiBoxArgs &&args) {
 				box->closeBox();
 			}));
 	};
+	const auto loadingShown = [=] {
+		return loading->value(
+		) | rpl::map([=](bool value) {
+			return value && !*premiumFlooded;
+		});
+	};
 	const auto addApplyButton = [=](
 			const style::Box &style,
 			rpl::producer<QString> text,
 			Fn<void()> callback) {
 		box->setStyle(style);
-		const auto result = box->addButton(std::move(text), std::move(callback));
+		const auto result = box->addButton(
+			rpl::conditional(
+				loadingShown(),
+				rpl::single(QString()),
+				std::move(text)),
+			std::move(callback));
 		result->setFullRadius(true);
+		using namespace Info::Statistics;
+		const auto animation = InfiniteRadialAnimationWidget(
+			result,
+			result->height() / 2);
+		AddChildToWidgetCenter(result, animation);
+		animation->showOn(loadingShown());
 		return result;
 	};
 	const auto disableButton = [=](not_null<Ui::RoundButton*> button) {

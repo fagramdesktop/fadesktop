@@ -1591,12 +1591,6 @@ aiComposeBoxInfoButton: IconButton(boxTitleClose) {
 aiComposeShadowOpacity: 0.3;
 
 createAiSelectorArrowsIcon: icon{{ "arrows_select", windowSubTextFg }};
-createAiReloadIcon: icon{{ "menu/restore", menuIconColor }};
-createAiReloadButton: RoundButton(defaultLightButton) {
-	width: 40px;
-	height: 40px;
-	radius: 20px;
-}
 
 communityBoxManage: IconButton(boxTitleClose) {
 	icon: icon {{ "menu/manage", boxTitleCloseFg }};
