@@ -6606,11 +6606,19 @@ quintptr InnerWidget::accessibilityChildIdentity(int index) const {
 		Peer = 3,
 		Message = 4,
 	};
-	const auto tagged = [](Kind kind, quintptr value) {
-		return value ? ((value << 3) | quintptr(kind)) : quintptr(0);
+	const auto fromPointer = [](Kind kind, const void *pointer) {
+		// Heap-allocated session objects are at least 8-byte aligned, so the
+		// low 3 bits are free for the kind tag. Masking instead of shifting
+		// keeps the high bits, which a shift would drop on 32-bit builds.
+		const auto value = reinterpret_cast<quintptr>(pointer);
+		return value ? ((value & ~quintptr(7)) | quintptr(kind)) : quintptr(0);
 	};
-	const auto fromPointer = [&](Kind kind, const void *pointer) {
-		return tagged(kind, reinterpret_cast<quintptr>(pointer));
+	const auto fromHash = [](Kind kind, quintptr value) {
+		// A hash is not a true stable identity - collisions are possible but
+		// acceptable for this cohort. Shift instead of masking so that small
+		// hash values keep their distinguishing low bits; the lost high bits
+		// only reduce hash quality, they carry no pointer semantics.
+		return value ? ((value << 3) | quintptr(kind)) : quintptr(0);
 	};
 	if (_state == WidgetState::Default) {
 		const auto ref = defaultChildAt(index);
@@ -6629,7 +6637,7 @@ quintptr InnerWidget::accessibilityChildIdentity(int index) const {
 		}
 		switch (ref->cohort) {
 		case AccessibilityCohort::Hashtag:
-			return tagged(
+			return fromHash(
 				Kind::Hashtag,
 				qHash(_hashtagResults[ref->local]->tag));
 		case AccessibilityCohort::Filtered:
