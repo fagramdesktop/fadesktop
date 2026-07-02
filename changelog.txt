@@ -1,3 +1,15 @@
+6.9.4 beta (02.07.26)
+
+- Add rich message editor with media, tables and math formulas.
+- Show rich message drafts with full formatting in chat compose area.
+- Add text recognition with selection and copying to media viewer images.
+- Add swipe navigation and pinch zoom gestures to media viewer.
+- Support zoom and dragging files out in shared media photos.
+- Allow adapting existing stickers into custom emoji.
+- Add media viewer video playback to system media controls.
+- Add alphabetical fast-scroll index to contacts box.
+- Improve screen reader accessibility for chats list and folders.
+
 6.9.3 (12.06.26)
 
 - Fix possible crash in formula parsing.
