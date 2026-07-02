@@ -23,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_emoji_statuses.h"
 #include "dialogs/ui/dialogs_pill.h"
 #include "history/history_item.h"
+#include "history/view/controls/history_view_compose_ai_button.h"
 #include "boxes/compose_ai_box.h"
 #include "main/main_session.h"
 #include "ui/emoji_config.h"
@@ -1326,7 +1327,7 @@ private:
 	void setupWindow(ShowWindowDescriptor &&descriptor);
 	void setupEmojiColumn(const ShowWindowDescriptor &descriptor);
 	void addBottomAiStar(
-		not_null<Ui::IconButton*> button,
+		not_null<Ui::RpWidget*> button,
 		not_null<Main::Session*> session);
 	void layout();
 	void toggleEmojiColumn();
@@ -1536,11 +1537,14 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		_aiPill = object_ptr<ToolbarPill>(
 			_bottom.data(),
 			st::ivEditorPillShadow);
-		const auto button = _aiPill->addButton(
-			st::ivEditorBottomAiButton,
-			&st::ivEditorBottomAiIcon,
-			&st::ivEditorBottomAiIcon,
-			ToolbarButtonState::Inactive);
+		auto owned = object_ptr<HistoryView::Controls::ComposeAiButton>(
+			_aiPill.data(),
+			st::ivEditorToolbarButton,
+			st::ivEditorBottomAiIcon,
+			st::ivEditorBottomAiStar1,
+			st::ivEditorBottomAiStar2);
+		const auto button = owned.data();
+		_aiPill->addButton(std::move(owned), st::ivEditorToolbarButton);
 		button->setAccessibleName(tr::lng_ai_compose_title(tr::now));
 		button->setClickedCallback([=] {
 			if (!session->premium()) {
@@ -1709,7 +1713,7 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 }
 
 void WindowHost::Impl::addBottomAiStar(
-		not_null<Ui::IconButton*> button,
+		not_null<Ui::RpWidget*> button,
 		not_null<Main::Session*> session) {
 	const auto factor = style::DevicePixelRatio();
 	const auto side = st::ivEditorToolbarPremiumStarSize;

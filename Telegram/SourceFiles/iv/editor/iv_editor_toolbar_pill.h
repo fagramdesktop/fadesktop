@@ -20,6 +20,7 @@ struct IconButton;
 
 namespace Ui {
 class IconButton;
+class RippleButton;
 } // namespace Ui
 
 namespace Iv::Editor {
@@ -35,6 +36,9 @@ public:
 		const style::icon *icon,
 		const style::icon *iconOver,
 		ToolbarButtonState state);
+	void addButton(
+		object_ptr<Ui::RippleButton> button,
+		const style::IconButton &buttonSt);
 
 	[[nodiscard]] QSize naturalSize() const;
 	[[nodiscard]] QMargins shadowMargins() const;
@@ -45,7 +49,8 @@ protected:
 private:
 	void updateGeometryToContent();
 
-	std::vector<object_ptr<Ui::IconButton>> _buttons;
+	std::vector<object_ptr<Ui::RippleButton>> _buttons;
+	const style::IconButton *_buttonSt = nullptr;
 	Ui::BoxShadow _shadow;
 	QMargins _shadowMargins;
 

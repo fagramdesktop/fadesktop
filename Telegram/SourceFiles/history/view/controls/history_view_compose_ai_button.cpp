@@ -7,36 +7,53 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/controls/history_view_compose_ai_button.h"
 
-#include "ui/effects/premium_graphics.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/painter.h"
 #include "styles/style_chat_helpers.h"
 
-#include <QtGui/QPainter>
-#include <QtSvg/QSvgRenderer>
-
 namespace HistoryView::Controls {
+namespace {
+
+constexpr auto kAnimationDuration = crl::time(640);
+
+} // namespace
 
 ComposeAiButton::ComposeAiButton(
 	QWidget *parent,
 	const style::IconButton &st)
+: ComposeAiButton(
+	parent,
+	st,
+	st::historyAiComposeButtonLetters,
+	st::historyAiComposeButtonStar1,
+	st::historyAiComposeButtonStar2,
+	&st::historyComposeIconFgOver) {
+}
+
+ComposeAiButton::ComposeAiButton(
+	QWidget *parent,
+	const style::IconButton &st,
+	const style::icon &letters,
+	const style::icon &star1,
+	const style::icon &star2,
+	const style::color *overColor)
 : RippleButton(parent, st.ripple)
-, _st(st) {
+, _st(st)
+, _letters(letters)
+, _star1(star1)
+, _star2(star2)
+, _overColor(overColor) {
 	resize(_st.width, _st.height);
 	setCursor(style::cur_pointer);
 
-	const auto factor = style::DevicePixelRatio();
-	const auto side = st::historyAiComposeButtonStarSize;
-	const auto size = QSize(side, side);
-	_star = QImage(size * factor, QImage::Format_ARGB32_Premultiplied);
-	_star.setDevicePixelRatio(factor);
-	_star.fill(Qt::transparent);
-	{
-		auto q = QPainter(&_star);
-		auto svg = QSvgRenderer(
-			Ui::Premium::ColorizedSvg(Ui::Premium::ButtonGradientStops()));
-		svg.render(&q, QRectF(QPointF(), QSizeF(size)));
-	}
+	shownValue(
+	) | rpl::on_next([=](bool shown) {
+		if (shown) {
+			_animation.start([=] { update(); }, 0., 1., kAnimationDuration);
+		} else {
+			_animation.stop();
+		}
+	}, lifetime());
 }
 
 void ComposeAiButton::paintEvent(QPaintEvent *e) {
@@ -46,18 +63,37 @@ void ComposeAiButton::paintEvent(QPaintEvent *e) {
 	const auto over = isDown() || isOver() || forceRippled();
 	paintRipple(p, _st.rippleAreaPosition);
 
-	const auto &letters = st::historyAiComposeButtonLetters;
-	if (over) {
-		letters.paintInCenter(p, rect(), st::historyComposeIconFgOver->c);
+	const auto progress = _animation.value(1.);
+	auto star1Opacity = 1.;
+	auto star2Opacity = 1.;
+	if (progress < 0.25) {
+		star1Opacity = 1. - (progress / 0.25);
+	} else if (progress < 0.5) {
+		star1Opacity = 0.;
+		star2Opacity = 1. - ((progress - 0.25) / 0.25);
+	} else if (progress < 0.75) {
+		star1Opacity = (progress - 0.5) / 0.25;
+		star2Opacity = 0.;
 	} else {
-		letters.paintInCenter(p, rect());
+		star2Opacity = (progress - 0.75) / 0.25;
 	}
 
-	const auto side = st::historyAiComposeButtonStarSize;
-	const auto shift = st::historyAiComposeButtonStarPosition;
-	const auto left = (width() - side) / 2 + shift.x();
-	const auto top = (height() - side) / 2 + shift.y();
-	p.drawImage(left, top, _star);
+	const auto part = [&](const style::icon &icon) {
+		if (over && _overColor) {
+			icon.paintInCenter(p, rect(), (*_overColor)->c);
+		} else {
+			icon.paintInCenter(p, rect());
+		}
+	};
+	part(_letters);
+	if (star1Opacity > 0.) {
+		p.setOpacity(star1Opacity);
+		part(_star1);
+	}
+	if (star2Opacity > 0.) {
+		p.setOpacity(star2Opacity);
+		part(_star2);
+	}
 }
 
 void ComposeAiButton::onStateChanged(State was, StateChangeSource source) {

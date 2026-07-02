@@ -1532,9 +1532,9 @@ historyAiComposeButton: IconButton(historyAttach) {
 	rippleAreaSize: 28px;
 	rippleAreaPosition: point(0px, 0px);
 }
-historyAiComposeButtonLetters: icon{{ "chat/ai_letters-22x22", historyComposeIconFg }};
-historyAiComposeButtonStarSize: 12px;
-historyAiComposeButtonStarPosition: point(-5px, -5px);
+historyAiComposeButtonLetters: icon{{ "chat/ai_letters-20x20", historyComposeIconFg }};
+historyAiComposeButtonStar1: icon{{ "chat/ai_star1-20x20", historyComposeIconFg }};
+historyAiComposeButtonStar2: icon{{ "chat/ai_star2-20x20", historyComposeIconFg }};
 historyAiComposeButtonPosition: point(-8px, -4px);
 historySendAsFileButton: IconButton(historyAiComposeButton) {
 	icon: icon {{ "chat/text_to_file-18x18", historyComposeIconFg }};
