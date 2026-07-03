@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "ui/chat/chat_theme.h"
+#include "ui/style/style_palette_colorizer.h"
 #include "window/themes/window_theme.h"
 #include "window/themes/window_theme_editor.h"
 #include "window/themes/window_theme_preview.h"
@@ -21,6 +22,152 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace Window::Theme {
 namespace {
+
+[[nodiscard]] float64 PerceivedBrightness(const QColor &color) {
+	return (0.299 * color.red()
+		+ 0.587 * color.green()
+		+ 0.114 * color.blue()) / 255.;
+}
+
+[[nodiscard]] QColor ScaleBrightness(const QColor &color, float64 amount) {
+	const auto scale = [&](int value) {
+		return std::clamp(int(base::SafeRound(value * amount)), 0, 255);
+	};
+	return QColor(
+		scale(color.red()),
+		scale(color.green()),
+		scale(color.blue()),
+		color.alpha());
+}
+
+[[nodiscard]] QColor FromHsvRounded(
+		float64 hue,
+		float64 saturation,
+		float64 value,
+		float64 alpha) {
+	const auto sector = hue * 6.;
+	const auto i = int(std::floor(sector)) % 6;
+	const auto f = sector - std::floor(sector);
+	const auto p = value * (1. - saturation);
+	const auto q = value * (1. - f * saturation);
+	const auto t = value * (1. - (1. - f) * saturation);
+	auto red = 0., green = 0., blue = 0.;
+	switch (i) {
+	case 0: red = value; green = t; blue = p; break;
+	case 1: red = q; green = value; blue = p; break;
+	case 2: red = p; green = value; blue = t; break;
+	case 3: red = p; green = q; blue = value; break;
+	case 4: red = t; green = p; blue = value; break;
+	case 5: red = value; green = p; blue = q; break;
+	}
+	const auto channel = [](float64 value) {
+		return std::clamp(int(base::SafeRound(value * 255.)), 0, 255);
+	};
+	return QColor(
+		channel(red),
+		channel(green),
+		channel(blue),
+		channel(alpha));
+}
+
+struct HsvColor {
+	float64 hue = 0.;
+	float64 saturation = 0.;
+	float64 value = 0.;
+};
+
+[[nodiscard]] HsvColor ToHsv(const QColor &color) {
+	auto hue = 0.f, saturation = 0.f, value = 0.f;
+	color.getHsvF(&hue, &saturation, &value);
+	return { float64(hue), float64(saturation), float64(value) };
+}
+
+[[nodiscard]] QColor DarkChromeShift(QColor color, const QColor &accent) {
+	constexpr auto kHueGate = 30. / 360.;
+	const auto base = ToHsv(QColor(0x3E, 0x88, 0xF7));
+	const auto now = ToHsv(accent);
+	const auto own = ToHsv(color);
+	if (own.saturation <= 0.001 || own.hue < 0. || now.hue < 0.) {
+		return color;
+	}
+	const auto difference = std::min(
+		std::abs(own.hue - base.hue),
+		std::abs(own.hue - base.hue - 1.));
+	if (difference > kHueGate) {
+		return color;
+	}
+	const auto distance = std::min(
+		1.5 * own.saturation / base.saturation,
+		1.);
+	auto shiftedHue = own.hue + now.hue - base.hue;
+	shiftedHue -= std::floor(shiftedHue);
+	const auto shifted = FromHsvRounded(
+		shiftedHue,
+		std::clamp(
+			own.saturation * now.saturation / base.saturation,
+			0.,
+			1.),
+		std::clamp(
+			own.value
+				* (1. - distance + distance * now.value / base.value),
+			0.,
+			1.),
+		color.alphaF());
+	const auto wasBrightness = PerceivedBrightness(color);
+	const auto nowBrightness = PerceivedBrightness(shifted);
+	if (wasBrightness > nowBrightness && nowBrightness > 0.) {
+		const auto amount = 0.4 * wasBrightness / nowBrightness + 0.6;
+		return ScaleBrightness(shifted, amount);
+	}
+	return shifted;
+}
+
+[[nodiscard]] QColor NeutralizeNightSurface(const QColor &color) {
+	const auto own = ToHsv(color);
+	if (own.saturation > 0.55 || own.value > 0.35) {
+		return color;
+	}
+	return QColor::fromHsvF(
+		240. / 360.,
+		own.saturation * 0.086,
+		own.value * (25. / 43.),
+		color.alphaF());
+}
+
+void AdjustDarkChromeDepth(
+		style::palette &palette,
+		const QColor &accent) {
+	static const auto night = [] {
+		auto result = std::make_unique<style::palette>();
+		PreparePaletteCallback(true, std::nullopt)(*result);
+		return result;
+	}();
+	const auto &embedded = EmbeddedThemes();
+	const auto i = ranges::find(
+		embedded,
+		EmbeddedType::Night,
+		&EmbeddedScheme::type);
+	Assert(i != end(embedded));
+	const auto ignored = ColorizerFrom(*i, accent).ignoreKeys;
+	const auto rows = style::main_palette::data();
+	for (const auto &row : rows) {
+		const auto name = row.name;
+		if (name.startsWith(QLatin1String("msg"))
+			|| name.startsWith(QLatin1String("history"))
+			|| ignored.contains(name)) {
+			continue;
+		}
+		const auto index = style::internal::GetPaletteIndex(name);
+		Assert(index >= 0);
+		const auto original = night->colorAtIndex(index)->c;
+		const auto shifted = DarkChromeShift(
+			NeutralizeNightSurface(original),
+			accent);
+		if (shifted != original) {
+			palette.setColor(name, shifted);
+		}
+	}
+}
 
 [[nodiscard]] QByteArray GeneratePaletteContent(
 		const style::palette &palette) {
@@ -96,9 +243,14 @@ std::unique_ptr<Preview> PreviewFromChatTheme(
 			std::move(descriptor));
 		result->instance.palette.finalize();
 		result->instance.palette = *built->palette();
-		result->object.content = GeneratePaletteContent(
-			*built->palette());
 	}
+	if (dark) {
+		AdjustDarkChromeDepth(
+			result->instance.palette,
+			settings.accentColor);
+	}
+	result->object.content = GeneratePaletteContent(
+		result->instance.palette);
 	auto &cache = result->instance.cached;
 	cache.colors = result->instance.palette.save();
 	cache.paletteChecksum = style::palette::Checksum();
