@@ -395,6 +395,7 @@ void NormalizeInlineFormulaRasterMetrics(Formula *formula) {
 class InlineFormulaObject final : public Ui::Text::CustomEmoji {
 public:
 	InlineFormulaObject(
+		QString entityData,
 		QString replacementText,
 		int fallbackWidth,
 		std::shared_ptr<InlineFormulaSharedState> state);
@@ -411,6 +412,7 @@ public:
 	bool readyInDefaultState() override;
 
 private:
+	QString _entityData;
 	QString _replacementText;
 	int _fallbackWidth = 1;
 	const std::shared_ptr<InlineFormulaSharedState> _state;
@@ -818,10 +820,12 @@ const QImage *InlineFormulaSharedState::colorizedImage(
 }
 
 InlineFormulaObject::InlineFormulaObject(
+	QString entityData,
 	QString replacementText,
 	int fallbackWidth,
 	std::shared_ptr<InlineFormulaSharedState> state)
-: _replacementText(std::move(replacementText))
+: _entityData(std::move(entityData))
+, _replacementText(std::move(replacementText))
 , _fallbackWidth(std::max(fallbackWidth, 1))
 , _state(std::move(state)) {
 }
@@ -834,7 +838,7 @@ int InlineFormulaObject::width() {
 }
 
 QString InlineFormulaObject::entityData() {
-	return QString();
+	return _entityData;
 }
 
 auto InlineFormulaObject::vertical(const style::TextStyle &textStyle)
@@ -1031,7 +1035,12 @@ std::unique_ptr<Ui::Text::CustomEmoji> InlineFormulaObjectCache::create(
 	const auto fallbackWidth = std::max(
 		textStyle.font->width(replacementText),
 		1);
+	const auto entityData = SerializeInlineTextObjectEntity({
+		.kind = InlineTextObjectKind::Formula,
+		.data = data,
+	});
 	return std::make_unique<InlineFormulaObject>(
+		std::move(entityData),
 		std::move(replacementText),
 		fallbackWidth,
 		std::move(state));

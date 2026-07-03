@@ -7,6 +7,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #pragma once
 
+#include <QtNetwork/QNetworkProxy>
+
 namespace MTP {
 
 struct ProxyData {

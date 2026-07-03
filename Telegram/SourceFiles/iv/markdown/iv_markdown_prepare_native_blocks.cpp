@@ -198,7 +198,9 @@ void WrapPreparedIvRichTextItalic(PreparedIvRichText *prepared) {
 		prepared->text.text.size()));
 }
 
-void ApplyNativeIvEditPlaceholderText(PreparedBlock *block);
+void ApplyNativeIvQuoteEditPlaceholderText(
+	PreparedBlock *block,
+	bool quoteAuthor);
 
 bool AppendPreparedQuoteParagraph(
 		std::vector<PreparedBlock> *result,
@@ -206,8 +208,9 @@ bool AppendPreparedQuoteParagraph(
 		bool pullquote,
 		bool supplementary = false,
 		bool allowEmpty = false,
+		bool quoteAuthor = false,
 		std::optional<PreparedEditLeafSource> editLeaf = std::nullopt) {
-	if (pullquote) {
+	if (pullquote && !quoteAuthor) {
 		WrapPreparedIvRichTextItalic(&prepared);
 	}
 	const auto count = result->size();
@@ -224,34 +227,157 @@ bool AppendPreparedQuoteParagraph(
 		return false;
 	}
 	if (result->size() > count) {
-		if (allowEmpty) {
-			ApplyNativeIvEditPlaceholderText(&result->back());
-		}
+		result->back().quoteAuthor = quoteAuthor;
 		if (pullquote) {
 			result->back().flowAlignment = TableAlignment::Center;
 			result->back().pullquote = true;
 		}
+		if (allowEmpty) {
+			ApplyNativeIvQuoteEditPlaceholderText(
+				&result->back(),
+				quoteAuthor);
+		}
 	}
 	return true;
 }
 
-[[nodiscard]] bool ParseOrderedNumber(
-		const QString &value,
-		int *result) {
-	auto ok = false;
-	const auto parsed = value.toInt(&ok);
-	if (!ok) {
-		return false;
+[[nodiscard]] PreparedOrderedListType ResolvePreparedOrderedListType(
+		const std::optional<QString> &type) {
+	if (!type.has_value()) {
+		return PreparedOrderedListType::Decimal;
 	}
-	*result = parsed;
-	return true;
+	const auto &value = *type;
+	if (value == u"a"_q
+		|| value.compare(u"lower-alpha"_q, Qt::CaseInsensitive) == 0
+		|| value.compare(u"lower-latin"_q, Qt::CaseInsensitive) == 0) {
+		return PreparedOrderedListType::LowerAlpha;
+	} else if (value == u"A"_q
+		|| value.compare(u"upper-alpha"_q, Qt::CaseInsensitive) == 0
+		|| value.compare(u"upper-latin"_q, Qt::CaseInsensitive) == 0) {
+		return PreparedOrderedListType::UpperAlpha;
+	} else if (value == u"i"_q
+		|| value.compare(u"lower-roman"_q, Qt::CaseInsensitive) == 0) {
+		return PreparedOrderedListType::LowerRoman;
+	} else if (value == u"I"_q
+		|| value.compare(u"upper-roman"_q, Qt::CaseInsensitive) == 0) {
+		return PreparedOrderedListType::UpperRoman;
+	}
+	return PreparedOrderedListType::Decimal;
 }
 
-[[nodiscard]] int NextNativeIvOrderedNumber(const PreparedBlock &result) {
-	return result.children.empty()
-		? result.startNumber
-		: (result.children.back().orderedNumber + 1);
+[[nodiscard]] QString PreparedOrderedAlphaText(int value, bool upper) {
+	if (value <= 0) {
+		return QString::number(value);
+	}
+	auto result = QString();
+	while (value > 0) {
+		--value;
+		result.prepend(QChar((upper ? 'A' : 'a') + (value % 26)));
+		value /= 26;
+	}
+	return result;
 }
+
+[[nodiscard]] QString PreparedOrderedRomanText(int value, bool upper) {
+	if (value <= 0) {
+		return QString::number(value);
+	}
+	struct RomanPart {
+		int value = 0;
+		const char *text = nullptr;
+	};
+	static constexpr RomanPart kParts[] = {
+		RomanPart{ 1000, "M" },
+		RomanPart{ 900, "CM" },
+		RomanPart{ 500, "D" },
+		RomanPart{ 400, "CD" },
+		RomanPart{ 100, "C" },
+		RomanPart{ 90, "XC" },
+		RomanPart{ 50, "L" },
+		RomanPart{ 40, "XL" },
+		RomanPart{ 10, "X" },
+		RomanPart{ 9, "IX" },
+		RomanPart{ 5, "V" },
+		RomanPart{ 4, "IV" },
+		RomanPart{ 1, "I" },
+	};
+	auto result = QString();
+	for (const auto &part : kParts) {
+		while (value >= part.value) {
+			result += QString::fromLatin1(part.text);
+			value -= part.value;
+		}
+	}
+	return upper ? result : result.toLower();
+}
+
+[[nodiscard]] QString FormatPreparedOrderedMarkerBody(
+		int value,
+		PreparedOrderedListType type) {
+	switch (type) {
+	case PreparedOrderedListType::LowerAlpha:
+		return PreparedOrderedAlphaText(value, false);
+	case PreparedOrderedListType::UpperAlpha:
+		return PreparedOrderedAlphaText(value, true);
+	case PreparedOrderedListType::LowerRoman:
+		return PreparedOrderedRomanText(value, false);
+	case PreparedOrderedListType::UpperRoman:
+		return PreparedOrderedRomanText(value, true);
+	case PreparedOrderedListType::Decimal:
+		return QString::number(value);
+	}
+	return QString::number(value);
+}
+
+[[nodiscard]] QString FormatPreparedOrderedMarkerText(
+		int value,
+		PreparedOrderedListType type,
+		ListDelimiter delimiter) {
+	const auto suffix = (delimiter == ListDelimiter::Parenthesis)
+		? u")"_q
+		: u"."_q;
+	return FormatPreparedOrderedMarkerBody(value, type) + suffix;
+}
+
+class NativeIvOrderedMarkerFormatter {
+public:
+	NativeIvOrderedMarkerFormatter(
+		const PreparedBlock &list,
+		bool editMode)
+	: _listType(list.orderedType)
+	, _delimiter(list.listDelimiter)
+	, _reversed(list.orderedReversed)
+	, _nextValue(list.startNumber)
+	, _editMode(editMode) {
+	}
+
+	void apply(
+			const RichPageListItem &item,
+			PreparedBlock *block) {
+		const auto type = item.number.type.has_value()
+			? ResolvePreparedOrderedListType(item.number.type)
+			: _listType;
+		const auto value = item.number.value.value_or(_nextValue);
+		const auto raw = item.number.rawText();
+		block->orderedType = type;
+		block->orderedReversed = _reversed;
+		block->orderedNumber = value;
+		block->articleOrderedMarkerText = raw;
+		block->orderedMarkerText = _editMode
+			? FormatPreparedOrderedMarkerText(value, type, _delimiter)
+			: raw.isEmpty()
+			? FormatPreparedOrderedMarkerText(value, type, _delimiter)
+			: QString();
+		_nextValue = value + (_reversed ? -1 : 1);
+	}
+
+private:
+	PreparedOrderedListType _listType = PreparedOrderedListType::Decimal;
+	ListDelimiter _delimiter = ListDelimiter::Period;
+	bool _reversed = false;
+	int _nextValue = 1;
+	bool _editMode = false;
+};
 
 using NativeIvTableOccupancyRow = std::vector<char>;
 using NativeIvTableOccupancyGrid = std::vector<NativeIvTableOccupancyRow>;
@@ -543,10 +669,31 @@ void ApplyBlockCaptionEditSource(
 void ApplyNativeIvEditPlaceholderText(PreparedBlock *block) {
 	if (!block->editLeaf) {
 		return;
+	} else if (block->quoteAuthor
+		&& (block->editLeaf->kind == PreparedEditLeafKind::BlockCaption)) {
+		block->editPlaceholderText = u"Add author"_q;
+		return;
 	}
 	block->editPlaceholderText = NativeIvEditPlaceholderText(
 		block->kind,
 		block->editLeaf->kind);
+}
+
+void ApplyNativeIvQuoteEditPlaceholderText(
+		PreparedBlock *block,
+		bool quoteAuthor) {
+	block->editPlaceholderText = quoteAuthor
+		? u"Add author"_q
+		: u"Enter quote"_q;
+}
+
+void RefreshPreparedNativeIvQuotePlaceholder(
+		PreparedBlock *block,
+		NativeIvPrepareState *state) {
+	block->editPlaceholderText = QString();
+	if (state->editMode && block->editLeaf) {
+		ApplyNativeIvQuoteEditPlaceholderText(block, block->quoteAuthor);
+	}
 }
 
 void ApplyNativeIvEditPlaceholderText(PreparedTableCell *cell) {
@@ -779,7 +926,7 @@ void RefreshPreparedNativeIvPlaceholderCopyText(PreparedBlock *block) {
 		SortPreparedIvRichText(&prepared);
 		target->text = std::move(prepared.text);
 		target->links = std::move(prepared.links);
-		RefreshPreparedNativeIvBlockPlaceholder(target, state);
+		RefreshPreparedNativeIvQuotePlaceholder(target, state);
 	} break;
 	case RichPageBlockKind::Table: {
 		if (!preparedBlock->editLeaf || (*preparedBlock->editLeaf != source)) {
@@ -873,13 +1020,10 @@ void RefreshPreparedNativeIvPlaceholderCopyText(PreparedBlock *block) {
 				state)) {
 			return NativeInstantViewLeafUpdateResult::Failed;
 		}
-		if (canonicalBlock.pullquote) {
-			WrapPreparedIvRichTextItalic(&prepared);
-		}
 		SortPreparedIvRichText(&prepared);
 		target->text = std::move(prepared.text);
 		target->links = std::move(prepared.links);
-		RefreshPreparedNativeIvBlockPlaceholder(target, state);
+		RefreshPreparedNativeIvQuotePlaceholder(target, state);
 	} break;
 	case RichPageBlockKind::Photo:
 	case RichPageBlockKind::Video:
@@ -1149,6 +1293,7 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 			data.pullquote,
 			false,
 			state->editMode,
+			false,
 			BlockTextLeafSource(path))) {
 		return false;
 	}
@@ -1166,12 +1311,15 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 	if (!PrepareNativeIvRichText(data.caption, &cite, &block.anchorId, state)) {
 		return false;
 	}
-	if (!AppendPreparedQuoteParagraph(
+	const auto quoteAuthorEmpty = cite.text.text.isEmpty();
+	const auto includeQuoteAuthor = state->editMode || !quoteAuthorEmpty;
+	if (includeQuoteAuthor && !AppendPreparedQuoteParagraph(
 			&block.children,
 			std::move(cite),
 			data.pullquote,
 			true,
 			state->editMode,
+			true,
 			BlockCaptionLeafSource(path))) {
 		return false;
 	}
@@ -1209,7 +1357,10 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 	result->visualDepth = CappedNativeIvListDepth(result->actualDepth);
 	result->depthClamped = (result->actualDepth > result->visualDepth);
 	result->editBlock = BlockSource(path);
-	auto firstNumber = true;
+	auto orderedFormatter = std::optional<NativeIvOrderedMarkerFormatter>();
+	if (result->listKind == ListKind::Ordered) {
+		orderedFormatter.emplace(*result, state->editMode);
+	}
 	for (auto i = 0, count = int(items.size()); i != count; ++i) {
 		const auto &item = items[i];
 		auto block = PreparedBlock();
@@ -1221,16 +1372,8 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 		block.visualDepth = result->visualDepth;
 		block.depthClamped = result->depthClamped;
 		block.editListItem = ListItemSource(path, i);
-		if (result->listKind == ListKind::Ordered) {
-			auto orderedNumber = 0;
-			if (!ParseOrderedNumber(item.number, &orderedNumber)) {
-				orderedNumber = NextNativeIvOrderedNumber(*result);
-			}
-			block.orderedNumber = orderedNumber;
-			if (firstNumber) {
-				result->startNumber = block.orderedNumber;
-				firstNumber = false;
-			}
+		if (orderedFormatter.has_value()) {
+			orderedFormatter->apply(item, &block);
 		}
 		if (RichTextHasMeaningfulContent(item.text)) {
 			auto prepared = PreparedIvRichText();
@@ -1334,7 +1477,7 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 		ApplyNativeIvEditPlaceholderText(&block);
 	}
 
-	const auto &limits = PrepareTableRenderLimitsForIv();
+	const auto &limits = state->tableRenderLimits;
 	const auto rowCount = std::min(int(data.tableRows.size()), limits.maxRows);
 	auto occupancy = NativeIvTableOccupancyGrid(rowCount);
 	block.tableRows.reserve(rowCount);
@@ -1749,7 +1892,13 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 			: ListKind::Bullet;
 		if (prepared.listKind == ListKind::Ordered) {
 			prepared.listDelimiter = ListDelimiter::Period;
-			prepared.startNumber = 1;
+			prepared.orderedType = ResolvePreparedOrderedListType(
+				block.orderedList.type);
+			prepared.orderedReversed = block.orderedList.reversed;
+			prepared.startNumber = block.orderedList.start.value_or(
+				prepared.orderedReversed
+					? int(block.listItems.size())
+					: 1);
 		}
 		return PrepareCanonicalNativeIvList(
 			block.listItems,

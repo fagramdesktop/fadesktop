@@ -82,6 +82,12 @@ using ::Media::ValidFrameSize;
 	return parent->Get<InstantViewMediaRuntime>() != nullptr;
 }
 
+[[nodiscard]] QSize HostedInstantViewForcedSize(
+		not_null<const Element*> parent) {
+	const auto runtime = parent->Get<InstantViewMediaRuntime>();
+	return runtime ? runtime->forcedSize : QSize();
+}
+
 [[nodiscard]] int GifMaxStatusWidth(not_null<DocumentData*> document) {
 	auto result = st::normalFont->width(
 		Ui::FormatDownloadText(document->size, document->size));
@@ -310,6 +316,10 @@ QSize Gif::countOptimalSize() {
 			entry.shown && (entry.requestId || entry.pending));
 	}
 
+	if (const auto forced = HostedInstantViewForcedSize(_parent)
+		; !forced.isEmpty()) {
+		return forced;
+	}
 	const auto hostedInstantView = IsHostedInstantViewMedia(_parent);
 	const auto maxMediaWidth = hostedInstantView
 		? std::max(st::msgMaxWidth, st::maxMediaSize)
@@ -352,6 +362,10 @@ QSize Gif::countOptimalSize() {
 }
 
 QSize Gif::countCurrentSize(int newWidth) {
+	if (const auto forced = HostedInstantViewForcedSize(_parent)
+		; !forced.isEmpty()) {
+		return forced;
+	}
 	auto availableWidth = newWidth;
 
 	const auto hostedInstantView = IsHostedInstantViewMedia(_parent);

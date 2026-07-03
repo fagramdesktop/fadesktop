@@ -10,11 +10,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "iv/markdown/iv_markdown_article.h"
 #include "iv/markdown/iv_markdown_view.h"
 
+#include "base/timer.h"
 #include "base/unique_qptr.h"
 #include "rpl/lifetime.h"
 #include "ui/click_handler.h"
 #include "ui/rp_widget.h"
 #include "ui/style/style_core_types.h"
+#include "ui/ui_utility.h"
 
 #include <functional>
 #include <memory>
@@ -48,6 +50,7 @@ public:
 		std::function<void(const PreparedLink &, Qt::MouseButton)> callback);
 	void setMediaActivationCallback(
 		std::function<bool(const MediaActivation &, Qt::MouseButton)> callback);
+	void setZoomStepCallback(std::function<void(int)> callback);
 	void setClickHandlerContext(
 		QVariant context,
 		std::shared_ptr<QVariant> contextRef = nullptr);
@@ -147,6 +150,7 @@ private:
 	rpl::lifetime _highlightReadyLifetime;
 	std::function<void(const PreparedLink &, Qt::MouseButton)> _activateLink;
 	std::function<bool(const MediaActivation &, Qt::MouseButton)> _activateMedia;
+	std::function<void(int)> _zoomStepCallback;
 	QVariant _clickHandlerContext;
 	std::shared_ptr<QVariant> _clickHandlerContextRef;
 	MarkdownArticleSelection _selection;
@@ -160,13 +164,16 @@ private:
 	int _dragSegment = -1;
 	int _dragSymbol = 0;
 	TextSelection _dragExpandedSelection;
+	QPoint _tripleClickPoint;
+	base::Timer _tripleClickTimer;
 	std::optional<PreparedLink> _selectionClickPreparedLink;
 	PreparedPlaceholderBlockId _pressedPlaceholderId;
 	bool _dragStartHadSelection = false;
 	int _lastRelayoutMs = 0;
 	int _zoom = 100;
+	int _wheelZoomAccumulated = 0;
 	Ui::VisibleRange _visibleRange;
-	std::optional<Qt::Orientation> _horizontalScrollLock;
+	Ui::ScrollDirectionLock _scrollDirectionLock;
 	base::unique_qptr<Ui::PopupMenu> _contextMenu;
 	bool _activeHorizontalScrollDrag = false;
 	bool _articlePainted = false;

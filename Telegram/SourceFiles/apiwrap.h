@@ -25,6 +25,10 @@ namespace Main {
 class Session;
 } // namespace Main
 
+namespace Iv {
+struct RichPage;
+} // namespace Iv
+
 namespace Data {
 struct ReactionId;
 struct UpdatedFileReferences;
@@ -161,6 +165,11 @@ public:
 	void clearModifyRequest(const QString &key);
 
 	void saveCurrentDraftToCloud();
+	mtpRequestId saveDraftToCloud(
+		not_null<Data::Thread*> thread,
+		const Data::Draft &draft,
+		Fn<void()> done = nullptr,
+		Fn<void(const MTP::Error &)> fail = nullptr);
 
 	void savePinnedOrder(Data::Folder *folder);
 	void savePinnedOrder(not_null<Data::Forum*> forum);
@@ -383,6 +392,10 @@ public:
 		not_null<HistoryItem*> item,
 		const MTPInputRichMessage &richMessage,
 		SendAction action);
+	void sendRichMessage(
+		std::shared_ptr<const Iv::RichPage> page,
+		const MTPInputRichMessage &richMessage,
+		SendAction action);
 	void sendMessage(
 		MessageToSend &&message,
 		std::optional<MsgId> localMessageId = std::nullopt);
@@ -499,6 +512,12 @@ private:
 	void checkQuitPreventFinished();
 
 	void saveDraftsToCloud();
+	mtpRequestId savePreparedDraftToCloud(
+		not_null<Data::Thread*> thread,
+		const Data::Draft &draft,
+		bool clearOnFail,
+		Fn<void()> done = nullptr,
+		Fn<void(const MTP::Error &)> fail = nullptr);
 
 	void resolveMessageDatas();
 	void finalizeMessageDataRequest(

@@ -735,10 +735,12 @@ void PopulateCodeBlockLeaf(
 void ApplyMediaBlockGeometry(
 		LaidOutBlock *block,
 		QRect geometry,
-		const style::Markdown &st) {
+		const style::Markdown &st,
+		double mediaPixelScale) {
 	if (!block->mediaBlock) {
 		return;
 	}
+	block->mediaBlock->setMediaPixelScale(mediaPixelScale);
 	block->mediaBlock->setGeometry(geometry);
 	auto actual = block->mediaBlock->geometry();
 	if (actual.width() < geometry.width() && actual.x() == geometry.x()) {
@@ -996,6 +998,9 @@ void CopyBlockCachedTextLeafs(
 	case PreparedBlockKind::Thinking:
 	case PreparedBlockKind::Heading: {
 		const auto &textStyle = TextStyleFor(prepared, st);
+		const auto &placeholderStyle = EditPlaceholderTextStyleFor(
+			prepared,
+			st);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Leaf,
 			MarkedTextLeafSourceSignature(
@@ -1007,8 +1012,8 @@ void CopyBlockCachedTextLeafs(
 			CachedTextLeafSlot::Placeholder,
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
-				textStyle,
-				PlainTextMinResizeWidth(textStyle)),
+				placeholderStyle,
+				PlainTextMinResizeWidth(placeholderStyle)),
 			&block.placeholderLeaf);
 	} break;
 	case PreparedBlockKind::CodeBlock:
@@ -1578,6 +1583,12 @@ bool IsAnchorOnlyBlock(const PreparedBlock &block) {
 
 QString ListMarkerText(const PreparedBlock &block) {
 	if (block.listKind == ListKind::Ordered) {
+		if (!block.orderedMarkerText.isEmpty()) {
+			return block.orderedMarkerText;
+		}
+		if (!block.articleOrderedMarkerText.isEmpty()) {
+			return block.articleOrderedMarkerText;
+		}
 		const auto delimiter = (block.listDelimiter == ListDelimiter::Parenthesis)
 			? u")"_q
 			: u"."_q;
@@ -1739,6 +1750,7 @@ int FlowBlockPreferredWidth(
 				return leaf.maxWidth();
 			});
 	}
+	const auto &placeholderStyle = EditPlaceholderTextStyleFor(prepared, st);
 	return WithCachedTextLeaf(
 		context,
 		BlockCachedTextLeafKey(
@@ -1747,15 +1759,15 @@ int FlowBlockPreferredWidth(
 			context.preparedPath),
 		PlainTextLeafSourceSignature(
 			prepared.editPlaceholderText,
-			textStyle,
-			PlainTextMinResizeWidth(textStyle)),
+			placeholderStyle,
+			PlainTextMinResizeWidth(placeholderStyle)),
 		[&](Ui::Text::String *leaf,
 				Spellchecker::HighlightProcessId*) {
 			SetPlainTextLeaf(
 				leaf,
-				textStyle,
+				placeholderStyle,
 				prepared.editPlaceholderText,
-				PlainTextMinResizeWidth(textStyle));
+				PlainTextMinResizeWidth(placeholderStyle));
 		},
 		[](const Ui::Text::String &leaf,
 				Spellchecker::HighlightProcessId) {
@@ -2193,44 +2205,71 @@ int TableBlockContentMinimumWidth(
 				cellIndex != cellCount;
 				++cellIndex) {
 			const auto &cell = row.cells[cellIndex];
-			if (cell.text.text.isEmpty()) {
+			const auto usePlaceholder = cell.text.text.isEmpty()
+				&& !cell.editPlaceholderText.isEmpty();
+			if (cell.text.text.isEmpty() && !usePlaceholder) {
 				continue;
 			}
 			const auto &textStyle = TableCellTextStyle(cell, st);
 			const auto minResizeWidth = TableCellTextMinResizeWidth(
 				textStyle,
 				st);
-			const auto leafMinimum = WithCachedTextLeaf(
-				context,
-				TableCellCachedTextLeafKey(
-					CachedTextLeafSlot::TableCellText,
-					cell,
-					context.preparedPath,
-					rowIndex,
-					cellIndex),
-				MarkedTextLeafSourceSignature(
-					cell.text,
-					textStyle,
-					minResizeWidth),
-				[&](Ui::Text::String *leaf,
-						Spellchecker::HighlightProcessId*) {
-					SetTextLeaf(
-						leaf,
+			const auto leafMinimum = usePlaceholder
+				? WithCachedTextLeaf(
+					context,
+					TableCellCachedTextLeafKey(
+						CachedTextLeafSlot::TableCellPlaceholder,
+						cell,
+						context.preparedPath,
+						rowIndex,
+						cellIndex),
+					PlainTextLeafSourceSignature(
+						cell.editPlaceholderText,
 						textStyle,
-						st,
+						minResizeWidth),
+					[&](Ui::Text::String *leaf,
+							Spellchecker::HighlightProcessId*) {
+						SetPlainTextLeaf(
+							leaf,
+							textStyle,
+							cell.editPlaceholderText,
+							minResizeWidth);
+					},
+					[](const Ui::Text::String &leaf,
+							Spellchecker::HighlightProcessId) {
+						return LeafMinimumWidth(leaf);
+					})
+				: WithCachedTextLeaf(
+					context,
+					TableCellCachedTextLeafKey(
+						CachedTextLeafSlot::TableCellText,
+						cell,
+						context.preparedPath,
+						rowIndex,
+						cellIndex),
+					MarkedTextLeafSourceSignature(
 						cell.text,
-						&formulas,
-						inlineFormulaObjects,
-						mediaRuntime,
-						minResizeWidth,
-						context.repaint,
-						context.repaintRect);
-					BindLinks(leaf, cell.links);
-				},
-				[](const Ui::Text::String &leaf,
-						Spellchecker::HighlightProcessId) {
-					return LeafMinimumWidth(leaf);
-				});
+						textStyle,
+						minResizeWidth),
+					[&](Ui::Text::String *leaf,
+							Spellchecker::HighlightProcessId*) {
+						SetTextLeaf(
+							leaf,
+							textStyle,
+							st,
+							cell.text,
+							&formulas,
+							inlineFormulaObjects,
+							mediaRuntime,
+							minResizeWidth,
+							context.repaint,
+							context.repaintRect);
+						BindLinks(leaf, cell.links);
+					},
+					[](const Ui::Text::String &leaf,
+							Spellchecker::HighlightProcessId) {
+						return LeafMinimumWidth(leaf);
+					});
 			if (leafMinimum > 0) {
 				constraints.push_back({
 					.column = std::max(cell.column, 0),
@@ -2384,6 +2423,8 @@ const style::TextStyle &TextStyleFor(
 		const style::Markdown &st) {
 	if (block.kind == PreparedBlockKind::CodeBlock) {
 		return st.code;
+	} else if (block.quoteAuthor) {
+		return st.quoteAuthorStyle;
 	} else if (block.kind != PreparedBlockKind::Heading) {
 		return st.body;
 	}
@@ -2396,6 +2437,12 @@ const style::TextStyle &TextStyleFor(
 	case 6: return st.heading6;
 	}
 	return st.heading6;
+}
+
+const style::TextStyle &EditPlaceholderTextStyleFor(
+		const PreparedBlock &block,
+		const style::Markdown &st) {
+	return block.quoteAuthor ? st.body : TextStyleFor(block, st);
 }
 
 void ApplyPreparedEditSources(
@@ -2453,6 +2500,9 @@ void UpdateLaidOutLeafContent(
 	case PreparedBlockKind::Thinking:
 	case PreparedBlockKind::Heading: {
 		const auto &textStyle = TextStyleFor(prepared, st);
+		const auto &placeholderStyle = EditPlaceholderTextStyleFor(
+			prepared,
+			st);
 		BuildOrReuseMarkedTextLeaf(
 			&block->leaf,
 			CachedTextLeafSlot::Leaf,
@@ -2473,8 +2523,8 @@ void UpdateLaidOutLeafContent(
 				&block->placeholderLeaf,
 				prepared,
 				prepared.editPlaceholderText,
-				textStyle,
-				PlainTextMinResizeWidth(textStyle),
+				placeholderStyle,
+				PlainTextMinResizeWidth(placeholderStyle),
 				context);
 		}
 	} break;
@@ -2796,8 +2846,10 @@ LaidOutBlock LayoutFlowBlock(
 	block.headingLevel = prepared.headingLevel;
 	block.supplementary = prepared.supplementary;
 	block.pullquote = prepared.pullquote;
+	block.quoteAuthor = prepared.quoteAuthor;
 	block.flowTextAlign = CellAlign(prepared.flowAlignment);
 	const auto &textStyle = TextStyleFor(prepared, st);
+	const auto &placeholderStyle = EditPlaceholderTextStyleFor(prepared, st);
 	if (!IsAnchorOnlyBlock(prepared)) {
 		BuildOrReuseMarkedTextLeaf(
 			&block.leaf,
@@ -2820,8 +2872,8 @@ LaidOutBlock LayoutFlowBlock(
 				&block.placeholderLeaf,
 				prepared,
 				prepared.editPlaceholderText,
-				textStyle,
-				PlainTextMinResizeWidth(textStyle),
+				placeholderStyle,
+				PlainTextMinResizeWidth(placeholderStyle),
 				context);
 		}
 	}
@@ -4408,7 +4460,11 @@ LaidOutBlock LayoutGroupedMediaBlock(
 	block->mediaRect = QRect(mediaLeft, mediaTop, mediaWidth, mediaHeight);
 	block->visibleMediaRect = block->mediaRect;
 	if (block->mediaBlock) {
-		ApplyMediaBlockGeometry(block, block->mediaRect, st);
+		ApplyMediaBlockGeometry(
+			block,
+			block->mediaRect,
+			st,
+			context.mediaPixelScale);
 	}
 	auto bottom = block->mediaRect.y() + block->mediaRect.height()
 		+ padding.bottom();
@@ -4459,7 +4515,11 @@ LaidOutBlock LayoutGroupedMediaBlock(
 	block->mediaRect = QRect(left, top, blockWidth, cardHeight);
 	block->visibleMediaRect = block->mediaRect;
 	if (block->mediaBlock) {
-		ApplyMediaBlockGeometry(block, block->mediaRect, st);
+		ApplyMediaBlockGeometry(
+			block,
+			block->mediaRect,
+			st,
+			context.mediaPixelScale);
 	}
 	auto bottom = top + cardHeight;
 	if (!LayoutMediaCaptionGeometry(

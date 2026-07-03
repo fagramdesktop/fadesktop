@@ -1739,7 +1739,11 @@ auto HtmlWriter::Wrap::pushMessage(
 					? button.data
 					: QByteArray();
 				const auto onclick = (button.type != Type::Url)
-					? ("return ShowTextCopied('" + content + "');").toUtf8()
+					? ("return ShowTextCopied('"
+							+ QString(content)
+								.replace('\\', u"\\\\"_q)
+								.replace('\'', u"\\'"_q)
+							+ "');").toUtf8()
 					: QByteArray();
 				block.append(pushTag("div", { { "class", "bot_button" } }));
 				block.append(pushTag("a", {
@@ -1749,7 +1753,7 @@ auto HtmlWriter::Wrap::pushMessage(
 						: Attribute{ "onclick", onclick },
 				}));
 				block.append(pushTag("div"));
-				block.append(button.text.toUtf8());
+				block.append(SerializeString(button.text.toUtf8()));
 				block.append(popTag());
 				block.append(popTag());
 				block.append(popTag());

@@ -13,7 +13,7 @@ Use these templates as Codex subagent messages. Use them as same-session checkli
 - After each phase completes, write `.ai/<PROJECT>/<LETTER>/logs/phase-<name>.result.md` summarizing the status, files touched, and any follow-up notes.
 - Use `fork_context: false` by default. If the phase depends on thread-only context or UI attachments, pass that context explicitly or enable `fork_context` only for that phase.
 - Prefer `worker` for phases that write files. Use `default` for plan or review passes if that fits the host better. Use `explorer` only for narrow read-only questions.
-- When supported, request `model: gpt-5.4` and `reasoning_effort: xhigh` for delegated phases.
+- When supported, request the smartest/frontier model available and the highest available reasoning effort for every delegated phase (`model: gpt-5.5` and `reasoning_effort: xhigh` when available). Never choose mini, fast, spark, or cost-optimized model variants.
 - Default wait budget for delegated phases is 5 minutes while the phase is clearly still in progress. Successful completion may wake earlier, so this does not delay finished work.
 - When a phase appears close to landing, use 1-2 minute waits until it finishes.
 - A `wait_agent` timeout is not failure. On timeout, inspect both the expected artifact and the matching progress file before deciding anything.

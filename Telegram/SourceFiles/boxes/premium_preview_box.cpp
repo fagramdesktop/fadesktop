@@ -148,6 +148,8 @@ void PreloadSticker(const std::shared_ptr<Data::DocumentMedia> &media) {
 		return tr::lng_premium_summary_subtitle_no_forwards();
 	case PremiumFeature::AiCompose:
 		return tr::lng_premium_summary_subtitle_ai_compose();
+	case PremiumFeature::RichFormatting:
+		return tr::lng_premium_summary_subtitle_rich_formatting();
 
 	case PremiumFeature::BusinessLocation:
 		return tr::lng_business_subtitle_location();
@@ -223,6 +225,8 @@ void PreloadSticker(const std::shared_ptr<Data::DocumentMedia> &media) {
 		return tr::lng_premium_summary_about_no_forwards();
 	case PremiumFeature::AiCompose:
 		return tr::lng_premium_summary_about_ai_compose();
+	case PremiumFeature::RichFormatting:
+		return tr::lng_premium_summary_about_rich_formatting();
 
 	case PremiumFeature::BusinessLocation:
 		return tr::lng_business_about_location();

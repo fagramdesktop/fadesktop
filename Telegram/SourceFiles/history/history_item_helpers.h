@@ -136,6 +136,7 @@ struct SendingErrorRequest {
 	const TextWithTags *text = nullptr;
 	int messagesCount = 0;
 	bool ignoreSlowmodeCountdown = false;
+	bool richMessage = false;
 };
 [[nodiscard]] int ComputeSendingMessagesCount(
 	not_null<History*> history,

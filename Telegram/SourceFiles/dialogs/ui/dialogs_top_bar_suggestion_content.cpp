@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/call_delayed.h"
 #include "data/data_authorization.h"
+#include "dialogs/ui/dialogs_pill.h"
 #include "lang/lang_keys.h"
 #include "lottie/lottie_icon.h"
 #include "settings/settings_common.h"
@@ -24,6 +25,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/vertical_list.h"
 #include "ui/vertical_list.h"
 #include "ui/widgets/buttons.h"
+#include "ui/widgets/elastic_scroll.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/shadow.h"
 #include "ui/wrap/fade_wrap.h"
@@ -40,26 +42,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace Dialogs {
 namespace {
-
-[[nodiscard]] int PillRadius() {
-	const auto padding = st::msgReplyPadding.top();
-	return (padding
-		+ st::semiboldTextStyle.font->height
-		+ st::dialogsTopBarSuggestionAboutStyle.font->height
-		+ padding) / 2;
-}
-
-void PaintTopFade(QPainter &p, int outerWidth, int fadeHeight) {
-	if (fadeHeight <= 0) {
-		return;
-	}
-	auto transparent = st::dialogsBg->c;
-	transparent.setAlpha(0);
-	auto grad = QLinearGradient(0, 0, 0, fadeHeight);
-	grad.setColorAt(0, st::dialogsBg->c);
-	grad.setColorAt(1, transparent);
-	p.fillRect(QRect(0, 0, outerWidth, fadeHeight), grad);
-}
 
 [[nodiscard]] QString FormatUnconfirmedAuthMessage(
 		const std::vector<Data::UnreviewedAuth> &list) {
@@ -95,25 +77,43 @@ void PaintTopFade(QPainter &p, int outerWidth, int fadeHeight) {
 		commonLocation);
 }
 
-void PaintPillTopSheen(QPainter &p, const QRect &pill, int radius) {
-	if (pill.isEmpty() || st::dialogsBg->c.lightness() >= 128) {
-		return;
-	}
-	auto top = QColor(255, 255, 255, 40);
-	auto mid = QColor(255, 255, 255, 0);
-	auto bottom = QColor(255, 255, 255, 20);
-	auto grad = QLinearGradient(0, pill.top(), 0, pill.bottom());
-	grad.setColorAt(0., top);
-	grad.setColorAt(0.5, mid);
-	grad.setColorAt(1., bottom);
-	p.setPen(QPen(QBrush(grad), st::lineWidth));
-	p.setBrush(Qt::NoBrush);
-	const auto half = 0.5 * st::lineWidth;
-	const auto stroke = QRectF(pill).adjusted(half, half, -half, -half);
-	p.drawRoundedRect(stroke, radius - half, radius - half);
+} // namespace
+
+int PillRadius() {
+	const auto padding = st::msgReplyPadding.top();
+	return (padding
+		+ st::semiboldTextStyle.font->height
+		+ st::dialogsTopBarSuggestionAboutStyle.font->height
+		+ padding) / 2;
 }
 
-} // namespace
+int PaintSuggestionBubbleBackground(
+		QPainter &p,
+		QRect outer,
+		const Ui::BoxShadow &shadow) {
+	const auto &margins = st::dialogsTopBarSuggestionMargins;
+	const auto pill = outer - margins;
+	PaintTopFade(
+		p,
+		outer.width(),
+		margins.top() + pill.height() / 2,
+		st::dialogsBg->c);
+	if (pill.isEmpty()) {
+		return 0;
+	}
+	const auto radius = std::min({
+		PillRadius(),
+		pill.width() / 2,
+		pill.height() / 2,
+	});
+	shadow.paint(p, pill, radius);
+	auto hq = PainterHighQualityEnabler(p);
+	p.setBrush(st::dialogsBg);
+	p.setPen(Qt::NoPen);
+	p.drawRoundedRect(pill, radius, radius);
+	PaintPillOutline(p, pill, radius);
+	return radius;
+}
 
 UnconfirmedAuthWrap::UnconfirmedAuthWrap(
 	not_null<Ui::RpWidget*> parent,
@@ -190,23 +190,7 @@ not_null<UnconfirmedAuthWrap*> CreateUnconfirmedAuthContent(
 	const auto content = wrap->entity();
 	const auto &margins = st::dialogsTopBarSuggestionMargins;
 	content->paintOn([=](QPainter &p) {
-		const auto outer = content->rect();
-		const auto pill = outer - margins;
-		PaintTopFade(p, outer.width(), margins.top() + pill.height() / 2);
-		if (pill.isEmpty()) {
-			return;
-		}
-		const auto radius = std::min({
-			PillRadius(),
-			pill.width() / 2,
-			pill.height() / 2,
-		});
-		wrap->shadow().paint(p, pill, radius);
-		auto hq = PainterHighQualityEnabler(p);
-		p.setBrush(st::dialogsBg);
-		p.setPen(Qt::NoPen);
-		p.drawRoundedRect(pill, radius, radius);
-		PaintPillTopSheen(p, pill, radius);
+		PaintSuggestionBubbleBackground(p, content->rect(), wrap->shadow());
 	});
 
 	const auto &basePadding = st::dialogsUnconfirmedAuthPadding;
@@ -381,24 +365,10 @@ void TopBarSuggestionContent::draw(QPainter &p) {
 	const auto &margins = st::dialogsTopBarSuggestionMargins;
 	const auto pill = outer - margins;
 
-	PaintTopFade(p, outer.width(), margins.top() + pill.height() / 2);
-
+	const auto radius = PaintSuggestionBubbleBackground(p, outer, _shadow);
 	if (pill.isEmpty()) {
 		return;
 	}
-	const auto radius = std::min({
-		PillRadius(),
-		pill.width() / 2,
-		pill.height() / 2,
-	});
-
-	_shadow.paint(p, pill, radius);
-
-	auto hq = PainterHighQualityEnabler(p);
-	p.setBrush(st::dialogsBg);
-	p.setPen(Qt::NoPen);
-	p.drawRoundedRect(pill, radius, radius);
-	PaintPillTopSheen(p, pill, radius);
 
 	auto clipPath = QPainterPath();
 	clipPath.addRoundedRect(pill, radius, radius);
@@ -640,6 +610,45 @@ void TopBarSuggestionContent::setLeadingWidget(Ui::RpWidget *widget) {
 
 const style::TextStyle & TopBarSuggestionContent::contentTitleSt() const {
 	return _contentTitleSt;
+}
+
+void MountTopBarSuggestion(MountTopBarSuggestionArgs args) {
+	const auto scroll = args.scroll;
+	const auto innerList = args.innerList;
+	const auto wrap = args.wrap;
+	const auto placeholder = args.placeholder;
+	const auto heightChanged = std::move(args.heightChanged);
+	if (placeholder) {
+		placeholder->reset(innerList->insert(
+			0,
+			object_ptr<Ui::RpWidget>(innerList)));
+		const auto raw = placeholder->get();
+		raw->paintOn([raw](QPainter &p) {
+			p.fillRect(raw->rect(), st::dialogsBg);
+		});
+	}
+	wrap->setParent(scroll);
+	wrap->raise();
+	wrap->heightValue() | rpl::on_next([=](int h) {
+		if (placeholder) {
+			if (const auto raw = placeholder->get()) {
+				raw->resize(raw->width(), h);
+			}
+		}
+		scroll->setBarTopInset(h);
+		if (heightChanged) {
+			heightChanged(h);
+		}
+	}, wrap->entity()->lifetime());
+	const auto pinToScroll = [=] {
+		wrap->resizeToWidth(scroll->width());
+		wrap->moveToLeft(0, 0);
+	};
+	scroll->sizeValue(
+	) | rpl::to_empty | rpl::on_next(
+		pinToScroll,
+		wrap->entity()->lifetime());
+	pinToScroll();
 }
 
 } // namespace Dialogs

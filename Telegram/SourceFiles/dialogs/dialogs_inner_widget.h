@@ -17,6 +17,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "lang/lang_keys.h"
 #include "ui/effects/animations.h"
 #include "ui/dragging_scroll_manager.h"
+#include "ui/rows_scroll_cache.h"
 #include "ui/rp_widget.h"
 #include "ui/userpic_view.h"
 
@@ -69,6 +70,7 @@ struct ReactionId;
 namespace Dialogs::Ui {
 using namespace ::Ui;
 class VideoUserpic;
+class MessageView;
 struct PaintContext;
 struct TopicJumpCache;
 } // namespace Dialogs::Ui
@@ -251,6 +253,11 @@ public:
 	QAccessible::Role accessibilityChildSubItemRole() const override;
 	QString accessibilityChildSubItemName(int row, int column) const override;
 	QString accessibilityChildSubItemValue(int row, int column) const override;
+	bool accessibilityChildSupportsActions(int index) const override;
+	quintptr accessibilityChildIdentity(int index) const override;
+	int accessibilityChildIndexByIdentity(quintptr identity) const override;
+	void accessibilityChildSetFocus(quintptr identity) override;
+	void accessibilityChildActivate(quintptr identity) override;
 
 protected:
 	void visibleTopBottomUpdated(
@@ -294,6 +301,15 @@ private:
 	struct PinnedRow {
 		anim::value yadd;
 		crl::time animStartTime = 0;
+	};
+
+	struct CachedRow {
+		QRect preview;
+		QRect badge;
+		QImage band;
+		std::pair<uint64, uint64> userpic;
+		bool bandDirty = true;
+		bool video = false;
 	};
 
 	struct FilterResult {
@@ -342,6 +358,9 @@ private:
 	void preloadRowsData();
 	void scrollToItem(int top, int height);
 	void scrollToDefaultSelected();
+	void scrollToFilteredSelected();
+	bool selectChildByIndex(int index);
+	void clearSecondaryMouseState();
 	void setCollapsedPressed(int pressed);
 	void setPressed(
 		Row *pressed,
@@ -387,6 +406,20 @@ private:
 
 	void updateRowCornerStatusShown(not_null<History*> history);
 	void repaintDialogRowCornerStatus(not_null<History*> history);
+
+	[[nodiscard]] bool animatedPreviewCached(not_null<Row*> row);
+	void invalidateCachedRow(uint64 rowId);
+	void invalidateLoadedUserpics();
+	void paintCachedRowOverlays(
+		Painter &p,
+		not_null<Row*> row,
+		uint64 rowId,
+		const Ui::PaintContext &context);
+	void paintAnimatedPreview(
+		Painter &p,
+		not_null<Ui::MessageView*> view,
+		CachedRow &cached,
+		const Ui::PaintContext &context);
 
 	bool addBotAppRipple(QPoint origin, Fn<void()> updateCallback);
 	bool addQuickActionRipple(not_null<Row*> row, Fn<void()> updateCallback);
@@ -511,6 +544,20 @@ private:
 	[[nodiscard]] int filteredChildCount() const;
 	[[nodiscard]] std::optional<FilteredChildRef>
 		filteredChildAt(int index) const;
+
+	// A single logical mapping for the Default state shared by painting order,
+	// keyboard navigation and accessibility: collapsed rows first, then the
+	// shown list with _skipTopDialog applied. `collapsed` indexes
+	// _collapsedRows; otherwise `row` is the shown-list row.
+	struct DefaultChildRef {
+		int collapsed = -1;
+		Row *row = nullptr;
+	};
+	[[nodiscard]] int defaultChildCount() const;
+	[[nodiscard]] std::optional<DefaultChildRef>
+		defaultChildAt(int index) const;
+	[[nodiscard]] int defaultChildIndexOfSelected() const;
+
 	void announceSelectedFocus();
 	void clearSearchResults(bool alsoPeerSearchResults = true);
 	void clearPeerSearchResults();
@@ -581,6 +628,11 @@ private:
 	std::vector<std::unique_ptr<CollapsedRow>> _collapsedRows;
 	not_null<const style::DialogRow*> _st;
 	mutable std::unique_ptr<Ui::TopicJumpCache> _topicJumpCache;
+	base::flat_map<uint64, CachedRow> _cachedRows;
+	Ui::RowsScrollCache _rowsScrollCache{[this] {
+		_cachedRows.clear();
+		update();
+	}};
 	bool _selectedChatTypeFilter = false;
 	bool _pressedChatTypeFilter = false;
 	bool _selectedMorePosts = false;

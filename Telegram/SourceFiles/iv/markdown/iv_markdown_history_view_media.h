@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "iv/markdown/iv_markdown_common.h"
 #include "base/flat_map.h"
+#include "base/flat_set.h"
 #include "base/weak_ptr.h"
 
 #include <functional>
@@ -73,6 +74,7 @@ enum class IvHistoryViewMediaKind {
 	Map,
 	Audio,
 	GroupedMedia,
+	Slideshow,
 };
 
 struct IvHistoryViewMediaDescriptor {
@@ -85,6 +87,8 @@ struct IvHistoryViewMediaDescriptor {
 	QSize layoutHint;
 	std::shared_ptr<IvHistoryViewMediaHost> host;
 	MediaFactory mediaFactory;
+	std::vector<MediaFactory> slideMediaFactories;
+	std::vector<QSize> slideOriginalSizes;
 	std::vector<std::shared_ptr<void>> keepAlive;
 	std::shared_ptr<PhotoRuntime> photo;
 	std::shared_ptr<DocumentRuntime> document;
@@ -92,6 +96,9 @@ struct IvHistoryViewMediaDescriptor {
 	base::flat_map<
 		uint64,
 		std::shared_ptr<DocumentRuntime>> groupedDocuments;
+	base::flat_map<uint64, int> groupedItemIndices;
+	base::flat_set<uint64> groupedSpoileredIds;
+	bool spoiler = false;
 };
 
 class IvHistoryViewMediaBlockFactory final : public HostedMediaBlockFactory {

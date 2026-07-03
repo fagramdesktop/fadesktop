@@ -65,9 +65,16 @@ struct PsaTooltipState : RuntimeComponent<PsaTooltipState, Element> {
 	mutable bool buttonVisible = true;
 };
 
+struct HiddenSenderTooltip
+: RuntimeComponent<HiddenSenderTooltip, Element> {
+	mutable QRect linkRect;
+	mutable int cachedWidth = -1;
+};
+
 struct InstantViewMediaRuntime
 : RuntimeComponent<InstantViewMediaRuntime, Element> {
 	QString pageUrl;
+	QSize forcedSize;
 };
 
 struct HistoryMessageRichPage
@@ -98,6 +105,7 @@ struct HistoryMessageRichPage
 	mutable QPoint handlerHorizontalScrollPoint;
 	mutable bool handlerHorizontalScrollActive = false;
 	mutable ClickHandlerPtr handlerHorizontalScrollPressed;
+	mutable int handlerCodeHeaderSegmentIndex = -1;
 	mutable std::optional<Iv::Markdown::PreparedLink> handlerPreparedLink;
 	mutable Iv::Markdown::MediaActivation handlerMediaActivation;
 	mutable Iv::Markdown::PreparedPlaceholderBlockId handlerPlaceholderId;

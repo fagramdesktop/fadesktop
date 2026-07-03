@@ -24,6 +24,7 @@ struct Markdown;
 
 namespace Iv {
 struct RichPage;
+struct RichMessageLimits;
 } // namespace Iv
 
 namespace Iv::Markdown {
@@ -101,6 +102,14 @@ enum class PreparedTableCellVerticalAlignment {
 	Top,
 	Middle,
 	Bottom,
+};
+
+enum class PreparedOrderedListType {
+	Decimal,
+	LowerAlpha,
+	UpperAlpha,
+	LowerRoman,
+	UpperRoman,
 };
 
 enum class PreparedEditBlockContainerKind {
@@ -478,6 +487,65 @@ struct PreparedEditHit {
 	}
 };
 
+struct PreparedEditTextDropTarget {
+	PreparedEditLeafSource leaf;
+	int offset = 0;
+
+	friend inline bool operator==(
+			const PreparedEditTextDropTarget &a,
+			const PreparedEditTextDropTarget &b) {
+		return (a.leaf == b.leaf)
+			&& (a.offset == b.offset);
+	}
+
+	friend inline bool operator!=(
+			const PreparedEditTextDropTarget &a,
+			const PreparedEditTextDropTarget &b) {
+		return !(a == b);
+	}
+};
+
+struct PreparedEditBlockDropTarget {
+	PreparedEditBlockContainerPath container;
+	int insertIndex = -1;
+
+	friend inline bool operator==(
+			const PreparedEditBlockDropTarget &a,
+			const PreparedEditBlockDropTarget &b) {
+		return (a.container == b.container)
+			&& (a.insertIndex == b.insertIndex);
+	}
+
+	friend inline bool operator!=(
+			const PreparedEditBlockDropTarget &a,
+			const PreparedEditBlockDropTarget &b) {
+		return !(a == b);
+	}
+};
+
+struct PreparedEditListItemDropTarget {
+	PreparedEditBlockPath block;
+	int insertIndex = -1;
+
+	friend inline bool operator==(
+			const PreparedEditListItemDropTarget &a,
+			const PreparedEditListItemDropTarget &b) {
+		return (a.block == b.block)
+			&& (a.insertIndex == b.insertIndex);
+	}
+
+	friend inline bool operator!=(
+			const PreparedEditListItemDropTarget &a,
+			const PreparedEditListItemDropTarget &b) {
+		return !(a == b);
+	}
+};
+
+using PreparedEditDropTarget = std::variant<
+	PreparedEditTextDropTarget,
+	PreparedEditBlockDropTarget,
+	PreparedEditListItemDropTarget>;
+
 struct PreparedTableCell {
 	TextWithEntities text;
 	std::vector<PreparedLink> links;
@@ -621,6 +689,7 @@ struct PreparedBlock {
 	ListDelimiter listDelimiter = ListDelimiter::None;
 	MathKind mathKind = MathKind::Display;
 	TaskState taskState = TaskState::None;
+	PreparedOrderedListType orderedType = PreparedOrderedListType::Decimal;
 	int headingLevel = 0;
 	int formulaIndex = -1;
 	int orderedNumber = 0;
@@ -636,10 +705,14 @@ struct PreparedBlock {
 	bool tight = false;
 	bool supplementary = false;
 	bool pullquote = false;
+	bool quoteAuthor = false;
 	bool forceTextSegment = false;
+	bool orderedReversed = false;
 	std::optional<PreparedEditBlockSource> editBlock;
 	std::optional<PreparedEditListItemSource> editListItem;
 	std::optional<PreparedEditLeafSource> editLeaf;
+	QString articleOrderedMarkerText;
+	QString orderedMarkerText;
 	QString editPlaceholderText;
 };
 
@@ -673,6 +746,7 @@ struct MarkdownPrepareTableRenderLimits {
 
 struct MarkdownPrepareLimits {
 	MarkdownPrepareTableRenderLimits tableRender;
+	MarkdownPrepareTableRenderLimits markdownTableRender;
 	int visualListDepth = 0;
 	int visualQuoteDepth = 0;
 	int maxPreparedBlocks = 0;
@@ -726,6 +800,7 @@ struct NativeInstantViewPrepareRequest {
 	std::shared_ptr<const Iv::RichPage> richPage;
 	std::shared_ptr<MediaRuntime> mediaRuntime;
 	std::optional<MarkdownPrepareDimensions> dimensionsOverride;
+	std::optional<MarkdownPrepareTableRenderLimits> tableRenderLimits;
 	bool editMode = false;
 };
 
@@ -771,6 +846,10 @@ struct NativeInstantViewPrepareResult {
 };
 
 [[nodiscard]] const MarkdownPrepareTableRenderLimits &PrepareTableRenderLimitsForIv();
+[[nodiscard]] MarkdownPrepareTableRenderLimits PrepareTableRenderLimitsForRichMessage(
+	const RichMessageLimits &limits);
+[[nodiscard]] auto PrepareMarkdownTableRenderLimitsForIv()
+-> const MarkdownPrepareTableRenderLimits &;
 [[nodiscard]] const MarkdownPrepareLimits &PrepareLimitsForIv();
 [[nodiscard]] MarkdownPrepareDimensions CaptureMarkdownPrepareDimensions();
 [[nodiscard]] MarkdownPrepareDimensions CaptureMarkdownPrepareDimensions(
@@ -784,6 +863,8 @@ struct NativeInstantViewPrepareResult {
 [[nodiscard]] NativeInstantViewLeafUpdateResult UpdatePreparedNativeInstantViewLeaf(
 	MarkdownArticleContent *content,
 	const RichPage &page,
-	const PreparedEditLeafSource &source);
+	const PreparedEditLeafSource &source,
+	std::optional<MarkdownPrepareTableRenderLimits> tableRenderLimits
+		= std::nullopt);
 
 } // namespace Iv::Markdown

@@ -77,6 +77,7 @@ enum class PremiumFeature {
 	Gifts,
 	NoForwards,
 	AiCompose,
+	RichFormatting,
 
 	// Business features.
 	BusinessLocation,

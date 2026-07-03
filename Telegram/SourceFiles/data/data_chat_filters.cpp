@@ -831,9 +831,15 @@ void ChatFilters::moveAllToFront() {
 void ChatFilters::applyRemove(int position) {
 	Expects(position >= 0 && position < _list.size());
 
+	// Remove the filter from the list before applyChange() tears down its
+	// chats. Unpinning a chat re-caches its siblings' pinned indices, which
+	// runs Session::refreshChatListEntry(); while the filter is still listed
+	// but emptied that re-enters PinnedList::setPinned() on the same pinned
+	// list mid-iteration and crashes (see also PinnedList::setPinned).
 	const auto i = begin(_list) + position;
-	applyChange(*i, ChatFilter(i->id(), {}, {}, {}, {}, {}, {}, {}));
+	auto filter = std::move(*i);
 	_list.erase(i);
+	applyChange(filter, ChatFilter(filter.id(), {}, {}, {}, {}, {}, {}, {}));
 }
 
 bool ChatFilters::applyChange(ChatFilter &filter, ChatFilter &&updated) {

@@ -70,16 +70,7 @@ Members::Members(
 
 int Members::desiredHeight() const {
 	auto desired = _header ? _header->height() : 0;
-	auto count = [this] {
-		if (auto chat = _peer->asChat()) {
-			return chat->count;
-		} else if (auto channel = _peer->asChannel()) {
-			return channel->membersCount();
-		}
-		return 0;
-	}();
-	desired += qMax(count, _list->fullRowsCount())
-		* st::infoMembersList.item.height;
+	desired += _list->fullRowsCount() * st::infoMembersList.item.height;
 	return qMax(height(), desired);
 }
 

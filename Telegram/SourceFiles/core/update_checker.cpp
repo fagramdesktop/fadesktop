@@ -18,6 +18,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/application.h"
 #include "core/changelogs.h"
 #include "core/click_handler_types.h"
+#include "core/version.h"
 #include "mainwindow.h"
 #include "main/main_account.h"
 #include "main/main_session.h"

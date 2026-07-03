@@ -28,6 +28,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/history_drag_area.h"
 #include "history/history_item_components.h"
 #include "history/history_item_helpers.h" // GetErrorForSending.
+#include "iv/iv_rich_message_serializer.h"
+#include "iv/iv_rich_page.h"
 #include "ui/chat/pinned_bar.h"
 #include "ui/chat/chat_style.h"
 #include "ui/controls/swipe_handler.h"
@@ -86,6 +88,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "storage/localimageloader.h"
 #include "inline_bots/inline_bot_result.h"
 #include "info/profile/info_profile_values.h"
+#include "iv/editor/iv_editor_session.h"
 #include "lang/lang_keys.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
@@ -351,6 +354,11 @@ ChatWidget::ChatWidget(
 		static_cast<ListDelegate*>(this)));
 	_scroll->move(0, _topBar->height());
 	_scroll->show();
+	_scroll->setOverscrollEdges([=] {
+		return _inner->loadedAtTopKnown() && _inner->loadedAtTop();
+	}, [=] {
+		return _inner->loadedAtBottomKnown() && _inner->loadedAtBottom();
+	});
 	_scroll->scrolls(
 	) | rpl::on_next([=] {
 		onScroll();
@@ -1381,11 +1389,19 @@ Api::SendAction ChatWidget::prepareSendAction(
 	auto result = Api::SendAction(_history, options);
 	result.replyTo = replyTo();
 	result.options.sendAs = _composeControls->sendAsPeer();
+	result.clearDraft = !Iv::Editor::IsComposeBoxOpen(
+		&session(),
+		_peer->id,
+		_repliesRootId,
+		_monoforumPeerId);
 	return result;
 }
 
 void ChatWidget::send() {
 	if (_composeControls->getTextWithAppliedMarkdown().text.isEmpty()) {
+		if (const auto page = _composeControls->shownRichMessage()) {
+			sendRichDraft(page, {});
+		}
 		return;
 	}
 	send({});
@@ -1419,6 +1435,10 @@ void ChatWidget::sendVoice(const ComposeControls::VoiceToSend &data) {
 }
 
 void ChatWidget::send(Api::SendOptions options) {
+	if (const auto page = _composeControls->shownRichMessage()) {
+		sendRichDraft(page, options);
+		return;
+	}
 	if (!options.scheduled && showSlowmodeError()) {
 		return;
 	}
@@ -1428,6 +1448,116 @@ void ChatWidget::send(Api::SendOptions options) {
 		true,
 		options,
 		nullptr);
+}
+
+void ChatWidget::sendRichDraft(
+		std::shared_ptr<const Iv::RichPage> page,
+		Api::SendOptions options) {
+	if (!page) {
+		return;
+	}
+	if (!options.scheduled) {
+		_cornerButtons.clearReplyReturns();
+		if (showSlowmodeError()) {
+			return;
+		}
+	}
+
+	auto request = SendingErrorRequest{
+		.topicRootId = _topic ? _topic->rootId() : MsgId(0),
+		.forward = &_composeControls->forwardItems(),
+		.messagesCount = 1,
+		.ignoreSlowmodeCountdown = (options.scheduled != 0),
+		.richMessage = true,
+	};
+	request.messagesCount = ComputeSendingMessagesCount(_history, request);
+	const auto error = GetErrorForSending(_peer, request);
+	if (error) {
+		Data::ShowSendErrorToast(controller(), _peer, error);
+		return;
+	}
+
+	const auto serialized = Iv::SerializeInputRichMessage(
+		&session(),
+		*page,
+		Iv::SerializeInputRichMessageMode::FinalSubmit);
+	if (serialized.status == Iv::SerializeInputRichMessageStatus::EmptyContent) {
+		controller()->showToast(tr::lng_article_submit_empty(tr::now));
+		return;
+	} else if (serialized.status != Iv::SerializeInputRichMessageStatus::Success
+		|| !serialized.value) {
+		controller()->showToast(tr::lng_attach_failed(tr::now));
+		return;
+	}
+	if (!session().premium()
+		&& Iv::RichPageUsesPremiumFormatting(*page)) {
+		if (Iv::RichPageIsFlattenSafe(*page)) {
+			const auto weak = base::make_weak(this);
+			Iv::Editor::OfferRichMessagePremiumChoice(
+				controller()->uiShow(),
+				&session(),
+				*page,
+				[=] {
+					if (const auto strong = weak.get()) {
+						strong->sendRichDraftWithoutFormatting(
+							page,
+							options);
+					}
+				});
+		} else {
+			Iv::Editor::ShowRichMessagesPremiumToast(
+				controller()->uiShow());
+		}
+		return;
+	}
+	if (!options.scheduled) {
+		const auto withPaymentApproved = [=](int approved) {
+			auto copy = options;
+			copy.starsApproved = approved;
+			sendRichDraft(page, copy);
+		};
+		const auto checked = checkSendPayment(
+			request.messagesCount,
+			options,
+			withPaymentApproved);
+		if (!checked) {
+			return;
+		}
+	}
+
+	session().api().sendRichMessage(
+		page,
+		*serialized.value,
+		prepareSendAction(options));
+
+	_composeControls->clear();
+	_composeControls->applyCloudDraft();
+	if (_repliesRootId) {
+		session().sendProgressManager().update(
+			_history,
+			_repliesRootId,
+			Api::SendProgressType::Typing,
+			-1);
+	}
+	finishSending();
+}
+
+void ChatWidget::sendRichDraftWithoutFormatting(
+		std::shared_ptr<const Iv::RichPage> page,
+		Api::SendOptions options) {
+	if (!page) {
+		return;
+	}
+	const auto flattened = Iv::FlattenRichPageToSimpleText(*page);
+	sendTextWithTags(
+		{
+			flattened.text,
+			TextUtilities::ConvertEntitiesToTextTags(flattened.entities),
+		},
+		false,
+		options,
+		nullptr);
+	_composeControls->applyCloudDraft();
 }
 
 void ChatWidget::sendTextWithTags(
@@ -2197,6 +2327,50 @@ void ChatWidget::checkPinnedBarState() {
 		}
 	}, _pinnedBar->lifetime());
 
+	_pinnedBar->barRightClicks(
+	) | rpl::on_next([=] {
+		if (_pinnedBarHasCustomButton) {
+			return;
+		}
+		const auto reference = _pinnedClickedId
+			? _pinnedClickedId
+			: _pinnedTracker->currentMessageId().message;
+		if (!reference) {
+			return;
+		}
+		const auto top = Data::ResolveTopPinnedId(
+			_peer,
+			_repliesRootId,
+			_monoforumPeerId);
+		const auto targetId = (top && reference.msg >= top.msg)
+			? Data::ResolveMinPinnedId(
+				_peer,
+				_repliesRootId,
+				_monoforumPeerId)
+			: _pinnedTracker->nextPinnedId(reference.msg);
+		if (!targetId) {
+			return;
+		}
+		const auto jump = crl::guard(this, [=] {
+			const auto item = session().data().message(targetId);
+			if (!item) {
+				return;
+			}
+			showAtPosition(item->position());
+			_pinnedClickedId = FullMsgId();
+			_minPinnedId = std::nullopt;
+			updatePinnedViewer();
+		});
+		if (session().data().message(targetId)) {
+			jump();
+		} else {
+			session().api().requestMessageData(
+				session().data().peer(targetId.peer),
+				targetId.msg,
+				jump);
+		}
+	}, _pinnedBar->lifetime());
+
 	_pinnedBarHeight = 0;
 	_pinnedBar->heightValue(
 	) | rpl::on_next([=](int height) {
@@ -2243,6 +2417,7 @@ void ChatWidget::refreshPinnedBarButton(bool many, HistoryItem *item) {
 	};
 	auto customButton = CreatePinnedBarCustomButton(this, item, context);
 	if (customButton) {
+		_pinnedBarHasCustomButton = true;
 		struct State {
 			base::unique_qptr<Ui::PopupMenu> menu;
 		};
@@ -2259,6 +2434,7 @@ void ChatWidget::refreshPinnedBarButton(bool many, HistoryItem *item) {
 		_pinnedBar->setRightButton(std::move(customButton));
 		return;
 	}
+	_pinnedBarHasCustomButton = false;
 	const auto close = !many;
 	auto button = object_ptr<Ui::IconButton>(
 		this,

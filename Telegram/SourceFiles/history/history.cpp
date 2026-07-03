@@ -18,6 +18,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/history_streamed_drafts.h"
 #include "history/history_translation.h"
 #include "history/history_unread_things.h"
+#include "iv/editor/iv_editor_session.h"
 #include "core/ui_integration.h"
 #include "dialogs/ui/dialogs_layout.h"
 #include "data/business/data_shortcut_messages.h"
@@ -51,6 +52,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_histories.h"
 #include "data/data_history_messages.h"
 #include "api/api_text_entities.h"
+#include "api/api_updates.h"
 #include "data/data_poll.h"
 #include "data/data_todo_list.h"
 #include "lang/lang_keys.h"
@@ -118,6 +120,42 @@ using UpdateFlag = Data::HistoryUpdate::Flag;
 		&& bot->isBot()
 		&& bot->botInfo
 		&& bot->botInfo->supportsGuestChat) ? bot : nullptr;
+}
+
+[[nodiscard]] std::unique_ptr<Data::Draft> CloneDraftForThread(
+		const Data::Draft &from,
+		MsgId topicRootId,
+		PeerId monoforumPeerId,
+		bool suggestAllowed) {
+	auto reply = from.reply;
+	reply.topicRootId = topicRootId;
+	reply.monoforumPeerId = monoforumPeerId;
+	auto result = std::make_unique<Data::Draft>(
+		from.textWithTags,
+		reply,
+		suggestAllowed ? from.suggest : SuggestOptions(),
+		from.cursor,
+		from.webpage);
+	result->richMessage = from.richMessage;
+	result->richMessageSummary = from.richMessageSummary;
+	return result;
+}
+
+void CopyDraftForThread(
+		not_null<Data::Draft*> to,
+		const Data::Draft &from,
+		MsgId topicRootId,
+		PeerId monoforumPeerId,
+		bool suggestAllowed) {
+	to->textWithTags = from.textWithTags;
+	to->reply = from.reply;
+	to->reply.topicRootId = topicRootId;
+	to->reply.monoforumPeerId = monoforumPeerId;
+	to->suggest = suggestAllowed ? from.suggest : SuggestOptions();
+	to->cursor = from.cursor;
+	to->webpage = from.webpage;
+	to->richMessage = from.richMessage;
+	to->richMessageSummary = from.richMessageSummary;
 }
 
 } // namespace
@@ -267,31 +305,29 @@ void History::createLocalDraftFromCloud(
 		return;
 	} else if (Data::DraftIsNull(draft) || !draft->date) {
 		return;
+	} else if (draft->hasRichMessage()) {
+		return;
 	}
 
-	draft->reply.topicRootId = topicRootId;
-	draft->reply.monoforumPeerId = monoforumPeerId;
-	if (!suggestDraftAllowed()) {
-		draft->suggest = SuggestOptions();
-	}
 	auto existing = localDraft(topicRootId, monoforumPeerId);
+	const auto suggestAllowed = suggestDraftAllowed();
 	if (Data::DraftIsNull(existing)
 		|| !existing->date
 		|| draft->date >= existing->date) {
 		if (!existing) {
-			setLocalDraft(std::make_unique<Data::Draft>(
-				draft->textWithTags,
-				draft->reply,
-				draft->suggest,
-				draft->cursor,
-				draft->webpage));
+			setLocalDraft(CloneDraftForThread(
+				*draft,
+				topicRootId,
+				monoforumPeerId,
+				suggestAllowed));
 			existing = localDraft(topicRootId, monoforumPeerId);
 		} else if (existing != draft) {
-			existing->textWithTags = draft->textWithTags;
-			existing->reply = draft->reply;
-			existing->suggest = draft->suggest;
-			existing->cursor = draft->cursor;
-			existing->webpage = draft->webpage;
+			CopyDraftForThread(
+				existing,
+				*draft,
+				topicRootId,
+				monoforumPeerId,
+				suggestAllowed);
 		}
 		existing->date = draft->date;
 	}
@@ -368,28 +404,26 @@ Data::Draft *History::createCloudDraft(
 		cloudDraft(topicRootId, monoforumPeerId)->date = TimeId(0);
 	} else {
 		auto existing = cloudDraft(topicRootId, monoforumPeerId);
+		const auto suggestAllowed = suggestDraftAllowed();
 		if (!existing) {
-			auto reply = fromDraft->reply;
-			reply.topicRootId = topicRootId;
-			reply.monoforumPeerId = monoforumPeerId;
-			setCloudDraft(std::make_unique<Data::Draft>(
-				fromDraft->textWithTags,
-				reply,
-				fromDraft->suggest,
-				fromDraft->cursor,
-				fromDraft->webpage));
+			setCloudDraft(CloneDraftForThread(
+				*fromDraft,
+				topicRootId,
+				monoforumPeerId,
+				suggestAllowed));
 			existing = cloudDraft(topicRootId, monoforumPeerId);
 		} else if (existing != fromDraft) {
-			existing->textWithTags = fromDraft->textWithTags;
-			existing->reply = fromDraft->reply;
-			existing->suggest = fromDraft->suggest;
-			existing->cursor = fromDraft->cursor;
-			existing->webpage = fromDraft->webpage;
+			CopyDraftForThread(
+				existing,
+				*fromDraft,
+				topicRootId,
+				monoforumPeerId,
+				suggestAllowed);
 		}
 		existing->date = base::unixtime::now();
 		existing->reply.topicRootId = topicRootId;
 		existing->reply.monoforumPeerId = monoforumPeerId;
-		if (!suggestDraftAllowed()) {
+		if (!suggestAllowed) {
 			existing->suggest = SuggestOptions();
 		}
 	}
@@ -401,6 +435,13 @@ bool History::skipCloudDraftUpdate(
 		MsgId topicRootId,
 		PeerId monoforumPeerId,
 		TimeId date) const {
+	if (Iv::Editor::IsComposeBoxOpen(
+			&session(),
+			peer->id,
+			topicRootId,
+			monoforumPeerId)) {
+		return true;
+	}
 	const auto key = Data::DraftKey::Local(topicRootId, monoforumPeerId);
 	const auto i = _acceptCloudDraftsAfter.find(key);
 	return _savingCloudDraftRequests.contains(key)
@@ -578,6 +619,18 @@ not_null<HistoryItem*> History::addNewMessage(
 		MessageFlags localFlags,
 		NewMessageType type) {
 	const auto newMessage = (type == NewMessageType::Unread);
+	if (newMessage && isUnknownMessageDeleted(id)) {
+		const auto &updates = session().updates();
+		LOG(("Unknown deleted message re-added. "
+			"Peer ID: %1, Message ID: %2, Source: %3.")
+			.arg(peer->id.value & PeerId::kChatTypeMask)
+			.arg(id.bare)
+			.arg(updates.handlingChannelDifference()
+				? u"channelDifference"_q
+				: updates.requestingDifference()
+				? u"commonDifference"_q
+				: u"globalUpdate"_q));
+	}
 	const auto detachExisting = newMessage;
 	const auto item = createItem(
 		id,

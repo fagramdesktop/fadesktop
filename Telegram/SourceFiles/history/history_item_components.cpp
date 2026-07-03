@@ -23,6 +23,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/chat/chat_style.h"
 #include "ui/chat/chat_theme.h"
 #include "ui/painter.h"
+#include "ui/paint/blobs.h"
 #include "ui/rect.h"
 #include "ui/power_saving.h"
 #include "history/history.h"
@@ -237,9 +238,14 @@ ClickHandlerPtr HiddenSenderInfo::ForwardClickHandler() {
 	static const auto hidden = std::make_shared<LambdaClickHandler>([](
 			ClickContext context) {
 		const auto my = context.other.value<ClickHandlerContext>();
-		const auto weak = my.sessionWindow;
-		if (const auto strong = weak.get()) {
-			strong->showToast(tr::lng_forwarded_hidden(tr::now));
+		auto text = tr::lng_forwarded_hidden(tr::now, Ui::Text::WithEntities);
+		const auto delegate = my.elementDelegate
+			? my.elementDelegate()
+			: nullptr;
+		if (delegate) {
+			delegate->elementShowHiddenSenderTooltip(my.itemId, text);
+		} else if (const auto strong = my.sessionWindow.get()) {
+			strong->showToast(std::move(text));
 		}
 	});
 	return hidden;
@@ -1581,6 +1587,8 @@ HistoryDocumentVoicePlayback::HistoryDocumentVoicePlayback(
 	return nonconst->voiceProgressAnimationCallback(now);
 }) {
 }
+
+HistoryDocumentVoicePlayback::~HistoryDocumentVoicePlayback() = default;
 
 void HistoryDocumentVoice::ensurePlayback(
 		const HistoryView::Document *that) const {

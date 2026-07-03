@@ -11,18 +11,20 @@ add_library(tdesktop::td_iv ALIAS td_iv)
 target_precompile_headers(td_iv PRIVATE ${src_loc}/iv/iv_pch.h)
 nice_target_sources(td_iv ${src_loc}
 PRIVATE
-#    iv/editor/iv_editor_box.cpp
-#    iv/editor/iv_editor_box.h
-#    iv/editor/iv_editor_clipboard.cpp
-#    iv/editor/iv_editor_clipboard.h
-#    iv/editor/iv_editor_state.cpp
-#    iv/editor/iv_editor_state.h
-#    iv/editor/iv_editor_text_entities.cpp
-#    iv/editor/iv_editor_text_entities.h
-#    iv/editor/iv_editor_widget.cpp
-#    iv/editor/iv_editor_widget.h
-#    iv/editor/iv_editor_window.cpp
-#    iv/editor/iv_editor_window.h
+    iv/editor/iv_editor_box.cpp
+    iv/editor/iv_editor_box.h
+    iv/editor/iv_editor_clipboard.cpp
+    iv/editor/iv_editor_clipboard.h
+    iv/editor/iv_editor_state.cpp
+    iv/editor/iv_editor_state.h
+    iv/editor/iv_editor_text_entities.cpp
+    iv/editor/iv_editor_text_entities.h
+    iv/editor/iv_editor_toolbar_pill.cpp
+    iv/editor/iv_editor_toolbar_pill.h
+    iv/editor/iv_editor_widget.cpp
+    iv/editor/iv_editor_widget.h
+    iv/editor/iv_editor_window.cpp
+    iv/editor/iv_editor_window.h
 
     iv/iv_controller.cpp
     iv/iv_controller.h
@@ -94,6 +96,8 @@ PRIVATE
     iv/markdown/iv_markdown_prepare_serialize.h
     iv/markdown/iv_markdown_prepare_state.cpp
     iv/markdown/iv_markdown_prepare_state.h
+    iv/markdown/iv_markdown_slideshow_chrome.cpp
+    iv/markdown/iv_markdown_slideshow_chrome.h
     iv/markdown/iv_markdown_view.cpp
     iv/markdown/iv_markdown_view.h
     iv/markdown/iv_markdown_view_widget.cpp

@@ -52,9 +52,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "inline_bots/inline_bot_confirm_prepared.h"
 #include "inline_bots/inline_bot_downloads.h"
 #include "inline_bots/inline_bot_storage.h"
-#ifdef TDESKTOP_IV_EDITOR
 #include "iv/editor/iv_editor_session.h"
-#endif // TDESKTOP_IV_EDITOR
 #include "iv/iv_instance.h"
 #include "lang/lang_keys.h"
 #include "main/main_app_config.h"
@@ -71,6 +69,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/chat/attach/attach_bot_webview.h"
 #include "ui/controls/location_picker.h"
 #include "ui/controls/userpic_button.h"
+#include "ui/delayed_activation.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/painter.h"
 #include "ui/text/text_custom_emoji.h"
@@ -2960,23 +2959,33 @@ std::unique_ptr<Ui::DropdownMenu> MakeAttachBotsMenu(
 				sendMenuDetails());
 		}, &st::menuIconCreateTodoList);
 	}
-#ifdef TDESKTOP_IV_EDITOR
-	if (Data::CanSendAnyOf(peer, ChatRestriction::SendOther, false)) {
+	if (Iv::Editor::CanAuthorRichMessages(&controller->session())
+		&& Data::CanSendAnyOf(peer, ChatRestriction::SendOther, false)) {
 		raw->addAction(tr::lng_article_menu_item(tr::now), [=] {
-			Iv::Editor::ShowComposeBox(
-				controller,
-				peer,
-				actionFactory(),
-				sendMenuDetails);
+			const auto openCompose = [=] {
+				Iv::Editor::ShowComposeBox(
+					controller,
+					peer,
+					actionFactory(),
+					sendMenuDetails);
+			};
+			const auto handled
+				= Iv::Editor::RequestCloseOpenEditWindowThenCompose(
+					&controller->session(),
+					peer,
+					openCompose);
+			if (!handled) {
+				openCompose();
+			}
 		}, &st::menuIconArticle);
 	}
-#endif // TDESKTOP_IV_EDITOR
 	const auto session = &controller->session();
 	const auto locationType = ChatRestriction::SendOther;
 	const auto config = ResolveMapsConfig(session);
 	if (Data::CanSendAnyOf(peer, locationType, false)
 		&& Ui::LocationPicker::Available(config)) {
 		raw->addAction(tr::lng_maps_point(tr::now), [=] {
+			Ui::PreventDelayedActivation();
 			ChooseAndSendLocation(controller, config, actionFactory());
 		}, &st::menuIconAddress);
 	}

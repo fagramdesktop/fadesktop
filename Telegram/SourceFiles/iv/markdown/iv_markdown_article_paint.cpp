@@ -70,6 +70,13 @@ void PaintImageCenterCrop(Painter &p, QRect rect, const QImage &image) {
 		&& (image.height() / ratio >= rect.height());
 }
 
+[[nodiscard]] int PullquoteIconReserveWidth(
+		const style::QuoteStyle &style) {
+	return style.icon.empty()
+		? 0
+		: (style.icon.width() + style.iconPosition.x());
+}
+
 [[nodiscard]] bool PaintDynamicImage(
 		Painter &p,
 		const std::shared_ptr<Ui::DynamicImage> &image,
@@ -835,7 +842,7 @@ void PaintThinkingTextLeafDirect(
 		block.textWidth,
 		block.segmentIndex,
 		style::al_left,
-		TextSelectionForSegmentIndex(
+		PaintTextSelectionForSegmentIndex(
 			context.selectionState,
 			block.segmentIndex));
 }
@@ -1309,7 +1316,7 @@ void PaintTableCaption(
 		const style::Markdown &st,
 		const MarkdownArticlePaintContext &context) {
 	if (!block.textRect.isEmpty()) {
-		const auto selection = TextSelectionForSegmentIndex(
+		const auto selection = PaintTextSelectionForSegmentIndex(
 			context.selectionState,
 			block.secondarySegmentIndex);
 		if (!PaintEditPlaceholderLeaf(
@@ -1385,6 +1392,30 @@ void PaintTableCaption(
 [[nodiscard]] bool HorizontalRightEdgeHidden(const LaidOutBlock &block) {
 	return block.horizontalScrollMax > 0
 		&& (block.horizontalScrollLeft < block.horizontalScrollMax);
+}
+
+[[nodiscard]] QRect HorizontalOverflowContentClip(
+		const LaidOutBlock &block,
+		const style::Markdown &st,
+		QRect viewport) {
+	if (block.horizontalScrollMax <= 0 || viewport.isEmpty()) {
+		return viewport;
+	}
+	const auto indicatorWidth = std::min(
+		std::max(OverflowIndicatorWidth(block, st), 1),
+		viewport.width());
+	const auto left = (block.horizontalScrollLeft > 0)
+		? indicatorWidth
+		: 0;
+	const auto right = HorizontalRightEdgeHidden(block)
+		? indicatorWidth
+		: 0;
+	const auto width = std::max(viewport.width() - left - right, 0);
+	return QRect(
+		viewport.x() + left,
+		viewport.y(),
+		width,
+		viewport.height());
 }
 
 [[nodiscard]] QRect HorizontalScrollLogicalPaintRect(
@@ -1509,7 +1540,9 @@ void PaintWholeTable(
 	if (tableClip.isEmpty()) {
 		return;
 	}
-	const auto tableContext = ClippedContext(context, tableClip);
+	const auto textClip = tableClip.intersected(
+		HorizontalOverflowContentClip(block, st, block.visibleTableRect));
+	const auto tableContext = ClippedContext(context, textClip);
 
 	const auto border = TableBorder(block, st);
 	const auto radius = st.table.radius;
@@ -1554,7 +1587,7 @@ void PaintWholeTable(
 			if (!cell.textRect.intersects(tableClip)) {
 				continue;
 			}
-			const auto selection = TextSelectionForSegmentIndex(
+			const auto selection = PaintTextSelectionForSegmentIndex(
 				context.selectionState,
 				cell.segmentIndex);
 			if (!PaintEditPlaceholderLeaf(
@@ -1630,7 +1663,8 @@ void PaintTableRowBand(
 	const auto cells = TableCellsForRowBand(ownership, rowIndex, rowBand);
 	const auto rowContext = ClippedContext(
 		RevealSuppressedContext(context),
-		rowClip);
+		rowClip.intersected(
+			HorizontalOverflowContentClip(block, st, block.visibleTableRect)));
 
 	p.save();
 	p.setClipRect(rowClip, Qt::IntersectClip);
@@ -1665,7 +1699,7 @@ void PaintTableRowBand(
 		if (!cell || !cell->textRect.intersects(rowClip)) {
 			continue;
 		}
-		const auto selection = TextSelectionForSegmentIndex(
+		const auto selection = PaintTextSelectionForSegmentIndex(
 			context.selectionState,
 			cell->segmentIndex);
 		if (!PaintEditPlaceholderLeaf(
@@ -1848,12 +1882,11 @@ void PaintQuoteBlock(
 	}
 
 	if (context.caches.blockquote) {
+		const auto &quoteStyle = st.body.blockquote;
+		Ui::Text::ValidateQuotePaintCache(
+			*context.caches.blockquote,
+			quoteStyle);
 		if (!block.pullquote) {
-			const auto &quoteStyle = st.body.blockquote;
-			Ui::Text::ValidateQuotePaintCache(
-				*context.caches.blockquote,
-				quoteStyle);
-
 			p.save();
 			p.setClipRect(quoteClip);
 			Ui::Text::FillQuotePaint(
@@ -1862,16 +1895,59 @@ void PaintQuoteBlock(
 				*context.caches.blockquote,
 				quoteStyle);
 			p.restore();
+		} else {
+			p.save();
+			p.setClipRect(quoteClip);
+			p.setPen(Qt::NoPen);
+			p.setBrush(context.caches.blockquote->bg);
+			auto hq = PainterHighQualityEnabler(p);
+			p.drawRoundedRect(block.outer, quoteStyle.radius, quoteStyle.radius);
+			if (!quoteStyle.icon.empty()) {
+				const auto icon = quoteStyle.icon.instance(
+					context.caches.blockquote->icon);
+				if (!icon.isNull()) {
+					const auto reserve = PullquoteIconReserveWidth(quoteStyle);
+					const auto left = block.contentRect.x()
+						- reserve
+						+ quoteStyle.iconPosition.x();
+					const auto top = block.outer.y()
+						+ st.pullquote.padding.top()
+						+ quoteStyle.iconPosition.y();
+					const auto right = block.contentRect.x()
+						+ block.contentRect.width()
+						+ reserve
+						- quoteStyle.iconPosition.x()
+						- quoteStyle.icon.width();
+					const auto bottom = block.outer.y()
+						+ block.outer.height()
+						- st.pullquote.padding.bottom()
+						- quoteStyle.iconPosition.y()
+						- quoteStyle.icon.height();
+					p.drawImage(
+						QRect(
+							left,
+							top,
+							quoteStyle.icon.width(),
+							quoteStyle.icon.height()),
+						icon);
+					p.drawImage(
+						QRect(
+							right,
+							bottom,
+							quoteStyle.icon.width(),
+							quoteStyle.icon.height()),
+						icon.mirrored(true, false));
+				}
+			}
+			p.restore();
 		}
 	}
 
 	auto local = ClippedContext(
 		context,
 		context.clip.intersected(block.contentRect));
-	if (!block.pullquote) {
-		local.caches.supplementaryColorOverride
-			= NonPullquoteQuoteCaptionColor(context, st);
-	}
+	local.caches.supplementaryColorOverride
+		= NonPullquoteQuoteCaptionColor(context, st);
 	PaintBlocks(
 		p,
 		block.children,
@@ -1941,7 +2017,7 @@ void PaintCodeBlock(
 	const auto textClip = context.clip.intersected(block.contentRect);
 	const auto textContext = ClippedContext(context, textClip);
 	p.save();
-	const auto selection = TextSelectionForSegmentIndex(
+	const auto selection = PaintTextSelectionForSegmentIndex(
 		textContext.selectionState,
 		block.segmentIndex);
 	if (!PaintEditPlaceholderLeaf(
@@ -2080,7 +2156,7 @@ void PaintPlaceholderBlock(
 			}
 		});
 	if (!block.textRect.isEmpty()) {
-		const auto selection = TextSelectionForSegmentIndex(
+		const auto selection = PaintTextSelectionForSegmentIndex(
 			context.selectionState,
 			block.secondarySegmentIndex);
 		if (!PaintEditPlaceholderLeaf(
@@ -2164,7 +2240,7 @@ void PaintEmbedPostBlock(
 				block.labelWidth,
 				block.segmentIndex,
 				style::al_left,
-				TextSelectionForSegmentIndex(
+				PaintTextSelectionForSegmentIndex(
 					headerContext.selectionState,
 					block.segmentIndex));
 		}
@@ -2178,7 +2254,7 @@ void PaintEmbedPostBlock(
 				block.subtitleWidth,
 				block.secondarySegmentIndex,
 				style::al_left,
-				TextSelectionForSegmentIndex(
+				PaintTextSelectionForSegmentIndex(
 					headerContext.selectionState,
 					block.secondarySegmentIndex));
 		}
@@ -2264,7 +2340,7 @@ void PaintEmbedPostBlock(
 			block.textWidth,
 			block.tertiarySegmentIndex,
 			style::al_left,
-			TextSelectionForSegmentIndex(
+			PaintTextSelectionForSegmentIndex(
 				context.selectionState,
 				block.tertiarySegmentIndex));
 	}
@@ -2278,7 +2354,7 @@ void PaintMediaCaption(
 	if (block.textRect.isEmpty()) {
 		return;
 	}
-	const auto selection = TextSelectionForSegmentIndex(
+	const auto selection = PaintTextSelectionForSegmentIndex(
 		context.selectionState,
 		block.secondarySegmentIndex);
 	if (!PaintEditPlaceholderLeaf(
@@ -2583,7 +2659,7 @@ void PaintDetailsBlock(
 			paintSt.supplementaryTextColor->c,
 			collapsed);
 	}
-	const auto selection = TextSelectionForSegmentIndex(
+	const auto selection = PaintTextSelectionForSegmentIndex(
 		context.selectionState,
 		block.segmentIndex);
 	if (!PaintEditPlaceholderLeaf(
@@ -2654,7 +2730,7 @@ void PaintThinkingBlock(
 	const auto contentClip = context.clip.intersected(viewport);
 	const auto &paintSt = PaintStyle(context, st);
 	const auto baseColor = paintSt.supplementaryTextColor;
-	const auto selection = TextSelectionForSegmentIndex(
+	const auto selection = PaintTextSelectionForSegmentIndex(
 		context.selectionState,
 		block.segmentIndex);
 	const auto logicalRect = viewport;
@@ -2857,7 +2933,7 @@ void PaintBlock(
 			const auto flowContext = ClippedContext(
 				context,
 				context.clip.intersected(FlowTextViewportRect(block)));
-			const auto selection = TextSelectionForSegmentIndex(
+			const auto selection = PaintTextSelectionForSegmentIndex(
 				flowContext.selectionState,
 				block.segmentIndex);
 			if (!PaintEditPlaceholderLeaf(
@@ -3059,10 +3135,7 @@ QColor NonPullquoteQuoteCaptionColor(
 	if (!context.caches.blockquote) {
 		return PaintStyle(context, st).supplementaryTextColor->c;
 	}
-	return anim::color(
-		context.caches.blockquote->bg,
-		context.caches.blockquote->outlines[0],
-		0.9);
+	return context.caches.blockquote->icon;
 }
 
 void PaintBlocks(

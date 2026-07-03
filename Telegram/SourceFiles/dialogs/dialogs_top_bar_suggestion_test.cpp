@@ -39,39 +39,17 @@ void Widget::setupTopBarSuggestionTestHotkeys() {
 			_topBarSuggestionHeightChanged.fire(0);
 			return;
 		}
-		_topBarSuggestionPlaceholder.reset(_innerList->insert(
-			0,
-			object_ptr<Ui::RpWidget>(_innerList)));
-		_topBarSuggestionPlaceholder->paintOn([
-			ph = _topBarSuggestionPlaceholder.get()
-		](QPainter &p) {
-			p.fillRect(ph->rect(), st::dialogsBg);
-		});
 		_topBarSuggestion.reset(wrap);
-		_topBarSuggestion->setParent(_scroll);
-		_topBarSuggestion->raise();
 		_topBarSuggestion->toggle(false, anim::type::instant);
-		_topBarSuggestion->heightValue(
-		) | rpl::on_next([=, this](int h) {
-			if (_topBarSuggestionPlaceholder) {
-				_topBarSuggestionPlaceholder->resize(
-					_topBarSuggestionPlaceholder->width(),
-					h);
-			}
-			_scroll->setBarTopInset(h);
-			_topBarSuggestionHeightChanged.fire_copy(h);
-		}, _topBarSuggestion->entity()->lifetime());
-		const auto pinToScroll = [this] {
-			if (_topBarSuggestion) {
-				_topBarSuggestion->resizeToWidth(_scroll->width());
-				_topBarSuggestion->moveToLeft(0, 0);
-			}
-		};
-		_scroll->sizeValue(
-		) | rpl::to_empty | rpl::on_next(
-			pinToScroll,
-			_topBarSuggestion->entity()->lifetime());
-		pinToScroll();
+		MountTopBarSuggestion({
+			.scroll = _scroll,
+			.innerList = _innerList,
+			.wrap = _topBarSuggestion.get(),
+			.placeholder = &_topBarSuggestionPlaceholder,
+			.heightChanged = [this](int h) {
+				_topBarSuggestionHeightChanged.fire_copy(h);
+			},
+		});
 		_topBarSuggestion->toggle(true, anim::type::normal);
 	};
 

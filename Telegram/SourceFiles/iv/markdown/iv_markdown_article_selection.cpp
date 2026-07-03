@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "iv/markdown/iv_markdown_article_selection.h"
 #include "iv/markdown/iv_markdown_prepare_links.h"
 #include "ui/text/text_utilities.h"
+#include "ui/widgets/fields/input_field.h"
 
 #include "styles/style_iv.h"
 
@@ -18,6 +19,19 @@ namespace {
 
 constexpr auto kCodeTabColumns = 4;
 const auto kPhotoCopyLabel = u"Photo"_q;
+
+[[nodiscard]] TextForMimeData CopyTextForMathSource(QString source) {
+	const auto length = int(source.size());
+	auto result = TextForMimeData::Simple(std::move(source));
+	if (length > 0) {
+		result.tags.push_back({
+			.offset = 0,
+			.length = length,
+			.id = Ui::InputField::kTagIvMath,
+		});
+	}
+	return result;
+}
 
 struct TableCopySlot {
 	const LaidOutTableCell *cell = nullptr;
@@ -133,7 +147,7 @@ void RefreshBlockSegmentRect(
 }
 
 [[nodiscard]] TextForMimeData CopyTextForDisplayMath(const LaidOutBlock &block) {
-	return TextForMimeData::Simple(u"$$"_q + block.copyText + u"$$"_q);
+	return CopyTextForMathSource(block.copyText);
 }
 
 [[nodiscard]] TextForMimeData CopyTextForCodeBlock(
@@ -604,6 +618,33 @@ void RefreshBlockSegmentRect(
 	return std::nullopt;
 }
 
+[[nodiscard]] std::optional<TextSelection> ResolveTextSelectionForSegment(
+		const SelectableSegment &segment,
+		const PaintSelectionState &selectionState,
+		bool suppressStructuralSelection) {
+	if (!selectionState.segments) {
+		return std::nullopt;
+	}
+	if (segment.tableSegmentIndex >= 0) {
+		if (const auto singleCell = SingleTableCellSelection(
+				selectionState,
+				segment.tableSegmentIndex);
+			singleCell && *singleCell != segment.index) {
+			return std::nullopt;
+		}
+	}
+	if (segment.tableSegmentIndex >= 0
+		&& TableSegmentSelected(selectionState, segment.tableSegmentIndex)) {
+		return std::nullopt;
+	}
+	if (const auto structural = StructuralTextSelectionForSegment(
+			segment,
+			selectionState)) {
+		return suppressStructuralSelection ? std::nullopt : structural;
+	}
+	return BaseTextSelectionForSegment(segment, selectionState.selection);
+}
+
 [[nodiscard]] const LaidOutBlock *FindTableBlock(
 		const std::vector<SelectableSegment> &segments,
 		const PreparedEditBlockPath &path) {
@@ -974,6 +1015,8 @@ const style::TextStyle &TextStyleForSegment(
 		return st.embedPost.dateStyle;
 	} else if (segment.kind == SelectableSegmentKind::CodeBlock) {
 		return st.code;
+	} else if (segment.block && segment.block->quoteAuthor) {
+		return st.quoteAuthorStyle;
 	} else if (!segment.block) {
 		return st.body;
 	}
@@ -1143,27 +1186,10 @@ bool StructuralTableCellSelected(
 std::optional<TextSelection> TextSelectionForSegment(
 		const SelectableSegment &segment,
 		const PaintSelectionState &selectionState) {
-	if (!selectionState.segments) {
-		return std::nullopt;
-	}
-	if (segment.tableSegmentIndex >= 0) {
-		if (const auto singleCell = SingleTableCellSelection(
-				selectionState,
-				segment.tableSegmentIndex);
-			singleCell && *singleCell != segment.index) {
-			return std::nullopt;
-		}
-	}
-	if (segment.tableSegmentIndex >= 0
-		&& TableSegmentSelected(selectionState, segment.tableSegmentIndex)) {
-		return std::nullopt;
-	}
-	if (const auto structural = StructuralTextSelectionForSegment(
-			segment,
-			selectionState)) {
-		return structural;
-	}
-	return BaseTextSelectionForSegment(segment, selectionState.selection);
+	return ResolveTextSelectionForSegment(
+		segment,
+		selectionState,
+		false);
 }
 
 std::optional<TextSelection> TextSelectionForSegmentIndex(
@@ -1172,6 +1198,24 @@ std::optional<TextSelection> TextSelectionForSegmentIndex(
 	const auto segment = FindSegment(selectionState.segments, index);
 	return segment
 		? TextSelectionForSegment(*segment, selectionState)
+		: std::nullopt;
+}
+
+std::optional<TextSelection> PaintTextSelectionForSegment(
+		const SelectableSegment &segment,
+		const PaintSelectionState &selectionState) {
+	return ResolveTextSelectionForSegment(
+		segment,
+		selectionState,
+		true);
+}
+
+std::optional<TextSelection> PaintTextSelectionForSegmentIndex(
+		const PaintSelectionState &selectionState,
+		int index) {
+	const auto segment = FindSegment(selectionState.segments, index);
+	return segment
+		? PaintTextSelectionForSegment(*segment, selectionState)
 		: std::nullopt;
 }
 

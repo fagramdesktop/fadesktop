@@ -489,7 +489,8 @@ void Photo::setPixFrom(not_null<Image*> image) {
 
 	// In case we have inline thumbnail we can unload all images and we still
 	// won't get a blank image in the media viewer when the photo is opened.
-	if (!_data->inlineThumbnailBytes().isEmpty()) {
+	if (!_data->inlineThumbnailBytes().isEmpty()
+		&& !delegate()->keepPhotoMediaLoaded()) {
 		_dataMedia = nullptr;
 		delegate()->unregisterHeavyItem(this);
 	}
@@ -700,14 +701,22 @@ void Video::paint(
 			const auto margin = st::overviewVideoStatusMargin;
 			const auto padding = st::overviewVideoStatusPadding;
 			const auto statusX = margin + padding.x(), statusY = _height - margin - padding.y() - st::normalFont->height;
-			const auto statusW = icon.width() + padding.x() + st::normalFont->width(text) + 2 * padding.x();
+			const auto fullW = icon.width()
+				+ 3 * padding.x()
+				+ st::normalFont->width(text);
+			const auto showText = (fullW <= _width - 2 * margin);
+			const auto statusW = showText
+				? fullW
+				: (icon.width() + 2 * padding.x());
 			const auto statusH = st::normalFont->height + 2 * padding.y();
 			p.setOpacity(1. - radialOpacity);
 			Ui::FillRoundRect(p, statusX - padding.x(), statusY - padding.y(), statusW, statusH, selected ? st::msgDateImgBgSelected : st::msgDateImgBg, selected ? Ui::OverviewVideoSelectedCorners : Ui::OverviewVideoCorners);
 			p.setFont(st::normalFont);
 			p.setPen(st::msgDateImgFg);
 			icon.paint(p, statusX, statusY + (st::normalFont->height - icon.height()) / 2, _width);
-			p.drawTextLeft(statusX + icon.width() + padding.x(), statusY, _width, text, statusW - 2 * padding.x());
+			if (showText) {
+				p.drawTextLeft(statusX + icon.width() + padding.x(), statusY, _width, text, statusW - 2 * padding.x());
+			}
 		}
 	}
 
@@ -1385,54 +1394,7 @@ void Document::paint(Painter &p, const QRect &clip, TextSelection selection, con
 
 		QRect rthumb(style::rtlrect(0, st::linksBorder + _st.filePadding.top(), _st.fileThumbSize, _st.fileThumbSize, _width));
 		if (clip.intersects(rthumb)) {
-			if (wthumb) {
-				ensureDataMediaCreated();
-				const auto good = _data->isSvgImage()
-					? _dataMedia->goodThumbnail()
-					: nullptr;
-				const auto thumbnail = good
-					? good
-					: _dataMedia->thumbnail();
-				const auto blurred = _dataMedia->thumbnailInline();
-				if (thumbnail || blurred) {
-					if (_thumb.isNull() || (thumbnail && !_thumbLoaded)) {
-						_thumbLoaded = (thumbnail != nullptr);
-						const auto options = Images::Option::RoundSmall
-							| (_thumbLoaded
-								? Images::Option()
-								: Images::Option::Blur);
-						const auto image = thumbnail ? thumbnail : blurred;
-						_thumb = image->pixNoCache(
-							_thumbw * style::DevicePixelRatio(),
-							{
-								.options = options,
-								.outer = QSize(
-									_st.fileThumbSize,
-									_st.fileThumbSize),
-							});
-					}
-					p.drawPixmap(rthumb.topLeft(), _thumb);
-				} else {
-					p.setPen(Qt::NoPen);
-					p.setBrush(st::overviewFileThumbBg);
-					p.drawRoundedRect(
-						rthumb,
-						st::roundRadiusSmall,
-						st::roundRadiusSmall);
-				}
-			} else {
-				p.setPen(Qt::NoPen);
-				p.setBrush(_generic.color);
-				p.drawRoundedRect(
-					rthumb,
-					st::roundRadiusSmall,
-					st::roundRadiusSmall);
-				if (!radial && loaded && !_ext.isEmpty()) {
-					p.setFont(st::overviewFileExtFont);
-					p.setPen(st::overviewFileExtFg);
-					p.drawText(rthumb.left() + (rthumb.width() - _extw) / 2, rthumb.top() + st::overviewFileExtTop + st::overviewFileExtFont->ascent, _ext);
-				}
-			}
+			paintThumbnail(p, rthumb, wthumb, !radial && loaded);
 			if (selected) {
 				p.setPen(Qt::NoPen);
 				p.setBrush(st::defaultTextPalette.selectOverlay);
@@ -1514,6 +1476,85 @@ void Document::paint(Painter &p, const QRect &clip, TextSelection selection, con
 		? _st.songPadding.top()
 		: (st::linksBorder + _st.filePadding.top())) + checkDelta;
 	paintCheckbox(p, { checkLeft, checkTop }, selected, context);
+}
+
+void Document::paintThumbnail(
+		Painter &p,
+		QRect rthumb,
+		bool wthumb,
+		bool withExt) {
+	if (wthumb) {
+		ensureDataMediaCreated();
+		const auto good = _data->isSvgImage()
+			? _dataMedia->goodThumbnail()
+			: nullptr;
+		const auto thumbnail = good
+			? good
+			: _dataMedia->thumbnail();
+		const auto blurred = _dataMedia->thumbnailInline();
+		if (thumbnail || blurred) {
+			if (_thumb.isNull() || (thumbnail && !_thumbLoaded)) {
+				_thumbLoaded = (thumbnail != nullptr);
+				const auto options = Images::Option::RoundSmall
+					| (_thumbLoaded
+						? Images::Option()
+						: Images::Option::Blur);
+				const auto image = thumbnail ? thumbnail : blurred;
+				_thumb = image->pixNoCache(
+					_thumbw * style::DevicePixelRatio(),
+					{
+						.options = options,
+						.outer = QSize(
+							_st.fileThumbSize,
+							_st.fileThumbSize),
+					});
+			}
+			p.drawPixmap(rthumb.topLeft(), _thumb);
+		} else {
+			p.setPen(Qt::NoPen);
+			p.setBrush(st::overviewFileThumbBg);
+			p.drawRoundedRect(
+				rthumb,
+				st::roundRadiusSmall,
+				st::roundRadiusSmall);
+		}
+	} else {
+		p.setPen(Qt::NoPen);
+		p.setBrush(_generic.color);
+		p.drawRoundedRect(
+			rthumb,
+			st::roundRadiusSmall,
+			st::roundRadiusSmall);
+		if (withExt && !_ext.isEmpty()) {
+			p.setFont(st::overviewFileExtFont);
+			p.setPen(st::overviewFileExtFg);
+			p.drawText(
+				rthumb.left() + (rthumb.width() - _extw) / 2,
+				rthumb.top()
+					+ st::overviewFileExtTop
+					+ st::overviewFileExtFont->ascent,
+				_ext);
+		}
+	}
+}
+
+QImage Document::dragPreviewImage() {
+	ensureDataMediaCreated();
+	const auto ratio = style::DevicePixelRatio();
+	auto result = QImage(
+		QSize(_st.fileThumbSize, _st.fileThumbSize) * ratio,
+		QImage::Format_ARGB32_Premultiplied);
+	result.setDevicePixelRatio(ratio);
+	result.fill(Qt::transparent);
+
+	auto p = Painter(&result);
+	auto hq = PainterHighQualityEnabler(p);
+	paintThumbnail(
+		p,
+		QRect(0, 0, _st.fileThumbSize, _st.fileThumbSize),
+		withThumb(),
+		true);
+	return result;
 }
 
 void Document::drawCornerDownload(QPainter &p, bool selected, const PaintContext *context) const {

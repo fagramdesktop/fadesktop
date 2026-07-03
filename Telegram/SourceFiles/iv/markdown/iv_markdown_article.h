@@ -261,6 +261,28 @@ inline bool operator!=(
 	return !(a == b);
 }
 
+struct MarkdownArticleDropLocation {
+	std::optional<PreparedEditDropTarget> target;
+	QRect indicatorRect;
+
+	[[nodiscard]] bool valid() const {
+		return target.has_value();
+	}
+};
+
+inline bool operator==(
+		MarkdownArticleDropLocation a,
+		MarkdownArticleDropLocation b) {
+	return (a.target == b.target)
+		&& (a.indicatorRect == b.indicatorRect);
+}
+
+inline bool operator!=(
+		MarkdownArticleDropLocation a,
+		MarkdownArticleDropLocation b) {
+	return !(a == b);
+}
+
 struct MarkdownArticleTextLeafStyle {
 	const style::TextStyle *textStyle = nullptr;
 	style::color textColor;
@@ -279,6 +301,15 @@ struct MarkdownArticleAnchorExpansion {
 	bool changed = false;
 };
 
+struct MarkdownArticleMediaGeometry {
+	PreparedEditBlockSource block;
+	QRect mediaRect;
+	QRect visibleMediaRect;
+	bool grouped = false;
+	std::vector<QRect> itemRects;
+	int activeItemIndex = -1;
+};
+
 class MarkdownArticle {
 public:
 	MarkdownArticle(
@@ -291,6 +322,7 @@ public:
 
 	void setRenderer(std::shared_ptr<MathRenderer> renderer);
 	void setMediaBlockHost(MediaBlockHost *host);
+	void setMediaPixelScale(double scale);
 	void setTextRepaintCallbacks(
 		Fn<void()> repaint,
 		Fn<void(QRect)> repaintRect,
@@ -299,8 +331,16 @@ public:
 	void updatePreparedLeaf(
 		const PreparedEditLeafSource &source,
 		const MarkdownArticleContent &prepared);
+	void setEditableMaxLineWidthOverride(
+		const PreparedEditLeafSource &source,
+		int width);
+	void setEditableTextEmptyOverride(
+		const PreparedEditLeafSource &source,
+		bool empty);
 	void setEditableHeightOverride(int editableIndex, int height);
 	void setEditableHeightOverrideForSegment(int segmentIndex, int height);
+	void clearEditableMaxLineWidthOverride();
+	void clearEditableTextEmptyOverride();
 	void clearEditableHeightOverride();
 	void setTextLeafHeightOverride(int textLeafIndex, int height);
 	void clearTextLeafHeightOverride();
@@ -316,6 +356,13 @@ public:
 		QPoint point,
 		Ui::Text::StateRequest::Flags flags) const;
 	[[nodiscard]] PreparedEditHit editHitTest(QPoint point) const;
+	[[nodiscard]] MarkdownArticleDropLocation editDropTarget(
+		QPoint point) const;
+	[[nodiscard]] MarkdownArticleDropLocation editBlockDropTarget(
+		QPoint point) const;
+	[[nodiscard]] MarkdownArticleDropLocation editStructuralDropTarget(
+		QPoint point,
+		const PreparedEditSelection &selection) const;
 	[[nodiscard]] MarkdownArticleEditControlHit editControlHitTest(
 		QPoint point) const;
 	void addTaskMarkerRipple(
@@ -344,11 +391,22 @@ public:
 	[[nodiscard]] int segmentIndexForTextLeafIndex(int textLeafIndex) const;
 	[[nodiscard]] int editableIndexForSegment(int segmentIndex) const;
 	[[nodiscard]] int segmentIndexForEditableIndex(int editableIndex) const;
+	[[nodiscard]] auto editableLeafForSegment(int segmentIndex) const
+	-> std::optional<PreparedEditLeafSource>;
+	[[nodiscard]] int segmentIndexForEditableLeaf(
+		const PreparedEditLeafSource &source) const;
 	[[nodiscard]] QRect textSegmentRect(int segmentIndex) const;
 	[[nodiscard]] QRect logicalSegmentRect(int segmentIndex) const;
 	[[nodiscard]] QRect segmentRect(int segmentIndex) const;
+	[[nodiscard]] std::vector<MarkdownArticleMediaGeometry>
+		mediaBlockGeometries() const;
+	void setGroupedActiveIndex(
+		const PreparedEditBlockSource &source,
+		int index);
 	[[nodiscard]] QRect displayMathEditRect(int segmentIndex) const;
 	[[nodiscard]] QRect displayMathBlockRect(int segmentIndex) const;
+	[[nodiscard]] int pullquoteAvailableTextWidthForEditableLeaf(
+		const PreparedEditLeafSource &source) const;
 	[[nodiscard]] bool revealSegment(int segmentIndex);
 	[[nodiscard]] MarkdownArticleTextLeafStyle textLeafStyleForSegment(
 		int segmentIndex) const;

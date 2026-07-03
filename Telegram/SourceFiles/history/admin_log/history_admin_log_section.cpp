@@ -319,6 +319,7 @@ Widget::Widget(
 		updateAdaptiveLayout();
 	}, lifetime());
 
+	_scroll->lockWheelDirection();
 	_inner = _scroll->setOwnedWidget(
 		object_ptr<InnerWidget>(this, controller, channel));
 	_inner->showSearchSignal(
@@ -341,6 +342,11 @@ Widget::Widget(
 
 	_scroll->move(0, _fixedBar->height());
 	_scroll->show();
+	_scroll->setOverscrollEdges([=] {
+		return !_inner || _inner->loadedAtTop();
+	}, [=] {
+		return !_inner || _inner->loadedAtBottom();
+	});
 	_scroll->scrolls() | rpl::on_next([=] {
 		onScroll();
 	}, lifetime());

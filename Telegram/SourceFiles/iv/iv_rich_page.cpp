@@ -37,9 +37,10 @@ namespace {
 using Block = RichPage::Block;
 using BlockKind = RichPage::BlockKind;
 using GroupedMediaIntent = RichPage::GroupedMediaIntent;
-using GroupedMediaItem = RichPage::GroupedMediaItem;
 using ListItem = RichPage::ListItem;
 using ListKind = RichPage::ListKind;
+using OrderedListData = RichPage::OrderedListData;
+using OrderedListItemData = RichPage::OrderedListItemData;
 using RelatedArticle = RichPage::RelatedArticle;
 using RichText = RichPage::RichText;
 using TableAlignment = RichPage::TableAlignment;
@@ -56,6 +57,123 @@ using TaskState = RichPage::TaskState;
 		source = source.mid(1, source.size() - 2).trimmed();
 	}
 	return source;
+}
+
+enum class OrderedMarkerType {
+	Decimal,
+	LowerAlpha,
+	UpperAlpha,
+	LowerRoman,
+	UpperRoman,
+};
+
+[[nodiscard]] OrderedMarkerType ResolveOrderedMarkerType(
+		const std::optional<QString> &type) {
+	if (!type.has_value()) {
+		return OrderedMarkerType::Decimal;
+	}
+	const auto &value = *type;
+	if (value.compare(u"a"_q, Qt::CaseInsensitive) == 0
+		|| value.compare(u"lower-alpha"_q, Qt::CaseInsensitive) == 0
+		|| value.compare(u"lower-latin"_q, Qt::CaseInsensitive) == 0) {
+		return OrderedMarkerType::LowerAlpha;
+	} else if (value == u"A"_q
+		|| value.compare(u"upper-alpha"_q, Qt::CaseInsensitive) == 0
+		|| value.compare(u"upper-latin"_q, Qt::CaseInsensitive) == 0) {
+		return OrderedMarkerType::UpperAlpha;
+	} else if (value == u"i"_q
+		|| value.compare(u"lower-roman"_q, Qt::CaseInsensitive) == 0) {
+		return OrderedMarkerType::LowerRoman;
+	} else if (value == u"I"_q
+		|| value.compare(u"upper-roman"_q, Qt::CaseInsensitive) == 0) {
+		return OrderedMarkerType::UpperRoman;
+	}
+	return OrderedMarkerType::Decimal;
+}
+
+[[nodiscard]] QString OrderedAlphaText(int value, bool upper) {
+	if (value <= 0) {
+		return QString::number(value);
+	}
+	auto result = QString();
+	while (value > 0) {
+		--value;
+		result.prepend(QChar((upper ? 'A' : 'a') + (value % 26)));
+		value /= 26;
+	}
+	return result;
+}
+
+[[nodiscard]] QString OrderedRomanText(int value, bool upper) {
+	if (value <= 0) {
+		return QString::number(value);
+	}
+	struct RomanPart {
+		int value = 0;
+		const char *text = nullptr;
+	};
+	static constexpr RomanPart kParts[] = {
+		RomanPart{ 1000, "M" },
+		RomanPart{ 900, "CM" },
+		RomanPart{ 500, "D" },
+		RomanPart{ 400, "CD" },
+		RomanPart{ 100, "C" },
+		RomanPart{ 90, "XC" },
+		RomanPart{ 50, "L" },
+		RomanPart{ 40, "XL" },
+		RomanPart{ 10, "X" },
+		RomanPart{ 9, "IX" },
+		RomanPart{ 5, "V" },
+		RomanPart{ 4, "IV" },
+		RomanPart{ 1, "I" },
+	};
+	auto result = QString();
+	for (const auto &part : kParts) {
+		while (value >= part.value) {
+			result += QString::fromLatin1(part.text);
+			value -= part.value;
+		}
+	}
+	return upper ? result : result.toLower();
+}
+
+[[nodiscard]] QString OrderedMarkerBody(
+		int value,
+		const std::optional<QString> &type) {
+	switch (ResolveOrderedMarkerType(type)) {
+	case OrderedMarkerType::LowerAlpha:
+		return OrderedAlphaText(value, false);
+	case OrderedMarkerType::UpperAlpha:
+		return OrderedAlphaText(value, true);
+	case OrderedMarkerType::LowerRoman:
+		return OrderedRomanText(value, false);
+	case OrderedMarkerType::UpperRoman:
+		return OrderedRomanText(value, true);
+	case OrderedMarkerType::Decimal:
+		return QString::number(value);
+	}
+	return QString::number(value);
+}
+
+[[nodiscard]] QString OrderedMarkerText(
+		const OrderedListData &list,
+		const OrderedListItemData &item,
+		int fallbackValue) {
+	if (item.hasRawText()) {
+		return item.rawText();
+	}
+	const auto type = item.type.has_value() ? item.type : list.type;
+	const auto value = item.value.value_or(fallbackValue);
+	return OrderedMarkerBody(value, type) + u"."_q;
+}
+
+[[nodiscard]] int OrderedListSequenceStart(const Block &block) {
+	if (block.orderedList.start.has_value()) {
+		return *block.orderedList.start;
+	}
+	return block.orderedList.reversed
+		? int(block.listItems.size())
+		: 1;
 }
 
 const auto PhotoLargeLevels = u"ydxcwmbsa"_q;
@@ -197,7 +315,7 @@ void AccumulateTextLength(
 		const auto &occupied = occupancy[currentRow];
 		const auto occupiedLimit = std::min(columnLimit, int(occupied.size()));
 		for (auto currentColumn = column;
-				currentColumn != occupiedLimit;
+				currentColumn < occupiedLimit;
 				++currentColumn) {
 			if (occupied[currentColumn]) {
 				return false;
@@ -1350,38 +1468,43 @@ void AppendBlock(
 	}, [&](const MTPDpageBlockOrderedList &data) {
 		auto parsed = MakeBlock(BlockKind::List);
 		parsed.listKind = ListKind::Ordered;
+		parsed.orderedList.reversed = data.is_reversed();
+		if (const auto start = data.vstart()) {
+			parsed.orderedList.start = start->v;
+		}
+		if (const auto listType = data.vtype()) {
+			parsed.orderedList.type = qs(*listType);
+		}
 		parsed.listItems.reserve(data.vitems().v.size());
-		const auto step = data.is_reversed() ? -1 : 1;
-		auto nextNumber = data.vstart().value_or(
-			data.is_reversed() ? int(data.vitems().v.size()) : 1);
 		for (const auto &item : data.vitems().v) {
 			auto listItem = ListItem();
-			const auto fillNumber = [&](const auto &row) {
+			const auto fillOrderedData = [&](const auto &row) {
 				if (const auto num = row.vnum()) {
-					listItem.number = qs(*num);
-				} else if (const auto value = row.vvalue()) {
-					listItem.number = QString::number(value->v);
-				} else {
-					listItem.number = QString::number(nextNumber);
+					listItem.number.num = qs(*num);
+				}
+				if (const auto value = row.vvalue()) {
+					listItem.number.value = value->v;
+				}
+				if (const auto itemType = row.vtype()) {
+					listItem.number.type = qs(*itemType);
 				}
 			};
 			item.match([&](const MTPDpageListOrderedItemText &row) {
 				listItem.taskState = TaskStateFromFlags(
 					row.is_checkbox(),
 					row.is_checked());
-				fillNumber(row);
+				fillOrderedData(row);
 				listItem.text = ParseRichText(row.vtext(), context);
 				AdoptAnchor(&listItem.anchorId, &listItem.text);
 			}, [&](const MTPDpageListOrderedItemBlocks &row) {
 				listItem.taskState = TaskStateFromFlags(
 					row.is_checkbox(),
 					row.is_checked());
-				fillNumber(row);
+				fillOrderedData(row);
 				AppendBlocks(row.vblocks().v, &listItem.blocks, context);
 				AdoptLeadingParagraphListItemText(&listItem);
 			});
 			parsed.listItems.push_back(std::move(listItem));
-			nextNumber += step;
 		}
 		result->push_back(std::move(parsed));
 	}, [&](const MTPDpageBlockDetails &data) {
@@ -1564,17 +1687,120 @@ void AppendSummaryBlocks(
 	return result;
 }
 
+[[nodiscard]] bool SimpleTextEntitiesAllowed(const TextWithEntities &text) {
+	for (const auto &entity : text.entities) {
+		const auto type = entity.type();
+		if (type == EntityType::Subscript
+			|| type == EntityType::Superscript
+			|| type == EntityType::Marked
+			|| type == EntityType::CustomEmoji) {
+			return false;
+		}
+	}
+	return true;
+}
+
+// Drops the inline entities that a normal (non-premium) message can't carry.
+// Math formulas are already expanded to plain text by ExpandInlineTextObjects
+// (in AppendSummaryLine), so only Subscript/Superscript/Marked remain to strip;
+// real custom emoji are kept (they're allowed in normal messages).
+void RemovePremiumOnlyInlineEntities(TextWithEntities *text) {
+	auto &list = text->entities;
+	for (auto i = list.begin(); i != list.end();) {
+		const auto type = i->type();
+		if (type == EntityType::Subscript
+			|| type == EntityType::Superscript
+			|| type == EntityType::Marked) {
+			i = list.erase(i);
+		} else {
+			++i;
+		}
+	}
+}
+
+void AppendSimpleBlock(
+		TextWithEntities *result,
+		TextWithEntities &&block,
+		EntityType wrap = EntityType::Invalid,
+		const QString &wrapData = QString()) {
+	TextUtilities::Trim(block);
+	if (block.empty()) {
+		return;
+	}
+	if (wrap != EntityType::Invalid) {
+		block.entities.push_back(
+			EntityInText(wrap, 0, int(block.text.size()), wrapData));
+	}
+	if (!result->empty()) {
+		result->append(QChar('\n'));
+	}
+	result->append(std::move(block));
+}
+
+[[nodiscard]] bool CollectSimpleQuote(
+		const Block &quote,
+		TextWithEntities *body) {
+	if (quote.pullquote
+		|| !quote.caption.text.text.trimmed().isEmpty()) {
+		return false;
+	}
+	auto joined = TextWithEntities();
+	if (!quote.text.text.empty()) {
+		if (!SimpleTextEntitiesAllowed(quote.text.text)) {
+			return false;
+		}
+		AppendSimpleBlock(&joined, TextWithEntities(quote.text.text));
+	}
+	for (const auto &child : quote.blocks) {
+		if (child.kind != BlockKind::Paragraph
+			|| !SimpleTextEntitiesAllowed(child.text.text)) {
+			return false;
+		}
+		AppendSimpleBlock(&joined, TextWithEntities(child.text.text));
+	}
+	TextUtilities::Trim(joined);
+	if (joined.empty()) {
+		return true;
+	}
+	*body = std::move(joined);
+	return true;
+}
+
+[[nodiscard]] bool RichBlockIsPlain(const Block &block) {
+	const auto hasEntities = [](const TextWithEntities &text) {
+		return !text.entities.isEmpty();
+	};
+	if (block.kind == BlockKind::Paragraph) {
+		return !hasEntities(block.text.text);
+	} else if (block.kind == BlockKind::Quote) {
+		if (block.pullquote
+			|| !block.author.trimmed().isEmpty()
+			|| !block.caption.text.text.trimmed().isEmpty()
+			|| hasEntities(block.text.text)) {
+			return false;
+		}
+		for (const auto &child : block.blocks) {
+			if (child.kind != BlockKind::Paragraph
+				|| hasEntities(child.text.text)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
 void AppendSummaryBlock(TextWithEntities *result, const Block &block) {
 	switch (block.kind) {
 	case BlockKind::Unsupported:
 	case BlockKind::Divider:
 	case BlockKind::Anchor:
-	case BlockKind::Thinking:
 		return;
 	case BlockKind::Heading:
 	case BlockKind::Paragraph:
 	case BlockKind::Footer:
 	case BlockKind::Code:
+	case BlockKind::Thinking:
 		AppendSummaryLine(result, block.text);
 		return;
 	case BlockKind::AuthorDate: {
@@ -1589,18 +1815,21 @@ void AppendSummaryBlock(TextWithEntities *result, const Block &block) {
 		return;
 	}
 	case BlockKind::List: {
-		auto ordered = 1;
+		auto ordered = OrderedListSequenceStart(block);
+		const auto step = block.orderedList.reversed ? -1 : 1;
 		for (const auto &item : block.listItems) {
 			auto prefix = QString();
+			const auto orderedValue = item.number.value.value_or(ordered);
 			if (item.taskState == TaskState::Unchecked) {
 				prefix = u"[ ] "_q;
 			} else if (item.taskState == TaskState::Checked) {
 				prefix = u"[x] "_q;
 			} else if (block.listKind == ListKind::Ordered) {
-				const auto number = item.number.isEmpty()
-					? QString::number(ordered)
-					: item.number;
-				prefix = number + u". "_q;
+				const auto marker = OrderedMarkerText(
+					block.orderedList,
+					item.number,
+					ordered);
+				prefix = marker.isEmpty() ? QString() : (marker + u" "_q);
 			} else {
 				prefix = u"- "_q;
 			}
@@ -1610,7 +1839,9 @@ void AppendSummaryBlock(TextWithEntities *result, const Block &block) {
 				auto nested = FlattenSummaryBlocks(item.blocks);
 				AppendSummaryLine(result, std::move(nested), prefix);
 			}
-			++ordered;
+			if (block.listKind == ListKind::Ordered) {
+				ordered = orderedValue + step;
+			}
 		}
 		return;
 	}
@@ -1667,27 +1898,15 @@ void AppendSummaryBlock(TextWithEntities *result, const Block &block) {
 	case BlockKind::Math:
 		AppendSummaryLine(result, TextWithEntities::Simple(block.formula));
 		return;
-	case BlockKind::Table: {
-		AppendSummaryLine(result, block.text);
-		for (const auto &row : block.tableRows) {
-			auto line = TextWithEntities();
-			auto first = true;
-			for (const auto &cell : row.cells) {
-				auto cellText = TextUtilities::SingleLine(cell.text.text);
-				TextUtilities::Trim(cellText);
-				if (cellText.empty()) {
-					continue;
-				}
-				if (!first) {
-					line.append(u" | "_q);
-				}
-				line.append(cellText);
-				first = false;
-			}
-			AppendSummaryLine(result, std::move(line));
+	case BlockKind::Table:
+		if (!block.text.text.empty()) {
+			AppendSummaryLine(result, block.text);
+		} else {
+			AppendSummaryLine(
+				result,
+				TextWithEntities::Simple(tr::lng_in_dlg_table(tr::now)));
 		}
 		return;
-	}
 	case BlockKind::Details:
 		AppendSummaryLine(result, block.text);
 		AppendSummaryBlocks(result, block.blocks);
@@ -1743,7 +1962,51 @@ std::shared_ptr<const RichPage> ParsePage(
 	});
 }
 
+[[nodiscard]] bool RichBlockIsFlattenSafe(const RichPage::Block &block) {
+	switch (block.kind) {
+	case BlockKind::Table:
+	case BlockKind::Math:
+	case BlockKind::Photo:
+	case BlockKind::Video:
+	case BlockKind::Audio:
+	case BlockKind::GroupedMedia:
+	case BlockKind::Map:
+		return false;
+	default:
+		break;
+	}
+	for (const auto &item : block.mediaItems) {
+		switch (item.kind) {
+		case BlockKind::Photo:
+		case BlockKind::Video:
+		case BlockKind::Audio:
+			return false;
+		default:
+			break;
+		}
+	}
+	for (const auto &child : block.blocks) {
+		if (!RichBlockIsFlattenSafe(child)) {
+			return false;
+		}
+	}
+	for (const auto &listItem : block.listItems) {
+		for (const auto &child : listItem.blocks) {
+			if (!RichBlockIsFlattenSafe(child)) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 } // namespace
+
+bool RichPagesEqual(
+		const RichPage &a,
+		const RichPage &b) {
+	return (a == b);
+}
 
 RichMessageLimits ResolveRichMessageLimits(not_null<Main::Session*> session) {
 	const auto &config = session->appConfig();
@@ -1855,8 +2118,70 @@ std::shared_ptr<const RichPage> ParseRichPage(
 	return ParsePage(session, *cachedPage, &webpage);
 }
 
-TextWithEntities FlattenRichPageSummary(const RichPage &page) {
+TextWithEntities FlattenRichPageSummary(
+		const RichPage &page,
+		bool emptyFallback) {
 	auto result = FlattenSummaryBlocks(page.blocks);
+	TextUtilities::Trim(result);
+	if (result.empty() && emptyFallback) {
+		result = TextWithEntities::Simple(tr::lng_message_empty(tr::now));
+	}
+	return result;
+}
+
+TextWithEntities FlattenRichPageSummary(
+		const std::shared_ptr<const RichPage> &page,
+		bool emptyFallback) {
+	return page
+		? FlattenRichPageSummary(*page, emptyFallback)
+		: TextWithEntities();
+}
+
+TextWithEntities FlattenRichPageToSimpleText(const RichPage &page) {
+	auto result = TextWithEntities();
+	for (const auto &block : page.blocks) {
+		switch (block.kind) {
+		case BlockKind::Code: {
+			// Code blocks are allowed at the top level as a Pre entity, but
+			// their content is sent as plain text without any inline entities.
+			auto inner = block.text.text;
+			ExpandInlineTextObjects(&inner);
+			inner.entities.clear();
+			AppendSimpleBlock(
+				&result,
+				std::move(inner),
+				EntityType::Pre,
+				block.language);
+			break;
+		}
+		case BlockKind::Quote: {
+			// Blockquotes are allowed at the top level as a Blockquote entity;
+			// the author is dropped and the inner content is flattened into a
+			// single TextWithEntities (keeping allowed inline formatting, no
+			// nested block formatting).
+			auto inner = TextWithEntities();
+			AppendSummaryLine(&inner, block.text);
+			AppendSummaryBlocks(&inner, block.blocks);
+			AppendSummaryLine(&inner, block.caption);
+			RemovePremiumOnlyInlineEntities(&inner);
+			AppendSimpleBlock(
+				&result,
+				std::move(inner),
+				EntityType::Blockquote);
+			break;
+		}
+		default: {
+			// Every other block (heading, list, table, math, paragraph, ...)
+			// is flattened to plain text lines, keeping the inline formatting a
+			// normal message can carry.
+			auto piece = TextWithEntities();
+			AppendSummaryBlock(&piece, block);
+			RemovePremiumOnlyInlineEntities(&piece);
+			AppendSummaryLine(&result, std::move(piece));
+			break;
+		}
+		}
+	}
 	TextUtilities::Trim(result);
 	if (result.empty()) {
 		result = TextWithEntities::Simple(tr::lng_message_empty(tr::now));
@@ -1864,9 +2189,139 @@ TextWithEntities FlattenRichPageSummary(const RichPage &page) {
 	return result;
 }
 
-TextWithEntities FlattenRichPageSummary(
-		const std::shared_ptr<const RichPage> &page) {
-	return page ? FlattenRichPageSummary(*page) : TextWithEntities();
+std::optional<TextWithEntities> SerializeAsSimple(const RichPage &page) {
+	auto result = TextWithEntities();
+	for (const auto &block : page.blocks) {
+		switch (block.kind) {
+		case BlockKind::Paragraph:
+			if (!SimpleTextEntitiesAllowed(block.text.text)) {
+				return std::nullopt;
+			}
+			AppendSimpleBlock(&result, TextWithEntities(block.text.text));
+			break;
+		case BlockKind::Code:
+			if (!SimpleTextEntitiesAllowed(block.text.text)) {
+				return std::nullopt;
+			}
+			AppendSimpleBlock(
+				&result,
+				TextWithEntities(block.text.text),
+				EntityType::Pre,
+				block.language);
+			break;
+		case BlockKind::Quote: {
+			auto body = TextWithEntities();
+			if (!CollectSimpleQuote(block, &body)) {
+				return std::nullopt;
+			}
+			AppendSimpleBlock(
+				&result,
+				std::move(body),
+				EntityType::Blockquote);
+			break;
+		}
+		default:
+			return std::nullopt;
+		}
+	}
+	TextUtilities::Trim(result);
+	if (result.empty()) {
+		return std::nullopt;
+	}
+	return result;
+}
+
+bool RichPageUsesPremiumFormatting(const RichPage &page) {
+	for (const auto &block : page.blocks) {
+		if (!RichBlockIsPlain(block)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool RichPageIsFlattenSafe(const RichPage &page) {
+	for (const auto &block : page.blocks) {
+		if (!RichBlockIsFlattenSafe(block)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+RichPage SplitTextIntoRichPage(TextWithEntities text) {
+	auto page = RichPage();
+
+	const auto emitParagraph = [&](int from, int to) {
+		auto paragraph = Ui::Text::Mid(text, from, to - from);
+		TextUtilities::Trim(paragraph);
+		if (!paragraph.empty()) {
+			page.blocks.push_back(Block{
+				.kind = BlockKind::Paragraph,
+				.text = { std::move(paragraph) },
+			});
+		}
+	};
+
+	struct Segment {
+		int offset = 0;
+		int length = 0;
+		EntityType type = EntityType::Invalid;
+		QString data;
+	};
+	auto segments = std::vector<Segment>();
+	for (const auto &entity : text.entities) {
+		const auto type = entity.type();
+		if (type == EntityType::Pre || type == EntityType::Blockquote) {
+			segments.push_back({
+				entity.offset(),
+				entity.length(),
+				type,
+				entity.data(),
+			});
+		}
+	}
+	ranges::sort(segments, ranges::less(), &Segment::offset);
+
+	auto cursor = 0;
+	const auto size = int(text.text.size());
+	for (const auto &segment : segments) {
+		if (segment.offset < cursor) {
+			continue;
+		}
+		emitParagraph(cursor, segment.offset);
+		auto source = text;
+		for (auto i = 0; i != int(source.entities.size()); ++i) {
+			const auto &e = source.entities[i];
+			if ((e.type() == segment.type)
+				&& (e.offset() == segment.offset)
+				&& (e.length() == segment.length)) {
+				source.entities.erase(source.entities.begin() + i);
+				break;
+			}
+		}
+		auto body = Ui::Text::Mid(source, segment.offset, segment.length);
+		TextUtilities::Trim(body);
+		cursor = segment.offset + segment.length;
+		if (body.empty()) {
+			continue;
+		}
+		if (segment.type == EntityType::Pre) {
+			page.blocks.push_back(Block{
+				.kind = BlockKind::Code,
+				.text = { std::move(body) },
+				.language = segment.data,
+			});
+		} else {
+			page.blocks.push_back(Block{
+				.kind = BlockKind::Quote,
+				.text = { std::move(body) },
+			});
+		}
+	}
+	emitParagraph(cursor, size);
+
+	return page;
 }
 
 } // namespace Iv

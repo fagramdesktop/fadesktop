@@ -7,7 +7,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #pragma once
 
-#include "core/version.h"
 #include "settings.h"
 
 enum {

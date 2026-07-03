@@ -1025,6 +1025,13 @@ public:
 		_notificationsVolume = value;
 	}
 
+	[[nodiscard]] int mediaGridZoomStep() const {
+		return _mediaGridZoomStep;
+	}
+	void setMediaGridZoomStep(int value) {
+		_mediaGridZoomStep = value;
+	}
+
 	template <typename Type, typename Other>
 	void writePref(std::string_view key, Other &&value) {
 		writePrefImpl<Type>(key, std::forward<Other>(value));
@@ -1201,6 +1208,8 @@ private:
 		= Dialogs::Ui::QuickDialogAction::Disabled;
 
 	ushort _notificationsVolume = 100;
+
+	int _mediaGridZoomStep = 0;
 
 	QByteArray _photoEditorBrush;
 

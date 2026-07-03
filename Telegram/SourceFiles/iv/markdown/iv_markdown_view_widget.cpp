@@ -20,6 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/chat/chat_theme.h"
 #include "ui/layers/show.h"
 #include "ui/text/text_extended_data.h"
+#include "ui/toast/toast.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/color_contrast.h"
@@ -27,6 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "styles/palette.h"
 #include "styles/style_chat.h"
+#include "styles/style_chat_helpers.h"
 #include "styles/style_iv.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
@@ -208,6 +210,11 @@ void MarkdownDocumentWidget::setMediaActivationCallback(
 	_activateMedia = std::move(callback);
 }
 
+void MarkdownDocumentWidget::setZoomStepCallback(
+		std::function<void(int)> callback) {
+	_zoomStepCallback = std::move(callback);
+}
+
 void MarkdownDocumentWidget::setClickHandlerContext(
 		QVariant context,
 		std::shared_ptr<QVariant> contextRef) {
@@ -348,6 +355,7 @@ int MarkdownDocumentWidget::resizeGetHeight(int newWidth) {
 	}
 	const auto scale = zoomScale();
 	const auto layoutWidth = std::max(int(std::floor(newWidth / scale)), 1);
+	_article->setMediaPixelScale(scale);
 	auto timer = QElapsedTimer();
 	timer.start();
 	const auto layoutHeight = _article->resizeGetHeight(layoutWidth);
@@ -378,6 +386,7 @@ void MarkdownDocumentWidget::requestRelayout(QRect articleRect) {
 		const auto previousHeight = height();
 		const auto scale = zoomScale();
 		const auto layoutWidth = std::max(int(std::floor(width() / scale)), 1);
+		_article->setMediaPixelScale(scale);
 		auto timer = QElapsedTimer();
 		timer.start();
 		const auto articleHeight = _article->resizeGetHeight(layoutWidth);
@@ -493,9 +502,6 @@ void MarkdownDocumentWidget::contextMenuEvent(QContextMenuEvent *e) {
 	const auto uponSelection = !selection.empty()
 		&& ((e->reason() != QContextMenuEvent::Mouse)
 			|| selectionContains(selection, state));
-	const auto contextText = uponSelection
-		? TextForMimeData()
-		: (_article ? _article->textForContext(state) : TextForMimeData());
 	const auto link = state.preparedLink;
 
 	_contextMenu = base::make_unique_q<Ui::PopupMenu>(
@@ -505,14 +511,6 @@ void MarkdownDocumentWidget::contextMenuEvent(QContextMenuEvent *e) {
 		_contextMenu->addAction(
 			Ui::Integration::Instance().phraseContextCopySelected(),
 			[=] { copySelectedText(); },
-			&st::menuIconCopy);
-	} else if (!contextText.empty()) {
-		_contextMenu->addAction(
-			tr::lng_context_copy_text(tr::now),
-			[text = contextText, this] {
-				TextUtilities::SetClipboardText(text);
-				showToast(tr::lng_text_copied(tr::now));
-			},
 			&st::menuIconCopy);
 	}
 
@@ -530,26 +528,6 @@ void MarkdownDocumentWidget::contextMenuEvent(QContextMenuEvent *e) {
 				},
 				&st::menuIconCopy);
 		}
-		switch (link->kind) {
-		case PreparedLinkKind::RejectedRelative:
-		case PreparedLinkKind::ToggleDetails:
-			break;
-		case PreparedLinkKind::External:
-		case PreparedLinkKind::InstantViewPage:
-		case PreparedLinkKind::Anchor:
-		case PreparedLinkKind::Footnote:
-		case PreparedLinkKind::FootnoteBacklink:
-		case PreparedLinkKind::LocalFile:
-			_contextMenu->addAction(
-				tr::lng_open_link(tr::now),
-				[=, prepared = *link] {
-					if (_activateLink) {
-						_activateLink(prepared, Qt::LeftButton);
-					}
-				},
-				&st::menuIconAddress);
-			break;
-		}
 	}
 
 	if (_contextMenu->empty()) {
@@ -561,40 +539,49 @@ void MarkdownDocumentWidget::contextMenuEvent(QContextMenuEvent *e) {
 }
 
 void MarkdownDocumentWidget::wheelEvent(QWheelEvent *e) {
-	const auto phase = e->phase();
-	if (phase == Qt::NoScrollPhase) {
-		_horizontalScrollLock = std::nullopt;
-	} else if (phase == Qt::ScrollBegin) {
-		_horizontalScrollLock = std::nullopt;
-	}
 	if (!_article) {
+		(void)_scrollDirectionLock.update(e->phase(), {});
 		e->ignore();
 		return;
 	}
-	const auto delta = Ui::ScrollDeltaF(e);
-	const auto horizontal = (std::abs(delta.x()) > std::abs(delta.y()));
-	if (phase != Qt::NoScrollPhase
-		&& phase != Qt::ScrollBegin
-		&& !_horizontalScrollLock) {
-		_horizontalScrollLock = horizontal ? Qt::Horizontal : Qt::Vertical;
+	if (e->modifiers().testFlag(Qt::ControlModifier)) {
+		(void)_scrollDirectionLock.update(e->phase(), {});
+		const auto angle = e->angleDelta().y();
+		const auto wheel = angle ? angle : e->pixelDelta().y();
+		if (wheel) {
+			constexpr auto step = int(QWheelEvent::DefaultDeltasPerStep);
+			_wheelZoomAccumulated += wheel;
+			while (std::abs(_wheelZoomAccumulated) >= step) {
+				if (_wheelZoomAccumulated < 0) {
+					_wheelZoomAccumulated += step;
+					if (_zoomStepCallback) {
+						_zoomStepCallback(-1);
+					}
+				} else {
+					_wheelZoomAccumulated -= step;
+					if (_zoomStepCallback) {
+						_zoomStepCallback(1);
+					}
+				}
+			}
+		}
+		e->accept();
+		return;
 	}
+	const auto delta = Ui::ScrollDeltaF(e);
+	const auto locked = _scrollDirectionLock.update(e->phase(), delta);
+	const auto horizontal = locked
+		? (*locked == Qt::Horizontal)
+		: (std::abs(delta.x()) > std::abs(delta.y()));
 	const auto local = ArticlePointFromWidget(LocalPosition(e), zoomScale());
 	if (!_article->horizontalScrollHit(local).scrollable) {
 		e->ignore();
 		return;
 	}
 	if (horizontal) {
-		if (_horizontalScrollLock == Qt::Vertical) {
-			e->ignore();
-			return;
-		}
 		(void)_article->consumeHorizontalScroll(
 			local,
 			int(std::round(delta.x())));
-		e->accept();
-		return;
-	}
-	if (_horizontalScrollLock == Qt::Horizontal) {
 		e->accept();
 	} else {
 		e->ignore();
@@ -768,6 +755,8 @@ void MarkdownDocumentWidget::mouseDoubleClickEvent(QMouseEvent *e) {
 			uint16(_selection.from.offset),
 			uint16(_selection.to.offset));
 	}
+	_tripleClickPoint = e->pos();
+	_tripleClickTimer.callOnce(QApplication::doubleClickInterval());
 	setFocus();
 	updateHover(state);
 	update();
@@ -898,11 +887,19 @@ MarkdownArticleSelection MarkdownDocumentWidget::selectionFromHit(
 	if (_selectionType != TextSelectType::Letters
 		&& !_dragExpandedSelection.empty()
 		&& result.segmentIndex != _dragSegment) {
-		first = (CompareSelectionPositions(
+		const auto targetBeforeAnchor = CompareSelectionPositions(
 			MarkdownArticleSelectionPosition{ result.segmentIndex, second },
-			MarkdownArticleSelectionPosition{ _dragSegment, _dragSymbol }) < 0)
+			MarkdownArticleSelectionPosition{ _dragSegment, _dragSymbol }) < 0;
+		first = targetBeforeAnchor
 			? _dragExpandedSelection.to
 			: _dragExpandedSelection.from;
+		if (_article->segmentIsText(result.segmentIndex)) {
+			const auto expanded = _article->adjustSelection(
+				result.segmentIndex,
+				TextSelection(uint16(second), uint16(second)),
+				_selectionType);
+			second = targetBeforeAnchor ? expanded.from : expanded.to;
+		}
 	}
 	if (result.segmentIndex == _dragSegment
 		&& _article->segmentIsText(_dragSegment)) {
@@ -951,7 +948,11 @@ QVariant MarkdownDocumentWidget::viewerToastClickHandlerContext() const {
 void MarkdownDocumentWidget::showToast(const QString &text) const {
 	const auto context = clickHandlerContext().value<ClickHandlerContext>();
 	if (context.show) {
-		context.show->showToast(text);
+		context.show->showToast({
+			.text = { text },
+			.iconLottie = u"toast/copy"_q,
+			.iconLottieSize = st::toastLottieIconSize,
+		});
 	}
 }
 
@@ -1003,6 +1004,7 @@ void MarkdownDocumentWidget::relayoutCurrentWidth(bool clearSelection) {
 	}
 	const auto scale = zoomScale();
 	const auto layoutWidth = std::max(int(std::floor(width() / scale)), 1);
+	_article->setMediaPixelScale(scale);
 	auto timer = QElapsedTimer();
 	timer.start();
 	const auto articleHeight = _article->resizeGetHeight(layoutWidth);
@@ -1090,6 +1092,7 @@ void MarkdownDocumentWidget::resetSelection() {
 	_dragExpandedSelection = {};
 	_selectionClickPreparedLink = std::nullopt;
 	_dragStartHadSelection = false;
+	_tripleClickTimer.cancel();
 }
 
 void MarkdownDocumentWidget::clearSelection() {
@@ -1168,8 +1171,12 @@ MarkdownArticlePaintContext MarkdownDocumentWidget::textPaintContext(
 			});
 		},
 	};
-	context.selectionState.selection = _selection;
-	context.selectionState.endpoints = &_selectionEndpoints;
+	context.selectionState.selection = !_selection.empty()
+		? _selection
+		: _savedSelection;
+	context.selectionState.endpoints = !_selection.empty()
+		? &_selectionEndpoints
+		: &_savedSelectionEndpoints;
 	return context;
 }
 
@@ -1239,6 +1246,23 @@ void MarkdownDocumentWidget::dragActionStart(
 	};
 	_savedSelectionEndpoints = {};
 	_dragAction = Selecting;
+	if (_tripleClickTimer.isActive()
+		&& (point - _tripleClickPoint).manhattanLength()
+			< QApplication::startDragDistance()
+		&& _article->segmentIsText(state.segmentIndex)
+		&& state.direct
+		&& state.state.uponSymbol) {
+		_selectionType = TextSelectType::Paragraphs;
+		_selection = selectionFromHit(state);
+		if (_selection.from.segment == _dragSegment
+			&& _selection.to.segment == _dragSegment) {
+			_dragExpandedSelection = TextSelection(
+				uint16(_selection.from.offset),
+				uint16(_selection.to.offset));
+		}
+		_tripleClickPoint = point;
+		_tripleClickTimer.callOnce(QApplication::doubleClickInterval());
+	}
 	update();
 }
 

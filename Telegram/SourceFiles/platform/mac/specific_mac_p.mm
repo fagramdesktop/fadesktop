@@ -13,6 +13,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/sandbox.h"
 #include "core/application.h"
 #include "core/core_settings.h"
+#include "core/version.h"
 #include "core/crash_reports.h"
 #include "menu/menu_dock.h"
 #include "storage/localstorage.h"

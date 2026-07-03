@@ -60,6 +60,12 @@ using Data::PhotoSize;
 	return parent->Get<InstantViewMediaRuntime>() != nullptr;
 }
 
+[[nodiscard]] QSize HostedInstantViewForcedSize(
+		not_null<const Element*> parent) {
+	const auto runtime = parent->Get<InstantViewMediaRuntime>();
+	return runtime ? runtime->forcedSize : QSize();
+}
+
 [[nodiscard]] QSize PhotoDesiredMediaSize(
 		QSize dimensions,
 		bool hostedInstantView) {
@@ -213,6 +219,10 @@ QSize Photo::countOptimalSize() {
 	if (_serviceWidth > 0) {
 		return { int(_serviceWidth), int(_serviceWidth) };
 	}
+	if (const auto forced = HostedInstantViewForcedSize(_parent)
+		; !forced.isEmpty()) {
+		return forced;
+	}
 	const auto hostedInstantView = IsHostedInstantViewMedia(_parent);
 	const auto dimensions = photoSize();
 	const auto scaled = PhotoDesiredMediaSize(dimensions, hostedInstantView);
@@ -245,6 +255,10 @@ QSize Photo::countOptimalSize() {
 QSize Photo::countCurrentSize(int newWidth) {
 	if (_serviceWidth) {
 		return { int(_serviceWidth), int(_serviceWidth) };
+	}
+	if (const auto forced = HostedInstantViewForcedSize(_parent)
+		; !forced.isEmpty()) {
+		return forced;
 	}
 	const auto hostedInstantView = IsHostedInstantViewMedia(_parent);
 	const auto thumbMaxWidth = hostedInstantView

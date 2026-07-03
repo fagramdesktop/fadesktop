@@ -836,6 +836,12 @@ void InnerWidget::elementShowTooltip(
 	Fn<void()> hiddenCallback) {
 }
 
+void InnerWidget::elementShowHiddenSenderTooltip(
+		FullMsgId itemId,
+		const TextWithEntities &text) {
+	_controller->showToast(TextWithEntities(text));
+}
+
 bool InnerWidget::elementAnimationsPaused() {
 	return _controller->isGifPausedAtLeastFor(Window::GifPauseReason::Any);
 }
@@ -3327,6 +3333,18 @@ void InnerWidget::touchScrollUpdated(const QPoint &screenPos) {
 	touchUpdateSpeed();
 }
 
-InnerWidget::~InnerWidget() = default;
+InnerWidget::~InnerWidget() {
+	// Destroying an OwnedItem triggers Data::Session::requestItemResize, which
+	// is delivered to our viewResizeRequest subscription (held by the base
+	// RpWidget lifetime, torn down after our members) and re-enters
+	// resizeGetHeight() over _displayItems and _visibleTopItem. The implicit
+	// member teardown destroys _displayItems before _items, so that re-entry
+	// reads already-freed layout state and crashes when closing the section.
+	// Tear the display layout down first (empties _displayItems, nulls the view
+	// pointers), then release the owned items, mirroring saveState(); with
+	// _items emptied, myView() also short-circuits the resize to a no-op.
+	clearDisplayItems(DisplayPointerScope::All);
+	base::take(_items);
+}
 
 } // namespace AdminLog

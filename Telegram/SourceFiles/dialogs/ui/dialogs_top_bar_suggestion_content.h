@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace Ui {
 class DynamicImage;
+class ElasticScroll;
 class IconButton;
 } // namespace Ui
 
@@ -26,6 +27,13 @@ struct UnreviewedAuth;
 } // namespace Data
 
 namespace Dialogs {
+
+[[nodiscard]] int PillRadius();
+
+int PaintSuggestionBubbleBackground(
+	QPainter &p,
+	QRect outer,
+	const Ui::BoxShadow &shadow);
 
 class UnconfirmedAuthWrap : public Ui::SlideWrap<Ui::VerticalLayout> {
 public:
@@ -125,5 +133,15 @@ private:
 	QImage _rightPhotoImage;
 
 };
+
+struct MountTopBarSuggestionArgs {
+	not_null<Ui::ElasticScroll*> scroll;
+	not_null<Ui::VerticalLayout*> innerList;
+	not_null<Ui::SlideWrap<Ui::RpWidget>*> wrap;
+	base::unique_qptr<Ui::RpWidget> *placeholder = nullptr;
+	Fn<void(int)> heightChanged;
+};
+
+void MountTopBarSuggestion(MountTopBarSuggestionArgs args);
 
 } // namespace Dialogs

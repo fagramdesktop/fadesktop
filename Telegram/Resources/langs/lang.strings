@@ -372,9 +372,12 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 "lng_edit_media_album_error" = "This file cannot be saved as a part of an album.";
 "lng_edit_media_invalid_file" = "Sorry, no way to use this file.";
-/*
 "lng_iv_editor_media_invalid_file" = "Sorry, only photos, video, and audio files are supported here.";
-*/
+"lng_iv_editor_discard_draft_sure" = "Are you sure you want to discard this message? This action cannot be undone.";
+"lng_iv_editor_saving_draft" = "Saving the draft...";
+"lng_iv_editor_save_draft_failed" = "Could not save the draft.";
+"lng_iv_editor_save_draft_failed_error" = "Could not save the draft.\n\nError: {error}";
+"lng_iv_editor_close_now" = "Close now";
 "lng_edit_photo_editor_hint" = "Left-click on the photo to edit.";
 "lng_edit_caption_attach" = "Sorry, you can't attach new media while editing a message.";
 "lng_edit_caption_voice" = "Sorry, you can't edit messages when you have an unsent voice message.";
@@ -1325,7 +1328,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_settings_faq_link" = "https://telegram.org/faq#general-questions";
 "lng_settings_features" = "Telegram Features";
 "lng_settings_credits" = "My Stars";
-"lng_settings_currency" = "My TON";
+"lng_settings_currency" = "My Grams";
 "lng_settings_logout" = "Log out";
 "lng_sure_logout" = "Are you sure you want to log out?";
 
@@ -1668,6 +1671,11 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_profile_direct_messages" = "Direct messages";
 "lng_profile_join_channel" = "Join Channel";
 "lng_profile_join_group" = "Join Group";
+
+"lng_pull_next_channel" = "Pull up to go to the next unread channel";
+"lng_release_next_channel" = "Release to go to the next unread channel";
+"lng_pull_no_unread_channels" = "You have no unread channels";
+
 "lng_profile_apply_to_join_group" = "Apply to Join Group";
 "lng_profile_kick" = "Remove";
 "lng_profile_delete_removed" = "Delete";
@@ -1845,6 +1853,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_profile_action_short_leave" = "Leave";
 "lng_profile_action_short_more" = "More";
 "lng_profile_action_short_manage" = "Manage";
+"lng_profile_action_short_live_stream" = "Live stream";
+"lng_profile_action_short_video_chat" = "Video chat";
 
 "lng_media_type_photos" = "Photos";
 "lng_media_type_gifs" = "GIFs";
@@ -1856,6 +1866,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_media_type_polls" = "Polls";
 "lng_polls_search_none" = "No polls found";
 "lng_media_type_rounds" = "Video messages";
+"lng_media_zoom_in" = "Zoom In";
+"lng_media_zoom_out" = "Zoom Out";
 "lng_media_saved_music_your" = "Your playlist";
 "lng_media_saved_music_title" = "Playlist";
 "lng_profile_common_groups_section" = "Groups in common";
@@ -1939,7 +1951,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_manage_peer_reactions_max_about" = "Limit the number of different reactions that can be added to a post, including already published ones.";
 
 "lng_manage_peer_reactions_paid" = "Enable Paid Reactions";
-"lng_manage_peer_reactions_paid_about" = "Switch this on to let your subscribers react to posts with Telegram Stars, which you will be able to withdraw as TON. {link}";
+"lng_manage_peer_reactions_paid_about" = "Switch this on to let your subscribers react to posts with Telegram Stars, which you will be able to withdraw as Grams. {link}";
 "lng_manage_peer_reactions_paid_link" = "Learn more >";
 
 "lng_manage_peer_antispam" = "Aggressive Anti-Spam";
@@ -2488,8 +2500,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_action_gift_channel_about_unique" = "You can display this gift in channel's Gifts or turn it into unique collectible.";
 "lng_action_gift_for_stars#one" = "{count} Star";
 "lng_action_gift_for_stars#other" = "{count} Stars";
-"lng_action_gift_for_ton#one" = "{count} TON";
-"lng_action_gift_for_ton#other" = "{count} TON";
+"lng_action_gift_for_ton#one" = "{count} Gram";
+"lng_action_gift_for_ton#other" = "{count} Grams";
 "lng_action_gift_got_subtitle" = "Gift from {user}";
 "lng_action_gift_got_stars_text#one" = "Display this gift on your page or convert it to **{count}** Star.";
 "lng_action_gift_got_stars_text#other" = "Display this gift on your page or convert it to **{count}** Stars.";
@@ -2506,7 +2518,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_action_gift_premium_months#other" = "{count} Months Premium";
 "lng_action_gift_premium_about" = "Subscription for exclusive Telegram features.";
 "lng_action_gift_refunded" = "This gift was downgraded because a request to refund the payment related to this gift was made, and the money was returned.";
-"lng_action_gift_got_ton" = "Use TON to suggest posts to channels.";
+"lng_action_gift_got_ton" = "Use Grams to suggest posts to channels.";
 "lng_action_gift_offer_incoming" = "An offer to buy this gift for {amount}.";
 "lng_action_gift_offer_you" = "You offered {cost} for {name}.";
 "lng_action_gift_offer_state_expires" = "This offer expires in {time}.";
@@ -2619,8 +2631,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_action_todo_tasks_and_last" = "{tasks} and {task}";
 "lng_action_suggest_success_stars#one" = "{from} has received {count} Star for publishing post.";
 "lng_action_suggest_success_stars#other" = "{from} has received {count} Stars for publishing post.";
-"lng_action_suggest_success_ton#one" = "{from} has received {count} TON for publishing post.";
-"lng_action_suggest_success_ton#other" = "{from} has received {count} TON for publishing post.";
+"lng_action_suggest_success_ton#one" = "{from} has received {count} Gram for publishing post.";
+"lng_action_suggest_success_ton#other" = "{from} has received {count} Grams for publishing post.";
 "lng_action_suggest_refund_user" = "User refunded the Stars so that post was deleted.";
 "lng_action_suggest_refund_admin" = "Admin deleted the post early so that the price was refunded to the user.";
 "lng_action_post_rejected" = "The post was rejected.";
@@ -2899,6 +2911,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_repeated_yearly" = "yearly";
 "lng_edited_date" = "Edited: {date}";
 "lng_sent_date" = "Sent: {date}";
+"lng_edited_at" = "edited at {time}";
+"lng_edited_on" = "edited on {date} at {time}";
+"lng_sent_on" = "sent on {date} at {time}";
 "lng_approximate_about" = "Estimated date of video publishing.";
 "lng_views_tooltip#one" = "Views: {count}";
 "lng_views_tooltip#other" = "Views: {count}";
@@ -3089,6 +3104,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_premium_summary_about_no_forwards" = "Restrict forwarding, copying, and saving content from your private chats.";
 "lng_premium_summary_subtitle_ai_compose" = "AI Tools";
 "lng_premium_summary_about_ai_compose" = "Transform your messages and entire chats in your preferred style and language.";
+"lng_premium_summary_subtitle_rich_formatting" = "Rich Formatting";
+"lng_premium_summary_about_rich_formatting" = "Add headers, tables, lists, AI and inline media to messages.";
 "lng_premium_summary_bottom_subtitle" = "About Telegram Premium";
 "lng_premium_summary_bottom_about" = "While the free version of Telegram already gives its users more than any other messaging application, **Telegram Premium** pushes its capabilities even further.\n\n**Telegram Premium** is a paid option, because most Premium Features require additional expenses from Telegram to third parties such as data center providers and server manufacturers. Contributions from **Telegram Premium** users allow us to cover such costs and also help Telegram stay free for everyone.";
 "lng_premium_summary_button" = "Subscribe for {cost} per month";
@@ -3219,11 +3236,11 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 "lng_credits_summary_title" = "Telegram Stars";
 "lng_credits_summary_about" = "Buy Stars to unlock content and services in miniapps on Telegram.";
-"lng_credits_currency_summary_title" = "TON Balance";
-"lng_credits_currency_summary_about" = "Offer TON to submit post suggestions to channels on Telegram.";
-"lng_credits_currency_summary_subtitle" = "You can withdraw your TON using Fragment.";
+"lng_credits_currency_summary_title" = "Gram Balance";
+"lng_credits_currency_summary_about" = "Offer Grams to submit post suggestions to channels on Telegram.";
+"lng_credits_currency_summary_subtitle" = "You can withdraw your Grams using Fragment.";
 "lng_credits_currency_summary_in_button" = "Top-up via Fragment";
-"lng_credits_currency_summary_in_subtitle" = "You can top-up your TON balance via Fragment.";
+"lng_credits_currency_summary_in_subtitle" = "You can top-up your Grams balance via Fragment.";
 "lng_credits_summary_options_subtitle" = "Choose package";
 "lng_credits_summary_options_credits#one" = "{count} Star";
 "lng_credits_summary_options_credits#other" = "{count} Stars";
@@ -3310,7 +3327,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_credits_box_history_entry_gift_examples" = "Examples";
 "lng_credits_box_history_entry_ads" = "Ads Platform";
 "lng_credits_box_history_entry_premium_bot" = "Stars Top-Up";
-"lng_credits_box_history_entry_currency_in" = "TON Top-Up";
+"lng_credits_box_history_entry_currency_in" = "Gram Top-Up";
 "lng_credits_box_history_entry_posts_search" = "Posts Search";
 "lng_credits_box_history_entry_api" = "Paid Broadcast";
 "lng_credits_box_history_entry_floodskip_about#one" = "{count} Message";
@@ -3956,8 +3973,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_gift_stars_incoming" = "Use Stars to unlock content and services on Telegram.";
 "lng_gift_until" = "Until";
 
-"lng_gift_ton_amount#one" = "{count} TON";
-"lng_gift_ton_amount#other" = "{count} TON";
+"lng_gift_ton_amount#one" = "{count} Gram";
+"lng_gift_ton_amount#other" = "{count} Grams";
 
 "lng_gift_premium_title" = "Premium Gift";
 "lng_gift_premium_text#one" = "Subscribe to **Telegram Premium** to send up to **{count}** of these gifts and unlock access to multiple additional features.";
@@ -4015,9 +4032,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_gift_buy_resale_title" = "Buy {name}";
 "lng_gift_buy_resale_button" = "Buy for {cost}";
 "lng_gift_buy_resale_equals" = "Equals to {cost}";
-"lng_gift_buy_resale_only_ton" = "The seller only accepts TON as payment.";
+"lng_gift_buy_resale_only_ton" = "The seller only accepts Grams as payment.";
 "lng_gift_buy_resale_pay_stars" = "Pay in Stars";
-"lng_gift_buy_resale_pay_ton" = "Pay in TON";
+"lng_gift_buy_resale_pay_ton" = "Pay in Grams";
 "lng_gift_buy_resale_confirm" = "Do you want to buy {name} for {price} and gift it to {user}?";
 "lng_gift_buy_resale_confirm_self" = "Do you want to buy {name} for {price}?";
 "lng_gift_buy_price_change_title" = "Price change!";
@@ -4220,7 +4237,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_gift_offer_button" = "Offer to Buy";
 "lng_gift_offer_title" = "Offer to Buy";
 "lng_gift_offer_stars_about" = "Choose how many Stars you'd like to offer for {name}.";
-"lng_gift_offer_ton_about" = "Choose how many TON you'd like to offer for {name}.";
+"lng_gift_offer_ton_about" = "Choose how many Grams you'd like to offer for {name}.";
 "lng_gift_offer_duration" = "Offer Duration";
 "lng_gift_offer_duration_about" = "Choose how long {user} can accept your offer. When the time expires, the amount will be refunded.";
 "lng_gift_offer_cost_button" = "Offer {cost}";
@@ -4244,13 +4261,13 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_gift_sell_amount#other" = "You will receive **{count}** Stars.";
 "lng_gift_sell_min_price#one" = "Minimum price is {count} Star.";
 "lng_gift_sell_min_price#other" = "Minimum price is {count} Stars.";
-"lng_gift_sell_only_ton" = "Only Accept TON";
-"lng_gift_sell_only_ton_about" = "If the buyer pays you in TON, there's no risk of refunds, unlike Stars payments.";
-"lng_gift_sell_amount_ton#one" = "You will receive **{count}** TON.";
-"lng_gift_sell_amount_ton#other" = "You will receive **{count}** TON.";
-"lng_gift_sell_min_price_ton#one" = "Minimum price is {count} TON.";
-"lng_gift_sell_min_price_ton#other" = "Minimum price is {count} TON.";
-"lng_gift_sell_title_ton" = "Price in TON";
+"lng_gift_sell_only_ton" = "Only Accept Grams";
+"lng_gift_sell_only_ton_about" = "If the buyer pays you in Grams, there's no risk of refunds, unlike Stars payments.";
+"lng_gift_sell_amount_ton#one" = "You will receive **{count}** Gram.";
+"lng_gift_sell_amount_ton#other" = "You will receive **{count}** Grams.";
+"lng_gift_sell_min_price_ton#one" = "Minimum price is {count} Gram.";
+"lng_gift_sell_min_price_ton#other" = "Minimum price is {count} Grams.";
+"lng_gift_sell_title_ton" = "Price in Grams";
 "lng_gift_sell_put" = "Put for Sale";
 "lng_gift_sell_update" = "Update the Price";
 "lng_gift_sell_toast" = "{name} is now for sale!";
@@ -4572,6 +4589,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_emoji_remove_group_set" = "Remove group emoji set?";
 "lng_emoji_group_from_your" = "Choose from your emoji";
 "lng_emoji_group_from_featured" = "Choose from trending emoji";
+"lng_emoji_group_badge" = "Group Emoji";
 "lng_masks_archive_pack" = "Archive Masks";
 "lng_masks_has_been_archived" = "Mask pack has been archived.";
 "lng_masks_installed" = "Mask pack has been installed.";
@@ -4593,6 +4611,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 "lng_stickers_create_new" = "Create a New Sticker";
 "lng_stickers_add_existing" = "Add an Existing Sticker";
+"lng_emoji_create_new" = "Create a New Emoji";
+"lng_emoji_add_existing" = "Add an Existing Emoji";
+"lng_emoji_adapt_sticker" = "Adapt from a Sticker";
+"lng_emoji_adapt_no_video" = "Video stickers are not supported yet.";
 "lng_stickers_add_to_set" = "Add to Sticker Set";
 "lng_stickers_already_in_set" = "This Sticker is already in the Set.";
 "lng_stickers_set_is_full" = "This Sticker Set is full.";
@@ -4600,6 +4622,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_emoji_already_in_set" = "This Emoji is already in the Set.";
 "lng_emoji_set_is_full" = "This Emoji Set is full.";
 "lng_emoji_added" = "Emoji added.";
+"lng_emoji_create_image_title" = "New Emoji";
+"lng_emoji_create_emoji_about" = "Choose emojis that match your emoji";
 "lng_stickers_pack_choose_emoji_title" = "Choose Emoji";
 "lng_stickers_pack_choose_emoji_about" = "Pick an emoji that corresponds to this sticker.";
 "lng_stickers_pick_existing_title" = "Choose Sticker";
@@ -4632,6 +4656,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_in_dlg_sticker" = "Sticker";
 "lng_in_dlg_sticker_emoji" = "{emoji} Sticker";
 "lng_in_dlg_poll" = "Poll";
+"lng_in_dlg_table" = "Table";
 "lng_in_dlg_story" = "Story";
 "lng_in_dlg_todo_list" = "Checklist";
 "lng_in_dlg_story_expired" = "Expired story";
@@ -5170,6 +5195,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_context_upload_edit_caption" = "Edit Caption";
 "lng_context_copy_selected" = "Copy Selected Text";
 "lng_context_copy_selected_items" = "Copy Selected as Text";
+"lng_context_copy_in_reply_to" = "in reply to {name}";
 "lng_context_forward_selected" = "Forward Selected";
 "lng_context_send_now_selected" = "Send selected now";
 "lng_context_reschedule_selected" = "Reschedule Selected";
@@ -5407,10 +5433,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_suggest_options_stars_request" = "Request Stars";
 "lng_suggest_options_stars_price" = "Enter Price in Stars";
 "lng_suggest_options_stars_price_about" = "Choose how many Stars to pay to publish this message.";
-"lng_suggest_options_ton_offer" = "Offer TON";
-"lng_suggest_options_ton_request" = "Request TON";
-"lng_suggest_options_ton_price" = "Enter Price in TON";
-"lng_suggest_options_ton_price_about" = "Choose how many TON to pay to publish this message.";
+"lng_suggest_options_ton_offer" = "Offer Grams";
+"lng_suggest_options_ton_request" = "Request Grams";
+"lng_suggest_options_ton_price" = "Enter Price in Grams";
+"lng_suggest_options_ton_price_about" = "Choose how many Grams to pay to publish this message.";
 "lng_suggest_options_date" = "Time";
 "lng_suggest_options_date_any" = "Anytime";
 "lng_suggest_options_date_publish" = "Publish";
@@ -5418,8 +5444,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_suggest_options_date_about" = "Select the date and time you want the message to be published. The post will remain available for at least 24 hours from this date.";
 "lng_suggest_options_you_get_stars#one" = "You will receive {count} Star ({percent}) for publishing this post.";
 "lng_suggest_options_you_get_stars#other" = "You will receive {count} Stars ({percent}) for publishing this post.";
-"lng_suggest_options_you_get_ton#one" = "You will receive {count} TON ({percent}) for publishing this post.";
-"lng_suggest_options_you_get_ton#other" = "You will receive {count} TON ({percent}) for publishing this post.";
+"lng_suggest_options_you_get_ton#one" = "You will receive {count} Gram ({percent}) for publishing this post.";
+"lng_suggest_options_you_get_ton#other" = "You will receive {count} Grams ({percent}) for publishing this post.";
 "lng_suggest_options_stars_warning" = "Transactions in **Stars** may be reversed by the payment provider within **21** days. Only accept Stars from people you trust.";
 "lng_suggest_options_offer" = "Offer {amount}";
 "lng_suggest_options_offer_free" = "Offer for Free";
@@ -5439,20 +5465,20 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_suggest_action_agree_date" = "The post will be automatically published on {channel} {date}.";
 "lng_suggest_action_your_charged_stars#one" = "You have been charged **{count} Star**.";
 "lng_suggest_action_your_charged_stars#other" = "You have been charged **{count} Stars**.";
-"lng_suggest_action_your_charged_ton#one" = "You have been charged **{count} TON**.";
-"lng_suggest_action_your_charged_ton#other" = "You have been charged **{count} TON**.";
+"lng_suggest_action_your_charged_ton#one" = "You have been charged **{count} Gram**.";
+"lng_suggest_action_your_charged_ton#other" = "You have been charged **{count} Grams**.";
 "lng_suggest_action_his_charged_stars#one" = "{from} has been charged **{count} Star**.";
 "lng_suggest_action_his_charged_stars#other" = "{from} has been charged **{count} Stars**.";
-"lng_suggest_action_his_charged_ton#one" = "{from} has been charged **{count} TON**.";
-"lng_suggest_action_his_charged_ton#other" = "{from} has been charged **{count} TON**.";
+"lng_suggest_action_his_charged_ton#one" = "{from} has been charged **{count} Gram**.";
+"lng_suggest_action_his_charged_ton#other" = "{from} has been charged **{count} Grams**.";
 "lng_suggest_action_agree_receive_stars" = "{channel} will receive the Stars once the post has been live for 24 hours.";
-"lng_suggest_action_agree_receive_ton" = "{channel} will receive TON once the post has been live for 24 hours.";
+"lng_suggest_action_agree_receive_ton" = "{channel} will receive Grams once the post has been live for 24 hours.";
 "lng_suggest_action_agree_removed_stars" = "If {channel} removes the post before it has been live for 24 hours, the Stars will be refunded.";
-"lng_suggest_action_agree_removed_ton" = "If {channel} removes the post before it has been live for 24 hours, TON will be refunded.";
+"lng_suggest_action_agree_removed_ton" = "If {channel} removes the post before it has been live for 24 hours, Grams will be refunded.";
 "lng_suggest_action_your_not_enough_stars" = "**Transaction failed** because you didn't have enough Stars.";
-"lng_suggest_action_your_not_enough_ton" = "**Transaction failed** because you didn't have enough TON.";
+"lng_suggest_action_your_not_enough_ton" = "**Transaction failed** because you didn't have enough Grams.";
 "lng_suggest_action_his_not_enough_stars" = "**Transaction failed** because the user didn't have enough Stars.";
-"lng_suggest_action_his_not_enough_ton" = "**Transaction failed** because the user didn't have enough TON.";
+"lng_suggest_action_his_not_enough_ton" = "**Transaction failed** because the user didn't have enough Grams.";
 "lng_suggest_action_declined" = "{from} rejected the message.";
 "lng_suggest_action_declined_reason" = "{from} rejected the message with the comment.";
 "lng_suggest_change_price" = "{from} suggests a new price for the message.";
@@ -5474,32 +5500,32 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_suggest_accept_text_to" = "Do you want to publish this post to {channel}?";
 "lng_suggest_accept_receive_stars#one" = "{channel} will receive **{count} Star** ({percent}) for publishing {date}.";
 "lng_suggest_accept_receive_stars#other" = "{channel} will receive **{count} Stars** ({percent}) for publishing {date}.";
-"lng_suggest_accept_receive_ton#one" = "{channel} will receive **{count} TON** ({percent}) for publishing {date}.";
-"lng_suggest_accept_receive_ton#other" = "{channel} will receive **{count} TON** ({percent}) for publishing {date}.";
+"lng_suggest_accept_receive_ton#one" = "{channel} will receive **{count} Gram** ({percent}) for publishing {date}.";
+"lng_suggest_accept_receive_ton#other" = "{channel} will receive **{count} Grams** ({percent}) for publishing {date}.";
 "lng_suggest_accept_receive_now_stars#one" = "{channel} will receive **{count} Star** ({percent}) for publishing right now.";
 "lng_suggest_accept_receive_now_stars#other" = "{channel} will receive **{count} Stars** ({percent}) for publishing right now.";
-"lng_suggest_accept_receive_now_ton#one" = "{channel} will receive **{count} TON** ({percent}) for publishing right now.";
-"lng_suggest_accept_receive_now_ton#other" = "{channel} will receive **{count} TON** ({percent}) for publishing right now.";
+"lng_suggest_accept_receive_now_ton#one" = "{channel} will receive **{count} Gram** ({percent}) for publishing right now.";
+"lng_suggest_accept_receive_now_ton#other" = "{channel} will receive **{count} Grams** ({percent}) for publishing right now.";
 "lng_suggest_accept_receive_if" = "It must remain visible for at least **24** hours after publication.";
 "lng_suggest_accept_pay_stars#one" = "You will pay **{count} Star** for publishing {date}.";
 "lng_suggest_accept_pay_stars#other" = "You will pay **{count} Stars** for publishing {date}.";
-"lng_suggest_accept_pay_ton#one" = "You will pay **{count} TON** for publishing {date}.";
-"lng_suggest_accept_pay_ton#other" = "You will pay **{count} TON** for publishing {date}.";
+"lng_suggest_accept_pay_ton#one" = "You will pay **{count} Gram** for publishing {date}.";
+"lng_suggest_accept_pay_ton#other" = "You will pay **{count} Grams** for publishing {date}.";
 "lng_suggest_accept_pay_now_stars#one" = "You will pay **{count} Star** for publishing right now.";
 "lng_suggest_accept_pay_now_stars#other" = "You will pay **{count} Stars** for publishing right now.";
-"lng_suggest_accept_pay_now_ton#one" = "You will pay **{count} TON** for publishing right now.";
-"lng_suggest_accept_pay_now_ton#other" = "You will pay **{count} TON** for publishing right now.";
+"lng_suggest_accept_pay_now_ton#one" = "You will pay **{count} Gram** for publishing right now.";
+"lng_suggest_accept_pay_now_ton#other" = "You will pay **{count} Grams** for publishing right now.";
 "lng_suggest_accept_send" = "Publish";
 "lng_suggest_stars_amount#one" = "{count} Star";
 "lng_suggest_stars_amount#other" = "{count} Stars";
-"lng_suggest_ton_amount#one" = "{count} TON";
-"lng_suggest_ton_amount#other" = "{count} TON";
+"lng_suggest_ton_amount#one" = "{count} Gram";
+"lng_suggest_ton_amount#other" = "{count} Grams";
 "lng_suggest_warn_title_stars" = "Stars will be lost";
-"lng_suggest_warn_title_ton" = "TON will be lost";
+"lng_suggest_warn_title_ton" = "Grams will be lost";
 "lng_suggest_warn_text_stars" = "You won't receive **Stars** for the post if you delete it now. The post must remain visible for at least **24 hours** after it was published.";
-"lng_suggest_warn_text_ton" = "You won't receive **TON** for the post if you delete it now. The post must remain visible for at least **24 hours** after it was published.";
+"lng_suggest_warn_text_ton" = "You won't receive **Grams** for the post if you delete it now. The post must remain visible for at least **24 hours** after it was published.";
 "lng_suggest_warn_delete_anyway" = "Delete Anyway";
-"lng_suggest_low_ton_title" = "{amount} TON Needed";
+"lng_suggest_low_ton_title" = "{amount} Grams Needed";
 "lng_suggest_low_ton_text" = "You can add funds to your balance via the third-party platform Fragment.";
 "lng_suggest_low_ton_fragment" = "Add Funds via Fragment";
 "lng_suggest_low_ton_fragment_url" = "https://fragment.com/ads/topup";
@@ -5794,6 +5820,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_sr_message_invoice_paid" = "Paid";
 "lng_sr_message_invoice_unpaid" = "Unpaid";
 
+"lng_sr_folder_locked" = "{text}, Premium required";
+"lng_sr_folder_locked_about" = "Press to view subscription options.";
+
 "lng_media_save_progress" = "{ready} of {total} {mb}";
 "lng_mediaview_save_as" = "Save As...";
 "lng_mediaview_copy" = "Copy";
@@ -5865,6 +5894,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_menu_formatting_blockquote" = "Quote";
 "lng_menu_formatting_monospace" = "Monospace";
 "lng_menu_formatting_spoiler" = "Spoiler";
+"lng_menu_formatting_subscript" = "Subscript";
+"lng_menu_formatting_superscript" = "Superscript";
+"lng_menu_formatting_marked" = "Marked";
+"lng_menu_formatting_plain_text" = "Plain text";
 "lng_menu_formatting_date" = "Date";
 "lng_menu_formatting_link_create" = "Create link";
 "lng_menu_formatting_link_edit" = "Edit link";
@@ -5874,6 +5907,13 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_formatting_link_edit_title" = "Edit link";
 "lng_formatting_link_text" = "Text";
 "lng_formatting_link_url" = "URL";
+"lng_formatting_math_create_title" = "Insert formula";
+"lng_formatting_math_edit_title" = "Edit formula";
+"lng_formatting_math_source" = "Formula";
+"lng_formatting_math_source_placeholder" = "Formula source";
+"lng_formatting_math_separate_line" = "Separate Line Formula";
+"lng_formatting_math_source_label" = "LaTeX";
+"lng_formatting_math_result_label" = "Result";
 "lng_formatting_link_create" = "Create";
 "lng_formatting_code_title" = "Code Language";
 "lng_formatting_code_language" = "Language for syntax highlighting.";
@@ -7180,9 +7220,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_polls_stop_warning" = "If you stop this poll now, nobody will be able to vote in it anymore. This action cannot be undone.";
 "lng_polls_stop_sure" = "Stop";
 "lng_article_menu_item" = "Article";
-/*
 "lng_article_editor_title" = "Article";
 "lng_article_insert_heading" = "Heading";
+"lng_article_insert_text" = "Text";
 "lng_article_insert_heading1" = "Heading 1";
 "lng_article_insert_heading2" = "Heading 2";
 "lng_article_insert_heading3" = "Heading 3";
@@ -7197,24 +7237,50 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_article_insert_ordered_list" = "Ordered List";
 "lng_article_insert_bullet_list" = "Bullet List";
 "lng_article_insert_task_list" = "Task List";
+"lng_article_list_change" = "Change List";
+"lng_article_list_insert" = "Insert List";
+"lng_article_tooltip_text_style" = "Text Style";
+"lng_article_tooltip_list_style" = "List Style";
+"lng_article_tooltip_table_insert" = "Insert Table";
+"lng_article_tooltip_table_style" = "Table Style";
+"lng_article_tooltip_link" = "Insert Link";
+"lng_article_tooltip_media" = "Insert Media";
+"lng_article_tooltip_formula" = "Insert Formula";
+"lng_article_tooltip_emoji" = "Emoji Panel";
+"lng_article_list_item_change" = "Change List Item";
+"lng_article_list_numbers" = "Numbers";
+"lng_article_list_lowercase_letters" = "Lowercase Letters";
+"lng_article_list_uppercase_letters" = "Uppercase Letters";
+"lng_article_list_lowercase_roman" = "Lowercase Roman";
+"lng_article_list_uppercase_roman" = "Uppercase Roman";
+"lng_article_list_reversed" = "Reversed";
 "lng_article_insert_pullquote" = "Pullquote";
 "lng_article_insert_media" = "Attach Media";
+"lng_article_media_ungroup" = "Ungroup";
+"lng_article_media_collage" = "Collage";
+"lng_article_media_slideshow" = "Slideshow";
 "lng_article_insert_details" = "Details";
 "lng_article_insert_table" = "Table";
-"lng_article_insert_map" = "Map";
 "lng_article_limit_length" = "The article is too long.";
 "lng_article_limit_depth" = "The article is nested too deeply.";
 "lng_article_limit_blocks" = "The article has too many blocks.";
 "lng_article_limit_columns" = "The article table has too many columns.";
 "lng_article_limit_media" = "The article has too many media files.";
+"lng_article_submit_empty" = "The article can't be empty.";
 "lng_article_premium_required" = "Subscribe to {link} to be able to send rich articles.";
 "lng_article_premium_required_link" = "Telegram Premium";
+"lng_article_premium_choice_title" = "Remove Formatting";
+"lng_article_premium_choice_about" = "This message uses rich formatting, which requires {link}.";
+"lng_article_premium_choice_about_link" = "Telegram Premium";
+"lng_article_premium_choice_plain" = "Send Without Formatting";
 "lng_article_table_change" = "Change Table";
 "lng_article_table_add_row" = "Add Row";
 "lng_article_table_add_column" = "Add Column";
 "lng_article_table_header" = "Header";
+"lng_article_table_align_left" = "Align Left";
 "lng_article_table_align_center" = "Align Center";
 "lng_article_table_align_right" = "Align Right";
+"lng_article_table_align_top" = "Align Top";
 "lng_article_table_align_middle" = "Align Middle";
 "lng_article_table_align_bottom" = "Align Bottom";
 "lng_article_table_split_cell" = "Split Cell";
@@ -7224,9 +7290,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_article_table_delete_column" = "Delete Column";
 "lng_article_table_delete_columns" = "Delete Columns";
 "lng_article_table_delete_table" = "Delete Table";
-"lng_article_table_bordered" = "Bordered Table";
+"lng_article_table_borderless" = "Borderless";
 "lng_article_table_striped" = "Striped Table";
-*/
 "lng_polls_menu_item" = "Poll";
 "lng_polls_create" = "Create poll";
 "lng_polls_create_title" = "New poll";

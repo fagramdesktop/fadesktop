@@ -162,6 +162,7 @@ struct LaidOutBlock {
 	bool tableStriped = false;
 	bool supplementary = false;
 	bool pullquote = false;
+	bool quoteAuthor = false;
 	bool insideHorizontalScroll = false;
 	int horizontalScrollLeft = 0;
 	int horizontalScrollMax = 0;
@@ -195,6 +196,16 @@ struct EditableHeightOverride {
 	int editableIndex = -1;
 	int height = 0;
 	int nextEditableIndex = 0;
+};
+
+struct EditableMaxLineWidthOverride {
+	PreparedEditLeafSource leaf;
+	int width = 0;
+};
+
+struct EditableTextEmptyOverride {
+	PreparedEditLeafSource leaf;
+	bool empty = true;
 };
 
 enum class CachedTextLeafSlot {
@@ -301,9 +312,11 @@ struct LayoutContext {
 	int quoteDepth = 0;
 	int articleLeft = 0;
 	int articleWidth = 0;
+	double mediaPixelScale = 1.;
 	bool tightList = false;
 	bool useArticleBands = false;
 	bool editMode = false;
+	bool hideEmptyQuoteAuthor = false;
 	bool allowAsyncSyntaxHighlighting = true;
 	CodeBlockSyntaxHighlightTracker *syntaxHighlightTracker = nullptr;
 	CachedTextLeafPool *cachedTextLeafs = nullptr;
@@ -312,6 +325,9 @@ struct LayoutContext {
 	Fn<bool(const ClickContext&)> spoilerLinkFilter;
 	std::vector<int> preparedPath;
 	std::shared_ptr<EditableHeightOverride> editableHeightOverride;
+	std::shared_ptr<EditableMaxLineWidthOverride>
+		editableMaxLineWidthOverride;
+	std::shared_ptr<EditableTextEmptyOverride> editableTextEmptyOverride;
 	std::function<std::shared_ptr<MediaBlock>(const PreparedBlock&)> mediaBlockFactory;
 	std::function<std::shared_ptr<PlaceholderBlockRuntime>(
 		PreparedPlaceholderBlockId)> placeholderRuntimeFactory;
@@ -445,6 +461,9 @@ struct TableCellMinimumWidthConstraint {
 	LayoutContext context,
 	const style::Markdown &st);
 [[nodiscard]] const style::TextStyle &TextStyleFor(
+	const PreparedBlock &block,
+	const style::Markdown &st);
+[[nodiscard]] const style::TextStyle &EditPlaceholderTextStyleFor(
 	const PreparedBlock &block,
 	const style::Markdown &st);
 void CopyCachedTextLeafs(
