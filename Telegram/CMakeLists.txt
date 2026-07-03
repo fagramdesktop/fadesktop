@@ -1965,6 +1965,8 @@ PRIVATE
     window/themes/window_theme_preview.h
     window/themes/window_theme_warning.cpp
     window/themes/window_theme_warning.h
+    window/themes/window_themes_chat.cpp
+    window/themes/window_themes_chat.h
     window/themes/window_themes_cloud_list.cpp
     window/themes/window_themes_cloud_list.h
     window/themes/window_themes_embedded.cpp

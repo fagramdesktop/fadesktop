@@ -114,6 +114,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/download_manager_mtproto.h"
 #include "storage/storage_account.h"
 #include "window/themes/window_theme.h"
+#include "window/themes/window_themes_chat.h"
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller_link_info.h"
 #include "settings/cloud_password/settings_cloud_password_input.h"
@@ -180,20 +181,6 @@ private:
 	const base::weak_ptr<SessionController> _window;
 
 };
-
-[[nodiscard]] Ui::ChatThemeBubblesData PrepareBubblesData(
-		const Data::CloudTheme &theme,
-		Data::CloudThemeType type) {
-	const auto i = theme.settings.find(type);
-	return {
-		.colors = (i != end(theme.settings)
-			? i->second.outgoingMessagesColors
-			: std::vector<QColor>()),
-		.accent = (i != end(theme.settings)
-			? i->second.outgoingAccentColor
-			: std::optional<QColor>()),
-	};
-}
 
 [[nodiscard]] bool DownloadingDocument(not_null<DocumentData*> document) {
 	for (const auto id : Core::App().downloadManager().loadingList()) {
@@ -3606,7 +3593,7 @@ void SessionController::cacheChatTheme(
 			? Theme::PreparePaletteCallback(dark, i->second.accentColor)
 			: Theme::PrepareCurrentPaletteCallback()),
 		.backgroundData = backgroundData(theme),
-		.bubblesData = PrepareBubblesData(data, type),
+		.bubblesData = Theme::PrepareBubblesData(data, type),
 		.basedOnDark = dark,
 	};
 	crl::async([
