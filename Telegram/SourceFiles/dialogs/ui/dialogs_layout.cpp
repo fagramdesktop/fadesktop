@@ -938,21 +938,9 @@ void PaintRow(
 			paintPeerBadge(rowName.maxWidth());
 			badgeWidth = widthBefore - rectForName.width();
 		}
-		const auto hidden = context.community
-			&& context.community->isHidden(from);
 		const auto drawMuteIcon = DialogsMuteIcon.value()
 			&& thread
 			&& thread->muted();
-		if (hidden) {
-			const auto &icon = ThreeStateIcon(
-				st::dialogsCommunityHiddenIcon,
-				context.active,
-				context.selected);
-			rectForName.setWidth(
-				rectForName.width()
-					- icon.width()
-					- st::dialogsCommunityHiddenIconSkip);
-		}
 		if (drawMuteIcon) {
 			const auto &muteIcon = ThreeStateIcon(
 				st::dialogsMuteIcon,
@@ -973,41 +961,17 @@ void PaintRow(
 			.availableWidth = rectForName.width(),
 			.elisionLines = 1,
 		});
-		if (hidden) {
-			const auto &icon = ThreeStateIcon(
-				st::dialogsCommunityHiddenIcon,
-				context.active,
-				context.selected);
-			const auto nameW = std::min(
-				rowName.maxWidth(),
-				rectForName.width());
-			const auto glyphLeft = rectForName.left()
-				+ nameW
-				+ badgeWidth
-				+ st::dialogsCommunityHiddenIconSkip;
-			const auto glyphTop = rectForName.top()
-				+ (st::semiboldFont->height - icon.height()) / 2;
-			icon.paint(p, glyphLeft, glyphTop, context.width);
-		}
 		if (drawMuteIcon) {
 			const auto &muteIcon = ThreeStateIcon(
 				st::dialogsMuteIcon,
 				context.active,
 				context.selected);
-			const auto hiddenWidth = hidden
-				? (ThreeStateIcon(
-					st::dialogsCommunityHiddenIcon,
-					context.active,
-					context.selected).width()
-					+ st::dialogsCommunityHiddenIconSkip)
-				: 0;
 			const auto nameW = std::min(
 				rowName.maxWidth(),
 				rectForName.width());
 			const auto muteLeft = rectForName.left()
 				+ nameW
 				+ badgeWidth
-				+ hiddenWidth
 				+ st::dialogsMuteIconSkip;
 			const auto muteTop = rectForName.top()
 				+ (st::semiboldFont->height - muteIcon.height()) / 2;

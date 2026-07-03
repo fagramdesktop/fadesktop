@@ -201,6 +201,7 @@ dialogsTTLBadgeSize: 20px;
 dialogsTTLBadgeInnerMargins: margins(2px, 2px, 2px, 2px);
 // Relative to a photo place, not a whole userpic place.
 dialogsTTLBadgeSkip: point(1px, 1px);
+dialogsCommunityHiddenBadgeIcon: icon{{ "community/requests_hidden", premiumButtonFg }};
 
 dialogsSpeakingStrokeNumerator: 16px;
 dialogsSpeakingDenominator: 8.;
@@ -703,13 +704,6 @@ dialogsMuteIcon: ThreeStateIcon {
 	active: icon{{ "dialogs/dialogs_mute", dialogsUnreadBgMutedActive }};
 }
 dialogsMuteIconSkip: 4px;
-
-dialogsCommunityHiddenIcon: ThreeStateIcon {
-	icon: icon{{ "community/requests_hidden", dialogsTextFg }};
-	over: icon{{ "community/requests_hidden", dialogsTextFgOver }};
-	active: icon{{ "community/requests_hidden", dialogsTextFgActive }};
-}
-dialogsCommunityHiddenIconSkip: 4px;
 
 downloadBarHeight: 46px;
 downloadArrow: icon{{ "fast_to_original", menuIconFg }};
