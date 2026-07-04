@@ -42,6 +42,7 @@ namespace {
 
 constexpr auto kDirectionLock = 8.;
 constexpr auto kResetReachedOn = 0.95;
+constexpr auto kReverseSpeed = 0.5;
 constexpr auto kReleaseShowDuration = crl::time(250);
 constexpr auto kReleaseHideDuration = crl::time(220);
 constexpr auto kPanelDuration = crl::time(320);
@@ -657,6 +658,12 @@ bool PullToNextChannel::applyDelta(float64 deltaX, float64 deltaY) {
 		if (_next) {
 			PreloadPinnedBar(_next);
 		}
+	} else if (deltaY > 0.) {
+		// Reverse: slope-compensate the flat over-scroll curve so a slow reverse
+		// keeps collapsing visibly instead of rounding away to nothing.
+		const auto scale = style::Scale() / 100.;
+		const auto slope = 1.6 / (1. + _accumulated / (10. * scale));
+		_accumulated = std::max(0., _accumulated - deltaY * kReverseSpeed / slope);
 	} else {
 		_accumulated = std::max(0., _accumulated - deltaY);
 	}
