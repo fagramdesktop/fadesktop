@@ -5057,10 +5057,16 @@ void Widget::handleFieldContextMenuRequest(
 			_state->richPage(),
 			_state->activeLeafPath(),
 			_field->isHidden())) {
-		const auto selectAll = QKeySequence(QKeySequence::SelectAll);
+		const auto selectAllShortcut = QKeySequence(
+			QKeySequence::SelectAll).toString(QKeySequence::NativeText);
+		const auto shortcutText = [](const QString &text) {
+			const auto tab = text.indexOf(QChar('\t'));
+			return (tab >= 0) ? text.mid(tab + 1) : QString();
+		};
 		for (const auto action : request.menu->actions()) {
-			if (action->shortcut() == selectAll
-				|| action->shortcuts().contains(selectAll)) {
+			if (!action->isSeparator()
+				&& !selectAllShortcut.isEmpty()
+				&& shortcutText(action->text()) == selectAllShortcut) {
 				QObject::disconnect(
 					action,
 					&QAction::triggered,
