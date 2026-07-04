@@ -1755,6 +1755,7 @@ QString State::activePlaceholderText() const {
 		case BlockKind::Video:
 		case BlockKind::Audio:
 		case BlockKind::Map:
+		case BlockKind::GroupedMedia:
 			return u"Caption"_q;
 		default:
 			return QString();
