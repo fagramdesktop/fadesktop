@@ -478,6 +478,7 @@ private:
 		bool editingExisting = false;
 		bool allowSeparateLine = false;
 		bool separateLine = false;
+		bool insertNewDisplayBlock = false;
 	};
 	[[nodiscard]] std::optional<State::ActiveTextInsertContext>
 	activeTextInsertContext() const;
@@ -496,6 +497,7 @@ private:
 	[[nodiscard]] std::optional<State::TextNodeSpan>
 	visibleFullHeadingFieldTextSpan() const;
 	[[nodiscard]] std::optional<MathEditRequest> activeMathEditRequest() const;
+	[[nodiscard]] MathEditRequest newDisplayMathRequest() const;
 	[[nodiscard]] int richOffsetForFieldOffset(
 		const TextWithEntities &text,
 		int offset) const;

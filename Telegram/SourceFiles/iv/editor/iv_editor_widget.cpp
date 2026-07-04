@@ -4676,6 +4676,8 @@ void Widget::editMathFromToolbar() {
 	}
 	if (const auto request = activeMathEditRequest()) {
 		showMathEditBox(*request);
+	} else {
+		showMathEditBox(newDisplayMathRequest());
 	}
 }
 
@@ -8292,6 +8294,14 @@ std::optional<Widget::MathEditRequest> Widget::activeMathEditRequest() const {
 	return request;
 }
 
+Widget::MathEditRequest Widget::newDisplayMathRequest() const {
+	return MathEditRequest{
+		.allowSeparateLine = true,
+		.separateLine = true,
+		.insertNewDisplayBlock = true,
+	};
+}
+
 bool Widget::handleIvClipboardMime(
 		not_null<const QMimeData*> data,
 		Ui::InputField::MimeAction action) {
@@ -8360,6 +8370,13 @@ ApplyResult Widget::applyMathEditResult(
 	}
 	if (_settingField) {
 		return ApplyResult::Unchanged;
+	}
+	if (request.insertNewDisplayBlock) {
+		auto block = RichPage::Block();
+		block.kind = RichPage::BlockKind::Math;
+		block.formula = source;
+		insertPreparedBlock(std::move(block));
+		return ApplyResult::Changed;
 	}
 	if (request.displayMathOrdinal >= 0) {
 		if (!_state->setActiveTextByOrdinal(request.displayMathOrdinal)) {

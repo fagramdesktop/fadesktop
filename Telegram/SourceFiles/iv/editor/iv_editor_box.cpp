@@ -693,13 +693,8 @@ void Toolbar::buildPills() {
 		ToolbarActionId::Math,
 		&st::ivEditorToolbarMathIcon,
 		[=] {
-			if (!_editor) {
-				return;
-			}
-			if (_editor->inlineToolbarModeActive()) {
+			if (_editor) {
 				_editor->editMathFromToolbar();
-			} else {
-				_editor->insertBlock({ .type = State::InsertBlockType::Math });
 			}
 		},
 		std::nullopt,
