@@ -227,10 +227,11 @@ void PullToNextChannel::Indicator::setData(
 	}
 	_offset = offset;
 	if (_ready != ready) {
+		const auto from = _releaseProgress.value(_ready ? 1. : 0.);
 		_ready = ready;
 		_releaseProgress.start(
 			[=] { update(); },
-			ready ? 0. : 1.,
+			from,
 			ready ? 1. : 0.,
 			ready ? kReleaseShowDuration : kReleaseHideDuration,
 			anim::easeOutQuint);
@@ -688,12 +689,22 @@ bool PullToNextChannel::applyDelta(float64 deltaX, float64 deltaY) {
 		_reached = true;
 		_reachedTime = crl::now();
 		base::Platform::Haptic();
-		startExpand(true);
 	} else if (_reached && ratio < kResetReachedOn) {
 		_reached = false;
-		startExpand(false);
 	}
-	push(_offset, _reached, _offset > 0., _next);
+	// Show the blob only while the offset climbs at a finger pace - the lone
+	// post-lift inertial event lands as one big jump, so it can't start it.
+	const auto jumped = _offset - _offsetPrev;
+	_offsetPrev = _offset;
+	const auto wantExpand = _reached
+		&& (_expanded
+			|| (jumped >= 0.
+				&& jumped <= float64(st::historyPullNextThreshold) / 2.));
+	if (_expanded != wantExpand) {
+		_expanded = wantExpand;
+		startExpand(_expanded);
+	}
+	push(_offset, _expanded, _offset > 0., _next);
 	return true;
 }
 
@@ -714,8 +725,10 @@ bool PullToNextChannel::release() {
 	_swallowMomentum = true;
 	clearState();
 	if (ready) {
+		_expand.stop();
 		crl::on_main(_parent.get(), [=] { jumpWhenReady(next, 0); });
 	} else {
+		startExpand(false);
 		startRetract(fromAccumulated, next);
 	}
 	return true;
@@ -742,9 +755,11 @@ void PullToNextChannel::render(bool ready) {
 }
 
 void PullToNextChannel::startExpand(bool ready) {
+	const auto from = _expand.value(_expandTo ? 1. : 0.);
+	_expandTo = ready;
 	_expand.start(
-		[=] { render(_reached); },
-		ready ? 0. : 1.,
+		[=] { render(_expanded); },
+		from,
 		ready ? 1. : 0.,
 		kExpandDuration,
 		anim::easeOutQuint);
@@ -776,7 +791,6 @@ void PullToNextChannel::startRetract(float64 fromAccumulated, History *next) {
 }
 
 void PullToNextChannel::clearState() {
-	_expand.stop();
 	_accumulated = 0.;
 	_offset = 0.;
 	_swipeX = 0.;
@@ -784,12 +798,16 @@ void PullToNextChannel::clearState() {
 	_engaged = false;
 	_reached = false;
 	_reachedTime = 0;
+	_expanded = false;
+	_offsetPrev = 0.;
 	_gaveUp = false;
 	_next = nullptr;
 }
 
 void PullToNextChannel::reset() {
 	_retract.stop();
+	_expand.stop();
+	_expandTo = false;
 	_swallowMomentum = false;
 	_lastReleaseTime = 0;
 	clearState();
