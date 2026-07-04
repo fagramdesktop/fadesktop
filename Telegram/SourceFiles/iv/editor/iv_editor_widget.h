@@ -634,6 +634,7 @@ private:
 	[[nodiscard]] bool canPerformUndoRedo(bool redo) const;
 	[[nodiscard]] bool handleUndoRedoShortcut(QKeyEvent *e);
 	[[nodiscard]] bool handleSelectAllShortcut(QKeyEvent *e);
+	void selectWholeDocument();
 	[[nodiscard]] bool performFieldUndoRedo(bool redo);
 	void performUndoRedo(bool redo, bool allowFieldLocal = true);
 	void notifyToolbarStateChanged();

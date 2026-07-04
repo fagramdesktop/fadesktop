@@ -4128,6 +4128,12 @@ bool Widget::handleSelectAllShortcut(QKeyEvent *e) {
 			_field->isHidden())) {
 		return false;
 	}
+	selectWholeDocument();
+	e->accept();
+	return true;
+}
+
+void Widget::selectWholeDocument() {
 	if (!_field->isHidden()) {
 		const auto committed = recordMutationTransaction([&] {
 			const auto committed = commitInlineField();
@@ -4140,8 +4146,7 @@ bool Widget::handleSelectAllShortcut(QKeyEvent *e) {
 			return committed;
 		});
 		if (committed == ApplyResult::Failed) {
-			e->accept();
-			return true;
+			return;
 		}
 		refreshAfterInlineFieldCommit(committed);
 	}
@@ -4157,8 +4162,6 @@ bool Widget::handleSelectAllShortcut(QKeyEvent *e) {
 		: PreparedEditSelection());
 	setFocus();
 	update();
-	e->accept();
-	return true;
 }
 
 bool Widget::performFieldUndoRedo(bool redo) {
@@ -5050,6 +5053,26 @@ void Widget::addFieldBlockFormatActions(not_null<QMenu*> menu) {
 void Widget::handleFieldContextMenuRequest(
 		Ui::InputField::ContextMenuRequest request) {
 	addFieldBlockFormatActions(request.menu);
+	if (!SingleRootPlainTextFieldSelectAllPassthrough(
+			_state->richPage(),
+			_state->activeLeafPath(),
+			_field->isHidden())) {
+		const auto selectAll = QKeySequence(QKeySequence::SelectAll);
+		for (const auto action : request.menu->actions()) {
+			if (action->shortcut() == selectAll
+				|| action->shortcuts().contains(selectAll)) {
+				QObject::disconnect(
+					action,
+					&QAction::triggered,
+					nullptr,
+					nullptr);
+				connect(action, &QAction::triggered, this, [this] {
+					selectWholeDocument();
+				});
+				break;
+			}
+		}
+	}
 	const auto activeLeaf = _state->activePreparedLeafSource();
 	const auto listSource = activeLeaf
 		? ListItemSourceFromLeaf(*activeLeaf)
