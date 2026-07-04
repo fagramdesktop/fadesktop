@@ -7477,7 +7477,7 @@ void Widget::setupInlineField() {
 				nullptr,
 				ValidateInstantViewEditorLink));
 		}
-		Ui::Emoji::SuggestionsController::Init(
+		_fieldSuggestions = Ui::Emoji::SuggestionsController::Init(
 			_outer,
 			_field.get(),
 			_session,
@@ -7498,6 +7498,7 @@ void Widget::setupInlineField() {
 					: false);
 		});
 	} else {
+		_fieldSuggestions = nullptr;
 		_field->setInstantViewEditorTagsEnabled(false);
 		_field->setInstantReplacesEnabled(
 			rpl::single(false),
@@ -9154,6 +9155,9 @@ bool Widget::handleFieldKey(QKeyEvent *e) {
 		&& key == Qt::Key_Right) {
 		handled = moveBoundary(true, true);
 	} else if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+		if (_fieldSuggestions && _fieldSuggestions->shown()) {
+			return false;
+		}
 		recordMutationTransaction([&] {
 			const auto committed = commitInlineField();
 			// At the very start of the very first text node of a block that
@@ -9984,6 +9988,7 @@ void Widget::retainActiveLeafField(
 		.styleKey = _activeFieldStyleKey,
 	};
 	retained.field = std::move(_field);
+	retained.suggestions = _fieldSuggestions;
 	_field = std::move(replacement);
 	_activeFieldStyleKey = std::nullopt;
 	_fieldMode = State::FieldMode::Rich;
@@ -10016,6 +10021,7 @@ base::unique_qptr<Ui::InputField> Widget::reviveRetainedLeafField(
 			&& _retainedLeafFields[i].styleKey
 			&& (*_retainedLeafFields[i].styleKey == styleKey)) {
 			auto result = std::move(_retainedLeafFields[i].field);
+			_fieldSuggestions = _retainedLeafFields[i].suggestions;
 			_retainedLeafFields.erase(_retainedLeafFields.begin() + i);
 			return result;
 		}

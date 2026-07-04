@@ -47,6 +47,10 @@ class ElasticScroll;
 struct PreparedList;
 } // namespace Ui
 
+namespace Ui::Emoji {
+class SuggestionsController;
+} // namespace Ui::Emoji
+
 namespace style {
 struct InputField;
 struct Markdown;
@@ -424,6 +428,7 @@ private:
 		State::FieldMode mode = State::FieldMode::Rich;
 		std::optional<InlineFieldStyleKey> styleKey;
 		base::unique_qptr<Ui::InputField> field;
+		QPointer<Ui::Emoji::SuggestionsController> suggestions;
 	};
 
 	enum class ActivateReveal {
@@ -866,6 +871,7 @@ private:
 	std::optional<InlineFieldStyleKey> _activeFieldStyleKey;
 	std::optional<State::LeafPath> _fieldLeaf;
 	State::FieldMode _fieldMode = State::FieldMode::Rich;
+	QPointer<Ui::Emoji::SuggestionsController> _fieldSuggestions;
 	int _articleHeight = 0;
 	int _topContentPadding = 0;
 	int _bottomContentPadding = 0;
