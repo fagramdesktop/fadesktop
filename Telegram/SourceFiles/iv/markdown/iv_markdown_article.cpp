@@ -4893,8 +4893,8 @@ std::shared_ptr<MediaBlock> MarkdownArticle::Impl::getOrCreateMediaBlock(
 	if (block) {
 		block->setLayoutStyle(layoutStyle());
 		block->setHost(_mediaBlockHost);
+		_mediaBlocks.emplace(id.value, block);
 	}
-	_mediaBlocks.emplace(id.value, block);
 	return block;
 }
 
