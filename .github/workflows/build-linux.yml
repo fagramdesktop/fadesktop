@@ -54,9 +54,10 @@ jobs:
           fi
           echo "TAGNAME=$TAGNAME" >> $GITHUB_ENV
           echo "tagname=$TAGNAME" >> $GITHUB_OUTPUT
+          echo "WEEK=$(date -u +%G%V)" >> $GITHUB_ENV
 
       - name: Clone.
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -69,14 +70,26 @@ jobs:
           docker pull ghcr.io/telegramdesktop/tdesktop/centos_env
           docker tag ghcr.io/telegramdesktop/tdesktop/centos_env $IMAGE_TAG
 
+      - name: Restore Telegram Desktop cache.
+        id: cache-tdesktop
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/.tdesktop-cache
+          key: ${{ runner.OS }}-tdesktop-${{ env.WEEK }}
+          restore-keys: ${{ runner.OS }}-tdesktop-
+
       - name: Configure & Build FAgram with CMake
         run: |
+          mkdir -p ${{ runner.temp }}/.tdesktop-cache
           docker run --rm \
           -u $(id -u) \
           -v $PWD:/usr/src/tdesktop \
           -v $GITHUB_WORKSPACE/../DesktopPrivate:/usr/src/DesktopPrivate \
+          -v ${{ runner.temp }}/.tdesktop-cache:/var/cache/ccache \
+          -e CONFIG=Release \
+          -e CCACHE_SLOPPINESS=pch_defines,time_macros \
           $IMAGE_TAG \
-          /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
+          env -u CCACHE_DISABLE /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
           -D CMAKE_CONFIGURATION_TYPES=Release \
           -D CMAKE_INSTALL_PREFIX="/usr" \
           -D CMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld -Wl,-z,muldefs" \
@@ -86,6 +99,15 @@ jobs:
           -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }} \
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
           -D DESKTOP_APP_BUILD_PACKER=ON
+
+      - name: Save Telegram Desktop cache.
+        if: >
+          github.ref_name == github.event.repository.default_branch
+            && steps.cache-tdesktop.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/.tdesktop-cache
+          key: ${{ steps.cache-tdesktop.outputs.cache-primary-key }}
 
       - name: Read version info
         id: version
@@ -137,7 +159,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           sparse-checkout: |
             scripts/tgupload.py
