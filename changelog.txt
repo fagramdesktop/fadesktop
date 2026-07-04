@@ -1,3 +1,8 @@
+2.3.0 (05.07.26)
+
+- Updated tdesktop to v6.9.4 beta
+- Updated screenshot mode & local premium
+
 2.2.9 (24.06.26)
 
 - Updated disable AI option to include AI summaries
