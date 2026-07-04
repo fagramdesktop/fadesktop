@@ -42,6 +42,8 @@ namespace {
 
 constexpr auto kDirectionLock = 8.;
 constexpr auto kResetReachedOn = 0.95;
+constexpr auto kReadyDwell = crl::time(120);
+constexpr auto kReleaseSettle = crl::time(80);
 constexpr auto kReverseSpeed = 0.5;
 constexpr auto kReleaseShowDuration = crl::time(250);
 constexpr auto kReleaseHideDuration = crl::time(220);
@@ -614,6 +616,15 @@ bool PullToNextChannel::processWheel(not_null<QWheelEvent*> e) {
 	if (phase == Qt::NoScrollPhase) {
 		return false;
 	} else if (phase == Qt::ScrollBegin) {
+		const auto since = _lastReleaseTime
+			? (crl::now() - _lastReleaseTime)
+			: kReleaseSettle;
+		if (since < kReleaseSettle
+			&& (_retract.animating() || _swallowMomentum)) {
+			// A sharp release can mislabel the first inertial event as
+			// ScrollBegin; swallow it so it can't reset and kill the retract.
+			return true;
+		}
 		reset();
 		return false;
 	} else if (phase == Qt::ScrollEnd || phase == Qt::ScrollMomentum) {
@@ -675,6 +686,7 @@ bool PullToNextChannel::applyDelta(float64 deltaX, float64 deltaY) {
 	const auto ratio = threshold ? (_offset / threshold) : 0.;
 	if (_next && !_reached && ratio >= 1.) {
 		_reached = true;
+		_reachedTime = crl::now();
 		base::Platform::Haptic();
 		startExpand(true);
 	} else if (_reached && ratio < kResetReachedOn) {
@@ -691,9 +703,14 @@ bool PullToNextChannel::release() {
 	}
 	const auto next = _next;
 	const auto fromAccumulated = _accumulated;
+	// A flick can cross the threshold ballistically after the finger lifts, so
+	// require a real dwell past it - only a deliberate hold commits.
+	const auto dwelled = (crl::now() - _reachedTime) >= kReadyDwell;
 	const auto ready = (_offset >= float64(st::historyPullNextThreshold))
 		&& next
-		&& next->unreadCount() > 0;
+		&& next->unreadCount() > 0
+		&& dwelled;
+	_lastReleaseTime = crl::now();
 	_swallowMomentum = true;
 	clearState();
 	if (ready) {
@@ -766,6 +783,7 @@ void PullToNextChannel::clearState() {
 	_swipeY = 0.;
 	_engaged = false;
 	_reached = false;
+	_reachedTime = 0;
 	_gaveUp = false;
 	_next = nullptr;
 }
@@ -773,6 +791,7 @@ void PullToNextChannel::clearState() {
 void PullToNextChannel::reset() {
 	_retract.stop();
 	_swallowMomentum = false;
+	_lastReleaseTime = 0;
 	clearState();
 	applyShift(0);
 	_indicator->hideNow();

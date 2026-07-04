@@ -81,6 +81,8 @@ private:
 	float64 _offset = 0.;
 	float64 _swipeX = 0.;
 	float64 _swipeY = 0.;
+	crl::time _reachedTime = 0;
+	crl::time _lastReleaseTime = 0;
 	bool _engaged = false;
 	bool _reached = false;
 	bool _gaveUp = false;
