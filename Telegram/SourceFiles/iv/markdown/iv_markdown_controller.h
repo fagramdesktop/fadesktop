@@ -29,6 +29,10 @@ template <typename Widget>
 class FadeWrapScaled;
 } // namespace Ui
 
+namespace Iv {
+class SearchBar;
+} // namespace Iv
+
 namespace Iv::Markdown {
 
 class Controller final {
@@ -85,6 +89,9 @@ private:
 		bool preserveScroll);
 	void updateTitleGeometry(int newWidth) const;
 	void showMenu();
+	void createSearchBar();
+	void toggleSearchBar();
+	void hideSearchBar();
 	void openSource();
 	[[nodiscard]] ViewerKind viewerKind() const;
 	[[nodiscard]] QString subtitleText() const;
@@ -154,6 +161,7 @@ private:
 	std::unique_ptr<Ui::LayerManager> _layerManager;
 	std::shared_ptr<Ui::Show> _show;
 	std::unique_ptr<Ui::RpWidget> _preview;
+	std::unique_ptr<SearchBar> _searchBar;
 	std::vector<HistoryEntry> _history;
 	int _historyIndex = -1;
 	int _shownHistoryIndex = -1;

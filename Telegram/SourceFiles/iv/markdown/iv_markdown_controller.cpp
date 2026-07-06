@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "iv/markdown/iv_markdown_controller.h"
 #include "base/event_filter.h"
+#include "base/invoke_queued.h"
 #include "base/weak_ptr.h"
 #include "core/click_handler_types.h"
 #include "core/credits_amount.h"
@@ -14,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "iv/markdown/iv_markdown_parse.h"
 #include "iv/markdown/iv_markdown_view.h"
 #include "iv/iv_delegate_impl.h"
+#include "iv/iv_search_bar.h"
 #include "iv/iv_zoom_controls.h"
 #include "lang/lang_keys.h"
 #include "ui/layers/layer_manager.h"
@@ -1022,6 +1024,41 @@ void Controller::createPreview() {
 	updateHistoryButtons();
 }
 
+void Controller::createSearchBar() {
+	_searchBar = std::make_unique<SearchBar>(_window->body().get());
+	_searchBar->move(0, st::ivSubtitleHeight);
+	_searchBar->raise();
+	_titleShadow->raise();
+	_searchBar->closeRequests() | rpl::on_next([=] {
+		InvokeQueued(_window->body().get(), [=] {
+			hideSearchBar();
+		});
+	}, _searchBar->lifetime());
+}
+
+void Controller::toggleSearchBar() {
+	if (!_window) {
+		return;
+	} else if (_searchBar && _searchBar->shown()) {
+		hideSearchBar();
+		return;
+	}
+	if (!_searchBar) {
+		createSearchBar();
+	}
+	_searchBar->show(anim::type::normal);
+	_searchBar->setInnerFocus();
+}
+
+void Controller::hideSearchBar() {
+	if (_searchBar) {
+		_searchBar->hide(anim::type::normal);
+	}
+	if (_preview) {
+		_preview->setFocus();
+	}
+}
+
 void Controller::createWindow() {
 	_window = std::make_unique<Ui::RpWindow>();
 	const auto window = _window.get();
@@ -1111,7 +1148,11 @@ void Controller::createWindow() {
 			const auto event = static_cast<QKeyEvent*>(e.get());
 			if (event->key() == Qt::Key_Escape) {
 				event->accept();
-				close();
+				if (_searchBar && _searchBar->shown()) {
+					hideSearchBar();
+				} else {
+					close();
+				}
 			}
 		}
 	}, window->lifetime());
@@ -1122,6 +1163,12 @@ void Controller::createWindow() {
 		const auto event = static_cast<QKeyEvent*>(e.get());
 		const auto previousAccepted = event->isAccepted();
 		ProcessZoomShortcut(_delegate, event);
+		if (!event->isAccepted()
+			&& (event->modifiers() & Qt::ControlModifier)
+			&& event->key() == Qt::Key_F) {
+			event->accept();
+			toggleSearchBar();
+		}
 		return event->isAccepted() && !previousAccepted
 			? base::EventFilterResult::Cancel
 			: base::EventFilterResult::Continue;

@@ -32,6 +32,8 @@ PRIVATE
     iv/iv_data.h
     iv/iv_delegate.h
     iv/iv_pch.h
+    iv/iv_search_bar.cpp
+    iv/iv_search_bar.h
     iv/iv_zoom_controls.cpp
     iv/iv_zoom_controls.h
 )

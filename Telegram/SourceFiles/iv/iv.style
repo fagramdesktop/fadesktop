@@ -73,6 +73,8 @@ ivSubtitleHeight: 48px;
 ivSubtitleTop: 12px;
 ivSubtitleLeft: 22px;
 ivSubtitleSkip: 0px;
+ivSearchBarHeight: ivSubtitleHeight;
+ivSearchBarCounterSkip: 10px;
 ivWrongLayoutBarHeight: 32px;
 ivWrongLayoutLink: LinkButton(defaultLinkButton) {
 	color: windowSubTextFg;
