@@ -2887,9 +2887,6 @@ bool Widget::commitAndActivateTextOrdinal(
 		refreshAfterInlineFieldCommit(committed, std::move(source));
 	}
 	endArticleRelayoutDeferral();
-	if (_search && _search->shown()) {
-		_search->refresh();
-	}
 	if (restoreScroll) {
 		restoreScroll();
 	}
@@ -3012,7 +3009,11 @@ void Widget::refreshPreparedContent() {
 	relayoutCurrentContent();
 	update();
 	if (_search) {
-		_search->refresh();
+		if (articleRelayoutDeferralActive()) {
+			_searchRefreshDeferred = true;
+		} else {
+			_search->refresh();
+		}
 	}
 }
 
@@ -3029,7 +3030,11 @@ void Widget::refreshPreparedLeafAtSource(
 	_article->updatePreparedLeaf(source, _state->prepared());
 	relayoutCurrentContent();
 	if (_search) {
-		_search->refresh();
+		if (articleRelayoutDeferralActive()) {
+			_searchRefreshDeferred = true;
+		} else {
+			_search->refresh();
+		}
 	}
 }
 
@@ -3108,11 +3113,13 @@ void Widget::flushArticleRelayoutDeferral() {
 	const auto relayout = _articleRelayoutDeferred || clearHeightOverride;
 	const auto geometry = _inlineFieldGeometryDeferred;
 	const auto heightOverride = _inlineFieldHeightOverrideDeferred;
+	const auto searchRefresh = _searchRefreshDeferred;
 	_articleEditableHeightOverrideClearDeferred = false;
 	_articleRelayoutDeferred = false;
 	_inlineFieldGeometryDeferred = false;
 	_inlineFieldHeightOverrideDeferred = false;
-	if (!relayout && !geometry && !heightOverride) {
+	_searchRefreshDeferred = false;
+	if (!relayout && !geometry && !heightOverride && !searchRefresh) {
 		return;
 	}
 	if (clearHeightOverride && _article) {
@@ -3127,6 +3134,9 @@ void Widget::flushArticleRelayoutDeferral() {
 	}
 	if (heightOverride) {
 		updateInlineFieldHeightOverride();
+	}
+	if (searchRefresh && _search) {
+		_search->refresh();
 	}
 	syncArticleVisibleTopBottom();
 }
@@ -9218,9 +9228,6 @@ bool Widget::handleFieldKey(QKeyEvent *e) {
 	const auto key = e->key();
 	if (key == Qt::Key_Escape) {
 		hideInlineFieldAndRefresh();
-		if (_search && _search->shown()) {
-			_search->refresh();
-		}
 		e->accept();
 		return true;
 	}

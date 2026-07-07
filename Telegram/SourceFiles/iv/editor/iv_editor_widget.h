@@ -939,6 +939,7 @@ private:
 	bool _inlineFieldGeometryDeferred = false;
 	bool _inlineFieldHeightOverrideDeferred = false;
 	bool _articleEditableHeightOverrideClearDeferred = false;
+	bool _searchRefreshDeferred = false;
 	int _inlineFieldRevealSuppressionDepth = 0;
 	std::unique_ptr<SearchController> _search;
 	rpl::variable<int> _searchSlideHeight = 0;
