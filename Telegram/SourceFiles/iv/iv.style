@@ -102,6 +102,7 @@ ivEditorPremiumChoiceBox: Box(defaultBox) {
 ivEditorSendLockIcon: icon{{ "chat/mini_lock", windowFgActive }};
 ivEditorToolbarPremiumStarSize: 11px;
 ivEditorToolbarPremiumStarSkip: point(5px, 5px);
+ivEditorToolbarPremiumStarOutline: 2px;
 ivEditorStyleMenuPremiumStarSize: 16px;
 ivEditorPillShadow: BoxShadow {
 	blurRadius: 3px;
