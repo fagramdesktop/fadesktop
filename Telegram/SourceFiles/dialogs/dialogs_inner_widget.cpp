@@ -895,8 +895,9 @@ void InnerWidget::rebuildCommunitySections() {
 	}
 	const auto owner = &session().data();
 	for (const auto &linked : _openedCommunity->linkedPeers()) {
-		const auto channel = linked.peer->asChannel();
-		if (channel && channel->amIn()) {
+		if (linked.peer->isUser()) {
+			continue;
+		} else if (Data::CommunityChatJoined(linked.peer)) {
 			continue;
 		}
 		const auto history = owner->history(linked.peer);

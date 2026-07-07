@@ -107,10 +107,10 @@ CommunityRequestableList::CommunityRequestableList(
 	) | rpl::map([=] {
 		auto result = std::vector<not_null<PeerData*>>();
 		for (const auto &linked : community->linkedPeers()) {
-			const auto channel = linked.peer->asChannel();
-			if (channel && channel->amIn()) {
+			if (Data::CommunityChatJoined(linked.peer)) {
 				continue;
-			} else if (Data::IsCommunityChatViewable(linked)) {
+			} else if (!linked.peer->isUser()
+				&& Data::IsCommunityChatViewable(linked)) {
 				continue;
 			}
 			result.push_back(linked.peer);

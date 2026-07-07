@@ -113,8 +113,9 @@ void CommunityChatsList::rebuild() {
 		}
 	} else {
 		for (const auto &linked : _community->linkedPeers()) {
-			const auto channel = linked.peer->asChannel();
-			if (channel && channel->amIn()) {
+			if (linked.peer->isUser()) {
+				continue;
+			} else if (Data::CommunityChatJoined(linked.peer)) {
 				continue;
 			} else if (!Data::IsCommunityChatViewable(linked)) {
 				continue;

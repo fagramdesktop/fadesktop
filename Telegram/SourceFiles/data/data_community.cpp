@@ -34,8 +34,7 @@ constexpr auto kShowChatNamesCount = 20;
 
 	auto notInCount = 0;
 	for (const auto &linked : info->linkedPeers()) {
-		const auto channel = linked.peer->asChannel();
-		if (!channel || !channel->amIn()) {
+		if (!CommunityChatJoined(linked.peer)) {
 			++notInCount;
 		}
 	}
@@ -103,6 +102,25 @@ ChannelId PeerLinkedCommunityId(not_null<PeerData*> peer) {
 		return user->linkedCommunityId();
 	}
 	return ChannelId();
+}
+
+bool CommunityChatJoined(not_null<PeerData*> peer) {
+	if (const auto channel = peer->asChannel()) {
+		return channel->amIn();
+	} else if (peer->isUser()) {
+		const auto history = peer->owner().historyLoaded(peer);
+		return history && (history->chatListMessage() != nullptr);
+	}
+	return false;
+}
+
+bool CommunityChatJoined(not_null<const History*> history) {
+	if (const auto channel = history->peer->asChannel()) {
+		return channel->amIn();
+	} else if (history->peer->isUser()) {
+		return history->chatListMessage() != nullptr;
+	}
+	return false;
 }
 
 CommunityInfo::CommunityInfo(not_null<ChannelData*> channel)
@@ -245,8 +263,7 @@ void CommunityInfo::ensureRowInChatList() {
 }
 
 void CommunityInfo::registerOne(not_null<History*> history) {
-	const auto channel = history->peer->asChannel();
-	if (channel && channel->amIn()) {
+	if (CommunityChatJoined(history)) {
 		if (!_histories.emplace(history).second) {
 			return;
 		}
@@ -271,10 +288,7 @@ void CommunityInfo::unregisterOne(not_null<History*> history) {
 }
 
 void CommunityInfo::refreshOneMembership(not_null<History*> history) {
-	const auto channel = history->peer->asChannel();
-	if (channel && channel->amIn()) {
-		// A non-member linked chat the user just joined moves into the
-		// member aggregate.
+	if (CommunityChatJoined(history)) {
 		if (_histories.contains(history)
 			|| !_otherHistories.remove(history)) {
 			return;
@@ -282,8 +296,8 @@ void CommunityInfo::refreshOneMembership(not_null<History*> history) {
 		_histories.emplace(history);
 		memberAdded(history);
 		updateRowSortPosition();
+		_linkedPeersChanges.fire({});
 	} else {
-		// A member chat the user just left moves out of the aggregate.
 		if (!_histories.remove(history)) {
 			return;
 		}
@@ -293,6 +307,7 @@ void CommunityInfo::refreshOneMembership(not_null<History*> history) {
 		}
 		reorderLastHistories();
 		updateRowSortPosition();
+		_linkedPeersChanges.fire({});
 	}
 }
 

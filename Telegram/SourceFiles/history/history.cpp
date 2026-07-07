@@ -2469,10 +2469,7 @@ void History::setFolderPointer(Data::Folder *folder) {
 }
 
 void History::updateCommunityRegistration() {
-	const auto channel = peer->asChannel();
-	const auto communityId = channel
-		? channel->linkedCommunityId()
-		: ChannelId();
+	const auto communityId = Data::PeerLinkedCommunityId(peer);
 	const auto info = communityId
 		? owner().channel(communityId)->ensuredCommunityInfo().get()
 		: nullptr;
@@ -2515,11 +2512,7 @@ void History::communityChatsListDateChanged(TimeId wasDate) {
 }
 
 bool History::isLinkedCommunityMember() const {
-	if (!_communityInfo) {
-		return false;
-	}
-	const auto channel = peer->asChannel();
-	return channel && channel->amIn();
+	return _communityInfo && Data::CommunityChatJoined(this);
 }
 
 int History::chatListNameVersion() const {
@@ -3094,6 +3087,7 @@ void History::setChatListMessage(HistoryItem *item) {
 	if (_chatListMessage && *_chatListMessage == item) {
 		return;
 	}
+	const auto wasKnown = _chatListMessage.has_value();
 	const auto was = _chatListMessage.value_or(nullptr);
 	if (item) {
 		if (item->isSponsored()) {
@@ -3115,7 +3109,11 @@ void History::setChatListMessage(HistoryItem *item) {
 	if (const auto folder = this->folder()) {
 		folder->oneListMessageChanged(was, item);
 	}
-	if (isLinkedCommunityMember()) {
+	if (_communityInfo
+		&& peer->isUser()
+		&& (!wasKnown || ((was != nullptr) != (item != nullptr)))) {
+		_communityInfo->refreshOneMembership(this);
+	} else if (isLinkedCommunityMember()) {
 		_communityInfo->oneListMessageChanged();
 	}
 	if (const auto to = peer->migrateTo()) {

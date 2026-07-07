@@ -323,7 +323,15 @@ ChannelId UserData::linkedCommunityId() const {
 }
 
 void UserData::setLinkedCommunityId(ChannelId id) {
+	if (_linkedCommunityId == id) {
+		return;
+	}
 	_linkedCommunityId = id;
+	if (const auto history = owner().historyLoaded(this)) {
+		history->updateCommunityRegistration();
+		history->updateChatListSortPosition();
+		history->updateChatListExistence();
+	}
 }
 
 UserId UserData::botManagerId() const {
