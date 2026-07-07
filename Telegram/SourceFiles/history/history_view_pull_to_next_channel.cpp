@@ -28,7 +28,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_shared_media.h"
 #include "support/support_preload.h"
 #include "ui/chat/chat_style.h"
-#include "ui/chat/continuous_scroll.h"
 #include "ui/widgets/elastic_scroll.h"
 #include "ui/rect.h"
 #include "ui/rp_widget.h"
@@ -568,7 +567,7 @@ void PullToNextChannel::HintOverlay::paintEvent(QPaintEvent *e) {
 
 PullToNextChannel::PullToNextChannel(
 	not_null<Ui::RpWidget*> parent,
-	not_null<Ui::ContinuousScroll*> scroll,
+	not_null<Ui::ElasticScroll*> scroll,
 	not_null<Window::SessionController*> controller)
 : _parent(parent)
 , _scroll(scroll)

@@ -16,7 +16,7 @@ class HistoryInner;
 
 namespace Ui {
 class RpWidget;
-class ContinuousScroll;
+class ElasticScroll;
 struct ElasticScrollPosition;
 enum class ElasticScrollMovement;
 } // namespace Ui
@@ -31,7 +31,7 @@ class PullToNextChannel final {
 public:
 	PullToNextChannel(
 		not_null<Ui::RpWidget*> parent,
-		not_null<Ui::ContinuousScroll*> scroll,
+		not_null<Ui::ElasticScroll*> scroll,
 		not_null<Window::SessionController*> controller);
 	~PullToNextChannel();
 
@@ -58,7 +58,7 @@ private:
 	void jumpTo(not_null<History*> history);
 
 	const not_null<Ui::RpWidget*> _parent;
-	const not_null<Ui::ContinuousScroll*> _scroll;
+	const not_null<Ui::ElasticScroll*> _scroll;
 	const not_null<Window::SessionController*> _controller;
 	const base::unique_qptr<Indicator> _indicator;
 	const base::unique_qptr<HintOverlay> _hint;

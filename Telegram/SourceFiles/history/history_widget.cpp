@@ -176,7 +176,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/chat/requests_bar.h"
 #include "ui/chat/chat_theme.h"
 #include "ui/chat/chat_style.h"
-#include "ui/chat/continuous_scroll.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/elastic_scroll.h"
 #include "ui/widgets/popup_menu.h"
@@ -381,37 +380,37 @@ HistoryWidget::HistoryWidget(
 		handleScroll();
 	}, lifetime());
 	_scroll->setOverscrollTypes(
-		Ui::ElasticScroll::OverscrollType::None,
+		Ui::ElasticScroll::OverscrollType::Real,
 		Ui::ElasticScroll::OverscrollType::Real);
 	_scroll->setOverscrollBg(QColor(0, 0, 0, 0));
+	_scroll->setOverscrollEdges(
+		[=] { return historyLoadedAtTop(); },
+		[=] { return historyLoadedAtBottom(); });
 	_scroll->geometryChanged(
 	) | rpl::on_next(crl::guard(_list, [=] {
 		_list->onParentGeometryChanged();
 	}), lifetime());
 
-	_scroll->addContentRequests(
-	) | rpl::on_next([=] {
-		if (_history && _history->loadedAtBottom()) {
-			using Result = Data::SponsoredMessages::AppendResult;
-			const auto tryToAppend = [=] {
-				const auto sponsored = &session().sponsoredMessages();
-				const auto result = sponsored->append(_history);
-				if (result == Result::Appended) {
-					_scroll->contentAdded();
-				}
-				return result;
-			};
-			if (tryToAppend() == Result::MediaLoading
-				&& !_historySponsoredPreloading) {
-				session().downloaderTaskFinished(
-				) | rpl::on_next([=] {
-					if (tryToAppend() != Result::MediaLoading) {
-						_historySponsoredPreloading.destroy();
-					}
-				}, _historySponsoredPreloading);
-			}
+	_scroll->setBottomContentRequest([=] {
+		if (!_history || !_history->loadedAtBottom()) {
+			return false;
 		}
-	}, lifetime());
+		using Result = Data::SponsoredMessages::AppendResult;
+		const auto tryToAppend = [=] {
+			return session().sponsoredMessages().append(_history);
+		};
+		const auto result = tryToAppend();
+		if (result == Result::MediaLoading
+			&& !_historySponsoredPreloading) {
+			session().downloaderTaskFinished(
+			) | rpl::on_next([=] {
+				if (tryToAppend() != Result::MediaLoading) {
+					_historySponsoredPreloading.destroy();
+				}
+			}, _historySponsoredPreloading);
+		}
+		return (result == Result::Appended);
+	});
 
 	_fieldBarCancel->addClickHandler([=] { cancelFieldAreaState(); });
 	_send->addClickHandler([=] { sendButtonClicked(); });
@@ -3260,18 +3259,13 @@ void HistoryWidget::showHistory(
 		showAboutTopPromotion();
 
 		if (!session().sponsoredMessages().isTopBarFor(_history)) {
-			_scroll->setTrackingContent(false);
 			const auto checkState = [=] {
 				using State = Data::SponsoredMessages::State;
 				const auto state = session().sponsoredMessages().state(
 					_history);
 				_sponsoredMessagesStateKnown = (state != State::None);
-				if (state == State::AppendToEnd) {
-					_scroll->setTrackingContent(
-						session().sponsoredMessages().canHaveFor(_history));
-				} else if (state == State::InjectToMiddle) {
+				if (state == State::InjectToMiddle) {
 					injectSponsoredMessages();
-				} else if (state == State::AppendToTopBar) {
 				}
 			};
 			const auto history = _history;

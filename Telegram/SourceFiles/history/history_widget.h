@@ -83,7 +83,7 @@ class SendFilesWay;
 class SendAsButton;
 class SpoilerAnimation;
 class ChooseThemeController;
-class ContinuousScroll;
+class ElasticScroll;
 struct ChatPaintHighlight;
 class ChatStyle;
 template <typename Widget>
@@ -854,7 +854,7 @@ private:
 	int _supportPreloadRequest = 0; // Not real mtpRequestId.
 
 	object_ptr<HistoryView::TopBarWidget> _topBar;
-	object_ptr<Ui::ContinuousScroll> _scroll;
+	object_ptr<Ui::ElasticScroll> _scroll;
 	QPointer<HistoryInner> _list;
 	History *_migrated = nullptr;
 	History *_history = nullptr;
