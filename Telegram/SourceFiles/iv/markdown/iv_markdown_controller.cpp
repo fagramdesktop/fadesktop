@@ -1069,25 +1069,26 @@ void Controller::hideSearchBar() {
 		SetMarkdownPreviewSearchMatches(_preview.get(), {}, -1);
 		_preview->setFocus();
 	}
+	invalidateSearchSession();
 	_searchEntries.clear();
 	_searchCurrentEntry = -1;
 }
 
-auto Controller::collectSearchEntries() const
--> std::vector<SearchEntry> {
+std::vector<Controller::SearchEntry> Controller::ScanSearchEntries(
+		const SearchSources &sources,
+		const QString &query) {
 	auto result = std::vector<SearchEntry>();
-	if (_searchQuery.isEmpty() || !_preview) {
+	if (query.isEmpty()) {
 		return result;
 	}
-	const auto sources = MarkdownPreviewSearchSources(_preview.get());
 	const auto scan = [&](const QString &text, auto &&push) {
 		auto from = 0;
 		while ((from = int(text.indexOf(
-				_searchQuery,
+				query,
 				from,
 				Qt::CaseInsensitive))) >= 0) {
-			push(from, from + int(_searchQuery.size()));
-			from += int(_searchQuery.size());
+			push(from, from + int(query.size()));
+			from += int(query.size());
 		}
 	};
 	for (auto i = 0; i != int(sources.size()); ++i) {
@@ -1106,6 +1107,31 @@ auto Controller::collectSearchEntries() const
 	return result;
 }
 
+void Controller::ensureSearchSnapshot() {
+	if (_searchSnapshot || !_preview) {
+		return;
+	}
+	_searchSnapshot = std::make_shared<const SearchSources>(
+		MarkdownPreviewSearchSources(_preview.get()));
+}
+
+void Controller::invalidateSearchSession() {
+	_searchSnapshot = nullptr;
+	_searchCache.clear();
+	++_searchGeneration;
+}
+
+std::vector<Controller::SearchEntry> Controller::rescanSearchEntries() {
+	invalidateSearchSession();
+	ensureSearchSnapshot();
+	if (!_searchSnapshot || _searchQuery.isEmpty()) {
+		return {};
+	}
+	auto result = ScanSearchEntries(*_searchSnapshot, _searchQuery);
+	_searchCache.emplace(_searchQuery, result);
+	return result;
+}
+
 void Controller::applySearchQuery(const QString &query) {
 	_searchQuery = query;
 	if (!_searchBar) {
@@ -1115,18 +1141,111 @@ void Controller::applySearchQuery(const QString &query) {
 }
 
 void Controller::refreshSearchResults() {
+	invalidateSearchSession();
 	if (_searchBar && _searchBar->shown()) {
 		rebuildSearchResults(_searchCurrentEntry, false);
 	}
 }
 
 void Controller::rebuildSearchResults(int preferredCurrent, bool activate) {
-	_searchEntries = collectSearchEntries();
+	_searchDesiredCurrent = preferredCurrent;
+	_searchDesiredActivate = activate;
+	if (_searchQuery.isEmpty() || !_preview) {
+		applySearchEntries({}, preferredCurrent, activate);
+		return;
+	}
+	const auto i = _searchCache.find(_searchQuery);
+	if (i != end(_searchCache)) {
+		DEBUG_LOG(("Native Markdown IV: search cache hit: %1"
+			).arg(_searchQuery));
+		auto entries = i->second;
+		applySearchEntries(std::move(entries), preferredCurrent, activate);
+		return;
+	}
+	if (_searchScanInFlight) {
+		DEBUG_LOG(("Native Markdown IV: search coalesced: %1"
+			).arg(_searchQuery));
+		return;
+	}
+	startSearchScan();
+}
+
+void Controller::applySearchEntries(
+		std::vector<SearchEntry> &&entries,
+		int preferredCurrent,
+		bool activate) {
+	_searchEntries = std::move(entries);
 	const auto total = int(_searchEntries.size());
 	_searchCurrentEntry = total
 		? std::clamp(preferredCurrent, 0, total - 1)
 		: -1;
 	applyCurrentSearchEntry(activate);
+}
+
+void Controller::startSearchScan() {
+	Expects(!_searchScanInFlight);
+
+	ensureSearchSnapshot();
+	if (!_searchSnapshot) {
+		return;
+	}
+	_searchScanInFlight = true;
+	DEBUG_LOG(("Native Markdown IV: search request: %1"
+		).arg(_searchQuery));
+	const auto weak = base::make_weak(this);
+	crl::async([
+		weak,
+		query = _searchQuery,
+		generation = _searchGeneration,
+		snapshot = _searchSnapshot
+	] {
+		if (!weak) {
+			return;
+		}
+		auto entries = ScanSearchEntries(*snapshot, query);
+		crl::on_main([
+			weak,
+			query,
+			generation,
+			entries = std::move(entries)
+		]() mutable {
+			if (const auto strong = weak.get()) {
+				strong->finishSearchScan(
+					query,
+					generation,
+					std::move(entries));
+			}
+		});
+	});
+}
+
+void Controller::finishSearchScan(
+		const QString &query,
+		int generation,
+		std::vector<SearchEntry> &&entries) {
+	_searchScanInFlight = false;
+	if (generation != _searchGeneration) {
+		DEBUG_LOG(("Native Markdown IV: search response dropped: %1"
+			).arg(query));
+	} else {
+		DEBUG_LOG(("Native Markdown IV: search response: %1 (%2 matches)"
+			).arg(query
+			).arg(int(entries.size())));
+		_searchCache[query] = entries;
+	}
+	if (!_searchBar || !_searchBar->shown() || _searchQuery.isEmpty()) {
+		return;
+	}
+	if (generation == _searchGeneration && query == _searchQuery) {
+		applySearchEntries(
+			std::move(entries),
+			_searchDesiredCurrent,
+			_searchDesiredActivate);
+	} else {
+		rebuildSearchResults(
+			_searchDesiredCurrent,
+			_searchDesiredActivate);
+	}
 }
 
 void Controller::resolveCurrentSearchEntry() {
@@ -1156,7 +1275,7 @@ void Controller::resolveCurrentSearchEntry() {
 		if (!ExpandMarkdownPreviewDetails(_preview.get(), anchorId)) {
 			return;
 		}
-		_searchEntries = collectSearchEntries();
+		_searchEntries = rescanSearchEntries();
 		const auto newTotal = int(_searchEntries.size());
 		const auto materialized = newTotal
 			- (oldTotal - (runEnd - runStart));

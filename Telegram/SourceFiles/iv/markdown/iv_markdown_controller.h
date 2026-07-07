@@ -7,8 +7,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "base/flat_map.h"
 #include "base/object_ptr.h"
 #include "base/unique_qptr.h"
+#include "base/weak_ptr.h"
 #include "iv/markdown/iv_markdown_document.h"
 #include "iv/markdown/iv_markdown_prepare.h"
 #include "ui/effects/animations.h"
@@ -35,7 +37,9 @@ class SearchBar;
 
 namespace Iv::Markdown {
 
-class Controller final {
+struct MarkdownArticleSearchSource;
+
+class Controller final : public base::has_weak_ptr {
 public:
 	Controller(
 		not_null<Delegate*> delegate,
@@ -75,6 +79,8 @@ private:
 	struct HistoryEntry;
 	struct SearchEntry;
 
+	using SearchSources = std::vector<MarkdownArticleSearchSource>;
+
 	void close();
 	void createWindow();
 	void createLayerManager();
@@ -99,7 +105,21 @@ private:
 	void resolveCurrentSearchEntry();
 	void applyCurrentSearchEntry(bool activate);
 	void stepSearchResult(int delta);
-	[[nodiscard]] std::vector<SearchEntry> collectSearchEntries() const;
+	[[nodiscard]] static std::vector<SearchEntry> ScanSearchEntries(
+		const SearchSources &sources,
+		const QString &query);
+	void ensureSearchSnapshot();
+	void invalidateSearchSession();
+	[[nodiscard]] std::vector<SearchEntry> rescanSearchEntries();
+	void applySearchEntries(
+		std::vector<SearchEntry> &&entries,
+		int preferredCurrent,
+		bool activate);
+	void startSearchScan();
+	void finishSearchScan(
+		const QString &query,
+		int generation,
+		std::vector<SearchEntry> &&entries);
 	void openSource();
 	[[nodiscard]] ViewerKind viewerKind() const;
 	[[nodiscard]] QString subtitleText() const;
@@ -180,6 +200,12 @@ private:
 	QString _searchQuery;
 	std::vector<SearchEntry> _searchEntries;
 	int _searchCurrentEntry = -1;
+	std::shared_ptr<const SearchSources> _searchSnapshot;
+	base::flat_map<QString, std::vector<SearchEntry>> _searchCache;
+	int _searchGeneration = 0;
+	int _searchDesiredCurrent = 0;
+	bool _searchDesiredActivate = false;
+	bool _searchScanInFlight = false;
 	std::vector<HistoryEntry> _history;
 	int _historyIndex = -1;
 	int _shownHistoryIndex = -1;
