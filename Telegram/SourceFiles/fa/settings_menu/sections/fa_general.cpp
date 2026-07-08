@@ -127,6 +127,10 @@ namespace Settings {
 			u"fa/general/disable-ai"_q,
 			controller);
 		Ui::AddDividerText(container, fatr::fa_disable_ai_desc());
+
+        SettingsMenuJsonSwitch(fa_disable_animated_avatars, disable_animated_avatars, u"fa/general/disable-animated-avatars"_q);
+        Ui::AddDividerText(container, fatr::fa_disable_animated_avatars_desc());
+
 		const auto disableAutoDownload = container->add(object_ptr<Button>(
 			container,
 			fatr::fa_disable_auto_download(),

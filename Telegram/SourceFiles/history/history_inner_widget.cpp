@@ -428,6 +428,11 @@ HistoryInner::HistoryInner(
 
 	refreshAboutView();
 
+	FASettings::JsonSettings::Events(u"disable_animated_avatars"_q) | rpl::on_next([=] {
+		_videoUserpics.clear();
+		update();
+	}, lifetime());
+
 	setMouseTracking(true);
 	setAccessibleName(tr::lng_sr_message_list(tr::now));
 	Core::App().inAppKeyPressed(
@@ -1867,7 +1872,8 @@ HistoryInner::VideoUserpic *HistoryInner::validateVideoUserpic(
 		|| peer->userpicPhotoUnknown()
 		|| !peer->userpicHasVideo()
 		|| FASettings::JsonSettings::GetBool("disable_premium_animation")
-		|| FASettings::JsonSettings::GetBool("screenshot_mode")) {
+		|| FASettings::JsonSettings::GetBool("screenshot_mode")
+		|| FASettings::JsonSettings::GetBool(u"disable_animated_avatars"_q)) {
 		_videoUserpics.remove(peer);
 		return nullptr;
 	}

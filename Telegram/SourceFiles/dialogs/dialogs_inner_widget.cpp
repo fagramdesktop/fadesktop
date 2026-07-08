@@ -335,6 +335,11 @@ InnerWidget::InnerWidget(
 		}
 	}, lifetime());
 
+	FASettings::JsonSettings::Events(u"disable_animated_avatars"_q) | rpl::on_next([=] {
+		_videoUserpics.clear();
+		update();
+	}, lifetime());
+
 	session().data().contactsLoaded().changes(
 	) | rpl::on_next([=] {
 		refresh();
@@ -1539,7 +1544,8 @@ Ui::VideoUserpic *InnerWidget::validateVideoUserpic(
 		|| peer->userpicPhotoUnknown()
 		|| !peer->userpicHasVideo()
 		|| FASettings::JsonSettings::GetBool("disable_premium_animation")
-		|| FASettings::JsonSettings::GetBool("screenshot_mode")) {
+		|| FASettings::JsonSettings::GetBool("screenshot_mode")
+		|| FASettings::JsonSettings::GetBool(u"disable_animated_avatars"_q)) {
 		_videoUserpics.remove(peer);
 		return nullptr;
 	}

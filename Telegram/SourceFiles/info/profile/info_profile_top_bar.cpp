@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/profile/info_profile_top_bar.h"
 
+#include "fa/settings/fa_settings.h"
+
 #include "api/api_peer_colors.h"
 #include "api/api_peer_photo.h"
 #include "api/api_user_privacy.h"
@@ -453,6 +455,10 @@ TopBar::TopBar(
 			[=] { update(); });
 	} else {
 		updateVideoUserpic();
+		FASettings::JsonSettings::Events(u"disable_animated_avatars"_q) | rpl::on_next([=] {
+			updateVideoUserpic();
+			update();
+		}, lifetime());
 	}
 
 	rpl::merge(
@@ -1920,7 +1926,9 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 		_topicIconView->paintInRect(p, geometry);
 		return;
 	}
-	if (_videoUserpicPlayer && _videoUserpicPlayer->ready()) {
+	if (_videoUserpicPlayer
+		&& _videoUserpicPlayer->ready()
+		&& !FASettings::JsonSettings::GetBool(u"disable_animated_avatars"_q)) {
 		const auto size = st::infoProfileTopBarPhotoSize;
 		const auto frame = _videoUserpicPlayer->frame(Size(size), _peer);
 		if (!frame.isNull()) {
@@ -2218,6 +2226,9 @@ void TopBar::fillTopBarMenu(
 
 void TopBar::updateVideoUserpic() {
 	if (width() <= 0) {
+		return;
+	} else if (FASettings::JsonSettings::GetBool(u"disable_animated_avatars"_q)) {
+		_videoUserpicPlayer = nullptr;
 		return;
 	}
 	const auto id = _peer->userpicPhotoId();
