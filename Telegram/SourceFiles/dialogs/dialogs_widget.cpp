@@ -963,11 +963,7 @@ void Widget::chosenRow(const ChosenRow &row) {
 			|| (row.message.fullId.msg != ShowAtUnreadMsgId)) {
 			return nullptr;
 		}
-		const auto channel = history->peer->asChannel();
-		if (!channel) {
-			return nullptr;
-		}
-		const auto communityId = channel->linkedCommunityId();
+		const auto communityId = Data::PeerLinkedCommunityId(history->peer);
 		if (!communityId) {
 			return nullptr;
 		}

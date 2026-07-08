@@ -395,7 +395,9 @@ void Row::updateCornerBadgeShown(
 	const auto nextLayer = [&] {
 		if (hasUnreadBadgesAbove) {
 			return kNoneLayer;
-		} else if (user && Data::IsUserOnline(user, now)) {
+		} else if (user
+			&& (Data::IsUserOnline(user, now)
+				|| (!insideCommunity && user->linkedCommunityId()))) {
 			return kTopLayer;
 		} else if (channel
 			&& (Data::ChannelHasActiveCall(channel)
@@ -731,11 +733,13 @@ void Row::paintUserpic(
 		_cornerBadgeUserpic->cacheHidden = QImage();
 	}
 	const auto badgeChannel = peer ? peer->asChannel() : nullptr;
+	const auto badgeUser = peer ? peer->asUser() : nullptr;
 	const auto subscribed = Data::ChannelHasSubscriptionUntilDate(
 		badgeChannel);
-	const auto communityMember = badgeChannel
-		&& badgeChannel->linkedCommunityId()
-		&& !Data::ChannelHasActiveCall(badgeChannel)
+	const auto communityMember = peer
+		&& Data::PeerLinkedCommunityId(peer)
+		&& !(badgeChannel && Data::ChannelHasActiveCall(badgeChannel))
+		&& !(badgeUser && Data::IsUserOnline(badgeUser))
 		&& !subscribed
 		&& !insideCommunity;
 	if (keyChanged
