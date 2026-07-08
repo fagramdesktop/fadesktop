@@ -428,7 +428,10 @@ HistoryInner::HistoryInner(
 
 	refreshAboutView();
 
-	FASettings::JsonSettings::Events(u"disable_animated_avatars"_q) | rpl::on_next([=] {
+	rpl::merge(
+		FASettings::JsonSettings::Events(u"disable_animated_avatars"_q),
+		FASettings::JsonSettings::Events(u"disable_premium_animation"_q)
+	) | rpl::on_next([=] {
 		_videoUserpics.clear();
 		update();
 	}, lifetime());

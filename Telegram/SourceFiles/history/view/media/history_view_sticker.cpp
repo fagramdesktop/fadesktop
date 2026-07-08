@@ -7,6 +7,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "history/view/media/history_view_sticker.h"
 
+#include "fa/settings/fa_settings.h"
+
 #include "base/options.h"
 #include "boxes/sticker_set_box.h"
 #include "history/history.h"
@@ -111,7 +113,7 @@ Sticker::Sticker(
 		if (_player) {
 			if (hasPremiumEffect() && !_premiumEffectPlayed) {
 				_premiumEffectPlayed = true;
-				if (On(PowerSaving::kStickersChat)
+				if ((On(PowerSaving::kStickersChat) || FASettings::JsonSettings::GetBool(u"disable_premium_animation"_q))
 					&& !_premiumEffectSkipped) {
 					_premiumEffectSkipped = true;
 				} else {
@@ -647,7 +649,7 @@ void Sticker::setupPlayer() {
 void Sticker::checkPremiumEffectStart() {
 	if (!_premiumEffectPlayed && hasPremiumEffect()) {
 		_premiumEffectPlayed = true;
-		if (On(PowerSaving::kStickersChat)
+		if ((On(PowerSaving::kStickersChat) || FASettings::JsonSettings::GetBool(u"disable_premium_animation"_q))
 			&& !_premiumEffectSkipped) {
 			_premiumEffectSkipped = true;
 		} else {

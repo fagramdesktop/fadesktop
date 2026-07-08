@@ -455,7 +455,10 @@ TopBar::TopBar(
 			[=] { update(); });
 	} else {
 		updateVideoUserpic();
-		FASettings::JsonSettings::Events(u"disable_animated_avatars"_q) | rpl::on_next([=] {
+		rpl::merge(
+			FASettings::JsonSettings::Events(u"disable_animated_avatars"_q),
+			FASettings::JsonSettings::Events(u"disable_premium_animation"_q)
+		) | rpl::on_next([=] {
 			updateVideoUserpic();
 			update();
 		}, lifetime());
@@ -1928,7 +1931,8 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 	}
 	if (_videoUserpicPlayer
 		&& _videoUserpicPlayer->ready()
-		&& !FASettings::JsonSettings::GetBool(u"disable_animated_avatars"_q)) {
+		&& !FASettings::JsonSettings::GetBool(u"disable_animated_avatars"_q)
+		&& !FASettings::JsonSettings::GetBool(u"disable_premium_animation"_q)) {
 		const auto size = st::infoProfileTopBarPhotoSize;
 		const auto frame = _videoUserpicPlayer->frame(Size(size), _peer);
 		if (!frame.isNull()) {
@@ -2227,7 +2231,8 @@ void TopBar::fillTopBarMenu(
 void TopBar::updateVideoUserpic() {
 	if (width() <= 0) {
 		return;
-	} else if (FASettings::JsonSettings::GetBool(u"disable_animated_avatars"_q)) {
+	} else if (FASettings::JsonSettings::GetBool(u"disable_animated_avatars"_q)
+		|| FASettings::JsonSettings::GetBool(u"disable_premium_animation"_q)) {
 		_videoUserpicPlayer = nullptr;
 		return;
 	}

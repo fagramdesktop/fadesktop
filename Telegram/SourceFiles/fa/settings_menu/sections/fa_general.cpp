@@ -131,6 +131,9 @@ namespace Settings {
         SettingsMenuJsonSwitch(fa_disable_animated_avatars, disable_animated_avatars, u"fa/general/disable-animated-avatars"_q);
         Ui::AddDividerText(container, fatr::fa_disable_animated_avatars_desc());
 
+        SettingsMenuJsonSwitch(fa_disable_premium_animation, disable_premium_animation, u"fa/general/disable-premium-animation"_q);
+        Ui::AddDividerText(container, fatr::fa_disable_premium_animation_desc());
+
 		const auto disableAutoDownload = container->add(object_ptr<Button>(
 			container,
 			fatr::fa_disable_auto_download(),

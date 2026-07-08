@@ -7,6 +7,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #pragma once
 
+#include "fa/settings/fa_settings.h"
+
 namespace PowerSaving {
 
 enum Flag : uint32 {
@@ -36,6 +38,11 @@ void SetForceAll(bool force);
 [[nodiscard]] rpl::producer<> Changes();
 
 [[nodiscard]] inline bool On(Flag flag) {
+	if (flag == kEmojiStatus || flag == kChatEffects) {
+		if (FASettings::JsonSettings::GetBool(u"disable_premium_animation"_q)) {
+			return true;
+		}
+	}
 	return ForceAll() || (Current() & flag);
 }
 [[nodiscard]] inline rpl::producer<bool> OnValue(Flag flag) {
