@@ -7,7 +7,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "history/history_item_text.h"
 
+#include "api/api_transcribes.h"
 #include "data/data_groups.h"
+#include "fa/settings/fa_settings.h"
 #include "data/data_media_types.h"
 #include "data/data_peer.h"
 #include "data/data_poll.h"
@@ -363,6 +365,12 @@ TextForMimeData HistorySelectedItemPlainWrappedText(
 } // namespace
 
 TextForMimeData HistoryItemText(not_null<HistoryItem*> item) {
+	const auto &summary = item->summaryEntry();
+	if (!summary.result.empty()
+		&& summary.shown
+		&& !FASettings::JsonSettings::GetBool(u"disable_ai"_q)) {
+		return TextForMimeData::WithExpandedLinks(summary.result);
+	}
 	return AppendExtraCopyText(item, HistoryItemMainText(item));
 }
 
