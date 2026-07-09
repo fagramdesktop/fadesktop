@@ -191,7 +191,7 @@ add a `Visual:` line — it routes the task-runner's flow:
 When torn between the two, choose `layout` (the safe default for anything built from multiple
 sized/positioned pieces). The human can override by editing the `Visual:` line in `implementing.md`.
 
-Use letters a, b, c... as task ids. Do not plan internals or implement. When done, reply with ONLY a
+Use spreadsheet-style task ids (`a`...`z`, `aa`...). Do not plan internals or implement. When done, reply with ONLY a
 compact confirmation — `ready — <N> tasks` (extend: `ready — appended <letters>`); do NOT echo the
 task list or image contents back, the main thread reads `implementing.md` itself.
 ```
@@ -200,8 +200,9 @@ For **extend** mode, instead instruct the planner to FIRST read the existing `im
 rewrite it as: (1) a TRIMMED completed-history — keep only the **three most recent** `Status: approved`
 task blocks (the three nearest the bottom of the file) and drop all earlier approved ones; (2) every
 still-unfinished task left untouched, in place and with its status — that is all `todo`, `in-progress`,
-and `blocked` blocks (never drop these); then (3) APPEND new lettered tasks (continuing the letter
-sequence from the highest letter still present after the trim) after them. The trim only removes
+and `blocked` blocks (never drop these); then (3) APPEND new tasks starting after the highest id in
+the pre-trim union of headings and `.ai/<project>/<id>/` artifact directories. Never reuse an id
+merely because trimming removed its heading. The trim only removes
 already-approved entries from the list — it never touches the per-task `.ai/<project>/<letter>/`
 artifacts on disk, so a follow-up letter can still read an earlier letter's `context.md` even after its
 block was trimmed out of `implementing.md`. It must append ONLY tasks from SOURCE not already
@@ -223,9 +224,10 @@ For each task in `implementing.md` whose `Status` is not `approved`/`blocked`, i
 2. Spawn ONE `task-runner` subagent (Task, `general-purpose`) with the prompt below. Wait for it.
 3. Read ONLY its compact summary block (the `task-runner` writes all detail to `.ai/`).
 4. Update the task's `Status:` line — `approved` if `STATUS: DONE`, else `blocked: <reason>`.
-5. If `DISCOVERED` lists new tasks, append them to `implementing.md` as new lettered `### <letter>:`
-   blocks (`Status: todo`) **after** the current remaining tasks, and add them to TodoWrite. (You
-   are the only writer of `implementing.md`, so there are no write races.)
+5. If `DISCOVERED` lists follow-ups, send them through a planner to produce complete ID-free task
+   blocks. Rescan the union of headings and artifact dirs, assign unused spreadsheet ids, validate
+   dependencies, append after current tasks, and add them to TodoWrite. Only the main thread assigns
+   ids and writes `implementing.md`.
 6. If `STATUS: BLOCKED`, **do NOT stop the loop — prioritize continuing development.** This often
    runs unattended for hours, so NEVER pause to ask the user whether to go on; record the blocker
    and move to the next task as long as further progress is possible. Distinguish:
@@ -261,7 +263,8 @@ TASK_DIR: .ai/<project>/<letter>/
 TASK_ID: <project>-<letter>
 
 Config (paths relative to this checkout): BUILD=<...> EXE=<...> MAX_ATTEMPTS=<...>. The test account
-is the out/Debug/ portable-data folders (see test-loop.md "Test account").
+is the out/Debug/ portable-data folders (see test-loop.md "Test account"). For each test execution,
+set `EVIDENCE_DIR=<TASK_DIR>/runs/attempt-<n>/run-<m>/` and create it before launch.
 
 Read first: AGENTS.md; REVIEW.md; `.claude/commands/task.md` (for the exact Phase 1-6 prompt
 templates); `.agents/shared/test-loop.md` (for the testing phase). For a follow-up letter, also read
@@ -286,9 +289,9 @@ stays in YOUR context, not the orchestrator's):
    impl subagent `<TASK_DIR>/visual.md` and require its `.style` metrics to satisfy that contract
    exactly (no eyeballed sizes). Implementation agents do NOT commit yet; you commit after build
    passes.
-5. BUILD    — task.md Phase 5 (build with BUILD, fix errors). On file-lock errors, run the
-   path-scoped kill of THIS checkout's binary (see test-loop.md "Serialize app runs") and retry
-   once, else stop.
+5. BUILD    — task.md Phase 5 (build with BUILD, fix errors). Proactive cleanup may stop only THIS
+   checkout's full-path binary before building. If the build reports a file-lock error, stop
+   immediately without retry/workaround and ask the user to close the app/debugger.
 6. REVIEW   — task.md Phase 6 but a SINGLE pass (not 3): one review agent, then one fix agent if
    NEEDS_CHANGES, then rebuild. (Tests catch behavior; review catches dead code / duplication /
    placement / style.) For a `Visual: layout` task, also hand the review agent `<TASK_DIR>/visual.md`
@@ -315,7 +318,8 @@ stays in YOUR context, not the orchestrator's):
    `<TASK_DIR>/test.md` report. Spawn an impl-fix subagent on IMPL_BUG (it commits the next attempt →
    new IMPL_SHA). After each run, save the overlay patch into TASK_DIR and `git reset --hard
    <IMPL_SHA>` so the checkout returns to impl-only. Run the test-account SETUP steps before each
-   launch and honor every test-account hard rule (serialize app runs; avoid destructive calls).
+   launch, set the run-specific `EVIDENCE_DIR`, and honor every test-account hard rule (serialize
+   app runs; avoid destructive calls).
 
 Skip TEST only if the task changed no runnable behavior (docs/config only) — say so explicitly.
 
@@ -328,7 +332,8 @@ for this task (say whether HEAD is left clean/buildable at a prior commit). Rese
 unrecoverable stop for a broken checkout you cannot reset to a buildable commit.
 
 When done, write nothing new to chat except the compact summary block from test-loop.md
-("TASK/STATUS/VERDICT/ATTEMPTS/TOUCHED/DISCOVERED/NOTES"). All reasoning lives in `.ai/`.
+("TASK/STATUS/VERDICT/ATTEMPTS/TOUCHED/DISCOVERED/NOTES"). This wrapper has no `result.md`, so put
+concise semicolon-separated follow-ups inline in `DISCOVERED`, or `none`. All reasoning lives in `.ai/`.
 ```
 
 ## Completion
@@ -352,7 +357,7 @@ When the loop ends (every task is `approved` or `blocked`):
 - A `task-runner` returning BLOCKED does NOT stop the loop by default — record the blocker and
   continue to the next task as long as the checkout stays clean and buildable (see Phase C step 6).
   Stop the loop ONLY when continuing is impossible: a broken/non-buildable checkout, or a global
-  environment failure (unresolved file lock, missing test account). Whatever the outcome, report
+  environment failure (file lock requiring user action, missing test account). Whatever the outcome, report
   every blocker's reason and `test.md` path LOUDLY in the Completion summary.
 - If `implementing.md` or any artifact is malformed, re-spawn that step with tighter instructions.
 - Never proceed past a file-lock build error — ask the user to close `Telegram.exe`.

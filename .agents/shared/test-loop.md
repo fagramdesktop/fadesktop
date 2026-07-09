@@ -1,10 +1,11 @@
 # Test Loop Protocol (harness-neutral)
 
-The portable core of autonomous, tested implementation. Both `/implement` (Claude Code)
-and `$implement` (Codex) read and follow THIS file verbatim for the testing phase, so the
-impl⇄test loop behaves identically across harnesses. The harness-specific wrappers own
-project setup, task splitting, and the spawn/wait mechanics; this file owns everything from
-"a single task's implementation is committed" onward.
+The portable core of autonomous, tested implementation. Both `/implement` (Claude Code) and
+`$implement` (Codex) read it. This file defines shared defaults after one task's implementation is
+committed; wrappers own setup, splitting, and spawn/wait mechanics. A wrapper may explicitly adapt
+commit ownership, task baseline/attempt caps, staging/source restoration, account swapping,
+`EVIDENCE_DIR`, or an optional UI driver. Its named rule wins only at that
+adapter point; every other rule here still applies.
 
 ## Vocabulary
 
@@ -21,7 +22,9 @@ project setup, task splitting, and the spawn/wait mechanics; this file owns ever
 ## Inputs the wrapper passes in
 
 - `TASK_DIR` — `.ai/<project>/<letter>/` for this task.
-- `TASK_ID` — stable id used in commit trailers (e.g. the project + letter).
+- `TASK_ID` — stable artifact/log identifier (e.g. the project + letter); never a commit trailer.
+- `EVIDENCE_DIR` — per-run logs and screenshots; defaults to `TASK_DIR` unless the wrapper passes a
+  run-specific directory.
 - **TASK SPEC** — the task's full description block (from `implementing.md`) and its referenced
   images (`images/<file>` design mockups / screenshots / graphic resources for this isolated task).
   This is half of what the tests are designed against (the diff is the other half); the design READS
@@ -57,9 +60,10 @@ Early-escalation rule: if two consecutive ASSESS rounds produce the **same failu
 the attempt budget chasing it.
 
 UNRECOVERABLE conditions: the app reaches a login screen / `AUTH_KEY_DUPLICATED` and re-copying the
-test account does not recover it; a file-lock build error (`LNK1104`, `C1041`) that persists after
-the path-scoped kill; `test_TelegramForcePortable` missing when SETUP runs; or a crash with no usable
-diagnostic after one retry.
+test account does not recover it; `test_TelegramForcePortable` is missing when SETUP runs; or a crash
+has no usable diagnostic after one retry. A file-lock build error (`LNK1104`, `C1041`, access denied,
+file in use) is a repository hard stop: do not retry or work around it; ask the user to close the app
+and debugger.
 
 ## Handoff tokens
 
@@ -67,8 +71,9 @@ diagnostic after one retry.
   message" below (and, if submodules changed, commit inside each submodule first, then bump the
   superproject pointer in the same logical attempt — real commits, never stash). The runner records
   the resulting SHA as that attempt's IMPL_SHA.
-- **Result doc** (`result<n>.md`) is the only thing handed back to a fix agent and the only thing
-  the runner reads to decide. See format below.
+- **Test report** (`test.md`) is the only fix-agent handoff. Give it the latest Attempt/Run section,
+  especially Root cause / Fix hint and Failure signature. Reserve wrapper-owned `result.md` for the
+  terminal task result; never create `result<n>.md`.
 
 ## Commit message
 
@@ -230,14 +235,14 @@ highest level that still exercises the change (often a direct data-layer call li
 - Drive the scenario on the Qt event loop, preferring **condition-waits over fixed timers**
   (wait until the target widget/data actually exists, with a timeout fallback). Fixed sleeps are
   the main source of screenshot flake.
-- Write a flushed log to `<TASK_DIR>/test_log.txt` (open Append|Text, flush after each write) and
-  save screenshots to `<TASK_DIR>/screenshots/`. Delete the old log at the first step.
+- Write a flushed log to `<EVIDENCE_DIR>/test_log.txt` (open Append|Text, flush after each write) and
+  save screenshots to `<EVIDENCE_DIR>/screenshots/`. Delete the old log at the first step.
 - **Capture the target tightly.** Grab the specific widget / row / glyph (or crop the saved PNG to
   it) so the target is unambiguously in frame at usable resolution. A full-window grab that leaves
   the target clipped, off-screen, or thumbnail-sized is NOT acceptable evidence — if the target
   isn't clearly captured, that is a TEST_FLAW (re-frame), never a pass.
 - **Lay down the oracle's reference.** For an asset/visual check, also save the OLD and intended-NEW
-  art as PNGs beside the crop (`screenshots/<name>_old.png`, `<name>_new.png`) so the assessment is
+  art beside the crop (`<EVIDENCE_DIR>/screenshots/<name>_{old,new}.png`) so the assessment is
   a direct three-way comparison, not a memory test.
 - Emit these markers, one per line:
   `TEST_STEP: <desc>` · `TEST_RESULT: PASS: <what>` / `TEST_RESULT: FAIL: <what> - <details>` ·
@@ -279,10 +284,10 @@ fix it; it is a real bug in the overlay, not a stale build.
 ### Log to an ABSOLUTE path (the launcher chdir's)
 
 The Windows launcher changes the working directory to the exe folder before the app runs, so a
-**relative** overlay log path (`<TASK_DIR>/test_log.txt`) silently fails to write (`QFile` won't
-create missing parents) — the run looks "clean" but produces no evidence. Resolve `<TASK_DIR>` to an
-absolute path up front (e.g. `QDir::current().absoluteFilePath(...)` computed at inject time, or an
-absolute path baked into the overlay) so flushes actually land; likewise for screenshots.
+**relative** overlay log path (`<EVIDENCE_DIR>/test_log.txt`) silently fails to write (`QFile` won't
+create missing parents) — the run looks "clean" but produces no evidence. Create and resolve
+`EVIDENCE_DIR` to an absolute path up front (or bake its absolute path into the overlay) so flushes
+actually land; likewise for screenshots.
 
 ### Git mechanics for the overlay (no stash)
 
@@ -292,26 +297,27 @@ absolute path baked into the overlay) so flushes actually land; likewise for scr
   touched submodules). The overlay never enters an impl commit.
 - Next round, re-apply on top of the new implementation: `git apply --3way
   <TASK_DIR>/test-overlay.patch`. This succeeds ~90% of the time when the tail change was small.
-- On conflict, **re-author the conflicting hunk from the spec** in `test<n>.md` (which records
-  intent: injection point, fake values, assertions) rather than fighting the conflict markers.
+- On conflict, **re-author the conflicting hunk from the latest Attempt/Run in `test.md`** (which
+  records injection point, fake values, and assertions) rather than fighting conflict markers.
   Scenario steps that only call public APIs should live in their own block so they never conflict;
   only true in-situ injections land inside impl files.
 
 ## Build & run discipline
 
 - Build with `BUILD`. A single changed TU compiles fast; only the overlay-touched files + link
-  rebuild between rounds. On `LNK1104`/`C1041`, run the path-scoped kill (Test account → "Serialize
-  app runs"), wait, retry once; if it persists -> UNRECOVERABLE.
+  rebuild between rounds. Proactive path-scoped cleanup may run before the build. If the build reports
+  `LNK1104`, `C1041`, access denied, or file in use, follow `AGENTS.md`: stop immediately, do not
+  retry or attempt a workaround, and ask the user to close the app/debugger.
 - **Codegen does not track resource mtimes.** If the task changed only a resource the style codegen
   consumes (an icon `.svg`, etc.) without touching a `.style`, an incremental build will NOT re-pack
   it and the binary keeps the OLD asset. Before building such a task force regeneration — touch the
   referencing `.style` (or clean the codegen output) — so the change actually ships. A render that
   shows no difference from before is the symptom of skipping this.
-- Run: run the SETUP steps (Test account) -> launch `EXE` **with `-testagent`** in the background,
-  redirecting BOTH stdout and stderr to `<TASK_DIR>/app_stderr.txt` (see "Crashes & assertions"
-  below — this flag is what stops a crash from hanging on a modal dialog, and the redirect is what
-  captures the assertion text) -> **start a hard wall-clock deadline (~90s) from launch** -> poll
-  `test_log.txt` every ~5s -> on each `SCREENSHOT:` read the image and judge it -> detect
+- Run: run the SETUP steps (Test account) -> create `EVIDENCE_DIR` -> launch `EXE` **with
+  `-testagent`** in the background, redirecting stdout to `<EVIDENCE_DIR>/app_stdout.txt` and stderr
+  to `<EVIDENCE_DIR>/app_stderr.txt` (this flag prevents modal crash hangs, and stderr captures
+  assertion text) -> **start a hard wall-clock deadline (~90s) from launch** -> poll
+  `<EVIDENCE_DIR>/test_log.txt` every ~5s -> on each `SCREENSHOT:` read the image and judge it -> detect
   `TEST_COMPLETE` (success) or process death (crash) or no new output for the watchdog cap, or the
   hard deadline elapsing (hang) -> path-scoped kill of any straggler (Test account → "Serialize app
   runs") -> optional CLEANUP -> save the overlay (`git diff > <TASK_DIR>/test-overlay.patch`) ->
@@ -321,8 +327,8 @@ absolute path baked into the overlay) so flushes actually land; likewise for scr
 
         $exe = (Resolve-Path "$EXE").Path
         Start-Process -FilePath $exe -ArgumentList '-testagent' `
-          -RedirectStandardError "$TASK_DIR/app_stderr.txt" `
-          -RedirectStandardOutput "$TASK_DIR/app_stdout.txt" -PassThru
+          -RedirectStandardError "$EVIDENCE_DIR/app_stderr.txt" `
+          -RedirectStandardOutput "$EVIDENCE_DIR/app_stdout.txt" -PassThru
 
 ### Crashes & assertions (always launch the test binary with `-testagent`)
 
@@ -336,7 +342,7 @@ set, the binary:
 - converts any such assertion into a real crash that the crash reporter records, so the process
   **terminates immediately** instead of waiting;
 - writes the assertion text (expression + file:line) to **stderr** — captured in
-  `<TASK_DIR>/app_stderr.txt`, tagged `[testagent]`;
+  `<EVIDENCE_DIR>/app_stderr.txt`, tagged `[testagent]`;
 - also turns on debug logging (`-testagent` implies `-debug`).
 
 **Do NOT key the crash decision on exit code.** Breakpad handles the crash and the process usually
@@ -345,7 +351,7 @@ process is gone WITHOUT a `TEST_COMPLETE` marker, AND a fresh non-empty
 `<workdir>/tdata/working` exists. So **always pass `-testagent`**, and on a crash gather diagnostics
 in this order before deciding the verdict:
 
-1. **`<TASK_DIR>/app_stderr.txt`** — the `[testagent] assert: …` line gives the failed expression and
+1. **`<EVIDENCE_DIR>/app_stderr.txt`** — the `[testagent] assert: …` line gives the failed expression and
    `file:line` (e.g. `vector(1931) : … vector subscript out of range`). Usually enough to localize.
 2. **`<workdir>/tdata/working`** — the crash report the reporter wrote: the `Assertion:` /
    `CrtAssert:` annotations, the failed `file:line`, and `Caught signal …` / minidump id. Plain text;
@@ -428,29 +434,33 @@ correct.
 
 ## Test report (`<TASK_DIR>/test.md`) — human-readable, append per attempt
 
-The file the human opens to see how testing went. The test-author writes the checks (Expected /
-Oracle / Observed via) BEFORE running; ASSESS fills Actual / Result and the verdict. Append a new
-`## Attempt` section each round — never overwrite prior attempts.
+The file the human opens to see how testing went. The test-author writes checks before running;
+ASSESS fills Actual / Result and the verdict. Create one `## Attempt` per implementation commit and
+append one `### Run` per execution. A TEST_FLAW adds a Run under the same Attempt; an IMPL_BUG fix
+starts the next Attempt. Never overwrite history.
 
 ```
 # Test report — <project>/<letter>: <title>
 
-## Attempt <n> — commit <sha> — strategy <...> — verdict: <APPROVED|TEST_FLAW|IMPL_BUG|UNRECOVERABLE>
+## Attempt <n> — commit <sha>
 
-### Test 1 — <aspect of THIS change>
+### Run <m> — strategy <...> — driver <overlay|hybrid> — verdict <APPROVED|TEST_FLAW|IMPL_BUG|UNRECOVERABLE>
+- Evidence directory: <EVIDENCE_DIR>
+
+#### Test 1 — <aspect of THIS change>
 - Expected: <observable effect the change should produce>
 - Oracle: <what would make this check FAIL>
 - Observed via: <surface + how captured: tight crop of widget X; refs _old/_new>
 - Actual: <what is literally visible / logged>
-- Screenshots: screenshots/<after>.png (refs: _old.png, _new.png)
+- Screenshots: <EVIDENCE_DIR>/screenshots/<after>.png (refs: _old.png, _new.png)
 - Result: PASS | FAIL
 
-### Test 2 — ...
+#### Test 2 — ...
 
-### Verdict reasoning
+#### Verdict reasoning
 <1-3 lines tying the checks to the verdict>
-### Root cause / Fix hint    (only if IMPL_BUG — the impl-fix agent reads this)
-### Failure signature         (one line, for early-escalation comparison)
+#### Root cause / Fix hint    (only if IMPL_BUG — the impl-fix agent reads this)
+#### Failure signature         (one line, for early-escalation comparison)
 ```
 
 ## Compact summary the task-runner returns up
@@ -458,10 +468,10 @@ Oracle / Observed via) BEFORE running; ASSESS fills Actual / Result and the verd
 ```
 TASK: <TASK_ID>
 STATUS: <DONE|BLOCKED>
-VERDICT: <APPROVED|reason if blocked>
+VERDICT: <APPROVED|NOT_APPLICABLE|reason if blocked>
 ATTEMPTS: <n>
 TOUCHED: <repo paths or none>
-DISCOVERED: <new follow-up tasks to append to implementing.md, or none>
+DISCOVERED: <none|present in result.md|inline concise follow-ups when the wrapper has no result.md>
 NOTES: <one or two lines, or none>
 ```
 
