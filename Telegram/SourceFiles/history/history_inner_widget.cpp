@@ -3460,7 +3460,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				}, &st::menuIconTranslate);
 			}
 			const auto editItem = [&]() -> HistoryItem* {
-				const auto view = item->groupId()
+				const auto view = (item && item->groupId())
 					? viewByItem(item)
 					: nullptr;
 				if (!view) {
