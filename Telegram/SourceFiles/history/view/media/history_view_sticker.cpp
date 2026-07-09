@@ -171,11 +171,13 @@ void Sticker::initSize(int customSize) {
 		_size = Size(_data);
 	}
 	_size = DownscaledSize(_size, Size());
-	
-	// FAgram: Downsize stickers from blocked users
 	if (shouldHideBlockedUserMessage(_parent->data()->from())) {
 		_size = DownscaledSize(_data->dimensions, {128, kMaxSizeFixed});
 	}
+}
+
+void Sticker::parentTextUpdated() {
+	initSize();
 }
 
 QSize Sticker::countOptimalSize() {

@@ -61,6 +61,8 @@ public:
 		virtual bool updateItemData() {
 			return false;
 		}
+		virtual void parentTextUpdated() {
+		}
 		virtual ~Content() = default;
 	};
 
@@ -113,6 +115,7 @@ public:
 	void unloadHeavyPart() override {
 		_content->unloadHeavyPart();
 	}
+	void parentTextUpdated() override;
 
 private:
 	struct SurroundingInfo {

@@ -260,24 +260,30 @@ Session::Session(
 	_api->requestNotifySettings(MTP_inputNotifyChats());
 	_api->requestNotifySettings(MTP_inputNotifyBroadcasts());
 	
-	// FAgram: Load blocked peers list on startup if hide setting is enabled
-	// This ensures blocked status is available when messages are loaded
 	if (FASettings::JsonSettings::GetBool("hide_blocked_user_messages")) {
 		_api->blockedPeers().reload();
 		
-		// Listen for blocked state changes and refresh messages from that peer
 		changes().peerUpdates(
 			Data::PeerUpdate::Flag::IsBlocked
 		) | rpl::on_next([=](const Data::PeerUpdate &update) {
-			// When a peer's blocked state changes to blocked, update their messages
 			if (update.peer->isBlocked()) {
-				// Get the history for this peer and refresh all their messages
 				if (const auto history = data().historyLoaded(update.peer)) {
 					for (const auto &block : history->blocks) {
 						for (const auto &element : block->messages) {
 							const auto item = element->data();
 							if (item->from() == update.peer) {
 								history->hideMessage(item);
+							}
+						}
+					}
+				}
+			} else {
+				if (const auto history = data().historyLoaded(update.peer)) {
+					for (const auto &block : history->blocks) {
+						for (const auto &element : block->messages) {
+							const auto item = element->data();
+							if (item->from() == update.peer) {
+								history->unhideMessage(item);
 							}
 						}
 					}

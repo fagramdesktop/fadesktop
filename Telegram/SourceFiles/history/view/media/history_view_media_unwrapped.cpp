@@ -679,4 +679,8 @@ auto UnwrappedMedia::getDisplayedForwardedInfo() const
 		: nullptr;
 }
 
+void UnwrappedMedia::parentTextUpdated() {
+	_content->parentTextUpdated();
+}
+
 } // namespace HistoryView

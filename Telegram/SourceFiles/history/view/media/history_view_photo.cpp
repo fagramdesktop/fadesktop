@@ -100,7 +100,7 @@ Photo::Photo(
 , _storyId(realParent->media()
 	? realParent->media()->storyId()
 	: FullStoryId())
-, _spoiler((spoiler || realParent->isMediaSensitive())
+, _spoiler((spoiler || realParent->isMediaSensitive() || shouldHideBlockedUserMessage(realParent->from()))
 	? std::make_unique<MediaSpoiler>()
 	: nullptr)
 , _sensitiveSpoiler(realParent->isMediaSensitive() ? 1 : 0) {

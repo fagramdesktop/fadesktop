@@ -448,6 +448,7 @@ public:
 	[[nodiscard]] Media *media() const;
 	[[nodiscard]] Context context() const;
 	void refreshDataId();
+	void refreshMedia(Element *replacing);
 
 	[[nodiscard]] uint8 colorIndex() const;
 	[[nodiscard]] auto colorCollectible() const
@@ -802,7 +803,6 @@ private:
 	virtual void invalidateTextDependentCache() {
 	}
 
-	void refreshMedia(Element *replacing);
 	void setTextWithLinks(
 		const TextWithEntities &text,
 		const std::vector<ClickHandlerPtr> &links = {});
