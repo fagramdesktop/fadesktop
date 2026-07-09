@@ -2086,8 +2086,25 @@ void SessionController::closeFolder() {
 	_openedFolder = nullptr;
 }
 
+bool SessionController::openCommunityInDifferentWindow(
+		not_null<Data::CommunityInfo*> info) {
+	const auto history = session().data().history(info->channel());
+	const auto id = SeparateId(SeparateType::Community, history);
+	if (const auto separate = Core::App().separateWindowFor(id)) {
+		if (separate == _window) {
+			return false;
+		}
+		separate->sessionController()->showByInitialId();
+		separate->activate();
+		return true;
+	}
+	return false;
+}
+
 void SessionController::openCommunity(not_null<Data::CommunityInfo*> info) {
-	if (_openedCommunity.current() != info) {
+	if (openCommunityInDifferentWindow(info)) {
+		return;
+	} else if (_openedCommunity.current() != info) {
 		resetFakeUnreadWhileOpened();
 	}
 	if (activeChatsFilterCurrent() != 0) {
