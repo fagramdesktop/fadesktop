@@ -28,6 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "data/data_file_origin.h"
 #include "core/shortcuts.h"
+#include "data/components/ephemeral_messages.h"
 #include "data/data_drafts.h"
 #include "data/data_document.h"
 #include "data/data_location.h"
@@ -871,6 +872,23 @@ private:
 			: ::Data::FileOrigin();
 	}
 
+	[[nodiscard]] bool submitWouldBeEphemeral(
+			const std::optional<TextWithEntities> &simple) const {
+		if (!_composeAction) {
+			return false;
+		} else if (!simple) {
+			const auto id = _composeAction->replyTo.messageId;
+			const auto target = _session->data().message(id);
+			return target && target->isEphemeral();
+		}
+		auto message = Api::MessageToSend(*_composeAction);
+		message.textWithTags = {
+			simple->text,
+			TextUtilities::ConvertEntitiesToTextTags(simple->entities),
+		};
+		return _session->ephemeralMessages().wouldSend(message);
+	}
+
 	[[nodiscard]] bool submitRequested() {
 		if (_submittedPage || _submitApiRequested) {
 			return false;
@@ -887,7 +905,31 @@ private:
 			showAttachmentFailedToast();
 			return false;
 		}
-		if (auto simple = SerializeAsSimple(_state->richPage(), _session)) {
+		auto simple = SerializeAsSimple(_state->richPage(), _session);
+		if (_mode == Mode::Compose
+			&& _composeAction
+			&& !_submitOptions.scheduled
+			&& !submitWouldBeEphemeral(simple)) {
+			const auto weak = base::make_weak(this);
+			const auto withPaymentApproved = [weak](int approved) {
+				if (const auto strong = weak.get()) {
+					auto options = strong->_submitOptions;
+					options.starsApproved = approved;
+					strong->requestSubmit(std::move(options));
+				}
+			};
+			const auto show = resolveShow();
+			if (show
+				&& !_sendPayment.check(
+					show,
+					_peer,
+					_submitOptions,
+					1,
+					withPaymentApproved)) {
+				return false;
+			}
+		}
+		if (simple) {
 			return submitSimpleText(std::move(*simple));
 		}
 		if (_mode == Mode::Compose && _composeAction) {
@@ -3568,6 +3610,7 @@ private:
 	const RichMessageLimits _limits;
 	const std::shared_ptr<State> _state;
 	Api::SendOptions _submitOptions;
+	SendPaymentHelper _sendPayment;
 	std::shared_ptr<ChatHelpers::Show> _editorShow;
 	QPointer<Ui::RpWidget> _submitButton;
 	QPointer<Widget> _editor;
