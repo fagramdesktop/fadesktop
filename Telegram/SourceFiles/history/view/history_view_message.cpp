@@ -95,6 +95,7 @@ using PreparedLink = Iv::Markdown::PreparedLink;
 using PreparedLinkKind = Iv::Markdown::PreparedLinkKind;
 using MediaActivation = Iv::Markdown::MediaActivation;
 using MediaActivationKind = Iv::Markdown::MediaActivationKind;
+using MarkdownArticleSelectionPosition = Iv::Markdown::MarkdownArticleSelectionPosition;
 using MarkdownArticleSelection = Iv::Markdown::MarkdownArticleSelection;
 using MarkdownArticleSelectionEndpoint = Iv::Markdown::MarkdownArticleSelectionEndpoint;
 using MarkdownArticleSelectionEndpoints = Iv::Markdown::MarkdownArticleSelectionEndpoints;
@@ -123,6 +124,50 @@ void SetRichPageSelectionCursor(
 			.segment = segment,
 			.direct = direct,
 		});
+}
+
+[[nodiscard]] MarkdownArticleSelection AdjustRichPageSelection(
+		const Iv::Markdown::MarkdownArticle &article,
+		MarkdownArticleSelectionPosition anchor,
+		MarkdownArticleSelectionPosition focus,
+		TextSelectType type) {
+	if (anchor.segment == focus.segment) {
+		const auto adjusted = article.adjustSelection(
+			anchor.segment,
+			TextSelection(
+				uint16(std::min(anchor.offset, focus.offset)),
+				uint16(std::max(anchor.offset, focus.offset))),
+			type);
+		return {
+			.from = { .segment = anchor.segment, .offset = adjusted.from },
+			.to = { .segment = anchor.segment, .offset = adjusted.to },
+		};
+	}
+	const auto focusBeforeAnchor = CompareMessageSelectionPositions(
+		focus,
+		anchor) < 0;
+	const auto anchorExpanded = article.adjustSelection(
+		anchor.segment,
+		TextSelection(uint16(anchor.offset), uint16(anchor.offset)),
+		type);
+	const auto focusExpanded = article.adjustSelection(
+		focus.segment,
+		TextSelection(uint16(focus.offset), uint16(focus.offset)),
+		type);
+	return {
+		.from = {
+			.segment = anchor.segment,
+			.offset = focusBeforeAnchor
+				? int(anchorExpanded.to)
+				: int(anchorExpanded.from),
+		},
+		.to = {
+			.segment = focus.segment,
+			.offset = focusBeforeAnchor
+				? int(focusExpanded.from)
+				: int(focusExpanded.to),
+		},
+	};
 }
 
 [[nodiscard]] QString OpenableTargetForPreparedLink(const PreparedLink &link) {
@@ -4710,31 +4755,19 @@ MessageSelection Message::selectionFromStates(
 			.from = anchor.selectionCursor.richPage,
 			.to = current.selectionCursor.richPage,
 		};
-		if (type != TextSelectType::Letters
-			&& (selection.from.segment == selection.to.segment)) {
+		if (type != TextSelectType::Letters) {
 			const auto rich = richpage();
 			if (!rich) {
 				return {};
 			}
-			const auto adjusted = rich->article.adjustSelection(
-				selection.from.segment,
-				TextSelection(
-					uint16(std::min(selection.from.offset, selection.to.offset)),
-					uint16(std::max(selection.from.offset, selection.to.offset))),
+			selection = AdjustRichPageSelection(
+				rich->article,
+				selection.from,
+				selection.to,
 				type);
-			if (adjusted.empty()) {
+			if (selection.empty()) {
 				return {};
 			}
-			selection = {
-				.from = {
-					.segment = selection.from.segment,
-					.offset = adjusted.from,
-				},
-				.to = {
-					.segment = selection.from.segment,
-					.offset = adjusted.to,
-				},
-			};
 		}
 		return MessageSelection::RichPage(
 			selection,
@@ -5001,36 +5034,27 @@ MessageSelection Message::adjustSelection(
 		}
 		const auto anchor = selection.anchor.richPagePosition;
 		const auto focus = selection.focus.richPagePosition;
-		if (!anchor.valid()
-			|| !focus.valid()
-			|| (anchor.segment != focus.segment)) {
+		if (!anchor.valid() || !focus.valid()) {
 			return selection;
 		}
 		const auto rich = richpage();
 		if (!rich) {
 			return {};
 		}
-		const auto adjusted = rich->article.adjustSelection(
-			anchor.segment,
-			TextSelection(
-				uint16(std::min(anchor.offset, focus.offset)),
-				uint16(std::max(anchor.offset, focus.offset))),
+		const auto adjusted = AdjustRichPageSelection(
+			rich->article,
+			anchor,
+			focus,
 			type);
 		if (adjusted.empty()) {
 			return {};
 		}
 		return MessageSelection::RichPage(
-			{
-				.from = {
-					.segment = anchor.segment,
-					.offset = adjusted.from,
-				},
-				.to = {
-					.segment = anchor.segment,
-					.offset = adjusted.to,
-				},
+			adjusted,
+			MarkdownArticleSelectionEndpoints{
+				.from = selection.anchor.richPage,
+				.to = selection.focus.richPage,
 			},
-			selection.richPage.endpoints,
 			anchor,
 			focus,
 			selection.anchor.richPage,
