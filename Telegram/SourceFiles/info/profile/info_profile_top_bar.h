@@ -157,6 +157,7 @@ private:
 	void setupBirthdayEffect();
 	void startUploadOverlay();
 	void setupActions(not_null<Window::SessionController*> controller);
+	void searchInCommunity(not_null<Window::SessionController*> controller);
 	void finalizeActions(
 		const std::vector<not_null<TopBarActionButton*>> &buttons);
 	void setupButtons(

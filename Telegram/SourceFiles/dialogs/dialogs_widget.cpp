@@ -2935,6 +2935,11 @@ bool Widget::search(bool inCache, SearchRequestDelay delay) {
 	const auto fromPeer = searchFromPeer();
 	const auto &inTags = searchInTags();
 	const auto tab = _searchState.tab;
+	const auto community = _searchState.community
+		? _searchState.community
+		: _openedCommunity
+		? _openedCommunity->channel().get()
+		: nullptr;
 	const auto filter = _searchState.filter;
 	const auto fromStartType = SearchRequestType{
 		.start = true,
@@ -2978,9 +2983,7 @@ bool Widget::search(bool inCache, SearchRequestDelay delay) {
 			_searchQueryFrom = fromPeer;
 			_searchQueryTags = inTags;
 			_searchQueryTab = tab;
-			_searchQueryCommunity = _openedCommunity
-				? _openedCommunity->channel().get()
-				: nullptr;
+			_searchQueryCommunity = community;
 			_searchQueryFilter = filter;
 			process->nextRate = 0;
 			process->full = false;
@@ -2993,15 +2996,14 @@ bool Widget::search(bool inCache, SearchRequestDelay delay) {
 		|| _searchQueryFrom != fromPeer
 		|| _searchQueryTags != inTags
 		|| _searchQueryTab != tab
+		|| _searchQueryCommunity != community
 		|| _searchQueryFilter != filter) {
 		const auto process = currentSearchProcess();
 		_searchQuery = query;
 		_searchQueryFrom = fromPeer;
 		_searchQueryTags = inTags;
 		_searchQueryTab = tab;
-		_searchQueryCommunity = _openedCommunity
-			? _openedCommunity->channel().get()
-			: nullptr;
+		_searchQueryCommunity = community;
 		_searchQueryFilter = filter;
 		process->nextRate = 0;
 		process->full = false;
@@ -3134,6 +3136,15 @@ void Widget::searchMessages(SearchState state) {
 	if (const auto peer = state.inChat.peer()) {
 		if (_openedForum && peer->forum() != _openedForum) {
 			controller()->closeForum();
+		}
+		const auto channel = peer->asChannel();
+		if (_openedCommunity
+			&& channel
+			&& channel->isCommunity()
+			&& channel != _openedCommunity->channel()
+			&& controller()->windowId().type
+				!= Window::SeparateType::Community) {
+			controller()->closeCommunity();
 		}
 	} else if (state.query.isEmpty()) {
 		if (_childList) {
@@ -3908,10 +3919,15 @@ bool Widget::applySearchState(SearchState state) {
 	const auto topic = state.inChat.topic();
 	const auto forum = peer ? peer->forum() : nullptr;
 	const auto folder = state.inChat.folder();
-	const auto community = (_openedCommunity
-		&& peer == _openedCommunity->channel())
-		? _openedCommunity
+	const auto channel = peer ? peer->asChannel() : nullptr;
+	const auto community = (channel && channel->isCommunity())
+		? channel
 		: nullptr;
+	if (community) {
+		state.community = community;
+	} else if (peer) {
+		state.community = nullptr;
+	}
 	if (folder || (forum && !topic) || community) {
 		state.inChat = {};
 	}
@@ -3924,7 +3940,7 @@ bool Widget::applySearchState(SearchState state) {
 			? ChatSearchTab::ThisPeer
 			: _openedFolder
 			? ChatSearchTab::Archive
-			: _openedCommunity
+			: (state.community || _openedCommunity)
 			? ChatSearchTab::ThisCommunity
 			: ChatSearchTab::MyMessages;
 	} else if (!state.inChat
@@ -3932,7 +3948,7 @@ bool Widget::applySearchState(SearchState state) {
 		const auto archive = _openedFolder
 			&& ((folder == _openedFolder)
 				|| (state.tab == ChatSearchTab::Archive));
-		const auto communityScope = _openedCommunity
+		const auto communityScope = (state.community || _openedCommunity)
 			&& (community
 				|| (state.tab == ChatSearchTab::ThisCommunity));
 		state.tab = (forum || _openedForum)
@@ -3954,6 +3970,7 @@ bool Widget::applySearchState(SearchState state) {
 	}
 
 	const auto inChatChanged = (_searchState.inChat != state.inChat);
+	const auto communityChanged = (_searchState.community != state.community);
 	const auto fromPeerChanged = (_searchState.fromPeer != state.fromPeer);
 	const auto tagsChanged = (_searchState.tags != state.tags);
 	const auto queryChanged = (_searchState.query != state.query);
@@ -3978,7 +3995,10 @@ bool Widget::applySearchState(SearchState state) {
 		} else {
 			return false;
 		}
-	} else if ((folder && folder == _openedFolder) || community) {
+	} else if ((folder && folder == _openedFolder)
+		|| (community
+			&& _openedCommunity
+			&& community == _openedCommunity->channel())) {
 		showSearchInTopBar(anim::type::normal);
 	} else if (peer && (_layout != Layout::Main)) {
 		return false;
@@ -3992,7 +4012,7 @@ bool Widget::applySearchState(SearchState state) {
 		|| (state.tab == ChatSearchTab::Archive
 			&& (!_openedFolder || state.inChat))
 		|| (state.tab == ChatSearchTab::ThisCommunity
-			&& (!_openedCommunity || state.inChat))
+			&& ((!state.community && !_openedCommunity) || state.inChat))
 		|| (state.tab == ChatSearchTab::PublicPosts
 			&& _searchHashOrCashtag == HashOrCashtag::None)) {
 		state.tab = state.inChat.topic()
@@ -4000,6 +4020,7 @@ bool Widget::applySearchState(SearchState state) {
 			: (state.inChat.owningHistory() || state.inChat.sublist())
 			? ChatSearchTab::ThisPeer
 			: ChatSearchTab::MyMessages;
+		state.community = nullptr;
 	}
 
 	const auto migrateFrom = (peer
@@ -4014,10 +4035,12 @@ bool Widget::applySearchState(SearchState state) {
 	if (inChatChanged && _searchState.inChat && _stories) {
 		storiesExplicitCollapse();
 	}
-	if (_chatFilters && (queryEmptyChanged || inChatChanged)) {
+	if (_chatFilters
+		&& (queryEmptyChanged || inChatChanged || communityChanged)) {
 		_chatFilters->setVisible(_searchState.query.isEmpty()
 			&& !_openedForum
 			&& !_openedCommunity
+			&& !_searchState.community
 			&& !searchInPeer());
 		updateControlsGeometry();
 	}
@@ -4045,6 +4068,7 @@ bool Widget::applySearchState(SearchState state) {
 		&& state.tags.empty();
 	if (searchCleared
 		|| inChatChanged
+		|| communityChanged
 		|| fromPeerChanged
 		|| filterChanged
 		|| tagsChanged
@@ -4810,6 +4834,9 @@ bool Widget::cancelSearch(CancelSearchOptions options) {
 		|| updatedState.tab == ChatSearchTab::PublicPosts)
 		&& (forceFullCancel || !clearingQuery)) {
 		updatedState.tab = ChatSearchTab::MyMessages;
+	}
+	if (forceFullCancel || !clearingQuery) {
+		updatedState.community = nullptr;
 	}
 	const auto clearSearchFocus = (forceFullCancel || !updatedState.inChat)
 		&& (_searchHasFocus || _searchSuggestionsLocked);

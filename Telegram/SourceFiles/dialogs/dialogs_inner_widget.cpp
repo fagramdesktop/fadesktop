@@ -5044,7 +5044,7 @@ bool InnerWidget::archiveSearchActive() const {
 }
 
 bool InnerWidget::communitySearchActive() const {
-	return _openedCommunity
+	return (_openedCommunity || _searchState.community)
 		&& ((_searchState.tab == ChatSearchTab::ThisCommunity)
 			|| !QStringView(_searchState.query).trimmed().isEmpty());
 }
@@ -5115,8 +5115,13 @@ void InnerWidget::updateSearchIn() {
 	const auto archiveIcon = (_openedFolder && !_searchState.inChat)
 		? Ui::MakeIconThumbnail(st::menuIconArchive)
 		: nullptr;
-	const auto communityIcon = (_openedCommunity && !_searchState.inChat)
-		? Ui::MakeUserpicThumbnail(_openedCommunity->channel())
+	const auto communityChannel = _searchState.community
+		? _searchState.community
+		: _openedCommunity
+		? _openedCommunity->channel().get()
+		: nullptr;
+	const auto communityIcon = (communityChannel && !_searchState.inChat)
+		? Ui::MakeUserpicThumbnail(communityChannel)
 		: nullptr;
 	const auto publicIcon = (_searchHashOrCashtag != HashOrCashtag::None)
 		? Ui::MakeIconThumbnail(st::menuIconChannel)

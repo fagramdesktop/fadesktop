@@ -256,11 +256,6 @@ struct PatternColors {
 	return points;
 }
 
-[[nodiscard]] bool CommunityCanManage(PeerData *peer) {
-	const auto channel = peer ? peer->asChannel() : nullptr;
-	return channel && channel->canEditInformation();
-}
-
 } // namespace
 
 TopBar::TopBar(
@@ -307,8 +302,6 @@ TopBar::TopBar(
 	_gifPausedChecker))
 , _hasActions(descriptor.source != Source::Stories
 	&& descriptor.source != Source::Preview
-	&& (descriptor.source != Source::Community
-		|| CommunityCanManage(_peer))
 	&& (_wrap.current() != Wrap::Side || !_peer->isNotificationsUser()))
 , _minForProgress([&] {
 	QWidget::setMinimumHeight(st::infoLayerTopBarHeight);
@@ -456,6 +449,18 @@ TopBar::TopBar(
 				| Data::PeerUpdate::Flag::ChannelAmIn
 		) | rpl::on_next([=] {
 			setupActions(controller);
+		}, lifetime());
+	}
+	if (_source == Source::Community) {
+		Shortcuts::Requests(
+		) | rpl::filter([=] {
+			return Core::App().activeWindow() == &controller->window();
+		}) | rpl::on_next([=](not_null<Shortcuts::Request*> request) {
+			using Command = Shortcuts::Command;
+			request->check(Command::Search, 1) && request->handle([=] {
+				searchInCommunity(controller);
+				return true;
+			});
 		}, lifetime());
 	}
 	setupStoryOutline();
@@ -808,6 +813,18 @@ void TopBar::finalizeActions(
 	shadowRaw->stackUnder(_actions.get());
 }
 
+void TopBar::searchInCommunity(
+		not_null<Window::SessionController*> controller) {
+	const auto channel = _peer->asChannel();
+	if (!channel) {
+		return;
+	}
+	const auto history = channel->owner().history(channel);
+	controller->hideLayer();
+	controller->hideSpecialLayer();
+	controller->searchInChat(history);
+}
+
 void TopBar::setupActions(not_null<Window::SessionController*> controller) {
 	const auto peer = _peer;
 	const auto user = peer->asUser();
@@ -834,6 +851,18 @@ void TopBar::setupActions(not_null<Window::SessionController*> controller) {
 				tr::lng_profile_action_short_manage(tr::now));
 			buttons.push_back(manage);
 			_actions->add(manage);
+		}
+		if (channel) {
+			const auto search = Ui::CreateChild<TopBarActionButton>(
+				this,
+				tr::lng_dlg_filter(tr::now),
+				st::infoProfileTopBarActionSearch);
+			search->setClickedCallback([=] {
+				searchInCommunity(controller);
+			});
+			search->setAccessibleName(tr::lng_dlg_filter(tr::now));
+			buttons.push_back(search);
+			_actions->add(search);
 		}
 		finalizeActions(buttons);
 		return;
