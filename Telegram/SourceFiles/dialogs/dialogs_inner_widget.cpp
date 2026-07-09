@@ -1729,7 +1729,9 @@ Ui::VideoUserpic *InnerWidget::validateVideoUserpic(
 	const auto peer = history->peer;
 	if (!peer->isPremium()
 		|| peer->userpicPhotoUnknown()
-		|| !peer->userpicHasVideo()) {
+		|| !peer->userpicHasVideo()
+		|| peer->isSelf()
+		|| peer->isRepliesChat()) {
 		_videoUserpics.remove(peer);
 		return nullptr;
 	}
