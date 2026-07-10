@@ -1013,9 +1013,7 @@ void History::hideMessage(not_null<HistoryItem*> item) {
 
 	item->setText(blockedMsg);
 
-	owner().enumerateItemViews(item, [&](not_null<HistoryView::Element*> view) {
-		view->refreshMedia(nullptr);
-	});
+	owner().recreateItemMedia(item);
 
 	if (item->media()) {
 		owner().requestItemTextRefresh(item);
@@ -1032,9 +1030,7 @@ void History::unhideMessage(not_null<HistoryItem*> item) {
 	const auto originalMsg = item->getOriginalMessage();
 	item->setText(originalMsg);
 
-	owner().enumerateItemViews(item, [&](not_null<HistoryView::Element*> view) {
-		view->refreshMedia(nullptr);
-	});
+	owner().recreateItemMedia(item);
 
 	if (item->media()) {
 		owner().requestItemTextRefresh(item);

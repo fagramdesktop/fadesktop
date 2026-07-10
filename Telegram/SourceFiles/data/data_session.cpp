@@ -2205,6 +2205,12 @@ void Session::requestItemTextRefresh(not_null<HistoryItem*> item) {
 	}
 }
 
+void Session::recreateItemMedia(not_null<HistoryItem*> item) {
+	enumerateItemViews(item, [](not_null<HistoryView::Element*> view) {
+		view->refreshMedia(nullptr);
+	});
+}
+
 void Session::registerRestricted(
 		not_null<const HistoryItem*> item,
 		const QString &reason) {
