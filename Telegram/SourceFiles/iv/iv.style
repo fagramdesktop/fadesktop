@@ -1383,4 +1383,5 @@ aiComposeCardMarkdown: Markdown(messageMarkdown) {
 }
 translateBoxMarkdown: Markdown(messageMarkdown) {
 	textPadding: boxRowPadding;
+	rule: defaultMarkdownRule;
 }
