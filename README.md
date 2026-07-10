@@ -180,6 +180,7 @@ The latest version is available for
 * [Kotatogram](https://github.com/kotatogram/kotatogram-desktop)
 * [Design480 (for solar icons)](https://www.figma.com/@480design)
 * [hikariatama (for emojis in readme)](https://github.com/hikariatama)
+* [moxiu (for NixOS Support)](https://github.com/cfels)
 
 [//]: # (LINKS)
 [fagram]: https://t.me/FAgramDesktop
