@@ -433,6 +433,7 @@ RichText ParseRichText(const MTPRichText &text) {
 		result.type = Type::CustomEmoji;
 		result.text = ParseString(data.valt());
 		result.id = uint64(data.vdocument_id().v);
+		result.customEmojiData = NumberToString(result.id);
 		return result;
 	}, [](const MTPDtextSpoiler &data) {
 		return ParseRichTextWrapper(Type::Spoiler, data.vtext());
@@ -980,7 +981,7 @@ std::vector<RichBlock> ParseRichBlocks(
 	return result;
 }
 
-RichMessage ParseRichMessage(
+RichMessage ParseRichMessageRoot(
 		ParseMediaContext &context,
 		const MTPRichMessage &message,
 		const QString &mediaFolder,
@@ -1013,6 +1014,14 @@ RichMessage ParseRichMessage(
 }
 
 } // namespace
+
+RichMessage ParseRichMessage(
+		ParseMediaContext &context,
+		const MTPRichMessage &data,
+		const QString &folder,
+		TimeId date) {
+	return ParseRichMessageRoot(context, data, folder, date);
+}
 
 Utf8String Reaction::Id(const Reaction &reaction) {
 	auto id = Utf8String();

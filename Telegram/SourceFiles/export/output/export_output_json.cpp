@@ -548,7 +548,7 @@ QByteArray SerializeRichText(
 			values.emplace_back("text", SerializeString(data.text));
 			values.emplace_back(
 				"document_id",
-				SerializeRichNumberString(data.id));
+				SerializeString(data.customEmojiData));
 			break;
 		case Type::MentionName:
 			values.emplace_back(

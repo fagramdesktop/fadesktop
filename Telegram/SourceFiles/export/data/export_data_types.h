@@ -118,6 +118,7 @@ struct RichText {
 
 	Utf8String text;
 	Utf8String data;
+	Utf8String customEmojiData;
 	std::vector<RichText> children;
 	std::vector<RichText> oldChildren;
 	uint64 id = 0;
@@ -710,6 +711,12 @@ Document ParseDocument(
 	const QString &suggestedFolder,
 	TimeId date);
 
+RichMessage ParseRichMessage(
+	ParseMediaContext &context,
+	const MTPRichMessage &data,
+	const QString &folder,
+	TimeId date);
+
 Media ParseMedia(
 	ParseMediaContext &context,
 	const MTPMessageMedia &data,
@@ -1204,6 +1211,7 @@ struct FileOrigin {
 	int32 messageId = 0;
 	int32 storyId = 0;
 	uint64 customEmojiId = 0;
+	bool richMessage : 1 = false;
 };
 
 struct Story {
