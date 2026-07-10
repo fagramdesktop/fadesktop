@@ -7367,7 +7367,7 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 
 	auto prepareChangeCommunity = [this](const MTPDmessageActionChangeCommunity &action) {
 		auto result = PreparedServiceText();
-		result.links.push_back(fromLink());
+		const auto fromChatItself = (_from == _history->peer);
 		const auto present = action.vcommunity_id().has_value();
 		// Resolve against the same cached community as the card uses, so the
 		// text and the card never disagree.
@@ -7382,21 +7382,43 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 				ChannelId(action.vcommunity_id()->v));
 		}();
 		if (community && !community->name().isEmpty()) {
-			result.links.push_back(community->createOpenLink());
-			result.text = tr::lng_action_community_added(
-				tr::now,
-				lt_from,
-				fromLinkText(),
-				lt_community,
-				tr::link(community->name(), 2),
-				tr::marked);
+			if (fromChatItself) {
+				result.links.push_back(community->createOpenLink());
+				result.text = (_history->peer->isBroadcast()
+					? tr::lng_action_community_added_channel
+					: tr::lng_action_community_added_chat)(
+						tr::now,
+						lt_community,
+						tr::link(community->name(), 1),
+						tr::marked);
+			} else {
+				result.links.push_back(fromLink());
+				result.links.push_back(community->createOpenLink());
+				result.text = tr::lng_action_community_added(
+					tr::now,
+					lt_from,
+					fromLinkText(),
+					lt_community,
+					tr::link(community->name(), 2),
+					tr::marked);
+			}
 		} else if (present) {
-			result.text = tr::lng_action_community_added_unknown(
-				tr::now,
-				lt_from,
-				fromLinkText(),
-				tr::marked);
+			if (fromChatItself) {
+				result.text = (_history->peer->isBroadcast()
+					? tr::lng_action_community_added_unknown_channel
+					: tr::lng_action_community_added_unknown_chat)(
+						tr::now,
+						tr::marked);
+			} else {
+				result.links.push_back(fromLink());
+				result.text = tr::lng_action_community_added_unknown(
+					tr::now,
+					lt_from,
+					fromLinkText(),
+					tr::marked);
+			}
 		} else {
+			result.links.push_back(fromLink());
 			result.text = tr::lng_action_community_removed(
 				tr::now,
 				lt_from,

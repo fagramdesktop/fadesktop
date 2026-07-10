@@ -2773,7 +2773,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_action_new_creator_pending" = "{user} will become the new main admin in 7 days if {from} does not return.";
 "lng_action_managed_bot_created" = "{from} created a bot {bot}.";
 "lng_action_community_added" = "{from} added this group to the {community} community.";
+"lng_action_community_added_chat" = "This chat was added to the {community} community.";
+"lng_action_community_added_channel" = "This channel was added to the {community} community.";
 "lng_action_community_added_unknown" = "{from} added this group to a community.";
+"lng_action_community_added_unknown_chat" = "This chat was added to a community.";
+"lng_action_community_added_unknown_channel" = "This channel was added to a community.";
 "lng_action_community_removed" = "{from} removed this group from the community.";
 
 "lng_create_bot_title" = "Create Bot";
