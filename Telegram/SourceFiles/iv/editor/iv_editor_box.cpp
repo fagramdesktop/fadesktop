@@ -1862,7 +1862,7 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		lock->paintRequest() | rpl::on_next([=] {
 			auto p = QPainter(lock);
 			auto hq = PainterHighQualityEnabler(p);
-			const auto border = st::lineWidth;
+			const auto border = st::ivEditorSendLockBadgeStroke;
 			auto pen = QPen(st::windowBg);
 			pen.setWidth(border);
 			p.setPen(pen);

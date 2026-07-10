@@ -100,13 +100,14 @@ ivEditorBottomCircleSize: 40px;
 ivEditorSendLockBadgeShift: point(-5px, -5px);
 ivComposeSendLockBadgePosition: point(1px, 2px);
 ivEditorSendLockBadgePadding: 3px;
+ivEditorSendLockBadgeStroke: 2px;
 ivEditorPremiumChoiceAboutSkip: 10px;
 ivEditorPremiumChoiceBox: Box(defaultBox) {
 	buttonHeight: 0px;
 }
 ivEditorSendLockIcon: icon{{ "chat/mini_lock", windowFgActive }};
 ivEditorToolbarPremiumStarSize: 11px;
-ivEditorToolbarPremiumStarSkip: point(5px, 5px);
+ivEditorToolbarPremiumStarSkip: point(5px, 7px);
 ivEditorToolbarPremiumStarOutline: 2px;
 ivEditorStyleMenuPremiumStarSize: 16px;
 ivEditorPillShadow: BoxShadow {
