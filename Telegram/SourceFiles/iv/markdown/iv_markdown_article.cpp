@@ -3712,7 +3712,6 @@ void MarkdownArticle::Impl::setMediaBlockHost(MediaBlockHost *host) {
 }
 
 void MarkdownArticle::Impl::setMediaPixelScale(double scale) {
-	scale = std::max(scale, 1.);
 	if (_mediaPixelScale == scale) {
 		return;
 	}

@@ -155,6 +155,7 @@ private:
 		Qt::MouseButton button);
 	void applyCursor(style::cursor cursor);
 	[[nodiscard]] double zoomScale() const;
+	[[nodiscard]] int articleLayoutWidth(int widgetWidth) const;
 
 	std::shared_ptr<MarkdownArticle> _article;
 	std::shared_ptr<MarkdownArticle> _retainedArticle;

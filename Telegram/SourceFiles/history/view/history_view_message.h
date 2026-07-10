@@ -75,6 +75,8 @@ struct InstantViewMediaRuntime
 : RuntimeComponent<InstantViewMediaRuntime, Element> {
 	QString pageUrl;
 	QSize forcedSize;
+	Media *forcedFor = nullptr;
+	double mediaPixelScale = 1.;
 };
 
 struct HistoryMessageRichPage

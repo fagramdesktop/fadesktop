@@ -726,8 +726,9 @@ void PopulateCodeBlockLeaf(
 [[nodiscard]] int LimitedMediaWidth(
 		int availableWidth,
 		int intrinsicWidth) {
-	const auto limit = (intrinsicWidth > 0)
-		? (2 * intrinsicWidth)
+	const auto scaledIntrinsic = style::ConvertScale(intrinsicWidth);
+	const auto limit = (scaledIntrinsic > 0)
+		? (2 * scaledIntrinsic)
 		: availableWidth;
 	return std::clamp(limit, 1, std::max(availableWidth, 1));
 }

@@ -404,7 +404,7 @@ int MarkdownDocumentWidget::resizeGetHeight(int newWidth) {
 		return 1;
 	}
 	const auto scale = zoomScale();
-	const auto layoutWidth = std::max(int(std::floor(newWidth / scale)), 1);
+	const auto layoutWidth = articleLayoutWidth(newWidth);
 	_article->setMediaPixelScale(scale);
 	auto timer = QElapsedTimer();
 	timer.start();
@@ -436,7 +436,7 @@ void MarkdownDocumentWidget::requestRelayout(QRect articleRect) {
 		_article->invalidateLayout();
 		const auto previousHeight = height();
 		const auto scale = zoomScale();
-		const auto layoutWidth = std::max(int(std::floor(width() / scale)), 1);
+		const auto layoutWidth = articleLayoutWidth(width());
 		_article->setMediaPixelScale(scale);
 		auto timer = QElapsedTimer();
 		timer.start();
@@ -524,6 +524,7 @@ void MarkdownDocumentWidget::paintEvent(QPaintEvent *e) {
 		return;
 	}
 	p.save();
+	p.setRenderHint(QPainter::SmoothPixmapTransform);
 	p.scale(scale, scale);
 	_article->paint(p, context);
 	p.restore();
@@ -1081,7 +1082,7 @@ void MarkdownDocumentWidget::relayoutCurrentWidth(bool clearSelection) {
 		return;
 	}
 	const auto scale = zoomScale();
-	const auto layoutWidth = std::max(int(std::floor(width() / scale)), 1);
+	const auto layoutWidth = articleLayoutWidth(width());
 	_article->setMediaPixelScale(scale);
 	auto timer = QElapsedTimer();
 	timer.start();
@@ -1228,7 +1229,7 @@ MarkdownArticlePaintContext MarkdownDocumentWidget::textPaintContext(
 		QRect clip) {
 	const auto scale = zoomScale();
 	const auto logicalRect = QRect(QPoint(), QSize(
-		std::max(int(std::floor(width() / scale)), 1),
+		articleLayoutWidth(width()),
 		std::max(int(std::floor(height() / scale)), 1)));
 	auto context = MarkdownArticlePaintContext(_theme->preparePaintContext(
 		_style.get(),
@@ -1236,6 +1237,7 @@ MarkdownArticlePaintContext MarkdownDocumentWidget::textPaintContext(
 		logicalRect,
 		clip,
 		!window()->isActiveWindow()));
+	context.mediaPixelScale = scale;
 	context.caches = {
 		.pre = ensurePrePaintCache(),
 		.blockquote = ensureBlockquotePaintCache(),
@@ -1466,6 +1468,12 @@ void MarkdownDocumentWidget::applyCursor(style::cursor cursor) {
 
 double MarkdownDocumentWidget::zoomScale() const {
 	return std::max(_zoom, 1) / 100.;
+}
+
+int MarkdownDocumentWidget::articleLayoutWidth(int widgetWidth) const {
+	const auto layoutWidth = int(std::floor(widgetWidth / zoomScale()));
+	const auto limit = _article ? _article->maxWidth() : layoutWidth;
+	return std::clamp(layoutWidth, 1, std::max(limit, 1));
 }
 
 } // namespace Iv::Markdown

@@ -307,6 +307,8 @@ private:
 
 	[[nodiscard]] bool supportsHitClassification();
 
+	void mediaPixelScaleUpdated() override;
+
 	void hostUpdated() override;
 
 	const uint64 _stableId = 0;
@@ -653,6 +655,17 @@ bool IvHistoryViewBlock::supportsHitClassification() {
 	return true;
 }
 
+void IvHistoryViewBlock::mediaPixelScaleUpdated() {
+	if (!alive()) {
+		return;
+	}
+	const auto runtime = _host->view()->Get<
+		HistoryView::InstantViewMediaRuntime>();
+	if (runtime) {
+		runtime->mediaPixelScale = mediaPixelScale();
+	}
+}
+
 void IvHistoryViewBlock::hostUpdated() {
 	if (!alive()) {
 		return;
@@ -731,6 +744,8 @@ private:
 	[[nodiscard]] IvHistoryViewHit resolveHit(QPoint point) const;
 
 	[[nodiscard]] bool probeSupport();
+
+	void mediaPixelScaleUpdated() override;
 
 	void hostUpdated() override;
 
@@ -839,17 +854,23 @@ void IvHistoryViewSlideshowBlock::applyForcedSize() {
 	if (_geometry.isEmpty() || !alive()) {
 		return;
 	}
+	const auto media = activeMedia();
+	if (!media) {
+		return;
+	}
 	const auto runtime = _host->view()->Get<
 		HistoryView::InstantViewMediaRuntime>();
+	const auto guard = gsl::finally([&] {
+		if (runtime) {
+			runtime->forcedSize = QSize();
+			runtime->forcedFor = nullptr;
+		}
+	});
 	if (runtime) {
 		runtime->forcedSize = _geometry.size();
+		runtime->forcedFor = media;
 	}
-	if (const auto media = activeMedia()) {
-		media->resizeGetHeight(_geometry.width());
-	}
-	if (runtime) {
-		runtime->forcedSize = QSize();
-	}
+	media->resizeGetHeight(_geometry.width());
 }
 
 void IvHistoryViewSlideshowBlock::setGeometry(QRect geometry) {
@@ -1146,6 +1167,17 @@ MediaActivation IvHistoryViewSlideshowBlock::activationAt(
 		return MediaActivation();
 	}
 	return resolveHit(point).activation;
+}
+
+void IvHistoryViewSlideshowBlock::mediaPixelScaleUpdated() {
+	if (!alive()) {
+		return;
+	}
+	const auto runtime = _host->view()->Get<
+		HistoryView::InstantViewMediaRuntime>();
+	if (runtime) {
+		runtime->mediaPixelScale = mediaPixelScale();
+	}
 }
 
 void IvHistoryViewSlideshowBlock::hostUpdated() {

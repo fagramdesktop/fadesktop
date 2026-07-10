@@ -505,7 +505,8 @@ const style::Markdown &MediaBlock::layoutStyle() const {
 }
 
 void MediaBlock::setMediaPixelScale(double scale) {
-	_mediaPixelScale = std::max(scale, 1.);
+	_mediaPixelScale = scale;
+	mediaPixelScaleUpdated();
 }
 
 double MediaBlock::mediaPixelScale() const {
@@ -525,6 +526,9 @@ void MediaBlock::requestRelayout(QRect articleRect) const {
 }
 
 void MediaBlock::layoutStyleUpdated() {
+}
+
+void MediaBlock::mediaPixelScaleUpdated() {
 }
 
 void MediaBlock::hostUpdated() {

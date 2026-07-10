@@ -86,6 +86,7 @@ protected:
 	[[nodiscard]] const style::Markdown &layoutStyle() const;
 	[[nodiscard]] double mediaPixelScale() const;
 	virtual void layoutStyleUpdated();
+	virtual void mediaPixelScaleUpdated();
 	virtual void hostUpdated();
 
 private:
