@@ -2697,7 +2697,9 @@ void Widget::stopWidthAnimation() {
 			_frozenAccountBar->setVisible(!_suggestions);
 		}
 		if (_chatFilters) {
-			_chatFilters->setVisible(!_suggestions);
+			_chatFilters->setVisible(!_suggestions
+				&& !_openedForum
+				&& !_openedCommunity);
 		}
 	}
 	updateStoriesVisibility();
@@ -4533,7 +4535,9 @@ void Widget::updateControlsGeometry() {
 		const auto scrollTop = chatFiltersTop
 			+ ((_chatFilters
 				&& _searchState.query.isEmpty()
-				&& !_openedForum && !searchInPeer())
+				&& !_openedForum
+				&& !_openedCommunity
+				&& !searchInPeer())
 				? (_chatFilters->height() * (1. - narrowRatio))
 				: 0);
 		const auto scrollHeight = height() - scrollTop - bottomSkip;
