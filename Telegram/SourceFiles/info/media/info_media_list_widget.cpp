@@ -820,8 +820,9 @@ void ListWidget::visibleTopBottomUpdated(
 	clearHeavyItems();
 
 	if (_dateBadge->goodType) {
-		updateDateBadgeFor(_visibleTop);
-		if (!_visibleTop) {
+		const auto badgeTop = _visibleTop + _topOverlayHeight;
+		updateDateBadgeFor(badgeTop);
+		if (badgeTop <= 0) {
 			if (_dateBadge->shown) {
 				scrollDateHide();
 			} else {
@@ -873,7 +874,9 @@ void ListWidget::toggleScrollDateShown() {
 }
 
 void ListWidget::checkMoveToOtherViewer() {
-	const auto visibleHeight = (_visibleBottom - _visibleTop);
+	const auto visibleHeight = std::max(
+		_visibleBottom - _visibleTop,
+		_externalViewportHeight);
 	if (width() <= 0
 		|| visibleHeight <= 0
 		|| _sections.empty()
@@ -927,7 +930,11 @@ ListScrollTopState ListWidget::countScrollState() const {
 }
 
 ListScrollTopState ListWidget::countScrollState(QPoint anchor) const {
-	if (_sections.empty() || _visibleTop <= 0) {
+	// Embedded lists get their visible top clamped to 0, so being
+	// "at the top" is meaningless unless the newest edge is loaded.
+	const auto stickToTop = !_externalViewportHeight
+		|| !_provider->anchorWhileAtTop();
+	if (_sections.empty() || (_visibleTop <= 0 && stickToTop)) {
 		return {};
 	}
 	const auto anchorItem = findItemByPoint(anchor);
@@ -1099,7 +1106,7 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 				st::roundedFg,
 				_dateBadge->text,
 				_dateBadge->textWidth,
-				_visibleTop,
+				_visibleTop + _topOverlayHeight,
 				outerWidth,
 				false);
 		}
@@ -2748,6 +2755,17 @@ void ListWidget::jumpToMessage(MsgId msgId) {
 			_scrollTopState.item = i;
 		}
 	});
+}
+
+void ListWidget::setTopOverlayHeight(int height) {
+	if (_topOverlayHeight != height) {
+		_topOverlayHeight = height;
+		update(_dateBadge->rect);
+	}
+}
+
+void ListWidget::setExternalViewportHeight(int height) {
+	_externalViewportHeight = height;
 }
 
 } // namespace Media

@@ -405,6 +405,11 @@ void Provider::jumpToMessage(
 	}).send();
 }
 
+bool Provider::anchorWhileAtTop() {
+	const auto after = _slice.skippedAfter();
+	return !after || (*after > 0);
+}
+
 SparseIdsMergedSlice::Key Provider::sliceKey(
 		UniversalMsgId universalId) const {
 	using Key = SparseIdsMergedSlice::Key;
