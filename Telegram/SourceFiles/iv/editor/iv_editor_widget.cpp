@@ -8528,18 +8528,15 @@ Widget::visibleFullHeadingFieldTextSpan() const {
 	}
 	const auto full = ConvertEditorTagsToRichText(
 		_field->getTextWithAppliedMarkdown());
-	if (full.text.isEmpty()) {
+	const auto length = int(full.text.size());
+	const auto cursor = _field->textCursor();
+	if (!cursor.hasSelection()) {
 		return TextNodeSpan{
 			.leaf = *leaf,
 			.from = 0,
-			.till = 0,
+			.till = length,
 		};
 	}
-	const auto cursor = _field->textCursor();
-	if (!cursor.hasSelection()) {
-		return std::nullopt;
-	}
-	const auto length = int(full.text.size());
 	auto from = richOffsetForFieldOffset(full, cursor.selectionStart());
 	auto till = richOffsetForFieldOffset(full, cursor.selectionEnd());
 	from = std::clamp(from, 0, length);
