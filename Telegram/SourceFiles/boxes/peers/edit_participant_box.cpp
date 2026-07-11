@@ -687,7 +687,8 @@ void EditAdminBox::prepare() {
 		}
 		if (_oldRights.flags && !_addingBot) {
 			const auto isTargetCreator = (LookupBadgeRole(peer(), user())
-				== HistoryView::BadgeRole::Creator);
+				== HistoryView::BadgeRole::Creator)
+				|| (amCreator() && user()->isSelf());
 			if (!isTargetCreator) {
 				if (!_tagControl) {
 					Ui::AddSkip(inner);
