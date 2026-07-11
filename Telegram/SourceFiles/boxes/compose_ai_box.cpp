@@ -360,6 +360,7 @@ private:
 	Iv::Markdown::MarkdownArticle _article;
 	std::unique_ptr<Ui::ChatTheme> _theme;
 	std::unique_ptr<Ui::ChatStyle> _style;
+	std::vector<Ui::Text::SpecialColor> _highlightColors;
 	Iv::Markdown::MarkdownArticleScrollForwarder _scrollForwarder;
 	int _paletteVersion = -1;
 	bool _hasArticle = false;
@@ -465,7 +466,9 @@ private:
 	void requestRich(Api::ComposeWithAi::Request &&request);
 	void resetState(CardState state);
 	void applyResult(Api::ComposeWithAi::Result &&result);
-	void applyRichResult(std::shared_ptr<const Iv::RichPage> page);
+	void applyRichResult(
+		std::shared_ptr<const Iv::RichPage> page,
+		std::shared_ptr<const Iv::RichPage> display);
 	void showError(const QString &error = {});
 	void setAuthorId(UserId authorId);
 	void notifyLoadingChanged();
@@ -1059,6 +1062,25 @@ ComposeAiRichBody::ComposeAiRichBody(
 	_paletteVersion = _style->paletteVersion();
 	setAttribute(Qt::WA_AcceptTouchEvents);
 
+	_highlightColors = Ui::SyntaxHighlightColors(_style.get());
+	const auto &linkFg = _style->lightButtonFg();
+	const auto &linkBg = _style->lightButtonBgOver();
+	_highlightColors.push_back({
+		&linkFg->p,
+		&linkFg->p,
+		&linkBg->b,
+		&linkBg->b,
+	});
+	_highlightColors.push_back({
+		&st::boxTextFgGood->p,
+		&st::boxTextFgGood->p,
+	});
+	_highlightColors.push_back({
+		&st::attentionButtonFg->p,
+		&st::attentionButtonFg->p,
+	});
+	Ensures(_highlightColors.size() == Iv::kTextDiffDeletedColorIndex);
+
 	const auto weak = base::make_weak(this);
 	_article.setTextRepaintCallbacks(
 		[weak] {
@@ -1179,7 +1201,7 @@ void ComposeAiRichBody::paintEvent(QPaintEvent *e) {
 	context.caches = {
 		.pre = messageStyle->preCache.get(),
 		.blockquote = context.quoteCache({}, 0),
-		.colors = _style->highlightColors(),
+		.colors = _highlightColors,
 		.st = &messageStyle->richPageStyle,
 		.repaint = [weak = base::make_weak(this)] {
 			if (const auto owner = weak.get()) {
@@ -1663,9 +1685,15 @@ void ComposeAiContent::requestRich(Api::ComposeWithAi::Request &&request) {
 			return;
 		}
 		weak->_requestId = 0;
-		weak->applyRichResult(Iv::ParseRichPage(
-			weak->_session,
-			result.data().vresult()));
+		const auto &message = result.data().vresult();
+		auto page = Iv::ParseRichPage(weak->_session, message);
+		auto display = (weak->_mode == ComposeAiMode::Fix)
+			? Iv::ParseRichPage(
+				weak->_session,
+				message,
+				Iv::RichParseMode::DisplayTextDiff)
+			: page;
+		weak->applyRichResult(std::move(page), std::move(display));
 	}).fail([=](const MTP::Error &error) {
 		if (!weak || weak->_requestToken != token) {
 			return;
@@ -1751,7 +1779,8 @@ void ComposeAiContent::applyResult(Api::ComposeWithAi::Result &&result) {
 }
 
 void ComposeAiContent::applyRichResult(
-		std::shared_ptr<const Iv::RichPage> page) {
+		std::shared_ptr<const Iv::RichPage> page,
+		std::shared_ptr<const Iv::RichPage> display) {
 	if (!page || page->blocks.empty()) {
 		showError({});
 		return;
@@ -1760,7 +1789,7 @@ void ComposeAiContent::applyRichResult(
 	_state = CardState::Ready;
 	_preview->setState(_state);
 	notifyLoadingChanged();
-	_preview->setResultPage(_richResult);
+	_preview->setResultPage(display ? std::move(display) : _richResult);
 	if (_mode == ComposeAiMode::Style
 		&& _styleIndex >= 0
 		&& _styleIndex < int(_tones.size())) {

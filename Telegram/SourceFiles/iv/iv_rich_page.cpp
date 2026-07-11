@@ -239,6 +239,7 @@ struct ParseContext {
 	};
 	base::flat_map<uint64, DocumentInfo> documentInfos;
 	bool dropRichTextClickHandlers = false;
+	bool displayTextDiff = false;
 };
 
 struct RichMessageMetrics {
@@ -1060,13 +1061,42 @@ void RememberWebPageMedia(
 			anchorId,
 			anchorIds);
 	}, [&](const MTPDtextDiff &data) {
-		AssertIsDebug();
+		if (!context->displayTextDiff) {
+			return AppendRichText(
+				data.vtext(),
+				result,
+				context,
+				anchorId,
+				anchorIds);
+		}
+		const auto deleted = result->text.text.size();
+		if (!AppendRichText(
+				data.vold_text(),
+				result,
+				context,
+				anchorId,
+				anchorIds)
+			|| !AddEntity(&result->text, deleted, EntityType::StrikeOut)
+			|| !AddEntity(
+				&result->text,
+				deleted,
+				EntityType::Colorized,
+				QString(QChar(kTextDiffDeletedColorIndex)))) {
+			return false;
+		}
+		const auto inserted = result->text.text.size();
 		return AppendRichText(
 			data.vtext(),
 			result,
 			context,
 			anchorId,
-			anchorIds);
+			anchorIds)
+			&& AddEntity(&result->text, inserted, EntityType::Underline)
+			&& AddEntity(
+				&result->text,
+				inserted,
+				EntityType::Colorized,
+				QString(QChar(kTextDiffInsertedColorIndex)));
 	});
 }
 
@@ -2212,9 +2242,11 @@ std::optional<RichPageLinkUrl> DecodeRichPageLinkUrl(const QString &data) {
 
 std::shared_ptr<const RichPage> ParseRichPage(
 		not_null<Main::Session*> session,
-		const MTPRichMessage &message) {
+		const MTPRichMessage &message,
+		RichParseMode mode) {
 	auto result = std::make_shared<RichPage>();
 	auto context = ParseContext(session, ParseSource::RichMessage);
+	context.displayTextDiff = (mode == RichParseMode::DisplayTextDiff);
 	const auto &data = message.data();
 	result->rtl = data.is_rtl();
 	result->part = data.is_part();
