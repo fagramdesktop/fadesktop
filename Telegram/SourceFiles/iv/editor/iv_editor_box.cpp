@@ -422,18 +422,6 @@ int TryToExtendWidthBy(not_null<Window*> window, int addToWidth) {
 	return addToWidth;
 }
 
-[[nodiscard]] QString HeadingLabel(int level) {
-	switch (level) {
-	case 1: return tr::lng_article_insert_heading1(tr::now);
-	case 2: return tr::lng_article_insert_heading2(tr::now);
-	case 3: return tr::lng_article_insert_heading3(tr::now);
-	case 4: return tr::lng_article_insert_heading4(tr::now);
-	case 5: return tr::lng_article_insert_heading5(tr::now);
-	case 6: return tr::lng_article_insert_heading6(tr::now);
-	}
-	return tr::lng_article_insert_heading1(tr::now);
-}
-
 [[nodiscard]] QString SubmitText(const ShowWindowDescriptor &descriptor) {
 	if (!descriptor.submitLabel.isEmpty()) {
 		return descriptor.submitLabel;
@@ -921,7 +909,7 @@ void Toolbar::fillHeadingMenu(not_null<Ui::PopupMenu*> menu) {
 			: QKeySequence();
 		Menu::AddActiveColorAction(
 			menu,
-			WithTabShortcut(HeadingLabel(level), shortcut),
+			WithTabShortcut(Markdown::HeadingLevelLabel(level), shortcut),
 			[=] {
 				if (_editor) {
 					_editor->insertBlock({

@@ -644,7 +644,8 @@ void ApplyBlockCaptionEditSource(
 
 [[nodiscard]] QString NativeIvEditPlaceholderText(
 		PreparedBlockKind kind,
-		PreparedEditLeafKind leafKind) {
+		PreparedEditLeafKind leafKind,
+		int headingLevel) {
 	switch (leafKind) {
 	case PreparedEditLeafKind::BlockCaption:
 		return u"Caption"_q;
@@ -657,9 +658,10 @@ void ApplyBlockCaptionEditSource(
 	case PreparedEditLeafKind::BlockText:
 		if (kind == PreparedBlockKind::Table) {
 			return u"Title"_q;
+		} else if (kind == PreparedBlockKind::Heading) {
+			return HeadingLevelLabel(headingLevel);
 		}
-		return (kind == PreparedBlockKind::Heading)
-			|| (kind == PreparedBlockKind::Details)
+		return (kind == PreparedBlockKind::Details)
 			? u"Header"_q
 			: u"Text"_q;
 	}
@@ -676,7 +678,8 @@ void ApplyNativeIvEditPlaceholderText(PreparedBlock *block) {
 	}
 	block->editPlaceholderText = NativeIvEditPlaceholderText(
 		block->kind,
-		block->editLeaf->kind);
+		block->editLeaf->kind,
+		block->headingLevel);
 }
 
 void ApplyNativeIvQuoteEditPlaceholderText(
@@ -702,7 +705,8 @@ void ApplyNativeIvEditPlaceholderText(PreparedTableCell *cell) {
 	}
 	cell->editPlaceholderText = NativeIvEditPlaceholderText(
 		PreparedBlockKind::Table,
-		cell->editLeaf->kind);
+		cell->editLeaf->kind,
+		0);
 }
 
 [[nodiscard]] const std::vector<RichPageBlock> *ResolveCanonicalNativeIvContainer(

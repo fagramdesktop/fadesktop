@@ -1799,6 +1799,7 @@ QString State::activePlaceholderText() const {
 		case BlockKind::Quote:
 			return u"Enter quote"_q;
 		case BlockKind::Heading:
+			return Markdown::HeadingLevelLabel(owner->headingLevel);
 		case BlockKind::Details:
 			return u"Header"_q;
 		default:
