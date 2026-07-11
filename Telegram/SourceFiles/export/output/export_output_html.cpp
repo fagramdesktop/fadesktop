@@ -13,10 +13,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "export/output/export_output_result.h"
 #include "ui/text/format_values.h"
 
+#include <cmath>
+
 #include <QtCore/QDateTime>
 #include <QtCore/QFile>
 #include <QtCore/QSize>
 #include <QtCore/QUrl>
+#include <QtGui/QImageReader>
 
 namespace Export {
 namespace Output {
@@ -78,6 +81,46 @@ QByteArray NoFileDescription(Data::File::SkipReason reason) {
 		return "";
 	}
 	Unexpected("Skip reason in NoFileDescription.");
+}
+
+Data::File RichFilePresentation(const Data::File *file) {
+	using SkipReason = Data::File::SkipReason;
+
+	auto result = file ? *file : Data::File();
+	if (!result.relativePath.isEmpty()) {
+		result.skipReason = SkipReason::None;
+	} else {
+		switch (result.skipReason) {
+		case SkipReason::FileType:
+		case SkipReason::FileSize:
+			break;
+		case SkipReason::None:
+		case SkipReason::Unavailable:
+		case SkipReason::DateLimits:
+			result.skipReason = SkipReason::Unavailable;
+			break;
+		}
+	}
+	return result;
+}
+
+Data::Photo RichPhotoPresentation(const Data::Photo *photo) {
+	auto result = photo ? *photo : Data::Photo();
+	result.image.file = RichFilePresentation(
+		photo ? &photo->image.file : nullptr);
+	return result;
+}
+
+Data::Document RichDocumentPresentation(const Data::Document *document) {
+	auto result = document ? *document : Data::Document();
+	result.file = RichFilePresentation(document ? &document->file : nullptr);
+	result.thumb.file = RichFilePresentation(
+		document ? &document->thumb.file : nullptr);
+	return result;
+}
+
+QByteArray RichFileDescription(const Data::File *file) {
+	return NoFileDescription(RichFilePresentation(file).skipReason);
 }
 
 auto CalculateThumbSize(
@@ -494,6 +537,44 @@ bool HtmlContext::empty() const {
 
 namespace {
 
+MediaData PrepareAudioMediaData(const Data::Document &data) {
+	const auto hasFile = !data.file.relativePath.isEmpty();
+	auto result = MediaData();
+	result.title = (!data.songPerformer.isEmpty()
+		&& !data.songTitle.isEmpty())
+		? (data.songPerformer + " \xe2\x80\x93 " + data.songTitle)
+		: !data.name.isEmpty()
+		? data.name
+		: QByteArray("Audio file");
+	result.status = Data::FormatDuration(data.duration);
+	if (!hasFile) {
+		result.status += ", " + Data::FormatFileSize(data.file.size);
+	}
+	result.classes = "media_audio_file";
+	result.link = data.file.relativePath;
+	result.description = NoFileDescription(data.file.skipReason);
+	return result;
+}
+
+struct RichMediaCallbacks {
+	Fn<QByteArray(const Data::Photo*)> photo = {};
+	Fn<QByteArray(const Data::Document*)> video = {};
+	Fn<QByteArray(const Data::Document*)> audio = {};
+	Fn<QByteArray(const MediaData&)> generic = {};
+	Fn<QByteArray(const MediaData&, const Data::Photo*)> photoCard = {};
+};
+
+enum class RichSourceMetaKind {
+	Source,
+	EmbedPost,
+};
+
+enum class RichTailState {
+	Empty,
+	Media,
+	Other,
+};
+
 constexpr auto kRichTargetMaxBytes = 4096;
 constexpr auto kRichAnchorDirectBytes = 72;
 constexpr auto kRichAnchorPrefixBytes = 48;
@@ -512,11 +593,18 @@ public:
 		const Data::RichMessage &message,
 		int messageId,
 		const QString &internalLinksDomain,
-		const QByteArray &relativeBase);
+		const QByteArray &relativeBase,
+		const RichMediaCallbacks &media);
 
 	[[nodiscard]] QByteArray renderMessage();
 
 private:
+	[[nodiscard]] const Data::Photo *findPhoto(uint64 id) const;
+	[[nodiscard]] const Data::Document *findDocument(uint64 id) const;
+	[[nodiscard]] RichTailState tailState(
+		const Data::RichBlock &block) const;
+	[[nodiscard]] RichTailState tailState(
+		const std::vector<Data::RichBlock> &blocks) const;
 	[[nodiscard]] QByteArray renderTexts(
 		const std::vector<Data::RichText> &texts);
 	[[nodiscard]] QByteArray renderText(const Data::RichText &text);
@@ -531,6 +619,29 @@ private:
 	[[nodiscard]] QByteArray renderBlocks(
 		const std::vector<Data::RichBlock> &blocks);
 	[[nodiscard]] QByteArray renderBlock(const Data::RichBlock &block);
+	[[nodiscard]] QByteArray renderPhoto(const Data::RichBlock &block);
+	[[nodiscard]] QByteArray renderVideo(const Data::RichBlock &block);
+	[[nodiscard]] QByteArray renderAudio(const Data::RichBlock &block);
+	[[nodiscard]] QByteArray renderMediaGroup(
+		const Data::RichBlock &block,
+		const QByteArray &kind,
+		bool renderGroupCaption);
+	[[nodiscard]] QByteArray renderEmbed(const Data::RichBlock &block);
+	[[nodiscard]] QByteArray renderEmbedPost(const Data::RichBlock &block);
+	[[nodiscard]] QByteArray renderChannel(const Data::RichBlock &block);
+	[[nodiscard]] QByteArray renderMap(
+		const Data::RichBlock &block,
+		const QByteArray &kind);
+	[[nodiscard]] QByteArray renderRelatedArticles(
+		const Data::RichBlock &block);
+	[[nodiscard]] QByteArray renderRelatedArticle(
+		const Data::RichRelatedArticle &article,
+		int index);
+	[[nodiscard]] QByteArray renderCaption(
+		const Data::RichCaption &caption);
+	[[nodiscard]] QByteArray renderSourceMeta(
+		const QByteArray &source,
+		RichSourceMetaKind kind);
 	[[nodiscard]] QByteArray renderTextBlock(
 		const QByteArray &tag,
 		std::map<QByteArray, QByteArray> attributes,
@@ -552,15 +663,11 @@ private:
 	[[nodiscard]] QByteArray renderFallback(
 		const QByteArray &kind,
 		const QByteArray &label);
-	[[nodiscard]] QByteArray renderDeferred(
-		const QByteArray &kind,
-		const QByteArray &label,
-		std::map<QByteArray, QByteArray> diagnostics = {},
-		const std::vector<Data::RichBlock> &blocks = {});
 
 	void collectAnchors();
 	void collectTextAnchors(const Data::RichText &text);
 	void collectTextAnchors(const std::vector<Data::RichText> &texts);
+	void collectCaptionAnchors(const Data::RichCaption &caption);
 	void collectBlockAnchors(const Data::RichBlock &block);
 	void collectBlockAnchors(const std::vector<Data::RichBlock> &blocks);
 	[[nodiscard]] QByteArray registerAnchor(const QByteArray &name);
@@ -577,6 +684,7 @@ private:
 	bool _linkActive = false;
 	const QString &_internalLinksDomain;
 	const QByteArray &_relativeBase;
+	const RichMediaCallbacks &_media;
 	std::map<QByteArray, QByteArray> _firstAnchorIds;
 	std::map<QByteArray, int> _anchorOccurrences;
 	std::map<const Data::RichText*, QByteArray> _textAnchorIds;
@@ -607,6 +715,57 @@ QByteArray RichHeadingTag(int level) {
 
 QByteArray RichBoolAttribute(bool value) {
 	return value ? QByteArray("true") : QByteArray("false");
+}
+
+bool RichTextHasOutput(const Data::RichText &text) {
+	using Type = Data::RichText::Type;
+	switch (text.type) {
+	case Type::Empty:
+		return false;
+	case Type::Plain:
+		return !text.text.isEmpty();
+	case Type::Concat:
+		for (const auto &child : text.children) {
+			if (RichTextHasOutput(child)) {
+				return true;
+			}
+		}
+		return false;
+	case Type::Bold:
+	case Type::Italic:
+	case Type::Underline:
+	case Type::Strike:
+	case Type::Fixed:
+	case Type::Url:
+	case Type::Email:
+	case Type::Phone:
+	case Type::Subscript:
+	case Type::Superscript:
+	case Type::Marked:
+	case Type::Anchor:
+	case Type::Math:
+	case Type::CustomEmoji:
+	case Type::Spoiler:
+	case Type::Mention:
+	case Type::Hashtag:
+	case Type::BotCommand:
+	case Type::Cashtag:
+	case Type::AutoUrl:
+	case Type::AutoEmail:
+	case Type::AutoPhone:
+	case Type::BankCard:
+	case Type::MentionName:
+	case Type::FormattedDate:
+	case Type::InlineImage:
+	case Type::Diff:
+		return true;
+	}
+	Unexpected("Type in RichTextHasOutput.");
+}
+
+bool RichCaptionHasOutput(const Data::RichCaption &caption) {
+	return RichTextHasOutput(caption.text)
+		|| RichTextHasOutput(caption.credit);
 }
 
 int HexValue(char value) {
@@ -769,6 +928,93 @@ bool IsAsciiWord(
 		}
 	}
 	return true;
+}
+
+QByteArray RichChannelSourceName(Data::RichChannel::Source source) {
+	using Source = Data::RichChannel::Source;
+	switch (source) {
+	case Source::ChatEmpty: return "chat_empty";
+	case Source::Chat: return "chat";
+	case Source::ChatForbidden: return "chat_forbidden";
+	case Source::Channel: return "channel";
+	case Source::ChannelForbidden: return "channel_forbidden";
+	case Source::Community: return "community";
+	case Source::CommunityForbidden: return "community_forbidden";
+	}
+	Unexpected("Source in RichChannelSourceName.");
+}
+
+QByteArray RichChannelStatus(const Data::RichChannel &channel) {
+	using Source = Data::RichChannel::Source;
+	auto label = QByteArray();
+	switch (channel.source) {
+	case Source::ChatEmpty:
+	case Source::Chat:
+		label = "Chat";
+		break;
+	case Source::ChatForbidden:
+		label = "Chat unavailable";
+		break;
+	case Source::Channel:
+		label = "Channel";
+		break;
+	case Source::ChannelForbidden:
+		label = "Channel unavailable";
+		break;
+	case Source::Community:
+		label = "Community";
+		break;
+	case Source::CommunityForbidden:
+		label = "Community unavailable";
+		break;
+	}
+	if (label.isEmpty()) {
+		Unexpected("Source in RichChannelStatus.");
+	}
+	return (channel.username && !channel.username->isEmpty())
+		? ('@' + *channel.username + ", " + label)
+		: label;
+}
+
+QByteArray RichMapPointSourceName(Data::RichMapPoint::Source source) {
+	using Source = Data::RichMapPoint::Source;
+	switch (source) {
+	case Source::GeoPointEmpty: return "geo_point_empty";
+	case Source::GeoPoint: return "geo_point";
+	case Source::InputGeoPointEmpty: return "input_geo_point_empty";
+	case Source::InputGeoPoint: return "input_geo_point";
+	}
+	Unexpected("Source in RichMapPointSourceName.");
+}
+
+struct RichMapCoordinateValues {
+	QByteArray latitude;
+	QByteArray longitude;
+};
+
+std::optional<RichMapCoordinateValues> RichMapCoordinates(
+		const Data::RichMapPoint &point) {
+	using Source = Data::RichMapPoint::Source;
+	switch (point.source) {
+	case Source::GeoPointEmpty:
+	case Source::InputGeoPointEmpty:
+		return std::nullopt;
+	case Source::GeoPoint:
+	case Source::InputGeoPoint:
+		break;
+	}
+	if (!std::isfinite(point.latitude)
+		|| !std::isfinite(point.longitude)
+		|| point.latitude < -90.
+		|| point.latitude > 90.
+		|| point.longitude < -180.
+		|| point.longitude > 180.) {
+		return std::nullopt;
+	}
+	return RichMapCoordinateValues{
+		Data::NumberToString(point.latitude),
+		Data::NumberToString(point.longitude),
+	};
 }
 
 bool IsUnicodeHashtagWord(const QByteArray &value) {
@@ -993,12 +1239,160 @@ RichHtmlRenderer::RichHtmlRenderer(
 	const Data::RichMessage &message,
 	int messageId,
 	const QString &internalLinksDomain,
-	const QByteArray &relativeBase)
+	const QByteArray &relativeBase,
+	const RichMediaCallbacks &media)
 : _context(context)
 , _message(message)
 , _messageId(messageId)
 , _internalLinksDomain(internalLinksDomain)
-, _relativeBase(relativeBase) {
+, _relativeBase(relativeBase)
+, _media(media) {
+}
+
+const Data::Photo *RichHtmlRenderer::findPhoto(uint64 id) const {
+	if (!id) {
+		return nullptr;
+	}
+	const auto i = _message.photos.find(id);
+	return (i != end(_message.photos)) ? &i->second : nullptr;
+}
+
+const Data::Document *RichHtmlRenderer::findDocument(uint64 id) const {
+	if (!id) {
+		return nullptr;
+	}
+	const auto i = _message.documents.find(id);
+	return (i != end(_message.documents)) ? &i->second : nullptr;
+}
+
+RichTailState RichHtmlRenderer::tailState(
+		const std::vector<Data::RichBlock> &blocks) const {
+	for (auto i = blocks.rbegin(); i != blocks.rend(); ++i) {
+		const auto state = tailState(*i);
+		if (state != RichTailState::Empty) {
+			return state;
+		}
+	}
+	return RichTailState::Empty;
+}
+
+RichTailState RichHtmlRenderer::tailState(
+		const Data::RichBlock &block) const {
+	using Content = Data::RichListItemContent;
+	using Kind = Data::RichBlock::Kind;
+	using QuoteContent = Data::RichQuoteContent;
+
+	switch (block.kind) {
+	case Kind::Unsupported:
+	case Kind::Heading:
+	case Kind::Paragraph:
+	case Kind::Footer:
+	case Kind::Thinking:
+	case Kind::AuthorDate:
+	case Kind::Code:
+	case Kind::Divider:
+	case Kind::Math:
+	case Kind::Table:
+	case Kind::Unknown:
+		return RichTailState::Other;
+	case Kind::Anchor:
+		return RichTailState::Empty;
+	case Kind::List: {
+		if (block.listItems.empty()) {
+			return RichTailState::Empty;
+		}
+		const auto &item = block.listItems.back();
+		if (item.content == Content::Blocks) {
+			const auto state = tailState(item.blocks);
+			if (state != RichTailState::Empty) {
+				return state;
+			}
+		}
+		return RichTailState::Other;
+	}
+	case Kind::Quote:
+		if (RichTextHasOutput(block.quoteCaption)) {
+			return RichTailState::Other;
+		}
+		if (block.quoteContent == QuoteContent::Blocks) {
+			const auto state = tailState(block.blocks);
+			if (state != RichTailState::Empty) {
+				return state;
+			}
+		}
+		return RichTailState::Other;
+	case Kind::Photo:
+		return (RichCaptionHasOutput(block.caption)
+			|| (block.optionalUrl && !block.optionalUrl->isEmpty()))
+			? RichTailState::Other
+			: RichTailState::Media;
+	case Kind::Video:
+	case Kind::Audio:
+	case Kind::Map:
+	case Kind::InputMap:
+		return RichCaptionHasOutput(block.caption)
+			? RichTailState::Other
+			: RichTailState::Media;
+	case Kind::Cover:
+		return tailState(block.blocks);
+	case Kind::Embed:
+		return (RichCaptionHasOutput(block.caption)
+			|| (block.posterPhotoId
+				&& block.optionalUrl
+				&& !block.optionalUrl->isEmpty()))
+			? RichTailState::Other
+			: RichTailState::Media;
+	case Kind::EmbedPost: {
+		if (RichCaptionHasOutput(block.caption)) {
+			return RichTailState::Other;
+		}
+		const auto state = tailState(block.blocks);
+		if (state != RichTailState::Empty) {
+			return state;
+		}
+		return block.url.isEmpty()
+			? RichTailState::Media
+			: RichTailState::Other;
+	}
+	case Kind::Collage:
+	case Kind::Slideshow:
+		return RichCaptionHasOutput(block.caption)
+			? RichTailState::Other
+			: tailState(block.blocks);
+	case Kind::Channel:
+		return RichTailState::Media;
+	case Kind::Details:
+		if (block.open) {
+			const auto state = tailState(block.blocks);
+			if (state != RichTailState::Empty) {
+				return state;
+			}
+		}
+		return RichTailState::Other;
+	case Kind::RelatedArticles:
+		if (block.relatedArticles.empty()) {
+			return RichTextHasOutput(block.text)
+				? RichTailState::Other
+				: RichTailState::Empty;
+		} else {
+			const auto &article = block.relatedArticles.back();
+			if (!article.url.isEmpty()) {
+				return RichTailState::Other;
+			}
+			const auto description = article.description
+				? *article.description
+				: QByteArray();
+			if (article.photoId && !description.isEmpty()) {
+				const auto photo = findPhoto(*article.photoId);
+				if (!RichFileDescription(
+						photo ? &photo->image.file : nullptr).isEmpty()) {
+					return RichTailState::Other;
+				}
+			}
+			return RichTailState::Media;
+		}
+	}
+	Unexpected("Kind in RichHtmlRenderer::tailState.");
 }
 
 QByteArray RichHtmlRenderer::renderMessage() {
@@ -1015,6 +1409,444 @@ QByteArray RichHtmlRenderer::renderMessage() {
 			{ "inline", QByteArray() },
 		});
 	result += renderBlocks(_message.blocks);
+	result += _context.popTag();
+	return result;
+}
+
+QByteArray RichHtmlRenderer::renderCaption(
+		const Data::RichCaption &caption) {
+	const auto text = renderText(caption.text);
+	const auto credit = renderText(caption.credit);
+	if (text.isEmpty() && credit.isEmpty()) {
+		return QByteArray();
+	}
+	auto result = _context.pushTag("figcaption", {
+		{ "class", "rich_media_caption" },
+		{ "dir", "auto" },
+	});
+	if (!text.isEmpty()) {
+		result += _context.pushTag("div", {
+			{ "class", "rich_caption_text" },
+		});
+		result += text;
+		result += _context.popTag();
+	}
+	if (!credit.isEmpty()) {
+		result += _context.pushTag("cite", {
+			{ "class", "rich_caption_credit" },
+		});
+		result += credit;
+		result += _context.popTag();
+	}
+	result += _context.popTag();
+	return result;
+}
+
+QByteArray RichHtmlRenderer::renderSourceMeta(
+		const QByteArray &source,
+		RichSourceMetaKind kind) {
+	if (source.isEmpty()) {
+		return QByteArray();
+	}
+	const auto containerClass = [kind] {
+		switch (kind) {
+		case RichSourceMetaKind::Source:
+			return QByteArray("rich_source_meta");
+		case RichSourceMetaKind::EmbedPost:
+			return QByteArray("rich_embed_post_meta");
+		}
+		Unexpected("Kind in RichHtmlRenderer::renderSourceMeta.");
+	}();
+	auto result = _context.pushTag("div", {
+		{ "class", containerClass },
+	});
+	const auto href = SafeHttpHref(source);
+	if (href && !_linkActive) {
+		result += _context.pushTag("a", {
+			{ "class", "rich_source_link" },
+			{ "href", *href },
+			{ "inline", QByteArray() },
+		});
+		const auto previous = _linkActive;
+		_linkActive = true;
+		const auto guard = gsl::finally([&] { _linkActive = previous; });
+		result += SerializeString(source);
+		result += _context.popTag();
+	} else {
+		result += _context.pushTag("span", {
+			{ "class", "rich_source_text" },
+			{ "inline", QByteArray() },
+		});
+		result += SerializeString(source);
+		result += _context.popTag();
+	}
+	result += _context.popTag();
+	return result;
+}
+
+QByteArray RichHtmlRenderer::renderPhoto(
+		const Data::RichBlock &block) {
+	auto attributes = RichBlockAttributes("rich_media_item", "photo");
+	attributes.emplace(
+		"data-photo-id",
+		Data::NumberToString(block.photoId));
+	attributes.emplace("data-spoiler", RichBoolAttribute(block.spoiler));
+	if (block.optionalWebpageId) {
+		attributes.emplace(
+			"data-webpage-id",
+			Data::NumberToString(*block.optionalWebpageId));
+	}
+	auto result = _context.pushTag("figure", std::move(attributes));
+	result += _media.photo(findPhoto(block.photoId));
+	if (block.optionalUrl) {
+		result += renderSourceMeta(
+			*block.optionalUrl,
+			RichSourceMetaKind::Source);
+	}
+	result += renderCaption(block.caption);
+	result += _context.popTag();
+	return result;
+}
+
+QByteArray RichHtmlRenderer::renderVideo(
+		const Data::RichBlock &block) {
+	auto attributes = RichBlockAttributes("rich_media_item", "video");
+	attributes.emplace(
+		"data-document-id",
+		Data::NumberToString(block.documentId));
+	attributes.emplace("data-autoplay", RichBoolAttribute(block.autoplay));
+	attributes.emplace("data-loop", RichBoolAttribute(block.loop));
+	attributes.emplace("data-spoiler", RichBoolAttribute(block.spoiler));
+	auto result = _context.pushTag("figure", std::move(attributes));
+	result += _media.video(findDocument(block.documentId));
+	result += renderCaption(block.caption);
+	result += _context.popTag();
+	return result;
+}
+
+QByteArray RichHtmlRenderer::renderAudio(
+		const Data::RichBlock &block) {
+	auto attributes = RichBlockAttributes("rich_media_item", "audio");
+	attributes.emplace(
+		"data-document-id",
+		Data::NumberToString(block.documentId));
+	auto result = _context.pushTag("figure", std::move(attributes));
+	result += _media.audio(findDocument(block.documentId));
+	result += renderCaption(block.caption);
+	result += _context.popTag();
+	return result;
+}
+
+QByteArray RichHtmlRenderer::renderMediaGroup(
+		const Data::RichBlock &block,
+		const QByteArray &kind,
+		bool renderGroupCaption) {
+	auto attributes = RichBlockAttributes("rich_media_group", kind);
+	attributes.emplace(
+		"data-rich-has-items",
+		RichBoolAttribute(!block.blocks.empty()));
+	attributes.emplace(
+		"data-rich-items-end-media",
+		RichBoolAttribute(
+			tailState(block.blocks) == RichTailState::Media));
+	auto result = _context.pushTag("section", std::move(attributes));
+	result += _context.pushTag("div", {
+		{ "class", "rich_media_group_items" },
+	});
+	result += renderBlocks(block.blocks);
+	result += _context.popTag();
+	if (renderGroupCaption) {
+		result += renderCaption(block.caption);
+	}
+	result += _context.popTag();
+	return result;
+}
+
+QByteArray RichHtmlRenderer::renderEmbed(
+		const Data::RichBlock &block) {
+	const auto hasPoster = block.posterPhotoId.has_value();
+	const auto hasMeta = hasPoster
+		&& block.optionalUrl
+		&& !block.optionalUrl->isEmpty();
+	auto attributes = RichBlockAttributes(
+		"rich_media_item rich_embed",
+		"embed");
+	attributes.emplace(
+		"data-full-width",
+		RichBoolAttribute(block.fullWidth));
+	attributes.emplace(
+		"data-allow-scrolling",
+		RichBoolAttribute(block.allowScrolling));
+	attributes.emplace("data-rich-has-meta", RichBoolAttribute(hasMeta));
+	if (block.posterPhotoId) {
+		attributes.emplace(
+			"data-poster-photo-id",
+			Data::NumberToString(*block.posterPhotoId));
+	}
+	if (block.width) {
+		attributes.emplace(
+			"data-source-width",
+			Data::NumberToString(*block.width));
+	}
+	if (block.height) {
+		attributes.emplace(
+			"data-source-height",
+			Data::NumberToString(*block.height));
+	}
+	auto result = _context.pushTag("figure", std::move(attributes));
+	if (hasPoster) {
+		result += _media.photo(findPhoto(*block.posterPhotoId));
+		if (block.optionalUrl) {
+			result += renderSourceMeta(
+				*block.optionalUrl,
+				RichSourceMetaKind::Source);
+		}
+	} else {
+		auto media = MediaData();
+		media.title = "Embed";
+		media.classes = "media_file";
+		if (block.optionalUrl) {
+			media.status = *block.optionalUrl;
+			if (const auto href = SafeHttpHref(*block.optionalUrl)) {
+				media.link = QString::fromUtf8(*href);
+			}
+		}
+		result += _media.generic(media);
+	}
+	result += renderCaption(block.caption);
+	result += _context.popTag();
+	return result;
+}
+
+QByteArray RichHtmlRenderer::renderEmbedPost(
+		const Data::RichBlock &block) {
+	const auto photo = findPhoto(block.authorPhotoId);
+	const auto hasMeta = !block.url.isEmpty();
+	auto attributes = RichBlockAttributes("rich_embed_post", "embed-post");
+	attributes.emplace(
+		"data-webpage-id",
+		Data::NumberToString(block.webpageId));
+	attributes.emplace(
+		"data-author-photo-id",
+		Data::NumberToString(block.authorPhotoId));
+	attributes.emplace("data-date", Data::NumberToString(block.date));
+	attributes.emplace("data-rich-has-meta", RichBoolAttribute(hasMeta));
+	attributes.emplace(
+		"data-rich-has-items",
+		RichBoolAttribute(!block.blocks.empty()));
+	attributes.emplace(
+		"data-rich-items-end-media",
+		RichBoolAttribute(
+			tailState(block.blocks) == RichTailState::Media));
+	auto result = _context.pushTag("section", std::move(attributes));
+	result += _context.pushTag("div", {
+		{ "class", "rich_embed_post_author" },
+	});
+	auto media = MediaData();
+	media.title = block.author.isEmpty()
+		? QByteArray("Embed post")
+		: block.author;
+	media.description = RichFileDescription(
+		photo ? &photo->image.file : nullptr);
+	media.status = block.date
+		? Data::FormatDateTime(block.date)
+		: QByteArray();
+	media.classes = "media_contact";
+	result += _media.photoCard(media, photo);
+	result += _context.popTag();
+	result += renderSourceMeta(block.url, RichSourceMetaKind::EmbedPost);
+	result += _context.pushTag("div", {
+		{ "class", "rich_embed_post_blocks" },
+	});
+	result += renderBlocks(block.blocks);
+	result += _context.popTag();
+	result += renderCaption(block.caption);
+	result += _context.popTag();
+	return result;
+}
+
+QByteArray RichHtmlRenderer::renderChannel(
+		const Data::RichBlock &block) {
+	const auto &channel = block.channel;
+	auto attributes = RichBlockAttributes(
+		"rich_reference_block",
+		"channel");
+	attributes.emplace(
+		"data-channel-source",
+		RichChannelSourceName(channel.source));
+	attributes.emplace("data-channel-id", Data::NumberToString(channel.id));
+	attributes.emplace("data-broadcast", RichBoolAttribute(channel.broadcast));
+	attributes.emplace("data-megagroup", RichBoolAttribute(channel.megagroup));
+	attributes.emplace("data-monoforum", RichBoolAttribute(channel.monoforum));
+	if (channel.accessHash) {
+		attributes.emplace(
+			"data-access-hash",
+			Data::NumberToString(*channel.accessHash));
+	}
+	auto result = _context.pushTag("section", std::move(attributes));
+	auto media = MediaData();
+	media.title = (channel.title && !channel.title->isEmpty())
+		? *channel.title
+		: QByteArray("Channel");
+	media.status = RichChannelStatus(channel);
+	media.classes = "media_contact";
+	if (channel.username
+		&& IsAsciiWord(
+			*channel.username,
+			kRichUsernameMinLength,
+			kRichUsernameMaxLength)) {
+		const auto target = _internalLinksDomain.toUtf8() + *channel.username;
+		if (const auto href = SafeHttpHref(target)) {
+			media.link = QString::fromUtf8(*href);
+		}
+	}
+	result += _media.generic(media);
+	result += _context.popTag();
+	return result;
+}
+
+QByteArray RichHtmlRenderer::renderMap(
+		const Data::RichBlock &block,
+		const QByteArray &kind) {
+	const auto &point = block.mapPoint;
+	auto attributes = RichBlockAttributes("rich_reference_block", kind);
+	attributes.emplace(
+		"data-point-source",
+		RichMapPointSourceName(point.source));
+	attributes.emplace("data-zoom", Data::NumberToString(block.zoom));
+	attributes.emplace(
+		"data-source-width",
+		Data::NumberToString(block.mapWidth));
+	attributes.emplace(
+		"data-source-height",
+		Data::NumberToString(block.mapHeight));
+	if (point.accessHash) {
+		attributes.emplace(
+			"data-access-hash",
+			Data::NumberToString(*point.accessHash));
+	}
+	if (point.accuracyRadius) {
+		attributes.emplace(
+			"data-accuracy-radius",
+			Data::NumberToString(*point.accuracyRadius));
+	}
+	auto result = _context.pushTag("figure", std::move(attributes));
+	auto media = MediaData();
+	media.title = "Location";
+	media.classes = "media_location";
+	if (const auto coordinates = RichMapCoordinates(point)) {
+		const auto joined = coordinates->latitude
+			+ ','
+			+ coordinates->longitude;
+		media.status = coordinates->latitude
+			+ ", "
+			+ coordinates->longitude;
+		const auto target = QByteArray("https://maps.google.com/maps?q=")
+			+ joined
+			+ "&ll="
+			+ joined
+			+ "&z=16";
+		if (const auto href = SafeHttpHref(target)) {
+			media.link = QString::fromUtf8(*href);
+		}
+	}
+	result += _media.generic(media);
+	result += renderCaption(block.caption);
+	result += _context.popTag();
+	return result;
+}
+
+QByteArray RichHtmlRenderer::renderRelatedArticle(
+		const Data::RichRelatedArticle &article,
+		int index) {
+	auto attributes = std::map<QByteArray, QByteArray>{
+		{ "class", "rich_related_article" },
+		{ "data-rich-article-index", Data::NumberToString(index) },
+		{ "data-webpage-id", Data::NumberToString(article.webpageId) },
+	};
+	if (article.photoId) {
+		attributes.emplace(
+			"data-photo-id",
+			Data::NumberToString(*article.photoId));
+	}
+	if (article.publishedDate) {
+		attributes.emplace(
+			"data-published-date",
+			Data::NumberToString(*article.publishedDate));
+	}
+	auto result = _context.pushTag("article", std::move(attributes));
+	auto media = MediaData();
+	media.title = (article.title && !article.title->isEmpty())
+		? *article.title
+		: QByteArray("Related article");
+	if (article.author && !article.author->isEmpty()) {
+		media.status = *article.author;
+	}
+	const auto publishedDate = article.publishedDate
+		? Data::FormatDateTime(*article.publishedDate)
+		: QByteArray();
+	if (!publishedDate.isEmpty()) {
+		if (!media.status.isEmpty()) {
+			media.status += ", ";
+		}
+		media.status += publishedDate;
+	}
+	const auto description = article.description
+		? *article.description
+		: QByteArray();
+	auto displacedDescription = false;
+	if (article.photoId) {
+		const auto photo = findPhoto(*article.photoId);
+		const auto fileDescription = RichFileDescription(
+			photo ? &photo->image.file : nullptr);
+		media.classes = "media_photo";
+		media.description = fileDescription.isEmpty()
+			? description
+			: fileDescription;
+		displacedDescription = !fileDescription.isEmpty()
+			&& !description.isEmpty();
+		result += _media.photoCard(media, photo);
+	} else {
+		media.classes = "media_file";
+		media.description = description;
+		result += _media.generic(media);
+	}
+	if (displacedDescription) {
+		result += _context.pushTag("div", {
+			{ "class", "rich_article_description" },
+		});
+		result += SerializeString(description);
+		result += _context.popTag();
+	}
+	result += renderSourceMeta(article.url, RichSourceMetaKind::Source);
+	result += _context.popTag();
+	return result;
+}
+
+QByteArray RichHtmlRenderer::renderRelatedArticles(
+		const Data::RichBlock &block) {
+	const auto title = renderText(block.text);
+	auto result = _context.pushTag(
+		"section",
+		RichBlockAttributes(
+			"rich_related_articles",
+			"related-articles"));
+	if (!title.isEmpty()) {
+		result += _context.pushTag("div", {
+			{ "class", "rich_related_title" },
+			{ "dir", "auto" },
+		});
+		result += title;
+		result += _context.popTag();
+	}
+	result += _context.pushTag("div", {
+		{ "class", "rich_related_items" },
+	});
+	auto index = 0;
+	for (const auto &article : block.relatedArticles) {
+		result += renderRelatedArticle(article, index++);
+	}
+	result += _context.popTag();
 	result += _context.popTag();
 	return result;
 }
@@ -1093,6 +1925,12 @@ void RichHtmlRenderer::collectTextAnchors(
 	}
 }
 
+void RichHtmlRenderer::collectCaptionAnchors(
+		const Data::RichCaption &caption) {
+	collectTextAnchors(caption.text);
+	collectTextAnchors(caption.credit);
+}
+
 void RichHtmlRenderer::collectBlockAnchors(
 		const std::vector<Data::RichBlock> &blocks) {
 	for (const auto &block : blocks) {
@@ -1141,11 +1979,25 @@ void RichHtmlRenderer::collectBlockAnchors(const Data::RichBlock &block) {
 		}
 		collectTextAnchors(block.quoteCaption);
 		break;
-	case Kind::Cover:
+	case Kind::Photo:
+	case Kind::Video:
+	case Kind::Audio:
+	case Kind::Embed:
+	case Kind::Map:
+	case Kind::InputMap:
+		collectCaptionAnchors(block.caption);
+		break;
 	case Kind::EmbedPost:
+		collectBlockAnchors(block.blocks);
+		collectCaptionAnchors(block.caption);
+		break;
+	case Kind::Cover:
+		collectBlockAnchors(block.blocks);
+		break;
 	case Kind::Collage:
 	case Kind::Slideshow:
 		collectBlockAnchors(block.blocks);
+		collectCaptionAnchors(block.caption);
 		break;
 	case Kind::Table:
 		collectTextAnchors(block.text);
@@ -1161,17 +2013,13 @@ void RichHtmlRenderer::collectBlockAnchors(const Data::RichBlock &block) {
 		collectTextAnchors(block.text);
 		collectBlockAnchors(block.blocks);
 		break;
+	case Kind::RelatedArticles:
+		collectTextAnchors(block.text);
+		break;
 	case Kind::Unsupported:
 	case Kind::Divider:
-	case Kind::Photo:
-	case Kind::Video:
-	case Kind::Embed:
 	case Kind::Channel:
-	case Kind::Audio:
 	case Kind::Math:
-	case Kind::RelatedArticles:
-	case Kind::Map:
-	case Kind::InputMap:
 	case Kind::Unknown:
 		break;
 	}
@@ -1874,24 +2722,6 @@ QByteArray RichHtmlRenderer::renderFallback(
 	return result;
 }
 
-QByteArray RichHtmlRenderer::renderDeferred(
-		const QByteArray &kind,
-		const QByteArray &label,
-		std::map<QByteArray, QByteArray> diagnostics,
-		const std::vector<Data::RichBlock> &blocks) {
-	auto attributes = RichBlockAttributes("rich_deferred", kind);
-	attributes.merge(diagnostics);
-	auto result = _context.pushTag("section", std::move(attributes));
-	result += _context.pushTag(
-		"div",
-		{ { "class", "rich_deferred_label" } });
-	result += SerializeString(label);
-	result += _context.popTag();
-	result += renderBlocks(blocks);
-	result += _context.popTag();
-	return result;
-}
-
 QByteArray RichHtmlRenderer::renderBlock(const Data::RichBlock &block) {
 	using Kind = Data::RichBlock::Kind;
 
@@ -1949,42 +2779,23 @@ QByteArray RichHtmlRenderer::renderBlock(const Data::RichBlock &block) {
 	case Kind::Quote:
 		return renderQuote(block);
 	case Kind::Photo:
-		return renderDeferred(
-			"photo",
-			"Photo",
-			{ { "data-photo-id", Data::NumberToString(block.photoId) } });
+		return renderPhoto(block);
 	case Kind::Video:
-		return renderDeferred(
-			"video",
-			"Video",
-			{ { "data-document-id",
-				Data::NumberToString(block.documentId) } });
+		return renderVideo(block);
 	case Kind::Cover:
-		return renderDeferred("cover", "Cover", {}, block.blocks);
+		return renderMediaGroup(block, "cover", false);
 	case Kind::Embed:
-		return renderDeferred("embed", "Embed");
+		return renderEmbed(block);
 	case Kind::EmbedPost:
-		return renderDeferred(
-			"embed-post",
-			"Embed post",
-			{},
-			block.blocks);
+		return renderEmbedPost(block);
 	case Kind::Collage:
-		return renderDeferred("collage", "Collage", {}, block.blocks);
+		return renderMediaGroup(block, "collage", true);
 	case Kind::Slideshow:
-		return renderDeferred(
-			"slideshow",
-			"Slideshow",
-			{},
-			block.blocks);
+		return renderMediaGroup(block, "slideshow", true);
 	case Kind::Channel:
-		return renderDeferred("channel", "Channel");
+		return renderChannel(block);
 	case Kind::Audio:
-		return renderDeferred(
-			"audio",
-			"Audio",
-			{ { "data-document-id",
-				Data::NumberToString(block.documentId) } });
+		return renderAudio(block);
 	case Kind::Math: {
 		auto attributes = RichBlockAttributes("rich_math_display", "math");
 		attributes.emplace("dir", "ltr");
@@ -1999,11 +2810,11 @@ QByteArray RichHtmlRenderer::renderBlock(const Data::RichBlock &block) {
 	case Kind::Details:
 		return renderDetails(block);
 	case Kind::RelatedArticles:
-		return renderDeferred("related-articles", "Related articles");
+		return renderRelatedArticles(block);
 	case Kind::Map:
-		return renderDeferred("map", "Map");
+		return renderMap(block, "map");
 	case Kind::InputMap:
-		return renderDeferred("input-map", "Input map");
+		return renderMap(block, "input-map");
 	case Kind::Unknown:
 		return renderFallback("unknown", "Unknown rich content");
 	}
@@ -2015,13 +2826,15 @@ QByteArray RichHtmlRenderer::renderBlock(const Data::RichBlock &block) {
 		const Data::RichMessage &message,
 		int messageId,
 		const QString &internalLinksDomain,
-		const QByteArray &relativeBase) {
+		const QByteArray &relativeBase,
+		const RichMediaCallbacks &media) {
 	return RichHtmlRenderer(
 		context,
 		message,
 		messageId,
 		internalLinksDomain,
-		relativeBase).renderMessage();
+		relativeBase,
+		media).renderMessage();
 }
 
 } // namespace
@@ -2151,6 +2964,18 @@ private:
 		const QString &internalLinksDomain,
 		Fn<QByteArray(int messageId, QByteArray text)> wrapMessageLink);
 	[[nodiscard]] QByteArray pushGenericMedia(const MediaData &data);
+	[[nodiscard]] QByteArray pushRichPhotoMedia(
+		const Data::Photo *data,
+		const QString &basePath);
+	[[nodiscard]] QByteArray pushRichVideoMedia(
+		const Data::Document *data,
+		const QString &basePath);
+	[[nodiscard]] QByteArray pushRichAudioMedia(
+		const Data::Document *data);
+	[[nodiscard]] QByteArray pushRichReferenceMedia(
+		MediaData data,
+		const Data::Photo *photo,
+		const QString &basePath);
 	[[nodiscard]] QByteArray pushStickerMedia(
 		const Data::Document &data,
 		const QString &basePath);
@@ -3247,12 +4072,32 @@ auto HtmlWriter::Wrap::pushMessage(
 			wrapMessageLink));
 
 	if (message.richMessage) {
+		const auto callbacks = RichMediaCallbacks{
+			.photo = [this, basePath](const Data::Photo *photo) {
+				return pushRichPhotoMedia(photo, basePath);
+			},
+			.video = [this, basePath](const Data::Document *document) {
+				return pushRichVideoMedia(document, basePath);
+			},
+			.audio = [this](const Data::Document *document) {
+				return pushRichAudioMedia(document);
+			},
+			.generic = [this](const MediaData &data) {
+				return pushGenericMedia(data);
+			},
+			.photoCard = [this, basePath](
+					const MediaData &data,
+					const Data::Photo *photo) {
+				return pushRichReferenceMedia(data, photo, basePath);
+			},
+		};
 		block.append(RenderRichMessage(
 			_context,
 			*message.richMessage,
 			message.id,
 			internalLinksDomain,
-			_base));
+			_base,
+			callbacks));
 	} else {
 		const auto text = FormatText(message.text, internalLinksDomain, _base);
 		if (!text.isEmpty()) {
@@ -3737,6 +4582,51 @@ QByteArray HtmlWriter::Wrap::pushPhotoMedia(
 	return result;
 }
 
+QByteArray HtmlWriter::Wrap::pushRichPhotoMedia(
+		const Data::Photo *data,
+		const QString &basePath) {
+	const auto presentation = RichPhotoPresentation(data);
+	return pushPhotoMedia(presentation, basePath);
+}
+
+QByteArray HtmlWriter::Wrap::pushRichVideoMedia(
+		const Data::Document *data,
+		const QString &basePath) {
+	auto presentation = RichDocumentPresentation(data);
+	const auto &thumbPath = presentation.thumb.file.relativePath;
+	if (!thumbPath.isEmpty()) {
+		QImageReader reader(basePath + thumbPath);
+		if (!reader.canRead() || reader.read().isNull()) {
+			presentation.thumb.file.relativePath.clear();
+		}
+	}
+	return pushVideoFileMedia(presentation, basePath);
+}
+
+QByteArray HtmlWriter::Wrap::pushRichAudioMedia(
+		const Data::Document *data) {
+	const auto presentation = RichDocumentPresentation(data);
+	return pushGenericMedia(PrepareAudioMediaData(presentation));
+}
+
+QByteArray HtmlWriter::Wrap::pushRichReferenceMedia(
+		MediaData data,
+		const Data::Photo *photo,
+		const QString &basePath) {
+	const auto presentation = RichPhotoPresentation(photo);
+	const auto &path = presentation.image.file.relativePath;
+	data.link = path;
+	data.thumb = path.isEmpty()
+		? QString()
+		: Data::WriteImageThumb(
+			basePath,
+			path,
+			kEntryUserpicSize * 2,
+			kEntryUserpicSize * 2,
+			u"_rich_card_thumb"_q);
+	return pushGenericMedia(data);
+}
+
 QByteArray HtmlWriter::Wrap::pushPoll(
 		const Data::Poll &data,
 		const QString &internalLinksDomain,
@@ -4133,17 +5023,7 @@ MediaData HtmlWriter::Wrap::prepareMediaData(
 		} else if (data.isVideoFile) {
 			// At least try to pushVideoFileMedia.
 		} else if (data.isAudioFile) {
-			result.title = (!data.songPerformer.isEmpty()
-				&& !data.songTitle.isEmpty())
-				? (data.songPerformer + " \xe2\x80\x93 " + data.songTitle)
-				: !data.name.isEmpty()
-				? data.name
-				: QByteArray("Audio file");
-			result.status = FormatDuration(data.duration);
-			if (!hasFile) {
-				result.status += ", " + FormatFileSize(data.file.size);
-			}
-			result.classes = "media_audio_file";
+			result = PrepareAudioMediaData(data);
 		} else {
 			result.title = data.name.isEmpty()
 				? QByteArray("File")
