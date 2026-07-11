@@ -185,6 +185,12 @@ ivEditorBottomSend: SendButton(historySend) {
 		rippleAreaSize: ivEditorBottomCircleSize;
 		rippleAreaPosition: point(0px, 0px);
 	}
+	stars: RoundButton(defaultActiveButton) {
+		height: ivEditorBottomCircleSize;
+		padding: margins(6px, 0px, 10px, 0px);
+		textTop: 11px;
+		width: -8px;
+	}
 	sendIconFg: windowFgActive;
 }
 ivEditorBottomSaveSend: SendButton(historySend) {
