@@ -1244,6 +1244,8 @@ PRIVATE
     info/saved/info_saved_music_provider.h
     info/saved/info_saved_music_widget.cpp
     info/saved/info_saved_music_widget.h
+    info/saved/info_saved_sublist_inline.cpp
+    info/saved/info_saved_sublist_inline.h
     info/saved/info_saved_sublists_widget.cpp
     info/saved/info_saved_sublists_widget.h
     info/settings/info_settings_widget.cpp

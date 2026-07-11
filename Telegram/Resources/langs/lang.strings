@@ -1896,6 +1896,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_media_selected_link#other" = "{count} shared links";
 "lng_media_selected_poll#one" = "{count} Poll";
 "lng_media_selected_poll#other" = "{count} Polls";
+"lng_media_selected_message#one" = "{count} Message";
+"lng_media_selected_message#other" = "{count} Messages";
 "lng_media_photo_empty" = "No photos here yet";
 "lng_media_gif_empty" = "No GIFs here yet";
 "lng_media_video_empty" = "No videos here yet";
