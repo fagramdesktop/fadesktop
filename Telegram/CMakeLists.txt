@@ -1234,6 +1234,20 @@ PRIVATE
     info/profile/info_profile_values.h
     info/profile/info_profile_widget.cpp
     info/profile/info_profile_widget.h
+    info/profile/tabs/adapters/info_profile_tab_media.cpp
+    info/profile/tabs/adapters/info_profile_tab_media.h
+    info/profile/tabs/adapters/info_profile_tab_peer_lists.cpp
+    info/profile/tabs/adapters/info_profile_tab_peer_lists.h
+    info/profile/tabs/adapters/info_profile_tab_stories.cpp
+    info/profile/tabs/adapters/info_profile_tab_stories.h
+    info/profile/tabs/adapters/info_profile_tab_sub_controller.cpp
+    info/profile/tabs/adapters/info_profile_tab_sub_controller.h
+    info/profile/tabs/adapters/info_profile_tab_members.cpp
+    info/profile/tabs/adapters/info_profile_tab_members.h
+    info/profile/tabs/adapters/info_profile_tab_polls.cpp
+    info/profile/tabs/adapters/info_profile_tab_polls.h
+    info/profile/tabs/adapters/info_profile_tab_saved.cpp
+    info/profile/tabs/adapters/info_profile_tab_saved.h
     info/profile/tabs/info_profile_tab_skeleton.cpp
     info/profile/tabs/info_profile_tab_skeleton.h
     info/profile/tabs/info_profile_tab_content.h

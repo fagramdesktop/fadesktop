@@ -1863,6 +1863,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_media_type_audios" = "Voice messages";
 "lng_media_type_links" = "Shared links";
 "lng_media_type_polls" = "Polls";
+"lng_media_type_stories" = "Stories";
+"lng_media_type_posts" = "Posts";
+"lng_media_type_groups" = "Groups";
+"lng_media_type_similar" = "Similar";
+"lng_media_type_gifts" = "Gifts";
+"lng_media_type_saved" = "Saved";
 "lng_polls_search_none" = "No polls found";
 "lng_media_type_rounds" = "Video messages";
 "lng_media_zoom_in" = "Zoom In";
