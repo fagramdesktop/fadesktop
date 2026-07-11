@@ -13,6 +13,7 @@ struct GeoPointLocation;
 #include "data/data_location.h"
 #include "iv/markdown/iv_markdown_prepare_links.h"
 #include "iv/markdown/iv_markdown_prepare_serialize.h"
+#include "lang/lang_keys.h"
 #include "ui/basic_click_handlers.h"
 #include "history/history_location_manager.h"
 
@@ -353,7 +354,7 @@ void ApplyEmptyMediaCaptionPlaceholder(
 	if (!state->editMode || !block->text.text.isEmpty()) {
 		return;
 	}
-	block->editPlaceholderText = u"Caption"_q;
+	block->editPlaceholderText = tr::lng_article_placeholder_caption(tr::now);
 }
 
 } // namespace

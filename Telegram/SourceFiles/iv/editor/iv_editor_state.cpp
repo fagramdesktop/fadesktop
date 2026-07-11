@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "iv/editor/iv_editor_state.h"
 #include "iv/editor/iv_editor_text_entities.h"
+#include "lang/lang_keys.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/fields/input_field.h"
 
@@ -1795,33 +1796,33 @@ QString State::activePlaceholderText() const {
 		case BlockKind::Paragraph:
 		case BlockKind::Footer:
 		case BlockKind::Code:
-			return u"Text"_q;
+			return tr::lng_article_placeholder_text(tr::now);
 		case BlockKind::Quote:
-			return u"Enter quote"_q;
+			return tr::lng_article_placeholder_quote(tr::now);
 		case BlockKind::Heading:
 			return Markdown::HeadingLevelLabel(owner->headingLevel);
 		case BlockKind::Details:
-			return u"Header"_q;
+			return tr::lng_article_placeholder_header(tr::now);
 		default:
 			return QString();
 		}
 	case LeafKind::BlockCaption:
 		switch (owner->kind) {
 		case BlockKind::Quote:
-			return u"Add author"_q;
+			return tr::lng_article_placeholder_author(tr::now);
 		case BlockKind::Photo:
 		case BlockKind::Video:
 		case BlockKind::Audio:
 		case BlockKind::Map:
 		case BlockKind::GroupedMedia:
-			return u"Caption"_q;
+			return tr::lng_article_placeholder_caption(tr::now);
 		default:
 			return QString();
 		}
 	case LeafKind::ListItemText:
-		return u"Text"_q;
+		return tr::lng_article_placeholder_text(tr::now);
 	case LeafKind::TableCellText:
-		return u"Cell"_q;
+		return tr::lng_article_placeholder_cell(tr::now);
 	case LeafKind::MathFormula:
 		return u"x^2 + y^2"_q;
 	}

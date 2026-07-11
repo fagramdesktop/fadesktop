@@ -7398,6 +7398,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_article_media_slideshow" = "Slideshow";
 "lng_article_insert_details" = "Details";
 "lng_article_insert_table" = "Table";
+"lng_article_placeholder_text" = "Text";
+"lng_article_placeholder_header" = "Header";
+"lng_article_placeholder_caption" = "Caption";
+"lng_article_placeholder_cell" = "Cell";
+"lng_article_placeholder_quote" = "Enter quote";
+"lng_article_placeholder_author" = "Add author";
+"lng_article_placeholder_title" = "Title";
 "lng_article_limit_length" = "The article is too long.";
 "lng_article_limit_depth" = "The article is nested too deeply.";
 "lng_article_limit_blocks" = "The article has too many blocks.";

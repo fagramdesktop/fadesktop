@@ -662,22 +662,22 @@ void ApplyBlockCaptionEditSource(
 		int headingLevel) {
 	switch (leafKind) {
 	case PreparedEditLeafKind::BlockCaption:
-		return u"Caption"_q;
+		return tr::lng_article_placeholder_caption(tr::now);
 	case PreparedEditLeafKind::TableCellText:
-		return u"Cell"_q;
+		return tr::lng_article_placeholder_cell(tr::now);
 	case PreparedEditLeafKind::MathFormula:
 		return u"x^2 + y^2"_q;
 	case PreparedEditLeafKind::ListItemText:
-		return u"Text"_q;
+		return tr::lng_article_placeholder_text(tr::now);
 	case PreparedEditLeafKind::BlockText:
 		if (kind == PreparedBlockKind::Table) {
-			return u"Title"_q;
+			return tr::lng_article_placeholder_title(tr::now);
 		} else if (kind == PreparedBlockKind::Heading) {
 			return HeadingLevelLabel(headingLevel);
 		}
 		return (kind == PreparedBlockKind::Details)
-			? u"Header"_q
-			: u"Text"_q;
+			? tr::lng_article_placeholder_header(tr::now)
+			: tr::lng_article_placeholder_text(tr::now);
 	}
 	return QString();
 }
@@ -687,7 +687,7 @@ void ApplyNativeIvEditPlaceholderText(PreparedBlock *block) {
 		return;
 	} else if (block->quoteAuthor
 		&& (block->editLeaf->kind == PreparedEditLeafKind::BlockCaption)) {
-		block->editPlaceholderText = u"Add author"_q;
+		block->editPlaceholderText = tr::lng_article_placeholder_author(tr::now);
 		return;
 	}
 	block->editPlaceholderText = NativeIvEditPlaceholderText(
@@ -700,8 +700,8 @@ void ApplyNativeIvQuoteEditPlaceholderText(
 		PreparedBlock *block,
 		bool quoteAuthor) {
 	block->editPlaceholderText = quoteAuthor
-		? u"Add author"_q
-		: u"Enter quote"_q;
+		? tr::lng_article_placeholder_author(tr::now)
+		: tr::lng_article_placeholder_quote(tr::now);
 }
 
 void RefreshPreparedNativeIvQuotePlaceholder(
