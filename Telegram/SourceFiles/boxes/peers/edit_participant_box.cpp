@@ -690,11 +690,22 @@ void EditAdminBox::prepare() {
 				== HistoryView::BadgeRole::Creator)
 				|| (amCreator() && user()->isSelf());
 			if (!isTargetCreator) {
-				if (!_tagControl) {
-					Ui::AddSkip(inner);
-					inner->add(
-						object_ptr<Ui::BoxContentDivider>(inner),
+				if (!_tagControl && canTransferOwnership()) {
+					const auto allFlags = AdminRightsForOwnershipTransfer(
+						options);
+					const auto wrap = inner->add(
+						object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+							inner,
+							object_ptr<Ui::VerticalLayout>(inner)));
+					Ui::AddSkip(wrap->entity());
+					wrap->entity()->add(
+						object_ptr<Ui::BoxContentDivider>(wrap->entity()),
 						{ 0, st::infoProfileSkip, 0, st::infoProfileSkip });
+					wrap->toggleOn(rpl::duplicate(
+						selectedFlags
+					) | rpl::map(
+						(_1 & allFlags) == allFlags
+					))->setDuration(0);
 				}
 				Ui::AddSkip(inner);
 				const auto dismissButton = Settings::AddButtonWithIcon(
