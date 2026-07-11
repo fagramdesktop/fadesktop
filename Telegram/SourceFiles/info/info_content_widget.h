@@ -204,7 +204,8 @@ protected:
 	void setInnerTopReserve(int reserve);
 	void setupFlexibleRegularScroll(
 		not_null<Ui::RpWidget*> inner,
-		not_null<Ui::RpWidget*> pinnedToTop);
+		not_null<Ui::RpWidget*> pinnedToTop,
+		bool abortSnapOnExternalScroll = false);
 	int scrollTopSave() const;
 	void scrollTopRestore(int scrollTop);
 	void scrollTo(const Ui::ScrollToRequest &request);

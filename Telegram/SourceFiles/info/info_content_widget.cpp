@@ -314,7 +314,8 @@ void ContentWidget::setInnerTopReserve(int reserve) {
 
 void ContentWidget::setupFlexibleRegularScroll(
 		not_null<Ui::RpWidget*> inner,
-		not_null<Ui::RpWidget*> pinnedToTop) {
+		not_null<Ui::RpWidget*> pinnedToTop,
+		bool abortSnapOnExternalScroll) {
 	SetupFlexibleRegularScroll(
 		_scroll.data(),
 		inner,
@@ -324,7 +325,8 @@ void ContentWidget::setupFlexibleRegularScroll(
 		[=](QMargins padding) { setPaintPadding(padding); },
 		[=](rpl::producer<not_null<QEvent*>> events) {
 			setViewport(std::move(events));
-		});
+		},
+		abortSnapOnExternalScroll);
 }
 
 void ContentWidget::applyMaxVisibleHeight(int maxVisibleHeight) {
