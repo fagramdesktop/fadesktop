@@ -30,7 +30,7 @@ You will need **api_id** and **api_hash** to access the Telegram API servers.
   ```
   git clone --recurse-submodules https://github.com/fagramdesktop/fadesktop
   cd fadesktop
-  nix run nixpkgs#nix-prefetch-github -- fagramdesktop fadesktop --rev dev --fetch- submodules
+  nix run nixpkgs#nix-prefetch-github -- fagramdesktop fadesktop --rev dev --fetch-submodules
   git add .
   nix build .#fagram-desktop
   ./result/bin/fagram
