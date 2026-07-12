@@ -73,3 +73,6 @@ settings.local.json
 # Generated changelog page (built by CI, deployed to GitHub Pages)
 /docs/changelog/
 /logs
+
+# nix misc
+result/
