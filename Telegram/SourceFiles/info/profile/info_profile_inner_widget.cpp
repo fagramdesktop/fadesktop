@@ -444,7 +444,7 @@ void InnerWidget::visibleTopBottomUpdated(
 	if (_tabsHost) {
 		const auto top = MapFrom(this, _tabsHost, QPoint()).y();
 		_tabsHost->setVisibleRegion(visibleTop - top, visibleBottom - top);
-		_tabsDocked = (visibleTop >= top);
+		_tabsDocked = (top > 0) && (visibleTop >= top);
 	}
 }
 
