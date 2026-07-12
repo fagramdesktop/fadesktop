@@ -114,6 +114,16 @@ The latest version is available for
     - [Arch/AUR](https://aur.archlinux.org/packages/fagram-bin)
     - [Fedora/RPM](https://copr.fedorainfracloud.org/coprs/burhanverse/fagram/)
     - [Ubuntu/DEB](https://github.com/fagramdesktop/fagram-deb)
+    - NixOS/Nix using Flake
+        ```nix
+        {
+        inputs = {
+          fagram.url = "github:fagramdesktop/fadesktop";
+          # ...
+        };
+  
+          # ...
+        }
 
 - MacOS
     - [DMG package/GitHub Release](https://github.com/fagramdesktop/fadesktop/releases)
@@ -157,6 +167,7 @@ The latest version is available for
 * [Windows](docs/building-win.md)
 * [macOS](docs/building-mac.md)
 * [GNU/Linux using Docker][linux_build]
+* [NixOS/Nix](docs/building-nix.md)
 
 ## ❤️ Credits
 
@@ -169,6 +180,7 @@ The latest version is available for
 * [Kotatogram](https://github.com/kotatogram/kotatogram-desktop)
 * [Design480 (for solar icons)](https://www.figma.com/@480design)
 * [hikariatama (for emojis in readme)](https://github.com/hikariatama)
+* [moxiu (for NixOS Support)](https://github.com/cfels)
 
 [//]: # (LINKS)
 [fagram]: https://t.me/FAgramDesktop
