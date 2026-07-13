@@ -1136,6 +1136,8 @@ const style::TextStyle &TextStyleForSegment(
 		return st.code;
 	} else if (segment.block && segment.block->quoteAuthor) {
 		return st.quoteAuthorStyle;
+	} else if (segment.block && segment.block->footer) {
+		return st.footer;
 	} else if (!segment.block) {
 		return st.body;
 	}

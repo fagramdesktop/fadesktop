@@ -1258,6 +1258,7 @@ void EnableQTextEditLineMetrics(style::Markdown &style) {
 	EnableQTextEditLineMetrics(style.heading4);
 	EnableQTextEditLineMetrics(style.heading5);
 	EnableQTextEditLineMetrics(style.heading6);
+	EnableQTextEditLineMetrics(style.footer);
 	EnableQTextEditLineMetrics(style.quoteAuthorStyle);
 	EnableQTextEditLineMetrics(style.code);
 	EnableQTextEditLineMetrics(style.displayMath.fallbackStyle);

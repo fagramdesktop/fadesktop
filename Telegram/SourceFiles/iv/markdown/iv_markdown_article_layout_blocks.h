@@ -163,6 +163,7 @@ struct LaidOutBlock {
 	bool supplementary = false;
 	bool pullquote = false;
 	bool quoteAuthor = false;
+	bool footer = false;
 	bool insideHorizontalScroll = false;
 	int horizontalScrollLeft = 0;
 	int horizontalScrollMax = 0;

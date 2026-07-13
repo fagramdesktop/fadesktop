@@ -1288,6 +1288,7 @@ void ChatStyle::make(
 	make(my.heading4, original.heading4);
 	make(my.heading5, original.heading5);
 	make(my.heading6, original.heading6);
+	make(my.footer, original.footer);
 	make(my.code, original.code);
 	make(my.list, original.list);
 	make(my.quotePaintColors, original.quotePaintColors);

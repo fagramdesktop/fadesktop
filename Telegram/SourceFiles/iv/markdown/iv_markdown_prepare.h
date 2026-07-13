@@ -706,6 +706,7 @@ struct PreparedBlock {
 	bool supplementary = false;
 	bool pullquote = false;
 	bool quoteAuthor = false;
+	bool footer = false;
 	bool forceTextSegment = false;
 	bool orderedReversed = false;
 	std::optional<PreparedEditBlockSource> editBlock;

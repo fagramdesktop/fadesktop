@@ -558,6 +558,7 @@ Markdown {
 	heading4: TextStyle;
 	heading5: TextStyle;
 	heading6: TextStyle;
+	footer: TextStyle;
 	code: TextStyle;
 	pagePadding: margins;
 	pageMaxWidth: pixels;
@@ -950,6 +951,10 @@ defaultMarkdown: Markdown {
 		font: font(15px semibold);
 		lineHeight: 22px;
 	}
+	footer: TextStyle(defaultMarkdownBodyStyle) {
+		font: font(11px);
+		lineHeight: 18px;
+	}
 	code: defaultMarkdownCodeStyle;
 	pagePadding: margins(0px, 0px, 0px, 16px);
 	pageMaxWidth: 732px;
@@ -1016,6 +1021,10 @@ messageMarkdownHeading5Style: TextStyle(messageMarkdownBodyStyle) {
 messageMarkdownHeading6Style: TextStyle(messageMarkdownBodyStyle) {
 	font: font(14px semibold);
 	lineHeight: 21px;
+}
+messageMarkdownFooterStyle: TextStyle(messageMarkdownBodyStyle) {
+	font: font(12px);
+	lineHeight: 19px;
 }
 messageMarkdownDetailsSummaryStyle: TextStyle(messageMarkdownBodyStyle) {
 	linkUnderline: kLinkUnderlineNever;
@@ -1207,6 +1216,7 @@ messageMarkdown: Markdown(defaultMarkdown) {
 	heading4: messageMarkdownHeading4Style;
 	heading5: messageMarkdownHeading5Style;
 	heading6: messageMarkdownHeading6Style;
+	footer: messageMarkdownFooterStyle;
 	code: messageMarkdownCodeStyle;
 	pagePadding: margins(0px, 0px, 0px, 0px);
 	pageMaxWidth: msgMaxWidth;
