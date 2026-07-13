@@ -989,7 +989,7 @@ void Toolbar::fillBlockStyleMenu(not_null<Ui::PopupMenu*> menu) {
 					Widget::ToolbarFormatAction::PlainText);
 			}
 		},
-		&st::ivEditorToolbarDividerIcon,
+		&st::ivEditorToolbarFooterIcon,
 		(kind == Kind::Footer),
 		starSize);
 	Menu::AddActiveColorAction(

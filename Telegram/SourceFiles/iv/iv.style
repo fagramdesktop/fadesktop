@@ -233,6 +233,7 @@ ivEditorToolbarBlockquoteIcon: icon {{ "menu/rich/blockquote-24x24", menuIconCol
 ivEditorToolbarCodeIcon: icon {{ "menu/rich/code-24x24", menuIconColor }};
 ivEditorToolbarMathIcon: icon {{ "menu/rich/math-24x24", menuIconColor }};
 ivEditorToolbarDividerIcon: icon {{ "menu/rich/divider-24x24", menuIconColor }};
+ivEditorToolbarFooterIcon: icon {{ "menu/rich/footer-24x24", menuIconColor }};
 ivEditorToolbarOrderedListIcon: icon {{ "menu/rich/ordered_list-24x24", menuIconColor }};
 ivEditorToolbarBulletListIcon: icon {{ "menu/rich/bullet_list-24x24", menuIconColor }};
 ivEditorToolbarTaskListIcon: icon {{ "menu/rich/task_list-24x24", menuIconColor }};
