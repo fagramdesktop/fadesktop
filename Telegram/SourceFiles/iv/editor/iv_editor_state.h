@@ -299,8 +299,11 @@ public:
 		const ActiveEnterContext &context);
 	[[nodiscard]] std::optional<int> handleActiveFooterEnter(
 		const ActiveEnterContext &context);
-	[[nodiscard]] std::optional<int> handleActiveListEnter();
+	[[nodiscard]] std::optional<int> handleActiveListEnter(
+		const ActiveEnterContext &context);
 	[[nodiscard]] std::optional<int> handleActiveParagraphEnter(
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleActiveQuoteEnter(
 		const ActiveEnterContext &context);
 	[[nodiscard]] std::optional<int> removeActiveOwnerAndSelectAdjacent(
 		bool forward);
@@ -794,11 +797,18 @@ private:
 		const ActiveEnterContext &context);
 	[[nodiscard]] std::optional<int> handleActiveFooterEnterUnchecked(
 		const ActiveEnterContext &context);
-	[[nodiscard]] std::optional<int> handleActiveListEnterUnchecked();
+	[[nodiscard]] std::optional<int> handleActiveListEnterUnchecked(
+		const ActiveEnterContext &context);
 	[[nodiscard]] std::optional<int> handleActiveParagraphEnterUnchecked(
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleActiveQuoteEnterUnchecked(
 		const ActiveEnterContext &context);
 	[[nodiscard]] std::optional<int> handleActiveBlockEnterUnchecked(
 		RichPage::BlockKind kind,
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleEnterAtBlockUnchecked(
+		const BlockContainerPath &container,
+		int index,
 		const ActiveEnterContext &context);
 	[[nodiscard]] bool insertBlocksAfterActiveUnchecked(
 		std::vector<RichPage::Block> blocks,

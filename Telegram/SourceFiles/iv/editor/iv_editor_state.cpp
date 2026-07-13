@@ -6287,24 +6287,35 @@ std::optional<int> State::handleActiveBlockEnterUnchecked(
 		|| (*blocks)[path.index].kind != kind) {
 		return std::nullopt;
 	}
+	return handleEnterAtBlockUnchecked(path.container, path.index, context);
+}
+
+std::optional<int> State::handleEnterAtBlockUnchecked(
+		const BlockContainerPath &container,
+		int index,
+		const ActiveEnterContext &context) {
+	const auto blocks = blockContainer(container);
+	if (!blocks || index < 0 || index >= int(blocks->size())) {
+		return std::nullopt;
+	}
 	if (context.position == EnterPosition::Beginning) {
 		clearTemporaryDownParagraph();
-		blocks->insert(blocks->begin() + path.index, MakeParagraphBlock());
+		blocks->insert(blocks->begin() + index, MakeParagraphBlock());
 		const auto target = LeafPath{
 			.kind = LeafKind::BlockText,
 			.block = {
-				.container = path.container,
-				.index = path.index + 1,
+				.container = container,
+				.index = index + 1,
 			},
 		};
 		rebuild();
 		return activateRebuiltLeaf(target);
 	}
-	const auto insertAt = path.index + 1;
+	const auto insertAt = index + 1;
 	if (insertAt < 0 || insertAt > int(blocks->size())) {
 		return std::nullopt;
 	}
-	auto &owner = (*blocks)[path.index];
+	auto &owner = (*blocks)[index];
 	const auto split = (context.position == EnterPosition::Middle)
 		&& (context.head.text.size() + context.tail.text.size()
 			== owner.text.text.text.size());
@@ -6318,7 +6329,7 @@ std::optional<int> State::handleActiveBlockEnterUnchecked(
 	const auto target = LeafPath{
 		.kind = LeafKind::BlockText,
 		.block = {
-			.container = path.container,
+			.container = container,
 			.index = insertAt,
 		},
 	};
@@ -6326,9 +6337,11 @@ std::optional<int> State::handleActiveBlockEnterUnchecked(
 	return activateRebuiltLeaf(target);
 }
 
-std::optional<int> State::handleActiveListEnter() {
-	return applyCheckedMutation(std::optional<int>(), [](State &candidate) {
-		const auto result = candidate.handleActiveListEnterUnchecked();
+std::optional<int> State::handleActiveListEnter(
+		const ActiveEnterContext &context) {
+	return applyCheckedMutation(std::optional<int>(), [=](State &candidate) {
+		const auto result = candidate.handleActiveListEnterUnchecked(
+			context);
 		return CheckedMutationResult<std::optional<int>>{
 			.apply = result.has_value(),
 			.result = result,
@@ -6336,7 +6349,16 @@ std::optional<int> State::handleActiveListEnter() {
 	});
 }
 
-std::optional<int> State::handleActiveListEnterUnchecked() {
+std::optional<int> State::handleActiveListEnterUnchecked(
+		const ActiveEnterContext &context) {
+	const auto descriptor = textNode(_activeTextOrdinal);
+	if (!descriptor) {
+		return std::nullopt;
+	}
+	const auto blocksForm = (descriptor->leaf.kind == LeafKind::BlockText);
+	const auto paragraphIndex = blocksForm
+		? descriptor->leaf.block.index
+		: 0;
 	const auto surface = normalizeActiveListItemSurface();
 	if (!surface) {
 		return std::nullopt;
@@ -6345,6 +6367,12 @@ std::optional<int> State::handleActiveListEnterUnchecked() {
 	const auto item = listItem(surface->path, surface->itemIndex);
 	if (!owner || owner->kind != BlockKind::List || !item) {
 		return std::nullopt;
+	}
+	if (context.position != EnterPosition::End) {
+		return handleEnterAtBlockUnchecked(
+			ListItemChildrenContainer(surface->path, surface->itemIndex),
+			paragraphIndex,
+			context);
 	}
 	auto target = std::optional<LeafPath>();
 	const auto trailingEmpty = (surface->itemIndex + 1
@@ -6396,6 +6424,41 @@ std::optional<int> State::handleActiveListEnterUnchecked() {
 	}
 	rebuild();
 	return activateRebuiltLeaf(*target);
+}
+
+std::optional<int> State::handleActiveQuoteEnter(
+		const ActiveEnterContext &context) {
+	return applyCheckedMutation(std::optional<int>(), [=](State &candidate) {
+		const auto result = candidate.handleActiveQuoteEnterUnchecked(
+			context);
+		return CheckedMutationResult<std::optional<int>>{
+			.apply = result.has_value(),
+			.result = result,
+		};
+	});
+}
+
+std::optional<int> State::handleActiveQuoteEnterUnchecked(
+		const ActiveEnterContext &context) {
+	if (context.position == EnterPosition::End) {
+		return std::nullopt;
+	}
+	const auto descriptor = textNode(_activeTextOrdinal);
+	if (!descriptor || descriptor->leaf.kind != LeafKind::BlockText) {
+		return std::nullopt;
+	}
+	const auto owner = block(descriptor->leaf.block);
+	if (!owner
+		|| owner->kind != BlockKind::Quote
+		|| owner->pullquote
+		|| !owner->blocks.empty()) {
+		return std::nullopt;
+	}
+	const auto container = BlockChildrenContainer(descriptor->leaf.block);
+	if (!normalizeTextOnlyQuoteSurface(container, true)) {
+		return std::nullopt;
+	}
+	return handleEnterAtBlockUnchecked(container, 0, context);
 }
 
 bool State::pasteClipboardListItemsAfterActive(

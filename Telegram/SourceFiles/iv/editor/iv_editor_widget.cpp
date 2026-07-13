@@ -9586,7 +9586,8 @@ bool Widget::handleFieldKey(QKeyEvent *e) {
 					.committed = committed,
 					.changed = true,
 				};
-			} else if (const auto target = _state->handleActiveListEnter()) {
+			} else if (const auto target
+				= _state->handleActiveListEnter(enter)) {
 				refreshPreparedContentAndActivate(*target, 0);
 				handled = true;
 				return MutationTransactionResult{
@@ -9611,6 +9612,14 @@ bool Widget::handleFieldKey(QKeyEvent *e) {
 				};
 			} else if (const auto target
 				= _state->handleActiveParagraphEnter(enter)) {
+				refreshPreparedContentAndActivate(*target, 0);
+				handled = true;
+				return MutationTransactionResult{
+					.committed = committed,
+					.changed = true,
+				};
+			} else if (const auto target
+				= _state->handleActiveQuoteEnter(enter)) {
 				refreshPreparedContentAndActivate(*target, 0);
 				handled = true;
 				return MutationTransactionResult{
