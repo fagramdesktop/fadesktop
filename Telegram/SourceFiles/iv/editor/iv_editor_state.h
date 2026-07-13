@@ -286,6 +286,7 @@ public:
 	[[nodiscard]] std::optional<int> escapeActiveBlockBody();
 	[[nodiscard]] BoundaryTarget removeTemporaryDownParagraphAndMove();
 	[[nodiscard]] std::optional<int> handleActiveHeadingEnter();
+	[[nodiscard]] std::optional<int> handleActiveFooterEnter();
 	[[nodiscard]] std::optional<int> handleActiveListEnter();
 	[[nodiscard]] std::optional<int> handleActiveParagraphEnter();
 	[[nodiscard]] std::optional<int> removeActiveOwnerAndSelectAdjacent(
@@ -777,6 +778,7 @@ private:
 		const RebuiltBoundaryTarget &target) const;
 	[[nodiscard]] BoundaryTarget removeTemporaryDownParagraphAndMoveUnchecked();
 	[[nodiscard]] std::optional<int> handleActiveHeadingEnterUnchecked();
+	[[nodiscard]] std::optional<int> handleActiveFooterEnterUnchecked();
 	[[nodiscard]] std::optional<int> handleActiveListEnterUnchecked();
 	[[nodiscard]] std::optional<int> handleActiveParagraphEnterUnchecked();
 	[[nodiscard]] std::optional<int> handleActiveBlockEnterUnchecked(

@@ -9575,6 +9575,13 @@ bool Widget::handleFieldKey(QKeyEvent *e) {
 					.committed = committed,
 					.changed = true,
 				};
+			} else if (const auto target = _state->handleActiveFooterEnter()) {
+				refreshPreparedContentAndActivate(*target, 0);
+				handled = true;
+				return MutationTransactionResult{
+					.committed = committed,
+					.changed = true,
+				};
 			} else if (const auto target
 				= _state->handleActiveParagraphEnter()) {
 				refreshPreparedContentAndActivate(*target, 0);

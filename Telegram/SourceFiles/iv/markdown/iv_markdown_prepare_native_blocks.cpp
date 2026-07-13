@@ -675,6 +675,10 @@ void ApplyNativeIvEditPlaceholderText(PreparedBlock *block) {
 		&& (block->editLeaf->kind == PreparedEditLeafKind::BlockCaption)) {
 		block->editPlaceholderText = tr::lng_article_placeholder_author(tr::now);
 		return;
+	} else if (block->footer
+		&& (block->editLeaf->kind == PreparedEditLeafKind::BlockText)) {
+		block->editPlaceholderText = tr::lng_article_insert_footer(tr::now);
+		return;
 	}
 	block->editPlaceholderText = NativeIvEditPlaceholderText(
 		block->kind,

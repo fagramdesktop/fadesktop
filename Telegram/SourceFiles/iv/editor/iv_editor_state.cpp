@@ -1798,6 +1798,8 @@ QString State::activePlaceholderText() const {
 			return tr::lng_article_placeholder_quote(tr::now);
 		case BlockKind::Heading:
 			return Markdown::HeadingLevelLabel(owner->headingLevel);
+		case BlockKind::Footer:
+			return tr::lng_article_insert_footer(tr::now);
 		case BlockKind::Details:
 			return tr::lng_article_table_header(tr::now);
 		default:
@@ -3876,7 +3878,8 @@ bool State::isActiveTopLevelParagraphOrHeading() const {
 	const auto owner = block(descriptor->leaf.block);
 	return owner
 		&& ((owner->kind == BlockKind::Paragraph)
-			|| (owner->kind == BlockKind::Heading));
+			|| (owner->kind == BlockKind::Heading)
+			|| (owner->kind == BlockKind::Footer));
 }
 
 bool State::activeSurfaceAllowsSeparateLineFormula() const {
@@ -6230,6 +6233,20 @@ std::optional<int> State::handleActiveHeadingEnter() {
 
 std::optional<int> State::handleActiveHeadingEnterUnchecked() {
 	return handleActiveBlockEnterUnchecked(BlockKind::Heading);
+}
+
+std::optional<int> State::handleActiveFooterEnter() {
+	return applyCheckedMutation(std::optional<int>(), [](State &candidate) {
+		const auto result = candidate.handleActiveFooterEnterUnchecked();
+		return CheckedMutationResult<std::optional<int>>{
+			.apply = result.has_value(),
+			.result = result,
+		};
+	});
+}
+
+std::optional<int> State::handleActiveFooterEnterUnchecked() {
+	return handleActiveBlockEnterUnchecked(BlockKind::Footer);
 }
 
 std::optional<int> State::handleActiveParagraphEnter() {
