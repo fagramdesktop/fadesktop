@@ -5109,6 +5109,7 @@ Reactions::ButtonParameters Message::reactionButtonParameters(
 		? (st::mediaInBubbleSkip + _reactions->height())
 		: 0;
 	result.reactionsHeight = reactionsHeight;
+	result.keyboardHeight = keyboardHeight;
 	const auto innerHeight = geometry.height()
 		- keyboardHeight
 		- reactionsHeight;

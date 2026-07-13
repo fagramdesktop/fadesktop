@@ -3388,12 +3388,14 @@ void ListWidget::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		&& overItem) {
 		if (const auto view = viewForItem(overItem)) {
 			const auto rightSize = view->rightActionSize().value_or(QSize());
+			const auto parameters = view->reactionButtonParameters({}, {});
 			const auto reactionsSkip = view->embedReactionsInBubble()
 				? 0
-				: view->reactionButtonParameters({}, {}).reactionsHeight;
+				: parameters.reactionsHeight;
 			const auto top = itemTop(view)
 				+ view->height()
 				- reactionsSkip
+				- parameters.keyboardHeight
 				- _visibleTop
 				- rightSize.height();
 			const auto right = rect::right(view->innerGeometry())
