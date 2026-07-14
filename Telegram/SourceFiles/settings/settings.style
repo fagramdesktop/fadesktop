@@ -275,7 +275,7 @@ settingsTheme: Checkbox(defaultCheckbox) {
 	width: 80px;
 	margin: margins(0px, 0px, 0px, 0px);
 
-	textPosition: point(0px, 123px);
+	textPosition: point(0px, 99px);
 	checkPosition: point(0px, 0px);
 
 	style: defaultTextStyle;
@@ -283,15 +283,13 @@ settingsTheme: Checkbox(defaultCheckbox) {
 	disabledOpacity: 0.5;
 }
 
-settingsThemePreviewSize: size(80px, 116px);
+settingsThemePreviewSize: size(80px, 92px);
 settingsThemeBubbleSize: size(40px, 14px);
 settingsThemeBubbleRadius: 2px;
 settingsThemeBubblePosition: point(6px, 8px);
 settingsThemeBubbleSkip: 6px;
 settingsThemeRadioBottom: 12px;
 settingsThemeOutlineWidth: 2px;
-settingsThemeOutlineSkip: 4px;
-settingsThemeOutlineRadius: 8px;
 settingsThemeMinSkip: 4px;
 
 settingsThemeNotSupportedBg: windowBgOver;
