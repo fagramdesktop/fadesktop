@@ -343,6 +343,7 @@ private:
 	StatusText _status;
 
 	QString _duration;
+	int _durationw = 0;
 	std::unique_ptr<Ui::SpoilerAnimation> _spoiler;
 
 	QImage _pix;

@@ -556,6 +556,7 @@ Video::Video(
 , _data(video)
 , _videoCover(LookupVideoCover(video, parent))
 , _duration(Ui::FormatDurationText(_data->duration() / 1000))
+, _durationw(st::normalFont->width(_duration))
 , _spoiler((options.spoiler || parent->isMediaSensitive())
 	? std::make_unique<Ui::SpoilerAnimation>([=] {
 		delegate->repaintItem(this);
@@ -698,12 +699,15 @@ void Video::paint(
 				? (selected ? st::overviewVideoDownloadSelected : st::overviewVideoDownload)
 				: (selected ? st::overviewVideoPlaySelected : st::overviewVideoPlay);
 			const auto text = download ? _status.text() : _duration;
+			const auto textw = download
+				? st::normalFont->width(text)
+				: _durationw;
 			const auto margin = st::overviewVideoStatusMargin;
 			const auto padding = st::overviewVideoStatusPadding;
 			const auto statusX = margin + padding.x(), statusY = _height - margin - padding.y() - st::normalFont->height;
 			const auto fullW = icon.width()
 				+ 3 * padding.x()
-				+ st::normalFont->width(text);
+				+ textw;
 			const auto showText = (fullW <= _width - 2 * margin);
 			const auto statusW = showText
 				? fullW
