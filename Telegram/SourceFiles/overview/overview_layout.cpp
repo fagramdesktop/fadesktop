@@ -72,6 +72,16 @@ constexpr auto kStoryRatio = 1.46;
 
 using ::Media::ValidFrameSize;
 
+[[nodiscard]] bool ItemPlaying(
+		not_null<DocumentData*> document,
+		FullMsgId context,
+		AudioMsgId::Type type) {
+	const auto state = Media::Player::instance()->getState(type);
+	return (state.id
+			== AudioMsgId(document, context, state.id.externalPlayId()))
+		&& !Media::Player::IsStoppedOrStopping(state.state);
+}
+
 [[nodiscard]] bool CanPlayInline(not_null<DocumentData*> document) {
 	return ValidFrameSize(document->dimensions, kMaxInlineArea);
 }
@@ -478,6 +488,10 @@ void Photo::paint(Painter &p, const QRect &clip, TextSelection selection, const 
 	paintCheckbox(p, { checkLeft, checkTop }, selected, context);
 }
 
+bool Photo::elementsAnimating() const {
+	return (_spoiler != nullptr);
+}
+
 void Photo::setPixFrom(not_null<Image*> image) {
 	Expects(_width > 0 && _height > 0);
 
@@ -756,6 +770,10 @@ void Video::paint(
 	const auto checkLeft = _width - checkDelta;
 	const auto checkTop = _height - checkDelta;
 	paintCheckbox(p, { checkLeft, checkTop }, selected, context);
+}
+
+bool Video::elementsAnimating() const {
+	return RadialProgressItem::elementsAnimating() || (_spoiler != nullptr);
 }
 
 void Video::ensureDataMediaCreated() const {
@@ -1049,6 +1067,13 @@ void Voice::paint(Painter &p, const QRect &clip, TextSelection selection, const 
 	const auto checkLeft = _st.songPadding.left() + checkDelta;
 	const auto checkTop = _st.songPadding.top() + checkDelta;
 	paintCheckbox(p, { checkLeft, checkTop }, selected, context);
+}
+
+bool Voice::elementsAnimating() const {
+	return RadialProgressItem::elementsAnimating()
+		|| _details.hasPersistentAnimation()
+		|| _caption.hasPersistentAnimation()
+		|| ItemPlaying(_data, parent()->fullId(), AudioMsgId::Type::Voice);
 }
 
 TextState Voice::getState(
@@ -1480,6 +1505,15 @@ void Document::paint(Painter &p, const QRect &clip, TextSelection selection, con
 		? _st.songPadding.top()
 		: (st::linksBorder + _st.filePadding.top())) + checkDelta;
 	paintCheckbox(p, { checkLeft, checkTop }, selected, context);
+}
+
+bool Document::elementsAnimating() const {
+	if (RadialProgressItem::elementsAnimating()
+		|| _name.hasPersistentAnimation()) {
+		return true;
+	}
+	return songLayout()
+		&& ItemPlaying(_data, parent()->fullId(), AudioMsgId::Type::Song);
 }
 
 void Document::paintThumbnail(
@@ -2123,6 +2157,18 @@ void Link::paint(Painter &p, const QRect &clip, TextSelection selection, const P
 	paintCheckbox(p, { checkLeft, checkTop }, selected, context);
 }
 
+bool Link::elementsAnimating() const {
+	if (_text.hasPersistentAnimation()) {
+		return true;
+	}
+	for (const auto &link : _links) {
+		if (link.text.hasPersistentAnimation()) {
+			return true;
+		}
+	}
+	return false;
+}
+
 void Link::validateThumbnail() {
 	if (!_thumbnail.isNull() && !_thumbnailBlurred) {
 		return;
@@ -2552,6 +2598,12 @@ void Gif::paint(
 	const auto checkLeft = _width - checkDelta;
 	const auto checkTop = st::overviewCheckSkip;
 	paintCheckbox(p, { checkLeft, checkTop }, selected, context);
+}
+
+bool Gif::elementsAnimating() const {
+	return RadialProgressItem::elementsAnimating()
+		|| (_spoiler != nullptr)
+		|| (_gif && _gif->started());
 }
 
 void Gif::update() {

@@ -59,6 +59,10 @@ public:
 		TextSelection selection,
 		const PaintContext *context) = 0;
 
+	[[nodiscard]] virtual bool elementsAnimating() const {
+		return false;
+	}
+
 	[[nodiscard]] QDateTime dateTime() const;
 
 	[[nodiscard]] not_null<HistoryItem*> getItem() const {
@@ -112,6 +116,10 @@ public:
 	RadialProgressItem(const RadialProgressItem &other) = delete;
 
 	void clickHandlerActiveChanged(const ClickHandlerPtr &action, bool active) override;
+
+	[[nodiscard]] bool elementsAnimating() const override {
+		return isRadialAnimation() || _a_iconOver.animating();
+	}
 
 	virtual void clearSpoiler() {
 	}
@@ -208,6 +216,7 @@ public:
 	void initDimensions() override;
 	int32 resizeGetHeight(int32 width) override;
 	void paint(Painter &p, const QRect &clip, TextSelection selection, const PaintContext *context) override;
+	[[nodiscard]] bool elementsAnimating() const override;
 	TextState getState(
 		QPoint point,
 		StateRequest request) const override;
@@ -256,6 +265,7 @@ public:
 		const QRect &clip,
 		TextSelection selection,
 		const PaintContext *context) override;
+	[[nodiscard]] bool elementsAnimating() const override;
 	TextState getState(
 		QPoint point,
 		StateRequest request) const override;
@@ -316,6 +326,7 @@ public:
 	void initDimensions() override;
 	int32 resizeGetHeight(int32 width) override;
 	void paint(Painter &p, const QRect &clip, TextSelection selection, const PaintContext *context) override;
+	[[nodiscard]] bool elementsAnimating() const override;
 	TextState getState(
 		QPoint point,
 		StateRequest request) const override;
@@ -368,6 +379,7 @@ public:
 
 	void initDimensions() override;
 	void paint(Painter &p, const QRect &clip, TextSelection selection, const PaintContext *context) override;
+	[[nodiscard]] bool elementsAnimating() const override;
 	TextState getState(
 		QPoint point,
 		StateRequest request) const override;
@@ -417,6 +429,7 @@ public:
 
 	void initDimensions() override;
 	void paint(Painter &p, const QRect &clip, TextSelection selection, const PaintContext *context) override;
+	[[nodiscard]] bool elementsAnimating() const override;
 	TextState getState(
 		QPoint point,
 		StateRequest request) const override;
@@ -476,6 +489,7 @@ public:
 	void initDimensions() override;
 	int32 resizeGetHeight(int32 width) override;
 	void paint(Painter &p, const QRect &clip, TextSelection selection, const PaintContext *context) override;
+	[[nodiscard]] bool elementsAnimating() const override;
 	TextState getState(
 		QPoint point,
 		StateRequest request) const override;
