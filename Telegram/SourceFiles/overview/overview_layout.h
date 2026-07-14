@@ -229,6 +229,8 @@ public:
 private:
 	void ensureDataMediaCreated() const;
 	void setPixFrom(not_null<Image*> image);
+	void requestGoodPix();
+	void goodPixReady(QImage image, uint32 id);
 	[[nodiscard]] ClickHandlerPtr makeOpenPhotoHandler();
 	void clearSpoiler();
 
@@ -236,9 +238,11 @@ private:
 	mutable std::shared_ptr<Data::PhotoMedia> _dataMedia;
 	std::unique_ptr<Ui::SpoilerAnimation> _spoiler;
 
+	uint32 _goodRequestId = 0;
 	QImage _pix;
 	QImage _hiddenBgCache;
 	bool _goodLoaded : 1 = false;
+	bool _goodRequested : 1 = false;
 	bool _sensitiveSpoiler : 1 = false;
 	bool _story : 1 = false;
 	bool _storyPinned : 1 = false;

@@ -426,18 +426,23 @@ void Photo::paint(Painter &p, const QRect &clip, TextSelection selection, const 
 			&& (_dataMedia->loaded()
 				|| _dataMedia->image(Data::PhotoSize::Thumbnail));
 		if ((good && !_goodLoaded) || widthChanged) {
-			_goodLoaded = good;
-			_pix = QImage();
-			if (_goodLoaded) {
-				setPixFrom(_dataMedia->image(Data::PhotoSize::Large)
-					? _dataMedia->image(Data::PhotoSize::Large)
-					: _dataMedia->image(Data::PhotoSize::Thumbnail));
-			} else if (const auto small = _spoiler
-				? nullptr
-				: _dataMedia->image(Data::PhotoSize::Small)) {
-				setPixFrom(small);
-			} else if (const auto blurred = _dataMedia->thumbnailInline()) {
-				setPixFrom(blurred);
+			if (widthChanged) {
+				_goodLoaded = false;
+				_goodRequested = false;
+				_pix = QImage();
+			}
+			if (good) {
+				requestGoodPix();
+			}
+			if (_pix.isNull()) {
+				if (const auto small = _spoiler
+					? nullptr
+					: _dataMedia->image(Data::PhotoSize::Small)) {
+					setPixFrom(small);
+				} else if (const auto blurred
+					= _dataMedia->thumbnailInline()) {
+					setPixFrom(blurred);
+				}
 			}
 		}
 	}
@@ -490,6 +495,42 @@ void Photo::paint(Painter &p, const QRect &clip, TextSelection selection, const 
 
 bool Photo::elementsAnimating() const {
 	return (_spoiler != nullptr);
+}
+
+void Photo::requestGoodPix() {
+	Expects(_dataMedia != nullptr);
+
+	if (_goodRequested || !_width || !_height) {
+		return;
+	}
+	const auto image = _dataMedia->image(Data::PhotoSize::Large)
+		? _dataMedia->image(Data::PhotoSize::Large)
+		: _dataMedia->image(Data::PhotoSize::Thumbnail);
+	if (!image) {
+		return;
+	}
+	_goodRequested = true;
+
+	const auto width = _width;
+	const auto height = _height;
+	const auto id = ++_goodRequestId;
+	const auto weak = base::make_weak(this);
+	crl::async([=, original = image->original()]() mutable {
+		auto result = CropMediaFrame(std::move(original), width, height);
+		crl::on_main(weak, [=, result = std::move(result)]() mutable {
+			weak->goodPixReady(std::move(result), id);
+		});
+	});
+}
+
+void Photo::goodPixReady(QImage image, uint32 id) {
+	if (id != _goodRequestId) {
+		return;
+	}
+	_goodRequested = false;
+	_pix = std::move(image);
+	_goodLoaded = true;
+	delegate()->repaintItem(this);
 }
 
 void Photo::setPixFrom(not_null<Image*> image) {
