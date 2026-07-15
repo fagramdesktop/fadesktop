@@ -121,7 +121,7 @@ The latest version is available for
     - [Arch/AUR](https://aur.archlinux.org/packages/fagram-bin)
     - [Fedora/RPM](https://copr.fedorainfracloud.org/coprs/burhanverse/fagram/)
     - [Ubuntu/DEB](https://github.com/fagramdesktop/fagram-deb)
-    - NixOS/Nix using Flake
+    - [NixOS/Nix using Flake](docs/building-nix.md)
         ```nix
         {
         inputs = {
@@ -201,5 +201,6 @@ The latest version is available for
 [win_build]: docs/building-win.md
 [mac_build]: docs/building-mac.md
 [linux_build]: docs/building-linux.md
+[nix_build]: docs/building-nix.md
 [features]: docs/features.md
 [preview_image]: docs/assets/preview.png "Preview of FAgram Deskop"
