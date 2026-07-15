@@ -560,7 +560,7 @@ bool ListWidget::Inner::listAllowsMultiSelect() {
 
 bool ListWidget::Inner::listIsItemGoodForSelection(
 		not_null<HistoryItem*> item) {
-	return item->isRegular() && !item->isService();
+	return item->canBeSelected();
 }
 
 bool ListWidget::Inner::listIsLessInOrder(

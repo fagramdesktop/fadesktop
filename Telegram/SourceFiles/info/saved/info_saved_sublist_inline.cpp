@@ -318,7 +318,7 @@ bool InlineSublistInner::listAllowsMultiSelect() {
 
 bool InlineSublistInner::listIsItemGoodForSelection(
 		not_null<HistoryItem*> item) {
-	return item->isRegular() && !item->isService();
+	return item->canBeSelected();
 }
 
 bool InlineSublistInner::listIsLessInOrder(
