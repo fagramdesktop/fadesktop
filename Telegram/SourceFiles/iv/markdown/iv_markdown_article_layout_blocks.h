@@ -317,6 +317,7 @@ struct LayoutContext {
 	bool tightList = false;
 	bool useArticleBands = false;
 	bool editMode = false;
+	bool rtl = false;
 	bool hideEmptyQuoteAuthor = false;
 	bool allowAsyncSyntaxHighlighting = true;
 	CodeBlockSyntaxHighlightTracker *syntaxHighlightTracker = nullptr;

@@ -3576,6 +3576,7 @@ private:
 	void invalidateGeometry();
 
 	[[nodiscard]] const style::Markdown &layoutStyle() const;
+	[[nodiscard]] bool contentRtl() const;
 	[[nodiscard]] MarkdownArticleScrollOwnerIdentity scrollOwnerIdentity(
 		const LaidOutBlock &block,
 		const std::vector<int> &preparedPath) const;
@@ -3887,6 +3888,7 @@ void MarkdownArticle::Impl::updatePreparedLeaf(
 	}
 
 	auto context = LayoutContext();
+	context.rtl = contentRtl();
 	context.syntaxHighlightTracker = this;
 	context.repaint = _textRepaint;
 	context.repaintRect = _textRepaintRect;
@@ -5233,6 +5235,10 @@ const style::Markdown &MarkdownArticle::Impl::layoutStyle() const {
 	return _style;
 }
 
+bool MarkdownArticle::Impl::contentRtl() const {
+	return _content.richPage && _content.richPage->rtl;
+}
+
 MarkdownArticleScrollOwnerIdentity MarkdownArticle::Impl::scrollOwnerIdentity(
 		const LaidOutBlock &block,
 		const std::vector<int> &preparedPath) const {
@@ -5738,7 +5744,7 @@ void MarkdownArticle::Impl::finalizeRelayout(int heightBottom) {
 	_laidOutWidth = std::min(
 		_width,
 		std::max(
-			ArticleContentMaxRight(_blocks, layoutStyle()) + page.right(),
+			ArticleContentMaxRight(_blocks, layoutStyle(), contentRtl()) + page.right(),
 			page.left() + page.right() + 1));
 	pruneTaskMarkerRuntimes();
 	prunePlaceholderRuntimes();
@@ -5786,6 +5792,7 @@ void MarkdownArticle::Impl::relayout(int width) {
 		.mediaPixelScale = _mediaPixelScale,
 		.useArticleBands = true,
 		.editMode = _content.editMode,
+		.rtl = contentRtl(),
 		.syntaxHighlightTracker = this,
 		.cachedTextLeafs = &_cachedTextLeafs,
 		.repaint = _textRepaint,
@@ -5874,6 +5881,7 @@ void MarkdownArticle::Impl::relayoutRetained(int width) {
 		.mediaPixelScale = _mediaPixelScale,
 		.useArticleBands = true,
 		.editMode = _content.editMode,
+		.rtl = contentRtl(),
 		.syntaxHighlightTracker = this,
 		.cachedTextLeafs = &_cachedTextLeafs,
 		.repaint = _textRepaint,
