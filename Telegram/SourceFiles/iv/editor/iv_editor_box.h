@@ -99,7 +99,6 @@ class WindowHost final {
 public:
 	~WindowHost();
 	void close();
-	void activateClose();
 
 private:
 	friend std::unique_ptr<WindowHost> ShowWindow(

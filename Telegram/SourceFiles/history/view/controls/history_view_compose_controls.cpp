@@ -4586,11 +4586,15 @@ void ComposeControls::updateHeight() {
 void ComposeControls::editMessage(
 		FullMsgId id,
 		const TextSelection &selection) {
-	if (const auto item = session().data().message(id)) {
-		editMessage(item);
-		if (!item->richPage()) {
-			SelectTextInFieldWithMargins(_field, selection);
-		}
+	const auto item = session().data().message(id);
+	if (!item) {
+		return;
+	} else if (Iv::Editor::ActivateEditWindowFor(_session, id)) {
+		return;
+	}
+	editMessage(item);
+	if (!item->richPage()) {
+		SelectTextInFieldWithMargins(_field, selection);
 	}
 }
 
@@ -4603,29 +4607,7 @@ void ComposeControls::editMessage(not_null<HistoryItem*> item) {
 			_show->showToast(tr::lng_edit_error(tr::now));
 			return;
 		}
-		const auto window = _regularWindow;
-		const auto openEdit = [=, weak = base::make_weak(window),
-				itemId = item->fullId()] {
-			const auto strong = weak.get();
-			const auto current = strong
-				? strong->session().data().message(itemId)
-				: nullptr;
-			if (strong && current) {
-				Iv::Editor::ShowEditBox(strong, not_null{ current });
-			}
-		};
-		if (isComposeBoxOpen()) {
-			const auto handled = Iv::Editor::SaveOpenComposeDraftThenEdit(
-				_session,
-				_history->peer->id,
-				_topicRootId,
-				_monoforumPeerId,
-				openEdit);
-			if (handled) {
-				return;
-			}
-		}
-		openEdit();
+		Iv::Editor::ShowEditBox(_regularWindow, item);
 		return;
 	} else if (_voiceRecordBar->isActive()) {
 		_show->showBox(Ui::MakeInformBox(tr::lng_edit_caption_voice()));

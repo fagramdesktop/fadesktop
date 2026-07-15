@@ -10071,6 +10071,9 @@ void HistoryWidget::setReplyFieldsFromProcessing() {
 void HistoryWidget::editMessage(
 		not_null<HistoryItem*> item,
 		const TextSelection &selection) {
+	if (Iv::Editor::ActivateEditWindowFor(&session(), item->fullId())) {
+		return;
+	}
 	if (item->richPage()) {
 		Iv::Editor::ShowEditBox(controller(), item);
 		return;
