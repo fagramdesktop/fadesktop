@@ -1093,7 +1093,8 @@ void TopBar::setupActions(not_null<Window::SessionController*> controller) {
 	if (chechMax()) {
 		return;
 	}
-	if (peer->groupCall() || peer->canManageGroupCall()) {
+	if (peer->groupCall()
+		|| (!peer->isUser() && peer->canManageGroupCall())) {
 		const auto broadcast = peer->isBroadcast();
 		const auto text = broadcast
 			? tr::lng_profile_action_short_live_stream(tr::now)
