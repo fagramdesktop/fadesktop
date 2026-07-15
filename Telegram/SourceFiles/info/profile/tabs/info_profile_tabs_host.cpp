@@ -684,12 +684,19 @@ void TabsHost::paintEvent(QPaintEvent *e) {
 }
 
 void TabsHost::pushViewportToActive() {
-	if (const auto active = _activeTab.current()) {
-		active->setTopOverlay((_visibleTop >= 0) ? _stripHeight : 0);
-		active->setVisibleRegion(
-			_visibleTop - _stripHeight,
-			_visibleBottom - _stripHeight);
+	const auto active = _activeTab.current();
+	if (!active) {
+		return;
 	}
+	if (_body->width() < st::infoMediaTabsMinBodyWidth) {
+		_viewportPushPending = true;
+		return;
+	}
+	_viewportPushPending = false;
+	active->setTopOverlay((_visibleTop >= 0) ? _stripHeight : 0);
+	active->setVisibleRegion(
+		_visibleTop - _stripHeight,
+		_visibleBottom - _stripHeight);
 }
 
 rpl::producer<MediaTabContent*> TabsHost::activeTabValue() const {
@@ -768,6 +775,10 @@ void TabsHost::setScrolledToTop(bool scrolledToTop) {
 
 int TabsHost::resizeGetHeight(int newWidth) {
 	_body->resizeToWidth(std::max(newWidth, 1));
+	if (_viewportPushPending && _body->width() >= st::infoMediaTabsMinBodyWidth) {
+		_viewportPushPending = false;
+		InvokeQueued(this, [this] { pushViewportToActive(); });
+	}
 	if (!ranges::contains(_tabsShown, true)) {
 		return 0;
 	}

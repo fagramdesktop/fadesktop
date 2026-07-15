@@ -121,6 +121,7 @@ private:
 	bool _userChosenTab = false;
 	bool _bodySyncQueued = false;
 	bool _heightSyncQueued = false;
+	bool _viewportPushPending = false;
 	bool _scrolledToTop = true;
 	bool _searching = false;
 	int _keepMinHeight = 0;

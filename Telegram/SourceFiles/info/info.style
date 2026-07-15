@@ -872,6 +872,7 @@ infoMediaSkeletonLinkThumb: 32px;
 infoMediaSkeletonSoundSize: 42px;
 infoMediaTabsRightSkip: 13px;
 infoMediaGridSizeStep: 16px;
+infoMediaTabsMinBodyWidth: infoMediaMinGridSize + infoMediaSkip + infoMediaSkip + infoMediaTabsRightSkip;
 
 infoProfileTabsStrip: ProfileTabsStrip {
 	height: 48px;
