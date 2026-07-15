@@ -1576,7 +1576,9 @@ void WindowHost::Impl::close() {
 }
 
 void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
-	const auto title = tr::lng_article_editor_title(tr::now);
+	const auto title = descriptor.title.isEmpty()
+		? tr::lng_article_editor_title(tr::now)
+		: descriptor.title;
 
 	if (!descriptor.state) {
 		descriptor.state = std::make_shared<State>();
@@ -1594,7 +1596,6 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		descriptor.showCreated(_show);
 	}
 	window->setTitle(title);
-	window->setWindowTitle(title);
 	window->setMinimumSize(st::ivEditorWindowMinSize);
 	window->setGeometry(DefaultWindowGeometry());
 

@@ -7383,6 +7383,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_polls_stop_sure" = "Stop";
 "lng_article_menu_item" = "Article";
 "lng_article_editor_title" = "Article";
+"lng_article_editor_title_editing" = "Editing";
 "lng_article_insert_heading" = "Heading";
 "lng_article_insert_text" = "Text";
 "lng_article_insert_heading1" = "Heading 1";
