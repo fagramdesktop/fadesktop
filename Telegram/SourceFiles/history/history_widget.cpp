@@ -2707,7 +2707,7 @@ bool HistoryWidget::applyDraft(FieldHistoryAction fieldHistoryAction) {
 	const auto editDraft = _history
 		? _history->localEditDraft(MsgId(), PeerId())
 		: nullptr;
-	const auto richDraft = shouldShowRichDraftPreview()
+	const auto richDraft = (!editDraft && shouldShowRichDraftPreview())
 		? cloudDraft()
 		: nullptr;
 	const auto draft = editDraft

@@ -3032,7 +3032,7 @@ void ComposeControls::applyDraft(FieldHistoryAction fieldHistoryAction) {
 	}
 
 	const auto editDraft = _history->draft(draftKey(DraftType::Edit));
-	const auto richDraft = shouldShowRichDraftPreview()
+	const auto richDraft = (!editDraft && shouldShowRichDraftPreview())
 		? cloudDraft()
 		: nullptr;
 	const auto draft = editDraft
