@@ -43,6 +43,9 @@ public:
 		not_null<const HistoryItem*> item) const;
 
 	[[nodiscard]] bool wouldSend(const Api::MessageToSend &message) const;
+	[[nodiscard]] bool hasEphemeralCommand(
+		not_null<PeerData*> peer,
+		const QString &text) const;
 	[[nodiscard]] bool isEphemeralBotReply(FullMsgId replyToId) const;
 	[[nodiscard]] bool trySend(const Api::MessageToSend &message);
 	void send(

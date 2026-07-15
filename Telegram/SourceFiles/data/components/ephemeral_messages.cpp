@@ -333,6 +333,15 @@ bool EphemeralMessages::wouldSend(const Api::MessageToSend &message) const {
 		!= nullptr;
 }
 
+bool EphemeralMessages::hasEphemeralCommand(
+		not_null<PeerData*> peer,
+		const QString &text) const {
+	if (!peer->isChat() && !peer->isMegagroup()) {
+		return false;
+	}
+	return findCommandBot(peer, text.trimmed()) != nullptr;
+}
+
 bool EphemeralMessages::isEphemeralBotReply(FullMsgId replyToId) const {
 	const auto target = _session->data().message(replyToId);
 	return target && target->isEphemeral() && !target->out();
@@ -448,8 +457,30 @@ void EphemeralMessages::send(
 bool EphemeralMessages::sendMedia(
 		not_null<HistoryItem*> item,
 		const MTPInputMedia &media) {
-	const auto target = _session->data().message(item->replyTo().messageId);
+	const auto history = item->history();
+	const auto replyTo = item->replyTo();
+	const auto target = _session->data().message(replyTo.messageId);
 	if (!target || !target->isEphemeral()) {
+		const auto topicRoot = replyTo.topicRootId;
+		const auto realReply = replyTo.messageId
+			&& !(topicRoot && replyTo.messageId.msg == topicRoot);
+		if (!realReply) {
+			const auto bot = findCommandBot(
+				history->peer,
+				item->originalText().text.trimmed());
+			if (bot) {
+				request(
+					history,
+					bot,
+					item->originalText(),
+					media,
+					true,
+					0,
+					item->topicRootId(),
+					item->fullId());
+				return true;
+			}
+		}
 		return false;
 	}
 	if (!target->out()) {
