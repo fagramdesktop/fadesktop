@@ -162,6 +162,9 @@ void AddEphemeralMessageActions(
 	not_null<Ui::PopupMenu*> menu,
 	std::shared_ptr<Ui::Show> show,
 	not_null<HistoryItem*> item);
+void AddEphemeralAboutAction(
+	not_null<Ui::PopupMenu*> menu,
+	not_null<HistoryItem*> item);
 
 [[nodiscard]] TextWithEntities TransribedText(not_null<HistoryItem*> item);
 

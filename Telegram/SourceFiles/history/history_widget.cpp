@@ -10459,6 +10459,13 @@ void HistoryWidget::confirmDeleteSelected() {
 
 	auto ids = _list->getSelectedItems();
 	if (ids.empty()) {
+		auto ephemeral = _list->getSelectedEphemeral();
+		if (!ephemeral.empty()) {
+			ConfirmDeleteSelectedEphemeral(
+				controller()->uiShow(),
+				std::move(ephemeral),
+				crl::guard(this, [=] { clearSelected(); }));
+		}
 		return;
 	}
 	const auto items = session().data().idsToItems(ids);

@@ -135,6 +135,10 @@ void RequestDependentMessageStory(
 void StripEphemeralReply(
 	not_null<Main::Session*> session,
 	FullReplyTo &replyTo);
+void ConfirmDeleteSelectedEphemeral(
+	std::shared_ptr<ChatHelpers::Show> show,
+	std::vector<not_null<HistoryItem*>> items,
+	Fn<void()> confirmed);
 
 struct SendingErrorRequest {
 	MsgId topicRootId = 0;

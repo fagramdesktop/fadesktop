@@ -189,7 +189,7 @@ public:
 			return HistoryView::SelectionModeResult();
 		}
 		return _widget
-			? _widget->inSelectionMode()
+			? _widget->inSelectionMode(view)
 			: HistoryView::SelectionModeResult();
 	}
 	bool elementIntersectsRange(
@@ -1245,7 +1245,12 @@ auto HistoryInner::itemRenderSelection(
 	const auto item = view->data();
 	const auto y = view->block()->y() + view->y();
 	if (y >= selfromy && y < seltoy) {
-		if (_dragSelecting && !item->isService() && item->isRegular()) {
+		const auto reference = _selected.empty()
+			? _mouseActionItem
+			: _selected.begin()->get();
+		if (_dragSelecting
+			&& item->canBeSelected()
+			&& (!reference || reference->inSameSelectionGroup(item))) {
 			result.selection = FullSelection;
 			result.fullMessageSelected = true;
 		}
@@ -2529,9 +2534,7 @@ void HistoryInner::mouseActionFinish(
 			const auto exactItem = _dragStateItem
 				? _dragStateItem
 				: _mouseActionItem;
-			if (exactItem
-				&& !exactItem->isService()
-				&& exactItem->isRegular()) {
+			if (exactItem && exactItem->canBeSelected()) {
 				changeSelection(
 					&_selected,
 					exactItem,
@@ -2542,8 +2545,7 @@ void HistoryInner::mouseActionFinish(
 				update();
 			}
 		} else if (_mouseActionItem
-			&& !_mouseActionItem->isService()
-			&& _mouseActionItem->isRegular()) {
+			&& _mouseActionItem->canBeSelected()) {
 			changeSelectionAsGroup(
 				&_selected,
 				_mouseActionItem,
@@ -2567,8 +2569,7 @@ void HistoryInner::mouseActionFinish(
 		&& _mouseCursorState == CursorState::Date
 		&& !hasSelectRestriction()
 		&& _dragStateItem
-		&& _dragStateItem->isRegular()
-		&& !_dragStateItem->isService()) {
+		&& _dragStateItem->canBeSelected()) {
 		clearTextSelection();
 		changeSelectionAsGroup(
 			&_selected,
@@ -3116,9 +3117,10 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				Element::Moused())
 		) != HistoryView::PointState::GroupPart);
 	const auto addSelectMessageAction = [&](not_null<HistoryItem*> item) {
-		if (item->isRegular()
-			&& !item->isService()
-			&& !hasSelectRestriction()) {
+		if (item->canBeSelected()
+			&& !hasSelectRestriction()
+			&& (_selected.empty()
+				|| (*_selected.begin())->inSameSelectionGroup(item))) {
 			const auto itemId = item->fullId();
 			_menu->addAction(tr::lng_context_select_msg(tr::now), [=] {
 				if (const auto item = session->data().message(itemId)) {
@@ -3161,7 +3163,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 					if (nextItem->fullId() == toId) {
 						return collected;
 					}
-					if (nextItem->isRegular() && !nextItem->isService()) {
+					if (nextItem->canBeSelected()) {
 						collected.push_back(nextItem);
 					}
 					current = nextItem;
@@ -3403,6 +3405,9 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 					item);
 			}
 			addSelectMessageAction(item);
+			if (isUponSelected != -2) {
+				HistoryView::AddEphemeralAboutAction(_menu, item);
+			}
 			if (isUponSelected != -2 && blockSender) {
 				_menu->addAction(tr::lng_profile_block_user(tr::now), [=] {
 					blockSenderItem(itemId);
@@ -3705,6 +3710,9 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 					item);
 			}
 			addSelectMessageAction(partItemOrLeader);
+			if (isUponSelected != -2) {
+				HistoryView::AddEphemeralAboutAction(_menu, item);
+			}
 			if (isUponSelected != -2 && canBlockSender) {
 				_menu->addAction(tr::lng_profile_block_user(tr::now), [=] {
 					blockSenderAsGroup(itemId);
@@ -4919,6 +4927,16 @@ HistoryView::SelectionModeResult HistoryInner::inSelectionMode() const {
 	return { now, _inSelectionModeAnimation.value(now ? 1. : 0.) };
 }
 
+HistoryView::SelectionModeResult HistoryInner::inSelectionMode(
+		const Element *view) const {
+	if (view
+		&& !_selected.empty()
+		&& !(*_selected.begin())->inSameSelectionGroup(view->data())) {
+		return {};
+	}
+	return inSelectionMode();
+}
+
 bool HistoryInner::elementIntersectsRange(
 		not_null<const Element*> view,
 		int from,
@@ -5103,11 +5121,15 @@ auto HistoryInner::getSelectionState() const
 	auto result = HistoryView::TopBarWidget::SelectedState {};
 	for (const auto &item : _selected) {
 		++result.count;
-		if (item->canDelete()) {
+		if (item->isEphemeral()) {
 			++result.canDeleteCount;
-		}
-		if (item->allowsForward()) {
-			++result.canForwardCount;
+		} else {
+			if (item->canDelete()) {
+				++result.canDeleteCount;
+			}
+			if (item->allowsForward()) {
+				++result.canForwardCount;
+			}
 		}
 	}
 	result.textSelected = hasSelectedText()
@@ -5157,6 +5179,16 @@ MessageIdsList HistoryInner::getSelectedItems() const {
 			? msgId.msg
 			: (msgId.msg - ServerMaxMsgId);
 	});
+	return result;
+}
+
+std::vector<not_null<HistoryItem*>> HistoryInner::getSelectedEphemeral() const {
+	auto result = std::vector<not_null<HistoryItem*>>();
+	for (const auto &item : _selected) {
+		if (item->isEphemeral()) {
+			result.push_back(item);
+		}
+	}
 	return result;
 }
 
@@ -5524,8 +5556,7 @@ void HistoryInner::mouseActionUpdate() {
 				auto dragSelecting = false;
 				auto dragFirstAffected = dragSelFrom;
 				while (dragFirstAffected
-					&& (!dragFirstAffected->data()->isRegular()
-						|| dragFirstAffected->data()->isService())) {
+					&& !dragFirstAffected->data()->canBeSelected()) {
 					dragFirstAffected = (dragFirstAffected != dragSelTo)
 						? (selectingDown
 							? nextItem(dragFirstAffected)
@@ -5813,7 +5844,10 @@ bool HistoryInner::goodForSelection(
 		not_null<SelectedItems*> toItems,
 		not_null<HistoryItem*> item,
 		int &totalCount) const {
-	if (!item->isRegular() || item->isService()) {
+	if (!item->canBeSelected()) {
+		return false;
+	} else if (!toItems->empty()
+		&& !(*toItems->begin())->inSameSelectionGroup(item)) {
 		return false;
 	} else if (toItems->find(item) == toItems->end()) {
 		++totalCount;

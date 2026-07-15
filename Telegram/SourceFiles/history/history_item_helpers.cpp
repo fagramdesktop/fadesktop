@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_text_entities.h"
 #include "boxes/premium_preview_box.h"
 #include "calls/calls_instance.h"
+#include "data/components/ephemeral_messages.h"
 #include "data/components/sponsored_messages.h"
 #include "data/stickers/data_custom_emoji.h"
 #include "data/notify/data_notify_settings.h"
@@ -52,6 +53,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/checkbox.h"
 #include "ui/item_text_options.h"
 #include "lang/lang_keys.h"
+
+#include "styles/style_layers.h"
 
 namespace {
 
@@ -667,6 +670,39 @@ void StripEphemeralReply(
 	if (item && item->isEphemeral()) {
 		replyTo.messageId = FullMsgId();
 	}
+}
+
+void ConfirmDeleteSelectedEphemeral(
+		std::shared_ptr<ChatHelpers::Show> show,
+		std::vector<not_null<HistoryItem*>> items,
+		Fn<void()> confirmed) {
+	if (items.empty()) {
+		return;
+	}
+	const auto session = &items.front()->history()->session();
+	auto ids = std::vector<FullMsgId>();
+	ids.reserve(items.size());
+	for (const auto &item : items) {
+		ids.push_back(item->fullId());
+	}
+	const auto count = int(ids.size());
+	show->show(Ui::MakeConfirmBox({
+		.text = tr::lng_selected_delete_sure(tr::now, lt_count, count),
+		.confirmed = [=](Fn<void()> &&close) {
+			close();
+			const auto owner = &session->data();
+			for (const auto &id : ids) {
+				if (const auto item = owner->message(id)) {
+					session->ephemeralMessages().deleteMessage(item);
+				}
+			}
+			if (const auto onstack = confirmed) {
+				onstack();
+			}
+		},
+		.confirmText = tr::lng_box_delete(),
+		.confirmStyle = &st::attentionBoxButton,
+	}));
 }
 
 TextWithEntities DropDisallowedCustomEmoji(
