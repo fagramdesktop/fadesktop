@@ -401,8 +401,6 @@ PRIVATE
     ui/chat/chat_theme.h
     ui/chat/chats_filter_tag.cpp
     ui/chat/chats_filter_tag.h
-    ui/chat/continuous_scroll.cpp
-    ui/chat/continuous_scroll.h
     ui/chat/forward_options_box.cpp
     ui/chat/forward_options_box.h
     ui/chat/group_call_bar.cpp

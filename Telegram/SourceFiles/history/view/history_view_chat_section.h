@@ -34,7 +34,7 @@ namespace Storage {
 } // namespace Storage
 
 namespace Ui {
-class ScrollArea;
+class ElasticScroll;
 class PlainShadow;
 class FlatButton;
 class PinnedBar;
@@ -212,7 +212,7 @@ public:
 		Ui::ChatPaintContextArgs &&args) override;
 	base::unique_qptr<Ui::PopupMenu> listFillSenderUserpicMenu(
 		PeerId userpicPeerId) override;
-	Ui::ScrollArea *listScrollArea() const override;
+	Ui::ElasticScroll *listScrollArea() const override;
 
 	// CornerButtonsDelegate delegate.
 	void cornerButtonsShowAtPosition(
@@ -454,7 +454,7 @@ private:
 	bool _repliesRootViewInitScheduled = false;
 	rpl::variable<bool> _repliesRootVisible = false;
 
-	std::unique_ptr<Ui::ScrollArea> _scroll;
+	std::unique_ptr<Ui::ElasticScroll> _scroll;
 	std::unique_ptr<HistoryView::StickerToast> _stickerToast;
 
 	FullMsgId _lastShownAt;

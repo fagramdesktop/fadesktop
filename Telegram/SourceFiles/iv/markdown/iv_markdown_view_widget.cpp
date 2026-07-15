@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/click_handler_types.h"
 #include "core/credits_amount.h"
 #include "core/file_utilities.h"
+#include "iv/editor/iv_editor_clipboard.h"
 #include "iv/markdown/iv_markdown_article_text.h"
 #include "iv/markdown/iv_markdown_prepare_native_richtext.h"
 #include "lang/lang_keys.h"
@@ -23,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toast/toast.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/popup_menu.h"
+#include "ui/widgets/tooltip.h"
 #include "ui/color_contrast.h"
 #include "ui/integration.h"
 
@@ -34,6 +36,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_menu_icons.h"
 
 #include <QtCore/QElapsedTimer>
+#include <QtCore/QMimeData>
 #include <QtCore/QPointer>
 #include <QtGui/QClipboard>
 #include <QtGui/QContextMenuEvent>
@@ -254,6 +257,7 @@ void MarkdownDocumentWidget::setArticle(
 		_article->setMediaBlockHost(this);
 	}
 	_lastRelayoutMs = 0;
+	_mediaCreationRetried = false;
 	resetTextPaintCaches();
 	resetSelection();
 	forceRelayoutCurrentWidth();
@@ -266,7 +270,17 @@ void MarkdownDocumentWidget::articleContentChanged() {
 	clearSelection();
 	_articlePainted = false;
 	resetTextPaintCaches();
+	_mediaCreationRetried = false;
 	forceRelayoutCurrentWidth();
+}
+
+void MarkdownDocumentWidget::setSearchMatches(
+		std::vector<MarkdownArticleSearchMatch> matches,
+		int current) {
+	if (_article) {
+		_article->setSearchMatches(std::move(matches), current);
+	}
+	update();
 }
 
 void MarkdownDocumentWidget::setZoom(int value) {
@@ -316,6 +330,23 @@ int MarkdownDocumentWidget::anchorTop(const QString &anchorId) const {
 	return int(std::floor(top * zoomScale()));
 }
 
+auto MarkdownDocumentWidget::scrollAnchorForTop(int top) const
+-> std::optional<MarkdownArticleScrollAnchor> {
+	if (!_article) {
+		return std::nullopt;
+	}
+	return _article->scrollAnchorForTop(int(std::floor(top / zoomScale())));
+}
+
+int MarkdownDocumentWidget::scrollTopForAnchor(
+		const MarkdownArticleScrollAnchor &anchor) const {
+	const auto top = _article ? _article->scrollTopForAnchor(anchor) : -1;
+	if (top < 0) {
+		return -1;
+	}
+	return int(std::floor(top * zoomScale()));
+}
+
 bool MarkdownDocumentWidget::expandDetailsToAnchor(const QString &anchorId) {
 	if (!_article) {
 		return false;
@@ -330,6 +361,27 @@ bool MarkdownDocumentWidget::expandDetailsToAnchor(const QString &anchorId) {
 		updateHoverAtCursor();
 	}
 	return true;
+}
+
+bool MarkdownDocumentWidget::expandDetailsBlock(const QString &anchorId) {
+	if (!_article) {
+		return false;
+	}
+	const auto result = _article->expandDetailsBlock(anchorId);
+	if (!result.found || !result.changed) {
+		return false;
+	}
+	clearSelection();
+	forceRelayoutCurrentWidth();
+	updateHoverAtCursor();
+	return true;
+}
+
+QRect MarkdownDocumentWidget::segmentRect(int segmentIndex) const {
+	const auto rect = _article
+		? _article->segmentRect(segmentIndex)
+		: QRect();
+	return rect.isEmpty() ? QRect() : articleRectToWidget(rect);
 }
 
 bool MarkdownDocumentWidget::toggleDetails(const QString &anchorId) {
@@ -354,13 +406,14 @@ int MarkdownDocumentWidget::resizeGetHeight(int newWidth) {
 		return 1;
 	}
 	const auto scale = zoomScale();
-	const auto layoutWidth = std::max(int(std::floor(newWidth / scale)), 1);
+	const auto layoutWidth = articleLayoutWidth(newWidth);
 	_article->setMediaPixelScale(scale);
 	auto timer = QElapsedTimer();
 	timer.start();
 	const auto layoutHeight = _article->resizeGetHeight(layoutWidth);
 	syncArticleVisibleTopBottom();
 	_lastRelayoutMs = int(timer.elapsed());
+	retryMissingMediaBlocks();
 	return std::max(int(std::ceil(layoutHeight * scale)), 1);
 }
 
@@ -385,7 +438,7 @@ void MarkdownDocumentWidget::requestRelayout(QRect articleRect) {
 		_article->invalidateLayout();
 		const auto previousHeight = height();
 		const auto scale = zoomScale();
-		const auto layoutWidth = std::max(int(std::floor(width() / scale)), 1);
+		const auto layoutWidth = articleLayoutWidth(width());
 		_article->setMediaPixelScale(scale);
 		auto timer = QElapsedTimer();
 		timer.start();
@@ -402,7 +455,18 @@ void MarkdownDocumentWidget::requestRelayout(QRect articleRect) {
 			update(articleRectToWidget(articleRect));
 		}
 		updateHoverAtCursor();
+		retryMissingMediaBlocks();
 	});
+}
+
+void MarkdownDocumentWidget::retryMissingMediaBlocks() {
+	if (_mediaCreationRetried
+		|| !_article
+		|| !_article->hasMissingMediaBlocks()) {
+		return;
+	}
+	_mediaCreationRetried = true;
+	requestRelayout(QRect());
 }
 
 void MarkdownDocumentWidget::setPlaceholderLoading(
@@ -462,6 +526,7 @@ void MarkdownDocumentWidget::paintEvent(QPaintEvent *e) {
 		return;
 	}
 	p.save();
+	p.setRenderHint(QPainter::SmoothPixmapTransform);
 	p.scale(scale, scale);
 	_article->paint(p, context);
 	p.restore();
@@ -806,6 +871,7 @@ bool MarkdownDocumentWidget::eventHook(QEvent *e) {
 
 void MarkdownDocumentWidget::leaveEventHook(QEvent *e) {
 	ClickHandler::clearActive(this);
+	Ui::Tooltip::Hide();
 	applyCursor((_dragAction == Selecting)
 		? style::cur_text
 		: style::cur_default);
@@ -822,6 +888,21 @@ void MarkdownDocumentWidget::clickHandlerPressedChanged(
 		const ClickHandlerPtr &,
 		bool) {
 	update();
+}
+
+QString MarkdownDocumentWidget::tooltipText() const {
+	if (const auto lnk = ClickHandler::getActive()) {
+		return lnk->tooltip();
+	}
+	return QString();
+}
+
+QPoint MarkdownDocumentWidget::tooltipPos() const {
+	return QCursor::pos();
+}
+
+bool MarkdownDocumentWidget::tooltipWindowActive() const {
+	return Ui::AppInFocus() && Ui::InFocusChain(window());
 }
 
 ClickHandlerPtr MarkdownDocumentWidget::linkAt(QPoint point) const {
@@ -957,10 +1038,28 @@ void MarkdownDocumentWidget::showToast(const QString &text) const {
 }
 
 void MarkdownDocumentWidget::copySelectedText() {
-	if (const auto text = getSelectedText(); !text.empty()) {
-		TextUtilities::SetClipboardText(text);
-		showToast(tr::lng_text_copied(tr::now));
+	const auto text = getSelectedText();
+	if (text.empty()) {
+		return;
 	}
+	auto blocks = _article
+		? _article->richPageSliceForSelection(selectionForCopy())
+		: std::vector<RichPage::Block>();
+	if (blocks.empty()) {
+		TextUtilities::SetClipboardText(text);
+	} else {
+		auto data = Editor::ClipboardBlockData();
+		data.blocks = std::move(blocks);
+		auto mimeData = Editor::MimeDataFromClipboardData(
+			Editor::ClipboardData(std::move(data)));
+		if (const auto textMimeData = TextUtilities::MimeDataFromText(text)) {
+			for (const auto &format : textMimeData->formats()) {
+				mimeData->setData(format, textMimeData->data(format));
+			}
+		}
+		QGuiApplication::clipboard()->setMimeData(mimeData.release());
+	}
+	showToast(tr::lng_text_copied(tr::now));
 }
 
 void MarkdownDocumentWidget::copyCodeBlock(
@@ -1003,7 +1102,7 @@ void MarkdownDocumentWidget::relayoutCurrentWidth(bool clearSelection) {
 		return;
 	}
 	const auto scale = zoomScale();
-	const auto layoutWidth = std::max(int(std::floor(width() / scale)), 1);
+	const auto layoutWidth = articleLayoutWidth(width());
 	_article->setMediaPixelScale(scale);
 	auto timer = QElapsedTimer();
 	timer.start();
@@ -1021,6 +1120,12 @@ void MarkdownDocumentWidget::forceRelayoutCurrentWidth() {
 void MarkdownDocumentWidget::updateHover(
 		const MarkdownArticleHitTestResult &state) {
 	const auto changed = ClickHandler::setActive(state.state.link, this);
+	if (changed) {
+		Ui::Tooltip::Hide();
+	}
+	if (state.state.link && _dragAction == NoDrag) {
+		Ui::Tooltip::Show(1000, this);
+	}
 	auto cursor = style::cur_default;
 	if (_dragAction == NoDrag) {
 		if (state.codeHeaderCopy
@@ -1144,7 +1249,7 @@ MarkdownArticlePaintContext MarkdownDocumentWidget::textPaintContext(
 		QRect clip) {
 	const auto scale = zoomScale();
 	const auto logicalRect = QRect(QPoint(), QSize(
-		std::max(int(std::floor(width() / scale)), 1),
+		articleLayoutWidth(width()),
 		std::max(int(std::floor(height() / scale)), 1)));
 	auto context = MarkdownArticlePaintContext(_theme->preparePaintContext(
 		_style.get(),
@@ -1152,6 +1257,7 @@ MarkdownArticlePaintContext MarkdownDocumentWidget::textPaintContext(
 		logicalRect,
 		clip,
 		!window()->isActiveWindow()));
+	context.mediaPixelScale = scale;
 	context.caches = {
 		.pre = ensurePrePaintCache(),
 		.blockquote = ensureBlockquotePaintCache(),
@@ -1382,6 +1488,12 @@ void MarkdownDocumentWidget::applyCursor(style::cursor cursor) {
 
 double MarkdownDocumentWidget::zoomScale() const {
 	return std::max(_zoom, 1) / 100.;
+}
+
+int MarkdownDocumentWidget::articleLayoutWidth(int widgetWidth) const {
+	const auto layoutWidth = int(std::floor(widgetWidth / zoomScale()));
+	const auto limit = _article ? _article->maxWidth() : layoutWidth;
+	return std::clamp(layoutWidth, 1, std::max(limit, 1));
 }
 
 } // namespace Iv::Markdown

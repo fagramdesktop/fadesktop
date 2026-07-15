@@ -63,6 +63,7 @@ rpl::producer<Ui::SlideWrap<Ui::RpWidget>*> TopBarSuggestionValue(
 			std::optional<TopBarSuggestions::Priority> activeSpec;
 			std::optional<int> activeSpecDay;
 			Fn<void()> prepareSnapshot;
+			int activationId = 0;
 		};
 
 		const auto state = lifetime.make_state<State>();
@@ -103,8 +104,6 @@ rpl::producer<Ui::SlideWrap<Ui::RpWidget>*> TopBarSuggestionValue(
 			&TopBarSuggestions::Spec::priority);
 
 		const auto processCurrentSuggestion = [=](auto repeat) -> void {
-			const auto recompute = [=] { repeat(repeat); };
-
 			auto winner = (const TopBarSuggestions::Spec*)(nullptr);
 			for (auto i = 0; i < int(specs->size()); ++i) {
 				const auto &spec = (*specs)[i];
@@ -135,6 +134,7 @@ rpl::producer<Ui::SlideWrap<Ui::RpWidget>*> TopBarSuggestionValue(
 			state->activeSpecDay = (winner && winner->dayDependent)
 				? std::optional<int>(currentDay)
 				: std::nullopt;
+			const auto activationId = ++state->activationId;
 
 			if (winner) {
 				auto args = TopBarSuggestions::ActivateArgs{
@@ -143,6 +143,9 @@ rpl::producer<Ui::SlideWrap<Ui::RpWidget>*> TopBarSuggestionValue(
 					.done = [=](
 							not_null<Ui::RpWidget*> widget,
 							Fn<void()> prepareSnapshot) {
+						if (state->activationId != activationId) {
+							return;
+						}
 						if (state->wrap
 							&& state->wrap->entity() != widget.get()) {
 							state->wrap = nullptr;
@@ -164,7 +167,11 @@ rpl::producer<Ui::SlideWrap<Ui::RpWidget>*> TopBarSuggestionValue(
 						state->desiredWrapToggle.force_assign(
 							Toggle{ true, anim::type::normal });
 					},
-					.recompute = recompute,
+					.recompute = [=] {
+						if (state->activationId == activationId) {
+							repeat(repeat);
+						}
+					},
 				};
 				winner->activate(std::move(args));
 				return;

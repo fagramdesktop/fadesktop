@@ -2879,15 +2879,24 @@ void ConsiderStructuralListItemDropTargets(
 
 [[nodiscard]] MarkdownArticleAnchorExpansion ExpandDetailsToAnchor(
 		std::vector<PreparedBlock> *blocks,
-		const QString &anchorId) {
+		const QString &anchorId,
+		bool expandTarget) {
 	if (!blocks || anchorId.isEmpty()) {
 		return {};
 	}
 	for (auto &block : *blocks) {
+		auto result = MarkdownArticleAnchorExpansion();
 		if (PreparedBlockHasAnchor(block, anchorId)) {
-			return { true, false };
+			result.found = true;
+			if (!expandTarget) {
+				return result;
+			}
+		} else {
+			result = ExpandDetailsToAnchor(
+				&block.children,
+				anchorId,
+				expandTarget);
 		}
-		auto result = ExpandDetailsToAnchor(&block.children, anchorId);
 		if (result.found) {
 			if (block.kind == PreparedBlockKind::Details
 				&& block.collapsed) {
@@ -2898,6 +2907,46 @@ void ConsiderStructuralListItemDropTargets(
 		}
 	}
 	return {};
+}
+
+[[nodiscard]] const PreparedBlock *FindPreparedDetailsBlock(
+		const std::vector<PreparedBlock> &blocks,
+		const QString &anchorId) {
+	for (const auto &block : blocks) {
+		if (block.kind == PreparedBlockKind::Details
+			&& block.anchorId == anchorId) {
+			return &block;
+		}
+		if (const auto nested = FindPreparedDetailsBlock(
+				block.children,
+				anchorId)) {
+			return nested;
+		}
+	}
+	return nullptr;
+}
+
+void AppendPreparedBlocksText(
+		const std::vector<PreparedBlock> &blocks,
+		QString *to) {
+	const auto append = [&](const QString &text) {
+		if (text.isEmpty()) {
+			return;
+		}
+		if (!to->isEmpty()) {
+			to->append('\n');
+		}
+		to->append(text);
+	};
+	for (const auto &block : blocks) {
+		append(block.text.text);
+		for (const auto &row : block.tableRows) {
+			for (const auto &cell : row.cells) {
+				append(cell.text.text);
+			}
+		}
+		AppendPreparedBlocksText(block.children, to);
+	}
 }
 
 void ClearColorizedFormulaImages(std::vector<LaidOutBlock> *blocks) {
@@ -3216,6 +3265,25 @@ void CollectCodeBlockHighlightKeys(
 	}
 }
 
+[[nodiscard]] bool ExpectsMediaBlock(const PreparedBlock &prepared) {
+	switch (prepared.kind) {
+	case PreparedBlockKind::Photo:
+		return prepared.photo.id
+			&& prepared.photo.viewerOpen
+			&& prepared.photo.urlOverride.isEmpty();
+	case PreparedBlockKind::Video:
+		return bool(prepared.video.id);
+	case PreparedBlockKind::Map:
+		return bool(prepared.map.id);
+	case PreparedBlockKind::Audio:
+		return bool(prepared.audio.id);
+	case PreparedBlockKind::GroupedMedia:
+		return bool(prepared.groupedMedia.id);
+	default:
+		return false;
+	}
+}
+
 } // namespace
 
 PlaceholderBlockRuntime::PlaceholderBlockRuntime(Fn<void()> repaint)
@@ -3252,6 +3320,11 @@ public:
 		Fn<bool(const ClickContext&)> spoilerLinkFilter);
 
 	void setContent(MarkdownArticleContent content);
+	void setSearchMatches(
+		std::vector<MarkdownArticleSearchMatch> matches,
+		int current);
+	[[nodiscard]] auto searchSources() const
+	-> std::vector<MarkdownArticleSearchSource>;
 	void updatePreparedLeaf(
 		const PreparedEditLeafSource &source,
 		const MarkdownArticleContent &prepared);
@@ -3279,6 +3352,7 @@ public:
 
 	[[nodiscard]] int maxWidth();
 	[[nodiscard]] int lastLayoutWidth() const;
+	[[nodiscard]] bool hasMissingMediaBlocks() const;
 
 	[[nodiscard]] int resizeGetHeight(int width);
 
@@ -3321,7 +3395,16 @@ public:
 
 	[[nodiscard]] int anchorTop(const QString &anchorId) const;
 
+	[[nodiscard]] auto scrollAnchorForTop(int top) const
+	-> std::optional<MarkdownArticleScrollAnchor>;
+
+	[[nodiscard]] int scrollTopForAnchor(
+		const MarkdownArticleScrollAnchor &anchor) const;
+
 	[[nodiscard]] MarkdownArticleAnchorExpansion expandDetailsToAnchor(
+		const QString &anchorId);
+
+	[[nodiscard]] MarkdownArticleAnchorExpansion expandDetailsBlock(
 		const QString &anchorId);
 
 	[[nodiscard]] bool toggleDetails(const QString &anchorId);
@@ -3389,6 +3472,9 @@ public:
 		MarkdownArticleSelection selection,
 		const MarkdownArticleSelectionEndpoints *endpoints,
 		const PreparedEditSelection *structuralSelection) const;
+
+	[[nodiscard]] std::vector<RichPage::Block> richPageSliceForSelection(
+		MarkdownArticleSelection selection) const;
 
 	[[nodiscard]] bool highlightProcessDone(
 		Spellchecker::HighlightProcessId processId);
@@ -3567,6 +3653,7 @@ private:
 	std::vector<LaidOutBlock> _blocks;
 	std::vector<LaidOutBlock> _retainedBlocks;
 	MediaBlockStorage _mediaBlocks;
+	int _missingMediaBlocks = 0;
 	std::unordered_map<uint64, std::shared_ptr<PlaceholderBlockRuntime>>
 		_placeholderRuntimes;
 	TaskMarkerRippleRuntimeMap _taskMarkerRippleRuntimes;
@@ -3582,6 +3669,8 @@ private:
 		PendingHighlightEntry> _pendingHighlightEntries;
 	std::vector<std::pair<QString, int>> _anchors;
 	std::vector<SelectableSegment> _segments;
+	std::vector<MarkdownArticleSearchMatch> _searchMatches;
+	int _currentSearchMatch = -1;
 	std::optional<LogicalVisibleRange> _visibleRange;
 	SegmentSpan _visibleSegmentSpan;
 	std::vector<int> _segmentTops;
@@ -3626,7 +3715,6 @@ void MarkdownArticle::Impl::setMediaBlockHost(MediaBlockHost *host) {
 }
 
 void MarkdownArticle::Impl::setMediaPixelScale(double scale) {
-	scale = std::max(scale, 1.);
 	if (_mediaPixelScale == scale) {
 		return;
 	}
@@ -3676,7 +3764,47 @@ void MarkdownArticle::Impl::setContent(MarkdownArticleContent content) {
 	prunePendingHighlightProcessesForContent();
 	ClearInlineFormulaObjectCache(_inlineFormulaObjects);
 	resetFormulaRasterCache();
+	_searchMatches.clear();
+	_currentSearchMatch = -1;
 	invalidateLayout(false);
+}
+
+void MarkdownArticle::Impl::setSearchMatches(
+		std::vector<MarkdownArticleSearchMatch> matches,
+		int current) {
+	_searchMatches = std::move(matches);
+	_currentSearchMatch = (current >= 0
+		&& current < int(_searchMatches.size()))
+		? current
+		: -1;
+}
+
+auto MarkdownArticle::Impl::searchSources() const
+-> std::vector<MarkdownArticleSearchSource> {
+	auto result = std::vector<MarkdownArticleSearchSource>();
+	result.reserve(_segments.size());
+	for (const auto &segment : _segments) {
+		auto source = MarkdownArticleSearchSource();
+		if (segment.isTextLeaf()) {
+			source.text = segment.leaf->toString();
+		}
+		const auto block = segment.block;
+		if (block && block->kind == PreparedBlockKind::Details) {
+			source.detailsAnchorId = block->anchorId;
+			if (block->collapsed) {
+				const auto prepared = FindPreparedDetailsBlock(
+					_content.blocks.blocks,
+					block->anchorId);
+				if (prepared) {
+					AppendPreparedBlocksText(
+						prepared->children,
+						&source.hiddenText);
+				}
+			}
+		}
+		result.push_back(std::move(source));
+	}
+	return result;
 }
 
 void MarkdownArticle::Impl::updatePreparedLeaf(
@@ -3891,6 +4019,10 @@ int MarkdownArticle::Impl::lastLayoutWidth() const {
 	return _laidOutWidth;
 }
 
+bool MarkdownArticle::Impl::hasMissingMediaBlocks() const {
+	return _missingMediaBlocks > 0;
+}
+
 int MarkdownArticle::Impl::resizeGetHeight(int width) {
 	width = std::max(width, 1);
 	if (_width != width) {
@@ -3935,6 +4067,8 @@ void MarkdownArticle::Impl::paint(
 	const auto &st = layoutStyle();
 	auto local = context;
 	local.selectionState.segments = &_segments;
+	local.searchState.matches = &_searchMatches;
+	local.searchState.current = _currentSearchMatch;
 	const auto &paintSt = local.paintMarkdownStyle(st);
 	auto textPalette = paintSt.textPalette;
 	auto markBg = MarkBgColorForStyle(paintSt);
@@ -4111,11 +4245,77 @@ int MarkdownArticle::Impl::anchorTop(const QString &anchorId) const {
 	return -1;
 }
 
+auto MarkdownArticle::Impl::scrollAnchorForTop(int top) const
+-> std::optional<MarkdownArticleScrollAnchor> {
+	if (_segments.empty()) {
+		return std::nullopt;
+	}
+	const auto make = [&](const SelectableSegment &segment) {
+		const auto rect = segment.outerRect;
+		const auto height = std::max(rect.height(), 1);
+		const auto fraction = std::clamp(
+			(top - rect.top()) / double(height),
+			0.,
+			1.);
+		return MarkdownArticleScrollAnchor{ segment.index, fraction };
+	};
+	const auto span = LookupVisibleSegmentSpan(
+		_segmentTops,
+		_segmentBottoms,
+		{ top, top + 1 });
+	const auto containsVertically = [&](const SelectableSegment &segment) {
+		const auto rect = segment.outerRect;
+		return (rect.top() <= top) && (top < rect.top() + rect.height());
+	};
+	auto found = (const SelectableSegment*)nullptr;
+	for (auto i = span.from; i != span.till; ++i) {
+		const auto &segment = _segments[i];
+		if (!containsVertically(segment)) {
+			continue;
+		} else if (!found || (segment.isTextLeaf() && !found->isTextLeaf())) {
+			found = &segment;
+		}
+	}
+	if (found) {
+		return make(*found);
+	}
+	for (const auto &segment : _segments) {
+		if (segment.outerRect.top() >= top) {
+			return MarkdownArticleScrollAnchor{ segment.index, 0. };
+		}
+	}
+	return make(_segments.back());
+}
+
+int MarkdownArticle::Impl::scrollTopForAnchor(
+		const MarkdownArticleScrollAnchor &anchor) const {
+	const auto segment = FindSegment(&_segments, anchor.segmentIndex);
+	if (!segment) {
+		return -1;
+	}
+	const auto rect = segment->outerRect;
+	const auto fraction = std::clamp(anchor.fraction, 0., 1.);
+	return rect.top() + int(std::round(fraction * rect.height()));
+}
+
 MarkdownArticleAnchorExpansion MarkdownArticle::Impl::expandDetailsToAnchor(
 		const QString &anchorId) {
 	const auto result = ExpandDetailsToAnchor(
 		&_content.blocks.blocks,
-		anchorId);
+		anchorId,
+		false);
+	if (result.changed) {
+		invalidateLayout();
+	}
+	return result;
+}
+
+MarkdownArticleAnchorExpansion MarkdownArticle::Impl::expandDetailsBlock(
+		const QString &anchorId) {
+	const auto result = ExpandDetailsToAnchor(
+		&_content.blocks.blocks,
+		anchorId,
+		true);
 	if (result.changed) {
 		invalidateLayout();
 	}
@@ -4457,6 +4657,17 @@ TextForMimeData MarkdownArticle::Impl::textForSelection(
 		selection,
 		endpoints,
 		structuralSelection);
+}
+
+std::vector<RichPage::Block> MarkdownArticle::Impl::richPageSliceForSelection(
+		MarkdownArticleSelection selection) const {
+	if (!_content.richPage) {
+		return {};
+	}
+	return RichPageBlocksForSelectedSegments(
+		*_content.richPage,
+		_segments,
+		selection);
 }
 
 bool MarkdownArticle::Impl::highlightProcessDone(
@@ -4883,18 +5094,23 @@ std::shared_ptr<MediaBlock> MarkdownArticle::Impl::getOrCreateMediaBlock(
 	}
 	if (const auto i = _mediaBlocks.find(id.value);
 		i != end(_mediaBlocks)) {
-		if (i->second) {
-			i->second->setLayoutStyle(layoutStyle());
-			i->second->setHost(_mediaBlockHost);
+		if (i->second && !i->second->alive()) {
+			i->second->setHost(nullptr);
+			_mediaBlocks.erase(i);
+		} else {
+			if (i->second) {
+				i->second->setLayoutStyle(layoutStyle());
+				i->second->setHost(_mediaBlockHost);
+			}
+			return i->second;
 		}
-		return i->second;
 	}
 	auto block = factory();
 	if (block) {
 		block->setLayoutStyle(layoutStyle());
 		block->setHost(_mediaBlockHost);
+		_mediaBlocks.emplace(id.value, block);
 	}
-	_mediaBlocks.emplace(id.value, block);
 	return block;
 }
 
@@ -5559,6 +5775,7 @@ void MarkdownArticle::Impl::relayout(int width) {
 		layoutStyle(),
 		&_cachedTextLeafs);
 	retainBlocks();
+	_missingMediaBlocks = 0;
 
 	const auto &st = layoutStyle();
 	const auto &page = st.pagePadding;
@@ -5601,7 +5818,13 @@ void MarkdownArticle::Impl::relayout(int width) {
 				});
 	}
 	context.mediaBlockFactory = [=](const PreparedBlock &prepared) {
-		return getOrCreateMediaBlock(prepared);
+		auto block = getOrCreateMediaBlock(prepared);
+		if (!block
+			&& _content.mediaRuntime
+			&& ExpectsMediaBlock(prepared)) {
+			++_missingMediaBlocks;
+		}
+		return block;
 	};
 	context.placeholderRuntimeFactory = [=](PreparedPlaceholderBlockId id) {
 		return getOrCreatePlaceholderRuntime(id);
@@ -5747,6 +5970,17 @@ void MarkdownArticle::setContent(MarkdownArticleContent content) {
 	_impl->setContent(std::move(content));
 }
 
+void MarkdownArticle::setSearchMatches(
+		std::vector<MarkdownArticleSearchMatch> matches,
+		int current) {
+	_impl->setSearchMatches(std::move(matches), current);
+}
+
+auto MarkdownArticle::searchSources() const
+-> std::vector<MarkdownArticleSearchSource> {
+	return _impl->searchSources();
+}
+
 void MarkdownArticle::updatePreparedLeaf(
 		const PreparedEditLeafSource &source,
 		const MarkdownArticleContent &prepared) {
@@ -5809,6 +6043,10 @@ int MarkdownArticle::maxWidth() const {
 
 int MarkdownArticle::lastLayoutWidth() const {
 	return _impl->lastLayoutWidth();
+}
+
+bool MarkdownArticle::hasMissingMediaBlocks() const {
+	return _impl->hasMissingMediaBlocks();
 }
 
 int MarkdownArticle::resizeGetHeight(int width) {
@@ -5898,9 +6136,24 @@ int MarkdownArticle::anchorTop(const QString &anchorId) const {
 	return _impl->anchorTop(anchorId);
 }
 
+auto MarkdownArticle::scrollAnchorForTop(int top) const
+-> std::optional<MarkdownArticleScrollAnchor> {
+	return _impl->scrollAnchorForTop(top);
+}
+
+int MarkdownArticle::scrollTopForAnchor(
+		const MarkdownArticleScrollAnchor &anchor) const {
+	return _impl->scrollTopForAnchor(anchor);
+}
+
 MarkdownArticleAnchorExpansion MarkdownArticle::expandDetailsToAnchor(
 		const QString &anchorId) {
 	return _impl->expandDetailsToAnchor(anchorId);
+}
+
+MarkdownArticleAnchorExpansion MarkdownArticle::expandDetailsBlock(
+		const QString &anchorId) {
+	return _impl->expandDetailsBlock(anchorId);
 }
 
 bool MarkdownArticle::toggleDetails(const QString &anchorId) {
@@ -6040,6 +6293,11 @@ TextForMimeData MarkdownArticle::textForSelection(
 		selection,
 		endpoints,
 		structuralSelection);
+}
+
+std::vector<RichPage::Block> MarkdownArticle::richPageSliceForSelection(
+		MarkdownArticleSelection selection) const {
+	return _impl->richPageSliceForSelection(selection);
 }
 
 bool MarkdownArticle::highlightProcessDone(

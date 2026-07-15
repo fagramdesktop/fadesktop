@@ -64,15 +64,14 @@ void ShowComposeBox(
 	not_null<Window::SessionController*> controller,
 	not_null<PeerData*> peer,
 	Api::SendAction action,
-	Fn<SendMenu::Details()> sendMenuDetails);
+	SendMenu::Details sendMenuDetails);
 void ShowEditBox(
 	not_null<Window::SessionController*> controller,
 	not_null<HistoryItem*> item);
 void ShowEditFromFieldBox(
 	not_null<Window::SessionController*> controller,
 	not_null<HistoryItem*> item,
-	Api::SendAction action,
-	Fn<SendMenu::Details()> sendMenuDetails);
+	Api::SendAction action);
 [[nodiscard]] bool IsComposeBoxOpen(
 	not_null<Main::Session*> session,
 	PeerId peerId,

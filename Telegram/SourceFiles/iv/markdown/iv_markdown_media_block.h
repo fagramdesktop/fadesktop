@@ -56,6 +56,7 @@ public:
 	void setMediaPixelScale(double scale);
 
 	[[nodiscard]] virtual uint64 stableId() const = 0;
+	[[nodiscard]] virtual bool alive() const;
 	[[nodiscard]] virtual int resizeGetHeight(int width) = 0;
 	virtual void setGeometry(QRect geometry) = 0;
 	[[nodiscard]] virtual QRect geometry() const = 0;
@@ -85,6 +86,7 @@ protected:
 	[[nodiscard]] const style::Markdown &layoutStyle() const;
 	[[nodiscard]] double mediaPixelScale() const;
 	virtual void layoutStyleUpdated();
+	virtual void mediaPixelScaleUpdated();
 	virtual void hostUpdated();
 
 private:

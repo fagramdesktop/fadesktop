@@ -266,6 +266,7 @@ void PrepareNestedContext(
 	block.supplementary = prepared.supplementary;
 	block.pullquote = prepared.pullquote;
 	block.quoteAuthor = prepared.quoteAuthor;
+	block.footer = prepared.footer;
 	block.flowTextAlign = FlowTextAlign(prepared.flowAlignment);
 	return block;
 }
@@ -3743,7 +3744,9 @@ int LayoutBlocks(
 [[nodiscard]] const style::TextStyle &LaidOutFlowTextStyle(
 		const LaidOutBlock &block,
 		const style::Markdown &st) {
-	if (block.kind != PreparedBlockKind::Heading) {
+	if (block.footer) {
+		return st.footer;
+	} else if (block.kind != PreparedBlockKind::Heading) {
 		return st.body;
 	}
 	switch (std::clamp(block.headingLevel, 1, 6)) {

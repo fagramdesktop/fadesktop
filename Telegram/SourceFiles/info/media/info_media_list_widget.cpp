@@ -47,6 +47,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "media/stories/media_stories_stealth.h"
 #include "window/window_session_controller.h"
 #include "window/window_peer_menu.h"
+#include "lang/lang_numbers_animation.h"
 #include "ui/widgets/menu/menu_add_action_callback.h"
 #include "ui/widgets/menu/menu_add_action_callback_factory.h"
 #include "ui/widgets/popup_menu.h"
@@ -58,6 +59,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/rect.h"
 #include "ui/ui_utility.h"
 #include "ui/inactive_press.h"
+#include "ui/text/text_utilities.h"
 #include "lang/lang_keys.h"
 #include "main/main_account.h"
 #include "main/main_app_config.h"
@@ -477,6 +479,16 @@ auto ListWidget::collectSelectedItems() const -> SelectedItems {
 		return convert(item.first, item.second);
 	};
 	auto items = SelectedItems(_provider->type());
+	if (_provider->type() == Type::PhotoVideo
+		&& !_controller->storiesPeer()) {
+		items.title = [](int count) {
+			return tr::lng_media_selected_media(
+				tr::now,
+				lt_count,
+				count,
+				Ui::StringWithNumbers::FromString);
+		};
+	}
 	if (hasSelectedItems()) {
 		items.list.reserve(_selected.size());
 		std::transform(
@@ -825,8 +837,9 @@ void ListWidget::visibleTopBottomUpdated(
 	clearHeavyItems();
 
 	if (_dateBadge->goodType) {
-		updateDateBadgeFor(_visibleTop);
-		if (!_visibleTop) {
+		const auto badgeTop = _visibleTop + _topOverlayHeight;
+		updateDateBadgeFor(badgeTop);
+		if (badgeTop <= 0) {
 			if (_dateBadge->shown) {
 				scrollDateHide();
 			} else {
@@ -878,7 +891,9 @@ void ListWidget::toggleScrollDateShown() {
 }
 
 void ListWidget::checkMoveToOtherViewer() {
-	const auto visibleHeight = (_visibleBottom - _visibleTop);
+	const auto visibleHeight = std::max(
+		_visibleBottom - _visibleTop,
+		_externalViewportHeight);
 	if (width() <= 0
 		|| visibleHeight <= 0
 		|| _sections.empty()
@@ -932,7 +947,11 @@ ListScrollTopState ListWidget::countScrollState() const {
 }
 
 ListScrollTopState ListWidget::countScrollState(QPoint anchor) const {
-	if (_sections.empty() || _visibleTop <= 0) {
+	// Embedded lists get their visible top clamped to 0, so being
+	// "at the top" is meaningless unless the newest edge is loaded.
+	const auto stickToTop = !_externalViewportHeight
+		|| !_provider->anchorWhileAtTop();
+	if (_sections.empty() || (_visibleTop <= 0 && stickToTop)) {
 		return {};
 	}
 	const auto anchorItem = findItemByPoint(anchor);
@@ -1104,7 +1123,7 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 				st::roundedFg,
 				_dateBadge->text,
 				_dateBadge->textWidth,
-				_visibleTop,
+				_visibleTop + _topOverlayHeight,
 				outerWidth,
 				false);
 		}
@@ -2352,24 +2371,33 @@ void ListWidget::performDrag() {
 		|| dynamic_cast<VoiceSeekClickHandler*>(pressedHandler.get())) {
 		return;
 	}
+	auto mimeData = std::unique_ptr<QMimeData>();
+	auto pixmap = QPixmap();
 	const auto document = reinterpret_cast<DocumentData*>(
 		pressedHandler->property(
 			kDocumentLinkMediaProperty).toULongLong());
-	if (!document) {
-		return;
-	}
-	const auto filepath = document->filepath(true);
-	if (filepath.isEmpty()) {
-		return;
-	}
-	auto mimeData = std::make_unique<QMimeData>();
-	mimeData->setUrls({ QUrl::fromLocalFile(filepath) });
-
-	auto pixmap = QPixmap();
-	if (const auto layout = _provider->lookupLayout(_pressState.item)) {
-		if (const auto file = dynamic_cast<Overview::Layout::Document*>(
-				layout)) {
-			pixmap = Ui::PixmapFromImage(file->dragPreviewImage());
+	if (document) {
+		const auto filepath = document->filepath(true);
+		if (filepath.isEmpty()) {
+			return;
+		}
+		mimeData = std::make_unique<QMimeData>();
+		mimeData->setUrls({ QUrl::fromLocalFile(filepath) });
+		if (const auto layout = _provider->lookupLayout(_pressState.item)) {
+			if (const auto file = dynamic_cast<Overview::Layout::Document*>(
+					layout)) {
+				pixmap = Ui::PixmapFromImage(file->dragPreviewImage());
+			}
+		}
+	} else {
+		const auto text = pressedHandler->dragText();
+		if (text.isEmpty()) {
+			return;
+		}
+		mimeData = TextUtilities::MimeDataFromText(
+			TextForMimeData::Simple(text));
+		if (!mimeData) {
+			return;
 		}
 	}
 
@@ -2909,6 +2937,17 @@ void ListWidget::jumpToMessage(MsgId msgId) {
 			_scrollTopState.item = i;
 		}
 	});
+}
+
+void ListWidget::setTopOverlayHeight(int height) {
+	if (_topOverlayHeight != height) {
+		_topOverlayHeight = height;
+		update(_dateBadge->rect);
+	}
+}
+
+void ListWidget::setExternalViewportHeight(int height) {
+	_externalViewportHeight = height;
 }
 
 } // namespace Media

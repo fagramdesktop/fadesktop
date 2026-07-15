@@ -83,7 +83,7 @@ class SendFilesWay;
 class SendAsButton;
 class SpoilerAnimation;
 class ChooseThemeController;
-class ContinuousScroll;
+class ElasticScroll;
 struct ChatPaintHighlight;
 class ChatStyle;
 template <typename Widget>
@@ -542,7 +542,8 @@ private:
 		const TextWithTags &textWithTags,
 		bool ignoreSlowmodeCountdown,
 		Fn<void(int starsApproved)> withPaymentApproved = nullptr,
-		Api::SendOptions options = {});
+		Api::SendOptions options = {},
+		bool ephemeral = false);
 	bool showSendRichDraftError(
 		bool ignoreSlowmodeCountdown,
 		Fn<void(int starsApproved)> withPaymentApproved = nullptr,
@@ -601,6 +602,7 @@ private:
 	void applyInlineBotQuery(UserData *bot, const QString &query);
 
 	void cancelReplyAfterMediaSend(bool lastKeyboardUsed);
+	[[nodiscard]] HistoryItem *lookupReplyNavItem(FullMsgId itemId) const;
 	bool replyToPreviousMessage();
 	bool replyToNextMessage();
 	[[nodiscard]] bool showSlowmodeError();
@@ -846,6 +848,7 @@ private:
 	bool _showAndMaybeSendStart = false;
 
 	int _firstLoadRequest = 0; // Not real mtpRequestId.
+	bool _firstLoadFromTheStart = false;
 	int _preloadRequest = 0; // Not real mtpRequestId.
 	int _preloadDownRequest = 0; // Not real mtpRequestId.
 
@@ -857,7 +860,7 @@ private:
 	int _supportPreloadRequest = 0; // Not real mtpRequestId.
 
 	object_ptr<HistoryView::TopBarWidget> _topBar;
-	object_ptr<Ui::ContinuousScroll> _scroll;
+	object_ptr<Ui::ElasticScroll> _scroll;
 	QPointer<HistoryInner> _list;
 	History *_migrated = nullptr;
 	History *_history = nullptr;

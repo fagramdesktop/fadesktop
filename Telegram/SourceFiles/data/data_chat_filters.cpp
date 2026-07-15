@@ -459,6 +459,12 @@ bool ChatFilter::contains(
 	if (_never.contains(history)) {
 		return false;
 	}
+	const auto channel = history->peer->asChannel();
+	if (channel && channel->isCommunity()) {
+		// A community never matches a filter by chat type (it is neither a
+		// group nor a channel); it can only be included explicitly by id.
+		return _always.contains(history);
+	}
 	const auto state = (_flags & (Flag::NoMuted | Flag::NoRead))
 		? history->chatListBadgesState()
 		: Dialogs::BadgesState();

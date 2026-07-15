@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_iv.h"
 
 #include <algorithm>
+#include <limits>
 
 namespace Iv::Markdown {
 namespace {
@@ -464,6 +465,124 @@ void RefreshBlockSegmentRect(
 	from = std::clamp(from, 0, SegmentLength(segment));
 	to = std::clamp(to, 0, SegmentLength(segment));
 	return (from < to);
+}
+
+struct RichPageSliceEndpoint {
+	int top = -1;
+	int listItem = -1;
+	std::optional<PreparedEditLeafSource> trimLeaf;
+};
+
+[[nodiscard]] bool SegmentContributesToSelection(
+		const SelectableSegment &segment,
+		MarkdownArticleSelection selection) {
+	if (segment.isTextLeaf()) {
+		const auto text = BaseTextSelectionForSegment(segment, selection);
+		return text && !text->empty();
+	}
+	return RangeSelectsWholeSegment(segment, selection);
+}
+
+[[nodiscard]] auto ResolveRichPageSliceEndpoint(
+		const RichPage &page,
+		const SelectableSegment &segment)
+-> std::optional<RichPageSliceEndpoint> {
+	if (!segment.block) {
+		return std::nullopt;
+	}
+	auto leafSource = std::optional<PreparedEditLeafSource>();
+	if (segment.cell && segment.cell->editLeaf) {
+		leafSource = segment.cell->editLeaf;
+	} else if (segment.block->editLeaf) {
+		leafSource = segment.block->editLeaf;
+	}
+	auto path = std::optional<PreparedEditBlockPath>();
+	if (leafSource) {
+		path = leafSource->block;
+	} else if (segment.block->editListItem) {
+		path = segment.block->editListItem->block;
+	} else if (segment.block->editBlock) {
+		path = segment.block->editBlock->path;
+	}
+	if (!path) {
+		return std::nullopt;
+	}
+	const auto &steps = path->container.steps;
+	auto first = 0;
+	while (first < int(steps.size())
+		&& steps[first].kind == PreparedEditBlockContainerKind::Root) {
+		++first;
+	}
+	const auto stepsEmpty = (first >= int(steps.size()));
+	auto result = RichPageSliceEndpoint();
+	if (stepsEmpty) {
+		result.top = path->index;
+		if (leafSource
+			&& leafSource->kind == PreparedEditLeafKind::ListItemText) {
+			result.listItem = leafSource->listItemIndex;
+		}
+	} else {
+		result.top = steps[first].blockIndex;
+		if (steps[first].kind
+			== PreparedEditBlockContainerKind::ListItemChildren) {
+			result.listItem = steps[first].listItemIndex;
+		}
+	}
+	if (result.top < 0 || result.top >= int(page.blocks.size())) {
+		return std::nullopt;
+	}
+	if (stepsEmpty
+		&& leafSource
+		&& segment.kind == SelectableSegmentKind::TextLeaf
+		&& (leafSource->kind == PreparedEditLeafKind::BlockText
+			|| leafSource->kind == PreparedEditLeafKind::BlockCaption
+			|| leafSource->kind == PreparedEditLeafKind::ListItemText)) {
+		result.trimLeaf = *leafSource;
+	}
+	return result;
+}
+
+[[nodiscard]] TextWithEntities *RichPageSliceTrimTarget(
+		RichPage::Block *block,
+		const PreparedEditLeafSource &source) {
+	if (source.kind == PreparedEditLeafKind::BlockText) {
+		return &block->text.text;
+	} else if (source.kind == PreparedEditLeafKind::BlockCaption) {
+		return &block->caption.text;
+	} else if (source.kind == PreparedEditLeafKind::ListItemText) {
+		if (source.listItemIndex < 0
+			|| source.listItemIndex >= int(block->listItems.size())) {
+			return nullptr;
+		}
+		return &block->listItems[source.listItemIndex].text.text;
+	}
+	return nullptr;
+}
+
+void ApplyRichPageSliceStartTrim(TextWithEntities *target, int offset) {
+	const auto from = std::clamp(offset, 0, int(target->text.size()));
+	if (from > 0) {
+		*target = Ui::Text::Mid(*target, from);
+	}
+}
+
+void ApplyRichPageSliceEndTrim(TextWithEntities *target, int offset) {
+	const auto to = std::clamp(offset, 0, int(target->text.size()));
+	if (to < int(target->text.size())) {
+		*target = Ui::Text::Mid(*target, 0, to);
+	}
+}
+
+[[nodiscard]] bool RichPageSliceEdgeEmpty(
+		const RichPage::Block &block,
+		bool trimmed) {
+	if (block.kind == RichPage::BlockKind::List) {
+		return block.listItems.empty();
+	}
+	const auto flow = (block.kind == RichPage::BlockKind::Paragraph)
+		|| (block.kind == RichPage::BlockKind::Heading)
+		|| (block.kind == RichPage::BlockKind::Footer);
+	return flow && trimmed && block.text.text.text.isEmpty();
 }
 
 [[nodiscard]] bool IndexInRange(int index, int from, int till) {
@@ -1017,6 +1136,8 @@ const style::TextStyle &TextStyleForSegment(
 		return st.code;
 	} else if (segment.block && segment.block->quoteAuthor) {
 		return st.quoteAuthorStyle;
+	} else if (segment.block && segment.block->footer) {
+		return st.footer;
 	} else if (!segment.block) {
 		return st.body;
 	}
@@ -1219,6 +1340,44 @@ std::optional<TextSelection> PaintTextSelectionForSegmentIndex(
 		: std::nullopt;
 }
 
+PaintSearchSegmentRanges PaintSearchRangesForSegmentIndex(
+		const PaintSelectionState &selectionState,
+		const PaintSearchState &searchState,
+		int index) {
+	auto result = PaintSearchSegmentRanges();
+	if (searchState.empty() || index < 0) {
+		return result;
+	}
+	const auto segment = FindSegment(selectionState.segments, index);
+	if (!segment || !segment->isTextLeaf()) {
+		return result;
+	}
+	const auto length = std::min(
+		SegmentLength(*segment),
+		int(std::numeric_limits<uint16>::max()));
+	const auto &matches = *searchState.matches;
+	for (auto i = 0; i != int(matches.size()); ++i) {
+		const auto &match = matches[i];
+		if (match.segment > index) {
+			break;
+		} else if (match.segment != index) {
+			continue;
+		}
+		const auto from = std::clamp(match.from, 0, length);
+		const auto to = std::clamp(match.to, 0, length);
+		if (from >= to) {
+			continue;
+		}
+		const auto range = TextSelection(uint16(from), uint16(to));
+		if (i == searchState.current) {
+			result.current = range;
+		} else {
+			result.other.push_back(range);
+		}
+	}
+	return result;
+}
+
 bool WholeSegmentSelected(
 		const SelectableSegment &segment,
 		const PaintSelectionState &selectionState) {
@@ -1339,6 +1498,116 @@ TextForMimeData TextForSelectedSegments(
 			result.append(u"\n"_q);
 		}
 		result.append(std::move(pieces[i]));
+	}
+	return result;
+}
+
+std::vector<RichPage::Block> RichPageBlocksForSelectedSegments(
+		const RichPage &page,
+		const std::vector<SelectableSegment> &segments,
+		MarkdownArticleSelection selection) {
+	// Each endpoint maps to a top-level page block index through the
+	// edit-source paths of the nearest contributing segment inside the
+	// selection, skipping empty-edge nodes and coarsely falling back
+	// past unresolvable segments; only directly addressable low-nesting
+	// text leaves get edge-trimmed.
+	selection = NormalizeSelection(selection);
+	if (selection.empty()
+		|| selection.from.segment == selection.to.segment
+		|| page.blocks.empty()) {
+		return {};
+	}
+	auto start = std::optional<RichPageSliceEndpoint>();
+	auto startSegment = -1;
+	for (auto i = selection.from.segment; i <= selection.to.segment; ++i) {
+		const auto segment = FindSegment(&segments, i);
+		if (!segment || !SegmentContributesToSelection(*segment, selection)) {
+			continue;
+		}
+		if (auto resolved = ResolveRichPageSliceEndpoint(page, *segment)) {
+			start = std::move(resolved);
+			startSegment = i;
+			break;
+		}
+	}
+	auto end = std::optional<RichPageSliceEndpoint>();
+	auto endSegment = -1;
+	for (auto i = selection.to.segment; i >= selection.from.segment; --i) {
+		const auto segment = FindSegment(&segments, i);
+		if (!segment || !SegmentContributesToSelection(*segment, selection)) {
+			continue;
+		}
+		if (auto resolved = ResolveRichPageSliceEndpoint(page, *segment)) {
+			end = std::move(resolved);
+			endSegment = i;
+			break;
+		}
+	}
+	if (!start || !end) {
+		return {};
+	}
+	const auto startDirect = (startSegment == selection.from.segment);
+	const auto endDirect = (endSegment == selection.to.segment);
+	const auto firstTop = start->top;
+	const auto lastTop = end->top;
+	if (firstTop > lastTop) {
+		return {};
+	}
+	auto result = std::vector<RichPage::Block>(
+		page.blocks.begin() + firstTop,
+		page.blocks.begin() + lastTop + 1);
+	const auto startTarget = (startDirect
+		&& start->trimLeaf
+		&& selection.from.offset > 0)
+		? RichPageSliceTrimTarget(&result.front(), *start->trimLeaf)
+		: nullptr;
+	const auto endTarget = (endDirect && end->trimLeaf)
+		? RichPageSliceTrimTarget(&result.back(), *end->trimLeaf)
+		: nullptr;
+	if (startTarget && startTarget == endTarget) {
+		const auto size = int(startTarget->text.size());
+		const auto from = std::clamp(selection.from.offset, 0, size);
+		const auto to = std::clamp(selection.to.offset, from, size);
+		*startTarget = Ui::Text::Mid(*startTarget, from, to - from);
+	} else {
+		if (startTarget) {
+			ApplyRichPageSliceStartTrim(startTarget, selection.from.offset);
+		}
+		if (endTarget) {
+			ApplyRichPageSliceEndTrim(endTarget, selection.to.offset);
+		}
+	}
+	const auto trimListStart = startDirect
+		&& (start->listItem >= 0)
+		&& (result.front().kind == RichPage::BlockKind::List)
+		&& (start->listItem < int(result.front().listItems.size()));
+	const auto trimListEnd = endDirect
+		&& (end->listItem >= 0)
+		&& (result.back().kind == RichPage::BlockKind::List)
+		&& (end->listItem < int(result.back().listItems.size()));
+	if (trimListStart && trimListEnd && firstTop == lastTop) {
+		if (start->listItem <= end->listItem) {
+			auto &items = result.front().listItems;
+			items.erase(items.begin() + end->listItem + 1, items.end());
+			items.erase(items.begin(), items.begin() + start->listItem);
+		}
+	} else {
+		if (trimListStart) {
+			auto &items = result.front().listItems;
+			items.erase(items.begin(), items.begin() + start->listItem);
+		}
+		if (trimListEnd) {
+			auto &items = result.back().listItems;
+			items.erase(items.begin() + end->listItem + 1, items.end());
+		}
+	}
+	if (!result.empty()
+		&& RichPageSliceEdgeEmpty(result.front(), startTarget != nullptr)) {
+		result.erase(result.begin());
+	}
+	if (!result.empty()
+		&& RichPageSliceEdgeEmpty(result.back(), endTarget != nullptr)) {
+		result.pop_back();
 	}
 	return result;
 }

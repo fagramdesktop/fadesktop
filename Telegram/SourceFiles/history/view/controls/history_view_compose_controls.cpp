@@ -34,6 +34,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/core_settings.h"
 #include "core/shortcuts.h"
 #include "core/ui_integration.h"
+#include "data/components/ephemeral_messages.h"
 #include "data/notify/data_notify_settings.h"
 #include "data/data_changes.h"
 #include "data/data_drafts.h"
@@ -207,6 +208,7 @@ public:
 	[[nodiscard]] FullReplyTo replyingToMessage() const;
 	[[nodiscard]] FullMsgId editMsgId() const;
 	[[nodiscard]] rpl::producer<FullMsgId> editMsgIdValue() const;
+	[[nodiscard]] rpl::producer<FullReplyTo> replyingToMessageValue() const;
 	[[nodiscard]] rpl::producer<FullReplyTo> jumpToItemRequests() const;
 	[[nodiscard]] rpl::producer<> editPhotoRequests() const;
 	[[nodiscard]] rpl::producer<> editOptionsRequests() const;
@@ -911,6 +913,10 @@ rpl::producer<FullMsgId> FieldHeader::editMsgIdValue() const {
 	return _editMsgId.value();
 }
 
+rpl::producer<FullReplyTo> FieldHeader::replyingToMessageValue() const {
+	return _replyTo.value();
+}
+
 rpl::producer<FullReplyTo> FieldHeader::jumpToItemRequests() const {
 	return _jumpToItemRequests.events();
 }
@@ -1103,7 +1109,7 @@ ComposeControls::ComposeControls(
 				_regularWindow,
 				_history->peer,
 				_sendActionFactory(),
-				[=] { return sendMenuDetails(); });
+				sendMenuDetails());
 		}
 	},
 	[=] {
@@ -2078,7 +2084,9 @@ void ComposeControls::saveFieldToHistoryLocalDraft() {
 		return;
 	}
 	const auto id = _header->getDraftReply();
-	if (_preview && (id || !_field->empty())) {
+	if (shouldShowRichDraftPreview()) {
+		_history->clearDraft(draftKeyCurrent());
+	} else if (_preview && (id || !_field->empty())) {
 		const auto key = draftKeyCurrent();
 		_history->setDraft(
 			key,
@@ -2289,6 +2297,11 @@ void ComposeControls::init() {
 			orderControls();
 		}
 		registerDraftSource();
+	}, _wrap->lifetime());
+
+	_header->replyingToMessageValue(
+	) | rpl::on_next([=](const FullReplyTo &) {
+		updateFieldPlaceholder();
 	}, _wrap->lifetime());
 
 	_header->editPhotoRequests(
@@ -2687,6 +2700,8 @@ void ComposeControls::updateFieldPlaceholder() {
 		return;
 	}
 
+	const auto ephemeralReply = session().ephemeralMessages()
+		.isEphemeralBotReply(replyingToMessage().messageId);
 	_field->setPlaceholder([&] {
 		const auto peer = _history ? _history->peer.get() : nullptr;
 		if (_fieldCustomPlaceholder) {
@@ -2695,7 +2710,9 @@ void ComposeControls::updateFieldPlaceholder() {
 			return tr::lng_edit_message_text();
 		} else if (!peer) {
 			return tr::lng_message_ph();
-		} else if (const auto stars = peer->starsPerMessageChecked()) {
+		} else if (const auto stars = ephemeralReply
+			? 0
+			: peer->starsPerMessageChecked()) {
 			return tr::lng_message_stars_ph(
 				lt_count,
 				rpl::single(stars * 1.));
@@ -3034,6 +3051,10 @@ void ComposeControls::applyDraft(FieldHistoryAction fieldHistoryAction) {
 
 	const auto hadFocus = Ui::InFocusChain(_field);
 	if (richDraft) {
+		_textUpdateEvents = 0;
+		clearFieldText(0, fieldHistoryAction);
+		_textUpdateEvents = TextUpdateEvent::SaveDraft
+			| TextUpdateEvent::SendTyping;
 		_header->replyToMessage(richDraft->reply);
 		_header->editMessage({}, {});
 		if (_preview) {
@@ -3750,8 +3771,7 @@ void ComposeControls::initExpandButton() {
 				Iv::Editor::ShowEditFromFieldBox(
 					_regularWindow,
 					item,
-					_sendActionFactory(),
-					[=] { return sendMenuDetails(); });
+					_sendActionFactory());
 			}
 			return;
 		}
@@ -3759,7 +3779,7 @@ void ComposeControls::initExpandButton() {
 			_regularWindow,
 			_history->peer,
 			_sendActionFactory(),
-			[=] { return sendMenuDetails(); });
+			sendMenuDetails());
 	});
 }
 
@@ -3838,6 +3858,7 @@ void ComposeControls::updateWrappingVisibility() {
 	if (!hidden && !restricted) {
 		updateControlsGeometry(_wrap->size());
 		_wrap->raise();
+		raisePanels();
 	}
 }
 
@@ -3896,6 +3917,8 @@ void ComposeControls::updateSendButtonType() {
 			? _slowmodeSecondsLeft.current()
 			: 0;
 	}();
+	const auto ephemeralReply = session().ephemeralMessages()
+		.isEphemeralBotReply(replyingToMessage().messageId);
 	using namespace Calls::Group::Ui;
 	const auto &appConfig = _show->session().appConfig();
 	_send->setState({
@@ -3906,7 +3929,7 @@ void ComposeControls::updateSendButtonType() {
 				*_chosenStarsCount).bgLight)
 			: QColor()),
 		.slowmodeDelay = delay,
-		.starsToSend = shownStarsPerMessage(),
+		.starsToSend = ephemeralReply ? 0 : shownStarsPerMessage(),
 		.forbidden = forbidden,
 	});
 	_send->setDisabled(_sendDisabledBySlowmode.current()
@@ -4140,11 +4163,7 @@ void ComposeControls::updateExpandButtonGeometry() {
 	if (_expand->isHidden()) {
 		return;
 	}
-	const auto aiShown = !_aiButton->isHidden();
-	const auto anchorX = aiShown
-		? (_tabbedSelectorToggle->x() + _tabbedSelectorToggle->width())
-		: (_send->x() + _send->width());
-	const auto x = anchorX - _expand->width();
+	const auto x = _send->x() + _send->width() - _expand->width();
 	_expand->move(QPoint(x, _field->y()) + st::historyAiComposeButtonPosition);
 }
 
@@ -4152,8 +4171,10 @@ void ComposeControls::updateAiButtonGeometry() {
 	if (_aiButton->isHidden()) {
 		return;
 	}
-	const auto x = _send->x() + _send->width() - _aiButton->width();
-	_aiButton->move(QPoint(x, _field->y()) + st::historyAiComposeButtonPosition);
+	const auto anchorLeft = _attachToggle ? _attachToggle->x() : _field->x();
+	const auto x = anchorLeft - st::historyAiComposeButtonPosition.x();
+	const auto y = _field->y() + st::historyAiComposeButtonPosition.y();
+	_aiButton->move(x, y);
 	if (_aiTooltipManager) {
 		_aiTooltipManager->updateGeometry();
 	}
@@ -4166,7 +4187,8 @@ void ComposeControls::updateSendAsFileVisibility() {
 	const auto hidden = !textExceedsMaxSize()
 		|| _wrap->isHidden()
 		|| _recording.current()
-		|| _field->isHidden();
+		|| _field->isHidden()
+		|| isEditingMessage();
 	if (_sendAsFile->isHidden() == hidden) {
 		return;
 	}
@@ -4183,8 +4205,10 @@ void ComposeControls::updateSendAsFileGeometry() {
 	if (!_sendAsFile || _sendAsFile->isHidden()) {
 		return;
 	}
-	const auto x = _send->x() + _send->width() - _sendAsFile->width();
-	_sendAsFile->move(QPoint(x, _field->y()) + st::historyAiComposeButtonPosition);
+	const auto anchorLeft = _attachToggle ? _attachToggle->x() : _field->x();
+	const auto x = anchorLeft - st::historyAiComposeButtonPosition.x();
+	const auto y = _field->y() + st::historyAiComposeButtonPosition.y();
+	_sendAsFile->move(x, y);
 	if (_sendAsFileTooltipManager) {
 		_sendAsFileTooltipManager->updateGeometry();
 	}

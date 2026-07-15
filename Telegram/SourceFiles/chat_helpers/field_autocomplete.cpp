@@ -38,7 +38,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/popup_menu.h"
 #include "ui/widgets/scroll_area.h"
 #include "ui/widgets/fields/input_field.h"
+#include "ui/widgets/tooltip.h"
+#include "ui/wrap/padding_wrap.h"
 #include "ui/text/text_options.h"
+#include "ui/text/text_utilities.h"
 #include "ui/image/image.h"
 #include "ui/effects/path_shift_gradient.h"
 #include "ui/painter.h"
@@ -53,12 +56,15 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_widgets.h"
 #include "styles/style_chat_helpers.h"
+#include "styles/style_dialogs.h"
 #include "styles/style_menu_icons.h"
 
 #include <QtWidgets/QApplication>
 
 namespace ChatHelpers {
 namespace {
+
+constexpr auto kEphemeralHintHoverDelay = crl::time(500);
 
 [[nodiscard]] QString PrimaryUsername(not_null<UserData*> user) {
 	const auto &usernames = user->usernames();
@@ -112,6 +118,7 @@ public:
 		botCommandChosen() const;
 	rpl::producer<FieldAutocomplete::StickerChosen> stickerChosen() const;
 	rpl::producer<ScrollTo> scrollToRequested() const;
+	rpl::producer<QRect> ephemeralIconHovered() const;
 
 	void onParentGeometryChanged();
 
@@ -133,6 +140,8 @@ private:
 	void setSel(int sel, bool scroll = false);
 	void showPreview();
 	void selectByMouse(QPoint global);
+	[[nodiscard]] QRect ephemeralIconRect(int index) const;
+	void updateEphemeralIconHover(QPoint position);
 
 	QSize stickerBoundingBox() const;
 	void setupLottie(StickerSuggestion &suggestion);
@@ -159,6 +168,7 @@ private:
 	int _stickersPerRow = 1;
 	int _sel = -1;
 	int _down = -1;
+	int _ephemeralIconHover = -1;
 	std::optional<QPoint> _lastMousePosition;
 	bool _mouseSelection = false;
 
@@ -178,6 +188,7 @@ private:
 	rpl::event_stream<FieldAutocomplete::BotCommandChosen> _botCommandChosen;
 	rpl::event_stream<FieldAutocomplete::StickerChosen> _stickerChosen;
 	rpl::event_stream<ScrollTo> _scrollToRequested;
+	rpl::event_stream<QRect> _ephemeralIconHovered;
 
 	base::Timer _previewTimer;
 
@@ -215,6 +226,7 @@ struct FieldAutocomplete::BotCommandRow {
 	QString description;
 	Ui::PeerUserpicView userpic;
 	Ui::Text::String descriptionText;
+	bool ephemeral = false;
 };
 
 FieldAutocomplete::FieldAutocomplete(
@@ -225,7 +237,8 @@ FieldAutocomplete::FieldAutocomplete(
 , _show(std::move(show))
 , _session(&_show->session())
 , _st(stOverride ? *stOverride : st::defaultEmojiPan)
-, _scroll(this) {
+, _scroll(this)
+, _ephemeralHintTimer([=] { showPendingEphemeralHint(); }) {
 	hide();
 
 	_scroll->setGeometry(rect());
@@ -244,6 +257,16 @@ FieldAutocomplete::FieldAutocomplete(
 	_inner->scrollToRequested(
 	) | rpl::on_next([=](Inner::ScrollTo data) {
 		_scroll->scrollToY(data.top, data.bottom);
+	}, lifetime());
+
+	_scroll->scrollTopValue(
+	) | rpl::skip(1) | rpl::on_next([=] {
+		hideEphemeralHint();
+	}, lifetime());
+
+	_inner->ephemeralIconHovered(
+	) | rpl::on_next([=](QRect iconRect) {
+		ephemeralIconHovered(iconRect);
 	}, lifetime());
 
 	_scroll->show();
@@ -672,10 +695,11 @@ void FieldAutocomplete::updateFiltered(bool resetScroll) {
 					not_null<UserData*> user,
 					const Data::BotCommand &command) {
 				return BotCommandRow{
-					user,
-					command.command,
-					command.description,
-					user->activeUserpicView()
+					.user = user,
+					.command = command.command,
+					.description = command.description,
+					.userpic = user->activeUserpicView(),
+					.ephemeral = command.ephemeral,
 				};
 			};
 			brows.reserve(cnt);
@@ -788,6 +812,58 @@ void FieldAutocomplete::rowsUpdated(
 	_inner->rowsUpdated();
 }
 
+void FieldAutocomplete::createEphemeralHint(QRect rect) {
+	const auto parent = parentWidget();
+	_ephemeralHint = base::make_unique_q<Ui::ImportantTooltip>(
+		parent,
+		object_ptr<Ui::PaddingWrap<Ui::FlatLabel>>(
+			parent,
+			Ui::MakeNiceTooltipLabel(
+				parent,
+				tr::lng_ephemeral_command_tooltip(Ui::Text::WithEntities),
+				st::dialogsStoriesTooltipMaxWidth,
+				st::ttlMediaImportantTooltipLabel),
+			st::defaultImportantTooltip.padding),
+		st::dialogsStoriesTooltip);
+	_ephemeralHint->pointAt(rect, RectPart::Top);
+	_ephemeralHint->toggleAnimated(true);
+}
+
+void FieldAutocomplete::ephemeralIconHovered(QRect iconRect) {
+	const auto parent = parentWidget();
+	if (iconRect.isEmpty() || !parent || isHidden() || _hiding) {
+		hideEphemeralHint();
+		return;
+	}
+	_ephemeralHintRect = Ui::MapFrom(parent, _inner.data(), iconRect);
+	if (_ephemeralHint && !_ephemeralHint->isHidden()) {
+		_ephemeralHint->pointAt(_ephemeralHintRect, RectPart::Top);
+		_ephemeralHint->toggleAnimated(true);
+	} else {
+		_ephemeralHintTimer.callOnce(kEphemeralHintHoverDelay);
+	}
+}
+
+void FieldAutocomplete::showPendingEphemeralHint() {
+	if (_ephemeralHintRect.isEmpty() || isHidden() || _hiding) {
+		return;
+	}
+	if (_ephemeralHint) {
+		_ephemeralHint->pointAt(_ephemeralHintRect, RectPart::Top);
+		_ephemeralHint->toggleAnimated(true);
+	} else {
+		createEphemeralHint(_ephemeralHintRect);
+	}
+}
+
+void FieldAutocomplete::hideEphemeralHint() {
+	_ephemeralHintRect = QRect();
+	_ephemeralHintTimer.cancel();
+	if (_ephemeralHint) {
+		_ephemeralHint->toggleAnimated(false);
+	}
+}
+
 void FieldAutocomplete::setBoundings(QRect boundings) {
 	_boundings = boundings;
 	recount();
@@ -830,6 +906,8 @@ void FieldAutocomplete::recount(bool resetScroll) {
 }
 
 void FieldAutocomplete::hideFast() {
+	hideEphemeralHint();
+	_ephemeralHint = nullptr;
 	_a_opacity.stop();
 	hideFinish();
 }
@@ -838,6 +916,7 @@ void FieldAutocomplete::hideAnimated() {
 	if (isHidden() || _hiding) {
 		return;
 	}
+	hideEphemeralHint();
 
 	if (_cache.isNull()) {
 		_scroll->show();
@@ -1210,6 +1289,19 @@ void FieldAutocomplete::Inner::paintEvent(QPaintEvent *e) {
 				auto addleft = commandTextWidth + st::mentionPadding.left();
 				auto widthleft = mentionwidth - addleft;
 
+				if (row.ephemeral) {
+					const auto &icon = selected
+						? st::mentionEphemeralIconOver
+						: st::mentionEphemeralIcon;
+					icon.paint(
+						p,
+						mentionleft + addleft,
+						(i * st::mentionHeight
+							+ (st::mentionHeight - icon.height()) / 2),
+						width());
+					addleft += icon.width() + st::mentionEphemeralIconSkip;
+					widthleft -= icon.width() + st::mentionEphemeralIconSkip;
+				}
 				if (!row.description.isEmpty()
 					&& row.descriptionText.isEmpty()) {
 					row.descriptionText.setText(
@@ -1244,6 +1336,7 @@ void FieldAutocomplete::Inner::resizeEvent(QResizeEvent *e) {
 
 void FieldAutocomplete::Inner::mouseMoveEvent(QMouseEvent *e) {
 	const auto globalPosition = e->globalPos();
+	updateEphemeralIconHover(e->pos());
 	if (!_lastMousePosition) {
 		_lastMousePosition = globalPosition;
 		return;
@@ -1253,6 +1346,57 @@ void FieldAutocomplete::Inner::mouseMoveEvent(QMouseEvent *e) {
 	}
 	selectByMouse(globalPosition);
 }
+
+void FieldAutocomplete::Inner::updateEphemeralIconHover(QPoint position) {
+	const auto inCommands = !_brows->empty()
+		&& _srows->empty()
+		&& _mrows->empty()
+		&& _hrows->empty();
+	const auto index = inCommands ? (position.y() / st::mentionHeight) : -1;
+	const auto good = (index >= 0)
+		&& (index < int(_brows->size()))
+		&& _brows->at(index).ephemeral
+		&& ephemeralIconRect(index).contains(position);
+	const auto hovered = good ? index : -1;
+	if (_ephemeralIconHover == hovered) {
+		return;
+	}
+	_ephemeralIconHover = hovered;
+	_ephemeralIconHovered.fire(good
+		? ephemeralIconRect(hovered)
+		: QRect());
+}
+
+QRect FieldAutocomplete::Inner::ephemeralIconRect(int index) const {
+	const auto &row = _brows->at(index);
+	if (!row.ephemeral) {
+		return QRect();
+	}
+	const auto filter = _parent->filter();
+	const auto hasUsername = filter.indexOf('@') > 0;
+	const auto botStatus = _parent->chat()
+		? _parent->chat()->botStatus
+		: ((_parent->channel() && _parent->channel()->isMegagroup())
+			? _parent->channel()->mgInfo->botStatus
+			: Data::BotStatus::NoBots);
+	auto toHighlight = row.command;
+	if (hasUsername || botStatus != Data::BotStatus::NoBots) {
+		toHighlight += '@' + PrimaryUsername(row.user);
+	}
+	const auto mentionleft = 2 * st::mentionPadding.left()
+		+ st::mentionPhotoSize;
+	const auto left = mentionleft
+		+ st::semiboldFont->width('/' + toHighlight)
+		+ st::mentionPadding.left();
+	const auto top = index * st::mentionHeight
+		+ (st::mentionHeight - st::mentionEphemeralIcon.height()) / 2;
+	return QRect(
+		left,
+		top,
+		st::mentionEphemeralIcon.width(),
+		st::mentionEphemeralIcon.height());
+}
+
 
 void FieldAutocomplete::Inner::clearSel(bool hidden) {
 	_overDelete = false;
@@ -1486,6 +1630,10 @@ void FieldAutocomplete::Inner::enterEventHook(QEnterEvent *e) {
 
 void FieldAutocomplete::Inner::leaveEventHook(QEvent *e) {
 	setMouseTracking(false);
+	if (_ephemeralIconHover >= 0) {
+		_ephemeralIconHover = -1;
+		_ephemeralIconHovered.fire(QRect());
+	}
 	if (_mouseSelection) {
 		setSel(-1);
 		_mouseSelection = false;
@@ -1543,6 +1691,10 @@ void FieldAutocomplete::Inner::setSel(int sel, bool scroll) {
 void FieldAutocomplete::Inner::rowsUpdated() {
 	if (_srows->empty()) {
 		_stickersLifetime.destroy();
+	}
+	if (_ephemeralIconHover >= 0) {
+		_ephemeralIconHover = -1;
+		_ephemeralIconHovered.fire(QRect());
 	}
 }
 
@@ -1727,6 +1879,10 @@ auto FieldAutocomplete::Inner::stickerChosen() const
 auto FieldAutocomplete::Inner::scrollToRequested() const
 -> rpl::producer<ScrollTo> {
 	return _scrollToRequested.events();
+}
+
+rpl::producer<QRect> FieldAutocomplete::Inner::ephemeralIconHovered() const {
+	return _ephemeralIconHovered.events();
 }
 
 void InitFieldAutocomplete(

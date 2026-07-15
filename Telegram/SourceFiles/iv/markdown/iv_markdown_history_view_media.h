@@ -54,6 +54,7 @@ public:
 
 	[[nodiscard]] not_null<::Data::Session*> session() const;
 	[[nodiscard]] not_null<HistoryItem*> item() const;
+	[[nodiscard]] bool itemAlive() const;
 	[[nodiscard]] not_null<HistoryView::Element*> view() const;
 	[[nodiscard]] const QString &pageUrl() const;
 	[[nodiscard]] bool needsViewRequestBridge() const;
@@ -160,7 +161,7 @@ std::shared_ptr<MediaBlock> IvHistoryViewMediaBlockFactory::create(
 		return nullptr;
 	}
 	const auto controller = _controller.get();
-	return controller ? factory(controller, prepared) : nullptr;
+	return factory(controller, prepared);
 }
 
 [[nodiscard]] std::shared_ptr<MediaBlock> CreateIvHistoryViewMediaBlock(

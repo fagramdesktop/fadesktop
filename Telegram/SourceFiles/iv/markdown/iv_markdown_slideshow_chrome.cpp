@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "iv/markdown/iv_markdown_slideshow_chrome.h"
 
 #include "ui/image/image_prepare.h"
+#include "styles/palette.h"
 #include "styles/style_iv.h"
 
 #include <algorithm>
@@ -15,6 +16,47 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <limits>
 
 namespace Iv::Markdown {
+namespace {
+
+constexpr auto kInactiveDotOpacity = 0.5;
+
+[[nodiscard]] QImage GenerateSlideshowDotsBackdrop(
+		QSize outer,
+		int fade,
+		QColor color) {
+	const auto ratio = style::DevicePixelRatio();
+	const auto size = outer * ratio;
+	auto result = QImage(size, QImage::Format_ARGB32_Premultiplied);
+	result.setDevicePixelRatio(ratio);
+	result.fill(Qt::transparent);
+	const auto f = fade * float64(ratio);
+	if (f <= 0. || size.isEmpty()) {
+		return result;
+	}
+	const auto cy = size.height() / 2.;
+	const auto radius = cy - f;
+	const auto from = f + radius;
+	const auto till = size.width() - f - radius;
+	const auto peak = color.alphaF();
+	for (auto y = 0; y != size.height(); ++y) {
+		const auto line = reinterpret_cast<uint32*>(result.scanLine(y));
+		const auto py = y + 0.5;
+		for (auto x = 0; x != size.width(); ++x) {
+			const auto px = x + 0.5;
+			const auto sx = std::clamp(px, from, till);
+			const auto distance = std::hypot(px - sx, py - cy) - radius;
+			const auto ramp = std::clamp((f - distance) / (2. * f), 0., 1.);
+			line[x] = qPremultiply(qRgba(
+				color.red(),
+				color.green(),
+				color.blue(),
+				int(std::round(ramp * peak * 255.))));
+		}
+	}
+	return result;
+}
+
+} // namespace
 
 int MediaHeightForWidth(
 		int width,
@@ -141,6 +183,77 @@ SlideshowNavRects ComputeSlideshowNavRects(
 			size,
 			size),
 	};
+}
+
+SlideshowDotsGeometry ComputeSlideshowDots(
+		QRect media,
+		int count,
+		int active,
+		const style::MarkdownGroupedMedia &st) {
+	const auto dot = st.dotSize;
+	const auto advance = st.dotSkip;
+	if (count < 2 || media.isEmpty() || dot <= 0 || advance <= 0) {
+		return {};
+	}
+	const auto padding = (advance - dot) / 2;
+	const auto bgHeight = dot + 2 * padding;
+	const auto fade = bgHeight / 2;
+	const auto available = media.width() - 2 * st.navButtonSkip;
+	const auto visible = std::clamp(
+		(available - 2 * fade) / advance,
+		1,
+		count);
+	const auto first = (visible == count)
+		? 0
+		: std::clamp(active - visible / 2, 0, count - visible);
+	const auto bgWidth = visible * advance;
+	const auto left = media.x() + (media.width() - bgWidth) / 2;
+	const auto bottom = media.y() + media.height() - st.dotsBottomSkip;
+	const auto core = QRect(left, bottom - bgHeight, bgWidth, bgHeight);
+	return {
+		.core = core,
+		.outer = core.marginsAdded({ fade, fade, fade, fade }),
+		.first = first,
+		.visible = visible,
+	};
+}
+
+void PaintSlideshowDots(
+		Painter &p,
+		const SlideshowDotsGeometry &dots,
+		int active,
+		const style::MarkdownGroupedMedia &st,
+		SlideshowDotsBackdrop &backdrop) {
+	if (dots.visible <= 0 || dots.core.isEmpty()) {
+		return;
+	}
+	const auto ratio = style::DevicePixelRatio();
+	const auto fade = (dots.outer.height() - dots.core.height()) / 2;
+	auto color = ::st::radialBg->c;
+	color.setAlphaF(st.dotsBgOpacity);
+	if (backdrop.image.size() != dots.outer.size() * ratio
+		|| backdrop.color != color) {
+		backdrop.image = GenerateSlideshowDotsBackdrop(
+			dots.outer.size(),
+			fade,
+			color);
+		backdrop.color = color;
+	}
+	p.drawImage(dots.outer.topLeft(), backdrop.image);
+	auto hq = PainterHighQualityEnabler(p);
+	p.setPen(Qt::NoPen);
+	p.setBrush(::st::radialFg);
+	const auto dot = st.dotSize;
+	const auto advance = st.dotSkip;
+	const auto cy = dots.core.y() + dots.core.height() / 2;
+	auto cx = dots.core.x() + advance / 2;
+	for (auto i = 0; i != dots.visible; ++i, cx += advance) {
+		p.setOpacity((dots.first + i == active)
+			? 1.
+			: kInactiveDotOpacity);
+		p.drawEllipse(cx - dot / 2, cy - dot / 2, dot, dot);
+	}
+	p.setOpacity(1.);
 }
 
 } // namespace Iv::Markdown

@@ -44,9 +44,12 @@ class ChatTheme;
 class InputField;
 class PopupMenu;
 class ElasticScroll;
-class RadialAnimation;
 struct PreparedList;
 } // namespace Ui
+
+namespace Ui::Emoji {
+class SuggestionsController;
+} // namespace Ui::Emoji
 
 namespace style {
 struct InputField;
@@ -61,9 +64,18 @@ class Session;
 class SessionShow;
 } // namespace Main
 
+namespace Iv {
+class SearchController;
+} // namespace Iv
+
 namespace Iv::Editor {
 
 class Widget;
+
+const auto kEditorHeading1Sequence = QKeySequence("ctrl+t");
+const auto kEditorHeading2Sequence = QKeySequence("ctrl+shift+h");
+const auto kEditorTableSequence = QKeySequence("ctrl+shift+t");
+const auto kEditorBodyTextSequence = QKeySequence("ctrl+shift+b");
 
 struct PreparedMediaPasteTarget {
 	std::optional<State::LeafPath> leaf;
@@ -84,7 +96,7 @@ struct WidgetServices {
 		RequestMediaType)> requestMedia;
 	Fn<void(not_null<Widget*>, Ui::PreparedList, PreparedMediaPasteTarget)>
 		applyPreparedMedia;
-	Fn<QImage(uint64 /*photoId*/)> requestPhotoEditSource;
+	Fn<void(uint64 /*photoId*/, Fn<void(QImage)>)> requestPhotoEditSource;
 	Fn<void(not_null<Widget*>, Ui::PreparedList, State::ReplaceTarget)>
 		replacePhotoWithList;
 	Fn<MediaUploadState(uint64 /*mediaId*/)> mediaUploadState;
@@ -110,6 +122,7 @@ public:
 	void activateSegment(int segmentIndex, int cursorOffset);
 	[[nodiscard]] State::ApplyResult commitInlineField();
 	[[nodiscard]] State::ApplyResult commitInlineFieldForClose();
+	[[nodiscard]] bool closeSearch();
 	void refreshPreparedContent();
 	void refreshPreparedLeafAtActiveSource();
 	void applyExternalRichPageMutation(Fn<bool(RichPage&)> mutation);
@@ -121,6 +134,13 @@ public:
 	void insertPreparedBlock(RichPage::Block block);
 	void replacePreparedBlock(State::ReplaceTarget target, RichPage::Block block);
 	void insertPreparedBlocks(std::vector<RichPage::Block> blocks);
+	[[nodiscard]] bool hasActiveSelection() const;
+	[[nodiscard]] std::shared_ptr<const RichPage>
+		richPageForCurrentSelection() const;
+	void replaceCurrentSelectionWithRichPage(
+		std::shared_ptr<const RichPage> page);
+	[[nodiscard]] TextWithEntities textSpanForCurrentSelection();
+	void replaceCurrentSelectionWithText(TextWithEntities text);
 	void pastePreparedBlock(
 		RichPage::Block block,
 		PreparedMediaPasteTarget target);
@@ -215,6 +235,7 @@ public:
 	void setTopContentPadding(int value);
 	void setBottomContentPadding(int value);
 	void setContentMaxWidth(int value);
+	[[nodiscard]] rpl::producer<int> searchSlideHeightValue() const;
 
 	struct ArticleColumn {
 		int left = 0;
@@ -255,6 +276,10 @@ private:
 		MediaPixels,
 		UploadRadial,
 		LayoutSwitch,
+	};
+	enum class MediaClickKind : uchar {
+		Left,
+		ContextMenu,
 	};
 	struct PressedMediaControl {
 		MediaControl control = MediaControl::None;
@@ -418,6 +443,7 @@ private:
 		State::FieldMode mode = State::FieldMode::Rich;
 		std::optional<InlineFieldStyleKey> styleKey;
 		base::unique_qptr<Ui::InputField> field;
+		QPointer<Ui::Emoji::SuggestionsController> suggestions;
 	};
 
 	enum class ActivateReveal {
@@ -467,9 +493,11 @@ private:
 		bool editingExisting = false;
 		bool allowSeparateLine = false;
 		bool separateLine = false;
+		bool insertNewDisplayBlock = false;
 	};
 	[[nodiscard]] std::optional<State::ActiveTextInsertContext>
 	activeTextInsertContext() const;
+	[[nodiscard]] bool hasFieldTextSpanSelection() const;
 	[[nodiscard]] PreparedMediaPasteTarget preparedMediaPasteTarget() const;
 	struct PreparedMediaPasteActivation {
 		bool resolved = false;
@@ -482,8 +510,9 @@ private:
 		std::optional<State::ActiveTextInsertContext> context,
 		bool useStructuralSelection = true);
 	[[nodiscard]] std::optional<State::TextNodeSpan>
-	visibleFullHeadingFieldTextSpan() const;
+	visibleFullDemotableFieldTextSpan() const;
 	[[nodiscard]] std::optional<MathEditRequest> activeMathEditRequest() const;
+	[[nodiscard]] MathEditRequest newDisplayMathRequest() const;
 	[[nodiscard]] int richOffsetForFieldOffset(
 		const TextWithEntities &text,
 		int offset) const;
@@ -500,6 +529,13 @@ private:
 	void hideInlineField();
 	void acceptInlineField();
 	void hideInlineFieldAndRefresh();
+	void toggleSearch();
+	void createSearchController();
+	void scrollToSearchSegment(int segmentIndex);
+	void updateSearchBarGeometry();
+	[[nodiscard]] ArticleColumn searchBarColumn(int outerWidth) const;
+	[[nodiscard]] int searchBarTop() const;
+	[[nodiscard]] bool searchBlockedByLayer() const;
 	void refreshPreparedLeafAtSource(
 		const Markdown::PreparedEditLeafSource &source);
 	void activateTextOrdinalAtEnd(int ordinal);
@@ -515,6 +551,7 @@ private:
 	[[nodiscard]] bool handleClipboardKey(QKeyEvent *e);
 	[[nodiscard]] bool handleFieldBlockInsertShortcut(QKeyEvent *e);
 	[[nodiscard]] bool handleStructuralBlockInsertShortcut(QKeyEvent *e);
+	[[nodiscard]] bool handleHardcodedBlockShortcut(QKeyEvent *e);
 	[[nodiscard]] bool fieldMonospaceShortcutUsesCodeBlock() const;
 	[[nodiscard]] bool structuralMonospaceShortcutTargetsCodeBlock() const;
 	void applyFieldMonospaceAction();
@@ -621,7 +658,9 @@ private:
 	[[nodiscard]] bool canPerformHistoryUndoRedo(bool redo) const;
 	[[nodiscard]] bool canPerformUndoRedo(bool redo) const;
 	[[nodiscard]] bool handleUndoRedoShortcut(QKeyEvent *e);
+	[[nodiscard]] bool handleUndoRedoShortcutOverride(QKeyEvent *e);
 	[[nodiscard]] bool handleSelectAllShortcut(QKeyEvent *e);
+	void selectWholeDocument();
 	[[nodiscard]] bool performFieldUndoRedo(bool redo);
 	void performUndoRedo(bool redo, bool allowFieldLocal = true);
 	void notifyToolbarStateChanged();
@@ -771,7 +810,8 @@ private:
 	[[nodiscard]] bool showMediaMenuFromHit(
 		const Markdown::PreparedEditHit &hit,
 		const Markdown::MarkdownArticleHitTestResult &articleHit,
-		QPoint globalPos);
+		QPoint globalPos,
+		MediaClickKind clickKind);
 	[[nodiscard]] bool activateGroupedMediaLinkFromHit(
 		const Markdown::PreparedEditHit &hit,
 		const Markdown::MarkdownArticleHitTestResult &articleHit,
@@ -787,6 +827,15 @@ private:
 		Fn<bool()> change);
 	void requestReplaceMedia(State::BlockPath path);
 	void editPhotoBlock(State::BlockPath path);
+	void editGroupedItemPhoto(State::BlockPath path, int itemIndex);
+	void openPhotoEditor(
+		uint64 photoId,
+		bool spoiler,
+		State::ReplaceTarget target);
+	void showPhotoEditor(
+		QImage source,
+		bool spoiler,
+		State::ReplaceTarget target);
 	void paintMediaControls(Painter &p, QPoint topLeft);
 	struct MediaControlLayout {
 		QRect threeDots;
@@ -834,7 +883,7 @@ private:
 		RequestMediaType)> _requestMedia;
 	const Fn<void(not_null<Widget*>, Ui::PreparedList, PreparedMediaPasteTarget)>
 		_applyPreparedMedia;
-	const Fn<QImage(uint64)> _requestPhotoEditSource;
+	const Fn<void(uint64, Fn<void(QImage)>)> _requestPhotoEditSource;
 	const Fn<void(not_null<Widget*>, Ui::PreparedList, State::ReplaceTarget)>
 		_replacePhotoWithList;
 	const Fn<MediaUploadState(uint64)> _mediaUploadState;
@@ -859,6 +908,7 @@ private:
 	std::optional<InlineFieldStyleKey> _activeFieldStyleKey;
 	std::optional<State::LeafPath> _fieldLeaf;
 	State::FieldMode _fieldMode = State::FieldMode::Rich;
+	QPointer<Ui::Emoji::SuggestionsController> _fieldSuggestions;
 	int _articleHeight = 0;
 	int _topContentPadding = 0;
 	int _bottomContentPadding = 0;
@@ -900,9 +950,6 @@ private:
 	std::optional<QPoint> _pressedControlPoint;
 	PressedMediaControl _pressedMediaControl;
 	std::optional<QPoint> _pressedMediaControlPoint;
-	base::flat_map<
-		uint64,
-		std::unique_ptr<Ui::RadialAnimation>> _mediaUploadRadials;
 	HorizontalScrollDrag _horizontalScrollDrag = HorizontalScrollDrag::None;
 	std::optional<QPoint> _pendingTouchHorizontalScrollPoint;
 	bool _syncingInlineFieldGeometry = false;
@@ -913,7 +960,10 @@ private:
 	bool _inlineFieldGeometryDeferred = false;
 	bool _inlineFieldHeightOverrideDeferred = false;
 	bool _articleEditableHeightOverrideClearDeferred = false;
+	bool _searchRefreshDeferred = false;
 	int _inlineFieldRevealSuppressionDepth = 0;
+	std::unique_ptr<SearchController> _search;
+	rpl::variable<int> _searchSlideHeight = 0;
 };
 
 } // namespace Iv::Editor

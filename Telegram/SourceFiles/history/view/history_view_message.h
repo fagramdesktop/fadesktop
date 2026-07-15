@@ -75,6 +75,8 @@ struct InstantViewMediaRuntime
 : RuntimeComponent<InstantViewMediaRuntime, Element> {
 	QString pageUrl;
 	QSize forcedSize;
+	Media *forcedFor = nullptr;
+	double mediaPixelScale = 1.;
 };
 
 struct HistoryMessageRichPage
@@ -352,6 +354,10 @@ private:
 		QRect &g,
 		const PaintContext &context) const;
 	void paintFromName(
+		Painter &p,
+		QRect &trect,
+		const PaintContext &context) const;
+	void paintEphemeralBadge(
 		Painter &p,
 		QRect &trect,
 		const PaintContext &context) const;

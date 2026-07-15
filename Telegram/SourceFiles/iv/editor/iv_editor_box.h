@@ -83,7 +83,7 @@ struct ShowWindowDescriptor {
 		RequestMediaType)> requestMedia;
 	Fn<void(not_null<Widget*>, Ui::PreparedList, PreparedMediaPasteTarget)>
 		applyPreparedMedia;
-	Fn<QImage(uint64 /*photoId*/)> requestPhotoEditSource;
+	Fn<void(uint64 /*photoId*/, Fn<void(QImage)>)> requestPhotoEditSource;
 	Fn<void(not_null<Widget*>, Ui::PreparedList, State::ReplaceTarget)>
 		replacePhotoWithList;
 	Fn<MediaUploadState(uint64 /*mediaId*/)> mediaUploadState;

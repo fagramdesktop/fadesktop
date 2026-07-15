@@ -70,6 +70,7 @@ const style::InfoTopBar &TopBarStyle(Wrap wrap) {
 	const auto section = controller->section();
 	return (section.type() == Section::Type::BotStarRef)
 		|| (section.type() == Section::Type::Profile)
+		|| (section.type() == Section::Type::Community)
 		|| ((section.type() == Section::Type::Settings)
 			&& section.settingsType()->hasCustomTopBar())
 		|| (section.type() == Section::Type::Stories
@@ -771,6 +772,10 @@ void WrapWidget::setWrap(Wrap wrap) {
 	_wrap = wrap;
 }
 
+rpl::producer<bool> WrapWidget::contentTillBottomValue() const {
+	return _contentTillBottom.value();
+}
+
 rpl::producer<> WrapWidget::contentChanged() const {
 	return _contentChanges.events();
 }
@@ -1106,6 +1111,7 @@ object_ptr<Ui::RpWidget> WrapWidget::createTopBarSurrogate(
 void WrapWidget::updateGeometry(
 		QRect newGeometry,
 		bool expanding,
+		bool contentTillBottom,
 		int additionalScroll,
 		int maxVisibleHeight) {
 	auto scrollChanged = (_additionalScroll != additionalScroll);
@@ -1114,6 +1120,7 @@ void WrapWidget::updateGeometry(
 	_additionalScroll = additionalScroll;
 	_maxVisibleHeight = maxVisibleHeight;
 	_expanding = expanding;
+	_contentTillBottom = contentTillBottom;
 
 	_content->applyMaxVisibleHeight(maxVisibleHeight);
 

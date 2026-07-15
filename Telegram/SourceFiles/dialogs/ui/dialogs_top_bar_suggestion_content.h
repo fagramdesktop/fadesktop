@@ -33,7 +33,14 @@ namespace Dialogs {
 int PaintSuggestionBubbleBackground(
 	QPainter &p,
 	QRect outer,
-	const Ui::BoxShadow &shadow);
+	const Ui::BoxShadow &shadow,
+	int cornerRadius = 0);
+
+void PaintBottomFade(
+	QPainter &p,
+	int outerWidth,
+	int fadeHeight,
+	style::color bg);
 
 class UnconfirmedAuthWrap : public Ui::SlideWrap<Ui::VerticalLayout> {
 public:
@@ -68,6 +75,15 @@ not_null<UnconfirmedAuthWrap*> CreateUnconfirmedAuthContent(
 		Fn<void(bool)> callback,
 		rpl::producer<float64> collapseProgress);
 
+struct TopBarSuggestionGeometry {
+	int cardInnerHeight = 0;
+	int iconLeft = 0;
+	int leadingTextSkip = 0;
+	int rightInset = 0;
+	int cornerRadius = 0;
+	bool centerSingleLineTitle = false;
+};
+
 class TopBarSuggestionContent : public Ui::RippleButton {
 public:
 	enum class RightIcon {
@@ -91,7 +107,9 @@ public:
 	void setRightButton(
 		rpl::producer<TextWithEntities> text,
 		Fn<void()> callback);
+	void setRightBadge(rpl::producer<int> count);
 	void setLeadingWidget(Ui::RpWidget *widget);
+	void setGeometryOverride(TopBarSuggestionGeometry geometry);
 	void setCollapseProgress(rpl::producer<float64> progress);
 	void prepareCollapseSnapshot();
 
@@ -120,12 +138,16 @@ private:
 	base::unique_qptr<Ui::IconButton> _rightHide;
 	base::unique_qptr<Ui::IconButton> _rightArrow;
 	base::unique_qptr<Ui::RoundButton> _rightButton;
+	rpl::lifetime _rightBadgeLifetime;
+	QString _rightBadgeText;
+	QSize _rightBadgeSize;
 	QPointer<Ui::RpWidget> _leadingWidget;
 	rpl::lifetime _leadingWidgetLifetime;
 	Fn<void()> _hideCallback;
 	Fn<bool()> _emojiPaused;
 
 	int _leftPadding = 0;
+	TopBarSuggestionGeometry _geometry;
 
 	RightIcon _rightIcon = RightIcon::None;
 
@@ -143,5 +165,8 @@ struct MountTopBarSuggestionArgs {
 };
 
 void MountTopBarSuggestion(MountTopBarSuggestionArgs args);
+
+[[nodiscard]] not_null<Ui::RpWidget*> CreateRequestsBubbleIcon(
+	not_null<Ui::RpWidget*> parent);
 
 } // namespace Dialogs

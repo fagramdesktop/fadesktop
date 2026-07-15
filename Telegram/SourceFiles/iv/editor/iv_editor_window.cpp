@@ -23,14 +23,28 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #endif // Q_OS_WIN || Q_OS_MAC
 
 namespace Iv::Editor {
+namespace {
+
+[[nodiscard]] std::vector<not_null<Window*>> &LiveWindows() {
+	static auto result = std::vector<not_null<Window*>>();
+	return result;
+}
+
+} // namespace
 
 Window::Window(QWidget *parent)
 : Ui::RpWindow(parent)
 , _layers(std::make_unique<Ui::LayerManager>(body())) {
 	_layers->setHideByBackgroundClick(true);
+	LiveWindows().push_back(this);
 }
 
-Window::~Window() = default;
+Window::~Window() {
+	auto &list = LiveWindows();
+	list.erase(
+		ranges::remove(list, not_null<Window*>(this)),
+		end(list));
+}
 
 void Window::setCloseRequestHandler(Fn<bool()> handler) {
 	_closeRequestHandler = std::move(handler);
@@ -121,5 +135,15 @@ bool Window::nativeEvent(
 }
 
 #endif // Q_OS_WIN || Q_OS_MAC
+
+bool CloseActiveWindow() {
+	for (const auto &window : LiveWindows()) {
+		if (window->isActiveWindow()) {
+			window->close();
+			return true;
+		}
+	}
+	return false;
+}
 
 } // namespace Iv::Editor

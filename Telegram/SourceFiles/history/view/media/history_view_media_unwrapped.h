@@ -10,6 +10,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/view/media/history_view_media.h"
 #include "base/weak_ptr.h"
 #include "base/timer.h"
+#include "ui/text/text.h"
 
 struct HistoryMessageVia;
 struct HistoryMessageReply;
@@ -91,6 +92,9 @@ public:
 	bool unwrapped() const override {
 		return true;
 	}
+	bool drawsOwnEphemeralBadge() const override {
+		return true;
+	}
 	bool customInfoLayout() const override {
 		return true;
 	}
@@ -120,6 +124,7 @@ public:
 private:
 	struct SurroundingInfo {
 		QSize topicSize;
+		QSize ephemeralSize;
 		int height = 0;
 		int panelHeight = 0;
 		int forwardedHeight = 0;
@@ -129,6 +134,7 @@ private:
 			return (height > 0);
 		}
 	};
+	void refreshEphemeralText();
 	[[nodiscard]] SurroundingInfo surroundingInfo(
 		const TopicButton *topic,
 		const Reply *reply,
@@ -168,6 +174,7 @@ private:
 	const HistoryMessageForwarded *getDisplayedForwardedInfo() const;
 
 	std::unique_ptr<Content> _content;
+	Ui::Text::String _ephemeralText;
 	QSize _contentSize;
 	int _topAdded = 0;
 	bool _additionalOnTop = false;

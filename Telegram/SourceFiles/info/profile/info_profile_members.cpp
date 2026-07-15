@@ -43,10 +43,12 @@ constexpr auto kEnableSearchMembersAfterCount = 20;
 
 Members::Members(
 	QWidget *parent,
-	not_null<Controller*> controller)
+	not_null<Controller*> controller,
+	bool skipHeader)
 : RpWidget(parent)
 , _show(controller->uiShow())
 , _controller(controller)
+, _skipHeader(skipHeader)
 , _peer(_controller->key().peer())
 , _listController(CreateMembersController(controller, _peer)) {
 	_listController->setStoriesShown(true);
@@ -86,6 +88,11 @@ rpl::producer<Ui::ScrollToRequest> Members::scrollToRequests() const {
 	return _scrollToRequests.events();
 }
 
+void Members::applySearchQuery(const QString &query) {
+	peerListScrollToTop();
+	content()->searchQueryChanged(query);
+}
+
 std::unique_ptr<MembersState> Members::saveState() {
 	auto result = std::make_unique<MembersState>();
 	result->list = _listController->saveState();
@@ -111,7 +118,8 @@ void Members::restoreState(std::unique_ptr<MembersState> state) {
 }
 
 void Members::setupHeader() {
-	if (_controller->section().type() == Section::Type::Members) {
+	if (_skipHeader
+		|| (_controller->section().type() == Section::Type::Members)) {
 		return;
 	}
 	_header = object_ptr<Ui::FixedHeightWidget>(

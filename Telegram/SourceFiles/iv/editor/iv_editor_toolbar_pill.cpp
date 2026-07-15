@@ -36,10 +36,20 @@ not_null<Ui::IconButton*> ToolbarPill::addButton(
 		raw->setIconOverride(icon, iconOver ? iconOver : icon);
 	}
 	SetupToolbarButton(raw, state, anim::type::instant);
+	addButton(std::move(button), buttonSt);
+	return raw;
+}
+
+void ToolbarPill::addButton(
+		object_ptr<Ui::RippleButton> button,
+		const style::IconButton &buttonSt) {
+	const auto raw = button.data();
 	raw->show();
+	if (_buttons.empty()) {
+		_buttonSt = &buttonSt;
+	}
 	_buttons.push_back(std::move(button));
 	updateGeometryToContent();
-	return raw;
 }
 
 // The pill wraps the buttons' RIPPLE AREA (not their full widget rect): inner
@@ -52,8 +62,8 @@ void ToolbarPill::updateGeometryToContent() {
 	const auto count = int(_buttons.size());
 	const auto pad = st::ivEditorPillPadding;
 	const auto skip = st::ivEditorPillButtonSkip;
-	const auto &button = count
-		? _buttons.front()->st()
+	const auto &button = _buttonSt
+		? *_buttonSt
 		: st::ivEditorToolbarButton;
 	const auto rippleSize = button.rippleAreaSize;
 

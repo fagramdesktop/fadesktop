@@ -23,10 +23,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/timer.h"
 #include "base/weak_qptr.h"
 #include "base/weak_ptr.h"
+#include "boxes/premium_preview_box.h"
 #include "chat_helpers/compose/compose_show.h"
 #include "core/application.h"
 #include "data/data_file_origin.h"
 #include "core/shortcuts.h"
+#include "data/components/ephemeral_messages.h"
 #include "data/data_drafts.h"
 #include "data/data_document.h"
 #include "data/data_location.h"
@@ -64,6 +66,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/painter.h"
 #include "ui/rp_widget.h"
 #include "ui/text/text_utilities.h"
+#include "ui/toast/toast.h"
 #include "ui/vertical_list.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
@@ -80,6 +83,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_boxes.h"
 #include "styles/style_iv.h"
 #include "styles/style_layers.h"
+#include "styles/style_settings.h"
 
 namespace Iv::Editor {
 namespace {
@@ -531,7 +535,7 @@ template <typename Container>
 			MsgId()),
 		.caption = TextWithTags(),
 		.spoiler = file.spoiler,
-		.album = nullptr,
+		.album = std::make_shared<SendingAlbum>(),
 		.forceFile = false,
 		.sendLargePhotos = file.sendLargePhotos,
 		.idOverride = 0,
@@ -547,7 +551,8 @@ public:
 		not_null<Main::Session*> session,
 		not_null<PeerData*> peer,
 		Api::SendAction action,
-		Fn<SendMenu::Details()> sendMenuDetails) {
+		SendMenu::Details sendMenuDetails,
+		base::weak_ptr<Window::SessionController> controller) {
 		const auto history = action.history;
 		const auto topicRootId = action.replyTo.topicRootId;
 		const auto monoforumPeerId = action.replyTo.monoforumPeerId;
@@ -597,13 +602,15 @@ public:
 			std::move(action),
 			std::move(sendMenuDetails),
 			std::nullopt,
-			composeKey));
+			composeKey,
+			std::move(controller)));
 		articleSession->showWindow();
 	}
 
 	static void ShowEdit(
 		not_null<HistoryItem*> item,
-		std::shared_ptr<const RichPage> richPage) {
+		std::shared_ptr<const RichPage> richPage,
+		base::weak_ptr<Window::SessionController> controller) {
 		if (!richPage || !CanEditRichPage(richPage)) {
 			if (const auto window = item->history()->session().tryResolveWindow(
 					item->history()->peer)) {
@@ -618,21 +625,22 @@ public:
 			item->fullId(),
 			std::make_shared<RichPage>(*richPage),
 			std::nullopt,
-			nullptr,
+			{},
 			EditedItemSnapshot{
 				.item = item,
 				.inlinePage = item->richPage(),
 				.summary = item->originalText(),
 				.fullPage = item->fullRichPage(),
 			},
-			std::nullopt));
+			std::nullopt,
+			std::move(controller)));
 		articleSession->showWindow();
 	}
 
 	static void ShowEditFromField(
 			not_null<HistoryItem*> item,
 			Api::SendAction action,
-			Fn<SendMenu::Details()> sendMenuDetails) {
+			base::weak_ptr<Window::SessionController> controller) {
 		const auto session = &item->history()->session();
 		const auto topicRootId = action.replyTo.topicRootId;
 		const auto monoforumPeerId = action.replyTo.monoforumPeerId;
@@ -664,14 +672,15 @@ public:
 			item->fullId(),
 			std::move(page),
 			std::move(action),
-			std::move(sendMenuDetails),
+			{},
 			EditedItemSnapshot{
 				.item = item,
 				.inlinePage = item->richPage(),
 				.summary = item->originalText(),
 				.fullPage = item->fullRichPage(),
 			},
-			std::nullopt));
+			std::nullopt,
+			std::move(controller)));
 		articleSession->showWindow();
 	}
 
@@ -694,7 +703,6 @@ private:
 		RichPage::BlockKind blockKind = RichPage::BlockKind::Unsupported;
 		uint64 localMediaId = 0;
 		AttachmentState state = AttachmentState::Uploading;
-		float64 progress = 0.;
 		QString caption;
 		QString filename;
 		QString filemime;
@@ -759,6 +767,11 @@ private:
 		std::shared_ptr<const RichPage> fullPage;
 	};
 
+	struct PendingPhotoEditSource {
+		std::shared_ptr<::Data::PhotoMedia> media;
+		Fn<void(QImage)> done;
+	};
+
 	ArticleSession(
 		not_null<Main::Session*> session,
 		not_null<PeerData*> peer,
@@ -766,11 +779,13 @@ private:
 		FullMsgId articleId,
 		std::shared_ptr<RichPage> page,
 		std::optional<Api::SendAction> action,
-		Fn<SendMenu::Details()> sendMenuDetails,
+		SendMenu::Details sendMenuDetails,
 		std::optional<EditedItemSnapshot> edited,
-		std::optional<ComposeThreadKey> composeThreadKey)
+		std::optional<ComposeThreadKey> composeThreadKey,
+		base::weak_ptr<Window::SessionController> controller = {})
 	: _session(session)
 	, _peer(peer)
+	, _controller(std::move(controller))
 	, _mode(mode)
 	, _submitType((mode == Mode::Compose)
 		? ShowWindowDescriptor::SubmitType::Send
@@ -788,7 +803,8 @@ private:
 		},
 		[](QString) {
 		},
-		composeDraftOrigin()))
+		composeDraftOrigin(),
+		_controller))
 	, _limits(ResolveRichMessageLimits(_session))
 	, _state(std::make_shared<State>(_page, _runtime, _limits))
 	, _submitOptions(_composeAction ? _composeAction->options : Api::SendOptions())
@@ -861,6 +877,47 @@ private:
 			: ::Data::FileOrigin();
 	}
 
+	[[nodiscard]] ::Data::FileOrigin photoEditOrigin() const {
+		return (_mode == Mode::Edit)
+			? ::Data::FileOrigin(_articleId)
+			: composeDraftOrigin();
+	}
+
+	[[nodiscard]] bool submitWouldBeEphemeral(
+			const std::optional<TextWithEntities> &simple) const {
+		if (!_composeAction) {
+			return false;
+		} else if (!simple) {
+			const auto id = _composeAction->replyTo.messageId;
+			const auto target = _session->data().message(id);
+			return target && target->isEphemeral();
+		}
+		auto message = Api::MessageToSend(*_composeAction);
+		message.textWithTags = {
+			simple->text,
+			TextUtilities::ConvertEntitiesToTextTags(simple->entities),
+		};
+		return _session->ephemeralMessages().wouldSend(message);
+	}
+
+	[[nodiscard]] bool submitPaymentChecked(
+			const std::optional<TextWithEntities> &simple,
+			Fn<void(int)> resend) {
+		if (_mode != Mode::Compose
+			|| !_composeAction
+			|| _submitOptions.scheduled
+			|| submitWouldBeEphemeral(simple)) {
+			return true;
+		}
+		const auto show = resolveShow();
+		return !show || _sendPayment.check(
+			show,
+			_peer,
+			_submitOptions,
+			1,
+			std::move(resend));
+	}
+
 	[[nodiscard]] bool submitRequested() {
 		if (_submittedPage || _submitApiRequested) {
 			return false;
@@ -877,8 +934,32 @@ private:
 			showAttachmentFailedToast();
 			return false;
 		}
-		if (auto simple = SerializeAsSimple(_state->richPage())) {
+		if (_state->articleEmpty()) {
+			showEmptySubmittedPageToast();
+			return false;
+		}
+		auto simple = SerializeAsSimple(_state->richPage(), _session);
+		const auto weak = base::make_weak(this);
+		const auto withPaymentApproved = [weak](int approved) {
+			if (const auto strong = weak.get()) {
+				auto options = strong->_submitOptions;
+				options.starsApproved = approved;
+				strong->requestSubmit(std::move(options));
+			}
+		};
+		if (simple) {
+			if (!submitPaymentChecked(simple, withPaymentApproved)) {
+				return false;
+			}
 			return submitSimpleText(std::move(*simple));
+		}
+		if (_mode == Mode::Compose && _composeAction) {
+			const auto replyToId = _composeAction->replyTo.messageId;
+			const auto target = _session->data().message(replyToId);
+			if (target && target->isEphemeral()) {
+				showToast(tr::lng_ephemeral_reply_text_only(tr::now));
+				return false;
+			}
 		}
 		if (!CanUseRichMessages(_session)) {
 			const auto page = _state->richPage();
@@ -886,18 +967,13 @@ private:
 				ShowRichMessagesPremiumToast(resolveShow());
 				return false;
 			}
-			const auto weak = base::make_weak(this);
 			OfferRichMessagePremiumChoice(
 				resolveShow(),
 				_session,
 				page,
 				[=] {
 					if (const auto strong = weak.get()) {
-						auto plain = FlattenRichPageToSimpleText(page);
-						if (strong->submitSimpleText(std::move(plain))
-							&& strong->_windowHost) {
-							strong->_windowHost->close();
-						}
+						strong->submitWithoutFormatting(page);
 					}
 				});
 			return false;
@@ -914,6 +990,10 @@ private:
 				== SerializeInputRichMessageStatus::EmptyContent) {
 			_submittedPage = nullptr;
 			showEmptySubmittedPageToast();
+			return false;
+		}
+		if (!submitPaymentChecked(simple, withPaymentApproved)) {
+			_submittedPage = nullptr;
 			return false;
 		}
 		if (!applySubmittedLocalState(page)) {
@@ -972,6 +1052,27 @@ private:
 			},
 			false);
 		return true;
+	}
+
+	void submitWithoutFormatting(RichPage page) {
+		auto plain = FlattenRichPageToSimpleText(page);
+		const auto weak = base::make_weak(this);
+		const auto withPaymentApproved = [weak, page](int approved) {
+			if (const auto strong = weak.get()) {
+				strong->_submitOptions.starsApproved = approved;
+				if (strong->_composeAction) {
+					strong->_composeAction->options
+						= strong->_submitOptions;
+				}
+				strong->submitWithoutFormatting(page);
+			}
+		};
+		if (!submitPaymentChecked(plain, withPaymentApproved)) {
+			return;
+		}
+		if (submitSimpleText(std::move(plain)) && _windowHost) {
+			_windowHost->close();
+		}
 	}
 
 	[[nodiscard]] bool cancelRequested() {
@@ -1241,12 +1342,17 @@ private:
 			RichPage::Block &block,
 			const AttachmentRecord &attachment) const {
 		if (block.kind == RichPage::BlockKind::GroupedMedia) {
+			auto patchedAny = false;
+			auto patchedAll = true;
 			for (auto &item : block.mediaItems) {
 				if (groupedMediaItemMatchesAttachment(item, attachment)) {
-					return patchReadyGroupedMediaItem(item, attachment);
+					patchedAny = true;
+					if (!patchReadyGroupedMediaItem(item, attachment)) {
+						patchedAll = false;
+					}
 				}
 			}
-			return false;
+			return patchedAny && patchedAll;
 		}
 		return patchReadyAttachmentBlock(block, attachment);
 	}
@@ -1380,7 +1486,7 @@ private:
 
 	void setupSubmitButton(not_null<Ui::RpWidget*> button) {
 		_submitButton = button;
-		if (_mode != Mode::Compose || !_sendMenuDetails) {
+		if (_mode != Mode::Compose) {
 			return;
 		}
 		const auto show = _editorShow;
@@ -1396,14 +1502,7 @@ private:
 		SendMenu::SetupMenuAndShortcuts(
 			button,
 			show,
-			[weak] {
-				if (const auto session = weak.get()) {
-					return session->_sendMenuDetails
-						? session->_sendMenuDetails()
-						: SendMenu::Details();
-				}
-				return SendMenu::Details();
-			},
+			[details = _sendMenuDetails] { return details; },
 			SendMenu::DefaultCallback(show, submit));
 	}
 
@@ -1536,8 +1635,9 @@ private:
 					std::move(target));
 			},
 			.requestPhotoEditSource = [session = shared_from_this()](
-					uint64 photoId) {
-				return session->photoEditSource(photoId);
+					uint64 photoId,
+					Fn<void(QImage)> done) {
+				session->photoEditSource(photoId, std::move(done));
 			},
 			.replacePhotoWithList = [session = shared_from_this()](
 					not_null<Widget*> editor,
@@ -1595,8 +1695,21 @@ private:
 		_submitButton = nullptr;
 		_windowHost = nullptr;
 		_editorShow = nullptr;
+		_pendingPhotoEditSources.clear();
+		_photoEditSourceLifetime.destroy();
 		if (!_submittedPage && !_submitApiRequested) {
 			_backgroundHold = nullptr;
+			// Sync the local draft and the chat input field with the
+			// cloud draft saved on close, like an incoming server draft
+			// update: simple-text drafts go back into the message field,
+			// rich drafts show the draft preview. Must happen after the
+			// compose entry is released above, otherwise the field code
+			// still bypasses normal draft handling and skips the update.
+			// Skipped when no cloud draft object exists at all: then this
+			// editor never wrote one (blank open, blank close), and syncing
+			// would wipe an unrelated local draft (e.g. reply-only) through
+			// the cloud-to-local clear branch.
+			syncFieldWithCloudDraftAfterClose();
 		}
 		if (const auto continuation = base::take(_onWindowClosedContinuation)) {
 			continuation();
@@ -1660,12 +1773,31 @@ private:
 	// The caller must hold a strong reference (see CloseAll() and the session
 	// clear handler) so that the eventual ~ArticleSession runs after this
 	// returns rather than re-entrantly.
+	//
+	// Runs on passcode lock, account switch and application shutdown, so
+	// it must stay synchronous and must not start network requests: the
+	// current article state is captured into the in-memory cloud draft
+	// and mirrored to the local draft / input field, while the server
+	// save is only scheduled (it fires after unlock and simply never
+	// happens during logout or shutdown).
 	void forceClose() {
 		if (!_windowHost && !_backgroundHold) {
 			return;
 		}
 		cancelRichDraftAutosave();
 		cancelCloseWithDraftSave(_closeDraftSaveGeneration);
+		const auto sync = _composeAction
+			&& _composeThreadKey
+			&& !_submittedPage
+			&& !_submitApiRequested;
+		if (sync && !hasPendingPreparation()) {
+			if (const auto prepared = prepareRichDraftForAutosave()) {
+				_composeAction->history->createCloudDraft(
+					_composeThreadKey->draftKey.topicRootId(),
+					_composeThreadKey->draftKey.monoforumPeerId(),
+					&*prepared);
+			}
+		}
 		releaseComposeThreadWindow();
 		_editor = nullptr;
 		_submitButton = nullptr;
@@ -1674,6 +1806,15 @@ private:
 		_backgroundHold = nullptr;
 		_closeDraftSaveContinuation = nullptr;
 		_onWindowClosedContinuation = nullptr;
+		if (sync) {
+			syncFieldWithCloudDraftAfterClose();
+			const auto history = _composeAction->history;
+			if (const auto thread = history->threadFor(
+					_composeThreadKey->draftKey.topicRootId(),
+					_composeThreadKey->draftKey.monoforumPeerId())) {
+				_session->api().saveDraftToCloudDelayed(not_null{ thread });
+			}
+		}
 	}
 
 	void handleMediaDialogResult(
@@ -1754,19 +1895,72 @@ private:
 			std::move(replaceTarget));
 	}
 
-	[[nodiscard]] QImage photoEditSource(uint64 photoId) {
+	void photoEditSource(uint64 photoId, Fn<void(QImage)> done) {
 		if (const auto i = _originalMediaImages.find(photoId);
 			i != end(_originalMediaImages)) {
-			return i->second;
+			done(i->second);
+			return;
+		}
+		for (const auto &attachment : _attachments) {
+			if ((attachment.blockKind == RichPage::BlockKind::Photo)
+				&& mediaIdMatchesAttachment(photoId, attachment)) {
+				const auto i = _originalMediaImages.find(
+					attachment.localMediaId);
+				if (i != end(_originalMediaImages)) {
+					done(i->second);
+					return;
+				}
+				break;
+			}
 		}
 		const auto photo = _session->data().photo(PhotoId(photoId));
 		const auto media = photo->createMediaView();
-		const auto origin = composeDraftOrigin();
-		media->wanted(::Data::PhotoSize::Large, origin);
+		photo->clearFailed(::Data::PhotoSize::Large);
+		media->wanted(::Data::PhotoSize::Large, photoEditOrigin());
 		if (const auto large = media->image(::Data::PhotoSize::Large)) {
-			return large->original();
+			_pendingPhotoEditSources.remove(photoId);
+			done(large->original());
+			return;
 		}
-		return QImage();
+		const auto i = _pendingPhotoEditSources.find(photoId);
+		if (i != end(_pendingPhotoEditSources)) {
+			i->second.done = std::move(done);
+			return;
+		}
+		_pendingPhotoEditSources.emplace(photoId, PendingPhotoEditSource{
+			.media = media,
+			.done = std::move(done),
+		});
+		if (!_photoEditSourceLifetime) {
+			_session->downloaderTaskFinished(
+			) | rpl::on_next([=] {
+				checkPendingPhotoEditSources();
+			}, _photoEditSourceLifetime);
+		}
+	}
+
+	void checkPendingPhotoEditSources() {
+		auto completed = std::vector<std::pair<Fn<void(QImage)>, QImage>>();
+		for (auto i = begin(_pendingPhotoEditSources)
+			; i != end(_pendingPhotoEditSources);) {
+			const auto &media = i->second.media;
+			if (const auto large = media->image(::Data::PhotoSize::Large)) {
+				completed.emplace_back(
+					std::move(i->second.done),
+					large->original());
+				i = _pendingPhotoEditSources.erase(i);
+			} else if (media->owner()->failed(::Data::PhotoSize::Large)) {
+				i = _pendingPhotoEditSources.erase(i);
+			} else {
+				++i;
+			}
+		}
+		for (auto &[done, image] : completed) {
+			done(std::move(image));
+		}
+		if (_pendingPhotoEditSources.empty()) {
+			_photoEditSourceLifetime.destroy();
+		}
 	}
 
 	[[nodiscard]] MediaUploadState mediaUploadStateForMedia(uint64 mediaId) {
@@ -1775,10 +1969,7 @@ private:
 				const auto uploading
 					= (attachment.state == AttachmentState::Uploading)
 						|| (attachment.state == AttachmentState::Finalizing);
-				return {
-					.uploading = uploading,
-					.progress = attachment.progress,
-				};
+				return { .uploading = uploading };
 			}
 		}
 		return {};
@@ -2154,12 +2345,6 @@ private:
 			std::move(*replaceTarget),
 			std::move(block));
 		refreshAttachmentLocatorsAndDropMissing();
-		const auto updated = findAttachment(*uploadId);
-		if (!updated) {
-			requestEditorUpdate();
-			return;
-		}
-		updateAttachmentProgress(*updated);
 		requestEditorUpdate();
 	}
 
@@ -2364,14 +2549,14 @@ private:
 		}, _lifetime);
 		_session->uploader().photoProgress(
 		) | rpl::on_next([=](const FullMsgId &id) {
-			if (const auto attachment = findAttachment(id)) {
-				updateAttachmentProgress(*attachment);
+			if (findAttachment(id)) {
+				requestEditorUpdate();
 			}
 		}, _lifetime);
 		_session->uploader().documentProgress(
 		) | rpl::on_next([=](const FullMsgId &id) {
-			if (const auto attachment = findAttachment(id)) {
-				updateAttachmentProgress(*attachment);
+			if (findAttachment(id)) {
+				requestEditorUpdate();
 			}
 		}, _lifetime);
 		_session->uploader().photoFailed(
@@ -2441,6 +2626,10 @@ private:
 		}
 		if (data.info.videoCover) {
 			flags |= Flag::f_video_cover;
+		}
+		if (attachment.blockKind == RichPage::BlockKind::Video
+			&& !attachment.forceFile) {
+			flags |= Flag::f_nosound_video;
 		}
 		auto attributes = !attachment.attributes.isEmpty()
 			? attachment.attributes
@@ -2521,7 +2710,6 @@ private:
 			markAttachmentFailed(uploadId);
 			return;
 		}
-		attachment->progress = 1.;
 		if (_editor) {
 			auto patched = true;
 			_editor->applyExternalRichPageMutation([&](RichPage &page) {
@@ -2595,7 +2783,6 @@ private:
 			markAttachmentFailed(uploadId);
 			return;
 		}
-		attachment->progress = 1.;
 		if (_editor) {
 			auto patched = true;
 			_editor->applyExternalRichPageMutation([&](RichPage &page) {
@@ -2625,28 +2812,11 @@ private:
 	void markAttachmentFailed(FullMsgId uploadId) {
 		if (const auto attachment = findAttachment(uploadId)) {
 			attachment->state = AttachmentState::Failed;
-			updateAttachmentProgress(*attachment);
 			showAttachmentFailedToast();
 			requestEditorUpdate();
 			retryRichDraftCloseSaveIfNeeded();
 			maybeContinueSubmittedRequest();
 		}
-	}
-
-	void updateAttachmentProgress(AttachmentRecord &attachment) {
-		if (attachment.state == AttachmentState::Ready) {
-			attachment.progress = 1.;
-		} else if ((attachment.state == AttachmentState::Uploading)
-			|| (attachment.state == AttachmentState::Finalizing)) {
-			if (attachment.blockKind == RichPage::BlockKind::Photo) {
-				attachment.progress = _session->data().photo(
-					attachment.localMediaId)->progress();
-			} else {
-				attachment.progress = _session->data().document(
-					attachment.localMediaId)->progress();
-			}
-		}
-		requestEditorUpdate();
 	}
 
 	void requestEditorUpdate() {
@@ -2688,7 +2858,6 @@ private:
 				.type = PreparedFileType::Photo,
 				.blockKind = RichPage::BlockKind::Photo,
 				.state = AttachmentState::Ready,
-				.progress = 1.,
 				.caption = block.caption.text.text,
 				.dimensions = QSize(block.width, block.height),
 				.spoiler = block.spoiler,
@@ -2722,7 +2891,6 @@ private:
 					: PreparedFileType::Video,
 				.blockKind = kind,
 				.state = AttachmentState::Ready,
-				.progress = 1.,
 				.caption = block.caption.text.text,
 				.dimensions = QSize(block.width, block.height),
 				.spoiler = block.spoiler,
@@ -2808,7 +2976,6 @@ private:
 				.type = PreparedFileType::Photo,
 				.blockKind = RichPage::BlockKind::Photo,
 				.state = AttachmentState::Ready,
-				.progress = 1.,
 				.dimensions = QSize(item.width, item.height),
 				.spoiler = item.spoiler,
 				.serverMediaId = item.photoId,
@@ -2842,7 +3009,6 @@ private:
 				.type = PreparedFileType::Video,
 				.blockKind = RichPage::BlockKind::Video,
 				.state = AttachmentState::Ready,
-				.progress = 1.,
 				.dimensions = QSize(item.width, item.height),
 				.spoiler = item.spoiler,
 				.autoplay = item.autoplay,
@@ -2889,6 +3055,7 @@ private:
 	void cancelCloseWithDraftSave(uint64 generation);
 	void showCloseDraftSavingBox(uint64 generation);
 	void showCloseDraftSaveFailedBox(uint64 generation, const QString &error);
+	void syncFieldWithCloudDraftAfterClose();
 
 	[[nodiscard]] AttachmentRecord *findAttachment(FullMsgId uploadId) {
 		for (auto &attachment : _attachments) {
@@ -3215,11 +3382,6 @@ private:
 					if (!patched) {
 						requestEditorUpdate();
 					}
-				}
-			}
-			if (const auto attachment = findAttachment(uploadId)) {
-				if (!attachment->blockLocators.empty()) {
-					updateAttachmentProgress(*attachment);
 				}
 			}
 		}
@@ -3576,11 +3738,12 @@ private:
 
 	const not_null<Main::Session*> _session;
 	const not_null<PeerData*> _peer;
+	const base::weak_ptr<Window::SessionController> _controller;
 	const Mode _mode;
 	const ShowWindowDescriptor::SubmitType _submitType;
 	const FullMsgId _articleId;
 	std::optional<Api::SendAction> _composeAction;
-	const Fn<SendMenu::Details()> _sendMenuDetails;
+	const SendMenu::Details _sendMenuDetails;
 	const std::optional<EditedItemSnapshot> _edited;
 	const std::optional<ComposeThreadKey> _composeThreadKey;
 	const std::shared_ptr<RichPage> _page;
@@ -3588,6 +3751,7 @@ private:
 	const RichMessageLimits _limits;
 	const std::shared_ptr<State> _state;
 	Api::SendOptions _submitOptions;
+	SendPaymentHelper _sendPayment;
 	std::shared_ptr<ChatHelpers::Show> _editorShow;
 	QPointer<Ui::RpWidget> _submitButton;
 	QPointer<Widget> _editor;
@@ -3598,12 +3762,14 @@ private:
 	std::shared_ptr<const RichPage> _submittedPage;
 	std::vector<AttachmentRecord> _attachments;
 	base::flat_map<uint64, QImage> _originalMediaImages;
+	base::flat_map<uint64, PendingPhotoEditSource> _pendingPhotoEditSources;
 	std::deque<QueuedPrepare> _prepareQueue;
 	std::vector<MediaBatch> _mediaBatches;
 	TaskQueue _attachmentPrepareQueue;
 	base::Timer _richDraftAutosaveTimer;
 	base::weak_qptr<Ui::GenericBox> _closeDraftSaveBox;
 	rpl::lifetime _editorAutosaveLifetime;
+	rpl::lifetime _photoEditSourceLifetime;
 	rpl::lifetime _lifetime;
 	uint64 _prepareBatchId = 0;
 	uint64 _rejectedToastBatchId = 0;
@@ -3684,6 +3850,24 @@ std::optional<::Data::Draft> ArticleSession::prepareRichDraftForAutosave() const
 	draft.webpage = ::Data::WebPageDraft();
 	draft.reply.topicRootId = topicRootId;
 	draft.reply.monoforumPeerId = monoforumPeerId;
+	if (_state->articleEmpty()) {
+		draft.richMessage = nullptr;
+		draft.richMessageSummary = {};
+		return draft;
+	}
+	if (auto simple = SerializeAsSimple(_state->richPage(), _session)) {
+		draft.textWithTags = {
+			simple->text,
+			TextUtilities::ConvertEntitiesToTextTags(simple->entities),
+		};
+		draft.cursor = MessageCursor(
+			int(simple->text.size()),
+			int(simple->text.size()),
+			Ui::kQFixedMax);
+		draft.richMessage = nullptr;
+		draft.richMessageSummary = {};
+		return draft;
+	}
 	auto richMessage = std::make_shared<RichPage>(_state->richPage());
 	const auto serialized = SerializeInputRichMessage(
 		_session,
@@ -3871,6 +4055,18 @@ void ArticleSession::cancelCloseWithDraftSave(uint64 generation) {
 	}
 }
 
+void ArticleSession::syncFieldWithCloudDraftAfterClose() {
+	if (!_composeAction || !_composeThreadKey) {
+		return;
+	}
+	const auto history = _composeAction->history;
+	const auto topicRootId = _composeThreadKey->draftKey.topicRootId();
+	const auto monoforumPeerId = _composeThreadKey->draftKey.monoforumPeerId();
+	if (history->cloudDraft(topicRootId, monoforumPeerId)) {
+		history->applyCloudDraft(topicRootId, monoforumPeerId);
+	}
+}
+
 void ArticleSession::showCloseDraftSavingBox(uint64 generation) {
 	if (_closeDraftSaveBox) {
 		return;
@@ -3982,15 +4178,36 @@ void ShowRichMessagesPremiumToast(std::shared_ptr<ChatHelpers::Show> show) {
 	if (!show) {
 		return;
 	}
-	Settings::ShowPremiumPromoToast(
-		std::move(show),
-		tr::lng_article_premium_required(
+	const auto session = &show->session();
+	show->showToast({
+		.text = tr::lng_article_premium_required(
 			tr::now,
 			lt_link,
 			tr::link(tr::bold(
 				tr::lng_article_premium_required_link(tr::now))),
 			tr::marked),
-		u"rich_message"_q);
+		.filter = [=](
+				const ClickHandlerPtr &handler,
+				Qt::MouseButton button) {
+			if (button != Qt::LeftButton) {
+				return false;
+			}
+			if (show && show->valid()) {
+				ShowPremiumPreviewToBuy(
+					show,
+					PremiumFeature::RichFormatting);
+			} else if (const auto window
+					= session->tryResolveWindow(nullptr)) {
+				ShowPremiumPreviewToBuy(
+					window,
+					PremiumFeature::RichFormatting);
+			}
+			return true;
+		},
+		.icon = &st::settingsToastStarIcon,
+		.adaptive = true,
+		.duration = Ui::Toast::kDefaultDuration * 2,
+	});
 }
 
 void SetupSendLockBadge(
@@ -4008,7 +4225,7 @@ void SetupSendLockBadge(
 	lock->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(lock);
 		auto hq = PainterHighQualityEnabler(p);
-		const auto border = st::lineWidth;
+		const auto border = st::ivEditorSendLockBadgeStroke;
 		auto pen = QPen(st::windowBg);
 		pen.setWidth(border);
 		p.setPen(pen);
@@ -4161,12 +4378,13 @@ void ShowComposeBox(
 		not_null<Window::SessionController*> controller,
 		not_null<PeerData*> peer,
 		Api::SendAction action,
-		Fn<SendMenu::Details()> sendMenuDetails) {
+		SendMenu::Details sendMenuDetails) {
 	ArticleSession::ShowCompose(
 		&controller->session(),
 		peer,
 		std::move(action),
-		std::move(sendMenuDetails));
+		std::move(sendMenuDetails),
+		base::make_weak(controller));
 }
 
 void ShowEditBox(
@@ -4196,19 +4414,19 @@ void ShowEditBox(
 		}
 		ArticleSession::ShowEdit(
 			not_null{ current },
-			std::move(page));
+			std::move(page),
+			base::make_weak(strong));
 	});
 }
 
 void ShowEditFromFieldBox(
 		not_null<Window::SessionController*> controller,
 		not_null<HistoryItem*> item,
-		Api::SendAction action,
-		Fn<SendMenu::Details()> sendMenuDetails) {
+		Api::SendAction action) {
 	ArticleSession::ShowEditFromField(
 		item,
 		std::move(action),
-		std::move(sendMenuDetails));
+		base::make_weak(controller));
 }
 
 bool IsComposeBoxOpen(

@@ -34,6 +34,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "storage/storage_account.h"
 #include "storage/storage_facade.h"
 #include "data/components/credits.h"
+#include "data/components/ephemeral_messages.h"
 #include "data/components/factchecks.h"
 #include "data/components/gift_auctions.h"
 #include "data/components/location_pickers.h"
@@ -123,6 +124,7 @@ Session::Session(
 , _recentSharedGifts(std::make_unique<Data::RecentSharedMediaGifts>(this))
 , _giftAuctions(std::make_unique<Data::GiftAuctions>(this))
 , _scheduledMessages(std::make_unique<Data::ScheduledMessages>(this))
+, _ephemeralMessages(std::make_unique<Data::EphemeralMessages>(this))
 , _sponsoredMessages(std::make_unique<Data::SponsoredMessages>(this))
 , _topPeers(std::make_unique<Data::TopPeers>(this, Data::TopPeerType::Chat))
 , _topBotApps(

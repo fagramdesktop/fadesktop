@@ -10,6 +10,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "info/info_flexible_scroll.h"
 #include "info/info_wrap_widget.h"
 #include "info/statistics/info_statistics_tag.h"
+#include "ui/controls/swipe_handler.h"
 #include "ui/controls/swipe_handler_data.h"
 
 namespace Api {
@@ -162,6 +163,10 @@ public:
 
 	void replaceSwipeHandler(Ui::Controls::SwipeHandlerArgs *incompleteArgs);
 
+	using SwipeInterceptor = Fn<Ui::Controls::SwipeHandlerFinishData(
+		Ui::Controls::SwipeHandlerInitData)>;
+	void setSwipeInterceptor(SwipeInterceptor interceptor);
+
 protected:
 	template <typename Widget>
 	Widget *setInnerWidget(object_ptr<Widget> inner) {
@@ -199,11 +204,15 @@ protected:
 	void setInnerTopReserve(int reserve);
 	void setupFlexibleRegularScroll(
 		not_null<Ui::RpWidget*> inner,
-		not_null<Ui::RpWidget*> pinnedToTop);
+		not_null<Ui::RpWidget*> pinnedToTop,
+		bool abortSnapOnExternalScroll = false);
 	int scrollTopSave() const;
 	void scrollTopRestore(int scrollTop);
 	void scrollTo(const Ui::ScrollToRequest &request);
 	[[nodiscard]] rpl::producer<int> scrollTopValue() const;
+	[[nodiscard]] int innerTopReserve() const {
+		return _innerTopReserve;
+	}
 
 	void setPaintPadding(const style::margins &padding);
 
@@ -247,6 +256,7 @@ private:
 	style::margins _paintPadding;
 
 	Ui::Controls::SwipeBackResult _swipeBackData;
+	SwipeInterceptor _swipeInterceptor;
 	rpl::lifetime _swipeHandlerLifetime;
 
 };

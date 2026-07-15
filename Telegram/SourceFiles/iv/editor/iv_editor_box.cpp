@@ -12,16 +12,21 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/algorithm.h"
 #include "base/event_filter.h"
 #include "base/flat_map.h"
+#include "base/options.h"
 #include "base/unique_qptr.h"
 #include "base/weak_qptr.h"
+#include "boxes/create_ai_box.h"
 #include "boxes/premium_preview_box.h"
 #include "chat_helpers/compose/compose_show.h"
+#include "data/data_changes.h"
 #include "data/data_file_origin.h"
 #include "data/data_msg_id.h"
 #include "data/data_types.h"
 #include "data/data_emoji_statuses.h"
 #include "dialogs/ui/dialogs_pill.h"
 #include "history/history_item.h"
+#include "history/view/controls/history_view_compose_ai_button.h"
+#include "boxes/compose_ai_box.h"
 #include "main/main_session.h"
 #include "ui/emoji_config.h"
 #include "ui/painter.h"
@@ -36,11 +41,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "menu/menu_checked_action.h"
 #include "menu/menu_send_details.h"
+#include "styles/style_settings.h"
 #include "ui/boxes/confirm_box.h"
+#include "ui/controls/compose_ai_button_factory.h"
 #include "ui/controls/send_button.h"
 #include "ui/delayed_activation.h"
 #include "ui/effects/premium_graphics.h"
+#include "ui/effects/ripple_animation.h"
+#include "ui/layers/generic_box.h"
 #include "ui/rp_widget.h"
+#include "ui/toast/toast.h"
 #include "data/data_peer_values.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/buttons.h"
@@ -57,6 +67,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtCore/QEvent>
 #include <QtCore/QPointer>
+#include <QtGui/QCursor>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QKeyEvent>
 #include <QtGui/QPainter>
@@ -74,7 +85,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_editor.h"
 #include "styles/style_iv.h"
 #include "styles/style_layers.h"
-#include "styles/style_menu_icons.h"
 #include "styles/style_widgets.h"
 
 namespace Iv::Editor {
@@ -115,6 +125,15 @@ enum class ToolbarActionId : uchar {
 	return shortcut.isEmpty()
 		? label
 		: (label + u" ("_q + shortcut + u")"_q);
+}
+
+[[nodiscard]] QString WithTabShortcut(
+		const QString &label,
+		QKeySequence seq) {
+	const auto shortcut = seq.toString(QKeySequence::NativeText);
+	return shortcut.isEmpty()
+		? label
+		: (label + QChar('\t') + shortcut);
 }
 
 [[nodiscard]] QString ToolbarActionLabel(
@@ -190,6 +209,76 @@ enum class ToolbarActionId : uchar {
 	return &st::ivEditorToolbarHeadingIcon;
 }
 
+[[nodiscard]] QImage PremiumStarImage() {
+	const auto factor = style::DevicePixelRatio();
+	const auto side = st::ivEditorToolbarPremiumStarSize;
+	const auto size = QSize(side, side);
+	auto image = QImage(
+		size * factor,
+		QImage::Format_ARGB32_Premultiplied);
+	image.setDevicePixelRatio(factor);
+	image.fill(Qt::transparent);
+	{
+		auto p = QPainter(&image);
+		auto svg = QSvgRenderer(Ui::Premium::ColorizedSvg(
+			Ui::Premium::ButtonGradientStops()));
+		svg.render(&p, QRectF(QPointF(), QSizeF(size)));
+	}
+	return image;
+}
+
+template <typename Button>
+void SetupToolbarButtonState(
+		not_null<Button*> button,
+		ToolbarButtonState state,
+		anim::type animated = anim::type::normal) {
+	const auto disabled = (state == ToolbarButtonState::Disabled);
+	const auto active = (state == ToolbarButtonState::Active);
+	button->setAttribute(Qt::WA_TransparentForMouseEvents, disabled);
+	button->setPointerCursor(!disabled);
+	if (active) {
+		button->setRippleColorOverride(&st::lightButtonBgOver);
+		button->setForceRippled(true, animated);
+		button->setIconColorOverride(st::windowActiveTextFg->c);
+	} else {
+		button->setForceRippled(false, animated);
+		button->setRippleColorOverride(nullptr);
+		button->setIconColorOverride(disabled
+			? std::optional<QColor>(st::windowSubTextFg->c)
+			: std::nullopt);
+	}
+}
+
+class ToolbarStarButton final : public Ui::RippleButton {
+public:
+	ToolbarStarButton(
+		QWidget *parent,
+		const style::IconButton &st,
+		not_null<Main::Session*> session);
+
+	void setIconOverride(const style::icon *icon);
+	void setIconColorOverride(std::optional<QColor> color);
+	void setRippleColorOverride(const style::color *color);
+
+protected:
+	void paintEvent(QPaintEvent *e) override;
+	void onStateChanged(State was, StateChangeSource source) override;
+
+	[[nodiscard]] QImage prepareRippleMask() const override;
+	[[nodiscard]] QPoint prepareRippleStartPosition() const override;
+
+private:
+	void validateFrame();
+
+	const style::IconButton &_st;
+	const style::icon *_iconOverride = nullptr;
+	const style::color *_rippleColorOverride = nullptr;
+	std::optional<QColor> _iconColorOverride;
+	QImage _frame;
+	bool _premium = false;
+
+};
+
 class Toolbar final : public Ui::RpWidget {
 public:
 	Toolbar(
@@ -221,10 +310,15 @@ private:
 		Fn<void()> callback,
 		std::optional<Widget::ToolbarFormatAction> format = std::nullopt,
 		Fn<QString()> tooltip = nullptr);
-	void addPremiumStar(not_null<Ui::IconButton*> button);
+	not_null<ToolbarStarButton*> addStarPillButton(
+		not_null<ToolbarPill*> pill,
+		ToolbarActionId action,
+		const style::icon *icon,
+		Fn<void()> callback,
+		Fn<QString()> tooltip);
 	void buildPills();
-	void scheduleTooltip(not_null<Ui::IconButton*> button);
-	void showTooltip(not_null<Ui::IconButton*> button);
+	void scheduleTooltip(not_null<Ui::RippleButton*> button);
+	void showTooltip(not_null<Ui::RippleButton*> button);
 	void hideTooltip();
 	void updateTooltipGeometry();
 	void fillHeadingMenu(not_null<Ui::PopupMenu*> menu);
@@ -233,11 +327,11 @@ private:
 	void fillTextStyleMenu(not_null<Ui::PopupMenu*> menu);
 	void showTextStyleMenu(not_null<Ui::IconButton*> button);
 	void fillListStyleMenu(not_null<Ui::PopupMenu*> menu);
-	void showListStyleMenu(not_null<Ui::IconButton*> button);
+	void showListStyleMenu(not_null<Ui::RippleButton*> button);
 	void fillTableStyleMenu(not_null<Ui::PopupMenu*> menu);
-	void showTableStyleMenu(not_null<Ui::IconButton*> button);
+	void showTableStyleMenu(not_null<Ui::RippleButton*> button);
 	void fillAttachMenu(not_null<Ui::PopupMenu*> menu);
-	void showAttachMenu(not_null<Ui::IconButton*> button);
+	void showAttachMenu(not_null<Ui::RippleButton*> button);
 	void applyBlockText();
 	void updateFromEditorState();
 	void updateInputMask();
@@ -255,12 +349,12 @@ private:
 	std::vector<PillButton> _stateButtons;
 	Ui::IconButton *_linkButton = nullptr;
 	Ui::IconButton *_emojiButton = nullptr;
-	Ui::IconButton *_listButton = nullptr;
-	Ui::IconButton *_tableButton = nullptr;
-	base::flat_map<Ui::IconButton*, Fn<QString()>> _tooltipFactories;
+	ToolbarStarButton *_listButton = nullptr;
+	ToolbarStarButton *_tableButton = nullptr;
+	base::flat_map<Ui::RippleButton*, Fn<QString()>> _tooltipFactories;
 	base::unique_qptr<Ui::ImportantTooltip> _tooltip;
-	Ui::IconButton *_hovered = nullptr;
-	Ui::IconButton *_scheduledTooltip = nullptr;
+	Ui::RippleButton *_hovered = nullptr;
+	Ui::RippleButton *_scheduledTooltip = nullptr;
 	base::unique_qptr<Ui::PopupMenu> _menu;
 
 };
@@ -326,18 +420,6 @@ int TryToExtendWidthBy(not_null<Window*> window, int addToWidth) {
 		window->setGeometry(QRect(newLeft, inner.y(), newWidth, inner.height()));
 	}
 	return addToWidth;
-}
-
-[[nodiscard]] QString HeadingLabel(int level) {
-	switch (level) {
-	case 1: return tr::lng_article_insert_heading1(tr::now);
-	case 2: return tr::lng_article_insert_heading2(tr::now);
-	case 3: return tr::lng_article_insert_heading3(tr::now);
-	case 4: return tr::lng_article_insert_heading4(tr::now);
-	case 5: return tr::lng_article_insert_heading5(tr::now);
-	case 6: return tr::lng_article_insert_heading6(tr::now);
-	}
-	return tr::lng_article_insert_heading1(tr::now);
 }
 
 [[nodiscard]] QString SubmitText(const ShowWindowDescriptor &descriptor) {
@@ -453,15 +535,123 @@ public:
 			ChatHelpers::FileChosen &&) const override {
 	}
 
-	::Window::SessionController *resolveWindow() const override {
-		return nullptr;
-	}
-
 private:
 	const QPointer<Window> _window;
 	const not_null<Main::Session*> _session;
 
 };
+
+ToolbarStarButton::ToolbarStarButton(
+	QWidget *parent,
+	const style::IconButton &st,
+	not_null<Main::Session*> session)
+: RippleButton(parent, st.ripple)
+, _st(st) {
+	resize(_st.width, _st.height);
+	Data::AmPremiumValue(session) | rpl::on_next([=](bool premium) {
+		_premium = premium;
+		_frame = QImage();
+		update();
+	}, lifetime());
+	style::PaletteChanged() | rpl::on_next([=] {
+		_frame = QImage();
+		update();
+	}, lifetime());
+}
+
+void ToolbarStarButton::setIconOverride(const style::icon *icon) {
+	if (_iconOverride == icon) {
+		return;
+	}
+	_iconOverride = icon;
+	_frame = QImage();
+	update();
+}
+
+void ToolbarStarButton::setIconColorOverride(std::optional<QColor> color) {
+	if (_iconColorOverride == color) {
+		return;
+	}
+	_iconColorOverride = color;
+	_frame = QImage();
+	update();
+}
+
+void ToolbarStarButton::setRippleColorOverride(const style::color *color) {
+	_rippleColorOverride = color;
+	update();
+}
+
+void ToolbarStarButton::paintEvent(QPaintEvent *e) {
+	auto p = QPainter(this);
+	paintRipple(
+		p,
+		_st.rippleAreaPosition,
+		_rippleColorOverride ? &(*_rippleColorOverride)->c : nullptr);
+	validateFrame();
+	p.drawImage(0, 0, _frame);
+}
+
+void ToolbarStarButton::validateFrame() {
+	const auto ratio = style::DevicePixelRatio();
+	if (!_frame.isNull() && _frame.size() == size() * ratio) {
+		return;
+	}
+	_frame = QImage(size() * ratio, QImage::Format_ARGB32_Premultiplied);
+	_frame.setDevicePixelRatio(ratio);
+	_frame.fill(Qt::transparent);
+	auto p = QPainter(&_frame);
+	const auto icon = _iconOverride ? _iconOverride : &_st.icon;
+	auto position = _st.iconPosition;
+	if (position.x() < 0) {
+		position.setX((width() - icon->width()) / 2);
+	}
+	if (position.y() < 0) {
+		position.setY((height() - icon->height()) / 2);
+	}
+	if (_iconColorOverride) {
+		icon->paint(p, position, width(), *_iconColorOverride);
+	} else {
+		icon->paint(p, position, width());
+	}
+	if (!_premium) {
+		const auto star = PremiumStarImage();
+		const auto side = st::ivEditorToolbarPremiumStarSize;
+		const auto skip = st::ivEditorToolbarPremiumStarSkip;
+		const auto outline = st::ivEditorToolbarPremiumStarOutline;
+		const auto at = QPoint(
+			width() - side - skip.x(),
+			height() - side - skip.y());
+		p.setCompositionMode(QPainter::CompositionMode_DestinationOut);
+		p.drawImage(at - QPoint(outline, 0), star);
+		p.drawImage(at + QPoint(outline, 0), star);
+		p.drawImage(at - QPoint(0, outline), star);
+		p.drawImage(at + QPoint(0, outline), star);
+		p.setCompositionMode(QPainter::CompositionMode_SourceOver);
+		p.drawImage(at, star);
+	}
+}
+
+void ToolbarStarButton::onStateChanged(
+		State was,
+		StateChangeSource source) {
+	RippleButton::onStateChanged(was, source);
+	update();
+}
+
+QImage ToolbarStarButton::prepareRippleMask() const {
+	return Ui::RippleAnimation::EllipseMask(
+		QSize(_st.rippleAreaSize, _st.rippleAreaSize));
+}
+
+QPoint ToolbarStarButton::prepareRippleStartPosition() const {
+	const auto result = mapFromGlobal(QCursor::pos())
+		- _st.rippleAreaPosition;
+	const auto rect = QRect(0, 0, _st.rippleAreaSize, _st.rippleAreaSize);
+	return rect.contains(result)
+		? result
+		: DisabledRippleStartPosition();
+}
 
 Toolbar::Toolbar(
 	QWidget *parent,
@@ -523,35 +713,35 @@ not_null<Ui::IconButton*> Toolbar::addPillButton(
 	return raw;
 }
 
-void Toolbar::addPremiumStar(not_null<Ui::IconButton*> button) {
-	const auto factor = style::DevicePixelRatio();
-	const auto side = st::ivEditorToolbarPremiumStarSize;
-	const auto size = QSize(side, side);
-	auto image = QImage(
-		size * factor,
-		QImage::Format_ARGB32_Premultiplied);
-	image.setDevicePixelRatio(factor);
-	image.fill(Qt::transparent);
-	{
-		auto p = QPainter(&image);
-		auto svg = QSvgRenderer(
-			Ui::Premium::ColorizedSvg(Ui::Premium::ButtonGradientStops()));
-		svg.render(&p, QRectF(QPointF(), QSizeF(size)));
+not_null<ToolbarStarButton*> Toolbar::addStarPillButton(
+		not_null<ToolbarPill*> pill,
+		ToolbarActionId action,
+		const style::icon *icon,
+		Fn<void()> callback,
+		Fn<QString()> tooltip) {
+	auto owned = object_ptr<ToolbarStarButton>(
+		pill.get(),
+		st::ivEditorToolbarButton,
+		_session);
+	const auto raw = owned.data();
+	raw->setIconOverride(icon);
+	SetupToolbarButtonState(
+		not_null<ToolbarStarButton*>(raw),
+		ToolbarButtonState::Inactive,
+		anim::type::instant);
+	pill->addButton(std::move(owned), st::ivEditorToolbarButton);
+	raw->setAccessibleName(
+		ToolbarActionLabel(action, _toolbarState.linkMode));
+	raw->setClickedCallback([=] {
+		if (callback) {
+			callback();
+		}
+	});
+	if (tooltip) {
+		_tooltipFactories.emplace(raw, std::move(tooltip));
+		raw->installEventFilter(this);
 	}
-	const auto star = Ui::CreateChild<Ui::RpWidget>(button.get());
-	star->setAttribute(Qt::WA_TransparentForMouseEvents);
-	star->resize(size);
-	star->paintRequest() | rpl::on_next([=] {
-		auto p = QPainter(star);
-		p.drawImage(0, 0, image);
-	}, star->lifetime());
-	const auto skip = st::ivEditorToolbarPremiumStarSkip;
-	star->move(
-		button->width() - star->width() - skip.x(),
-		button->height() - star->height() - skip.y());
-	star->showOn(Data::AmPremiumValue(_session)
-		| rpl::map([](bool premium) { return !premium; }));
-	star->raise();
+	return raw;
 }
 
 void Toolbar::buildPills() {
@@ -614,12 +804,11 @@ void Toolbar::buildPills() {
 	textStyle->setClickedCallback([=] {
 		showTextStyleMenu(textStyle);
 	});
-	const auto listStyle = addPillButton(
+	const auto listStyle = addStarPillButton(
 		controls,
 		ToolbarActionId::BulletList,
 		&st::ivEditorToolbarBulletListIcon,
 		nullptr,
-		std::nullopt,
 		[=] {
 			const auto active = _editor
 				&& _editor->currentListRangeAtCaret().has_value();
@@ -632,19 +821,19 @@ void Toolbar::buildPills() {
 		showListStyleMenu(listStyle);
 	});
 	_listButton = listStyle;
-	addPremiumStar(listStyle);
-	const auto tableStyle = addPillButton(
+	const auto tableStyle = addStarPillButton(
 		controls,
 		ToolbarActionId::Table,
 		&st::ivEditorToolbarTableIcon,
 		nullptr,
-		std::nullopt,
 		[=] {
 			const auto active = _editor
 				&& _editor->currentTableRangeAtCaret().has_value();
 			return active
 				? tr::lng_article_tooltip_table_style(tr::now)
-				: tr::lng_article_tooltip_table_insert(tr::now);
+				: WithParenShortcut(
+					tr::lng_article_tooltip_table_insert(tr::now),
+					kEditorTableSequence);
 		});
 	tableStyle->setIsMenuButton(true);
 	tableStyle->setClickedCallback([=] {
@@ -655,7 +844,6 @@ void Toolbar::buildPills() {
 		}
 	});
 	_tableButton = tableStyle;
-	addPremiumStar(tableStyle);
 	_linkButton = addPillButton(
 		controls,
 		ToolbarActionId::Link,
@@ -672,36 +860,27 @@ void Toolbar::buildPills() {
 				QKeySequence(Ui::kEditLinkSequence));
 		});
 	if (_hasRequestMedia) {
-		const auto attach = addPillButton(
+		const auto attach = addStarPillButton(
 			controls,
 			ToolbarActionId::Attach,
 			&st::ivEditorToolbarAttachIcon,
 			nullptr,
-			std::nullopt,
 			[] { return tr::lng_article_tooltip_media(tr::now); });
 		attach->setIsMenuButton(true);
 		attach->setClickedCallback([=] {
 			showAttachMenu(attach);
 		});
-		addPremiumStar(attach);
 	}
-	const auto math = addPillButton(
+	addStarPillButton(
 		controls,
 		ToolbarActionId::Math,
 		&st::ivEditorToolbarMathIcon,
 		[=] {
-			if (!_editor) {
-				return;
-			}
-			if (_editor->inlineToolbarModeActive()) {
+			if (_editor) {
 				_editor->editMathFromToolbar();
-			} else {
-				_editor->insertBlock({ .type = State::InsertBlockType::Math });
 			}
 		},
-		std::nullopt,
 		[] { return tr::lng_article_tooltip_formula(tr::now); });
-	addPremiumStar(math);
 
 	_emojiButton = addPillButton(
 		not_null<ToolbarPill*>(_emojiPill.data()),
@@ -723,9 +902,14 @@ void Toolbar::fillHeadingMenu(not_null<Ui::PopupMenu*> menu) {
 		: st::ivEditorStyleMenuPremiumStarSize;
 	for (const auto level : std::array{ 1, 2, 3, 4, 5, 6 }) {
 		const auto icon = HeadingIcon(level);
+		const auto shortcut = (level == 1)
+			? kEditorHeading1Sequence
+			: (level == 2)
+			? kEditorHeading2Sequence
+			: QKeySequence();
 		Menu::AddActiveColorAction(
 			menu,
-			HeadingLabel(level),
+			WithTabShortcut(Markdown::HeadingLevelLabel(level), shortcut),
 			[=] {
 				if (_editor) {
 					_editor->insertBlock({
@@ -755,16 +939,6 @@ void Toolbar::fillBlockStyleMenu(not_null<Ui::PopupMenu*> menu) {
 	const auto starSize = premium
 		? 0
 		: st::ivEditorStyleMenuPremiumStarSize;
-	const auto withShortcut = [&](const QString &label, QKeySequence seq) {
-		if (!premium) {
-			return label;
-		}
-		const auto shortcut = seq.toString(QKeySequence::NativeText);
-		return shortcut.isEmpty()
-			? label
-			: (label + QChar('\t') + shortcut);
-	};
-
 	auto sub = std::make_unique<Ui::PopupMenu>(menu, st::popupMenuWithIcons);
 	fillHeadingMenu(not_null<Ui::PopupMenu*>(sub.get()));
 	menu->addAction(
@@ -775,13 +949,15 @@ void Toolbar::fillBlockStyleMenu(not_null<Ui::PopupMenu*> menu) {
 
 	Menu::AddActiveColorAction(
 		menu,
-		tr::lng_article_insert_text(tr::now),
+		WithTabShortcut(
+			tr::lng_article_insert_text(tr::now),
+			kEditorBodyTextSequence),
 		[=] { applyBlockText(); },
 		&st::ivEditorToolbarPlainTextIcon,
 		(kind == Kind::Paragraph));
 	Menu::AddActiveColorAction(
 		menu,
-		withShortcut(
+		WithTabShortcut(
 			tr::lng_article_insert_blockquote(tr::now),
 			Ui::kBlockquoteSequence),
 		[=] { insertType(State::InsertBlockType::Blockquote); },
@@ -796,12 +972,26 @@ void Toolbar::fillBlockStyleMenu(not_null<Ui::PopupMenu*> menu) {
 		starSize);
 	Menu::AddActiveColorAction(
 		menu,
-		withShortcut(
+		WithTabShortcut(
 			tr::lng_article_insert_code(tr::now),
 			Ui::kMonospaceSequence),
 		[=] { insertType(State::InsertBlockType::Code); },
 		&st::ivEditorToolbarCodeIcon,
 		(kind == Kind::Code));
+	Menu::AddActiveColorAction(
+		menu,
+		tr::lng_article_insert_footer(tr::now),
+		[=] {
+			if (kind != Kind::Footer) {
+				insertType(State::InsertBlockType::Footer);
+			} else if (_editor) {
+				_editor->applyToolbarFormatAction(
+					Widget::ToolbarFormatAction::PlainText);
+			}
+		},
+		&st::ivEditorToolbarFooterIcon,
+		(kind == Kind::Footer),
+		starSize);
 	Menu::AddActiveColorAction(
 		menu,
 		tr::lng_article_insert_divider(tr::now),
@@ -829,6 +1019,7 @@ void Toolbar::applyBlockText() {
 		_editor->insertBlock({ .type = State::InsertBlockType::Code });
 		break;
 	case Kind::Heading:
+	case Kind::Footer:
 		_editor->applyToolbarFormatAction(
 			Widget::ToolbarFormatAction::PlainText);
 		break;
@@ -852,12 +1043,6 @@ void Toolbar::fillTextStyleMenu(not_null<Ui::PopupMenu*> menu) {
 	const auto starSize = premium
 		? 0
 		: st::ivEditorStyleMenuPremiumStarSize;
-	const auto withShortcut = [&](const QString &label, QKeySequence seq) {
-		const auto shortcut = seq.toString(QKeySequence::NativeText);
-		return shortcut.isEmpty()
-			? label
-			: (label + QChar('\t') + shortcut);
-	};
 	const auto add = [&](
 			Action action,
 			const QString &label,
@@ -870,7 +1055,7 @@ void Toolbar::fillTextStyleMenu(not_null<Ui::PopupMenu*> menu) {
 		}
 		Menu::AddActiveColorAction(
 			menu,
-			withShortcut(label, shortcut),
+			WithTabShortcut(label, shortcut),
 			[=] {
 				if (_editor) {
 					_editor->applyToolbarFormatAction(action);
@@ -961,7 +1146,7 @@ void Toolbar::fillAttachMenu(not_null<Ui::PopupMenu*> menu) {
 					RequestMediaType::Audio);
 			}
 		},
-		&st::menuIconSoundOn,
+		&st::ivEditorToolbarAudioIcon,
 		false,
 		starSize);
 	if (_requestMap) {
@@ -987,7 +1172,7 @@ void Toolbar::fillAttachMenu(not_null<Ui::PopupMenu*> menu) {
 	}
 }
 
-void Toolbar::showAttachMenu(not_null<Ui::IconButton*> button) {
+void Toolbar::showAttachMenu(not_null<Ui::RippleButton*> button) {
 	if (_menu) {
 		return;
 	}
@@ -1091,7 +1276,7 @@ void Toolbar::fillListStyleMenu(not_null<Ui::PopupMenu*> menu) {
 		&st::ivEditorToolbarBulletListIcon);
 }
 
-void Toolbar::showListStyleMenu(not_null<Ui::IconButton*> button) {
+void Toolbar::showListStyleMenu(not_null<Ui::RippleButton*> button) {
 	if (_menu) {
 		return;
 	}
@@ -1111,7 +1296,7 @@ void Toolbar::fillTableStyleMenu(not_null<Ui::PopupMenu*> menu) {
 	_editor->fillTableChangeMenu(menu, *range);
 }
 
-void Toolbar::showTableStyleMenu(not_null<Ui::IconButton*> button) {
+void Toolbar::showTableStyleMenu(not_null<Ui::RippleButton*> button) {
 	if (_menu) {
 		return;
 	}
@@ -1143,8 +1328,8 @@ void Toolbar::updateFromEditorState() {
 	if (_listButton) {
 		const auto inList = _editor
 			&& _editor->currentListRangeAtCaret().has_value();
-		SetupToolbarButton(
-			not_null<Ui::IconButton*>(_listButton),
+		SetupToolbarButtonState(
+			not_null<ToolbarStarButton*>(_listButton),
 			inList
 				? ToolbarButtonState::Active
 				: ToolbarButtonState::Inactive);
@@ -1152,8 +1337,8 @@ void Toolbar::updateFromEditorState() {
 	if (_tableButton) {
 		const auto inTable = _editor
 			&& _editor->currentTableRangeAtCaret().has_value();
-		SetupToolbarButton(
-			not_null<Ui::IconButton*>(_tableButton),
+		SetupToolbarButtonState(
+			not_null<ToolbarStarButton*>(_tableButton),
 			inTable
 				? ToolbarButtonState::Active
 				: ToolbarButtonState::Inactive);
@@ -1230,10 +1415,10 @@ void Toolbar::hideShownTooltip() {
 }
 
 bool Toolbar::eventFilter(QObject *object, QEvent *event) {
-	const auto button = static_cast<Ui::IconButton*>(object);
+	const auto button = static_cast<Ui::RippleButton*>(object);
 	if (_tooltipFactories.contains(button)) {
 		if (event->type() == QEvent::Enter) {
-			scheduleTooltip(not_null<Ui::IconButton*>(button));
+			scheduleTooltip(not_null<Ui::RippleButton*>(button));
 		} else if (event->type() == QEvent::Leave) {
 			if (_scheduledTooltip == button) {
 				_scheduledTooltip = nullptr;
@@ -1246,7 +1431,7 @@ bool Toolbar::eventFilter(QObject *object, QEvent *event) {
 	return Ui::RpWidget::eventFilter(object, event);
 }
 
-void Toolbar::scheduleTooltip(not_null<Ui::IconButton*> button) {
+void Toolbar::scheduleTooltip(not_null<Ui::RippleButton*> button) {
 	// Showing the tooltip synchronously grabs the widget to build an
 	// animation cache, which crashes if we're inside a widget-tree
 	// destructor (an Enter event synthesized while a layer is destroyed
@@ -1260,12 +1445,12 @@ void Toolbar::scheduleTooltip(not_null<Ui::IconButton*> button) {
 	}
 	crl::on_main(this, [=] {
 		if (const auto button = base::take(_scheduledTooltip)) {
-			showTooltip(not_null<Ui::IconButton*>(button));
+			showTooltip(not_null<Ui::RippleButton*>(button));
 		}
 	});
 }
 
-void Toolbar::showTooltip(not_null<Ui::IconButton*> button) {
+void Toolbar::showTooltip(not_null<Ui::RippleButton*> button) {
 	hideTooltip();
 	const auto i = _tooltipFactories.find(button.get());
 	if (i == end(_tooltipFactories) || !i->second) {
@@ -1320,7 +1505,11 @@ public:
 private:
 	void setupWindow(ShowWindowDescriptor &&descriptor);
 	void setupEmojiColumn(const ShowWindowDescriptor &descriptor);
+	void setupBottomAiStar(
+		not_null<HistoryView::Controls::ComposeAiButton*> button,
+		not_null<Main::Session*> session);
 	void layout();
+	void updateBottomMask();
 	void toggleEmojiColumn();
 	void showEmojiColumn();
 	void hideEmojiColumn(bool skipResize = false);
@@ -1352,7 +1541,9 @@ private:
 	object_ptr<Toolbar> _toolbar = { nullptr };
 	object_ptr<ToolbarPill> _discard = { nullptr };
 	object_ptr<ToolbarPill> _cancel = { nullptr };
+	object_ptr<ToolbarPill> _aiPill = { nullptr };
 	object_ptr<Ui::SendButton> _send = { nullptr };
+	Ui::RpWidget *_sendLock = nullptr;
 	object_ptr<ChatHelpers::TabbedSelector> _emojiColumn = { nullptr };
 	object_ptr<Ui::PlainShadow> _emojiColumnShadow = { nullptr };
 	object_ptr<ToolbarPill> _emojiColumnClose = { nullptr };
@@ -1365,6 +1556,7 @@ private:
 	base::weak_qptr<Ui::GenericBox> _discardConfirmation;
 	rpl::lifetime _lifetime;
 	int _emojiColumnExtendedBy = 0;
+	int _searchTopSlide = 0;
 	bool _emojiColumnShown = false;
 	bool _emojiColumnInteractionActive = false;
 	bool _closingApproved = false;
@@ -1522,6 +1714,101 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 			}
 		});
 	}
+	if (!base::options::value<bool>(Ui::kOptionHideAiButton)) {
+		const auto session = descriptor.session;
+		_aiPill = object_ptr<ToolbarPill>(
+			_bottom.data(),
+			st::ivEditorPillShadow);
+		auto owned = object_ptr<HistoryView::Controls::ComposeAiButton>(
+			_aiPill.data(),
+			st::ivEditorToolbarButton,
+			st::ivEditorBottomAiIcon,
+			st::ivEditorBottomAiStar1,
+			st::ivEditorBottomAiStar2);
+		const auto button = owned.data();
+		_aiPill->addButton(std::move(owned), st::ivEditorToolbarButton);
+		button->setAccessibleName(tr::lng_ai_compose_title(tr::now));
+		button->setClickedCallback([=] {
+			if (!session->premium()) {
+				const auto show = _show;
+				show->showToast({
+					.text = tr::lng_article_premium_required(
+						tr::now,
+						lt_link,
+						tr::link(tr::bold(
+							tr::lng_article_premium_required_link(
+								tr::now))),
+						tr::marked),
+					.filter = [=](
+							const ClickHandlerPtr &handler,
+							Qt::MouseButton button) {
+						if (button != Qt::LeftButton) {
+							return false;
+						}
+						if (show && show->valid()) {
+							ShowPremiumPreviewToBuy(
+								show,
+								PremiumFeature::RichFormatting);
+						} else if (const auto window
+								= session->tryResolveWindow(nullptr)) {
+							ShowPremiumPreviewToBuy(
+								window,
+								PremiumFeature::RichFormatting);
+						}
+						return true;
+					},
+					.icon = &st::settingsToastStarIcon,
+					.adaptive = true,
+					.duration = Ui::Toast::kDefaultDuration * 2,
+				});
+				return;
+			}
+			const auto editor = _editor;
+			if (editor && editor->hasActiveSelection()) {
+				auto span = editor->textSpanForCurrentSelection();
+				if (!span.text.isEmpty()) {
+					HistoryView::Controls::ShowComposeAiBox(_show, {
+						.session = session,
+						.text = std::move(span),
+						.apply = [editor](TextWithEntities result) {
+							if (!editor || result.text.isEmpty()) {
+								return;
+							}
+							editor->replaceCurrentSelectionWithText(
+								std::move(result));
+						},
+					});
+					return;
+				}
+				auto source = editor->richPageForCurrentSelection();
+				if (source && !source->blocks.empty()) {
+					HistoryView::Controls::ShowComposeAiBox(_show, {
+						.session = session,
+						.richSource = std::move(source),
+						.applyRich = [editor](
+								std::shared_ptr<const RichPage> page) {
+							if (!editor || !page || page->blocks.empty()) {
+								return;
+							}
+							editor->replaceCurrentSelectionWithRichPage(
+								std::move(page));
+						},
+					});
+					return;
+				}
+			}
+			ShowCreateAiBox(_show, {
+				.session = session,
+				.applyToPage = [editor](std::shared_ptr<const RichPage> page) {
+					if (!editor || !page || page->blocks.empty()) {
+						return;
+					}
+					editor->insertPreparedBlocks(page->blocks);
+				},
+			});
+		});
+		setupBottomAiStar(button, session);
+	}
 	const auto save = (descriptor.submitType
 		== ShowWindowDescriptor::SubmitType::Save);
 	_send = object_ptr<Ui::SendButton>(
@@ -1535,19 +1822,40 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		descriptor.setupSubmitButton(
 			not_null<Ui::RpWidget*>(raw));
 	}
+	if (!save) {
+		const auto session = descriptor.session;
+		const auto peer = descriptor.peer;
+		session->changes().peerFlagsValue(
+			peer,
+			Data::PeerUpdate::Flag::StarsPerMessage
+		) | rpl::on_next([=] {
+			raw->setState({
+				.starsToSend = peer->starsPerMessageChecked(),
+			});
+		}, raw->lifetime());
+		raw->finishAnimating();
+		raw->widthValue() | rpl::skip(1) | rpl::on_next([=] {
+			layout();
+		}, raw->lifetime());
+	}
 	{
 		const auto lockIcon = &st::ivEditorSendLockIcon;
 		const auto lockPadding = st::ivEditorSendLockBadgePadding;
-		const auto lock = Ui::CreateChild<Ui::RpWidget>(raw);
+		_sendLock = Ui::CreateChild<Ui::RpWidget>(_bottom.data());
+		const auto lock = _sendLock;
 		lock->setAttribute(Qt::WA_TransparentForMouseEvents);
 		lock->resize(
 			lockIcon->width() + 2 * lockPadding,
 			lockIcon->height() + 2 * lockPadding);
-		lock->move(st::ivEditorSendLockBadgePosition);
+		raw->geometryValue() | rpl::on_next([=](QRect geometry) {
+			lock->move(geometry.topLeft() + st::ivEditorSendLockBadgeShift);
+			lock->raise();
+			updateBottomMask();
+		}, lock->lifetime());
 		lock->paintRequest() | rpl::on_next([=] {
 			auto p = QPainter(lock);
 			auto hq = PainterHighQualityEnabler(p);
-			const auto border = st::lineWidth;
+			const auto border = st::ivEditorSendLockBadgeStroke;
 			auto pen = QPen(st::windowBg);
 			pen.setWidth(border);
 			p.setPen(pen);
@@ -1564,11 +1872,13 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		const auto premium = lock->lifetime().make_state<bool>(true);
 		const auto refresh = [=] {
 			const auto locked = !*premium
-				&& Iv::RichPageUsesPremiumFormatting(state->richPage());
+				&& !state->articleEmpty()
+				&& !Iv::CanSerializeAsSimple(state->richPage(), session);
 			lock->setVisible(locked);
 			if (locked) {
 				lock->raise();
 			}
+			updateBottomMask();
 		};
 		Data::AmPremiumValue(
 			session
@@ -1590,6 +1900,19 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 	window->body()->sizeValue() | rpl::on_next([=](QSize) {
 		layout();
 	}, _lifetime);
+	editor->searchSlideHeightValue() | rpl::on_next([=](int slide) {
+		if (_searchTopSlide == slide) {
+			return;
+		}
+		_searchTopSlide = slide;
+		if (_top && _toolbar) {
+			_top->setGeometry(
+				0,
+				0,
+				_top->width(),
+				_toolbar->height() + slide);
+		}
+	}, _lifetime);
 	rpl::combine(
 		_scroll->scrollTopValue(),
 		_scroll->heightValue()
@@ -1601,6 +1924,9 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 			const auto event = static_cast<QKeyEvent*>(e.get());
 			if (event->key() == Qt::Key_Escape) {
 				event->accept();
+				if (_editor && _editor->closeSearch()) {
+					return;
+				}
 				if (confirmCancel()) {
 					finishClose();
 				}
@@ -1620,6 +1946,33 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 	_bottom->raise();
 	window->show();
 	editor->activateInitialNode();
+}
+
+void WindowHost::Impl::setupBottomAiStar(
+		not_null<HistoryView::Controls::ComposeAiButton*> button,
+		not_null<Main::Session*> session) {
+	const auto premium = button->lifetime().make_state<bool>(false);
+	const auto refresh = [=] {
+		if (*premium) {
+			button->setPremiumStar(QImage(), QPoint(), 0);
+		} else {
+			const auto side = st::ivEditorToolbarPremiumStarSize;
+			const auto skip = st::ivEditorToolbarPremiumStarSkip;
+			button->setPremiumStar(
+				PremiumStarImage(),
+				QPoint(
+					button->width() - side - skip.x(),
+					button->height() - side - skip.y()),
+				st::ivEditorToolbarPremiumStarOutline);
+		}
+	};
+	Data::AmPremiumValue(session) | rpl::on_next([=](bool value) {
+		*premium = value;
+		refresh();
+	}, button->lifetime());
+	style::PaletteChanged() | rpl::on_next([=] {
+		refresh();
+	}, button->lifetime());
 }
 
 void WindowHost::Impl::setupEmojiColumn(const ShowWindowDescriptor &descriptor) {
@@ -1711,7 +2064,7 @@ void WindowHost::Impl::layout() {
 	}
 	const auto bottomHeight = padding.top() + buttonsHeight + padding.bottom();
 	const auto buttonsTop = padding.top();
-	_top->setGeometry(0, 0, editorWidth, toolbarHeight);
+	_top->setGeometry(0, 0, editorWidth, toolbarHeight + _searchTopSlide);
 	_toolbar->setGeometry(0, 0, editorWidth, toolbarHeight);
 	_toolbar->raise();
 	_bottomFade->setGeometry(0, height - bottomHeight, editorWidth, bottomHeight);
@@ -1721,6 +2074,7 @@ void WindowHost::Impl::layout() {
 	const auto right = fitsArticle
 		? (column.left + column.width)
 		: editorWidth;
+	const auto left = fitsArticle ? column.left : 0;
 	const auto leftPill = _discard
 		? _discard.data()
 		: _cancel.data();
@@ -1744,20 +2098,13 @@ void WindowHost::Impl::layout() {
 			buttonsTop,
 			editorWidth);
 	}
-	auto bottomMask = QRegion();
-	const auto addMask = [&](Ui::RpWidget *widget) {
-		if (widget && !widget->isHidden()) {
-			bottomMask += widget->geometry();
-		}
-	};
-	addMask(_discard.data());
-	addMask(_cancel.data());
-	addMask(_send.data());
-	if (bottomMask.isEmpty()) {
-		_bottom->clearMask();
-	} else {
-		_bottom->setMask(bottomMask);
+	if (_aiPill) {
+		_aiPill->moveToLeft(
+			left - _aiPill->shadowMargins().left(),
+			buttonsTop,
+			editorWidth);
 	}
+	updateBottomMask();
 	_scroll->setGeometry(0, 0, editorWidth, std::max(height, 1));
 	_scroll->setBarTopInset(toolbarHeight);
 	_scroll->setBarBottomInset(bottomHeight);
@@ -1797,6 +2144,28 @@ void WindowHost::Impl::layout() {
 	_editor->setBottomContentPadding(bottomHeight);
 	_editor->resizeToWidth(std::max(_scroll->width(), 1));
 	updateEditorVisibleTopBottom();
+}
+
+void WindowHost::Impl::updateBottomMask() {
+	if (!_bottom) {
+		return;
+	}
+	auto bottomMask = QRegion();
+	const auto addMask = [&](Ui::RpWidget *widget) {
+		if (widget && !widget->isHidden()) {
+			bottomMask += widget->geometry();
+		}
+	};
+	addMask(_discard.data());
+	addMask(_cancel.data());
+	addMask(_aiPill.data());
+	addMask(_send.data());
+	addMask(_sendLock);
+	if (bottomMask.isEmpty()) {
+		_bottom->clearMask();
+	} else {
+		_bottom->setMask(bottomMask);
+	}
 }
 
 void WindowHost::Impl::toggleEmojiColumn() {
@@ -2006,6 +2375,9 @@ bool WindowHost::Impl::showDiscardConfirmation() {
 
 bool WindowHost::Impl::confirmCancel() {
 	if (!articleChanged()) {
+		if (_changedCancelled && !articleEmptyForDiscard()) {
+			return _changedCancelled();
+		}
 		return !_cancelled || _cancelled();
 	} else if (_changedCancelled) {
 		return _changedCancelled();
@@ -2064,21 +2436,7 @@ void SetupToolbarButton(
 		not_null<Ui::IconButton*> button,
 		ToolbarButtonState state,
 		anim::type animated) {
-	const auto disabled = (state == ToolbarButtonState::Disabled);
-	const auto active = (state == ToolbarButtonState::Active);
-	button->setAttribute(Qt::WA_TransparentForMouseEvents, disabled);
-	button->setPointerCursor(!disabled);
-	if (active) {
-		button->setRippleColorOverride(&st::lightButtonBgOver);
-		button->setForceRippled(true, animated);
-		button->setIconColorOverride(st::windowActiveTextFg->c);
-	} else {
-		button->setForceRippled(false, animated);
-		button->setRippleColorOverride(nullptr);
-		button->setIconColorOverride(disabled
-			? std::optional<QColor>(st::windowSubTextFg->c)
-			: std::nullopt);
-	}
+	SetupToolbarButtonState(button, state, animated);
 }
 
 } // namespace Iv::Editor

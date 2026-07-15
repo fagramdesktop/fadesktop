@@ -128,6 +128,13 @@ void RequestDependentMessageStory(
 	not_null<History*> history,
 	FullReplyTo replyTo);
 [[nodiscard]] bool LookupReplyIsTopicPost(HistoryItem *replyTo);
+[[nodiscard]] bool ShowEphemeralReplyTextOnlyError(
+	std::shared_ptr<ChatHelpers::Show> show,
+	not_null<Main::Session*> session,
+	FullMsgId replyToId);
+void StripEphemeralReply(
+	not_null<Main::Session*> session,
+	FullReplyTo &replyTo);
 
 struct SendingErrorRequest {
 	MsgId topicRootId = 0;
@@ -137,6 +144,7 @@ struct SendingErrorRequest {
 	int messagesCount = 0;
 	bool ignoreSlowmodeCountdown = false;
 	bool richMessage = false;
+	bool ignoreRestrictions = false;
 };
 [[nodiscard]] int ComputeSendingMessagesCount(
 	not_null<History*> history,

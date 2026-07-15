@@ -16,6 +16,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "dialogs/ui/dialogs_message_view.h"
 #include "dialogs/ui/dialogs_video_userpic.h"
 #include "dialogs/dialogs_indexed_list.h"
+#include "dialogs/dialogs_row.h"
+#include "dialogs/dialogs_community_requestable_list.h"
 #include "dialogs/dialogs_widget.h"
 #include "dialogs/dialogs_search_from_controllers.h"
 #include "dialogs/dialogs_search_tags.h"
@@ -46,6 +48,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_forum_icons.h"
 #include "data/data_session.h"
 #include "data/data_channel.h"
+#include "data/data_community.h"
 #include "data/data_forum_topic.h"
 #include "data/data_chat.h"
 #include "data/data_user.h"
@@ -91,6 +94,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_chat.h" // popupMenuExpandedSeparator
 #include "styles/style_chat_helpers.h"
 #include "styles/style_color_indices.h"
+#include "styles/style_layers.h"
 #include "styles/style_window.h"
 #include "styles/style_media_player.h"
 #include "styles/style_menu_icons.h"
@@ -173,6 +177,8 @@ constexpr auto kPreviewPostsLimit = 3;
 	const auto trimmed = hashtag ? query.mid(1).trimmed() : query;
 	const auto fromPeer = (state.tab == ChatSearchTab::MyMessages
 		|| state.tab == ChatSearchTab::PublicPosts
+		|| state.tab == ChatSearchTab::Archive
+		|| state.tab == ChatSearchTab::ThisCommunity
 		|| !state.inChat.peer()
 		|| !(state.inChat.peer()->isChat()
 			|| state.inChat.peer()->isMegagroup()))
@@ -308,6 +314,8 @@ InnerWidget::InnerWidget(
 	setAttribute(Qt::WA_OpaquePaintEvent, true);
 	setAccessibleName(tr::lng_recent_chats(tr::now));
 
+	_communityViewable.setRepaint([=] { update(); });
+
 	style::PaletteChanged(
 	) | rpl::on_next([=] {
 		_topicJumpCache = nullptr;
@@ -389,6 +397,9 @@ InnerWidget::InnerWidget(
 			&& !_openedForum
 			&& (folder == _openedFolder);
 	}) | rpl::on_next([=] {
+		if (_state == WidgetState::Filtered && !_filter.isEmpty()) {
+			refreshFilterResults();
+		}
 		refresh();
 	}, lifetime());
 
@@ -615,6 +626,17 @@ bool InnerWidget::updateEntryHeight(not_null<Entry*> entry) {
 			top += result.row->height();
 		}
 	}
+	if (_openedCommunity) {
+		if (const auto history = entry->asHistory()) {
+			const auto recount = [&](CommunityRowsView &view) {
+				if (view.contains(history)) {
+					view.recountHeights(_narrowRatio);
+					changing = true;
+				}
+			};
+			recount(_communityViewable);
+		}
+	}
 	return _shownList->updateHeight(entry, _narrowRatio) || changing;
 }
 
@@ -624,7 +646,18 @@ void InnerWidget::setNarrowRatio(float64 narrowRatio) {
 	}
 	_geometryInited = true;
 	_narrowRatio = narrowRatio;
-	if (_shownList->updateHeights(_narrowRatio) || !height()) {
+	auto changed = _shownList->updateHeights(_narrowRatio);
+	if (_openedCommunity) {
+		const auto recount = [&](CommunityRowsView &view) {
+			const auto was = view.height();
+			view.recountHeights(_narrowRatio);
+			if (view.height() != was) {
+				changed = true;
+			}
+		};
+		recount(_communityViewable);
+	}
+	if (changed || !height()) {
 		refresh();
 	}
 }
@@ -685,7 +718,10 @@ int InnerWidget::collapsedRowsOffset() const {
 int InnerWidget::dialogsOffset() const {
 	return collapsedRowsOffset()
 		+ (_collapsedRows.size() * st::dialogsImportantBarHeight)
-		- skipTopHeight();
+		- skipTopHeight()
+		+ ((_openedCommunity && !_shownList->empty())
+			? st::searchedBarHeight
+			: 0);
 }
 
 int InnerWidget::fixedOnTopCount() const {
@@ -769,6 +805,43 @@ int InnerWidget::searchedOffset() const {
 	return result;
 }
 
+int InnerWidget::communityViewableTop() const {
+	return dialogsOffset() + _shownList->height();
+}
+
+int InnerWidget::communityRequestableTop() const {
+	auto result = communityViewableTop();
+	if (!_communityViewable.empty()) {
+		result += st::searchedBarHeight + _communityViewable.height();
+	}
+	return result;
+}
+
+int InnerWidget::communitySectionsBottom() const {
+	auto result = communityRequestableTop();
+	if (_communityRequestableList && (_communityRequestableCount > 0)) {
+		result += st::searchedBarHeight + _communityRequestableList->height();
+	}
+	return result;
+}
+
+int InnerWidget::communityRowCount() const {
+	return _communityViewable.size();
+}
+
+Row *InnerWidget::communityRowAt(int index) const {
+	if (index < 0 || index >= communityRowCount()) {
+		return nullptr;
+	}
+	return _communityViewable.rowAt(index);
+}
+
+int InnerWidget::communityRowAbsoluteTop(int index) const {
+	return communityViewableTop()
+		+ st::searchedBarHeight
+		+ _communityViewable.rowTop(index);
+}
+
 void InnerWidget::changeOpenedFolder(Data::Folder *folder) {
 	Expects(!folder || !_savedSublists);
 
@@ -828,6 +901,79 @@ void InnerWidget::changeOpenedForum(Data::Forum *forum) {
 	}
 }
 
+void InnerWidget::rebuildCommunitySections() {
+	_communityViewable.clear();
+	_communitySelected = -1;
+	setCommunityPressed(-1);
+	if (!_openedCommunity) {
+		return;
+	}
+	const auto owner = &session().data();
+	for (const auto &linked : _openedCommunity->linkedPeers()) {
+		if (linked.peer->isUser()) {
+			continue;
+		} else if (Data::CommunityChatJoined(linked.peer)) {
+			continue;
+		}
+		const auto history = owner->history(linked.peer);
+		if (_shownList->getRow(Key(history))) {
+			continue;
+		}
+		if (Data::IsCommunityChatViewable(linked)) {
+			_communityViewable.add(history, _narrowRatio);
+		}
+	}
+	_communityViewable.finalize();
+}
+
+void InnerWidget::changeOpenedCommunity(Data::CommunityInfo *community) {
+	Expects(!community || !_savedSublists);
+
+	if (_openedCommunity == community) {
+		return;
+	}
+	stopReorderPinned();
+	clearSelection();
+	_openedCommunity = community;
+	refreshShownList();
+	_openedCommunityLifetime.destroy();
+	_communityRequestableList.destroy();
+	_communityRequestableCount = 0;
+	if (community) {
+		_communityRequestableList = object_ptr<CommunityRequestableList>(
+			this,
+			_controller,
+			community);
+		_communityRequestableList->countValue(
+		) | rpl::on_next([=](int count) {
+			_communityRequestableCount = count;
+			refresh();
+		}, _openedCommunityLifetime);
+
+		_communityRequestableList->heightValue(
+		) | rpl::skip(1) | rpl::on_next([=] {
+			refresh();
+		}, _openedCommunityLifetime);
+
+		community->linkedPeersValue(
+		) | rpl::on_next([=] {
+			rebuildCommunitySections();
+			refresh();
+		}, _openedCommunityLifetime);
+
+		community->refreshed(
+		) | rpl::on_next([=] {
+			update();
+		}, _openedCommunityLifetime);
+	} else {
+		rebuildCommunitySections();
+	}
+	refreshWithCollapsedRows(true);
+	if (_loadMoreCallback) {
+		_loadMoreCallback();
+	}
+}
+
 void InnerWidget::showSavedSublists() {
 	Expects(!_geometryInited);
 	Expects(!_savedSublists);
@@ -876,12 +1022,14 @@ void InnerWidget::paintEvent(QPaintEvent *e) {
 		.topicJumpCache = _topicJumpCache.get(),
 		.folder = _openedFolder,
 		.forum = _openedForum,
+		.community = _openedCommunity,
 		.currentBg = currentBg(),
 		.filter = _filterId,
 		.now = ms,
 		.width = fullWidth,
 		.paused = videoPaused,
 		.narrow = (fullWidth < st::columnMinimalWidthLeft / 2),
+		.insideCommunity = (_openedCommunity != nullptr),
 	};
 	const auto fillGuard = gsl::finally([&] {
 		// We translate painter down, but it'll be cropped below rect.
@@ -1078,9 +1226,16 @@ void InnerWidget::paintEvent(QPaintEvent *e) {
 		}
 	};
 	if (_state == WidgetState::Default) {
+		if (_openedCommunity) {
+			p.save();
+		}
 		const auto collapsedSkip = collapsedRowsOffset();
 		p.translate(0, collapsedSkip);
 		paintCollapsedRows(p, r.translated(0, -collapsedSkip));
+
+		if (_openedCommunity && !_shownList->empty()) {
+			p.translate(0, st::searchedBarHeight);
+		}
 
 		const auto &list = _shownList->all();
 		const auto shownBottom = _shownList->height() - skipTopHeight();
@@ -1163,6 +1318,72 @@ void InnerWidget::paintEvent(QPaintEvent *e) {
 			}
 		} else {
 			p.fillRect(dialogsClip, currentBg());
+		}
+		if (_openedCommunity) {
+			p.restore();
+			const auto paintBar = [&](const QString &text) {
+				p.fillRect(
+					0,
+					0,
+					fullWidth,
+					st::searchedBarHeight,
+					currentBg());
+				p.setFont(st::defaultSubsectionTitle.style.font);
+				p.setPen(st::windowActiveTextFg);
+				p.drawTextLeft(
+					st::searchedBarPosition.x(),
+					st::searchedBarPosition.y(),
+					fullWidth,
+					text);
+			};
+			const auto paintSection = [&](
+					int sectionTop,
+					const CommunityRowsView &view,
+					const QString &text,
+					int flatBase) {
+				if (view.empty()) {
+					return;
+				}
+				p.save();
+				p.translate(0, sectionTop);
+				paintBar(text);
+				const auto rowsTop = st::searchedBarHeight;
+				p.translate(0, rowsTop);
+				const auto localClip = r.translated(
+					0,
+					-(sectionTop + rowsTop));
+				view.paint(p, localClip, [&](
+						not_null<Row*> row,
+						int index,
+						int top) {
+					const auto selected = isPressed()
+						? (_communityPressed == flatBase + index)
+						: (_communitySelected == flatBase + index);
+					p.translate(0, top);
+					paintRow(row, selected, false);
+					p.translate(0, -top);
+				});
+				p.restore();
+			};
+			if (!_shownList->empty()) {
+				p.save();
+				p.translate(0, dialogsOffset() - st::searchedBarHeight);
+				paintBar(tr::lng_community_chats_joined(tr::now));
+				p.restore();
+			}
+			paintSection(
+				communityViewableTop(),
+				_communityViewable,
+				tr::lng_community_chats_viewable(tr::now),
+				0);
+			if (_communityRequestableList
+				&& (_communityRequestableCount > 0)) {
+				p.save();
+				p.translate(0, communityRequestableTop());
+				paintBar(tr::lng_community_chats_requestable(tr::now));
+				p.restore();
+			}
+			p.translate(0, communitySectionsBottom());
 		}
 	} else if (_state == WidgetState::Filtered) {
 		if (_searchTags) {
@@ -1546,6 +1767,8 @@ Ui::VideoUserpic *InnerWidget::validateVideoUserpic(
 	if (!peer->isPremium()
 		|| peer->userpicPhotoUnknown()
 		|| !peer->userpicHasVideo()
+		|| peer->isSelf()
+		|| peer->isRepliesChat()
 		|| FASettings::JsonSettings::GetBool("disable_premium_animation")
 		|| FASettings::JsonSettings::GetBool("screenshot_mode")
 		|| FASettings::JsonSettings::GetBool(u"disable_animated_avatars"_q)) {
@@ -1937,6 +2160,8 @@ void InnerWidget::clearIrrelevantState() {
 		_collapsedSelected = -1;
 		setCollapsedPressed(-1);
 		_selected = nullptr;
+		_communitySelected = -1;
+		setCommunityPressed(-1);
 		clearPressed();
 	}
 }
@@ -2017,17 +2242,39 @@ void InnerWidget::selectByMouse(QPoint globalPosition) {
 			&& selected->lookupIsInTopicJump(local.x(), mappedY);
 		const auto selectedRightButton = selected
 			&& lookupIsInBotAppButton(selected, QPoint(local.x(), mappedY));
+		auto communitySelected = -1;
+		if (_openedCommunity && !selected && collapsedSelected < 0) {
+			const auto pick = [&](
+					int sectionTop,
+					int flatBase,
+					const CommunityRowsView &view) {
+				if (view.empty()) {
+					return;
+				}
+				const auto localY = mouseY
+					- (sectionTop + st::searchedBarHeight);
+				const auto index = view.indexByY(localY);
+				if (index >= 0) {
+					communitySelected = flatBase + index;
+				}
+			};
+			pick(communityViewableTop(), 0, _communityViewable);
+		}
 		if (_collapsedSelected != collapsedSelected
 			|| _selected != selected
+			|| _communitySelected != communitySelected
 			|| _selectedTopicJump != selectedTopicJump
 			|| _selectedRightButton != selectedRightButton) {
 			updateSelectedRow();
 			_selected = selected;
+			_communitySelected = communitySelected;
 			_selectedTopicJump = selectedTopicJump;
 			_selectedRightButton = selectedRightButton;
 			_collapsedSelected = collapsedSelected;
 			updateSelectedRow();
-			setCursor((_selected || _collapsedSelected >= 0)
+			setCursor((_selected
+				|| _collapsedSelected >= 0
+				|| _communitySelected >= 0)
 				? style::cur_pointer
 				: style::cur_default);
 		}
@@ -2201,6 +2448,7 @@ void InnerWidget::mousePressEvent(QMouseEvent *e) {
 	setPeerSearchPressed(_peerSearchSelected, _selectedRightButton);
 	setPreviewPressed(_previewSelected);
 	setSearchedPressed(_searchedSelected);
+	setCommunityPressed(_communitySelected);
 	_pressedMorePosts = _selectedMorePosts;
 	_pressedChatTypeFilter = _selectedChatTypeFilter;
 
@@ -2293,6 +2541,17 @@ void InnerWidget::mousePressEvent(QMouseEvent *e) {
 			e->pos() - QPoint(0, searchedOffset() + _searchedPressed * _st->height),
 			QSize(width(), _st->height),
 			row->repaint());
+	} else if (_communityPressed >= 0) {
+		if (const auto row = communityRowAt(_communityPressed)) {
+			const auto top = communityRowAbsoluteTop(_communityPressed);
+			const auto height = row->height();
+			row->addRipple(
+				e->pos() - QPoint(0, top),
+				QSize(width(), height),
+				[=] {
+					update(0, top, width(), height);
+				});
+		}
 	}
 	ClickHandler::pressed();
 	if (anim::Disabled()
@@ -2720,6 +2979,8 @@ void InnerWidget::mousePressReleased(
 	setPreviewPressed(-1);
 	auto searchedPressed = _searchedPressed;
 	setSearchedPressed(-1);
+	auto communityPressed = _communityPressed;
+	setCommunityPressed(-1);
 	const auto pressedMorePosts = _pressedMorePosts;
 	_pressedMorePosts = false;
 	const auto pressedChatTypeFilter = _pressedChatTypeFilter;
@@ -2773,6 +3034,8 @@ void InnerWidget::mousePressReleased(
 				&& previewPressed == _previewSelected)
 			|| (searchedPressed >= 0
 				&& searchedPressed == _searchedSelected)
+			|| (communityPressed >= 0
+				&& communityPressed == _communitySelected)
 			|| (pressedMorePosts
 				&& pressedMorePosts == _selectedMorePosts)
 			|| (pressedChatTypeFilter
@@ -2934,12 +3197,20 @@ void InnerWidget::setSearchedPressed(int pressed) {
 	_searchedPressed = pressed;
 }
 
+void InnerWidget::setCommunityPressed(int pressed) {
+	if (const auto row = communityRowAt(_communityPressed)) {
+		row->stopLastRipple();
+	}
+	_communityPressed = pressed;
+}
+
 void InnerWidget::resizeEvent(QResizeEvent *e) {
 	if (_searchTags) {
 		_searchTags->resizeToWidth(width() - 2 * _searchTagsLeft);
 	}
 	resizeEmpty();
 	moveSearchIn();
+	updateCommunityRequestableGeometry();
 }
 
 void InnerWidget::moveSearchIn() {
@@ -3017,8 +3288,18 @@ void InnerWidget::handleChatListEntryRefreshes() {
 			return (topic->forum() == _openedForum);
 		} else if (const auto sublist = event.key.sublist()) {
 			return sublist->parent() == _savedSublists;
+		} else if (_openedCommunity) {
+			const auto history = event.key.history();
+			return history
+				&& (history->communityListInfo() == _openedCommunity);
+		} else if (_openedForum) {
+			return false;
 		} else {
-			return !_openedForum;
+			const auto history = event.key.history();
+			const auto info = history
+				? history->communityListInfo()
+				: nullptr;
+			return !info || !info->collapsedInDialogs();
 		}
 	}) | rpl::on_next([=](const Event &event) {
 		const auto offset = dialogsOffset();
@@ -3035,7 +3316,17 @@ void InnerWidget::handleChatListEntryRefreshes() {
 				? (key.topic()->forum() == _openedForum)
 				: key.sublist()
 				? (key.sublist()->parent() == _savedSublists)
-				: (entry->folder() == _openedFolder))) {
+				: _openedCommunity
+				? (entry->asHistory()
+					&& entry->asHistory()->communityListInfo()
+						== _openedCommunity)
+				: _openedForum
+				? false
+				: (entry->folder() == _openedFolder
+					&& !(entry->asHistory()
+						&& entry->asHistory()->communityListInfo()
+						&& entry->asHistory()->communityListInfo()
+							->collapsedInDialogs())))) {
 			_dialogMoved.fire({ from, to });
 		}
 
@@ -3062,6 +3353,9 @@ void InnerWidget::handleChatListEntryRefreshes() {
 					_filterResults.erase(i);
 				}
 				_updated.fire({});
+			}
+			if (_openedCommunity) {
+				rebuildCommunitySections();
 			}
 			refresh();
 		} else if (_state == WidgetState::Default && from != to) {
@@ -3262,6 +3556,11 @@ Row *InnerWidget::shownRowByKey(Key key) {
 		if (!topic || topic->forum() != _openedForum) {
 			return nullptr;
 		}
+	} else if (_openedCommunity) {
+		const auto history = entry->asHistory();
+		if (!history || history->communityListInfo() != _openedCommunity) {
+			return nullptr;
+		}
 	} else if (_openedFolder) {
 		const auto history = entry->asHistory();
 		if (!history || history->folder() != _openedFolder) {
@@ -3432,6 +3731,14 @@ void InnerWidget::updateSelectedRow(Key key) {
 			update(0, dialogsOffset() + _selected->top(), width(), _selected->height());
 		} else if (_collapsedSelected >= 0) {
 			update(0, _collapsedSelected * st::dialogsImportantBarHeight, width(), st::dialogsImportantBarHeight);
+		} else if (_communitySelected >= 0) {
+			if (const auto row = communityRowAt(_communitySelected)) {
+				update(
+					0,
+					communityRowAbsoluteTop(_communitySelected),
+					width(),
+					row->height());
+			}
 		}
 	} else if (_state == WidgetState::Filtered) {
 		if (key) {
@@ -3464,6 +3771,8 @@ void InnerWidget::refreshShownList() {
 		? _savedSublists->chatsList()->indexed()
 		: _openedForum
 		? _openedForum->topicsList()->indexed()
+		: _openedCommunity
+		? _openedCommunity->chatsList()->indexed()
 		: _filterId
 		? session().data().chatsFilters().chatsList(_filterId)->indexed()
 		: session().data().chatsList(_openedFolder)->indexed();
@@ -3503,6 +3812,7 @@ void InnerWidget::clearSelection() {
 		_selectedMorePosts = false;
 		_selectedChatTypeFilter = false;
 		_selected = nullptr;
+		_communitySelected = -1;
 		_filteredSelected
 			= _searchedSelected
 			= _previewSelected
@@ -3511,11 +3821,14 @@ void InnerWidget::clearSelection() {
 			= -1;
 		setCursor(style::cur_default);
 	}
+	setCommunityPressed(-1);
 }
 
 void InnerWidget::fillSupportSearchMenu(not_null<Ui::PopupMenu*> menu) {
 	const auto globalSearch = (_searchState.tab == ChatSearchTab::MyMessages)
-		|| (_searchState.tab == ChatSearchTab::PublicPosts);
+		|| (_searchState.tab == ChatSearchTab::PublicPosts)
+		|| (_searchState.tab == ChatSearchTab::Archive)
+		|| (_searchState.tab == ChatSearchTab::ThisCommunity);
 	if (!globalSearch && _searchState.inChat) {
 		return;
 	}
@@ -3523,26 +3836,6 @@ void InnerWidget::fillSupportSearchMenu(not_null<Ui::PopupMenu*> menu) {
 	const auto text = all ? "Only one from chat" : "Show all messages";
 	menu->addAction(text, [=] {
 		session().settings().setSupportAllSearchResults(!all);
-		session().saveSettingsDelayed();
-	});
-}
-
-void InnerWidget::fillArchiveSearchMenu(not_null<Ui::PopupMenu*> menu) {
-	const auto folder = session().data().folderLoaded(Data::Folder::kId);
-	const auto globalSearch = (_searchState.tab == ChatSearchTab::MyMessages)
-		|| (_searchState.tab == ChatSearchTab::PublicPosts);
-	if (!folder
-		|| !folder->chatsList()->fullSize().current()
-		|| (!globalSearch && _searchState.inChat)
-		|| (_searchState.tab == ChatSearchTab::PublicPosts)) {
-		return;
-	}
-	const auto skip = session().settings().skipArchiveInSearch();
-	const auto text = skip
-		? tr::lng_dialogs_show_archive_in_search(tr::now)
-		: tr::lng_dialogs_skip_archive_in_search(tr::now);
-	menu->addAction(text, [=] {
-		session().settings().setSkipArchiveInSearch(!skip);
 		session().saveSettingsDelayed();
 	});
 }
@@ -3642,8 +3935,6 @@ void InnerWidget::contextMenuEvent(QContextMenuEvent *e) {
 	if (row.fullId) {
 		if (session().supportMode()) {
 			fillSupportSearchMenu(_menu.get());
-		} else {
-			fillArchiveSearchMenu(_menu.get());
 		}
 	} else {
 		const auto addAction = Ui::Menu::CreateAddActionCallback(_menu);
@@ -3854,7 +4145,9 @@ void InnerWidget::applySearchState(SearchState state) {
 	const auto otherChanged = (_searchState != withSameQuery);
 
 	const auto ignoreInChat = (state.tab == ChatSearchTab::MyMessages)
-		|| (state.tab == ChatSearchTab::PublicPosts);
+		|| (state.tab == ChatSearchTab::PublicPosts)
+		|| (state.tab == ChatSearchTab::Archive)
+		|| (state.tab == ChatSearchTab::ThisCommunity);
 	const auto sublist = ignoreInChat ? nullptr : state.inChat.sublist();
 	const auto peer = ignoreInChat ? nullptr : state.inChat.peer();
 	if (const auto migrateFrom = peer ? peer->migrateFrom() : nullptr) {
@@ -3931,36 +4224,8 @@ void InnerWidget::applySearchState(SearchState state) {
 			clearFilter();
 		} else {
 			setState(WidgetState::Filtered);
-			_filterResults.clear();
 			_filterResultsGlobal.clear();
-			const auto append = [&](not_null<IndexedList*> list) {
-				const auto results = list->filtered(words);
-				auto top = filteredHeight();
-				auto i = _filterResults.insert(
-					end(_filterResults),
-					begin(results),
-					end(results));
-				for (const auto e = end(_filterResults); i != e; ++i) {
-					i->top = top;
-					i->row->recountHeight(_narrowRatio, _filterId);
-					top += i->row->height();
-				}
-			};
-			if (_searchState.filterChatsList() && !words.isEmpty()) {
-				if (_savedSublists) {
-					append(_savedSublists->chatsList()->indexed());
-				} else if (_openedForum) {
-					append(_openedForum->topicsList()->indexed());
-				} else {
-					const auto owner = &session().data();
-					append(owner->chatsList()->indexed());
-					const auto id = Data::Folder::kId;
-					if (const auto add = owner->folderLoaded(id)) {
-						append(add->chatsList()->indexed());
-					}
-					append(owner->contactsNoChatsList());
-				}
-			}
+			refreshFilterResults();
 		}
 		clearMouseSelection(true);
 	}
@@ -4005,6 +4270,50 @@ void InnerWidget::onHashtagFilterUpdate(QStringView newFilter) {
 	}
 	refresh(true);
 	clearMouseSelection(true);
+}
+
+void InnerWidget::refreshFilterResults() {
+	const auto mentionsSearch = (_filter == u"@"_q);
+	const auto words = mentionsSearch
+		? QStringList(_filter)
+		: TextUtilities::PrepareSearchWords(_filter);
+	_filterResults.clear();
+	const auto append = [&](not_null<IndexedList*> list) {
+		const auto results = list->filtered(words);
+		auto top = filteredHeight();
+		auto i = _filterResults.insert(
+			end(_filterResults),
+			begin(results),
+			end(results));
+		for (const auto e = end(_filterResults); i != e; ++i) {
+			i->top = top;
+			i->row->recountHeight(_narrowRatio, _filterId);
+			top += i->row->height();
+		}
+	};
+	if (_searchState.filterChatsList() && !words.isEmpty()) {
+		if (_savedSublists) {
+			append(_savedSublists->chatsList()->indexed());
+		} else if (_openedForum) {
+			append(_openedForum->topicsList()->indexed());
+		} else {
+			const auto owner = &session().data();
+			append(owner->chatsList()->indexed());
+			const auto id = Data::Folder::kId;
+			if (const auto add = owner->folderLoaded(id)) {
+				append(add->chatsList()->indexed());
+			}
+			append(owner->contactsNoChatsList());
+		}
+	}
+	for (const auto &[key, row] : _filterResultsGlobal) {
+		if (!ranges::contains(_filterResults, key, &FilterResult::key)) {
+			const auto height = filteredHeight();
+			_filterResults.emplace_back(row.get());
+			_filterResults.back().top = height;
+			_filterResults.back().row->recountHeight(_narrowRatio, _filterId);
+		}
+	}
 }
 
 void InnerWidget::appendToFiltered(Key key) {
@@ -4334,7 +4643,9 @@ void InnerWidget::searchReceived(
 	}
 
 	const auto globalSearch = (_searchState.tab == ChatSearchTab::MyMessages)
-		|| (_searchState.tab == ChatSearchTab::PublicPosts);
+		|| (_searchState.tab == ChatSearchTab::PublicPosts)
+		|| (_searchState.tab == ChatSearchTab::Archive)
+		|| (_searchState.tab == ChatSearchTab::ThisCommunity);
 	const auto key = globalSearch
 		? Key()
 		: (!_openedForum || _searchState.inChat.topic())
@@ -4435,6 +4746,10 @@ Data::Forum *InnerWidget::shownForum() const {
 	return _openedForum;
 }
 
+Data::CommunityInfo *InnerWidget::shownCommunity() const {
+	return _openedCommunity;
+}
+
 bool InnerWidget::needCollapsedRowsRefresh() const {
 	const auto archive = !_shownList->empty()
 		? _shownList->begin()->get()->folder()
@@ -4475,7 +4790,17 @@ void InnerWidget::refresh(bool toTop) {
 	}
 	auto h = 0;
 	if (_state == WidgetState::Default) {
-		if (_shownList->empty()) {
+		if (_openedCommunity) {
+			const auto requestableShown = _communityRequestableList
+				&& (_communityRequestableCount > 0);
+			if (_shownList->empty()
+				&& _communityViewable.empty()
+				&& !requestableShown) {
+				h = st::dialogsEmptyHeight;
+			} else {
+				h = communitySectionsBottom();
+			}
+		} else if (_shownList->empty()) {
 			h = st::dialogsEmptyHeight;
 		} else {
 			h = dialogsOffset() + _shownList->height();
@@ -4497,6 +4822,7 @@ void InnerWidget::refresh(bool toTop) {
 		jumpToTop();
 		preloadRowsData();
 	}
+	updateCommunityRequestableGeometry();
 	update();
 }
 
@@ -4550,6 +4876,10 @@ void InnerWidget::refreshEmpty() {
 		? (_openedForum->topicsList()->loaded()
 			? EmptyState::EmptyForum
 			: EmptyState::Loading)
+		: _openedCommunity
+		? ((_communityViewable.empty() && !_communityRequestableCount)
+			? EmptyState::Loading
+			: EmptyState::None)
 		: (!_filterId && data->contactsLoaded().current())
 		? EmptyState::NoContacts
 		: (_filterId > 0) && data->chatsList()->loaded()
@@ -4696,6 +5026,22 @@ void InnerWidget::resizeEmpty() {
 	}
 }
 
+void InnerWidget::updateCommunityRequestableGeometry() {
+	if (!_communityRequestableList) {
+		return;
+	}
+	const auto shown = _openedCommunity
+		&& (_state == WidgetState::Default)
+		&& (_communityRequestableCount > 0);
+	_communityRequestableList->setVisible(shown);
+	if (shown) {
+		_communityRequestableList->resizeToWidth(width());
+		_communityRequestableList->moveToLeft(
+			0,
+			communityRequestableTop() + st::searchedBarHeight);
+	}
+}
+
 void InnerWidget::clearMouseSelection(bool clearSelection) {
 	_mouseSelection = false;
 	_lastMousePosition = std::nullopt;
@@ -4704,6 +5050,7 @@ void InnerWidget::clearMouseSelection(bool clearSelection) {
 		if (_state == WidgetState::Default) {
 			_collapsedSelected = -1;
 			_selected = nullptr;
+			_communitySelected = -1;
 		} else if (_state == WidgetState::Filtered) {
 			_filteredSelected
 				= _peerSearchSelected
@@ -4730,9 +5077,23 @@ auto InnerWidget::searchTagsChanges() const
 		: rpl::never<std::vector<Data::ReactionId>>();
 }
 
+bool InnerWidget::archiveSearchActive() const {
+	return _openedFolder
+		&& ((_searchState.tab == ChatSearchTab::Archive)
+			|| !QStringView(_searchState.query).trimmed().isEmpty());
+}
+
+bool InnerWidget::communitySearchActive() const {
+	return (_openedCommunity || _searchState.community)
+		&& ((_searchState.tab == ChatSearchTab::ThisCommunity)
+			|| !QStringView(_searchState.query).trimmed().isEmpty());
+}
+
 void InnerWidget::updateSearchIn() {
 	if (!_searchState.inChat
-		&& _searchHashOrCashtag == HashOrCashtag::None) {
+		&& _searchHashOrCashtag == HashOrCashtag::None
+		&& !archiveSearchActive()
+		&& !communitySearchActive()) {
 		_searchIn = nullptr;
 		return;
 	} else if (!_searchIn) {
@@ -4791,6 +5152,17 @@ void InnerWidget::updateSearchIn() {
 		? Ui::MakeUserpicThumbnail(sublist->sublistPeer())
 		: nullptr;
 	const auto myIcon = Ui::MakeIconThumbnail(st::menuIconChats);
+	const auto archiveIcon = (_openedFolder && !_searchState.inChat)
+		? Ui::MakeIconThumbnail(st::menuIconArchive)
+		: nullptr;
+	const auto communityChannel = _searchState.community
+		? _searchState.community
+		: _openedCommunity
+		? _openedCommunity->channel().get()
+		: nullptr;
+	const auto communityIcon = (communityChannel && !_searchState.inChat)
+		? Ui::MakeUserpicThumbnail(communityChannel)
+		: nullptr;
 	const auto publicIcon = (_searchHashOrCashtag != HashOrCashtag::None)
 		? Ui::MakeIconThumbnail(st::menuIconChannel)
 		: nullptr;
@@ -4808,6 +5180,8 @@ void InnerWidget::updateSearchIn() {
 	_searchIn->apply({
 		{ ChatSearchTab::ThisTopic, topicIcon },
 		{ ChatSearchTab::ThisPeer, peerIcon },
+		{ ChatSearchTab::ThisCommunity, communityIcon },
+		{ ChatSearchTab::Archive, archiveIcon },
 		{ ChatSearchTab::MyMessages, myIcon },
 		{ ChatSearchTab::PublicPosts, publicIcon },
 	}, _searchState.tab, peerTabType, fromImage, fromName);
@@ -4836,8 +5210,13 @@ bool InnerWidget::computeSearchWithPostsPreview() const {
 }
 
 void InnerWidget::clearFilter() {
-	if (_state == WidgetState::Filtered || _searchState.inChat) {
-		if (_searchState.inChat) {
+	if (_state == WidgetState::Filtered
+		|| _searchState.inChat
+		|| archiveSearchActive()
+		|| communitySearchActive()) {
+		if (_searchState.inChat
+			|| archiveSearchActive()
+			|| communitySearchActive()) {
 			setState(WidgetState::Filtered);
 		} else {
 			setState(WidgetState::Default);
@@ -4857,6 +5236,7 @@ void InnerWidget::clearFilter() {
 
 void InnerWidget::setState(WidgetState state) {
 	_state = state;
+	updateCommunityRequestableGeometry();
 }
 
 void InnerWidget::selectSkip(int32 direction) {
@@ -5296,6 +5676,13 @@ ChosenRow InnerWidget::computeChosenRow() const {
 				.key = _selected->key(),
 				.message = Data::UnreadMessagePosition,
 			};
+		} else if (_communitySelected >= 0) {
+			if (const auto row = communityRowAt(_communitySelected)) {
+				return {
+					.key = row->key(),
+					.message = Data::UnreadMessagePosition,
+				};
+			}
 		}
 	} else if (_state == WidgetState::Filtered) {
 		if (base::in_range(_filteredSelected, 0, _filterResults.size())) {

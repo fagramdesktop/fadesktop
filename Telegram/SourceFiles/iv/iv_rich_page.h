@@ -262,6 +262,16 @@ struct RichPageLinkUrl {
 	uint64 webpageId = 0;
 };
 
+enum class RichParseMode : uchar {
+	Normal, // textDiff is resolved to the updated text.
+	DisplayTextDiff, // textDiff shows old and new text with highlights.
+};
+
+// Special text color indices used for textDiff display, right after
+// the eight syntax highlight colors and the native IV link color.
+inline constexpr auto kTextDiffInsertedColorIndex = 10;
+inline constexpr auto kTextDiffDeletedColorIndex = 11;
+
 [[nodiscard]] RichMessageLimits ResolveRichMessageLimits(
 	not_null<Main::Session*> session);
 [[nodiscard]] bool RichPagesEqual(
@@ -277,7 +287,8 @@ struct RichPageLinkUrl {
 	const QString &data);
 [[nodiscard]] std::shared_ptr<const RichPage> ParseRichPage(
 	not_null<Main::Session*> session,
-	const MTPRichMessage &message);
+	const MTPRichMessage &message,
+	RichParseMode mode = RichParseMode::Normal);
 [[nodiscard]] std::shared_ptr<const RichPage> ParseRichPage(
 	not_null<Main::Session*> session,
 	const MTPPage &page);
@@ -285,7 +296,11 @@ struct RichPageLinkUrl {
 	not_null<Main::Session*> session,
 	const MTPDwebPage &webpage);
 [[nodiscard]] std::optional<TextWithEntities> SerializeAsSimple(
-	const RichPage &page);
+	const RichPage &page,
+	not_null<Main::Session*> session);
+[[nodiscard]] bool CanSerializeAsSimple(
+	const RichPage &page,
+	not_null<Main::Session*> session);
 [[nodiscard]] bool RichPageUsesPremiumFormatting(const RichPage &page);
 [[nodiscard]] bool RichPageIsFlattenSafe(const RichPage &page);
 [[nodiscard]] RichPage SplitTextIntoRichPage(TextWithEntities text);

@@ -11,6 +11,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/call_delayed.h"
 #include "base/event_filter.h"
 #include "base/platform/base_platform_haptic.h"
+#include "core/application.h"
+#include "core/core_settings.h"
 #include "data/data_chat_filters.h"
 #include "data/data_messages.h"
 #include "data/data_peer.h"
@@ -26,7 +28,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_shared_media.h"
 #include "support/support_preload.h"
 #include "ui/chat/chat_style.h"
-#include "ui/chat/continuous_scroll.h"
 #include "ui/widgets/elastic_scroll.h"
 #include "ui/rect.h"
 #include "ui/rp_widget.h"
@@ -40,13 +41,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace HistoryView {
 namespace {
 
-constexpr auto kDirectionLock = 8.;
 constexpr auto kResetReachedOn = 0.95;
-constexpr auto kReleaseShowDuration = crl::time(250);
-constexpr auto kReleaseHideDuration = crl::time(220);
-constexpr auto kPanelDuration = crl::time(320);
-constexpr auto kRetractDuration = crl::time(250);
+constexpr auto kReverseEase = 1.5;
+constexpr auto kReadyDwell = crl::time(120);
 constexpr auto kExpandDuration = crl::time(250);
+constexpr auto kReleaseShowDuration = crl::time(250);
+constexpr auto kReleaseHideDuration = crl::time(250);
+constexpr auto kPanelDuration = crl::time(320);
 constexpr auto kBounceDuration = crl::time(400);
 
 [[nodiscard]] History *FindNextUnreadChannel(
@@ -224,13 +225,14 @@ void PullToNextChannel::Indicator::setData(
 	}
 	_offset = offset;
 	if (_ready != ready) {
+		const auto from = _releaseProgress.value(_ready ? 1. : 0.);
 		_ready = ready;
 		_releaseProgress.start(
 			[=] { update(); },
-			ready ? 0. : 1.,
+			from,
 			ready ? 1. : 0.,
 			ready ? kReleaseShowDuration : kReleaseHideDuration,
-			anim::easeOutQuint);
+			ready ? anim::easeOutQuint : anim::sineInOut);
 		if (ready) {
 			_bounce.start(
 				[=] { update(); },
@@ -273,7 +275,7 @@ void PullToNextChannel::Indicator::paintEvent(QPaintEvent *e) {
 	const auto release = _releaseProgress.value(_ready ? 1. : 0.);
 	const auto alpha = std::clamp(progress, 0., 1.);
 	const auto h = float64(height());
-	const auto cx = width() / 2.;
+	const auto cx = (width() - st::historyScroll.width) / 2.;
 	const auto avatar = float64(st::historyPullNextAvatar);
 	const auto circleRadius = avatar / 2.;
 	const auto bg = _st->msgServiceBg()->c;
@@ -375,7 +377,8 @@ void PullToNextChannel::Indicator::paintEvent(QPaintEvent *e) {
 			+ ((-st::historyPullNextSkip
 					- st::historyPullNextSkip * progress
 					- size) * (1. - release)
-				+ (-offset + st::historyPullNextPadding) * release)
+				+ (-std::min(offset, card) + st::historyPullNextPadding)
+					* release)
 			+ bounceOffset;
 		const auto avRect = QRectF(cx - size / 2., top, size, size);
 		p.setOpacity(alpha);
@@ -505,7 +508,7 @@ void PullToNextChannel::HintOverlay::setData(
 			ready ? 0. : 1.,
 			ready ? 1. : 0.,
 			ready ? kReleaseShowDuration : kReleaseHideDuration,
-			anim::easeOutQuint);
+			ready ? anim::easeOutQuint : anim::sineInOut);
 	}
 	if (want && isHidden()) {
 		show();
@@ -564,28 +567,37 @@ void PullToNextChannel::HintOverlay::paintEvent(QPaintEvent *e) {
 
 PullToNextChannel::PullToNextChannel(
 	not_null<Ui::RpWidget*> parent,
-	not_null<Ui::ContinuousScroll*> scroll,
+	not_null<Ui::ElasticScroll*> scroll,
 	not_null<Window::SessionController*> controller)
 : _parent(parent)
 , _scroll(scroll)
 , _controller(controller)
 , _indicator(base::make_unique_q<Indicator>(scroll, controller->chatStyle()))
 , _hint(base::make_unique_q<HintOverlay>(parent)) {
+	rpl::combine(
+		_scroll->positionValue(),
+		_scroll->movementValue()
+	) | rpl::on_next([=](
+			Ui::ElasticScrollPosition position,
+			Ui::ElasticScrollMovement movement) {
+		handleOverscroll(position, movement);
+	}, _lifetime);
+
+	_dwellTimer.setCallback([=] {
+		if (_pulling && _pull >= float64(st::historyPullNextThreshold)) {
+			_reached = true;
+			_peakPull = _pull;
+			base::Platform::Haptic();
+			startExpand(true);
+			pushIndicator();
+		}
+	});
 }
 
 PullToNextChannel::~PullToNextChannel() = default;
 
-void PullToNextChannel::attachToContent(not_null<HistoryInner*> inner) {
+void PullToNextChannel::attachToContent(not_null<HistoryInner*>) {
 	reset();
-	_inner = inner.get();
-	_filter = base::unique_qptr<QObject>(base::install_event_filter(
-		inner,
-		[=](not_null<QEvent*> e) {
-			return (e->type() == QEvent::Wheel
-					&& processWheel(static_cast<QWheelEvent*>(e.get())))
-				? base::EventFilterResult::Cancel
-				: base::EventFilterResult::Continue;
-		}));
 }
 
 void PullToNextChannel::setHistory(History *history) {
@@ -597,7 +609,8 @@ void PullToNextChannel::setHistory(History *history) {
 }
 
 bool PullToNextChannel::active() const {
-	return _history
+	return Core::App().settings().pullToNextChannel()
+		&& _history
 		&& _history->peer->isBroadcast()
 		&& atBottom()
 		&& !_controller->session().sponsoredMessages().hasUnshownFor(_history);
@@ -608,168 +621,115 @@ bool PullToNextChannel::atBottom() const {
 		&& _history->loadedAtBottom();
 }
 
-bool PullToNextChannel::processWheel(not_null<QWheelEvent*> e) {
-	const auto phase = e->phase();
-	if (phase == Qt::NoScrollPhase) {
-		return false;
-	} else if (phase == Qt::ScrollBegin) {
-		reset();
-		return false;
-	} else if (phase == Qt::ScrollEnd || phase == Qt::ScrollMomentum) {
-		return release() || _retract.animating() || _swallowMomentum;
-	} else if (!_engaged
-		&& (_gaveUp
-			|| !_history
-			|| !_history->peer->isBroadcast()
-			|| !atBottom())) {
-		return false;
-	}
-	const auto delta = Ui::ScrollDeltaF(e);
-	return applyDelta(delta.x(), delta.y());
-}
-
-bool PullToNextChannel::applyDelta(float64 deltaX, float64 deltaY) {
-	if (!_engaged) {
-		_swipeX += deltaX;
-		_swipeY += deltaY;
-		const auto down = -_swipeY;
-		const auto sideways = std::abs(_swipeX);
-		if (sideways > kDirectionLock && sideways >= down) {
-			_gaveUp = true;
-			return false;
-		} else if (down < -kDirectionLock) {
-			_gaveUp = true;
-			return false;
-		} else if (!active()) {
-			return false;
-		} else if (down <= kDirectionLock || down <= sideways) {
-			return true;
+void PullToNextChannel::handleOverscroll(
+		Ui::ElasticScrollPosition position,
+		Ui::ElasticScrollMovement movement) {
+	using Phase = Ui::ElasticScrollMovement;
+	const auto pull = std::max(position.overscroll, 0);
+	const auto threshold = st::historyPullNextThreshold;
+	if (!_pulling) {
+		if (movement != Phase::Progress || pull <= 0 || !active()) {
+			return;
 		}
-		_engaged = true;
-		_retract.stop();
-		_accumulated = down;
+		_pulling = true;
+		_committed = false;
 		_next = FindNextUnreadChannel(_controller, _history->peer);
-		if (_next && !_next->isReadyFor(ShowAtUnreadMsgId)) {
-			[[maybe_unused]] const auto id = Support::SendPreloadRequest(
-				_next,
-				[] {});
-		}
 		if (_next) {
+			if (!_next->isReadyFor(ShowAtUnreadMsgId)) {
+				[[maybe_unused]] const auto id = Support::SendPreloadRequest(
+					_next,
+					[] {});
+			}
 			PreloadPinnedBar(_next);
 		}
-	} else {
-		_accumulated = std::max(0., _accumulated - deltaY);
 	}
-	const auto threshold = float64(st::historyPullNextThreshold);
-	_offset = std::max(0., std::min(
-		float64(st::historyPullNextMaxHeight),
-		float64(Ui::OverscrollFromAccumulated(
-			int(base::SafeRound(_accumulated))))));
-	const auto ratio = threshold ? (_offset / threshold) : 0.;
-	if (_next && !_reached && ratio >= 1.) {
-		_reached = true;
-		base::Platform::Haptic();
-		startExpand(true);
-	} else if (_reached && ratio < kResetReachedOn) {
-		_reached = false;
-		startExpand(false);
+	_pull = pull;
+	const auto reached = (pull >= threshold);
+	if (_reached) {
+		// Collapse on a peak-relative reverse, not down to the threshold.
+		_peakPull = std::max(_peakPull, float64(pull));
+		const auto floor = threshold * kResetReachedOn;
+		const auto resetAt = _peakPull - (_peakPull - floor) / kReverseEase;
+		if (pull < resetAt) {
+			_reached = false;
+			_peakPull = 0.;
+			startExpand(false);
+		}
+	} else if (reached) {
+		// Arm the dwell on finger-down; a flick releases before it fires.
+		if (!_dwellTimer.isActive() && movement == Phase::Progress) {
+			_dwellTimer.callOnce(kReadyDwell);
+		}
+	} else if (pull < threshold * kResetReachedOn) {
+		_dwellTimer.cancel();
 	}
-	push(_offset, _reached, _offset > 0., _next);
-	return true;
-}
-
-bool PullToNextChannel::release() {
-	if (!_engaged) {
-		return false;
-	}
-	const auto next = _next;
-	const auto fromAccumulated = _accumulated;
-	const auto ready = (_offset >= float64(st::historyPullNextThreshold))
-		&& next
-		&& next->unreadCount() > 0;
-	_swallowMomentum = true;
-	clearState();
-	if (ready) {
-		crl::on_main(_parent.get(), [=] { jumpWhenReady(next, 0); });
-	} else {
-		startRetract(fromAccumulated, next);
-	}
-	return true;
-}
-
-void PullToNextChannel::push(
-		float64 offset,
-		bool ready,
-		bool visible,
-		History *next) {
-	_pushOffset = offset;
-	_pushVisible = visible;
-	_pushNext = next;
-	render(ready);
-}
-
-void PullToNextChannel::render(bool ready) {
-	const auto full = float64(st::historyPullNextExpand);
-	const auto expand = _expand.value(ready ? 1. : 0.);
-	const auto effective = _pushOffset + (full - _pushOffset) * expand;
-	applyShift(int(base::SafeRound(effective)));
-	_indicator->setData(effective, ready, _pushNext);
-	_hint->setData(_pushVisible, ready, _pushNext);
-}
-
-void PullToNextChannel::startExpand(bool ready) {
-	_expand.start(
-		[=] { render(_reached); },
-		ready ? 0. : 1.,
-		ready ? 1. : 0.,
-		kExpandDuration,
-		anim::easeOutQuint);
-}
-
-void PullToNextChannel::applyShift(int shift) {
-	if (_inner && _inner->pullBottomInset() != shift) {
-		_inner->setPullBottomInset(shift);
-		_scroll->scrollToY(_scroll->scrollTopMax());
-		_inner->update();
-	}
-}
-
-void PullToNextChannel::startRetract(float64 fromAccumulated, History *next) {
-	if (fromAccumulated <= 0.) {
-		push(0., false, false, nullptr);
+	pushIndicator();
+	if (movement == Phase::Progress) {
 		return;
 	}
-	_retract.start([=] {
-		const auto progress = _retract.value(0.);
-		if (_retract.animating()) {
-			const auto offset = float64(Ui::OverscrollFromAccumulated(
-				int(base::SafeRound(fromAccumulated * progress))));
-			push(offset, false, true, next);
-		} else {
-			push(0., false, false, nullptr);
+	_dwellTimer.cancel();
+	if (!_committed) {
+		_committed = true;
+		const auto next = _next;
+		if (_reached
+			&& next
+			&& (next->unreadCount() > 0)
+			&& active()) {
+			_pulling = false;
+			_jumping = true;
+			_scroll->setContentBottomInset(int(base::SafeRound(_effective)));
+			crl::on_main(_parent.get(), [=] { jumpWhenReady(next, 0); });
+			return;
 		}
-	}, 1., 0., kRetractDuration, anim::sineInOut);
+	}
+	if (pull <= 0) {
+		reset();
+	}
 }
 
 void PullToNextChannel::clearState() {
-	_expand.stop();
-	_accumulated = 0.;
-	_offset = 0.;
-	_swipeX = 0.;
-	_swipeY = 0.;
-	_engaged = false;
+	_dwellTimer.cancel();
+	_pulling = false;
+	_committed = false;
+	_jumping = false;
 	_reached = false;
-	_gaveUp = false;
+	_peakPull = 0.;
+	_pull = 0.;
+	_expandTo = false;
 	_next = nullptr;
 }
 
 void PullToNextChannel::reset() {
-	_retract.stop();
-	_swallowMomentum = false;
+	_expand.stop();
 	clearState();
-	applyShift(0);
+	_scroll->setContentBottomInset(0);
 	_indicator->hideNow();
 	_hint->hideNow();
+}
+
+void PullToNextChannel::startExpand(bool ready) {
+	const auto from = _expand.value(_expandTo ? 1. : 0.);
+	_expandTo = ready;
+	_expand.start(
+		[=] { pushIndicator(); },
+		from,
+		ready ? 1. : 0.,
+		kExpandDuration,
+		ready ? anim::easeOutQuint : anim::sineInOut);
+}
+
+void PullToNextChannel::pushIndicator() {
+	const auto card = float64(st::historyPullNextExpand);
+	const auto threshold = float64(st::historyPullNextThreshold);
+	const auto expand = _expand.value(_expandTo ? 1. : 0.);
+	const auto effective = std::min(
+		float64(st::historyPullNextMaxHeight),
+		_pull + expand * (card - threshold));
+	_effective = effective;
+	_scroll->setContentBottomInset(std::max(0, int(base::SafeRound(
+		_jumping ? effective : (effective - _pull)))));
+	_indicator->setData(effective, _reached, _next);
+	_hint->setData(_pull > 0., _reached, _next);
 }
 
 void PullToNextChannel::updateGeometry() {

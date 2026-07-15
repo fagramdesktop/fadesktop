@@ -397,6 +397,7 @@ private:
 	Ui::Animations::Simple _scrollToAnimation;
 	bool _skipScrollRestore = false;
 	bool _skipUnreadEventPrune = false;
+	bool _beingDestroyed = false;
 
 	int _itemsTop = 0;
 	int _itemsWidth = 0;

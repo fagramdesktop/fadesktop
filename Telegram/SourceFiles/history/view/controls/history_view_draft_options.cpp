@@ -17,6 +17,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_changes.h"
 #include "data/data_drafts.h"
 #include "data/data_file_origin.h"
+#include "data/data_peer_values.h"
 #include "data/data_session.h"
 #include "data/data_thread.h"
 #include "data/data_user.h"
@@ -730,6 +731,7 @@ void DraftOptionsBox(
 		rpl::lifetime resolveLifetime;
 
 		Fn<void()> rebuild;
+		bool rebuildScheduled = false;
 	};
 	const auto state = box->lifetime().make_state<State>();
 	state->link = args.usedLink;
@@ -991,7 +993,7 @@ void DraftOptionsBox(
 					? tr::lng_forward_action_hide_sender
 					: tr::lng_forward_action_hide_senders)(),
 				st::settingsButtonDisabledWithIcon,
-				{ &st::menuIconUserHide }
+				{ &st::menuIconUserHideDisabled }
 			)->setClickedCallback([=] {
 				Settings::ShowPremiumPromoToast(
 					show,
@@ -1140,7 +1142,7 @@ void DraftOptionsBox(
 	}, state->wrap->lifetime());
 
 	const auto &linkRanges = args.links;
-	state->shown.value() | rpl::on_next([=](Section shown) {
+	const auto rebuildBottom = [=](Section shown) {
 		bottom->clear();
 		state->shownLifetime.destroy();
 		switch (shown) {
@@ -1164,6 +1166,17 @@ void DraftOptionsBox(
 				state->wrap->showForwardSelector(state->forward);
 				setupForwardActions();
 			} break;
+		}
+	};
+	state->shown.value() | rpl::on_next([=](Section shown) {
+		if (!bottom->count()) {
+			rebuildBottom(shown);
+		} else if (!state->rebuildScheduled) {
+			state->rebuildScheduled = true;
+			crl::on_main(bottom, [=] {
+				state->rebuildScheduled = false;
+				rebuildBottom(state->shown.current());
+			});
 		}
 	}, box->lifetime());
 
@@ -1225,6 +1238,12 @@ void DraftOptionsBox(
 		if (state->wrap->hasViewForItem(item)) {
 			state->rebuild();
 		}
+	}, box->lifetime());
+
+	Data::AmPremiumValue(
+		&args.show->session()
+	) | rpl::skip(1) | rpl::on_next([=] {
+		state->shown.force_assign(state->shown.current());
 	}, box->lifetime());
 
 }

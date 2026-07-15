@@ -1787,8 +1787,11 @@ void ParticipantsBoxController::loadMoreRows() {
 }
 
 void ParticipantsBoxController::refreshDescription() {
+	const auto channel = _peer->asChannel();
 	setDescriptionText((_role == Role::Kicked)
-		? ((_peer->isChat() || _peer->isMegagroup())
+		? ((channel && channel->isCommunity())
+			? tr::lng_community_removed_list_about
+			: (_peer->isChat() || _peer->isMegagroup())
 			? tr::lng_group_removed_list_about
 			: tr::lng_channel_removed_list_about)(tr::now)
 		: (delegate()->peerListFullRowsCount() > 0)
@@ -2113,8 +2116,32 @@ void ParticipantsBoxController::showAdmin(not_null<UserData*> user) {
 			}
 		});
 		const auto show = delegate()->peerListUiShow();
-		box->setSaveCallback(
-			SaveAdminCallback(show, _peer, user, done, fail));
+		auto save = SaveAdminCallback(show, _peer, user, done, fail);
+		const auto channel = _peer->asChannel();
+		const auto promoting = !adminRights.has_value();
+		if (channel && channel->isCommunity() && promoting) {
+			box->setSaveCallback([=](
+					ChatAdminRightsInfo oldRights,
+					ChatAdminRightsInfo newRights,
+					const std::optional<QString> &rank) {
+				const auto sure = [=](Fn<void()> &&close) {
+					close();
+					save(oldRights, newRights, rank);
+				};
+				show->showBox(Ui::MakeConfirmBox({
+					.text = tr::lng_community_admin_promote_sure(
+						tr::now,
+						lt_user,
+						tr::bold(user->shortName()),
+						tr::marked),
+					.confirmed = sure,
+					.confirmText = tr::lng_community_admin_promote(),
+					.title = tr::lng_community_admin_promote_title(),
+				}));
+			});
+		} else {
+			box->setSaveCallback(std::move(save));
+		}
 	}
 	_editParticipantBox = showBox(std::move(box));
 }

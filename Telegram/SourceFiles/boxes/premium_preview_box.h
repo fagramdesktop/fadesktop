@@ -108,6 +108,11 @@ void ShowPremiumPreviewToBuy(
 	PremiumFeature section,
 	Fn<void()> hiddenCallback = nullptr);
 
+void ShowPremiumPreviewToBuy(
+	std::shared_ptr<ChatHelpers::Show> show,
+	PremiumFeature section,
+	Fn<void()> hiddenCallback = nullptr);
+
 void PremiumUnavailableBox(not_null<Ui::GenericBox*> box);
 
 [[nodiscard]] object_ptr<Ui::GradientButton> CreateUnlockButton(

@@ -362,7 +362,9 @@ public:
 		block->orderedType = type;
 		block->orderedReversed = _reversed;
 		block->orderedNumber = value;
-		block->articleOrderedMarkerText = raw;
+		block->articleOrderedMarkerText = FormatPreparedOrderedRawMarkerText(
+			raw,
+			_delimiter);
 		block->orderedMarkerText = _editMode
 			? FormatPreparedOrderedMarkerText(value, type, _delimiter)
 			: raw.isEmpty()
@@ -644,24 +646,24 @@ void ApplyBlockCaptionEditSource(
 
 [[nodiscard]] QString NativeIvEditPlaceholderText(
 		PreparedBlockKind kind,
-		PreparedEditLeafKind leafKind) {
+		PreparedEditLeafKind leafKind,
+		int headingLevel) {
 	switch (leafKind) {
 	case PreparedEditLeafKind::BlockCaption:
-		return u"Caption"_q;
+		return tr::lng_photo_caption(tr::now);
 	case PreparedEditLeafKind::TableCellText:
-		return u"Cell"_q;
+		return tr::lng_article_placeholder_cell(tr::now);
 	case PreparedEditLeafKind::MathFormula:
 		return u"x^2 + y^2"_q;
-	case PreparedEditLeafKind::ListItemText:
-		return u"Text"_q;
 	case PreparedEditLeafKind::BlockText:
 		if (kind == PreparedBlockKind::Table) {
-			return u"Title"_q;
+			return tr::lng_article_placeholder_title(tr::now);
+		} else if (kind == PreparedBlockKind::Heading) {
+			return HeadingLevelLabel(headingLevel);
+		} else if (kind == PreparedBlockKind::Details) {
+			return tr::lng_article_table_header(tr::now);
 		}
-		return (kind == PreparedBlockKind::Heading)
-			|| (kind == PreparedBlockKind::Details)
-			? u"Header"_q
-			: u"Text"_q;
+		return QString();
 	}
 	return QString();
 }
@@ -671,20 +673,25 @@ void ApplyNativeIvEditPlaceholderText(PreparedBlock *block) {
 		return;
 	} else if (block->quoteAuthor
 		&& (block->editLeaf->kind == PreparedEditLeafKind::BlockCaption)) {
-		block->editPlaceholderText = u"Add author"_q;
+		block->editPlaceholderText = tr::lng_article_placeholder_author(tr::now);
+		return;
+	} else if (block->footer
+		&& (block->editLeaf->kind == PreparedEditLeafKind::BlockText)) {
+		block->editPlaceholderText = tr::lng_article_insert_footer(tr::now);
 		return;
 	}
 	block->editPlaceholderText = NativeIvEditPlaceholderText(
 		block->kind,
-		block->editLeaf->kind);
+		block->editLeaf->kind,
+		block->headingLevel);
 }
 
 void ApplyNativeIvQuoteEditPlaceholderText(
 		PreparedBlock *block,
 		bool quoteAuthor) {
 	block->editPlaceholderText = quoteAuthor
-		? u"Add author"_q
-		: u"Enter quote"_q;
+		? tr::lng_article_placeholder_author(tr::now)
+		: tr::lng_article_placeholder_quote(tr::now);
 }
 
 void RefreshPreparedNativeIvQuotePlaceholder(
@@ -700,9 +707,12 @@ void ApplyNativeIvEditPlaceholderText(PreparedTableCell *cell) {
 	if (!cell->editLeaf) {
 		return;
 	}
-	cell->editPlaceholderText = NativeIvEditPlaceholderText(
-		PreparedBlockKind::Table,
-		cell->editLeaf->kind);
+	cell->editPlaceholderText = cell->header
+		? tr::lng_article_table_header(tr::now)
+		: NativeIvEditPlaceholderText(
+			PreparedBlockKind::Table,
+			cell->editLeaf->kind,
+			0);
 }
 
 [[nodiscard]] const std::vector<RichPageBlock> *ResolveCanonicalNativeIvContainer(
@@ -1028,7 +1038,8 @@ void RefreshPreparedNativeIvPlaceholderCopyText(PreparedBlock *block) {
 	case RichPageBlockKind::Photo:
 	case RichPageBlockKind::Video:
 	case RichPageBlockKind::Audio:
-	case RichPageBlockKind::Map: {
+	case RichPageBlockKind::Map:
+	case RichPageBlockKind::GroupedMedia: {
 		if (!preparedBlock->editLeaf || (*preparedBlock->editLeaf != source)) {
 			return NativeInstantViewLeafUpdateResult::Unsupported;
 		}
@@ -1046,6 +1057,8 @@ void RefreshPreparedNativeIvPlaceholderCopyText(PreparedBlock *block) {
 			preparedBlock->photo.caption = preparedBlock->text;
 		} else if (preparedBlock->kind == PreparedBlockKind::Video) {
 			preparedBlock->video.caption = preparedBlock->text;
+		} else if (preparedBlock->kind == PreparedBlockKind::GroupedMedia) {
+			preparedBlock->groupedMedia.caption = preparedBlock->text;
 		}
 		RefreshPreparedNativeIvMediaCaptionPlaceholder(preparedBlock, state);
 		RefreshPreparedNativeIvPlaceholderCopyText(preparedBlock);
@@ -1148,7 +1161,10 @@ using PrepareCanonicalMediaBlock = bool (*)(
 		return false;
 	}
 	if (result->size() > count) {
-		result->back().editBlock = BlockSource(std::move(path));
+		ApplyBlockCaptionEditSource(&result->back(), std::move(path));
+		if (state->editMode) {
+			ApplyNativeIvEditPlaceholderText(&result->back());
+		}
 	}
 	return true;
 }
@@ -1233,7 +1249,8 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 		QString anchorId,
 		std::optional<PreparedEditBlockPath> path,
 		NativeIvPrepareState *state,
-		bool allowEmpty = false) {
+		bool allowEmpty = false,
+		bool footer = false) {
 	auto prepared = PreparedIvRichText();
 	const auto context = NativeIvRichTextContextForTextSize(
 		NativeIvFlowTextSize(kind, headingLevel, state->dimensions),
@@ -1263,8 +1280,11 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 		false,
 		std::move(editBlock),
 		std::move(editLeaf));
-	if (appended && state->editMode && (result->size() > count)) {
-		ApplyNativeIvEditPlaceholderText(&result->back());
+	if (appended && (result->size() > count)) {
+		result->back().footer = footer;
+		if (state->editMode) {
+			ApplyNativeIvEditPlaceholderText(&result->back());
+		}
 	}
 	return appended;
 }
@@ -1802,7 +1822,9 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 			block.text,
 			block.anchorId,
 			path,
-			state);
+			state,
+			false,
+			(block.kind == RichPageBlockKind::Footer));
 	case RichPageBlockKind::Thinking:
 		return AppendNativeIvFlowBlock(
 			result,
@@ -2027,6 +2049,18 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 }
 
 } // namespace
+
+QString FormatPreparedOrderedRawMarkerText(
+		const QString &raw,
+		ListDelimiter delimiter) {
+	if (raw.isEmpty() || raw.endsWith('.') || raw.endsWith(')')) {
+		return raw;
+	}
+	const auto suffix = (delimiter == ListDelimiter::Parenthesis)
+		? u")"_q
+		: u"."_q;
+	return raw + suffix;
+}
 
 bool PrepareNativeIvBlocks(
 		const Iv::RichPage &page,

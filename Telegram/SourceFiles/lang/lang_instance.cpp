@@ -16,6 +16,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "base/platform/base_platform_info.h"
 #include "base/qthelp_regex.h"
 
+#include "lang_auto_counts.h" // kKeysCount, kTagsCount.
+
 namespace Lang {
 namespace {
 

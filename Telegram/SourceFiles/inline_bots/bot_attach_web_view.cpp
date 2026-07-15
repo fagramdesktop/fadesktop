@@ -29,6 +29,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/local_url_handlers.h"
 #include "core/shortcuts.h"
 #include "core/ui_integration.h" // TextContext
+#include "data/components/ephemeral_messages.h"
 #include "data/components/location_pickers.h"
 #include "data/data_bot_app.h"
 #include "data/data_changes.h"
@@ -1027,9 +1028,7 @@ void WebViewInstance::resolve() {
 		requestMain();
 	}, [&](WebViewSourceJoinChat data) {
 		confirmOpen([=] {
-			show({
-				.result = data.result,
-			});
+			requestChatJoin();
 		}, true);
 	});
 }
@@ -1323,6 +1322,26 @@ void WebViewInstance::requestApp(bool allowWrite) {
 		if (error.type() == u"BOT_INVALID"_q) {
 			_session->attachWebView().requestBots();
 		}
+		close();
+	}).send();
+}
+
+void WebViewInstance::requestChatJoin() {
+	const auto &join = v::get<WebViewSourceJoinChat>(_source);
+	using Flag = MTPmessages_RequestChatJoinWebView::Flag;
+	_requestId = _session->api().request(MTPmessages_RequestChatJoinWebView(
+		MTP_flags(Flag::f_theme_params),
+		MTP_long(join.queryId),
+		MTP_dataJSON(MTP_bytes(botThemeParams().json)),
+		MTP_string("tdesktop")
+	)).done([=](const MTPWebViewResult &result) {
+		_requestId = 0;
+		show({
+			.result = ParseWebViewResult(result),
+		});
+	}).fail([=](const MTP::Error &error) {
+		_requestId = 0;
+		_parentShow->showToast(error.type());
 		close();
 	}).send();
 }
@@ -2852,7 +2871,10 @@ void ChooseAndSendLocation(
 	};
 	const auto state = std::make_shared<State>();
 	state->send = [=](Data::InputVenue venue, Api::SendAction action) {
-		if (const auto strong = weak.get()) {
+		const auto strong = weak.get();
+		const auto ephemeralReply = session->ephemeralMessages()
+			.isEphemeralBotReply(action.replyTo.messageId);
+		if (strong && !ephemeralReply) {
 			const auto withPaymentApproved = [=](int stars) {
 				if (const auto onstack = state->send) {
 					auto copy = action;
@@ -2962,12 +2984,22 @@ std::unique_ptr<Ui::DropdownMenu> MakeAttachBotsMenu(
 	if (Iv::Editor::CanAuthorRichMessages(&controller->session())
 		&& Data::CanSendAnyOf(peer, ChatRestriction::SendOther, false)) {
 		raw->addAction(tr::lng_article_menu_item(tr::now), [=] {
-			const auto openCompose = [=] {
-				Iv::Editor::ShowComposeBox(
-					controller,
-					peer,
-					actionFactory(),
-					sendMenuDetails);
+			const auto action = actionFactory();
+			if (ShowEphemeralReplyTextOnlyError(
+					controller->uiShow(),
+					&controller->session(),
+					action.replyTo.messageId)) {
+				return;
+			}
+			const auto details = sendMenuDetails();
+			const auto openCompose = [=, weak = base::make_weak(controller)] {
+				if (const auto strong = weak.get()) {
+					Iv::Editor::ShowComposeBox(
+						strong,
+						peer,
+						action,
+						details);
+				}
 			};
 			const auto handled
 				= Iv::Editor::RequestCloseOpenEditWindowThenCompose(

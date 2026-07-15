@@ -49,6 +49,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "iv/iv_instance.h"
 #include "iv/iv_data.h"
 #include "iv/editor/iv_editor_session.h"
+#include "iv/editor/iv_editor_window.h"
 #include "lang/lang_translator.h"
 #include "lang/lang_cloud_manager.h"
 #include "lang/lang_hardcoded.h"
@@ -1694,7 +1695,9 @@ bool Application::closeActiveWindow() {
 	if (_mediaView && _mediaView->isActive()) {
 		_mediaView->close();
 		return true;
-	} else if (_iv->closeActive() || calls().closeCurrentActiveCall()) {
+	} else if (_iv->closeActive()
+		|| Iv::Editor::CloseActiveWindow()
+		|| calls().closeCurrentActiveCall()) {
 		return true;
 	} else if (const auto window = activeWindow()) {
 		if (window->widget()->isActive()) {

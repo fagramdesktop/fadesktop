@@ -454,6 +454,17 @@ bool PeerListController::hasComplexSearch() const {
 	return (_searchController != nullptr);
 }
 
+void PeerListController::customRowAddRipple(
+		not_null<PeerListRow*> row,
+		QPoint point,
+		Fn<void()> updateCallback) {
+	row->addRipple(
+		computeListSt().item,
+		customRowRippleMaskGenerator(),
+		point,
+		std::move(updateCallback));
+}
+
 void PeerListController::search(const QString &query) {
 	Expects(hasComplexSearch());
 
@@ -1862,7 +1873,10 @@ void PeerListContent::mousePressEvent(QMouseEvent *e) {
 		} else {
 			auto point = mapFromGlobal(QCursor::pos()) - QPoint(0, getRowTop(_selected.index));
 			if (_mode == Mode::Custom) {
-				row->addRipple(_st.item, _controller->customRowRippleMaskGenerator(), point, std::move(updateCallback));
+				_controller->customRowAddRipple(
+					row,
+					point,
+					std::move(updateCallback));
 			} else {
 				const auto maskGenerator = [&] {
 					return Ui::RippleAnimation::RectMask(
@@ -2023,6 +2037,7 @@ crl::time PeerListContent::paintRow(
 	if (_rowsScrollCache.scrolling()
 		&& !selected
 		&& !activeElement
+		&& !row->elementsAnimating()
 		&& width() > 0
 		&& row->opacity() == 1.) {
 		const auto ratio = style::DevicePixelRatio();
@@ -2542,11 +2557,21 @@ void PeerListContent::setSelected(Selected selected) {
 	if (_selected == selected) {
 		return;
 	}
+	const auto was = getRow(_selected.index);
 	_selected = selected;
 	updateRow(_selected.index);
 	setCursor(_selected.element ? style::cur_pointer : style::cur_default);
 
 	_selectedIndex = _selected.index.value;
+
+	if (const auto row = getRow(_selected.index)) {
+		_controller->rowElementHovered(
+			row,
+			_selected.element,
+			getElementRect(row, _selected.index, _selected.element));
+	} else if (was) {
+		_controller->rowElementHovered(was, 0, QRect());
+	}
 }
 
 void PeerListContent::setContexted(Selected contexted) {

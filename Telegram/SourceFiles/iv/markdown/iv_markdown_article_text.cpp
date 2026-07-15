@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "iv/markdown/iv_markdown_article_text.h"
 #include "iv/markdown/iv_markdown_article_layout_blocks.h"
+#include "iv/markdown/iv_markdown_prepare_links.h"
 #include "iv/markdown/iv_markdown_prepare_serialize.h"
 #include "lang/lang_keys.h"
 #include "ui/style/style_core.h"
@@ -143,6 +144,8 @@ public:
 
 	TextEntity getTextEntity() const override;
 
+	QString tooltip() const override;
+
 private:
 	PreparedLink _link;
 
@@ -152,7 +155,20 @@ PreparedLinkClickHandler::PreparedLinkClickHandler(PreparedLink link)
 : _link(std::move(link)) {
 }
 
-void PreparedLinkClickHandler::onClick(ClickContext) const {
+void PreparedLinkClickHandler::onClick(ClickContext context) const {
+	if (context.button != Qt::LeftButton
+		&& context.button != Qt::MiddleButton) {
+		return;
+	}
+	const auto data = ExternalEntityLinkData(_link);
+	if (!data) {
+		return;
+	}
+	if (const auto handler = Ui::Integration::Instance().createLinkHandler(
+			*data,
+			Ui::Text::MarkedContext())) {
+		handler->onClick(std::move(context));
+	}
 }
 
 const PreparedLink &PreparedLinkClickHandler::link() const {
@@ -175,6 +191,10 @@ QString PreparedLinkClickHandler::copyToClipboardContextItemText() const {
 
 ClickHandler::TextEntity PreparedLinkClickHandler::getTextEntity() const {
 	return TextEntityForLink(_link);
+}
+
+QString PreparedLinkClickHandler::tooltip() const {
+	return TooltipForPreparedLink(_link);
 }
 
 [[nodiscard]] int FormulaTextSize(const style::TextStyle &textStyle) {

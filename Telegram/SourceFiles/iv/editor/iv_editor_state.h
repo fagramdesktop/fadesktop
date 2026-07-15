@@ -109,6 +109,7 @@ public:
 		BlockPath path;
 		RichPage::BlockKind kind = RichPage::BlockKind::Unsupported;
 		uint64 mediaId = 0;
+		int itemIndex = -1;
 	};
 
 	enum class LeafKind : uchar {
@@ -270,6 +271,7 @@ public:
 	[[nodiscard]] int activeTextLength() const;
 	[[nodiscard]] std::optional<int> previousEditableOrdinal() const;
 	[[nodiscard]] std::optional<int> nextEditableOrdinal() const;
+	[[nodiscard]] std::optional<int> firstTableCellOrdinalFromActiveTitle() const;
 	[[nodiscard]] BoundaryTarget activeBoundaryTarget(bool forward) const;
 	[[nodiscard]] std::vector<BoundaryTarget> boundarySteps(
 		bool forward) const;
@@ -280,11 +282,30 @@ public:
 	[[nodiscard]] bool activeLeafUsesQuotePlaceholderColor() const;
 	[[nodiscard]] bool activeBlockBodyCanEscape() const;
 	[[nodiscard]] std::optional<int> moveActiveSpecialBlockDown();
-	[[nodiscard]] std::optional<int> submitActiveSingleLineField();
 	[[nodiscard]] std::optional<int> escapeActiveBlockBody();
 	[[nodiscard]] BoundaryTarget removeTemporaryDownParagraphAndMove();
-	[[nodiscard]] std::optional<int> handleActiveHeadingEnter();
-	[[nodiscard]] std::optional<int> handleActiveListEnter();
+	enum class EnterPosition : uchar {
+		End,
+		Beginning,
+		Middle,
+	};
+	struct ActiveEnterContext {
+		EnterPosition position = EnterPosition::End;
+		TextWithEntities head;
+		TextWithEntities tail;
+	};
+	[[nodiscard]] std::optional<int> submitActiveSingleLineField(
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleActiveHeadingEnter(
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleActiveFooterEnter(
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleActiveListEnter(
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleActiveParagraphEnter(
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleActiveQuoteEnter(
+		const ActiveEnterContext &context);
 	[[nodiscard]] std::optional<int> removeActiveOwnerAndSelectAdjacent(
 		bool forward);
 	[[nodiscard]] std::optional<int> removeStructuralSelection(
@@ -327,6 +348,20 @@ public:
 	[[nodiscard]] auto structuredClipboardDataForSelection(
 		const Markdown::PreparedEditSelection &selection) const
 	-> std::optional<ClipboardData>;
+	[[nodiscard]] std::shared_ptr<const RichPage> richPageForTableSelection(
+		const Markdown::PreparedEditSelection &selection) const;
+	[[nodiscard]] bool insertPreparedBlocksAfterTableSelection(
+		const Markdown::PreparedEditSelection &selection,
+		std::vector<RichPage::Block> blocks);
+	enum class TableInPlaceApplyResult : uchar {
+		Applied,
+		Unchanged,
+		StructureMismatch,
+		Failed,
+	};
+	[[nodiscard]] TableInPlaceApplyResult replaceTableSelectionCellsInPlace(
+		const Markdown::PreparedEditSelection &selection,
+		const RichPage &page);
 	[[nodiscard]] bool addTableRow(
 		const Markdown::PreparedEditTableCellRange &range,
 		bool after);
@@ -407,6 +442,10 @@ public:
 	[[nodiscard]] ActiveTextBlockActionResult applyActiveTextBlockAction(
 		InsertAction action,
 		ActiveTextInsertContext context);
+	[[nodiscard]] ActiveTextBlockActionResult
+		replaceActiveTextSelectionWithText(
+			TextWithEntities text,
+			ActiveTextInsertContext context);
 	[[nodiscard]] bool insertPreparedBlockAfterActive(RichPage::Block block);
 	[[nodiscard]] bool insertPreparedBlocksAfterActive(
 		std::vector<RichPage::Block> blocks,
@@ -478,6 +517,9 @@ public:
 		std::optional<bool> enabled = std::nullopt);
 	[[nodiscard]] std::optional<ReplaceTarget> replaceTargetForBlock(
 		const BlockPath &path) const;
+	[[nodiscard]] std::optional<ReplaceTarget> replaceTargetForGroupedItem(
+		const BlockPath &path,
+		int itemIndex) const;
 	[[nodiscard]] bool replaceBlockWithPreparedBlock(
 		const ReplaceTarget &target,
 		RichPage::Block block);
@@ -735,7 +777,8 @@ private:
 	[[nodiscard]] std::optional<int> insertLeadingParagraphActiveUnchecked(
 		bool focusInserted);
 	[[nodiscard]] std::optional<int> moveActiveSpecialBlockDownUnchecked();
-	[[nodiscard]] std::optional<int> submitActiveSingleLineFieldUnchecked();
+	[[nodiscard]] std::optional<int> submitActiveSingleLineFieldUnchecked(
+		const ActiveEnterContext &context);
 	[[nodiscard]] std::optional<int> escapeActiveBlockBodyUnchecked();
 	[[nodiscard]] std::optional<BlockPath> activeBlockBodyEscapeBlock() const;
 	[[nodiscard]] BoundaryTarget boundaryTargetForLeaf(
@@ -752,8 +795,23 @@ private:
 	[[nodiscard]] BoundaryTarget materializeBoundaryTarget(
 		const RebuiltBoundaryTarget &target) const;
 	[[nodiscard]] BoundaryTarget removeTemporaryDownParagraphAndMoveUnchecked();
-	[[nodiscard]] std::optional<int> handleActiveHeadingEnterUnchecked();
-	[[nodiscard]] std::optional<int> handleActiveListEnterUnchecked();
+	[[nodiscard]] std::optional<int> handleActiveHeadingEnterUnchecked(
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleActiveFooterEnterUnchecked(
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleActiveListEnterUnchecked(
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleActiveParagraphEnterUnchecked(
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleActiveQuoteEnterUnchecked(
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleActiveBlockEnterUnchecked(
+		RichPage::BlockKind kind,
+		const ActiveEnterContext &context);
+	[[nodiscard]] std::optional<int> handleEnterAtBlockUnchecked(
+		const BlockContainerPath &container,
+		int index,
+		const ActiveEnterContext &context);
 	[[nodiscard]] bool insertBlocksAfterActiveUnchecked(
 		std::vector<RichPage::Block> blocks,
 		std::optional<ActiveTextInsertContext> context = std::nullopt);
@@ -912,7 +970,6 @@ enum class RequestMediaType : uchar {
 
 struct MediaUploadState {
 	bool uploading = false;
-	float64 progress = 0.;
 };
 
 [[nodiscard]] bool CanEditRichPage(const RichPage &page);

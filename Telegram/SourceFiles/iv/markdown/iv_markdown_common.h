@@ -265,6 +265,7 @@ struct OpenOptions {
 	std::function<bool(
 		const MediaActivation &,
 		Qt::MouseButton)> activateMedia;
+	std::function<void()> zoomActivated;
 	rpl::producer<> downloadTaskFinished;
 };
 

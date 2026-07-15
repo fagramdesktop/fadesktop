@@ -125,26 +125,6 @@ constexpr auto kZoomStep = 10;
 	return large;
 }
 
-[[nodiscard]] std::optional<EntityLinkData> ExternalEntityLinkData(
-		const PreparedLink &link) {
-	if (link.kind != PreparedLinkKind::External || link.target.isEmpty()) {
-		return std::nullopt;
-	}
-	switch (link.entityType) {
-	case EntityType::Url:
-	case EntityType::CustomUrl:
-	case EntityType::Email:
-		return EntityLinkData{
-			.text = !link.copyText.isEmpty() ? link.copyText : link.target,
-			.data = link.target,
-			.type = link.entityType,
-			.shown = link.shown,
-		};
-	default:
-		return std::nullopt;
-	}
-}
-
 [[nodiscard]] bool ActivateExternalLink(
 		const PreparedLink &link,
 		Qt::MouseButton button,
@@ -212,6 +192,13 @@ public:
 	[[nodiscard]] int scrollTop() const;
 	[[nodiscard]] rpl::producer<int> scrollTopValue() const;
 	bool updateContent(MarkdownArticleContent prepared, OpenOptions options);
+	[[nodiscard]] auto searchSources() const
+	-> std::vector<MarkdownArticleSearchSource>;
+	void setSearchMatches(
+		std::vector<MarkdownArticleSearchMatch> matches,
+		int current);
+	bool expandDetails(const QString &anchorId);
+	void scrollToSegment(int segmentIndex, int topMargin);
 
 private:
 	struct PendingEmbedState {
@@ -376,6 +363,9 @@ void MarkdownPreviewRoot::setup() {
 			_body->setZoom(delegate->ivZoom());
 			_body->setZoomStepCallback([=](int steps) {
 				delegate->ivSetZoom(delegate->ivZoom() + steps * kZoomStep);
+				if (_options.zoomActivated) {
+					_options.zoomActivated();
+				}
 			});
 		}
 		_body->heightValue(
@@ -425,9 +415,20 @@ void MarkdownPreviewRoot::setup() {
 	if (_options.delegate) {
 		_options.delegate->ivZoomValue(
 		) | rpl::on_next([=](int value) {
-			if (_body) {
-				_body->setZoom(value);
-				updateChildrenGeometry(size());
+			if (!_body) {
+				return;
+			}
+			const auto scrollTop = _scroll ? _scroll->scrollTop() : 0;
+			const auto anchor = (scrollTop > 0)
+				? _body->scrollAnchorForTop(scrollTop)
+				: std::nullopt;
+			_body->setZoom(value);
+			updateChildrenGeometry(size());
+			if (anchor) {
+				const auto top = _body->scrollTopForAnchor(*anchor);
+				if (top >= 0) {
+					scrollToY(top, MarkdownPreviewScrollMode::Instant);
+				}
 			}
 		}, lifetime());
 	}
@@ -817,6 +818,48 @@ rpl::producer<int> MarkdownPreviewRoot::scrollTopValue() const {
 		: rpl::single(0) | rpl::type_erased;
 }
 
+auto MarkdownPreviewRoot::searchSources() const
+-> std::vector<MarkdownArticleSearchSource> {
+	return _article
+		? _article->searchSources()
+		: std::vector<MarkdownArticleSearchSource>();
+}
+
+void MarkdownPreviewRoot::setSearchMatches(
+		std::vector<MarkdownArticleSearchMatch> matches,
+		int current) {
+	if (_body) {
+		_body->setSearchMatches(std::move(matches), current);
+	}
+}
+
+bool MarkdownPreviewRoot::expandDetails(const QString &anchorId) {
+	return _body ? _body->expandDetailsBlock(anchorId) : false;
+}
+
+void MarkdownPreviewRoot::scrollToSegment(
+		int segmentIndex,
+		int topMargin) {
+	if (!_body || !_scroll) {
+		return;
+	}
+	const auto rect = _body->segmentRect(segmentIndex);
+	if (rect.isEmpty()) {
+		return;
+	}
+	const auto current = _scroll->scrollTop();
+	const auto height = _scroll->height();
+	const auto from = rect.y() - topMargin;
+	const auto till = rect.y() + rect.height();
+	auto target = current;
+	if (from < current) {
+		target = from;
+	} else if (till > current + height) {
+		target = std::min(till - height, from);
+	}
+	scrollToYAnimated(target);
+}
+
 bool ScrollMarkdownPreviewToAnchor(
 		Ui::RpWidget *preview,
 		const QString &anchorId,
@@ -842,6 +885,39 @@ int MarkdownPreviewScrollTop(Ui::RpWidget *preview) {
 rpl::producer<int> MarkdownPreviewScrollTopValue(Ui::RpWidget *preview) {
 	const auto root = dynamic_cast<MarkdownPreviewRoot*>(preview);
 	return root ? root->scrollTopValue() : rpl::single(0);
+}
+
+auto MarkdownPreviewSearchSources(Ui::RpWidget *preview)
+-> std::vector<MarkdownArticleSearchSource> {
+	const auto root = dynamic_cast<MarkdownPreviewRoot*>(preview);
+	return root
+		? root->searchSources()
+		: std::vector<MarkdownArticleSearchSource>();
+}
+
+bool ExpandMarkdownPreviewDetails(
+		Ui::RpWidget *preview,
+		const QString &anchorId) {
+	const auto root = dynamic_cast<MarkdownPreviewRoot*>(preview);
+	return root ? root->expandDetails(anchorId) : false;
+}
+
+void ScrollMarkdownPreviewToSegment(
+		Ui::RpWidget *preview,
+		int segmentIndex,
+		int topMargin) {
+	if (const auto root = dynamic_cast<MarkdownPreviewRoot*>(preview)) {
+		root->scrollToSegment(segmentIndex, topMargin);
+	}
+}
+
+void SetMarkdownPreviewSearchMatches(
+		Ui::RpWidget *preview,
+		std::vector<MarkdownArticleSearchMatch> matches,
+		int current) {
+	if (const auto root = dynamic_cast<MarkdownPreviewRoot*>(preview)) {
+		root->setSearchMatches(std::move(matches), current);
+	}
 }
 
 void MarkdownPreviewRoot::scrollToTop() {

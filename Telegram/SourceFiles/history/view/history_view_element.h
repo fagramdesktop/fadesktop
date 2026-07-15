@@ -16,6 +16,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 class History;
 class HistoryBlock;
 class HistoryItem;
+class UserData;
 struct HistoryMessageReply;
 struct PreparedServiceText;
 struct HistoryMessageReplyMarkup;
@@ -377,6 +378,15 @@ struct FakeBotAboutTop : RuntimeComponent<FakeBotAboutTop, Element> {
 	void init();
 
 	Ui::Text::String text;
+	int maxWidth = 0;
+	int height = 0;
+};
+
+struct EphemeralBadge : RuntimeComponent<EphemeralBadge, Element> {
+	void init(not_null<const HistoryItem*> item);
+
+	Ui::Text::String text;
+	UserData *receiver = nullptr;
 	int maxWidth = 0;
 	int height = 0;
 };

@@ -520,6 +520,12 @@ public:
 	[[nodiscard]] rpl::producer<bool> cornerReplyValue() const {
 		return _cornerReply.value();
 	}
+	void setPullToNextChannel(bool value) {
+		_pullToNextChannel = value;
+	}
+	[[nodiscard]] bool pullToNextChannel() const {
+		return _pullToNextChannel.current();
+	}
 
 	void setSpellcheckerEnabled(bool value) {
 		_spellcheckerEnabled = value;
@@ -1123,6 +1129,7 @@ private:
 	bool _suggestAnimatedEmoji = true;
 	rpl::variable<bool> _cornerReply = true;
 	rpl::variable<bool> _cornerReaction = true;
+	rpl::variable<bool> _pullToNextChannel = true;
 	rpl::variable<bool> _spellcheckerEnabled = true;
 	PlaybackSpeed _videoPlaybackSpeed;
 	rpl::variable<PlaybackSpeed> _voicePlaybackSpeed;

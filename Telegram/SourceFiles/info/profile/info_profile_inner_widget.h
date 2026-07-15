@@ -38,6 +38,7 @@ namespace Profile {
 
 class Memento;
 class Members;
+class TabsHost;
 struct Origin;
 
 class InnerWidget final : public Ui::RpWidget {
@@ -64,6 +65,13 @@ public:
 	void enableBackButton();
 	void showFinished();
 
+	[[nodiscard]] TabsHost *tabsHost() const {
+		return _tabsHost;
+	}
+	[[nodiscard]] rpl::producer<bool> tabsDockedValue() const {
+		return _tabsDocked.value();
+	}
+
 protected:
 	int resizeGetHeight(int newWidth) override;
 	void visibleTopBottomUpdated(
@@ -74,14 +82,17 @@ private:
 	object_ptr<RpWidget> setupContent(
 		not_null<RpWidget*> parent,
 		Origin origin);
-	object_ptr<Ui::SlideWrap<Ui::RpWidget>> setupSharedMedia(
-		not_null<RpWidget*> parent,
-		Ui::MultiSlideTracker &sharedTracker);
-	[[nodiscard]] Section makeMembersSection(not_null<QWidget*> parent);
+	[[nodiscard]] Section makeMembersSection(
+		not_null<QWidget*> parent,
+		rpl::producer<bool> shown);
 
 	int countDesiredHeight() const;
 	void updateDesiredHeight() {
-		_desiredHeight.fire(countDesiredHeight());
+		const auto value = countDesiredHeight();
+		if (_lastDesiredHeight != value) {
+			_lastDesiredHeight = value;
+			_desiredHeight.fire_copy(value);
+		}
 	}
 
 	const not_null<Controller*> _controller;
@@ -91,6 +102,7 @@ private:
 	Data::SavedSublist * const _sublist = nullptr;
 
 	bool _inResize = false;
+	int _lastDesiredHeight = -1;
 	rpl::event_stream<Ui::ScrollToRequest> _scrollToRequests;
 	rpl::event_stream<int> _desiredHeight;
 
@@ -105,6 +117,8 @@ private:
 
 	Members *_members = nullptr;
 	Ui::SlideWrap<RpWidget> *_sharedMediaWrap = nullptr;
+	TabsHost *_tabsHost = nullptr;
+	rpl::variable<bool> _tabsDocked = false;
 	object_ptr<RpWidget> _content;
 
 };

@@ -86,6 +86,7 @@ class PeerColors;
 class Polls;
 class TodoLists;
 class ChatParticipants;
+class Communities;
 class UnreadThings;
 class Ringtones;
 class ComposeWithAi;
@@ -201,6 +202,7 @@ public:
 		Fn<void()> fail);
 
 	void requestFullPeer(not_null<PeerData*> peer);
+	void reloadFullPeer(not_null<PeerData*> peer);
 	void requestPeerSettings(not_null<PeerData*> peer);
 
 	using UpdatedFileReferences = Data::UpdatedFileReferences;
@@ -362,7 +364,7 @@ public:
 		Ui::PreparedList &&list,
 		SendMediaType type,
 		std::shared_ptr<SendingAlbum> album,
-		const SendAction &action);
+		SendAction action);
 	void sendFile(
 		const QByteArray &fileContent,
 		SendMediaType type,
@@ -453,6 +455,7 @@ public:
 	[[nodiscard]] Api::Polls &polls();
 	[[nodiscard]] Api::TodoLists &todoLists();
 	[[nodiscard]] Api::ChatParticipants &chatParticipants();
+	[[nodiscard]] Api::Communities &communities();
 	[[nodiscard]] Api::UnreadThings &unreadThings();
 	[[nodiscard]] Api::Ringtones &ringtones();
 	[[nodiscard]] Api::ComposeWithAi &composeWithAi();
@@ -820,6 +823,7 @@ private:
 	const std::unique_ptr<Api::Polls> _polls;
 	const std::unique_ptr<Api::TodoLists> _todoLists;
 	const std::unique_ptr<Api::ChatParticipants> _chatParticipants;
+	const std::unique_ptr<Api::Communities> _communities;
 	const std::unique_ptr<Api::UnreadThings> _unreadThings;
 	const std::unique_ptr<Api::Ringtones> _ringtones;
 	const std::unique_ptr<Api::ComposeWithAi> _composeWithAi;

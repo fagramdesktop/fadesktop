@@ -420,10 +420,15 @@ PositionChange Entry::adjustByPosInChatList(
 }
 
 void Entry::setChatListTimeId(TimeId date) {
-	_timeId = date;
+	const auto was = std::exchange(_timeId, date);
 	updateChatListSortPosition();
 	if (const auto folder = this->folder()) {
 		folder->updateChatListSortPosition();
+	}
+	if (was != date) {
+		if (const auto history = asHistory()) {
+			history->communityChatsListDateChanged(was);
+		}
 	}
 }
 

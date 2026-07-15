@@ -71,6 +71,14 @@ using GetFormatMethod = enum AVPixelFormat(*)(
 	struct AVCodecContext *s,
 	const enum AVPixelFormat *fmt);
 
+[[nodiscard]] int NormalizeRotation(int rotation) {
+	auto result = rotation % 360;
+	if (result < 0) {
+		result += 360;
+	}
+	return (result == 90 || result == 180 || result == 270) ? result : 0;
+}
+
 struct HwAccelDescriptor {
 	GetFormatMethod getFormat = nullptr;
 	AVPixelFormat format = AV_PIX_FMT_NONE;
@@ -722,14 +730,26 @@ int ReadRotationFromMetadata(not_null<AVStream*> stream) {
 		stream->codecpar->coded_side_data,
 		stream->codecpar->nb_coded_side_data,
 		AV_PKT_DATA_DISPLAYMATRIX);
-	auto theta = 0;
 	if (displaymatrix) {
 		const auto matrix = (int32_t*)displaymatrix->data;
-		theta = -round(av_display_rotation_get(matrix));
+		if (const auto result = NormalizeRotation(
+				-base::SafeRound(av_display_rotation_get(matrix)))) {
+			return result;
+		}
 	}
-	theta -= 360 * floor(theta / 360 + 0.9 / 360);
-	const auto result = int(base::SafeRound(theta));
-	return (result == 90 || result == 180 || result == 270) ? result : 0;
+	const auto rotateTag = av_dict_get(
+		stream->metadata,
+		"rotate",
+		nullptr,
+		0);
+	if (rotateTag && *rotateTag->value) {
+		auto ok = false;
+		const auto rotation = QString::fromUtf8(rotateTag->value).toInt(&ok);
+		if (ok) {
+			return NormalizeRotation(rotation);
+		}
+	}
+	return 0;
 }
 
 AVRational ValidateAspectRatio(AVRational aspect) {

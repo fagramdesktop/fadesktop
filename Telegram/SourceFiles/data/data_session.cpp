@@ -737,6 +737,8 @@ not_null<UserData*> Session::processUser(const MTPUser &data) {
 		result->setFlags((result->flags() & ~flagsMask) | flagsSet);
 		result->setBotVerifyDetailsIcon(
 			data.vbot_verification_icon().value_or_empty());
+		result->setLinkedCommunityId(
+			data.vlinked_community_id().value_or_empty());
 		if (!minimal) {
 			if (storiesState) {
 				result->setStoriesState(storiesState->hasVideoStream
@@ -907,6 +909,10 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 	}, [&](const MTPDchannel &data) {
 		return peer(peerFromChannel(data.vid().v));
 	}, [&](const MTPDchannelForbidden &data) {
+		return peer(peerFromChannel(data.vid().v));
+	}, [&](const MTPDcommunity &data) {
+		return peer(peerFromChannel(data.vid().v));
+	}, [&](const MTPDcommunityForbidden &data) {
 		return peer(peerFromChannel(data.vid().v));
 	});
 	auto minimal = false;
@@ -1168,6 +1174,8 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 		applyMonoforumLinkedId(
 			channel,
 			data.vlinked_monoforum_id().value_or_empty());
+		channel->setLinkedCommunityId(
+			data.vlinked_community_id().value_or_empty());
 
 		if (wasInChannel != channel->amIn()) {
 			flags |= UpdateFlag::ChannelAmIn;
@@ -1230,6 +1238,84 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 			|| canAddMembers != channel->canAddMembers()) {
 			flags |= UpdateFlag::Rights;
 		}
+	}, [&](const MTPDcommunity &data) {
+		const auto channel = result->asChannel();
+
+		minimal = data.is_min();
+		if (minimal && !result->isLoaded()) {
+			LOG(("API Warning: not loaded minimal community applied."));
+		}
+
+		if (const auto accessHash = data.vaccess_hash()) {
+			if (!minimal || !channel->accessHash()) {
+				channel->setAccessHash(accessHash->v);
+			}
+		}
+		if (const auto rights = data.vdefault_banned_rights()) {
+			channel->setDefaultRestrictions(
+				ChatRestrictionsInfo(*rights).flags);
+		} else {
+			channel->setDefaultRestrictions(ChatRestrictions());
+		}
+		if (!minimal) {
+			const auto wasLoaded = result->isLoaded();
+			const auto hadRights = channel->hasAdminRights();
+			if (const auto rights = data.vadmin_rights()) {
+				channel->setAdminRights(ChatAdminRightsInfo(*rights).flags);
+			} else if (channel->hasAdminRights()) {
+				channel->setAdminRights(ChatAdminRights());
+			}
+			channel->date = data.vdate().v;
+			if (wasLoaded
+				&& !hadRights
+				&& channel->hasAdminRights()
+				&& !data.is_creator()) {
+				_communityAdminPromotions.fire(
+					not_null<ChannelData*>(channel));
+			}
+		}
+		channel->setName(qs(data.vtitle()), QString());
+		channel->setPhoto(data.vphoto());
+
+		using Flag = ChannelDataFlag;
+		const auto collapsed = data.is_collapsed_in_dialogs();
+		const auto flagsMask = Flag::Community
+			| Flag::Forbidden
+			| (!minimal
+				? (Flag::Left | Flag::Creator | Flag::CommunityCollapsed)
+				: Flag());
+		const auto flagsSet = Flag::Community
+			| (!minimal
+				? ((data.is_left() ? Flag::Left : Flag())
+					| (data.is_creator() ? Flag::Creator : Flag())
+					| (collapsed ? Flag::CommunityCollapsed : Flag()))
+				: Flag());
+		channel->setFlags((channel->flags() & ~flagsMask) | flagsSet);
+	}, [&](const MTPDcommunityForbidden &data) {
+		const auto channel = result->asChannel();
+
+		using Flag = ChannelDataFlag;
+		const auto flagsMask = Flag::Community
+			| Flag::CommunityCollapsed
+			| Flag::Forbidden;
+		const auto flagsSet = Flag::Community | Flag::Forbidden;
+		channel->setFlags((channel->flags() & ~flagsMask) | flagsSet);
+
+		if (channel->hasAdminRights()) {
+			channel->setAdminRights(ChatAdminRights());
+		}
+		if (channel->hasRestrictions()) {
+			channel->setRestrictions(ChatRestrictionsInfo());
+		}
+
+		channel->setName(qs(data.vtitle()), QString());
+
+		if (const auto accessHash = data.vaccess_hash()) {
+			channel->setAccessHash(accessHash->v);
+		}
+		channel->setPhoto(MTP_chatPhotoEmpty());
+		channel->date = 0;
+		channel->setMembersCount(0);
 	}, [](const MTPDchatEmpty &) {
 	});
 
@@ -2615,6 +2701,11 @@ void Session::applyPinnedChats(
 			if (folder) {
 				LOG(("API Error: Nested folders detected."));
 			}
+		}, [&](const MTPDdialogPeerCommunity &data) {
+			const auto channelId = ChannelId(data.vcommunity_id().v);
+			if (const auto channel = channelLoaded(channelId)) {
+				this->history(channel)->clearFolder();
+			}
 		});
 	}
 	chatsList(folder)->pinned()->applyList(this, list);
@@ -2694,6 +2785,22 @@ void Session::applyDialog(
 	const auto folder = processFolder(data.vfolder());
 	folder->applyDialog(data);
 	setPinnedFromEntryList(folder, data.is_pinned());
+}
+
+void Session::applyDialog(
+		Data::Folder *requestFolder,
+		const MTPDdialogCommunity &data) {
+	const auto channelId = ChannelId(data.vcommunity_id().v);
+	const auto channel = channelLoaded(channelId);
+	if (!channel || !channel->isCommunity()) {
+		return;
+	}
+	const auto history = this->history(channel);
+	notifySettings().apply(
+		peerFromChannel(channelId),
+		data.vnotify_settings());
+	channel->ensuredCommunityInfo()->ensureRowInChatList();
+	setPinnedFromEntryList(history, data.is_pinned());
 }
 
 bool Session::pinnedCanPin(not_null<Dialogs::Entry*> entry) const {
@@ -5244,6 +5351,11 @@ rpl::producer<not_null<ChannelData*>> Session::channelDifferenceTooLong() const 
 	return _channelDifferenceTooLong.events();
 }
 
+auto Session::communityAdminPromotions() const
+-> rpl::producer<not_null<ChannelData*>> {
+	return _communityAdminPromotions.events();
+}
+
 void Session::registerItemView(not_null<ViewElement*> view) {
 	_views[view->data()].push_back(view);
 }
@@ -5311,6 +5423,13 @@ not_null<Dialogs::MainList*> Session::chatsListFor(
 		return topic->forum()->topicsList();
 	} else if (const auto sublist = entry->asSublist()) {
 		return sublist->parent()->chatsList();
+	} else if (const auto history = entry->asHistory()) {
+		if (const auto info = history->communityListInfo()
+			; info
+			&& info->collapsedInDialogs()
+			&& info->channel() != history->peer) {
+			return info->chatsList();
+		}
 	}
 	return chatsList(entry->folder());
 }
@@ -5498,7 +5617,8 @@ void Session::serviceNotification(
 			MTPPeerColor(), // profile_color
 			MTPint(), // bot_active_users
 			MTPlong(), // bot_verification_icon
-			MTPlong())); // send_paid_messages_stars
+			MTPlong(), // send_paid_messages_stars
+			MTPlong())); // linked_community_id
 	}
 	const auto history = this->history(PeerData::kServiceNotificationsId);
 	const auto insert = [=] {

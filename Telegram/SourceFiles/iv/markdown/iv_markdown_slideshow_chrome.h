@@ -12,8 +12,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtCore/QRect>
 #include <QtCore/QSize>
+#include <QtGui/QColor>
 #include <QtGui/QImage>
 #include <QtGui/QPainterPath>
+
+namespace style {
+struct MarkdownGroupedMedia;
+} // namespace style
 
 namespace Iv::Markdown {
 
@@ -51,5 +56,30 @@ struct SlideshowNavRects {
 	int frameHeight,
 	int navButtonSize,
 	int navButtonSkip);
+
+struct SlideshowDotsGeometry {
+	QRect core;
+	QRect outer;
+	int first = 0;
+	int visible = 0;
+};
+
+struct SlideshowDotsBackdrop {
+	QImage image;
+	QColor color;
+};
+
+[[nodiscard]] SlideshowDotsGeometry ComputeSlideshowDots(
+	QRect media,
+	int count,
+	int active,
+	const style::MarkdownGroupedMedia &st);
+
+void PaintSlideshowDots(
+	Painter &p,
+	const SlideshowDotsGeometry &dots,
+	int active,
+	const style::MarkdownGroupedMedia &st,
+	SlideshowDotsBackdrop &backdrop);
 
 } // namespace Iv::Markdown

@@ -210,7 +210,17 @@ ChooseFilterValidator::ChooseFilterValidator(not_null<History*> history)
 : _history(history) {
 }
 
+bool ChooseFilterValidator::communityAddBlocked() const {
+	const auto channel = _history->peer->asChannel();
+	return channel
+		&& channel->isCommunity()
+		&& !channel->collapsedInDialogs();
+}
+
 bool ChooseFilterValidator::canAdd() const {
+	if (communityAddBlocked()) {
+		return false;
+	}
 	for (const auto &filter : _history->owner().chatsFilters().list()) {
 		if (filter.id() && !filter.contains(_history)) {
 			return true;
@@ -222,6 +232,9 @@ bool ChooseFilterValidator::canAdd() const {
 bool ChooseFilterValidator::canAdd(FilterId filterId) const {
 	Expects(filterId != 0);
 
+	if (communityAddBlocked()) {
+		return false;
+	}
 	const auto list = _history->owner().chatsFilters().list();
 	const auto i = ranges::find(list, filterId, &Data::ChatFilter::id);
 	if (i != end(list)) {

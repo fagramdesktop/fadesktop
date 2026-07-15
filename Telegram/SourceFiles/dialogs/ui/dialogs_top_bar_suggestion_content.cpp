@@ -18,10 +18,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/painter.h"
 #include "ui/power_saving.h"
 #include "ui/rect.h"
+#include "ui/round_rect.h"
 #include "ui/text/format_values.h"
 #include "ui/text/text_custom_emoji.h"
 #include "ui/ui_rpl_filter.h"
 #include "ui/ui_utility.h"
+#include "ui/unread_badge_paint.h"
 #include "ui/vertical_list.h"
 #include "ui/vertical_list.h"
 #include "ui/widgets/buttons.h"
@@ -39,6 +41,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_layers.h"
 #include "styles/style_premium.h"
 #include "styles/style_settings.h"
+#include "styles/style_window.h"
 
 namespace Dialogs {
 namespace {
@@ -77,7 +80,27 @@ namespace {
 		commonLocation);
 }
 
+[[nodiscard]] bool TopBarSuggestionNarrow(int width) {
+	return (width < st::columnMinimalWidthLeft / 2);
+}
+
 } // namespace
+
+void PaintBottomFade(
+		QPainter &p,
+		int outerWidth,
+		int fadeHeight,
+		style::color bg) {
+	if (fadeHeight <= 0) {
+		return;
+	}
+	auto transparent = bg->c;
+	transparent.setAlpha(0);
+	auto grad = QLinearGradient(0, 0, 0, fadeHeight);
+	grad.setColorAt(0, transparent);
+	grad.setColorAt(1, bg->c);
+	p.fillRect(QRect(0, 0, outerWidth, fadeHeight), grad);
+}
 
 int PillRadius() {
 	const auto padding = st::msgReplyPadding.top();
@@ -90,7 +113,8 @@ int PillRadius() {
 int PaintSuggestionBubbleBackground(
 		QPainter &p,
 		QRect outer,
-		const Ui::BoxShadow &shadow) {
+		const Ui::BoxShadow &shadow,
+		int cornerRadius) {
 	const auto &margins = st::dialogsTopBarSuggestionMargins;
 	const auto pill = outer - margins;
 	PaintTopFade(
@@ -102,7 +126,7 @@ int PaintSuggestionBubbleBackground(
 		return 0;
 	}
 	const auto radius = std::min({
-		PillRadius(),
+		cornerRadius ? cornerRadius : PillRadius(),
 		pill.width() / 2,
 		pill.height() / 2,
 	});
@@ -348,10 +372,15 @@ void TopBarSuggestionContent::setRightButton(
 		sizeValue(),
 		_rightButton->sizeValue()
 	) | rpl::on_next([=](QSize outer, QSize inner) {
-		const auto pillHeight = outer.height() - rect::m::sum::v(margins);
-		const auto verticalGap = (pillHeight - inner.height()) / 2;
+		const auto cardHeight = _geometry.cardInnerHeight
+			? _geometry.cardInnerHeight
+			: (outer.height() - rect::m::sum::v(margins));
+		const auto verticalGap = (cardHeight - inner.height()) / 2;
+		const auto rightInset = _geometry.rightInset
+			? _geometry.rightInset
+			: (margins.right() + verticalGap);
 		_rightButton->moveToRight(
-			margins.right() + verticalGap,
+			rightInset,
 			margins.top() + verticalGap,
 			outer.width());
 	}, _rightButton->lifetime());
@@ -360,12 +389,66 @@ void TopBarSuggestionContent::setRightButton(
 	_rightButton->show();
 }
 
+void TopBarSuggestionContent::setRightBadge(rpl::producer<int> count) {
+	_rightButton = nullptr;
+	_rightHide = nullptr;
+	_rightArrow = nullptr;
+	_rightIcon = RightIcon::None;
+	_rightBadgeLifetime.destroy();
+	std::move(count) | rpl::on_next([=](int value) {
+		const auto text = QString::number(value);
+		if (_rightBadgeText == text && !_rightBadgeSize.isEmpty()) {
+			return;
+		}
+		_rightBadgeText = text;
+		auto st = Ui::UnreadBadgeStyle();
+		_rightBadgeSize = Ui::CountUnreadBadgeSize(_rightBadgeText, st);
+		resizeToWidth(width());
+		update();
+	}, _rightBadgeLifetime);
+}
+
 void TopBarSuggestionContent::draw(QPainter &p) {
 	const auto outer = Ui::RpWidget::rect();
+	if (TopBarSuggestionNarrow(width())) {
+		if (_leadingWidget) {
+			_leadingWidget->hide();
+		}
+		const auto &margins = st::dialogsTopBarSuggestionMargins;
+		const auto pill = outer - margins;
+		PaintSuggestionBubbleBackground(
+			p,
+			outer,
+			_shadow,
+			_geometry.cornerRadius);
+		if (pill.isEmpty()) {
+			return;
+		}
+		const auto accentSide = st::dialogsRequestsBubbleIconSize;
+		const auto accent = QRect(
+			pill.x() + (pill.width() - accentSide) / 2,
+			pill.y() + (pill.height() - accentSide) / 2,
+			accentSide,
+			accentSide);
+		auto hq = PainterHighQualityEnabler(p);
+		auto background = Ui::RoundRect(
+			st::dialogsRequestsBubbleIconRadius,
+			st::dialogsRequestsBubbleIconBg);
+		background.paint(p, accent);
+		st::dialogsRequestsBubbleIcon.paintInCenter(p, accent);
+		return;
+	}
+	if (_leadingWidget) {
+		_leadingWidget->show();
+	}
 	const auto &margins = st::dialogsTopBarSuggestionMargins;
 	const auto pill = outer - margins;
 
-	const auto radius = PaintSuggestionBubbleBackground(p, outer, _shadow);
+	const auto radius = PaintSuggestionBubbleBackground(
+		p,
+		outer,
+		_shadow,
+		_geometry.cornerRadius);
 	if (pill.isEmpty()) {
 		return;
 	}
@@ -378,7 +461,11 @@ void TopBarSuggestionContent::draw(QPainter &p) {
 
 	const auto leftPadding = _leftPadding + margins.left();
 	const auto rightPadding = margins.right();
-	const auto topPadding = st::msgReplyPadding.top() + margins.top();
+	const auto centeredTop = margins.top()
+		+ (_geometry.cardInnerHeight - _contentTitleSt.font->height) / 2;
+	const auto topPadding = _geometry.centerSingleLineTitle
+		? centeredTop
+		: (st::msgReplyPadding.top() + margins.top());
 	const auto availableWidthNoPhoto = outer.width()
 		- (_rightArrow
 			? (_rightArrow->width() / 4 * 3) // Takes full height.
@@ -386,7 +473,8 @@ void TopBarSuggestionContent::draw(QPainter &p) {
 		- leftPadding
 		- rightPadding;
 	const auto availableWidth = availableWidthNoPhoto
-		- (_rightHide ? _rightHide->width() : 0);
+		- (_rightHide ? _rightHide->width() : 0)
+		- (_rightBadgeText.isEmpty() ? 0 : _rightBadgeSize.width());
 	const auto titleRight = leftPadding;
 	const auto hasSecondLineTitle = availableWidth < _contentTitle.maxWidth();
 	const auto paused = On(PowerSaving::kEmojiChat)
@@ -438,6 +526,17 @@ void TopBarSuggestionContent::draw(QPainter &p) {
 			},
 			.pausedEmoji = paused,
 		});
+	}
+	if (!_rightBadgeText.isEmpty()) {
+		auto st = Ui::UnreadBadgeStyle();
+		const auto rightInset = _geometry.rightInset
+			? _geometry.rightInset
+			: (margins.right()
+				+ (_geometry.cardInnerHeight - st.size) / 2);
+		const auto badgeRight = outer.width() - rightInset;
+		const auto badgeTop = margins.top()
+			+ (_geometry.cardInnerHeight - st.size) / 2;
+		Ui::PaintUnreadBadge(p, _rightBadgeText, badgeRight, badgeTop, st);
 	}
 }
 
@@ -505,7 +604,22 @@ int TopBarSuggestionContent::resizeGetHeight(int newWidth) {
 		return int(base::SafeRound(
 			fullHeight * (1. - _collapseProgress)));
 	}
+	if (TopBarSuggestionNarrow(newWidth)) {
+		const auto &cardMargins = st::dialogsTopBarSuggestionMargins;
+		const auto inner = _geometry.cardInnerHeight
+			? _geometry.cardInnerHeight
+			: st::defaultDialogRow.photoSize;
+		const auto withMargins = inner + rect::m::sum::v(cardMargins);
+		return int(base::SafeRound(
+			withMargins * (1. - _collapseProgress)));
+	}
 	const auto &margins = st::dialogsTopBarSuggestionMargins;
+	if (_geometry.centerSingleLineTitle && _geometry.cardInnerHeight) {
+		const auto withMargins = _geometry.cardInnerHeight
+			+ rect::m::sum::v(margins);
+		return int(base::SafeRound(
+			withMargins * (1. - _collapseProgress)));
+	}
 	const auto topPadding = st::msgReplyPadding.top();
 	const auto bottomPadding = st::msgReplyPadding.top();
 	const auto availableWidthNoPhoto = newWidth
@@ -595,17 +709,32 @@ void TopBarSuggestionContent::setLeadingWidget(Ui::RpWidget *widget) {
 	) | rpl::on_next([=](const QSize &s) {
 		widget->raise();
 		widget->show();
-		const auto pillHeight = s.height() - rect::m::sum::v(margins);
+		const auto cardHeight = _geometry.cardInnerHeight
+			? _geometry.cardInnerHeight
+			: (s.height() - rect::m::sum::v(margins));
+		const auto leftInset = _geometry.iconLeft
+			? _geometry.iconLeft
+			: (row.padding.left()
+				+ (row.photoSize - widget->width()) / 2);
 		widget->moveToLeft(
-			row.padding.left() + (row.photoSize - widget->width()) / 2,
-			margins.top() + (pillHeight - widget->height()) / 2);
+			leftInset,
+			margins.top() + (cardHeight - widget->height()) / 2);
 	}, _leadingWidgetLifetime);
-	const auto padding = row.nameLeft - margins.left();
+	const auto padding = (_geometry.leadingTextSkip
+		? _geometry.leadingTextSkip
+		: row.nameLeft) - margins.left();
 	if (_leftPadding != padding) {
 		_leftPadding = padding;
 		resizeToWidth(width());
 		update();
 	}
+}
+
+void TopBarSuggestionContent::setGeometryOverride(
+		TopBarSuggestionGeometry geometry) {
+	_geometry = geometry;
+	resizeToWidth(width());
+	update();
 }
 
 const style::TextStyle & TopBarSuggestionContent::contentTitleSt() const {
@@ -649,6 +778,24 @@ void MountTopBarSuggestion(MountTopBarSuggestionArgs args) {
 		pinToScroll,
 		wrap->entity()->lifetime());
 	pinToScroll();
+}
+
+not_null<Ui::RpWidget*> CreateRequestsBubbleIcon(
+		not_null<Ui::RpWidget*> parent) {
+	const auto result = Ui::CreateChild<Ui::RpWidget>(parent);
+	result->setAttribute(Qt::WA_TransparentForMouseEvents);
+	result->resize(
+		st::dialogsRequestsBubbleIconSize,
+		st::dialogsRequestsBubbleIconSize);
+	const auto background = result->lifetime().make_state<Ui::RoundRect>(
+		st::dialogsRequestsBubbleIconRadius,
+		st::dialogsRequestsBubbleIconBg);
+	result->paintOn([=](QPainter &p) {
+		auto hq = PainterHighQualityEnabler(p);
+		background->paint(p, result->rect());
+		st::dialogsRequestsBubbleIcon.paintInCenter(p, result->rect());
+	});
+	return result;
 }
 
 } // namespace Dialogs

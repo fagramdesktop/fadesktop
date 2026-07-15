@@ -153,6 +153,7 @@ struct FileReferenceAccumulator {
 		data.match([&](const MTPDdialog &data) {
 			push(data.vdraft());
 		}, [](const MTPDdialogFolder &) {
+		}, [](const MTPDdialogCommunity &) {
 		});
 	}
 	void push(const MTPMessage &data) {
@@ -207,6 +208,8 @@ struct FileReferenceAccumulator {
 		data.match([&](const MTPDchatFull &data) {
 			push(data.vchat_photo());
 		}, [&](const MTPDchannelFull &data) {
+			push(data.vchat_photo());
+		}, [&](const MTPDcommunityFull &data) {
 			push(data.vchat_photo());
 		});
 	}

@@ -11,6 +11,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "dialogs/dialogs_key.h"
 #include "dialogs/dialogs_entry.h"
 #include "history/history.h"
+#include "data/data_channel.h"
 #include "data/data_session.h"
 #include "data/data_forum.h"
 
@@ -100,6 +101,15 @@ void PinnedList::applyList(
 			}
 		}, [&](const MTPDdialogPeerFolder &data) {
 			addPinned(owner->folder(data.vfolder_id().v));
+		}, [&](const MTPDdialogPeerCommunity &data) {
+			const auto channelId = ChannelId(data.vcommunity_id().v);
+			if (const auto channel = owner->channelLoaded(channelId)) {
+				const auto history = owner->history(channel);
+				if (!history->folderKnown()) {
+					history->clearFolder();
+				}
+				addPinned(history);
+			}
 		});
 	}
 }
@@ -117,6 +127,7 @@ void PinnedList::applyList(
 				addPinned(sublistsOwner->sublist(peer));
 			}
 		}, [](const MTPDdialogPeerFolder &data) {
+		}, [](const MTPDdialogPeerCommunity &data) {
 		});
 	}
 }

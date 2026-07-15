@@ -13,6 +13,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/rp_widget.h"
 #include "base/timer.h"
 #include "base/object_ptr.h"
+#include "base/unique_qptr.h"
 
 namespace style {
 struct EmojiPan;
@@ -22,6 +23,7 @@ namespace Ui {
 class PopupMenu;
 class ScrollArea;
 class InputField;
+class ImportantTooltip;
 } // namespace Ui
 
 namespace Lottie {
@@ -166,6 +168,10 @@ private:
 	void updateFiltered(bool resetScroll = false);
 	void recount(bool resetScroll = false);
 	StickerRows getStickerSuggestions();
+	void createEphemeralHint(QRect rect);
+	void ephemeralIconHovered(QRect iconRect);
+	void showPendingEphemeralHint();
+	void hideEphemeralHint();
 
 	const std::shared_ptr<Show> _show;
 	const not_null<Main::Session*> _session;
@@ -197,6 +203,10 @@ private:
 	bool _addInlineBots;
 
 	bool _hiding = false;
+
+	base::unique_qptr<Ui::ImportantTooltip> _ephemeralHint;
+	base::Timer _ephemeralHintTimer;
+	QRect _ephemeralHintRect;
 
 	Ui::Animations::Simple _a_opacity;
 	rpl::event_stream<> _refreshRequests;
