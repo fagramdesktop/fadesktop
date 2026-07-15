@@ -700,11 +700,28 @@ rpl::producer<Ui::ScrollToRequest> TabsHost::scrollToRequests() const {
 	return _scrollToRequests.events();
 }
 
-rpl::producer<TabTopBarBindings> TabsHost::activeTabBindings() const {
+rpl::producer<TabTopBarBindings> TabsHost::activeTabBindings() {
 	return _activeTab.value(
-	) | rpl::map([](MediaTabContent *tab) {
-		return tab ? tab->topBarBindings() : TabTopBarBindings();
+	) | rpl::map([=](MediaTabContent *tab) {
+		_searching = false;
+		auto result = tab ? tab->topBarBindings() : TabTopBarBindings();
+		if (auto apply = base::take(result.applySearchQuery)) {
+			result.applySearchQuery = crl::guard(this, [=](QString query) {
+				_searching = !query.isEmpty();
+				apply(query);
+				if (_searching) {
+					scrollToBodyTop();
+				}
+			});
+		}
+		return result;
 	});
+}
+
+void TabsHost::scrollToBodyTop() {
+	if (_visibleTop >= 0) {
+		_scrollToRequests.fire({ 0, -1 });
+	}
 }
 
 not_null<Ui::RpWidget*> TabsHost::stripWidget() const {
@@ -765,7 +782,9 @@ int TabsHost::resizeGetHeight(int newWidth) {
 	_body->moveToLeft(0, bodyTop);
 
 	const auto natural = bodyTop + _body->height();
-	if (_keepMinHeight
+	if (_searching && !_scrolledToTop && (natural < _visibleBottom)) {
+		_keepMinHeight = std::max(_keepMinHeight, _visibleBottom);
+	} else if (_keepMinHeight
 		&& ((natural >= _keepMinHeight)
 			|| (natural >= _visibleBottom)
 			|| _scrolledToTop)) {
