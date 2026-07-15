@@ -1322,6 +1322,7 @@ auto CachedPageMediaRuntime::hostedMediaBlockFactory() const
 			descriptor.layoutHint = QSize(prepared.width, prepared.height);
 			descriptor.host = host;
 			descriptor.spoiler = prepared.spoiler;
+			descriptor.editMode = prepared.editMode;
 			descriptor.mediaFactory = [photo, spoiler = prepared.spoiler](
 					not_null<HistoryView::Element*> view) {
 				return std::make_unique<HistoryView::Photo>(
@@ -1369,6 +1370,7 @@ auto CachedPageMediaRuntime::hostedMediaBlockFactory() const
 				prepared.media.height);
 			descriptor.host = host;
 			descriptor.spoiler = prepared.media.spoiler;
+			descriptor.editMode = prepared.editMode;
 			descriptor.mediaFactory = [media](
 					not_null<HistoryView::Element*> view) {
 				return media->createView(
@@ -1561,6 +1563,7 @@ auto CachedPageMediaRuntime::hostedMediaBlockFactory() const
 			descriptor.stableId = prepared.id.value;
 			descriptor.copyText = CachedPageGroupedMediaCopyText(prepared);
 			descriptor.host = host;
+			descriptor.editMode = prepared.editMode;
 			if (slideshow) {
 				descriptor.kind = Markdown::IvHistoryViewMediaKind::Slideshow;
 				descriptor.slideMediaFactories = std::move(slideFactories);

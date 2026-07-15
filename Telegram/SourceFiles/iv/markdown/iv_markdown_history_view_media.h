@@ -100,6 +100,7 @@ struct IvHistoryViewMediaDescriptor {
 	base::flat_map<uint64, int> groupedItemIndices;
 	base::flat_set<uint64> groupedSpoileredIds;
 	bool spoiler = false;
+	bool editMode = false;
 };
 
 class IvHistoryViewMediaBlockFactory final : public HostedMediaBlockFactory {

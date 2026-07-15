@@ -576,6 +576,7 @@ struct PreparedPhotoBlockData {
 	TextWithEntities caption;
 	bool spoiler = false;
 	bool viewerOpen = false;
+	bool editMode = false;
 };
 
 enum class PreparedMediaItemKind {
@@ -595,6 +596,7 @@ struct PreparedVideoBlockData {
 	PreparedMediaBlockId id;
 	PreparedMediaItemData media;
 	TextWithEntities caption;
+	bool editMode = false;
 };
 
 struct PreparedAudioBlockData {
@@ -639,6 +641,7 @@ struct PreparedGroupedMediaBlockData {
 	PreparedGroupedMediaIntent intent = PreparedGroupedMediaIntent::Collage;
 	std::vector<PreparedGroupedMediaItemData> items;
 	TextWithEntities caption;
+	bool editMode = false;
 };
 
 struct PreparedPlaceholderBlockData {
