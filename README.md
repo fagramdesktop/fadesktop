@@ -95,6 +95,13 @@
 - Unlimited local pinned chats
 - Auto-Downloads kill switch
 - Unlimited local chat folders
+- Disable animated avatars
+- Disable premium animations
+- Embed mkv format 
+- Disable share phone number by default when adding contacts
+- Copy summarised content instead of original
+- Improved blocked user spoiler mode
+- Nix/NixOS support
 
 </details>
 
