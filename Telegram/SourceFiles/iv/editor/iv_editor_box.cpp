@@ -1684,7 +1684,9 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		},
 		descriptor.session);
 	window->setMinimumWidth(minimalWindowWidth());
-	if (descriptor.discarded) {
+	const auto save = (descriptor.submitType
+		== ShowWindowDescriptor::SubmitType::Save);
+	if (descriptor.discarded && !save) {
 		_discard = object_ptr<ToolbarPill>(
 			_bottom.data(),
 			st::ivEditorPillShadow);
@@ -1698,7 +1700,7 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 			discard();
 		});
 	}
-	if (descriptor.submitType == ShowWindowDescriptor::SubmitType::Save) {
+	if (save) {
 		_cancel = object_ptr<ToolbarPill>(
 			_bottom.data(),
 			st::ivEditorPillShadow);
@@ -1809,8 +1811,6 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		});
 		setupBottomAiStar(button, session);
 	}
-	const auto save = (descriptor.submitType
-		== ShowWindowDescriptor::SubmitType::Save);
 	_send = object_ptr<Ui::SendButton>(
 		_bottom.data(),
 		save ? st::ivEditorBottomSaveSend : st::ivEditorBottomSend);
