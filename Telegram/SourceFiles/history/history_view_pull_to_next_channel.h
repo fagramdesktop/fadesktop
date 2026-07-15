@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/unique_qptr.h"
 #include "base/timer.h"
+#include "base/weak_ptr.h"
 #include "ui/effects/animations.h"
 
 class History;
@@ -54,7 +55,7 @@ private:
 	void pushIndicator();
 	void clearState();
 	void reset();
-	void jumpWhenReady(not_null<History*> next, crl::time waited);
+	void jumpWhenReady(base::weak_ptr<History> next, crl::time waited);
 	void jumpTo(not_null<History*> history);
 
 	const not_null<Ui::RpWidget*> _parent;
@@ -63,8 +64,8 @@ private:
 	const base::unique_qptr<Indicator> _indicator;
 	const base::unique_qptr<HintOverlay> _hint;
 
-	History *_history = nullptr;
-	History *_next = nullptr;
+	base::weak_ptr<History> _history;
+	base::weak_ptr<History> _next;
 
 	bool _pulling = false;
 	bool _committed = false;

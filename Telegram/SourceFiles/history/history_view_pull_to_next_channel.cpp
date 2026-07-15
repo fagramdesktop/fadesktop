@@ -193,7 +193,7 @@ private:
 
 	float64 _offset = 0.;
 	bool _ready = false;
-	History *_next = nullptr;
+	base::weak_ptr<History> _next;
 	QString _name;
 	Ui::PeerUserpicView _userpic;
 	Ui::Animations::Simple _releaseProgress;
@@ -215,7 +215,7 @@ void PullToNextChannel::Indicator::setData(
 		float64 offset,
 		bool ready,
 		History *next) {
-	if (_next != next) {
+	if (_next.get() != next) {
 		_next = next;
 		_userpic = {};
 		_name = next ? next->peer->name() : QString();
@@ -264,6 +264,7 @@ void PullToNextChannel::Indicator::paintEvent(QPaintEvent *e) {
 	if (offset <= st::lineWidth) {
 		return;
 	}
+	const auto next = _next.get();
 
 	auto p = QPainter(this);
 	p.setRenderHint(QPainter::Antialiasing);
@@ -339,7 +340,7 @@ void PullToNextChannel::Indicator::paintEvent(QPaintEvent *e) {
 		}
 	}
 
-	const auto name = _next
+	const auto name = next
 		? _name
 		: tr::lng_pull_no_unread_channels(tr::now);
 	if (release > 0. && !name.isEmpty()) {
@@ -382,8 +383,8 @@ void PullToNextChannel::Indicator::paintEvent(QPaintEvent *e) {
 			+ bounceOffset;
 		const auto avRect = QRectF(cx - size / 2., top, size, size);
 		p.setOpacity(alpha);
-		if (_next) {
-			const auto count = _next->unreadCount();
+		if (next) {
+			const auto count = next->unreadCount();
 			const auto badgeShown = (count > 0) && (release > 0.);
 			const auto font = st::historyPullNextBadgeFont;
 			const auto badgeHeight = float64(st::historyPullNextBadge);
@@ -422,7 +423,7 @@ void PullToNextChannel::Indicator::paintEvent(QPaintEvent *e) {
 				q.translate(rect::center(avRect));
 				q.scale(size / avatar, size / avatar);
 				q.translate(-avatar / 2., -avatar / 2.);
-				_next->peer->paintUserpic(q, _userpic, 0, 0, int(avatar), true);
+				next->peer->paintUserpic(q, _userpic, 0, 0, int(avatar), true);
 				q.restore();
 
 				if (badgeShown) {
@@ -601,7 +602,7 @@ void PullToNextChannel::attachToContent(not_null<HistoryInner*>) {
 }
 
 void PullToNextChannel::setHistory(History *history) {
-	if (_history == history) {
+	if (_history.get() == history) {
 		return;
 	}
 	_history = history;
@@ -609,16 +610,19 @@ void PullToNextChannel::setHistory(History *history) {
 }
 
 bool PullToNextChannel::active() const {
+	const auto history = _history.get();
 	return Core::App().settings().pullToNextChannel()
-		&& _history
-		&& _history->peer->isBroadcast()
+		&& history
+		&& history->peer->isBroadcast()
 		&& atBottom()
-		&& !_controller->session().sponsoredMessages().hasUnshownFor(_history);
+		&& !_controller->session().sponsoredMessages().hasUnshownFor(history);
 }
 
 bool PullToNextChannel::atBottom() const {
-	return (_scroll->scrollTop() >= _scroll->scrollTopMax())
-		&& _history->loadedAtBottom();
+	const auto history = _history.get();
+	return history
+		&& (_scroll->scrollTop() >= _scroll->scrollTopMax())
+		&& history->loadedAtBottom();
 }
 
 void PullToNextChannel::handleOverscroll(
@@ -631,16 +635,20 @@ void PullToNextChannel::handleOverscroll(
 		if (movement != Phase::Progress || pull <= 0 || !active()) {
 			return;
 		}
+		const auto history = _history.get();
+		if (!history) {
+			return;
+		}
 		_pulling = true;
 		_committed = false;
-		_next = FindNextUnreadChannel(_controller, _history->peer);
-		if (_next) {
-			if (!_next->isReadyFor(ShowAtUnreadMsgId)) {
+		_next = FindNextUnreadChannel(_controller, history->peer);
+		if (const auto next = _next.get()) {
+			if (!next->isReadyFor(ShowAtUnreadMsgId)) {
 				[[maybe_unused]] const auto id = Support::SendPreloadRequest(
-					_next,
+					next,
 					[] {});
 			}
-			PreloadPinnedBar(_next);
+			PreloadPinnedBar(next);
 		}
 	}
 	_pull = pull;
@@ -670,7 +678,7 @@ void PullToNextChannel::handleOverscroll(
 	_dwellTimer.cancel();
 	if (!_committed) {
 		_committed = true;
-		const auto next = _next;
+		const auto next = _next.get();
 		if (_reached
 			&& next
 			&& (next->unreadCount() > 0)
@@ -678,7 +686,8 @@ void PullToNextChannel::handleOverscroll(
 			_pulling = false;
 			_jumping = true;
 			_scroll->setContentBottomInset(int(base::SafeRound(_effective)));
-			crl::on_main(_parent.get(), [=] { jumpWhenReady(next, 0); });
+			const auto weak = _next;
+			crl::on_main(_parent.get(), [=] { jumpWhenReady(weak, 0); });
 			return;
 		}
 	}
@@ -728,8 +737,8 @@ void PullToNextChannel::pushIndicator() {
 	_effective = effective;
 	_scroll->setContentBottomInset(std::max(0, int(base::SafeRound(
 		_jumping ? effective : (effective - _pull)))));
-	_indicator->setData(effective, _reached, _next);
-	_hint->setData(_pull > 0., _reached, _next);
+	_indicator->setData(effective, _reached, _next.get());
+	_hint->setData(_pull > 0., _reached, _next.get());
 }
 
 void PullToNextChannel::updateGeometry() {
@@ -750,8 +759,12 @@ void PullToNextChannel::updateGeometry() {
 }
 
 void PullToNextChannel::jumpWhenReady(
-		not_null<History*> next,
+		base::weak_ptr<History> weak,
 		crl::time waited) {
+	const auto next = weak.get();
+	if (!next) {
+		return;
+	}
 	constexpr auto kInterval = crl::time(100);
 	constexpr auto kMaxWait = crl::time(1500);
 	constexpr auto kPinnedMaxWait = crl::time(600);
@@ -762,7 +775,7 @@ void PullToNextChannel::jumpWhenReady(
 		return;
 	}
 	base::call_delayed(kInterval, _parent.get(), [=] {
-		jumpWhenReady(next, waited + kInterval);
+		jumpWhenReady(weak, waited + kInterval);
 	});
 }
 
