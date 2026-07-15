@@ -119,6 +119,7 @@ private:
 	Ui::SlideWrap<RpWidget> *_sharedMediaWrap = nullptr;
 	TabsHost *_tabsHost = nullptr;
 	rpl::variable<bool> _tabsDocked = false;
+	bool _clampingTabsScroll = false;
 	object_ptr<RpWidget> _content;
 
 };
