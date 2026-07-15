@@ -277,6 +277,7 @@ public:
 		bool forward) const;
 	[[nodiscard]] bool isActiveTopLevelParagraph() const;
 	[[nodiscard]] bool isActiveTopLevelParagraphOrHeading() const;
+	[[nodiscard]] bool hasActiveListItemSurface() const;
 	[[nodiscard]] bool activeSurfaceAllowsSeparateLineFormula() const;
 	[[nodiscard]] bool activeLeafUsesQuoteCaptionColor() const;
 	[[nodiscard]] bool activeLeafUsesQuotePlaceholderColor() const;

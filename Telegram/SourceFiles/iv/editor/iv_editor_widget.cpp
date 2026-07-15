@@ -9575,14 +9575,17 @@ bool Widget::handleFieldKey(QKeyEvent *e) {
 				activeTextInsertContext());
 			const auto committed = commitInlineField();
 			// At the very start of the very first text node of a block that
-			// is not a top-level paragraph or heading (a table, a list, ...)
-			// Enter inserts a paragraph above everything, so content can
-			// always be added at the very top of the article. The focus
-			// stays in the initially edited node.
+			// is not a top-level paragraph or heading (a table, a details
+			// block, ...) Enter inserts a paragraph above everything, so
+			// content can always be added at the very top of the article.
+			// The focus stays in the initially edited node. List items are
+			// excluded: the list Enter handler inserts an item above and
+			// escapes into a leading paragraph on the second press.
 			const auto insertLeading = (committed != ApplyResult::Failed)
 				&& atStart
 				&& !_state->previousEditableOrdinal().has_value()
-				&& !_state->isActiveTopLevelParagraphOrHeading();
+				&& !_state->isActiveTopLevelParagraphOrHeading()
+				&& !_state->hasActiveListItemSurface();
 			const auto leadingTarget = insertLeading
 				? _state->insertLeadingParagraphActive(false)
 				: std::optional<int>();

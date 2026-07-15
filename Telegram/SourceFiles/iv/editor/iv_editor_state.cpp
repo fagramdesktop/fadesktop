@@ -3902,6 +3902,10 @@ bool State::isActiveTopLevelParagraphOrHeading() const {
 			|| (owner->kind == BlockKind::Footer));
 }
 
+bool State::hasActiveListItemSurface() const {
+	return activeListItemSurface().has_value();
+}
+
 bool State::activeSurfaceAllowsSeparateLineFormula() const {
 	const auto descriptor = textNode(_activeTextOrdinal);
 	if (!descriptor || descriptor->leaf.kind == LeafKind::MathFormula) {
@@ -6487,56 +6491,130 @@ std::optional<int> State::handleActiveListEnterUnchecked(
 	if (!owner || owner->kind != BlockKind::List || !item) {
 		return std::nullopt;
 	}
-	if (context.position != EnterPosition::End) {
-		return handleEnterAtBlockUnchecked(
-			ListItemChildrenContainer(surface->path, surface->itemIndex),
-			paragraphIndex,
-			context);
+	if (paragraphIndex < 0 || paragraphIndex >= int(item->blocks.size())) {
+		return std::nullopt;
+	}
+	const auto itemStart = (context.position == EnterPosition::Beginning)
+		&& (paragraphIndex == 0);
+	const auto itemEnd = (context.position == EnterPosition::End)
+		&& (paragraphIndex + 1 == int(item->blocks.size()));
+	if (!itemStart && !itemEnd) {
+		auto &blocks = item->blocks;
+		const auto moveFrom = (context.position == EnterPosition::Beginning)
+			? paragraphIndex
+			: (paragraphIndex + 1);
+		const auto split = (context.position == EnterPosition::Middle)
+			&& (context.head.text.size() + context.tail.text.size()
+				== blocks[paragraphIndex].text.text.text.size());
+		clearTemporaryDownParagraph();
+		auto next = ListItem();
+		next.taskState = item->taskState;
+		if (split) {
+			blocks[paragraphIndex].text.text = context.head;
+			auto paragraph = MakeParagraphBlock();
+			paragraph.text.text = context.tail;
+			next.blocks.push_back(std::move(paragraph));
+		}
+		next.blocks.insert(
+			next.blocks.end(),
+			std::make_move_iterator(blocks.begin() + moveFrom),
+			std::make_move_iterator(blocks.end()));
+		blocks.erase(blocks.begin() + moveFrom, blocks.end());
+		if (next.blocks.empty()) {
+			next.blocks.push_back(MakeParagraphBlock());
+		}
+		const auto insertedCount = int(next.blocks.size());
+		owner->listItems.insert(
+			owner->listItems.begin() + surface->itemIndex + 1,
+			std::move(next));
+		rebuild();
+		focusInsertedBlocks(
+			ListItemChildrenContainer(surface->path, surface->itemIndex + 1),
+			0,
+			insertedCount);
+		return (_activeTextOrdinal >= 0)
+			? std::make_optional(_activeTextOrdinal)
+			: std::nullopt;
 	}
 	auto target = std::optional<LeafPath>();
-	const auto trailingEmpty = (surface->itemIndex + 1
-			== int(owner->listItems.size()))
-		&& (item->blocks.size() == 1)
-		&& (item->blocks.front().kind == BlockKind::Paragraph)
-		&& ListItemIsEmpty(*item);
-	if (trailingEmpty) {
+	if (itemStart) {
+		const auto first = (surface->itemIndex == 1)
+			? listItem(surface->path, 0)
+			: nullptr;
+		const auto startEscape = first
+			&& ListItemIsEmpty(*first)
+			&& (first->blocks.empty()
+				|| ((first->blocks.size() == 1)
+					&& (first->blocks.front().kind
+						== BlockKind::Paragraph)));
 		clearTemporaryDownParagraph();
-		owner->listItems.erase(owner->listItems.begin() + surface->itemIndex);
-		if (owner->listItems.empty()) {
-			const auto blocks = blockContainer(surface->path.container);
-			if (!blocks
-				|| surface->path.index < 0
-					|| surface->path.index >= int(blocks->size())) {
-				return std::nullopt;
-			}
-			clearTemporaryDownParagraph();
-			blocks->erase(blocks->begin() + surface->path.index);
+		if (startEscape) {
+			owner->listItems.erase(owner->listItems.begin());
 			if (const auto paragraph = reuseOrInsertParagraph(
 					surface->path.container,
 					surface->path.index)) {
 				target = paragraph->leaf;
 			}
 		} else {
-			if (const auto paragraph = reuseOrInsertParagraph(
-					surface->path.container,
-					surface->path.index + 1)) {
-				target = paragraph->leaf;
-			}
+			owner->listItems.insert(
+				owner->listItems.begin() + surface->itemIndex,
+				MakeParagraphListItem(item->taskState));
+			target = LeafPath{
+				.kind = LeafKind::BlockText,
+				.block = {
+					.container = ListItemChildrenContainer(
+						surface->path,
+						surface->itemIndex + 1),
+					.index = 0,
+				},
+			};
 		}
 	} else {
-		clearTemporaryDownParagraph();
-		owner->listItems.insert(
-			owner->listItems.begin() + surface->itemIndex + 1,
-			MakeParagraphListItem(item->taskState));
-		target = LeafPath{
-			.kind = LeafKind::BlockText,
-			.block = {
-				.container = ListItemChildrenContainer(
-					surface->path,
-					surface->itemIndex + 1),
-				.index = 0,
-			},
-		};
+		const auto trailingEmpty = (surface->itemIndex + 1
+				== int(owner->listItems.size()))
+			&& (item->blocks.size() == 1)
+			&& (item->blocks.front().kind == BlockKind::Paragraph)
+			&& ListItemIsEmpty(*item);
+		if (trailingEmpty) {
+			clearTemporaryDownParagraph();
+			owner->listItems.erase(
+				owner->listItems.begin() + surface->itemIndex);
+			if (owner->listItems.empty()) {
+				const auto blocks = blockContainer(surface->path.container);
+				if (!blocks
+					|| surface->path.index < 0
+						|| surface->path.index >= int(blocks->size())) {
+					return std::nullopt;
+				}
+				clearTemporaryDownParagraph();
+				blocks->erase(blocks->begin() + surface->path.index);
+				if (const auto paragraph = reuseOrInsertParagraph(
+						surface->path.container,
+						surface->path.index)) {
+					target = paragraph->leaf;
+				}
+			} else {
+				if (const auto paragraph = reuseOrInsertParagraph(
+						surface->path.container,
+						surface->path.index + 1)) {
+					target = paragraph->leaf;
+				}
+			}
+		} else {
+			clearTemporaryDownParagraph();
+			owner->listItems.insert(
+				owner->listItems.begin() + surface->itemIndex + 1,
+				MakeParagraphListItem(item->taskState));
+			target = LeafPath{
+				.kind = LeafKind::BlockText,
+				.block = {
+					.container = ListItemChildrenContainer(
+						surface->path,
+						surface->itemIndex + 1),
+					.index = 0,
+				},
+			};
+		}
 	}
 	if (!target) {
 		return std::nullopt;
