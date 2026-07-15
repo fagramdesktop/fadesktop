@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "core/core_settings.h"
 #include "data/data_chat_filters.h"
+#include "data/data_folder.h"
 #include "data/data_messages.h"
 #include "data/data_peer.h"
 #include "data/data_session.h"
@@ -50,23 +51,54 @@ constexpr auto kReleaseHideDuration = crl::time(250);
 constexpr auto kPanelDuration = crl::time(320);
 constexpr auto kBounceDuration = crl::time(400);
 
-[[nodiscard]] History *FindNextUnreadChannel(
-		not_null<Window::SessionController*> controller,
-		not_null<PeerData*> current) {
-	auto &data = controller->session().data();
-	const auto filterId = controller->activeChatsFilterCurrent();
-	const auto list = filterId
-		? data.chatsFilters().chatsList(filterId)
-		: data.chatsList();
+[[nodiscard]] History *FindInList(
+		not_null<Dialogs::MainList*> list,
+		not_null<History*> current) {
 	for (const auto &row : list->indexed()->all()) {
 		const auto history = row->history();
-		if (!history) {
+		if (!history || history == current) {
 			continue;
 		}
 		const auto peer = history->peer;
-		if (peer != current
-			&& peer->isBroadcast()
-			&& history->unreadCount() > 0) {
+		if (peer->isBroadcast()
+			&& (history->unreadCount() > 0)
+			&& !history->useTopPromotion()
+			&& peer->computeUnavailableReason().isEmpty()) {
+			return history;
+		}
+	}
+	return nullptr;
+}
+
+[[nodiscard]] History *FindNextUnreadChannel(
+		not_null<Window::SessionController*> controller,
+		not_null<History*> current) {
+	auto &data = controller->session().data();
+	const auto filterId = controller->activeChatsFilterCurrent();
+	const auto currentList = filterId
+		? data.chatsFilters().chatsList(filterId)
+		: data.chatsList();
+	if (const auto history = FindInList(currentList, current)) {
+		return history;
+	}
+	for (const auto &filter : data.chatsFilters().list()) {
+		const auto id = filter.id();
+		if (!id || id == filterId) {
+			continue;
+		}
+		if (const auto history = FindInList(
+				data.chatsFilters().chatsList(id),
+				current)) {
+			return history;
+		}
+	}
+	if (filterId) {
+		if (const auto history = FindInList(data.chatsList(), current)) {
+			return history;
+		}
+	}
+	if (const auto folder = data.folderLoaded(Data::Folder::kId)) {
+		if (const auto history = FindInList(folder->chatsList(), current)) {
 			return history;
 		}
 	}
@@ -641,7 +673,7 @@ void PullToNextChannel::handleOverscroll(
 		}
 		_pulling = true;
 		_committed = false;
-		_next = FindNextUnreadChannel(_controller, history->peer);
+		_next = FindNextUnreadChannel(_controller, history);
 		if (const auto next = _next.get()) {
 			if (!next->isReadyFor(ShowAtUnreadMsgId)) {
 				[[maybe_unused]] const auto id = Support::SendPreloadRequest(
