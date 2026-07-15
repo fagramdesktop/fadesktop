@@ -2475,7 +2475,7 @@ void History::updateCommunityRegistration() {
 	const auto listFor = [&](Data::CommunityInfo *info)
 	-> Dialogs::MainList* {
 		if (info
-			&& info->collapsedInDialogs()
+			&& info->collapsedInChatLists()
 			&& info->channel() != peer) {
 			return info->chatsList();
 		}

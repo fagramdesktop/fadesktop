@@ -472,7 +472,8 @@ void Entry::removeFromChatList(
 		FilterId filterId,
 		not_null<MainList*> list) {
 	if (isPinnedDialog(filterId)) {
-		owner().setChatPinned(this, filterId, false);
+		list->pinned()->setPinned(this, false);
+		owner().notifyPinnedDialogsOrderUpdated();
 	}
 	if (filterId) {
 		const auto it = _tagColors.find(filterId);
