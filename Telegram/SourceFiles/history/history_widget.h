@@ -712,6 +712,7 @@ private:
 	[[nodiscard]] Data::Draft *cloudDraft() const;
 	[[nodiscard]] std::shared_ptr<const Iv::RichPage> shownRichMessage() const;
 	[[nodiscard]] bool isComposeBoxOpen() const;
+	[[nodiscard]] bool hasEditDraft() const;
 	[[nodiscard]] bool bypassNormalDraftHandling() const;
 	[[nodiscard]] bool shouldShowRichDraftPreview() const;
 	[[nodiscard]] std::unique_ptr<Data::Draft> readThreadFieldDraft() const;

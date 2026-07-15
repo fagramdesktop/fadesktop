@@ -2243,8 +2243,15 @@ bool HistoryWidget::isComposeBoxOpen() const {
 			PeerId());
 }
 
+bool HistoryWidget::hasEditDraft() const {
+	return _history
+		&& (_history->localEditDraft(MsgId(), PeerId()) != nullptr);
+}
+
 bool HistoryWidget::bypassNormalDraftHandling() const {
-	return !_editMsgId && isComposeBoxOpen();
+	return !_editMsgId
+		&& !hasEditDraft()
+		&& isComposeBoxOpen();
 }
 
 bool HistoryWidget::shouldShowRichDraftPreview() const {
@@ -2685,6 +2692,7 @@ void HistoryWidget::fastShowAtEnd(not_null<History*> history) {
 
 bool HistoryWidget::applyDraft(FieldHistoryAction fieldHistoryAction) {
 	if (bypassNormalDraftHandling()) {
+		clearFieldText(0, fieldHistoryAction);
 		updateCmdStartShown();
 		updateControlsVisibility();
 		updateControlsGeometry();
