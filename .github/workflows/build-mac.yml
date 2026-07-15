@@ -71,8 +71,11 @@ jobs:
         if: steps.cache-libs.outputs.cache-hit != 'true'
         run: |
           brew untap aws/tap || true
+          BREW_PREFIX=$(brew --prefix)
           for formula in automake cmake wget pkg-config gnu-tar ninja nasm meson libtool; do
-            brew link --overwrite $formula || true
+            if [ -d "$BREW_PREFIX/Cellar/$formula" ]; then
+              brew link --overwrite $formula || true
+            fi
           done
           HOMEBREW_NO_AUTO_UPDATE=1 brew install automake cmake wget pkg-config gnu-tar ninja nasm meson libtool || true
 
@@ -150,12 +153,16 @@ jobs:
         run: |
           cd ${{ env.REPO_NAME }}/Telegram
           ./configure.sh \
+            -D CMAKE_OSX_ARCHITECTURES=arm64 \
             -D TDESKTOP_API_ID=${{ secrets.API_ID_CONFIG }} \
             -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }} \
             -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
             -D DESKTOP_APP_BUILD_PACKER=ON
 
       - name: Build Telegram
+        env:
+          MAKE_THREADS_CNT: -j3
+          CMAKE_BUILD_PARALLEL_LEVEL: 3
         run: cmake --build ${{ env.REPO_NAME }}/out --config Release --target Telegram
 
       - name: Read version info

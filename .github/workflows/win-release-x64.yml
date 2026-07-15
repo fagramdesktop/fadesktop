@@ -62,6 +62,10 @@ jobs:
           submodules: recursive
           path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}
 
+      - name: Free disk space
+        shell: pwsh
+        run: pwsh -File "$env:TBUILD/$env:REPO_NAME/.github/scripts/free_disk_space_win.ps1"
+
       - name: Set up environment paths
         shell: bash
         run: |
@@ -167,6 +171,10 @@ jobs:
         with:
           submodules: recursive
           path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}
+
+      - name: Free disk space
+        shell: pwsh
+        run: pwsh -File "$env:TBUILD/$env:REPO_NAME/.github/scripts/free_disk_space_win.ps1"
 
       - name: Clone DesktopPrivate
         run: |
