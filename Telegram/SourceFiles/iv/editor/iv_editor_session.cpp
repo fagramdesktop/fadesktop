@@ -1038,7 +1038,7 @@ private:
 			not_null{ item },
 			text,
 			::Data::WebPageDraft{ .removed = true },
-			_submitOptions,
+			editMessageOptions(not_null{ item }),
 			[weak = base::make_weak(this)](mtpRequestId) {
 			},
 			[weak = base::make_weak(this)](
@@ -1118,6 +1118,15 @@ private:
 
 	[[nodiscard]] HistoryItem *currentSubmittedItem() const {
 		return _session->data().message(_articleId);
+	}
+
+	[[nodiscard]] Api::SendOptions editMessageOptions(
+			not_null<HistoryItem*> item) const {
+		auto options = _submitOptions;
+		options.scheduled = item->isScheduled() ? item->date() : 0;
+		options.scheduleRepeatPeriod = item->scheduleRepeatPeriod();
+		options.shortcutId = item->shortcutId();
+		return options;
 	}
 
 	[[nodiscard]] HistoryItem *ensureComposeLocalItem() {
@@ -1451,7 +1460,7 @@ private:
 				}
 				return std::optional<MTPInputRichMessage>();
 			},
-			_submitOptions,
+			editMessageOptions(not_null{ item }),
 			[weak = base::make_weak(this)](mtpRequestId) {
 				if (const auto session = weak.get()) {
 					session->finishSubmittedWork();
