@@ -17,8 +17,8 @@ on:
 jobs:
   update-manifest:
     name: Update Scoop Manifest
-    runs-on: ubuntu-latest
-    
+    runs-on: tenki-standard-medium-4c-8g
+
     steps:
       - name: Clone scoop manifest repository
         uses: actions/checkout@v7
@@ -26,18 +26,20 @@ jobs:
           repository: fagramdesktop/fagram-scoop
           token: ${{ secrets.PAT }}
           path: fagram-scoop
-          
+
       - name: Get release tag
         id: get_tag
         run: |
           echo "RELEASE_TAG=${{ inputs.release_tag }}" >> $GITHUB_ENV
           
+
       - name: Download release asset
         run: |
           ASSET_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/FAgram_Win-x64_${RELEASE_TAG}_portable.zip"
           echo "Downloading from: $ASSET_URL"
           curl -L -o FAgram_portable.zip "$ASSET_URL"
           
+
       - name: Calculate hash and update manifest
         run: |
           HASH=$(sha256sum FAgram_portable.zip | awk '{print $1}')
@@ -53,6 +55,7 @@ jobs:
           echo "Updated fagram.json:"
           cat fagram.json
           
+
       - name: Commit and push changes
         run: |
           cd fagram-scoop
