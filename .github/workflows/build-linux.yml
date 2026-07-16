@@ -34,7 +34,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-medium-4c-8g
     outputs:
       tagname: ${{ steps.tagname.outputs.tagname }}
       run_id: ${{ github.run_id }}
@@ -155,7 +155,7 @@ jobs:
     name: Upload to Telegram
     needs: build
     if: ${{ !inputs.skip_upload }}
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-medium-4c-8g
 
     steps:
       - name: Checkout repository
