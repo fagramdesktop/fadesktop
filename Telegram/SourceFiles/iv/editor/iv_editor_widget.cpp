@@ -7807,13 +7807,13 @@ void Widget::setupInlineField() {
 				Ui::InputField::kTagUnderline,
 				Ui::InputField::kTagStrikeOut,
 				Ui::InputField::kTagCode,
-				Ui::InputField::kTagPre,
 				Ui::InputField::kTagSpoiler,
 				Ui::InputField::kTagIvMarked,
 				Ui::InputField::kTagIvSubscript,
 				Ui::InputField::kTagIvSuperscript,
 				Ui::InputField::kTagIvMath,
 			},
+			.allowTypedMarkdown = false,
 		});
 		if (_show) {
 			const auto weak = QPointer<Widget>(this);
