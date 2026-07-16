@@ -157,6 +157,7 @@ struct LaidOutBlock {
 	style::align formulaAlign = style::al_left;
 	bool collapsed = false;
 	bool detailsOpen = false;
+	bool rtl = false;
 	bool overflowed = false;
 	bool tableBordered = true;
 	bool tableStriped = false;

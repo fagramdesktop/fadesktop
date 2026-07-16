@@ -2774,7 +2774,7 @@ void PaintDetailsBlock(
 			context,
 			block.actionRect,
 			block.actionRect.width(),
-			style::al_right);
+			block.rtl ? style::al_left : style::al_right);
 	}
 	p.restore();
 

@@ -3230,6 +3230,7 @@ int LayoutBlocks(
 		return std::nullopt;
 	}
 	ClearBlockGeometry(block);
+	block->rtl = context.rtl;
 	const auto &details = st.details;
 	const auto headerPadding = DetailsHeaderPadding(context, st);
 	const auto bodyPadding = DetailsBodyPadding(context, st);
@@ -3246,10 +3247,12 @@ int LayoutBlocks(
 	const auto iconSkip = iconWidth ? details.iconSkip : 0;
 	const auto actionSkip = actionWidth ? details.stateSkip : 0;
 	const auto actionZoneWidth = actionSkip + actionWidth;
-	const auto textLeft = left
-		+ headerPadding.left()
-		+ iconWidth
-		+ iconSkip;
+	const auto textLeft = context.rtl
+		? (left + headerPadding.right() + actionZoneWidth)
+		: (left
+			+ headerPadding.left()
+			+ iconWidth
+			+ iconSkip);
 	block->textWidth = std::max(
 		headerWidth
 			- headerPadding.left()
@@ -3281,8 +3284,11 @@ int LayoutBlocks(
 		+ headerPadding.bottom();
 	block->headerRect = QRect(left, top, headerWidth, headerHeight);
 	if (iconWidth > 0 && iconHeight > 0) {
+		const auto iconLeft = context.rtl
+			? (left + headerWidth - headerPadding.left() - iconWidth)
+			: (left + headerPadding.left());
 		block->iconRect = QRect(
-			left + headerPadding.left(),
+			iconLeft,
 			top + (headerHeight - iconHeight) / 2,
 			iconWidth,
 			iconHeight);
@@ -3294,8 +3300,11 @@ int LayoutBlocks(
 		block->textWidth,
 		summaryHeight);
 	if (actionZoneWidth > 0 && actionHeight > 0) {
+		const auto actionLeft = context.rtl
+			? (left + headerPadding.right())
+			: (left + headerWidth - headerPadding.right() - actionZoneWidth);
 		block->actionRect = QRect(
-			left + headerWidth - headerPadding.right() - actionZoneWidth,
+			actionLeft,
 			top + headerPadding.top()
 				+ std::max((headerContentHeight - actionHeight) / 2, 0),
 			actionZoneWidth,
@@ -3310,7 +3319,9 @@ int LayoutBlocks(
 		activeScrollOwner);
 	auto bottom = top + headerHeight;
 	if (!prepared.collapsed) {
-		const auto childLeft = left + bodyPadding.left();
+		const auto childLeft = context.rtl
+			? (left + bodyPadding.right())
+			: (left + bodyPadding.left());
 		const auto childTop = bottom + bodyPadding.top();
 		const auto childWidth = std::max(
 			headerWidth
