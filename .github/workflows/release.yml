@@ -45,7 +45,7 @@ permissions:
 jobs:
   create-release:
     name: Create GitHub Release
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-medium-4c-8g
 
     steps:
       - name: Checkout repository
@@ -142,7 +142,7 @@ jobs:
 
   trigger-rpm:
     name: Trigger RPM Build
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-medium-4c-8g
     needs: create-release
     steps:
       - name: Trigger repository dispatch event
