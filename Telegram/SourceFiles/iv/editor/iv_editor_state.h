@@ -958,6 +958,9 @@ private:
 	[[nodiscard]] static bool StripWrapperEntityInEditMode(EntityType type);
 	[[nodiscard]] static TextWithEntities StripEditModeWrapperEntities(
 		TextWithEntities text);
+	static void StripEditModeWrapperEntities(RichPage::RichText &text);
+	static void StripEditModeWrapperEntities(
+		std::vector<RichPage::Block> &blocks);
 
 	std::shared_ptr<RichPage> _richPage;
 	std::shared_ptr<Markdown::MediaRuntime> _mediaRuntime;

@@ -1505,6 +1505,7 @@ State::State(
 	if (_richPage->blocks.empty()) {
 		_richPage->blocks.push_back(MakeParagraphBlock());
 	}
+	StripEditModeWrapperEntities(_richPage->blocks);
 	rebuild();
 }
 
@@ -9933,6 +9934,35 @@ TextWithEntities State::StripEditModeWrapperEntities(TextWithEntities text) {
 	}
 	text.entities = std::move(filtered);
 	return text;
+}
+
+void State::StripEditModeWrapperEntities(RichPage::RichText &text) {
+	const auto strip = ranges::any_of(
+		text.text.entities,
+		[](const EntityInText &entity) {
+			return StripWrapperEntityInEditMode(entity.type());
+		});
+	if (strip) {
+		text.text = StripEditModeWrapperEntities(std::move(text.text));
+	}
+}
+
+void State::StripEditModeWrapperEntities(
+		std::vector<RichPage::Block> &blocks) {
+	for (auto &block : blocks) {
+		StripEditModeWrapperEntities(block.text);
+		StripEditModeWrapperEntities(block.caption);
+		StripEditModeWrapperEntities(block.blocks);
+		for (auto &item : block.listItems) {
+			StripEditModeWrapperEntities(item.text);
+			StripEditModeWrapperEntities(item.blocks);
+		}
+		for (auto &row : block.tableRows) {
+			for (auto &cell : row.cells) {
+				StripEditModeWrapperEntities(cell.text);
+			}
+		}
+	}
 }
 
 bool CanEditRichPage(const RichPage &page) {
