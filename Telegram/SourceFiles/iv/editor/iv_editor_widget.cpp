@@ -11136,6 +11136,14 @@ void Widget::updateArticleSelection(
 		updateTextSelection(false);
 		return;
 	}
+	const auto widgetPoint = articlePoint + articleTopLeft();
+	if (_articleSelectionDrag.fromField
+		&& !_field->isHidden()
+		&& !_articleSelectionDrag.anchorHit.tableCell
+		&& (widgetPoint.y() >= _field->y())
+		&& (widgetPoint.y() < _field->y() + _field->height())) {
+		return;
+	}
 	const auto selection = structuralSelectionFromHits(
 		_articleSelectionDrag.anchorHit,
 		editHit);
@@ -11888,8 +11896,8 @@ bool Widget::handleFieldMouseEvent(QEvent *event) {
 		articlePoint,
 		Ui::Text::StateRequest::Flag::LookupSymbol);
 	const auto editHit = _article->editHitTest(articlePoint);
-	const auto insideActiveField = _field->rect().contains(
-		_field->mapFromGlobal(globalPoint));
+	const auto fieldPoint = _field->mapFromGlobal(globalPoint);
+	const auto insideActiveField = _field->rect().contains(fieldPoint);
 	const auto originalSegmentHit = hit.valid()
 		&& hit.direct
 		&& (hit.segmentIndex == _articleSelectionDrag.textSegment)
@@ -11899,6 +11907,14 @@ bool Widget::handleFieldMouseEvent(QEvent *event) {
 			== Markdown::PreparedEditLeafKind::MathFormula)
 		&& editHit.leaf
 		&& (*editHit.leaf == *_articleSelectionDrag.anchorHit.leaf);
+	const auto insideFieldBand = (fieldPoint.y() >= 0)
+		&& (fieldPoint.y() < _field->height());
+	const auto bandSelectsInField = insideFieldBand
+		&& !insideActiveField
+		&& !originalSegmentHit
+		&& !originalMathFormulaHit
+		&& (operation == ArticleSelectionOperation::GrowSelection)
+		&& !_articleSelectionDrag.anchorHit.tableCell;
 	const auto clearArticleSelection = [&] {
 		const auto changed = !_selection.empty()
 			|| _selectionEndpoints.from.valid()
@@ -11911,7 +11927,10 @@ bool Widget::handleFieldMouseEvent(QEvent *event) {
 			update();
 		}
 	};
-	if (insideActiveField || originalSegmentHit || originalMathFormulaHit) {
+	if (insideActiveField
+		|| originalSegmentHit
+		|| originalMathFormulaHit
+		|| bandSelectsInField) {
 		if ((operation == ArticleSelectionOperation::GrowSelection)
 			&& (_articleSelectionDrag.mode == DragSelectionMode::Structural)) {
 			clearArticleSelection();
@@ -11945,6 +11964,23 @@ bool Widget::handleFieldMouseEvent(QEvent *event) {
 			_trackingPointerPress = false;
 		} else {
 			_selectScroll.cancel();
+			if (bandSelectsInField) {
+				const auto raw = _field->rawTextEdit();
+				const auto pointerCursor = raw->cursorForPosition(
+					raw->viewport()->mapFromGlobal(globalPoint));
+				const auto size = int(_field->getLastText().size());
+				const auto position = std::clamp(
+					pointerCursor.position(),
+					0,
+					size);
+				auto cursor = _field->textCursor();
+				if (cursor.position() != position) {
+					cursor.setPosition(position, QTextCursor::KeepAnchor);
+					_field->setTextCursor(cursor);
+				}
+				mouse->accept();
+				return true;
+			}
 		}
 		return false;
 	}
