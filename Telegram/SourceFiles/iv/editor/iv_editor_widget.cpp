@@ -1416,6 +1416,38 @@ struct InlineFieldTrimResult {
 	return context;
 }
 
+[[nodiscard]] std::optional<ClipboardData> BlockClipboardDataFromFieldTags(
+		not_null<const QMimeData*> data) {
+	const auto textMime = TextUtilities::TagsTextMimeType();
+	const auto tagsMime = TextUtilities::TagsMimeType();
+	if (!data->hasFormat(textMime) || !data->hasFormat(tagsMime)) {
+		return std::nullopt;
+	}
+	auto text = QString::fromUtf8(data->data(textMime));
+	const auto tags = TextUtilities::DeserializeTags(
+		data->data(tagsMime),
+		int(text.size()));
+	auto entities = TextUtilities::ConvertTextTagsToEntities(tags);
+	const auto isBlockEntity = [](const EntityInText &entity) {
+		const auto type = entity.type();
+		return (type == EntityType::Pre)
+			|| (type == EntityType::Blockquote);
+	};
+	if (!ranges::any_of(entities, isBlockEntity)) {
+		return std::nullopt;
+	}
+	auto page = SplitTextIntoRichPage({
+		std::move(text),
+		std::move(entities),
+	});
+	if (page.blocks.empty()) {
+		return std::nullopt;
+	}
+	auto result = ClipboardBlockData();
+	result.blocks = std::move(page.blocks);
+	return ClipboardData(std::move(result));
+}
+
 [[nodiscard]] std::optional<Ui::PreparedList> PreparedMediaFromClipboard(
 		not_null<const QMimeData*> data,
 		bool premium) {
@@ -8596,6 +8628,17 @@ bool Widget::handleIvClipboardMime(
 		}
 		crl::on_main(this, [=, clipboardData = *clipboardData] {
 			pasteStructuredClipboardData(clipboardData);
+		});
+		return true;
+	}
+	auto blockData = BlockClipboardDataFromFieldTags(data);
+	if (blockData
+		&& ClipboardPasteInsertContext(activeTextInsertContext())) {
+		if (action == Ui::InputField::MimeAction::Check) {
+			return true;
+		}
+		crl::on_main(this, [=, blockData = std::move(*blockData)] {
+			pasteStructuredClipboardData(blockData);
 		});
 		return true;
 	}
