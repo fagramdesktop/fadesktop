@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-medium-4c-8g
     steps:
       - uses: actions/checkout@v7
 
@@ -41,7 +41,7 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-medium-4c-8g
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
