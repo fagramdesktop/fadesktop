@@ -379,8 +379,10 @@ void HarvestCachedTextLeafs(
 			&block->leaf);
 		storeBlockLeaf(
 			CachedTextLeafSlot::Placeholder,
-			PlainTextLeafSourceSignature(
-				prepared.editPlaceholderText,
+			MarkedTextLeafSourceSignature(
+				EditPlaceholderTextValue(
+					prepared,
+					prepared.editPlaceholderText),
 				placeholderStyle,
 				PlainTextMinResizeWidth(placeholderStyle),
 				rtl),

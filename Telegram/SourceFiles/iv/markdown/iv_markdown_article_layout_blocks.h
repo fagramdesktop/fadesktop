@@ -474,6 +474,9 @@ struct TableCellMinimumWidthConstraint {
 [[nodiscard]] const style::TextStyle &EditPlaceholderTextStyleFor(
 	const PreparedBlock &block,
 	const style::Markdown &st);
+[[nodiscard]] TextWithEntities EditPlaceholderTextValue(
+	const PreparedBlock &block,
+	const QString &text);
 void CopyCachedTextLeafs(
 	const std::vector<PreparedBlock> &preparedBlocks,
 	std::vector<LaidOutBlock> *blocks,

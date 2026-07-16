@@ -628,17 +628,31 @@ struct TableSpannedCellGeometryData {
 	return result;
 }
 
+void SetSimpleMarkedTextLeaf(
+		Ui::Text::String *leaf,
+		const style::TextStyle &textStyle,
+		const TextWithEntities &text,
+		int minResizeWidth,
+		bool rtl) {
+	*leaf = Ui::Text::String(TextMinResizeWidth(minResizeWidth));
+	leaf->setMarkedText(
+		textStyle,
+		text,
+		rtl ? kIvMarkedTextOptionsRtl : kIvMarkedTextOptions);
+}
+
 void SetPlainTextLeaf(
 		Ui::Text::String *leaf,
 		const style::TextStyle &textStyle,
 		const QString &text,
 		int minResizeWidth,
 		bool rtl) {
-	*leaf = Ui::Text::String(TextMinResizeWidth(minResizeWidth));
-	leaf->setMarkedText(
+	SetSimpleMarkedTextLeaf(
+		leaf,
 		textStyle,
 		TextWithEntities::Simple(text),
-		rtl ? kIvMarkedTextOptionsRtl : kIvMarkedTextOptions);
+		minResizeWidth,
+		rtl);
 }
 
 void PopulateCodeBlockLeaf(
@@ -1020,8 +1034,10 @@ void CopyBlockCachedTextLeafs(
 			&block.leaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Placeholder,
-			PlainTextLeafSourceSignature(
-				prepared.editPlaceholderText,
+			MarkedTextLeafSourceSignature(
+				EditPlaceholderTextValue(
+					prepared,
+					prepared.editPlaceholderText),
 				placeholderStyle,
 				PlainTextMinResizeWidth(placeholderStyle),
 				rtl),
@@ -1397,14 +1413,29 @@ void BuildOrReuseEditPlaceholderLeaf(
 		return;
 	}
 	*placeholderText = text;
-	BuildOrReusePlainTextLeaf(
+	const auto value = EditPlaceholderTextValue(prepared, text);
+	BuildOrReuseCachedTextLeaf(
 		placeholderLeaf,
-		CachedTextLeafSlot::Placeholder,
-		prepared,
-		textStyle,
-		*placeholderText,
-		minResizeWidth,
-		context);
+		nullptr,
+		context,
+		BlockCachedTextLeafKey(
+			CachedTextLeafSlot::Placeholder,
+			prepared,
+			context.preparedPath),
+		MarkedTextLeafSourceSignature(
+			value,
+			textStyle,
+			minResizeWidth,
+			context.rtl),
+		[&](Ui::Text::String *leaf,
+				Spellchecker::HighlightProcessId*) {
+			SetSimpleMarkedTextLeaf(
+				leaf,
+				textStyle,
+				value,
+				minResizeWidth,
+				context.rtl);
+		});
 }
 
 void CopyCachedTextLeafs(
@@ -1832,23 +1863,26 @@ int FlowBlockPreferredWidth(
 			});
 	}
 	const auto &placeholderStyle = EditPlaceholderTextStyleFor(prepared, st);
+	const auto value = EditPlaceholderTextValue(
+		prepared,
+		prepared.editPlaceholderText);
 	return WithCachedTextLeaf(
 		context,
 		BlockCachedTextLeafKey(
 			CachedTextLeafSlot::Placeholder,
 			prepared,
 			context.preparedPath),
-		PlainTextLeafSourceSignature(
-			prepared.editPlaceholderText,
+		MarkedTextLeafSourceSignature(
+			value,
 			placeholderStyle,
 			PlainTextMinResizeWidth(placeholderStyle),
 			context.rtl),
 		[&](Ui::Text::String *leaf,
 				Spellchecker::HighlightProcessId*) {
-			SetPlainTextLeaf(
+			SetSimpleMarkedTextLeaf(
 				leaf,
 				placeholderStyle,
-				prepared.editPlaceholderText,
+				value,
 				PlainTextMinResizeWidth(placeholderStyle),
 				context.rtl);
 		},
@@ -2545,6 +2579,19 @@ const style::TextStyle &EditPlaceholderTextStyleFor(
 	return block.quoteAuthor ? st.body : TextStyleFor(block, st);
 }
 
+TextWithEntities EditPlaceholderTextValue(
+		const PreparedBlock &block,
+		const QString &text) {
+	auto result = TextWithEntities::Simple(text);
+	if (block.pullquote && !block.quoteAuthor && !result.text.isEmpty()) {
+		result.entities.push_back(EntityInText(
+			EntityType::Italic,
+			0,
+			result.text.size()));
+	}
+	return result;
+}
+
 void ApplyPreparedEditSources(
 		LaidOutBlock *block,
 		const PreparedBlock &prepared) {
@@ -3022,10 +3069,12 @@ LaidOutBlock LayoutFlowBlock(
 				&& !prepared.editPlaceholderText.isEmpty();
 			if (usePlaceholder && block.placeholderLeaf.isEmpty()) {
 				block.placeholderText = prepared.editPlaceholderText;
-				SetPlainTextLeaf(
+				SetSimpleMarkedTextLeaf(
 					&block.placeholderLeaf,
 					placeholderStyle,
-					block.placeholderText,
+					EditPlaceholderTextValue(
+						prepared,
+						block.placeholderText),
 					PlainTextMinResizeWidth(placeholderStyle),
 					context.rtl);
 			}
