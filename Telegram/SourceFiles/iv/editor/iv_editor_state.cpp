@@ -8883,6 +8883,9 @@ bool State::leafMutationKeepsTextNodes(
 
 bool State::updatePreparedActiveLeaf(
 		const TextNodeDescriptor &descriptor) {
+	if (DetermineRichPageRtl(*_richPage) != _richPage->rtl) {
+		return false;
+	}
 	const auto source = convertPreparedLeafSource(descriptor);
 	if (!source) {
 		return false;
