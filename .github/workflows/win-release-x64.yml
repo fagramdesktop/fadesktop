@@ -35,7 +35,7 @@ on:
 jobs:
   prepare-libraries:
     name: Prepare Libraries
-    runs-on: windows-latest
+    runs-on: tenki-standard-medium-4c-8g
 
     env:
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
@@ -136,7 +136,7 @@ jobs:
 
   build-fagram:
     name: Build FAgram Desktop
-    runs-on: windows-latest
+    runs-on: tenki-standard-medium-4c-8g
     needs: prepare-libraries
     if: ${{ !cancelled() && (needs.prepare-libraries.result == 'success' || needs.prepare-libraries.result == 'skipped') }}
 
@@ -324,7 +324,7 @@ jobs:
     name: Upload to Telegram
     needs: [build-fagram, build-installer]
     if: ${{ !inputs.skip_upload && needs.build-installer.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-medium-4c-8g
 
     steps:
       - name: Checkout repository
