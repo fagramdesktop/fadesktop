@@ -2,12 +2,11 @@ name: OTA Build for Windows
 
 on:
   workflow_dispatch:
-
 jobs:
 
   windows:
     name: Windows OTA Build
-    runs-on: windows-latest
+    runs-on: tenki-standard-medium-4c-8g
 
     strategy:
       matrix:
