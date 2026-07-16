@@ -8905,6 +8905,7 @@ void State::rebuild() {
 
 void State::rebuildPrepared() {
 	_lastPreparedMutationKind = PreparedMutationKind::FullRebuild;
+	_richPage->rtl = DetermineRichPageRtl(*_richPage);
 	_prepared = Markdown::TryPrepareNativeInstantView({
 		.richPage = _richPage,
 		.mediaRuntime = _mediaRuntime,

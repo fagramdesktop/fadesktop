@@ -312,5 +312,6 @@ inline constexpr auto kTextDiffDeletedColorIndex = 11;
 	bool emptyFallback = true);
 [[nodiscard]] TextWithEntities FlattenRichPageToSimpleText(
 	const RichPage &page);
+[[nodiscard]] bool DetermineRichPageRtl(const RichPage &page);
 
 } // namespace Iv

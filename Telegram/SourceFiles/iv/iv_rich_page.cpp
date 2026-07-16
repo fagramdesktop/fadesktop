@@ -2252,6 +2252,35 @@ std::shared_ptr<const RichPage> ParsePage(
 	return true;
 }
 
+[[nodiscard]] std::optional<bool> RichTextRtl(const RichText &text) {
+	const auto &plain = text.text.text;
+	if (plain.trimmed().isEmpty()) {
+		return std::nullopt;
+	}
+	return plain.isRightToLeft();
+}
+
+[[nodiscard]] std::optional<bool> BlocksTextRtl(
+		const std::vector<Block> &blocks) {
+	for (const auto &block : blocks) {
+		if (const auto result = RichTextRtl(block.text)) {
+			return result;
+		}
+		if (const auto result = BlocksTextRtl(block.blocks)) {
+			return result;
+		}
+		for (const auto &item : block.listItems) {
+			if (const auto result = RichTextRtl(item.text)) {
+				return result;
+			}
+			if (const auto result = BlocksTextRtl(item.blocks)) {
+				return result;
+			}
+		}
+	}
+	return std::nullopt;
+}
+
 } // namespace
 
 bool RichPagesEqual(
@@ -2441,6 +2470,10 @@ TextWithEntities FlattenRichPageToSimpleText(const RichPage &page) {
 		result = TextWithEntities::Simple(tr::lng_message_empty(tr::now));
 	}
 	return result;
+}
+
+bool DetermineRichPageRtl(const RichPage &page) {
+	return BlocksTextRtl(page.blocks).value_or(false);
 }
 
 std::optional<TextWithEntities> SerializeAsSimple(

@@ -1736,7 +1736,7 @@ SerializeInputRichMessageResult SerializeInputRichMessage(
 	}
 	using Flag = MTPDinputRichMessage::Flag;
 	auto flags = MTPDinputRichMessage::Flags();
-	if (page.rtl) {
+	if (DetermineRichPageRtl(page)) {
 		flags |= Flag::f_rtl;
 	}
 	if (!photos.isEmpty()) {
