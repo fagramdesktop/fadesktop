@@ -3010,6 +3010,7 @@ LaidOutBlock LayoutFlowBlock(
 					inlineFormulaObjects,
 					mediaRuntime,
 					FlowBlockMinimumWidth(prepared, st),
+					context.rtl,
 					context.repaint,
 					context.repaintRect);
 				SetTextLeafSpoilerLinkFilter(
@@ -3025,7 +3026,8 @@ LaidOutBlock LayoutFlowBlock(
 					&block.placeholderLeaf,
 					placeholderStyle,
 					block.placeholderText,
-					PlainTextMinResizeWidth(placeholderStyle));
+					PlainTextMinResizeWidth(placeholderStyle),
+					context.rtl);
 			}
 		}
 		bottom = LayoutFlowBlockGeometry(
