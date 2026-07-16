@@ -47,7 +47,7 @@ on:
 jobs:
   build-installer:
     name: Build Windows x64 Installer
-    runs-on: windows-latest
+    runs-on: tenki-standard-medium-4c-8g
 
     defaults:
       run:
