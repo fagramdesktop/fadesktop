@@ -5873,6 +5873,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_search_filter_private" = "Private chats";
 "lng_search_filter_group" = "Group chats";
 "lng_search_filter_channel" = "Channels";
+"lng_search_filter_from_archive" = "From archive";
+"lng_search_filter_non_archived" = "Non archived";
 "lng_search_sponsored_button" = "Ad ⋮";
 "lng_sr_chat_channel" = "Channel";
 "lng_sr_chat_group" = "Group";
