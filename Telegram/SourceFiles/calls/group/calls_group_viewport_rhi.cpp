@@ -1209,7 +1209,11 @@ void Viewport::RendererRhi::drawFramePass(
 		std::swap(blurTexCoords[0], blurTexCoords[1]);
 		std::swap(blurTexCoords[2], blurTexCoords[3]);
 	}
-	if (const auto shift = (frameRotation / 90); shift > 0) {
+	const auto flipY = _rhi->isYUpInFramebuffer();
+	if (auto shift = (frameRotation / 90); shift > 0) {
+		if (flipY) {
+			shift = 4 - shift;
+		}
 		std::rotate(
 			texCoords.begin(),
 			texCoords.begin() + shift,
@@ -1233,7 +1237,6 @@ void Viewport::RendererRhi::drawFramePass(
 
 	const auto rect = transformRect(geometry);
 
-	const auto flipY = _rhi->isYUpInFramebuffer();
 	const auto tl = flipY ? 3 : 0;
 	const auto tr = flipY ? 2 : 1;
 	const auto bl = flipY ? 0 : 3;
