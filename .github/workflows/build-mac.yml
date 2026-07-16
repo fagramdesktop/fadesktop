@@ -35,7 +35,7 @@ on:
 jobs:
   prepare-libraries:
     name: Prepare Libraries
-    runs-on: macos-latest
+    runs-on: tenki-macos-latest-small
     env:
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
       REPO_NAME: ${{ github.event.repository.name || 'fadesktop' }}
@@ -105,7 +105,7 @@ jobs:
   build:
     name: Build macOS
     needs: prepare-libraries
-    runs-on: macos-latest
+    runs-on: tenki-macos-latest-small
     env:
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
       REPO_NAME: ${{ github.event.repository.name || 'fadesktop' }}
