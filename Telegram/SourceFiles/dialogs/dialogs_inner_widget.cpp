@@ -169,7 +169,7 @@ constexpr auto kPreviewPostsLimit = 3;
 [[nodiscard]] object_ptr<SearchEmpty> MakeSearchEmpty(
 		QWidget *parent,
 		SearchState state,
-		Fn<void()> resetChatTypeFilter) {
+		Fn<void()> resetSearchFilters) {
 	const auto query = state.query.trimmed();
 	const auto hashtag = !query.isEmpty() && (query[0] == '#');
 	const auto trimmed = hashtag ? query.mid(1).trimmed() : query;
@@ -187,7 +187,7 @@ constexpr auto kPreviewPostsLimit = 3;
 		&& !fromPeer;
 	const auto suggestAllChats = !waiting
 		&& state.tab == ChatSearchTab::MyMessages
-		&& state.filter != ChatTypeFilter::All;
+		&& (state.filter != ChatTypeFilter::All || !state.fromArchive);
 	const auto icon = waiting
 		? SearchEmptyIcon::Search
 		: SearchEmptyIcon::NoResults;
@@ -226,7 +226,7 @@ constexpr auto kPreviewPostsLimit = 3;
 		rpl::single(std::move(text)));
 	if (suggestAllChats) {
 		result->handlerActivated(
-		) | rpl::on_next(resetChatTypeFilter, result->lifetime());
+		) | rpl::on_next(resetSearchFilters, result->lifetime());
 	}
 	result->show();
 	result->resizeToWidth(parent->width());
@@ -4815,6 +4815,7 @@ void InnerWidget::refreshEmpty() {
 			_searchEmptyState = _searchState;
 			_searchEmpty = MakeSearchEmpty(this, _searchState, [=] {
 				_changeSearchFilterRequests.fire(ChatTypeFilter::All);
+				_changeSearchFromArchiveRequests.fire(true);
 			});
 			if (_controller->session().data().chatsListLoaded()) {
 				_searchEmpty->animate();
