@@ -6,10 +6,9 @@ on:
   schedule:
     - cron: "0 3 1 * *"
   workflow_dispatch:
-
 jobs:
   Unused-styles:
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-medium-4c-8g
     steps:
       - uses: desktop-app/action_code_updater@master
         with:
