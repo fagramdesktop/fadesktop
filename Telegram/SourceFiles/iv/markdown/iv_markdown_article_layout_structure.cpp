@@ -2055,6 +2055,8 @@ using LayoutListChildCallback = std::function<std::optional<int>(
 			= context.taskMarkerRippleRuntimeFactory(*prepared.editListItem);
 	}
 	if (ordered) {
+		auto markerContext = context;
+		markerContext.rtl = false;
 		BuildOrReusePlainTextLeaf(
 			&block.marker,
 			CachedTextLeafSlot::Marker,
@@ -2062,7 +2064,7 @@ using LayoutListChildCallback = std::function<std::optional<int>(
 			st.body,
 			markerText,
 			PlainTextMinResizeWidth(st.body),
-			context);
+			markerContext);
 	}
 	const auto bottom = LayoutListItemBlockGeometry(
 		prepared,
@@ -2264,6 +2266,8 @@ using LayoutListChildCallback = std::function<std::optional<int>(
 			context);
 	}
 	if (context.editMode) {
+		auto actionContext = context;
+		actionContext.rtl = false;
 		BuildOrReusePlainTextLeaf(
 			&block.actionLeaf,
 			CachedTextLeafSlot::Action,
@@ -2271,7 +2275,7 @@ using LayoutListChildCallback = std::function<std::optional<int>(
 			details.summaryStyle,
 			DetailsStateText(prepared.detailsOpen),
 			PlainTextMinResizeWidth(details.summaryStyle),
-			context);
+			actionContext);
 	}
 	const auto bottom = LayoutDetailsBlockGeometry(
 		prepared,

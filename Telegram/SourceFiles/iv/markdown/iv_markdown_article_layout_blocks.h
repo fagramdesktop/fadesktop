@@ -283,6 +283,7 @@ struct CachedTextLeafSourceSignature {
 	int minResizeWidth = 1;
 	size_t styleKey = 0;
 	bool dependsOnMediaRuntime = false;
+	bool rtl = false;
 
 	friend inline bool operator==(
 		const CachedTextLeafSourceSignature &a,
@@ -477,7 +478,8 @@ void CopyCachedTextLeafs(
 	const std::vector<PreparedBlock> &preparedBlocks,
 	std::vector<LaidOutBlock> *blocks,
 	const style::Markdown &st,
-	CachedTextLeafPool *pool);
+	CachedTextLeafPool *pool,
+	bool rtl);
 void BuildOrReuseMarkedTextLeaf(
 	Ui::Text::String *leaf,
 	CachedTextLeafSlot slot,

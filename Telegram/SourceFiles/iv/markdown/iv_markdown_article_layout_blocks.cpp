@@ -30,6 +30,13 @@ constexpr auto kIvMarkedTextOptions = TextParseOptions{
 	Qt::LayoutDirectionAuto,
 };
 
+constexpr auto kIvMarkedTextOptionsRtl = TextParseOptions{
+	TextParseMultiline,
+	0,
+	0,
+	Qt::RightToLeft,
+};
+
 constexpr auto kCodeTabColumns = 4;
 constexpr auto kCodeTrailingGuard = 0x2060;
 constexpr auto kReadableTextColumns = 12;
@@ -157,28 +164,33 @@ void SetPlainTextLeaf(
 	Ui::Text::String *leaf,
 	const style::TextStyle &textStyle,
 	const QString &text,
-	int minResizeWidth);
+	int minResizeWidth,
+	bool rtl);
 
 [[nodiscard]] CachedTextLeafSourceSignature MarkedTextLeafSourceSignature(
 		TextWithEntities text,
 		const style::TextStyle &textStyle,
-		int minResizeWidth) {
+		int minResizeWidth,
+		bool rtl) {
 	auto result = CachedTextLeafSourceSignature();
 	result.dependsOnMediaRuntime = TextDependsOnMediaRuntime(text);
 	result.text = std::move(text);
 	result.minResizeWidth = minResizeWidth;
 	result.styleKey = TextStyleKey(textStyle);
+	result.rtl = rtl;
 	return result;
 }
 
 [[nodiscard]] CachedTextLeafSourceSignature PlainTextLeafSourceSignature(
 		const QString &text,
 		const style::TextStyle &textStyle,
-		int minResizeWidth) {
+		int minResizeWidth,
+		bool rtl) {
 	return MarkedTextLeafSourceSignature(
 		TextWithEntities::Simple(text),
 		textStyle,
-		minResizeWidth);
+		minResizeWidth,
+		rtl);
 }
 
 [[nodiscard]] CachedTextLeafSourceSignature CodeTextLeafSourceSignature(
@@ -187,7 +199,8 @@ void SetPlainTextLeaf(
 	auto result = MarkedTextLeafSourceSignature(
 		CodeBlockDisplayText(prepared.text),
 		st.code,
-		CodeTextMinResizeWidth(st));
+		CodeTextMinResizeWidth(st),
+		false);
 	result.codeLanguage = prepared.codeLanguage;
 	return result;
 }
@@ -337,7 +350,11 @@ void BuildOrReuseCachedTextLeaf(
 			context.preparedPath,
 			tableRowIndex,
 			tableCellIndex),
-		MarkedTextLeafSourceSignature(prepared.text, textStyle, minResizeWidth),
+		MarkedTextLeafSourceSignature(
+			prepared.text,
+			textStyle,
+			minResizeWidth,
+			context.rtl),
 		[&](Ui::Text::String *leaf,
 				Spellchecker::HighlightProcessId*) {
 			SetTextLeaf(
@@ -349,6 +366,7 @@ void BuildOrReuseCachedTextLeaf(
 				inlineFormulaObjects,
 				mediaRuntime,
 				minResizeWidth,
+				context.rtl,
 				context.repaint,
 				context.repaintRect);
 			BindLinks(leaf, prepared.links);
@@ -371,14 +389,16 @@ void BuildOrReuseCachedTextLeaf(
 			PlainTextLeafSourceSignature(
 				result.placeholderText,
 				textStyle,
-				minResizeWidth),
+				minResizeWidth,
+				context.rtl),
 			[&](Ui::Text::String *leaf,
 					Spellchecker::HighlightProcessId*) {
 				SetPlainTextLeaf(
 					leaf,
 					textStyle,
 					result.placeholderText,
-					minResizeWidth);
+					minResizeWidth,
+					context.rtl);
 			});
 	}
 	return result;
@@ -612,12 +632,13 @@ void SetPlainTextLeaf(
 		Ui::Text::String *leaf,
 		const style::TextStyle &textStyle,
 		const QString &text,
-		int minResizeWidth) {
+		int minResizeWidth,
+		bool rtl) {
 	*leaf = Ui::Text::String(TextMinResizeWidth(minResizeWidth));
 	leaf->setMarkedText(
 		textStyle,
 		TextWithEntities::Simple(text),
-		kIvMarkedTextOptions);
+		rtl ? kIvMarkedTextOptionsRtl : kIvMarkedTextOptions);
 }
 
 void PopulateCodeBlockLeaf(
@@ -669,6 +690,7 @@ void PopulateCodeBlockLeaf(
 		inlineFormulaObjects,
 		mediaRuntime,
 		CodeTextMinResizeWidth(st),
+		false,
 		std::move(repaint),
 		std::move(repaintRect),
 		std::move(spoilerLinkFilter));
@@ -937,7 +959,8 @@ void CopyBlockCachedTextLeafs(
 		LaidOutBlock &block,
 		const style::Markdown &st,
 		CachedTextLeafPool *pool,
-		const std::vector<int> &preparedPath) {
+		const std::vector<int> &preparedPath,
+		bool rtl) {
 	const auto copyBlockLeaf = [&](CachedTextLeafSlot slot,
 			CachedTextLeafSourceSignature source,
 			Ui::Text::String *leaf,
@@ -974,7 +997,8 @@ void CopyBlockCachedTextLeafs(
 			PlainTextLeafSourceSignature(
 				ListMarkerText(prepared),
 				st.body,
-				PlainTextMinResizeWidth(st.body)),
+				PlainTextMinResizeWidth(st.body),
+				false),
 			&block.marker);
 	}
 
@@ -991,14 +1015,16 @@ void CopyBlockCachedTextLeafs(
 			MarkedTextLeafSourceSignature(
 				prepared.text,
 				textStyle,
-				FlowBlockMinimumWidth(prepared, st)),
+				FlowBlockMinimumWidth(prepared, st),
+				rtl),
 			&block.leaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Placeholder,
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				placeholderStyle,
-				PlainTextMinResizeWidth(placeholderStyle)),
+				PlainTextMinResizeWidth(placeholderStyle),
+				rtl),
 			&block.placeholderLeaf);
 	} break;
 	case PreparedBlockKind::CodeBlock:
@@ -1012,7 +1038,8 @@ void CopyBlockCachedTextLeafs(
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.code,
-				PlainTextMinResizeWidth(st.code)),
+				PlainTextMinResizeWidth(st.code),
+				rtl),
 			&block.placeholderLeaf);
 		break;
 	case PreparedBlockKind::DisplayMath:
@@ -1021,14 +1048,16 @@ void CopyBlockCachedTextLeafs(
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.displayMath.fallbackStyle,
-				DisplayMathFallbackTextMinResizeWidth(st)),
+				DisplayMathFallbackTextMinResizeWidth(st),
+				rtl),
 				&block.placeholderLeaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Fallback,
 			MarkedTextLeafSourceSignature(
 				DisplayMathFallbackText(),
 				st.displayMath.fallbackStyle,
-				DisplayMathFallbackTextMinResizeWidth(st)),
+				DisplayMathFallbackTextMinResizeWidth(st),
+				false),
 			&block.fallbackLeaf);
 		break;
 	case PreparedBlockKind::Table: {
@@ -1037,14 +1066,16 @@ void CopyBlockCachedTextLeafs(
 			MarkedTextLeafSourceSignature(
 				prepared.text,
 				st.body,
-				FlowTextMinResizeWidth(st.body)),
+				FlowTextMinResizeWidth(st.body),
+				rtl),
 			&block.leaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Placeholder,
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.body,
-				PlainTextMinResizeWidth(st.body)),
+				PlainTextMinResizeWidth(st.body),
+				rtl),
 			&block.placeholderLeaf);
 		const auto rowCount = std::min(
 			int(prepared.tableRows.size()),
@@ -1070,7 +1101,8 @@ void CopyBlockCachedTextLeafs(
 					MarkedTextLeafSourceSignature(
 						preparedCell.text,
 						textStyle,
-						minResizeWidth),
+						minResizeWidth,
+						rtl),
 					&cell.leaf);
 				copyTableCellLeaf(
 					CachedTextLeafSlot::TableCellPlaceholder,
@@ -1080,7 +1112,8 @@ void CopyBlockCachedTextLeafs(
 					PlainTextLeafSourceSignature(
 						preparedCell.editPlaceholderText,
 						textStyle,
-						minResizeWidth),
+						minResizeWidth,
+						rtl),
 					&cell.placeholderLeaf);
 			}
 		}
@@ -1091,21 +1124,24 @@ void CopyBlockCachedTextLeafs(
 			MarkedTextLeafSourceSignature(
 				prepared.text,
 				st.details.summaryStyle,
-				FlowTextMinResizeWidth(st.details.summaryStyle)),
+				FlowTextMinResizeWidth(st.details.summaryStyle),
+				rtl),
 			&block.leaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Placeholder,
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.details.summaryStyle,
-				PlainTextMinResizeWidth(st.details.summaryStyle)),
+				PlainTextMinResizeWidth(st.details.summaryStyle),
+				rtl),
 			&block.placeholderLeaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Action,
 			PlainTextLeafSourceSignature(
 				DetailsStateText(prepared.detailsOpen),
 				st.details.summaryStyle,
-				PlainTextMinResizeWidth(st.details.summaryStyle)),
+				PlainTextMinResizeWidth(st.details.summaryStyle),
+				false),
 			&block.actionLeaf);
 		break;
 	case PreparedBlockKind::Placeholder:
@@ -1114,21 +1150,24 @@ void CopyBlockCachedTextLeafs(
 			PlainTextLeafSourceSignature(
 				prepared.placeholder.label,
 				st.placeholder.labelStyle,
-				PlainTextMinResizeWidth(st.placeholder.labelStyle)),
+				PlainTextMinResizeWidth(st.placeholder.labelStyle),
+				rtl),
 			&block.labelLeaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Leaf,
 			MarkedTextLeafSourceSignature(
 				prepared.text,
 				st.body,
-				FlowTextMinResizeWidth(st.body)),
+				FlowTextMinResizeWidth(st.body),
+				rtl),
 			&block.leaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Placeholder,
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.body,
-				PlainTextMinResizeWidth(st.body)),
+				PlainTextMinResizeWidth(st.body),
+				rtl),
 			&block.placeholderLeaf);
 		break;
 	case PreparedBlockKind::RelatedArticle:
@@ -1137,21 +1176,24 @@ void CopyBlockCachedTextLeafs(
 			PlainTextLeafSourceSignature(
 				prepared.relatedArticle.title,
 				st.relatedArticle.titleStyle,
-				PlainTextMinResizeWidth(st.relatedArticle.titleStyle)),
+				PlainTextMinResizeWidth(st.relatedArticle.titleStyle),
+				rtl),
 				&block.labelLeaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Subtitle,
 			PlainTextLeafSourceSignature(
 				prepared.relatedArticle.description,
 				st.relatedArticle.subtitleStyle,
-				PlainTextMinResizeWidth(st.relatedArticle.subtitleStyle)),
+				PlainTextMinResizeWidth(st.relatedArticle.subtitleStyle),
+				rtl),
 				&block.subtitleLeaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Action,
 			PlainTextLeafSourceSignature(
 				prepared.relatedArticle.footer,
 				st.relatedArticle.footerStyle,
-				PlainTextMinResizeWidth(st.relatedArticle.footerStyle)),
+				PlainTextMinResizeWidth(st.relatedArticle.footerStyle),
+				rtl),
 			&block.actionLeaf);
 		break;
 	case PreparedBlockKind::EmbedPost:
@@ -1160,28 +1202,32 @@ void CopyBlockCachedTextLeafs(
 			PlainTextLeafSourceSignature(
 				prepared.embedPost.author,
 				st.embedPost.authorStyle,
-				PlainTextMinResizeWidth(st.embedPost.authorStyle)),
+				PlainTextMinResizeWidth(st.embedPost.authorStyle),
+				rtl),
 			&block.labelLeaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Subtitle,
 			PlainTextLeafSourceSignature(
 				prepared.embedPost.dateText,
 				st.embedPost.dateStyle,
-				PlainTextMinResizeWidth(st.embedPost.dateStyle)),
+				PlainTextMinResizeWidth(st.embedPost.dateStyle),
+				rtl),
 			&block.subtitleLeaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Leaf,
 			MarkedTextLeafSourceSignature(
 				prepared.text,
 				st.body,
-				FlowTextMinResizeWidth(st.body)),
+				FlowTextMinResizeWidth(st.body),
+				rtl),
 			&block.leaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Placeholder,
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.body,
-				PlainTextMinResizeWidth(st.body)),
+				PlainTextMinResizeWidth(st.body),
+				rtl),
 			&block.placeholderLeaf);
 		break;
 	case PreparedBlockKind::Photo:
@@ -1195,14 +1241,16 @@ void CopyBlockCachedTextLeafs(
 			MarkedTextLeafSourceSignature(
 				prepared.text,
 				st.body,
-				FlowTextMinResizeWidth(st.body)),
+				FlowTextMinResizeWidth(st.body),
+				rtl),
 			&block.leaf);
 		copyBlockLeaf(
 			CachedTextLeafSlot::Placeholder,
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.body,
-				PlainTextMinResizeWidth(st.body)),
+				PlainTextMinResizeWidth(st.body),
+				rtl),
 			&block.placeholderLeaf);
 		break;
 	case PreparedBlockKind::Rule:
@@ -1218,7 +1266,8 @@ void CopyBlockCachedTextLeafs(
 		std::vector<LaidOutBlock> *blocks,
 		const style::Markdown &st,
 		CachedTextLeafPool *pool,
-		std::vector<int> *preparedPath) {
+		std::vector<int> *preparedPath,
+		bool rtl) {
 	if (!pool || !blocks || !preparedPath) {
 		return;
 	}
@@ -1230,7 +1279,8 @@ void CopyBlockCachedTextLeafs(
 			(*blocks)[i],
 			st,
 			pool,
-			*preparedPath);
+			*preparedPath,
+			rtl);
 		preparedPath->pop_back();
 	}
 }
@@ -1282,7 +1332,11 @@ void BuildOrReuseMarkedTextLeaf(
 		nullptr,
 		context,
 		BlockCachedTextLeafKey(slot, prepared, context.preparedPath),
-		MarkedTextLeafSourceSignature(text, textStyle, minResizeWidth),
+		MarkedTextLeafSourceSignature(
+			text,
+			textStyle,
+			minResizeWidth,
+			context.rtl),
 		[&](Ui::Text::String *leaf,
 				Spellchecker::HighlightProcessId*) {
 			SetTextLeaf(
@@ -1294,6 +1348,7 @@ void BuildOrReuseMarkedTextLeaf(
 				inlineFormulaObjects,
 				mediaRuntime,
 				minResizeWidth,
+				context.rtl,
 				context.repaint,
 				context.repaintRect);
 			BindLinks(leaf, links);
@@ -1314,10 +1369,19 @@ void BuildOrReusePlainTextLeaf(
 		nullptr,
 		context,
 		BlockCachedTextLeafKey(slot, prepared, context.preparedPath),
-		PlainTextLeafSourceSignature(text, textStyle, minResizeWidth),
+		PlainTextLeafSourceSignature(
+			text,
+			textStyle,
+			minResizeWidth,
+			context.rtl),
 		[&](Ui::Text::String *leaf,
 				Spellchecker::HighlightProcessId*) {
-			SetPlainTextLeaf(leaf, textStyle, text, minResizeWidth);
+			SetPlainTextLeaf(
+				leaf,
+				textStyle,
+				text,
+				minResizeWidth,
+				context.rtl);
 		});
 }
 
@@ -1347,7 +1411,8 @@ void CopyCachedTextLeafs(
 		const std::vector<PreparedBlock> &preparedBlocks,
 		std::vector<LaidOutBlock> *blocks,
 		const style::Markdown &st,
-		CachedTextLeafPool *pool) {
+		CachedTextLeafPool *pool,
+		bool rtl) {
 	if (!pool) {
 		return;
 	}
@@ -1358,7 +1423,8 @@ void CopyCachedTextLeafs(
 		blocks,
 		st,
 		pool,
-		&preparedPath);
+		&preparedPath,
+		rtl);
 }
 
 size_t CachedTextLeafKeyHasher::operator()(
@@ -1742,7 +1808,8 @@ int FlowBlockPreferredWidth(
 			MarkedTextLeafSourceSignature(
 				prepared.text,
 				textStyle,
-				minResizeWidth),
+				minResizeWidth,
+				context.rtl),
 			[&](Ui::Text::String *leaf,
 					Spellchecker::HighlightProcessId*) {
 				SetTextLeaf(
@@ -1754,6 +1821,7 @@ int FlowBlockPreferredWidth(
 					inlineFormulaObjects,
 					mediaRuntime,
 					minResizeWidth,
+					context.rtl,
 					context.repaint,
 					context.repaintRect);
 				BindLinks(leaf, prepared.links);
@@ -1773,14 +1841,16 @@ int FlowBlockPreferredWidth(
 		PlainTextLeafSourceSignature(
 			prepared.editPlaceholderText,
 			placeholderStyle,
-			PlainTextMinResizeWidth(placeholderStyle)),
+			PlainTextMinResizeWidth(placeholderStyle),
+			context.rtl),
 		[&](Ui::Text::String *leaf,
 				Spellchecker::HighlightProcessId*) {
 			SetPlainTextLeaf(
 				leaf,
 				placeholderStyle,
 				prepared.editPlaceholderText,
-				PlainTextMinResizeWidth(placeholderStyle));
+				PlainTextMinResizeWidth(placeholderStyle),
+				context.rtl);
 		},
 		[](const Ui::Text::String &leaf,
 				Spellchecker::HighlightProcessId) {
@@ -1810,7 +1880,8 @@ int FlowBlockContentMinimumWidth(
 		MarkedTextLeafSourceSignature(
 			prepared.text,
 			textStyle,
-			minResizeWidth),
+			minResizeWidth,
+			context.rtl),
 		[&](Ui::Text::String *leaf,
 				Spellchecker::HighlightProcessId*) {
 			SetTextLeaf(
@@ -1822,6 +1893,7 @@ int FlowBlockContentMinimumWidth(
 				inlineFormulaObjects,
 				mediaRuntime,
 				minResizeWidth,
+				context.rtl,
 				context.repaint,
 				context.repaintRect);
 			BindLinks(leaf, prepared.links);
@@ -1854,7 +1926,8 @@ int DetailsSummaryContentMinimumWidth(
 		MarkedTextLeafSourceSignature(
 			prepared.text,
 			st.details.summaryStyle,
-			minResizeWidth),
+			minResizeWidth,
+			context.rtl),
 		[&](Ui::Text::String *leaf,
 				Spellchecker::HighlightProcessId*) {
 			SetTextLeaf(
@@ -1866,6 +1939,7 @@ int DetailsSummaryContentMinimumWidth(
 				inlineFormulaObjects,
 				mediaRuntime,
 				minResizeWidth,
+				context.rtl,
 				context.repaint,
 				context.repaintRect);
 			BindLinks(leaf, prepared.links);
@@ -1910,14 +1984,16 @@ int CodeBlockPreferredWidth(
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.code,
-				PlainTextMinResizeWidth(st.code)),
+				PlainTextMinResizeWidth(st.code),
+				context.rtl),
 			[&](Ui::Text::String *leaf,
 					Spellchecker::HighlightProcessId*) {
 				SetPlainTextLeaf(
 					leaf,
 					st.code,
 					prepared.editPlaceholderText,
-					PlainTextMinResizeWidth(st.code));
+					PlainTextMinResizeWidth(st.code),
+					context.rtl);
 			},
 			[](const Ui::Text::String &leaf,
 					Spellchecker::HighlightProcessId) {
@@ -2007,14 +2083,16 @@ int DisplayMathPreferredWidth(
 				PlainTextLeafSourceSignature(
 					prepared.editPlaceholderText,
 					st.displayMath.fallbackStyle,
-					DisplayMathFallbackTextMinResizeWidth(st)),
+					DisplayMathFallbackTextMinResizeWidth(st),
+					context.rtl),
 				[&](Ui::Text::String *leaf,
 						Spellchecker::HighlightProcessId*) {
 					SetPlainTextLeaf(
 						leaf,
 						st.displayMath.fallbackStyle,
 						prepared.editPlaceholderText,
-						DisplayMathFallbackTextMinResizeWidth(st));
+						DisplayMathFallbackTextMinResizeWidth(st),
+						context.rtl);
 				},
 				[](const Ui::Text::String &leaf,
 						Spellchecker::HighlightProcessId) {
@@ -2032,7 +2110,8 @@ int DisplayMathPreferredWidth(
 			MarkedTextLeafSourceSignature(
 				DisplayMathFallbackText(),
 				st.displayMath.fallbackStyle,
-				DisplayMathFallbackTextMinResizeWidth(st)),
+				DisplayMathFallbackTextMinResizeWidth(st),
+				false),
 			[&](Ui::Text::String *leaf,
 					Spellchecker::HighlightProcessId*) {
 				*leaf = Ui::Text::String(
@@ -2180,7 +2259,8 @@ int TableBlockContentMinimumWidth(
 				MarkedTextLeafSourceSignature(
 					prepared.text,
 					st.body,
-					minResizeWidth),
+					minResizeWidth,
+					context.rtl),
 				[&](Ui::Text::String *leaf,
 						Spellchecker::HighlightProcessId*) {
 					SetTextLeaf(
@@ -2192,6 +2272,7 @@ int TableBlockContentMinimumWidth(
 						inlineFormulaObjects,
 						mediaRuntime,
 						minResizeWidth,
+						context.rtl,
 						context.repaint,
 						context.repaintRect);
 					BindLinks(leaf, prepared.links);
@@ -2239,14 +2320,16 @@ int TableBlockContentMinimumWidth(
 					PlainTextLeafSourceSignature(
 						cell.editPlaceholderText,
 						textStyle,
-						minResizeWidth),
+						minResizeWidth,
+						context.rtl),
 					[&](Ui::Text::String *leaf,
 							Spellchecker::HighlightProcessId*) {
 						SetPlainTextLeaf(
 							leaf,
 							textStyle,
 							cell.editPlaceholderText,
-							minResizeWidth);
+							minResizeWidth,
+							context.rtl);
 					},
 					[](const Ui::Text::String &leaf,
 							Spellchecker::HighlightProcessId) {
@@ -2263,7 +2346,8 @@ int TableBlockContentMinimumWidth(
 					MarkedTextLeafSourceSignature(
 						cell.text,
 						textStyle,
-						minResizeWidth),
+						minResizeWidth,
+						context.rtl),
 					[&](Ui::Text::String *leaf,
 							Spellchecker::HighlightProcessId*) {
 						SetTextLeaf(
@@ -2275,6 +2359,7 @@ int TableBlockContentMinimumWidth(
 							inlineFormulaObjects,
 							mediaRuntime,
 							minResizeWidth,
+							context.rtl,
 							context.repaint,
 							context.repaintRect);
 						BindLinks(leaf, cell.links);
@@ -2589,6 +2674,8 @@ void UpdateLaidOutLeafContent(
 					DisplayMathFallbackTextMinResizeWidth(st),
 					context);
 			} else {
+				auto fallbackContext = context;
+				fallbackContext.rtl = false;
 				BuildOrReuseMarkedTextLeaf(
 					&block->fallbackLeaf,
 					CachedTextLeafSlot::Fallback,
@@ -2601,7 +2688,7 @@ void UpdateLaidOutLeafContent(
 					nullptr,
 					nullptr,
 					DisplayMathFallbackTextMinResizeWidth(st),
-					context);
+					fallbackContext);
 			}
 		}
 		break;
@@ -2709,7 +2796,11 @@ void UpdateLaidOutLeafContent(
 			context.preparedPath,
 			tableRowIndex,
 			tableCellIndex),
-		MarkedTextLeafSourceSignature(prepared.text, textStyle, minResizeWidth),
+		MarkedTextLeafSourceSignature(
+			prepared.text,
+			textStyle,
+			minResizeWidth,
+			context.rtl),
 		[&](Ui::Text::String *leaf,
 				Spellchecker::HighlightProcessId*) {
 			SetTextLeaf(
@@ -2721,6 +2812,7 @@ void UpdateLaidOutLeafContent(
 				inlineFormulaObjects,
 				mediaRuntime,
 				minResizeWidth,
+				context.rtl,
 				context.repaint,
 				context.repaintRect);
 			BindLinks(leaf, prepared.links);
@@ -2742,14 +2834,16 @@ void UpdateLaidOutLeafContent(
 			PlainTextLeafSourceSignature(
 				cell->placeholderText,
 				textStyle,
-				minResizeWidth),
+				minResizeWidth,
+				context.rtl),
 			[&](Ui::Text::String *leaf,
 					Spellchecker::HighlightProcessId*) {
 			SetPlainTextLeaf(
 				leaf,
 				textStyle,
 				cell->placeholderText,
-				minResizeWidth);
+				minResizeWidth,
+				context.rtl);
 			});
 	}
 }
@@ -3095,6 +3189,8 @@ LaidOutBlock LayoutDisplayMathBlock(
 				DisplayMathFallbackTextMinResizeWidth(st),
 				context);
 		} else {
+			auto fallbackContext = context;
+			fallbackContext.rtl = false;
 			BuildOrReuseMarkedTextLeaf(
 				&block.fallbackLeaf,
 				CachedTextLeafSlot::Fallback,
@@ -3107,7 +3203,7 @@ LaidOutBlock LayoutDisplayMathBlock(
 				nullptr,
 				nullptr,
 				DisplayMathFallbackTextMinResizeWidth(st),
-				context);
+				fallbackContext);
 		}
 	}
 	const auto bottom = LayoutDisplayMathBlockGeometry(

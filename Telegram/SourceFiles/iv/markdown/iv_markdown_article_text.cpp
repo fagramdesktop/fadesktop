@@ -36,6 +36,13 @@ constexpr auto kIvMarkedTextOptions = TextParseOptions{
 	Qt::LayoutDirectionAuto,
 };
 
+constexpr auto kIvMarkedTextOptionsRtl = TextParseOptions{
+	TextParseMultiline,
+	0,
+	0,
+	Qt::RightToLeft,
+};
+
 struct PreparedLinkExternalData {
 	ClickHandler::TextEntity entity;
 	QString copyText;
@@ -1153,6 +1160,7 @@ void SetTextLeaf(
 		InlineFormulaObjectCache *inlineFormulaObjects,
 		const std::shared_ptr<MediaRuntime> &mediaRuntime,
 		int minResizeWidth,
+		bool rtl,
 		Fn<void()> repaint,
 		Fn<void(QRect)> repaintRect,
 		Fn<bool(const ClickContext&)> spoilerLinkFilter) {
@@ -1219,7 +1227,11 @@ void SetTextLeaf(
 		}
 		return std::unique_ptr<Ui::Text::CustomEmoji>();
 	};
-	leaf->setMarkedText(textStyle, text, kIvMarkedTextOptions, context);
+	leaf->setMarkedText(
+		textStyle,
+		text,
+		rtl ? kIvMarkedTextOptionsRtl : kIvMarkedTextOptions,
+		context);
 	SetTextLeafSpoilerLinkFilter(leaf, std::move(spoilerLinkFilter));
 }
 
