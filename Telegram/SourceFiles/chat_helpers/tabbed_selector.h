@@ -293,7 +293,7 @@ private:
 	not_null<GifsListWidget*> gifs() const;
 	not_null<StickersListWidget*> masks() const;
 
-	void reinstallSwipe(not_null<Ui::RpWidget*> widget);
+	void reinstallSwipe(not_null<Inner*> widget);
 
 	const style::EmojiPan &_st;
 	const ComposeFeatures _features;
@@ -394,6 +394,11 @@ public:
 	virtual void afterShown() {
 	}
 	virtual void beforeHiding() {
+	}
+	[[nodiscard]] virtual bool canConsumeHorizontalScroll(
+			QPoint position,
+			int delta) {
+		return false;
 	}
 	[[nodiscard]] virtual base::unique_qptr<Ui::PopupMenu> fillContextMenu(
 			const SendMenu::Details &details) {

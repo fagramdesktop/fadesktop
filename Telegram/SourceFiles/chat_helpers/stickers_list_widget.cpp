@@ -920,6 +920,15 @@ bool StickersListWidget::searchShortcutsShown() const {
 	return (_section == Section::Search) && !_searchShortcutSets.empty();
 }
 
+bool StickersListWidget::canConsumeHorizontalScroll(QPoint position, int) {
+	if (!searchShortcutsShown() || (_searchShortcutsScrollMax <= 0)) {
+		return false;
+	}
+	const auto top = searchShortcutsTop();
+	return (position.y() >= top)
+		&& (position.y() < top + searchShortcutsHeight());
+}
+
 bool StickersListWidget::searchShortcutSelected() const {
 	return _searchSelectedSetId != 0;
 }
