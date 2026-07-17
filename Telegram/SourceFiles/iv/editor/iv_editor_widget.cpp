@@ -45,6 +45,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/layers/generic_box.h"
 #include "ui/painter.h"
 #include "ui/text/text_entity.h"
+#include "ui/text/text_html_tags.h"
 #include "ui/text/text_utilities.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/elastic_scroll.h"
@@ -1416,6 +1417,67 @@ struct InlineFieldTrimResult {
 	return context;
 }
 
+[[nodiscard]] bool IsUsernameChar(QChar ch) {
+	const auto code = ch.unicode();
+	return (code >= 'a' && code <= 'z')
+		|| (code >= 'A' && code <= 'Z')
+		|| (code >= '0' && code <= '9')
+		|| (ch == '_');
+}
+
+[[nodiscard]] QStringView TrimmedView(QStringView text) {
+	auto from = 0;
+	auto till = text.size();
+	while (from != till && text[from].isSpace()) {
+		++from;
+	}
+	while (till != from && text[till - 1].isSpace()) {
+		--till;
+	}
+	return text.mid(from, till - from);
+}
+
+[[nodiscard]] QString StartingMention(QStringView text) {
+	const auto trimmed = TrimmedView(text);
+	if (trimmed.size() < 3 || trimmed[0] != '@') {
+		return QString();
+	}
+	auto till = 1;
+	while (till != trimmed.size() && IsUsernameChar(trimmed[till])) {
+		++till;
+	}
+	return (till > 1 && till != trimmed.size())
+		? trimmed.mid(0, till).toString()
+		: QString();
+}
+
+[[nodiscard]] bool HtmlTextMatchesPlainTextStart(
+		const QString &htmlText,
+		const QString &plainText) {
+	const auto htmlMention = StartingMention(QStringView(htmlText));
+	return htmlMention.isEmpty()
+		|| StartingMention(QStringView(plainText)) == htmlMention;
+}
+
+[[nodiscard]] std::optional<ClipboardData> BlockClipboardDataFromRichText(
+		TextWithEntities text) {
+	const auto isBlockEntity = [](const EntityInText &entity) {
+		const auto type = entity.type();
+		return (type == EntityType::Pre)
+			|| (type == EntityType::Blockquote);
+	};
+	if (!ranges::any_of(text.entities, isBlockEntity)) {
+		return std::nullopt;
+	}
+	auto page = SplitTextIntoRichPage(std::move(text));
+	if (page.blocks.empty()) {
+		return std::nullopt;
+	}
+	auto result = ClipboardBlockData();
+	result.blocks = std::move(page.blocks);
+	return ClipboardData(std::move(result));
+}
+
 [[nodiscard]] std::optional<ClipboardData> BlockClipboardDataFromFieldTags(
 		not_null<const QMimeData*> data) {
 	const auto textMime = TextUtilities::TagsTextMimeType();
@@ -1428,24 +1490,30 @@ struct InlineFieldTrimResult {
 		data->data(tagsMime),
 		int(text.size()));
 	auto entities = TextUtilities::ConvertTextTagsToEntities(tags);
-	const auto isBlockEntity = [](const EntityInText &entity) {
-		const auto type = entity.type();
-		return (type == EntityType::Pre)
-			|| (type == EntityType::Blockquote);
-	};
-	if (!ranges::any_of(entities, isBlockEntity)) {
-		return std::nullopt;
-	}
-	auto page = SplitTextIntoRichPage({
+	return BlockClipboardDataFromRichText({
 		std::move(text),
 		std::move(entities),
 	});
-	if (page.blocks.empty()) {
+}
+
+[[nodiscard]] std::optional<ClipboardData> BlockClipboardDataFromHtml(
+		not_null<const QMimeData*> data) {
+	const auto textMime = TextUtilities::TagsTextMimeType();
+	const auto tagsMime = TextUtilities::TagsMimeType();
+	if (!data->hasHtml()
+		|| (data->hasFormat(textMime) && data->hasFormat(tagsMime))) {
 		return std::nullopt;
 	}
-	auto result = ClipboardBlockData();
-	result.blocks = std::move(page.blocks);
-	return ClipboardData(std::move(result));
+	auto parsed = TextUtilities::TextWithTagsFromHtml(data->html());
+	if (!parsed
+		|| !HtmlTextMatchesPlainTextStart(parsed->text, data->text())) {
+		return std::nullopt;
+	}
+	auto entities = TextUtilities::ConvertTextTagsToEntities(parsed->tags);
+	return BlockClipboardDataFromRichText({
+		std::move(parsed->text),
+		std::move(entities),
+	});
 }
 
 [[nodiscard]] std::optional<Ui::PreparedList> PreparedMediaFromClipboard(
@@ -8633,6 +8701,9 @@ bool Widget::handleIvClipboardMime(
 		return true;
 	}
 	auto blockData = BlockClipboardDataFromFieldTags(data);
+	if (!blockData) {
+		blockData = BlockClipboardDataFromHtml(data);
+	}
 	if (blockData
 		&& ClipboardPasteInsertContext(activeTextInsertContext())) {
 		if (action == Ui::InputField::MimeAction::Check) {
