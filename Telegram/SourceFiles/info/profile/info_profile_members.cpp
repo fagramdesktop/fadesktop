@@ -93,6 +93,18 @@ void Members::applySearchQuery(const QString &query) {
 	content()->searchQueryChanged(query);
 }
 
+void Members::setGroupByRole(bool grouped) {
+	_listController->setGroupByRole(grouped);
+}
+
+rpl::producer<bool> Members::groupByRoleValue() const {
+	return _listController->groupByRoleValue();
+}
+
+rpl::producer<bool> Members::groupByRoleAvailableValue() const {
+	return _listController->groupByRoleAvailableValue();
+}
+
 std::unique_ptr<MembersState> Members::saveState() {
 	auto result = std::make_unique<MembersState>();
 	result->list = _listController->saveState();
