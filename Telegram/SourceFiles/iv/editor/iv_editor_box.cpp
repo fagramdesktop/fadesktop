@@ -1936,7 +1936,7 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 	_toolbar->raise();
 	_bottom->raise();
 	window->show();
-	editor->activateInitialNode();
+	editor->activateInitialNodeAtEnd();
 }
 
 void WindowHost::Impl::setupBottomAiStar(

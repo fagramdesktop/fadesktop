@@ -2894,6 +2894,23 @@ void Widget::activateInitialNode() {
 	activateTextOrdinal(ordinal, 0);
 }
 
+void Widget::activateInitialNodeAtEnd() {
+	if (_state->articleEmpty()) {
+		activateInitialNode();
+		return;
+	} else if (_state->richPage().blocks.back().kind
+		== RichPage::BlockKind::Divider) {
+		activateTrailingParagraph();
+		return;
+	}
+	const auto ordinal = _state->textNodeCount() - 1;
+	if (ordinal < 0) {
+		activateInitialNode();
+		return;
+	}
+	activateTextOrdinalAtEnd(ordinal);
+}
+
 void Widget::activateSegment(int segmentIndex, int cursorOffset) {
 	const auto ordinal = editableOrdinalForSegment(segmentIndex);
 	if (ordinal < 0) {

@@ -119,6 +119,7 @@ public:
 	~Widget() override;
 
 	void activateInitialNode();
+	void activateInitialNodeAtEnd();
 	void activateSegment(int segmentIndex, int cursorOffset);
 	[[nodiscard]] State::ApplyResult commitInlineField();
 	[[nodiscard]] State::ApplyResult commitInlineFieldForClose();
