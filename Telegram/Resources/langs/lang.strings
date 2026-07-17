@@ -7443,8 +7443,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_article_premium_choice_about_link" = "Telegram Premium";
 "lng_article_premium_choice_plain" = "Send Without Formatting";
 "lng_article_table_change" = "Change Table";
-"lng_article_table_add_row" = "Add Row";
-"lng_article_table_add_column" = "Add Column";
+"lng_article_table_add_row_above" = "Add Row Above";
+"lng_article_table_add_row_below" = "Add Row Below";
+"lng_article_table_add_column_left" = "Add Column Left";
+"lng_article_table_add_column_right" = "Add Column Right";
 "lng_article_table_header" = "Header";
 "lng_article_table_align_left" = "Align Left";
 "lng_article_table_align_center" = "Align Center";

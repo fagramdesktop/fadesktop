@@ -5815,7 +5815,7 @@ void Widget::fillTableChangeMenu(
 		return;
 	}
 	menu->addAction(
-		tr::lng_article_table_add_row(tr::now),
+		tr::lng_article_table_add_row_above(tr::now),
 		[=] {
 			applyTableChange([=] {
 				return _state->addTableRow(range, false);
@@ -5823,7 +5823,7 @@ void Widget::fillTableChangeMenu(
 		},
 		&st::ivEditorTableAddRowAboveIcon);
 	menu->addAction(
-		tr::lng_article_table_add_row(tr::now),
+		tr::lng_article_table_add_row_below(tr::now),
 		[=] {
 			applyTableChange([=] {
 				return _state->addTableRow(range, true);
@@ -5831,7 +5831,7 @@ void Widget::fillTableChangeMenu(
 		},
 		&st::ivEditorTableAddRowBelowIcon);
 	menu->addAction(
-		tr::lng_article_table_add_column(tr::now),
+		tr::lng_article_table_add_column_left(tr::now),
 		[=] {
 			applyTableChange([=] {
 				return _state->addTableColumn(range, false);
@@ -5839,7 +5839,7 @@ void Widget::fillTableChangeMenu(
 		},
 		&st::ivEditorTableAddColumnLeftIcon);
 	menu->addAction(
-		tr::lng_article_table_add_column(tr::now),
+		tr::lng_article_table_add_column_right(tr::now),
 		[=] {
 			applyTableChange([=] {
 				return _state->addTableColumn(range, true);
