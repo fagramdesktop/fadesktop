@@ -136,10 +136,16 @@ account, and MUST be left alive. On Windows, scope the kill by path:
 and takes down the user's unrelated clients. Every "kill stragglers" / "taskkill" step below means
 this path-scoped kill.
 
-**Avoid destructive calls.** The overlay must never trigger logout / session-termination /
-account-deletion. Tests that genuinely need those use a separate burner account, not this one. (If a
-permanent destructive-call fuse is later added to the debug build, this is enforced in code; until
-then it is the test-author's responsibility.)
+**Avoid account-fatal calls; cloud data is otherwise fair game.** The overlay must never trigger
+logout / session-termination / account-deletion, and must not wipe the account wholesale. Tests that
+genuinely need those use a separate burner account, not this one. (If a permanent destructive-call
+fuse is later added to the debug build, this is enforced in code; until then it is the
+test-author's responsibility.) Everything short of that is allowed: this is a test-server account,
+so freely CREATE content in any chats (messages, drafts, tables, media) and freely DELETE or clear
+content that test runs created — including leftovers from previous runs and sessions (e.g. clear
+the self-chat rich compose cloud draft before a run instead of designing around accumulated junk;
+cloud drafts survive the local tdata restore, so server-side cleanup is the right tool). Don't
+delete anything the user placed on the account by hand unless the task says so.
 
 ## Design the tests from THIS task (the crux)
 

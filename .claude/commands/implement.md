@@ -329,7 +329,10 @@ stays in YOUR context, not the orchestrator's):
    new IMPL_SHA). After each run, save the overlay patch into TASK_DIR and `git reset --hard
    <IMPL_SHA>` so the checkout returns to impl-only. Run the test-account SETUP steps before each
    launch, set the run-specific `EVIDENCE_DIR`, and honor every test-account hard rule (serialize
-   app runs; avoid destructive calls).
+   app runs; avoid account-fatal calls — logout/session-termination/account-deletion/whole-account
+   wipe. Other cloud-side changes are fine: it is a test-server account, so create content in any
+   chats freely and delete/clear content that test runs created, even in earlier runs — e.g. clear
+   a junk-accumulated cloud draft before a run instead of designing the oracle around it).
 
 Skip TEST only if the task changed no runnable behavior (docs/config only) — say so explicitly.
 
