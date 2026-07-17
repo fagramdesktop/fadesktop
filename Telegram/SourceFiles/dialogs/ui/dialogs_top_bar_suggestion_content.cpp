@@ -774,7 +774,13 @@ void MountTopBarSuggestion(MountTopBarSuggestionArgs args) {
 	}
 	wrap->setParent(scroll);
 	wrap->raise();
-	wrap->heightValue() | rpl::on_next([=](int h) {
+	const auto lastHeight = wrap->entity()->lifetime().make_state<int>(-1);
+	const auto syncHeight = [=] {
+		const auto h = wrap->height();
+		if (*lastHeight == h) {
+			return;
+		}
+		*lastHeight = h;
 		if (placeholder) {
 			if (const auto raw = placeholder->get()) {
 				raw->resize(raw->width(), h);
@@ -784,15 +790,22 @@ void MountTopBarSuggestion(MountTopBarSuggestionArgs args) {
 		if (heightChanged) {
 			heightChanged(h);
 		}
-	}, wrap->entity()->lifetime());
+	};
+	wrap->heightValue() | rpl::to_empty | rpl::on_next(
+		syncHeight,
+		wrap->entity()->lifetime());
 	const auto pinToScroll = [=] {
 		wrap->resizeToWidth(scroll->width());
+		Ui::SendPendingMoveResizeEvents(wrap);
 		wrap->moveToLeft(0, 0);
+		syncHeight();
 	};
-	scroll->sizeValue(
-	) | rpl::to_empty | rpl::on_next(
-		pinToScroll,
-		wrap->entity()->lifetime());
+	rpl::merge(
+		scroll->sizeValue() | rpl::to_empty,
+		wrap->toggledValue() | rpl::filter([](bool shown) {
+			return shown;
+		}) | rpl::to_empty
+	) | rpl::on_next(pinToScroll, wrap->entity()->lifetime());
 	pinToScroll();
 }
 
