@@ -15,6 +15,11 @@ on:
         options:
           - ci
           - rel
+      disable_cache:
+        description: "Skip restore cache (rebuild from source)"
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -32,6 +37,7 @@ jobs:
       tagname: ${{ inputs.tagname }}
       build_type: ${{ inputs.build_type }}
       skip_upload: true
+      disable_cache: ${{ inputs.disable_cache }}
     secrets: inherit
 
   build-windows:
@@ -41,6 +47,7 @@ jobs:
       tagname: ${{ inputs.tagname }}
       build_type: ${{ inputs.build_type }}
       skip_upload: true
+      disable_cache: ${{ inputs.disable_cache }}
     secrets: inherit
 
   build-mac:
@@ -50,6 +57,7 @@ jobs:
       tagname: ${{ inputs.tagname }}
       build_type: ${{ inputs.build_type }}
       skip_upload: true
+      disable_cache: ${{ inputs.disable_cache }}
     secrets: inherit
 
   upload-telegram:

@@ -15,6 +15,11 @@ on:
         options:
           - ci
           - rel
+      disable_cache:
+        description: "Skip restore cache (rebuild from source)"
+        type: boolean
+        required: false
+        default: false
   workflow_call:
     inputs:
       tagname:
@@ -28,6 +33,11 @@ on:
         default: "ci"
       skip_upload:
         description: "Skip Telegram upload"
+        type: boolean
+        required: false
+        default: false
+      disable_cache:
+        description: "Skip restore cache (rebuild from source)"
         type: boolean
         required: false
         default: false
@@ -84,6 +94,7 @@ jobs:
 
       - name: Restore libraries cache
         id: cache-libs
+        if: ${{ inputs.disable_cache != true && inputs.disable_cache != 'true' }}
         uses: actions/cache@v6
         with:
           path: |
