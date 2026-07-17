@@ -1554,7 +1554,8 @@ void ShareBox::Inner::chooseCommunityChat(
 		}, box->lifetime());
 	};
 	auto filter = [=](not_null<Data::Thread*> thread) {
-		return guard && _descriptor.filterCallback(thread);
+		return guard
+			&& (thread->asForum() || _descriptor.filterCallback(thread));
 	};
 	auto box = Box<PeerListBox>(
 		std::make_unique<ChooseCommunityChatBoxController>(
