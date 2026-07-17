@@ -208,11 +208,10 @@ public:
 		bool singleCell = false;
 		bool canSplitCell = false;
 		bool canUniteCells = false;
-		bool canDeleteRows = false;
-		bool canDeleteColumns = false;
-		bool canDeleteTable = false;
 		int selectedRows = 0;
 		int selectedColumns = 0;
+		int totalRows = 0;
+		int totalColumns = 0;
 		bool bordered = false;
 		bool striped = false;
 	};

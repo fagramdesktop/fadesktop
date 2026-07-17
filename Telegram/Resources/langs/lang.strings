@@ -7458,6 +7458,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_article_table_align_bottom" = "Align Bottom";
 "lng_article_table_split_cell" = "Split Cell";
 "lng_article_table_unite_cells" = "Unite Cells";
+"lng_article_table_delete_cells" = "Delete Cells";
 "lng_article_table_delete_row" = "Delete Row";
 "lng_article_table_delete_rows" = "Delete Rows";
 "lng_article_table_delete_column" = "Delete Column";

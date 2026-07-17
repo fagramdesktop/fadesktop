@@ -297,6 +297,9 @@ ivEditorTableAlignRightIcon: icon {{ "menu/rich/align_right-24x24", menuIconColo
 ivEditorTableAlignTopIcon: icon {{ "menu/rich/align_top-24x24", menuIconColor }};
 ivEditorTableAlignMiddleIcon: icon {{ "menu/rich/align_middle-24x24", menuIconColor }};
 ivEditorTableAlignBottomIcon: icon {{ "menu/rich/align_bottom-24x24", menuIconColor }};
+ivEditorTableDeleteCellsIcon: icon {{ "menu/rich/table_delete_cells-24x24", menuIconColor }};
+ivEditorTableDeleteRowsIcon: icon {{ "menu/rich/table_delete_row-24x24", menuIconColor }};
+ivEditorTableDeleteColumnsIcon: icon {{ "menu/rich/table_delete_column-24x24", menuIconColor }};
 ivEditorTableMergeIcon: icon {{ "menu/rich/table_merge-24x24", menuIconColor }};
 ivEditorTableSplitIcon: icon {{ "menu/rich/table_split-24x24", menuIconColor }};
 ivEditorInlineFieldMargins: margins(4px, 0px, 6px, 0px);

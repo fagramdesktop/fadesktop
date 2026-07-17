@@ -6051,6 +6051,75 @@ void Widget::fillTableChangeMenu(
 		std::move(alignment),
 		&st::ivEditorTableAlignmentIcon,
 		&st::ivEditorTableAlignmentIcon);
+	auto rowsRange = range;
+	rowsRange.columnFrom = 0;
+	rowsRange.columnTill = info.totalColumns;
+	auto columnsRange = range;
+	columnsRange.rowFrom = 0;
+	columnsRange.rowTill = info.totalRows;
+	const auto allRows = (info.selectedRows == info.totalRows);
+	const auto allColumns = (info.selectedColumns == info.totalColumns);
+	if (allRows && allColumns) {
+		menu->addAction(
+			tr::lng_article_table_delete_table(tr::now),
+			[=] {
+				applyTableChange([=] {
+					return _state->removeTable(range);
+				});
+			},
+			&st::menuIconTableSubmenuDelete);
+	} else {
+		auto deleteCells = std::make_unique<Ui::PopupMenu>(
+			menu,
+			st::popupMenuWithIcons);
+		if (allRows) {
+			deleteCells->addAction(
+				tr::lng_article_table_delete_table(tr::now),
+				[=] {
+					applyTableChange([=] {
+						return _state->removeTable(rowsRange);
+					});
+				},
+				&st::menuIconTableSubmenuDelete);
+		} else {
+			deleteCells->addAction(
+				(info.selectedRows == 1)
+					? tr::lng_article_table_delete_row(tr::now)
+					: tr::lng_article_table_delete_rows(tr::now),
+				[=] {
+					applyTableChange([=] {
+						return _state->removeTableRows(rowsRange);
+					});
+				},
+				&st::ivEditorTableDeleteRowsIcon);
+		}
+		if (allColumns) {
+			deleteCells->addAction(
+				tr::lng_article_table_delete_table(tr::now),
+				[=] {
+					applyTableChange([=] {
+						return _state->removeTable(columnsRange);
+					});
+				},
+				&st::menuIconTableSubmenuDelete);
+		} else {
+			deleteCells->addAction(
+				(info.selectedColumns == 1)
+					? tr::lng_article_table_delete_column(tr::now)
+					: tr::lng_article_table_delete_columns(tr::now),
+				[=] {
+					applyTableChange([=] {
+						return _state->removeTableColumns(columnsRange);
+					});
+				},
+				&st::ivEditorTableDeleteColumnsIcon);
+		}
+		menu->addAction(
+			tr::lng_article_table_delete_cells(tr::now),
+			std::move(deleteCells),
+			&st::ivEditorTableDeleteCellsIcon,
+			&st::ivEditorTableDeleteCellsIcon);
+	}
 	if (info.canSplitCell) {
 		menu->addSeparator();
 		menu->addAction(
@@ -6071,47 +6140,6 @@ void Widget::fillTableChangeMenu(
 				});
 			},
 			&st::ivEditorTableMergeIcon);
-	}
-	const auto hasDeleteAction = info.canDeleteTable
-		|| info.canDeleteRows
-		|| info.canDeleteColumns;
-	if (hasDeleteAction) {
-		menu->addSeparator();
-		if (info.canDeleteTable) {
-			menu->addAction(
-				tr::lng_article_table_delete_table(tr::now),
-				[=] {
-					applyTableChange([=] {
-						return _state->removeTable(range);
-					});
-				},
-				&st::menuIconTableSubmenuDelete);
-		} else {
-			if (info.canDeleteRows) {
-				menu->addAction(
-					(info.selectedRows == 1)
-						? tr::lng_article_table_delete_row(tr::now)
-						: tr::lng_article_table_delete_rows(tr::now),
-					[=] {
-						applyTableChange([=] {
-							return _state->removeTableRows(range);
-						});
-					},
-					&st::menuIconTableSubmenuDelete);
-			}
-			if (info.canDeleteColumns) {
-				menu->addAction(
-					(info.selectedColumns == 1)
-						? tr::lng_article_table_delete_column(tr::now)
-						: tr::lng_article_table_delete_columns(tr::now),
-					[=] {
-						applyTableChange([=] {
-							return _state->removeTableColumns(range);
-						});
-					},
-					&st::menuIconTableSubmenuDelete);
-			}
-		}
 	}
 	menu->addSeparator();
 	Menu::AddCheckedAction(

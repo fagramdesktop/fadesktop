@@ -2843,11 +2843,10 @@ State::TableSelectionInfo State::tableSelectionInfo(
 		.allAlignMiddle = true,
 		.allAlignBottom = true,
 		.singleCell = (selected.size() == 1),
-		.canDeleteRows = TableGridRangeSpansAllColumns(grid, *validated),
-		.canDeleteColumns = TableGridRangeSpansAllRows(grid, *validated),
-		.canDeleteTable = TableGridRangeCoversFullTable(grid, *validated),
 		.selectedRows = validated->rowTill - validated->rowFrom,
 		.selectedColumns = validated->columnTill - validated->columnFrom,
+		.totalRows = grid.rowCount,
+		.totalColumns = grid.columnCount,
 		.bordered = owner->bordered,
 		.striped = owner->striped,
 	};
