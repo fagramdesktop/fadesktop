@@ -126,6 +126,10 @@ public:
 	void bindActiveTab(
 		rpl::producer<TabTopBarBindings> bindings,
 		rpl::producer<bool> docked);
+	void setupStandaloneGroupControl(
+		rpl::producer<bool> state,
+		rpl::producer<bool> available,
+		Fn<void(bool)> toggle);
 
 	void setRoundEdges(bool value);
 	void setLottieSingleLoop(bool value);
@@ -281,6 +285,7 @@ private:
 	Fn<void(bool)> _tabSetGroup;
 	bool _tabGroupActive = false;
 	bool _tabGroupAvailable = false;
+	bool _standaloneGroup = false;
 	object_ptr<Ui::FlatLabel> _status;
 	std::unique_ptr<StatusLabel> _statusLabel;
 	rpl::variable<int> _statusShift = 0;

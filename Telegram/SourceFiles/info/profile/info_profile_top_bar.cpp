@@ -158,6 +158,7 @@ constexpr auto kMinContrast = 5.5;
 constexpr auto kStoryOutlineFadeEnd = 0.4;
 constexpr auto kStoryOutlineFadeRange = 1. - kStoryOutlineFadeEnd;
 constexpr auto kSwapMoveAmplitude = 0.3;
+constexpr auto kStandaloneGroupProgress = 0.5;
 
 using AnimatedPatternPoint = TopBar::AnimatedPatternPoint;
 
@@ -1779,6 +1780,9 @@ int TopBar::calculateRightButtonsWidth() const {
 	if (_tabSearchToggle && _tabSearchToggle->toggled()) {
 		width += _tabSearchToggle->width();
 	}
+	if (_tabGroupToggle && _tabGroupToggle->toggled()) {
+		width += _tabGroupToggle->width();
+	}
 	return width;
 }
 
@@ -2075,6 +2079,35 @@ void TopBar::applyTabBindings(TabTopBarBindings &&bindings) {
 			updateTabSwapVisibility();
 		}, _tabBindingsLifetime);
 	}
+	updateTabGroupActive();
+	updateTabSwapVisibility();
+}
+
+void TopBar::setupStandaloneGroupControl(
+		rpl::producer<bool> state,
+		rpl::producer<bool> available,
+		Fn<void(bool)> toggle) {
+	_standaloneGroup = true;
+	_tabSetGroup = std::move(toggle);
+	_tabGroupActive = false;
+	_tabGroupAvailable = false;
+	std::move(
+		state
+	) | rpl::on_next([=](bool grouped) {
+		_tabGroupActive = grouped;
+		updateTabGroupActive();
+		updateTabSwapVisibility();
+	}, lifetime());
+	std::move(
+		available
+	) | rpl::on_next([=](bool value) {
+		_tabGroupAvailable = value;
+		updateTabSwapVisibility();
+	}, lifetime());
+	_progress.changes(
+	) | rpl::on_next([=] {
+		updateTabSwapVisibility();
+	}, lifetime());
 	updateTabGroupActive();
 	updateTabSwapVisibility();
 }
@@ -2418,7 +2451,10 @@ void TopBar::updateTabSwapVisibility() {
 		}
 	}
 	if (_tabGroupToggle) {
-		const auto shown = swap
+		const auto collapsed = _standaloneGroup
+			? (_progress.current() < kStandaloneGroupProgress)
+			: swap;
+		const auto shown = collapsed
 			&& !_tabSearchShown
 			&& (_tabSetGroup != nullptr)
 			&& _tabGroupAvailable;

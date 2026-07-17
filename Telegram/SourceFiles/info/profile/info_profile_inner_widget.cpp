@@ -557,6 +557,16 @@ base::weak_qptr<Ui::RpWidget> InnerWidget::createPinnedToTop(
 		content->bindActiveTab(
 			_tabsHost->activeTabBindings(),
 			_tabsDocked.value());
+	} else if (_members
+		&& UseProfileMediaTabs()
+		&& (_controller->wrap() == Wrap::Side)) {
+		const auto members = _members;
+		content->setupStandaloneGroupControl(
+			members->groupByRoleValue(),
+			members->groupByRoleAvailableValue(),
+			crl::guard(members, [=](bool grouped) {
+				members->setGroupByRole(grouped);
+			}));
 	}
 	_topBarColor = content->edgeColor();
 	return base::make_weak(not_null<Ui::RpWidget*>{ content });
