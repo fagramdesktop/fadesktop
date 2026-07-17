@@ -166,6 +166,7 @@ struct LaidOutBlock {
 	bool quoteAuthor = false;
 	bool footer = false;
 	bool insideHorizontalScroll = false;
+	int tableBorder = 0;
 	int horizontalScrollLeft = 0;
 	int horizontalScrollMax = 0;
 	int horizontalScrollAncestorShift = 0;
@@ -433,6 +434,11 @@ struct TableCellMinimumWidthConstraint {
 	const std::vector<int> &columnWidths,
 	const style::Markdown &st,
 	bool bordered);
+
+[[nodiscard]] QRect TableCellHitRect(
+	const LaidOutBlock &block,
+	const LaidOutTableCell &cell);
+
 [[nodiscard]] int FlowBlockContentMinimumWidth(
 	const PreparedBlock &prepared,
 	const std::vector<PreparedFormulaSlot> &formulas,

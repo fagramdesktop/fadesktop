@@ -934,7 +934,7 @@ void CollectSelectableSegments(
 					cellSegment.leaf = &cell.leaf;
 					cellSegment.block = &block;
 					cellSegment.cell = &cell;
-					cellSegment.outerRect = cell.outer;
+					cellSegment.outerRect = TableCellHitRect(block, cell);
 					cellSegment.textRect = cell.textRect;
 					cellSegment.textWidth = cell.textWidth;
 					cellSegment.align = cell.align;
@@ -1069,7 +1069,7 @@ void RefreshScrollableSegmentRects(
 					continue;
 				}
 				auto &segment = (*segments)[cell.segmentIndex];
-				segment.outerRect = cell.outer;
+				segment.outerRect = TableCellHitRect(block, cell);
 				segment.textRect = VisibleTextRect(
 					cell.textRect,
 					cell.outer);

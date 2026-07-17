@@ -2272,6 +2272,23 @@ int TableGridWidth(
 	return result;
 }
 
+QRect TableCellHitRect(
+		const LaidOutBlock &block,
+		const LaidOutTableCell &cell) {
+	if (cell.outer.isEmpty() || block.tableBorder <= 0) {
+		return cell.outer;
+	}
+	const auto expanded = cell.outer.adjusted(
+		0,
+		0,
+		block.tableBorder,
+		block.tableBorder);
+	if (block.visibleTableRect.contains(cell.outer)) {
+		return expanded.intersected(block.visibleTableRect);
+	}
+	return expanded;
+}
+
 int TableBlockContentMinimumWidth(
 		const PreparedBlock &prepared,
 		const std::vector<PreparedFormulaSlot> &formulas,
@@ -4205,6 +4222,7 @@ LaidOutBlock LayoutGroupedMediaBlock(
 		&block->overflowed);
 	const auto &padding = st.table.cellPadding;
 	const auto border = TableBorder(block->tableBordered, st);
+	block->tableBorder = border;
 	auto tableWidth = border;
 	for (const auto columnWidth : block->tableColumnWidths) {
 		tableWidth += columnWidth + border;
