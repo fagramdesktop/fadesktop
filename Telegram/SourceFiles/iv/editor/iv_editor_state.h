@@ -272,6 +272,10 @@ public:
 	[[nodiscard]] std::optional<int> previousEditableOrdinal() const;
 	[[nodiscard]] std::optional<int> nextEditableOrdinal() const;
 	[[nodiscard]] std::optional<int> firstTableCellOrdinalFromActiveTitle() const;
+	[[nodiscard]] std::optional<int> adjacentRowTableCellOrdinal(
+		bool down) const;
+	[[nodiscard]] std::optional<int> tableTitleOrdinalFromActiveCell() const;
+	[[nodiscard]] std::optional<int> ordinalAfterActiveTable() const;
 	[[nodiscard]] BoundaryTarget activeBoundaryTarget(bool forward) const;
 	[[nodiscard]] std::vector<BoundaryTarget> boundarySteps(
 		bool forward) const;

@@ -9219,6 +9219,114 @@ std::optional<int> State::firstTableCellOrdinalFromActiveTitle() const {
 	return std::nullopt;
 }
 
+std::optional<int> State::adjacentRowTableCellOrdinal(bool down) const {
+	const auto descriptor = textNode(_activeTextOrdinal);
+	if (!descriptor) {
+		return std::nullopt;
+	}
+	const auto leaf = descriptor->leaf;
+	if (leaf.kind != LeafKind::TableCellText) {
+		return std::nullopt;
+	}
+	const auto owner = block(leaf.block);
+	if (!owner || owner->kind != BlockKind::Table) {
+		return std::nullopt;
+	}
+	const auto grid = BuildTableGrid(*owner, tableRenderLimits());
+	const auto active = [&]() -> const TableGridCellReference* {
+		for (const auto &candidate : grid.cells) {
+			if (candidate.rowIndex == leaf.tableRowIndex
+				&& candidate.cellIndex == leaf.tableCellIndex) {
+				return &candidate;
+			}
+		}
+		return nullptr;
+	}();
+	if (!active) {
+		return std::nullopt;
+	}
+	const auto column = active->columnFrom;
+	const auto step = down ? 1 : -1;
+	for (auto targetRow = down ? active->rowTill : (active->rowFrom - 1);
+			targetRow >= 0 && targetRow < grid.rowCount;
+			targetRow += step) {
+		auto best = (const TableGridCellReference*)nullptr;
+		auto bestDistance = std::numeric_limits<int>::max();
+		for (const auto &candidate : grid.cells) {
+			if (candidate.rowFrom > targetRow
+				|| candidate.rowTill <= targetRow) {
+				continue;
+			}
+			const auto distance = (column < candidate.columnFrom)
+				? (candidate.columnFrom - column)
+				: (column >= candidate.columnTill)
+				? (column - candidate.columnTill + 1)
+				: 0;
+			if (distance < bestDistance) {
+				bestDistance = distance;
+				best = &candidate;
+			}
+		}
+		if (best) {
+			const auto ordinal = textNodeOrdinal({
+				.kind = LeafKind::TableCellText,
+				.block = leaf.block,
+				.tableRowIndex = best->rowIndex,
+				.tableCellIndex = best->cellIndex,
+			});
+			return (ordinal >= 0)
+				? std::make_optional(ordinal)
+				: std::nullopt;
+		}
+	}
+	return std::nullopt;
+}
+
+std::optional<int> State::tableTitleOrdinalFromActiveCell() const {
+	const auto descriptor = textNode(_activeTextOrdinal);
+	if (!descriptor) {
+		return std::nullopt;
+	}
+	const auto leaf = descriptor->leaf;
+	if (leaf.kind != LeafKind::TableCellText) {
+		return std::nullopt;
+	}
+	const auto owner = block(leaf.block);
+	if (!owner || owner->kind != BlockKind::Table) {
+		return std::nullopt;
+	}
+	const auto ordinal = textNodeOrdinal({
+		.kind = LeafKind::BlockText,
+		.block = leaf.block,
+	});
+	return (ordinal >= 0) ? std::make_optional(ordinal) : std::nullopt;
+}
+
+std::optional<int> State::ordinalAfterActiveTable() const {
+	const auto descriptor = textNode(_activeTextOrdinal);
+	if (!descriptor) {
+		return std::nullopt;
+	}
+	const auto leaf = descriptor->leaf;
+	if (leaf.kind != LeafKind::TableCellText) {
+		return std::nullopt;
+	}
+	const auto owner = block(leaf.block);
+	if (!owner || owner->kind != BlockKind::Table) {
+		return std::nullopt;
+	}
+	for (auto i = _activeTextOrdinal + 1, count = textNodeCount();
+			i != count;
+			++i) {
+		const auto &candidate = _textNodes[i].leaf;
+		if (candidate.block != leaf.block
+			|| candidate.kind != LeafKind::TableCellText) {
+			return i;
+		}
+	}
+	return std::nullopt;
+}
+
 void State::collectBoundarySteps(
 		const std::vector<Block> &blocks,
 		const BlockContainerPath &container,

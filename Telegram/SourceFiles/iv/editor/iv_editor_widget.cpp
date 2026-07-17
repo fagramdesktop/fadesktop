@@ -9506,7 +9506,47 @@ bool Widget::handleFieldKey(QKeyEvent *e) {
 					QTextCursor::MoveAnchor);
 			}
 			if (!handled) {
-				if (const auto articlePoint = activeFieldCursorArticlePoint()) {
+				const auto articlePoint = activeFieldCursorArticlePoint();
+				const auto activeLeaf = _state->activeLeafPath();
+				const auto inTableCell = activeLeaf
+					&& (activeLeaf->kind == StateLeafKind::TableCellText);
+				const auto activateTableNavigationOrdinal = [&](int ordinal) {
+					if (articlePoint) {
+						if (const auto target = adjacentRowTarget(
+								ordinal,
+								*articlePoint,
+								down)) {
+							activateVerticalTarget(*target);
+							return;
+						}
+					}
+					const auto activated = commitAndActivateTextOrdinal(
+						ordinal,
+						0,
+						0,
+						ActivateReveal::Reveal);
+					if (activated && !down) {
+						setActiveFieldCursorOffset(_state->activeTextLength());
+					}
+					handled = true;
+				};
+				if (inTableCell) {
+					if (const auto ordinal
+						= _state->adjacentRowTableCellOrdinal(down)) {
+						activateTableNavigationOrdinal(*ordinal);
+					} else if (!down) {
+						if (const auto ordinal
+							= _state->tableTitleOrdinalFromActiveCell()) {
+							activateTableNavigationOrdinal(*ordinal);
+						}
+					} else if (const auto ordinal
+						= _state->ordinalAfterActiveTable()) {
+						activateTableNavigationOrdinal(*ordinal);
+					} else {
+						activateTrailingParagraph();
+						handled = true;
+					}
+				} else if (articlePoint) {
 					if (const auto ordinal = adjacentTextEditableOrdinal(down)) {
 						if (const auto target = adjacentRowTarget(
 								*ordinal,
