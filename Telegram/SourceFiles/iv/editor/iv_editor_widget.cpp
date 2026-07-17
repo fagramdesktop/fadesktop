@@ -5955,20 +5955,6 @@ void Widget::fillTableChangeMenu(
 		std::move(addCells),
 		&st::ivEditorTableAddCellsIcon,
 		&st::ivEditorTableAddCellsIcon);
-	menu->addSeparator();
-	Menu::AddCheckedAction(
-		menu,
-		tr::lng_article_table_header(tr::now),
-		[=] {
-			applyTableChange([=] {
-				return _state->setTableHeader(range, !info.allHeader);
-			});
-		},
-		info.allHeader
-			? &st::ivEditorTableHeaderOffIcon
-			: &st::ivEditorTableHeaderIcon,
-		info.allHeader);
-	menu->addSeparator();
 	auto alignment = std::make_unique<Ui::PopupMenu>(
 		menu,
 		st::popupMenuWithIcons);
@@ -6141,6 +6127,21 @@ void Widget::fillTableChangeMenu(
 			},
 			&st::ivEditorTableMergeIcon);
 	}
+	menu->addSeparator();
+	Menu::AddCheckedAction(
+		menu,
+		info.singleCell
+			? tr::lng_article_table_header_cell(tr::now)
+			: tr::lng_article_table_header_cells(tr::now),
+		[=] {
+			applyTableChange([=] {
+				return _state->setTableHeader(range, !info.allHeader);
+			});
+		},
+		info.allHeader
+			? &st::ivEditorTableHeaderOffIcon
+			: &st::ivEditorTableHeaderIcon,
+		info.allHeader);
 	menu->addSeparator();
 	Menu::AddCheckedAction(
 		menu,

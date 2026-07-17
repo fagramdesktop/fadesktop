@@ -7449,6 +7449,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_article_table_add_column_left" = "Add Column Left";
 "lng_article_table_add_column_right" = "Add Column Right";
 "lng_article_table_header" = "Header";
+"lng_article_table_header_cell" = "Header Cell";
+"lng_article_table_header_cells" = "Header Cells";
 "lng_article_table_alignment" = "Alignment";
 "lng_article_table_align_left" = "Align Left";
 "lng_article_table_align_center" = "Align Center";
@@ -7464,7 +7466,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_article_table_delete_column" = "Delete Column";
 "lng_article_table_delete_columns" = "Delete Columns";
 "lng_article_table_delete_table" = "Delete Table";
-"lng_article_table_borderless" = "Borderless";
+"lng_article_table_borderless" = "Borderless Table";
 "lng_article_table_striped" = "Striped Table";
 "lng_polls_menu_item" = "Poll";
 "lng_polls_create" = "Create poll";
