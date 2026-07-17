@@ -641,7 +641,7 @@ win32_release:
 win64_release:
     perl Configure no-shared no-tests VC-WIN64A /FS
 winarm_release:
-    perl Configure no-shared no-tests VC-WIN64-ARM /FS
+    perl Configure no-shared no-tests VC-WIN64-ARM /FS /Gs4096
 win_release:
     jom -j%NUMBER_OF_PROCESSORS% build_libs
     mkdir out
