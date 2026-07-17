@@ -84,6 +84,31 @@ namespace {
 	return (width < st::columnMinimalWidthLeft / 2);
 }
 
+void PaintNarrowSuggestionBubble(
+		QPainter &p,
+		QRect outer,
+		const Ui::BoxShadow &shadow,
+		int cornerRadius) {
+	const auto &margins = st::dialogsTopBarSuggestionMargins;
+	const auto pill = outer - margins;
+	PaintSuggestionBubbleBackground(p, outer, shadow, cornerRadius);
+	if (pill.isEmpty()) {
+		return;
+	}
+	const auto accentSide = st::dialogsRequestsBubbleIconSize;
+	const auto accent = QRect(
+		pill.x() + (pill.width() - accentSide) / 2,
+		pill.y() + (pill.height() - accentSide) / 2,
+		accentSide,
+		accentSide);
+	auto hq = PainterHighQualityEnabler(p);
+	auto background = Ui::RoundRect(
+		st::dialogsRequestsBubbleIconRadius,
+		st::dialogsRequestsBubbleIconBg);
+	background.paint(p, accent);
+	st::dialogsRequestsBubbleIcon.paintInCenter(p, accent);
+}
+
 } // namespace
 
 void PaintBottomFade(
@@ -196,10 +221,18 @@ int UnconfirmedAuthWrap::resizeGetHeight(int newWidth) {
 		return int(base::SafeRound(
 			fullHeight * (1. - _collapseProgress)));
 	}
-	if (const auto w = wrapped()) {
+	const auto w = wrapped();
+	if (TopBarSuggestionNarrow(newWidth)) {
+		if (w) {
+			w->hide();
+		}
+		return 0;
+	}
+	if (w) {
+		w->show();
 		w->resizeToWidth(newWidth);
 	}
-	return wrapped() ? wrapped()->height() : 0;
+	return w ? w->height() : 0;
 }
 
 not_null<UnconfirmedAuthWrap*> CreateUnconfirmedAuthContent(
@@ -414,28 +447,11 @@ void TopBarSuggestionContent::draw(QPainter &p) {
 		if (_leadingWidget) {
 			_leadingWidget->hide();
 		}
-		const auto &margins = st::dialogsTopBarSuggestionMargins;
-		const auto pill = outer - margins;
-		PaintSuggestionBubbleBackground(
+		PaintNarrowSuggestionBubble(
 			p,
 			outer,
 			_shadow,
 			_geometry.cornerRadius);
-		if (pill.isEmpty()) {
-			return;
-		}
-		const auto accentSide = st::dialogsRequestsBubbleIconSize;
-		const auto accent = QRect(
-			pill.x() + (pill.width() - accentSide) / 2,
-			pill.y() + (pill.height() - accentSide) / 2,
-			accentSide,
-			accentSide);
-		auto hq = PainterHighQualityEnabler(p);
-		auto background = Ui::RoundRect(
-			st::dialogsRequestsBubbleIconRadius,
-			st::dialogsRequestsBubbleIconBg);
-		background.paint(p, accent);
-		st::dialogsRequestsBubbleIcon.paintInCenter(p, accent);
 		return;
 	}
 	if (_leadingWidget) {
