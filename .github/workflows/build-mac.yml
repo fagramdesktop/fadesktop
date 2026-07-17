@@ -37,7 +37,7 @@ jobs:
     name: Prepare Libraries
     runs-on: macos-latest
     env:
-      PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      PREPARE_PATH: "Telegram/build/prepare/prepare_arm64.py"
       REPO_NAME: ${{ github.event.repository.name || 'fadesktop' }}
 
     steps:
@@ -92,7 +92,7 @@ jobs:
           done &
           HEARTBEAT_PID=$!
           trap 'kill "$HEARTBEAT_PID" >/dev/null 2>&1 || true' EXIT
-          bash ${{ env.REPO_NAME }}/Telegram/build/prepare/mac.sh silent
+          bash ${{ env.REPO_NAME }}/Telegram/build/prepare/mac_arm64.sh silent
 
       - name: Trim build intermediates
         run: |
@@ -107,7 +107,7 @@ jobs:
     needs: prepare-libraries
     runs-on: macos-latest
     env:
-      PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      PREPARE_PATH: "Telegram/build/prepare/prepare_arm64.py"
       REPO_NAME: ${{ github.event.repository.name || 'fadesktop' }}
     outputs:
       tagname: ${{ steps.tagname.outputs.tagname }}
