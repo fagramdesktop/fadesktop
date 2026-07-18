@@ -633,10 +633,6 @@ dialogsMiniAudioIcon: IconEmoji {
 	icon: icon {{ "menu/rich/audio-18x18", dialogsTextFg }};
 	padding: margins(0px, 1px, 3px, 0px);
 }
-dialogsMiniVoiceIcon: IconEmoji {
-	icon: icon {{ "info/info_media_voice-18x18", dialogsTextFg }};
-	padding: margins(0px, 1px, 3px, 0px);
-}
 dialogsMiniLocationIcon: IconEmoji {
 	icon: icon {{ "menu/rich/location-18x18", dialogsTextFg }};
 	padding: margins(0px, 1px, 3px, 0px);

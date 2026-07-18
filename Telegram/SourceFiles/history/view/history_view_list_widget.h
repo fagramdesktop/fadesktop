@@ -96,6 +96,7 @@ struct SelectedItem {
 	bool canForward = false;
 	bool canSendNow = false;
 	bool canReschedule = false;
+	bool ephemeral = false;
 };
 
 struct MessagesBar {
@@ -257,6 +258,7 @@ struct SelectionData {
 	bool canForward = false;
 	bool canSendNow = false;
 	bool canReschedule = false;
+	bool ephemeral = false;
 };
 
 using SelectedMap = base::flat_map<

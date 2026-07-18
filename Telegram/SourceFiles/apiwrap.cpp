@@ -4193,6 +4193,17 @@ void ApiWrap::sendFiles(
 		SendMediaType type,
 		std::shared_ptr<SendingAlbum> album,
 		SendAction action) {
+	auto &ephemeral = _session->ephemeralMessages();
+	if (album && !ephemeral.isEphemeralBotReply(action.replyTo.messageId)) {
+		const auto peer = action.history->peer;
+		for (const auto &file : list.files) {
+			if (ephemeral.hasEphemeralCommand(peer, file.caption.text)) {
+				LOG(("API Error: "
+					"Dropped album send with ephemeral command caption."));
+				return;
+			}
+		}
+	}
 	const auto to = FileLoadTaskOptions(action);
 	if (album) {
 		album->options = to.options;

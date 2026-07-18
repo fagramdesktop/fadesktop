@@ -32,6 +32,7 @@ public:
 		not_null<AbstractController*> parent,
 		not_null<Data::SavedSublist*> sublist)
 	: AbstractController(parent->parentController())
+	, _parent(parent)
 	, _key(sublist) {
 	}
 
@@ -44,8 +45,12 @@ public:
 	::Info::Section section() const override {
 		return ::Info::Section(::Info::Section::Type::SavedSublists);
 	}
+	style::color listBackground() const override {
+		return _parent->listBackground();
+	}
 
 private:
+	const not_null<AbstractController*> _parent;
 	const Key _key;
 
 };

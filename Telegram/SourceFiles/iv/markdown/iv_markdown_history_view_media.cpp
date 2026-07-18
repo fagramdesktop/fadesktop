@@ -337,6 +337,7 @@ private:
 	const base::flat_map<uint64, int> _groupedItemIndices;
 	const base::flat_set<uint64> _groupedSpoileredIds;
 	const bool _spoiler = false;
+	const bool _editMode = false;
 	const std::shared_ptr<IvHistoryViewMediaHost> _host;
 	const std::vector<std::shared_ptr<void>> _keepAlive;
 	std::unique_ptr<HistoryView::Media> _media;
@@ -359,6 +360,7 @@ IvHistoryViewBlock::IvHistoryViewBlock(
 , _groupedItemIndices(std::move(descriptor.groupedItemIndices))
 , _groupedSpoileredIds(std::move(descriptor.groupedSpoileredIds))
 , _spoiler(descriptor.spoiler)
+, _editMode(descriptor.editMode)
 , _host(std::move(descriptor.host))
 , _keepAlive(std::move(descriptor.keepAlive)) {
 	if (descriptor.mediaFactory) {
@@ -529,7 +531,7 @@ IvHistoryViewHit IvHistoryViewBlock::classifyHandler(
 	}
 	if (_kind == IvHistoryViewMediaKind::Photo) {
 		if (std::dynamic_pointer_cast<LambdaClickHandler>(handler)) {
-			if (_spoiler && _photoRuntime) {
+			if (_editMode && _spoiler && _photoRuntime) {
 				result.activation.kind = MediaActivationKind::Photo;
 				result.activation.photo = _photoRuntime;
 				return result;
@@ -553,13 +555,14 @@ IvHistoryViewHit IvHistoryViewBlock::classifyHandler(
 	}
 	if (std::dynamic_pointer_cast<LambdaClickHandler>(handler)) {
 		if (_kind == IvHistoryViewMediaKind::Document
+			&& _editMode
 			&& _spoiler
 			&& _documentRuntime) {
 			result.activation.kind = MediaActivationKind::Document;
 			result.activation.document = _documentRuntime;
 			return result;
 		}
-		if (_kind == IvHistoryViewMediaKind::GroupedMedia) {
+		if (_editMode && _kind == IvHistoryViewMediaKind::GroupedMedia) {
 			const auto grouped = dynamic_cast<HistoryView::GroupedMedia*>(
 				_media.get());
 			if (grouped) {
@@ -785,6 +788,7 @@ private:
 		std::shared_ptr<DocumentRuntime>> _groupedDocumentRuntimes;
 	const base::flat_map<uint64, int> _groupedItemIndices;
 	const base::flat_set<uint64> _groupedSpoileredIds;
+	const bool _editMode = false;
 	std::vector<std::unique_ptr<HistoryView::Media>> _slides;
 	std::vector<QSize> _slideOriginalSizes;
 	QRect _geometry;
@@ -810,6 +814,7 @@ IvHistoryViewSlideshowBlock::IvHistoryViewSlideshowBlock(
 , _groupedDocumentRuntimes(std::move(descriptor.groupedDocuments))
 , _groupedItemIndices(std::move(descriptor.groupedItemIndices))
 , _groupedSpoileredIds(std::move(descriptor.groupedSpoileredIds))
+, _editMode(descriptor.editMode)
 , _slideOriginalSizes(std::move(descriptor.slideOriginalSizes)) {
 	_slides.reserve(descriptor.slideMediaFactories.size());
 	for (const auto &factory : descriptor.slideMediaFactories) {
@@ -1037,7 +1042,8 @@ IvHistoryViewHit IvHistoryViewSlideshowBlock::classifyState(
 	if (!handler) {
 		return result;
 	}
-	if (std::dynamic_pointer_cast<LambdaClickHandler>(handler)) {
+	if (_editMode
+		&& std::dynamic_pointer_cast<LambdaClickHandler>(handler)) {
 		auto activation = SpoileredGroupedItemActivation(
 			index,
 			_groupedPhotoRuntimes,

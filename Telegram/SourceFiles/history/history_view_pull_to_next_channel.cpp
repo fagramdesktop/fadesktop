@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "core/core_settings.h"
 #include "data/data_chat_filters.h"
+#include "data/data_folder.h"
 #include "data/data_messages.h"
 #include "data/data_peer.h"
 #include "data/data_session.h"
@@ -50,23 +51,62 @@ constexpr auto kReleaseHideDuration = crl::time(250);
 constexpr auto kPanelDuration = crl::time(320);
 constexpr auto kBounceDuration = crl::time(400);
 
-[[nodiscard]] History *FindNextUnreadChannel(
-		not_null<Window::SessionController*> controller,
-		not_null<PeerData*> current) {
-	auto &data = controller->session().data();
-	const auto filterId = controller->activeChatsFilterCurrent();
-	const auto list = filterId
-		? data.chatsFilters().chatsList(filterId)
-		: data.chatsList();
+[[nodiscard]] int PullThreshold() {
+	// The pull sides stretch with a soft linear stiffness that reaches
+	// a given height in about half the finger travel of the log curve
+	// used before, so a doubled threshold keeps a comparable gesture
+	// length and avoids accidental triggers.
+	return st::historyPullNextThreshold * 2;
+}
+
+[[nodiscard]] History *FindInList(
+		not_null<Dialogs::MainList*> list,
+		not_null<History*> current) {
 	for (const auto &row : list->indexed()->all()) {
 		const auto history = row->history();
-		if (!history) {
+		if (!history || history == current) {
 			continue;
 		}
 		const auto peer = history->peer;
-		if (peer != current
-			&& peer->isBroadcast()
-			&& history->unreadCount() > 0) {
+		if (peer->isBroadcast()
+			&& (history->unreadCount() > 0)
+			&& !history->useTopPromotion()
+			&& peer->computeUnavailableReason().isEmpty()) {
+			return history;
+		}
+	}
+	return nullptr;
+}
+
+[[nodiscard]] History *FindNextUnreadChannel(
+		not_null<Window::SessionController*> controller,
+		not_null<History*> current) {
+	auto &data = controller->session().data();
+	const auto filterId = controller->activeChatsFilterCurrent();
+	const auto currentList = filterId
+		? data.chatsFilters().chatsList(filterId)
+		: data.chatsList();
+	if (const auto history = FindInList(currentList, current)) {
+		return history;
+	}
+	for (const auto &filter : data.chatsFilters().list()) {
+		const auto id = filter.id();
+		if (!id || id == filterId) {
+			continue;
+		}
+		if (const auto history = FindInList(
+				data.chatsFilters().chatsList(id),
+				current)) {
+			return history;
+		}
+	}
+	if (filterId) {
+		if (const auto history = FindInList(data.chatsList(), current)) {
+			return history;
+		}
+	}
+	if (const auto folder = data.folderLoaded(Data::Folder::kId)) {
+		if (const auto history = FindInList(folder->chatsList(), current)) {
 			return history;
 		}
 	}
@@ -193,7 +233,7 @@ private:
 
 	float64 _offset = 0.;
 	bool _ready = false;
-	History *_next = nullptr;
+	base::weak_ptr<History> _next;
 	QString _name;
 	Ui::PeerUserpicView _userpic;
 	Ui::Animations::Simple _releaseProgress;
@@ -215,7 +255,7 @@ void PullToNextChannel::Indicator::setData(
 		float64 offset,
 		bool ready,
 		History *next) {
-	if (_next != next) {
+	if (_next.get() != next) {
 		_next = next;
 		_userpic = {};
 		_name = next ? next->peer->name() : QString();
@@ -264,6 +304,7 @@ void PullToNextChannel::Indicator::paintEvent(QPaintEvent *e) {
 	if (offset <= st::lineWidth) {
 		return;
 	}
+	const auto next = _next.get();
 
 	auto p = QPainter(this);
 	p.setRenderHint(QPainter::Antialiasing);
@@ -339,7 +380,7 @@ void PullToNextChannel::Indicator::paintEvent(QPaintEvent *e) {
 		}
 	}
 
-	const auto name = _next
+	const auto name = next
 		? _name
 		: tr::lng_pull_no_unread_channels(tr::now);
 	if (release > 0. && !name.isEmpty()) {
@@ -382,8 +423,8 @@ void PullToNextChannel::Indicator::paintEvent(QPaintEvent *e) {
 			+ bounceOffset;
 		const auto avRect = QRectF(cx - size / 2., top, size, size);
 		p.setOpacity(alpha);
-		if (_next) {
-			const auto count = _next->unreadCount();
+		if (next) {
+			const auto count = next->unreadCount();
 			const auto badgeShown = (count > 0) && (release > 0.);
 			const auto font = st::historyPullNextBadgeFont;
 			const auto badgeHeight = float64(st::historyPullNextBadge);
@@ -422,7 +463,7 @@ void PullToNextChannel::Indicator::paintEvent(QPaintEvent *e) {
 				q.translate(rect::center(avRect));
 				q.scale(size / avatar, size / avatar);
 				q.translate(-avatar / 2., -avatar / 2.);
-				_next->peer->paintUserpic(q, _userpic, 0, 0, int(avatar), true);
+				next->peer->paintUserpic(q, _userpic, 0, 0, int(avatar), true);
 				q.restore();
 
 				if (badgeShown) {
@@ -584,7 +625,7 @@ PullToNextChannel::PullToNextChannel(
 	}, _lifetime);
 
 	_dwellTimer.setCallback([=] {
-		if (_pulling && _pull >= float64(st::historyPullNextThreshold)) {
+		if (_pulling && _pull >= float64(PullThreshold())) {
 			_reached = true;
 			_peakPull = _pull;
 			base::Platform::Haptic();
@@ -601,46 +642,59 @@ void PullToNextChannel::attachToContent(not_null<HistoryInner*>) {
 }
 
 void PullToNextChannel::setHistory(History *history) {
-	if (_history == history) {
+	if (_history.get() == history) {
 		return;
 	}
 	_history = history;
 	reset();
+	updatePullCurve();
+}
+
+void PullToNextChannel::updatePullCurve() {
+	_scroll->setOverscrollPullDistances(0, active() ? PullThreshold() : 0);
 }
 
 bool PullToNextChannel::active() const {
+	const auto history = _history.get();
 	return Core::App().settings().pullToNextChannel()
-		&& _history
-		&& _history->peer->isBroadcast()
+		&& history
+		&& history->peer->isBroadcast()
 		&& atBottom()
-		&& !_controller->session().sponsoredMessages().hasUnshownFor(_history);
+		&& !_controller->session().sponsoredMessages().hasUnshownFor(history);
 }
 
 bool PullToNextChannel::atBottom() const {
-	return (_scroll->scrollTop() >= _scroll->scrollTopMax())
-		&& _history->loadedAtBottom();
+	const auto history = _history.get();
+	return history
+		&& (_scroll->scrollTop() >= _scroll->scrollTopMax())
+		&& history->loadedAtBottom();
 }
 
 void PullToNextChannel::handleOverscroll(
 		Ui::ElasticScrollPosition position,
 		Ui::ElasticScrollMovement movement) {
 	using Phase = Ui::ElasticScrollMovement;
+	updatePullCurve();
 	const auto pull = std::max(position.overscroll, 0);
-	const auto threshold = st::historyPullNextThreshold;
+	const auto threshold = PullThreshold();
 	if (!_pulling) {
 		if (movement != Phase::Progress || pull <= 0 || !active()) {
 			return;
 		}
+		const auto history = _history.get();
+		if (!history) {
+			return;
+		}
 		_pulling = true;
 		_committed = false;
-		_next = FindNextUnreadChannel(_controller, _history->peer);
-		if (_next) {
-			if (!_next->isReadyFor(ShowAtUnreadMsgId)) {
+		_next = FindNextUnreadChannel(_controller, history);
+		if (const auto next = _next.get()) {
+			if (!next->isReadyFor(ShowAtUnreadMsgId)) {
 				[[maybe_unused]] const auto id = Support::SendPreloadRequest(
-					_next,
+					next,
 					[] {});
 			}
-			PreloadPinnedBar(_next);
+			PreloadPinnedBar(next);
 		}
 	}
 	_pull = pull;
@@ -670,7 +724,7 @@ void PullToNextChannel::handleOverscroll(
 	_dwellTimer.cancel();
 	if (!_committed) {
 		_committed = true;
-		const auto next = _next;
+		const auto next = _next.get();
 		if (_reached
 			&& next
 			&& (next->unreadCount() > 0)
@@ -678,7 +732,8 @@ void PullToNextChannel::handleOverscroll(
 			_pulling = false;
 			_jumping = true;
 			_scroll->setContentBottomInset(int(base::SafeRound(_effective)));
-			crl::on_main(_parent.get(), [=] { jumpWhenReady(next, 0); });
+			const auto weak = _next;
+			crl::on_main(_parent.get(), [=] { jumpWhenReady(weak, 0); });
 			return;
 		}
 	}
@@ -720,7 +775,7 @@ void PullToNextChannel::startExpand(bool ready) {
 
 void PullToNextChannel::pushIndicator() {
 	const auto card = float64(st::historyPullNextExpand);
-	const auto threshold = float64(st::historyPullNextThreshold);
+	const auto threshold = float64(PullThreshold());
 	const auto expand = _expand.value(_expandTo ? 1. : 0.);
 	const auto effective = std::min(
 		float64(st::historyPullNextMaxHeight),
@@ -728,8 +783,8 @@ void PullToNextChannel::pushIndicator() {
 	_effective = effective;
 	_scroll->setContentBottomInset(std::max(0, int(base::SafeRound(
 		_jumping ? effective : (effective - _pull)))));
-	_indicator->setData(effective, _reached, _next);
-	_hint->setData(_pull > 0., _reached, _next);
+	_indicator->setData(effective, _reached, _next.get());
+	_hint->setData(_pull > 0., _reached, _next.get());
 }
 
 void PullToNextChannel::updateGeometry() {
@@ -750,8 +805,12 @@ void PullToNextChannel::updateGeometry() {
 }
 
 void PullToNextChannel::jumpWhenReady(
-		not_null<History*> next,
+		base::weak_ptr<History> weak,
 		crl::time waited) {
+	const auto next = weak.get();
+	if (!next) {
+		return;
+	}
 	constexpr auto kInterval = crl::time(100);
 	constexpr auto kMaxWait = crl::time(1500);
 	constexpr auto kPinnedMaxWait = crl::time(600);
@@ -762,7 +821,7 @@ void PullToNextChannel::jumpWhenReady(
 		return;
 	}
 	base::call_delayed(kInterval, _parent.get(), [=] {
-		jumpWhenReady(next, waited + kInterval);
+		jumpWhenReady(weak, waited + kInterval);
 	});
 }
 

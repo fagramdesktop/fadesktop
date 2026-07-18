@@ -39,7 +39,7 @@ public:
 	~TabsHost();
 
 	[[nodiscard]] rpl::producer<MediaTabContent*> activeTabValue() const;
-	[[nodiscard]] rpl::producer<TabTopBarBindings> activeTabBindings() const;
+	[[nodiscard]] rpl::producer<TabTopBarBindings> activeTabBindings();
 	[[nodiscard]] rpl::producer<Ui::ScrollToRequest> scrollToRequests() const;
 
 	[[nodiscard]] not_null<Ui::RpWidget*> stripWidget() const;
@@ -50,6 +50,9 @@ public:
 
 	[[nodiscard]] QString activeId() const {
 		return _activeId;
+	}
+	[[nodiscard]] bool searching() const {
+		return _searching;
 	}
 	void activateTab(const QString &id, bool animated = true);
 	void restoreActiveTab(const QString &id);
@@ -85,6 +88,7 @@ private:
 	void scheduleHeightSync();
 	void syncBodyNow();
 	void syncHeightNow();
+	void scrollToBodyTop();
 	[[nodiscard]] QRect bodyVisibleRect() const;
 	void startSlideAnimation(
 		QPixmap wasCache,
@@ -117,7 +121,9 @@ private:
 	bool _userChosenTab = false;
 	bool _bodySyncQueued = false;
 	bool _heightSyncQueued = false;
+	bool _viewportPushPending = false;
 	bool _scrolledToTop = true;
+	bool _searching = false;
 	int _keepMinHeight = 0;
 	rpl::variable<MediaTabContent*> _activeTab = nullptr;
 

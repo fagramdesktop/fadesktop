@@ -1020,6 +1020,14 @@ void OverlayWidget::setupWindow() {
 		} else if (_stories && _stories->ignoreWindowMove(widgetPoint)) {
 		} else if (_sponsoredButton
 			&& _sponsoredButton->geometry().contains(widgetPoint)) {
+		} else if (_showRecognitionResults
+			&& _recognitionResult.success
+			&& !_recognitionResult.items.empty()
+			&& _recognition.positionAt(
+				widgetPoint,
+				finalContentRect(),
+				_rotation,
+				false).item >= 0) {
 		} else if (_windowed) {
 			result |= Flag::Move;
 		}

@@ -203,7 +203,7 @@ public:
 			return HistoryView::SelectionModeResult();
 		}
 		return _widget
-			? _widget->inSelectionMode()
+			? _widget->inSelectionMode(view)
 			: HistoryView::SelectionModeResult();
 	}
 	bool elementIntersectsRange(
@@ -480,6 +480,14 @@ HistoryInner::HistoryInner(
 	) | rpl::on_next(
 		[this](auto item) { itemRemoved(item); },
 		lifetime());
+	session().data().newItemAdded(
+	) | rpl::filter([=](not_null<HistoryItem*> item) {
+		const auto history = item->history();
+		return (history == _history)
+			|| (_migrated && history == _migrated);
+	}) | rpl::on_next([=] {
+		checkAnnounceFirstMessages();
+	}, lifetime());
 	setupThanosEffect();
 	session().data().viewRemoved(
 	) | rpl::on_next(
@@ -862,6 +870,7 @@ void HistoryInner::messagesReceived(
 			_migrated->addNewerSlice(QVector<MTPMessage>());
 		}
 	}
+	checkAnnounceFirstMessages();
 }
 
 void HistoryInner::messagesReceivedDown(
@@ -1267,7 +1276,12 @@ auto HistoryInner::itemRenderSelection(
 	const auto item = view->data();
 	const auto y = view->block()->y() + view->y();
 	if (y >= selfromy && y < seltoy) {
-		if (_dragSelecting && !item->isService() && item->isRegular()) {
+		const auto reference = _selected.empty()
+			? _mouseActionItem
+			: _selected.begin()->get();
+		if (_dragSelecting
+			&& item->canBeSelected()
+			&& (!reference || reference->inSameSelectionGroup(item))) {
 			result.selection = FullSelection;
 			result.fullMessageSelected = true;
 		}
@@ -2602,9 +2616,7 @@ void HistoryInner::mouseActionFinish(
 			const auto exactItem = _dragStateItem
 				? _dragStateItem
 				: _mouseActionItem;
-			if (exactItem
-				&& !exactItem->isService()
-				&& exactItem->isRegular()) {
+			if (exactItem && exactItem->canBeSelected()) {
 				changeSelection(
 					&_selected,
 					exactItem,
@@ -2615,8 +2627,7 @@ void HistoryInner::mouseActionFinish(
 				update();
 			}
 		} else if (_mouseActionItem
-			&& !_mouseActionItem->isService()
-			&& _mouseActionItem->isRegular()) {
+			&& _mouseActionItem->canBeSelected()) {
 			changeSelectionAsGroup(
 				&_selected,
 				_mouseActionItem,
@@ -2640,8 +2651,7 @@ void HistoryInner::mouseActionFinish(
 		&& _mouseCursorState == CursorState::Date
 		&& !hasSelectRestriction()
 		&& _dragStateItem
-		&& _dragStateItem->isRegular()
-		&& !_dragStateItem->isService()) {
+		&& _dragStateItem->canBeSelected()) {
 		clearTextSelection();
 		changeSelectionAsGroup(
 			&_selected,
@@ -3215,9 +3225,10 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				Element::Moused())
 		) != HistoryView::PointState::GroupPart);
 	const auto addSelectMessageAction = [&](not_null<HistoryItem*> item) {
-		if (item->isRegular()
-			&& !item->isService()
-			&& !hasSelectRestriction()) {
+		if (item->canBeSelected()
+			&& !hasSelectRestriction()
+			&& (_selected.empty()
+				|| (*_selected.begin())->inSameSelectionGroup(item))) {
 			const auto itemId = item->fullId();
 			_menu->addAction(tr::lng_context_select_msg(tr::now), [=] {
 				if (const auto item = session->data().message(itemId)) {
@@ -3260,7 +3271,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 					if (nextItem->fullId() == toId) {
 						return collected;
 					}
-					if (nextItem->isRegular() && !nextItem->isService()) {
+					if (nextItem->canBeSelected()) {
 						collected.push_back(nextItem);
 					}
 					current = nextItem;
@@ -3719,6 +3730,9 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 					item);
 			}
 			addSelectMessageAction(item);
+			if (isUponSelected != -2) {
+				HistoryView::AddEphemeralAboutAction(_menu, item);
+			}
 			if (isUponSelected != -2 && blockSender) {
 				_menu->addAction(tr::lng_profile_block_user(tr::now), [=] {
 					blockSenderItem(itemId);
@@ -4190,6 +4204,9 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 					item);
 			}
 			addSelectMessageAction(partItemOrLeader);
+			if (isUponSelected != -2) {
+				HistoryView::AddEphemeralAboutAction(_menu, item);
+			}
 			if (isUponSelected != -2 && canBlockSender) {
 				_menu->addAction(tr::lng_profile_block_user(tr::now), [=] {
 					blockSenderAsGroup(itemId);
@@ -5480,6 +5497,16 @@ HistoryView::SelectionModeResult HistoryInner::inSelectionMode() const {
 	return { now, _inSelectionModeAnimation.value(now ? 1. : 0.) };
 }
 
+HistoryView::SelectionModeResult HistoryInner::inSelectionMode(
+		const Element *view) const {
+	if (view
+		&& !_selected.empty()
+		&& !(*_selected.begin())->inSameSelectionGroup(view->data())) {
+		return {};
+	}
+	return inSelectionMode();
+}
+
 bool HistoryInner::elementIntersectsRange(
 		not_null<const Element*> view,
 		int from,
@@ -5664,11 +5691,15 @@ auto HistoryInner::getSelectionState() const
 	auto result = HistoryView::TopBarWidget::SelectedState {};
 	for (const auto &item : _selected) {
 		++result.count;
-		if (item->canDelete()) {
+		if (item->isEphemeral()) {
 			++result.canDeleteCount;
-		}
-		if (item->allowsForward()) {
-			++result.canForwardCount;
+		} else {
+			if (item->canDelete()) {
+				++result.canDeleteCount;
+			}
+			if (item->allowsForward()) {
+				++result.canForwardCount;
+			}
 		}
 	}
 	result.textSelected = hasSelectedText()
@@ -5718,6 +5749,16 @@ MessageIdsList HistoryInner::getSelectedItems() const {
 			? msgId.msg
 			: (msgId.msg - ServerMaxMsgId);
 	});
+	return result;
+}
+
+std::vector<not_null<HistoryItem*>> HistoryInner::getSelectedEphemeral() const {
+	auto result = std::vector<not_null<HistoryItem*>>();
+	for (const auto &item : _selected) {
+		if (item->isEphemeral()) {
+			result.push_back(item);
+		}
+	}
 	return result;
 }
 
@@ -6085,8 +6126,7 @@ void HistoryInner::mouseActionUpdate() {
 				auto dragSelecting = false;
 				auto dragFirstAffected = dragSelFrom;
 				while (dragFirstAffected
-					&& (!dragFirstAffected->data()->isRegular()
-						|| dragFirstAffected->data()->isService())) {
+					&& !dragFirstAffected->data()->canBeSelected()) {
 					dragFirstAffected = (dragFirstAffected != dragSelTo)
 						? (selectingDown
 							? nextItem(dragFirstAffected)
@@ -6377,7 +6417,10 @@ bool HistoryInner::goodForSelection(
 		not_null<SelectedItems*> toItems,
 		not_null<HistoryItem*> item,
 		int &totalCount) const {
-	if (!item->isRegular() || item->isService()) {
+	if (!item->canBeSelected()) {
+		return false;
+	} else if (!toItems->empty()
+		&& !(*toItems->begin())->inSameSelectionGroup(item)) {
 		return false;
 	} else if (toItems->find(item) == toItems->end()) {
 		++totalCount;
@@ -7149,67 +7192,92 @@ auto HistoryInner::computeActiveColumns(int row) const
 	return _activeColumns;
 }
 
+void HistoryInner::checkAnnounceFirstMessages() {
+	if (_announceFirstMessages && hasFocus()) {
+		InvokeQueued(this, [=] {
+			if (_announceFirstMessages && hasFocus()) {
+				announceAccessibilityFocusedChild();
+			}
+		});
+	}
+}
+
+void HistoryInner::announceAccessibilityFocusedChild() {
+	const auto count = accessibilityChildCount();
+	if (count <= 0) {
+		// One-shot for chats focused before their first messages arrived:
+		// while the empty list holds focus, remember that the first
+		// received slice (or the first live-added message in a genuinely
+		// empty chat) should announce the focused message. Fired (queued)
+		// from checkAnnounceFirstMessages and disarmed by any real
+		// announcement below or in a later focus-in. Deliberately not
+		// gated by the screen-reader-mode detector: it may still be false
+		// during startup or for valid clients that are not on its
+		// allowlist, while the deferred announcement is a no-op without
+		// an accessibility client and never moves ordinary keyboard focus.
+		_announceFirstMessages = true;
+		return;
+	}
+	_announceFirstMessages = false;
+	if (_accessibilityFocusedItem) {
+		const auto elements = accessibleElements();
+		const auto barIndex = accessibilityUnreadBarIndex();
+		auto found = -1;
+		for (auto i = 0, n = int(elements.size()); i < n; ++i) {
+			if (elements[i]->data().get()
+				== _accessibilityFocusedItem) {
+				found = (barIndex >= 0 && i >= barIndex)
+					? (i + 1)
+					: i;
+				break;
+			}
+		}
+		if (found >= 0 && found < count) {
+			_accessibilityFocusedIndex = found;
+			announceAccessibilityFocus(found);
+			return;
+		}
+		// The cached focused item is no longer in the list (it
+		// was removed or fell out of the loaded slice since we
+		// last had focus). Invalidate the index together with the
+		// item: announcing whatever row occupies the old index
+		// would leave later actions bound to a row the user never
+		// heard about once the list shifts again. The auto-select
+		// branch below establishes a fresh focus instead.
+		_accessibilityFocusedItem = nullptr;
+		_accessibilityFocusedIndex = -1;
+	} else if (_accessibilityFocusedIndex >= 0) {
+		// A nonnegative index with no cached item means the unread
+		// bar was focused. Follow the bar to wherever it sits now,
+		// or fall through to pick a fresh focus target when it is
+		// gone: the row that occupies the old index was never
+		// announced to the user.
+		_accessibilityFocusedIndex = accessibilityUnreadBarIndex();
+	}
+	if (_accessibilityFocusedIndex >= 0
+		&& _accessibilityFocusedIndex < count) {
+		announceAccessibilityFocus(_accessibilityFocusedIndex);
+		return;
+	}
+	const auto barIndex = accessibilityUnreadBarIndex();
+	const auto index = (barIndex >= 0 && barIndex + 1 < count)
+		? (barIndex + 1)
+		: (count - 1);
+	const auto elements = accessibleElements();
+	const auto item = accessibilityItemAtIndex(
+		index,
+		elements,
+		barIndex);
+	setAccessibilityFocusedItem(index, item);
+}
+
 void HistoryInner::focusInEvent(QFocusEvent *e) {
 	RpWidget::focusInEvent(e);
 
 	InvokeQueued(this, [=] {
-		if (!hasFocus()) {
-			return;
+		if (hasFocus()) {
+			announceAccessibilityFocusedChild();
 		}
-		const auto count = accessibilityChildCount();
-		if (count <= 0) {
-			return;
-		}
-		if (_accessibilityFocusedItem) {
-			const auto elements = accessibleElements();
-			const auto barIndex = accessibilityUnreadBarIndex();
-			auto found = -1;
-			for (auto i = 0, n = int(elements.size()); i < n; ++i) {
-				if (elements[i]->data().get()
-					== _accessibilityFocusedItem) {
-					found = (barIndex >= 0 && i >= barIndex)
-						? (i + 1)
-						: i;
-					break;
-				}
-			}
-			if (found >= 0 && found < count) {
-				_accessibilityFocusedIndex = found;
-				announceAccessibilityFocus(found);
-				return;
-			}
-			// The cached focused item is no longer in the list (it
-			// was removed or fell out of the loaded slice since we
-			// last had focus). Invalidate the index together with the
-			// item: announcing whatever row occupies the old index
-			// would leave later actions bound to a row the user never
-			// heard about once the list shifts again. The auto-select
-			// branch below establishes a fresh focus instead.
-			_accessibilityFocusedItem = nullptr;
-			_accessibilityFocusedIndex = -1;
-		} else if (_accessibilityFocusedIndex >= 0) {
-			// A nonnegative index with no cached item means the unread
-			// bar was focused. Follow the bar to wherever it sits now,
-			// or fall through to pick a fresh focus target when it is
-			// gone: the row that occupies the old index was never
-			// announced to the user.
-			_accessibilityFocusedIndex = accessibilityUnreadBarIndex();
-		}
-		if (_accessibilityFocusedIndex >= 0
-			&& _accessibilityFocusedIndex < count) {
-			announceAccessibilityFocus(_accessibilityFocusedIndex);
-			return;
-		}
-		const auto barIndex = accessibilityUnreadBarIndex();
-		const auto index = (barIndex >= 0 && barIndex + 1 < count)
-			? (barIndex + 1)
-			: (count - 1);
-		const auto elements = accessibleElements();
-		const auto item = accessibilityItemAtIndex(
-			index,
-			elements,
-			barIndex);
-		setAccessibilityFocusedItem(index, item);
 	});
 }
 

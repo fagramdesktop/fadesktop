@@ -1233,7 +1233,6 @@ ItemPreview MediaFile::toPreview(ToPreviewOptions options) const {
 		} else if (_document->isVideoFile()) {
 			return WithEntities(tr::lng_in_dlg_video(tr::now));
 		} else if (_document->isVoiceMessage()) {
-			typeIcon = &st::dialogsMiniVoiceIcon;
 			if (item->media() && item->media()->ttlSeconds()) {
 				return WithEntities(
 					tr::lng_in_dlg_voice_message_ttl(tr::now));

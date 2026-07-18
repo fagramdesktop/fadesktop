@@ -52,6 +52,10 @@ public:
 
 	void applySearchQuery(const QString &query);
 
+	void setGroupByRole(bool grouped);
+	[[nodiscard]] rpl::producer<bool> groupByRoleValue() const;
+	[[nodiscard]] rpl::producer<bool> groupByRoleAvailableValue() const;
+
 	std::unique_ptr<MembersState> saveState();
 	void restoreState(std::unique_ptr<MembersState> state);
 

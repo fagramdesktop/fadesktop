@@ -39,6 +39,7 @@ public:
 		not_null<AbstractController*> parent,
 		not_null<PeerData*> peer)
 	: AbstractController(parent->parentController())
+	, _parent(parent)
 	, _key(Stories::Tag(peer)) {
 	}
 
@@ -51,8 +52,12 @@ public:
 	::Info::Section section() const override {
 		return ::Info::Section(::Info::Section::Type::Stories);
 	}
+	style::color listBackground() const override {
+		return _parent->listBackground();
+	}
 
 private:
+	const not_null<AbstractController*> _parent;
 	const Key _key;
 
 };

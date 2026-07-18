@@ -196,10 +196,18 @@ int UnconfirmedAuthWrap::resizeGetHeight(int newWidth) {
 		return int(base::SafeRound(
 			fullHeight * (1. - _collapseProgress)));
 	}
-	if (const auto w = wrapped()) {
+	const auto w = wrapped();
+	if (TopBarSuggestionNarrow(newWidth)) {
+		if (w) {
+			w->hide();
+		}
+		return 0;
+	}
+	if (w) {
+		w->show();
 		w->resizeToWidth(newWidth);
 	}
-	return wrapped() ? wrapped()->height() : 0;
+	return w ? w->height() : 0;
 }
 
 not_null<UnconfirmedAuthWrap*> CreateUnconfirmedAuthContent(
@@ -297,6 +305,23 @@ TopBarSuggestionContent::TopBarSuggestionContent(
 , _emojiPaused(std::move(emojiPaused)) {
 	_leftPadding = st::dialogsTopBarLeftPadding;
 	setRightIcon(RightIcon::Close);
+	Ui::AbstractButton::setClickedCallback([=] {
+		if (TopBarSuggestionNarrow(width())) {
+			if (_narrowExpandCallback) {
+				_narrowExpandCallback();
+			}
+		} else if (_suggestionClickCallback) {
+			_suggestionClickCallback();
+		}
+	});
+}
+
+void TopBarSuggestionContent::setClickedCallback(Fn<void()> callback) {
+	_suggestionClickCallback = std::move(callback);
+}
+
+void TopBarSuggestionContent::setNarrowExpandCallback(Fn<void()> callback) {
+	_narrowExpandCallback = std::move(callback);
 }
 
 void TopBarSuggestionContent::setRightIcon(RightIcon icon) {
@@ -410,13 +435,24 @@ void TopBarSuggestionContent::setRightBadge(rpl::producer<int> count) {
 
 void TopBarSuggestionContent::draw(QPainter &p) {
 	const auto outer = Ui::RpWidget::rect();
-	if (TopBarSuggestionNarrow(width())) {
-		if (_leadingWidget) {
-			_leadingWidget->hide();
+	const auto setControlsVisible = [&](bool visible) {
+		const auto widgets = std::array<Ui::RpWidget*, 4>{
+			_leadingWidget.data(),
+			_rightHide.get(),
+			_rightArrow.get(),
+			_rightButton.get(),
+		};
+		for (const auto widget : widgets) {
+			if (widget) {
+				widget->setVisible(visible);
+			}
 		}
+	};
+	if (TopBarSuggestionNarrow(width())) {
+		setControlsVisible(false);
 		const auto &margins = st::dialogsTopBarSuggestionMargins;
 		const auto pill = outer - margins;
-		PaintSuggestionBubbleBackground(
+		const auto radius = PaintSuggestionBubbleBackground(
 			p,
 			outer,
 			_shadow,
@@ -424,6 +460,11 @@ void TopBarSuggestionContent::draw(QPainter &p) {
 		if (pill.isEmpty()) {
 			return;
 		}
+		auto clipPath = QPainterPath();
+		clipPath.addRoundedRect(pill, radius, radius);
+		p.setClipPath(clipPath);
+		Ui::RippleButton::paintRipple(p, 0, 0);
+		p.setClipping(false);
 		const auto accentSide = st::dialogsRequestsBubbleIconSize;
 		const auto accent = QRect(
 			pill.x() + (pill.width() - accentSide) / 2,
@@ -438,9 +479,7 @@ void TopBarSuggestionContent::draw(QPainter &p) {
 		st::dialogsRequestsBubbleIcon.paintInCenter(p, accent);
 		return;
 	}
-	if (_leadingWidget) {
-		_leadingWidget->show();
-	}
+	setControlsVisible(true);
 	const auto &margins = st::dialogsTopBarSuggestionMargins;
 	const auto pill = outer - margins;
 
@@ -758,7 +797,13 @@ void MountTopBarSuggestion(MountTopBarSuggestionArgs args) {
 	}
 	wrap->setParent(scroll);
 	wrap->raise();
-	wrap->heightValue() | rpl::on_next([=](int h) {
+	const auto lastHeight = wrap->entity()->lifetime().make_state<int>(-1);
+	const auto syncHeight = [=] {
+		const auto h = wrap->height();
+		if (*lastHeight == h) {
+			return;
+		}
+		*lastHeight = h;
 		if (placeholder) {
 			if (const auto raw = placeholder->get()) {
 				raw->resize(raw->width(), h);
@@ -768,15 +813,22 @@ void MountTopBarSuggestion(MountTopBarSuggestionArgs args) {
 		if (heightChanged) {
 			heightChanged(h);
 		}
-	}, wrap->entity()->lifetime());
+	};
+	wrap->heightValue() | rpl::to_empty | rpl::on_next(
+		syncHeight,
+		wrap->entity()->lifetime());
 	const auto pinToScroll = [=] {
 		wrap->resizeToWidth(scroll->width());
+		Ui::SendPendingMoveResizeEvents(wrap);
 		wrap->moveToLeft(0, 0);
+		syncHeight();
 	};
-	scroll->sizeValue(
-	) | rpl::to_empty | rpl::on_next(
-		pinToScroll,
-		wrap->entity()->lifetime());
+	rpl::merge(
+		scroll->sizeValue() | rpl::to_empty,
+		wrap->toggledValue() | rpl::filter([](bool shown) {
+			return shown;
+		}) | rpl::to_empty
+	) | rpl::on_next(pinToScroll, wrap->entity()->lifetime());
 	pinToScroll();
 }
 

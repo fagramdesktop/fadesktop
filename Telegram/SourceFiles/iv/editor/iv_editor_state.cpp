@@ -97,19 +97,6 @@ constexpr auto kMaxCommittedFieldLength = 256 * 1024;
 	return before;
 }
 
-[[nodiscard]] bool BlockConversionExpandsToActiveLine(InsertBlockType type) {
-	switch (type) {
-	case InsertBlockType::Heading:
-	case InsertBlockType::Blockquote:
-	case InsertBlockType::Pullquote:
-	case InsertBlockType::Code:
-	case InsertBlockType::Footer:
-		return true;
-	default:
-		return false;
-	}
-}
-
 void ExpandInsertContextToActiveLine(State::ActiveTextInsertContext &context) {
 	if (!context.selected.text.isEmpty()) {
 		return;
@@ -1428,6 +1415,26 @@ void MergeRichTextAnchors(RichText *target, RichText source) {
 	}
 }
 
+[[nodiscard]] bool JoinableTextBlockKind(BlockKind kind) {
+	return (kind == BlockKind::Heading)
+		|| (kind == BlockKind::Paragraph)
+		|| (kind == BlockKind::Footer);
+}
+
+[[nodiscard]] int AppendParagraphSeam(Block *destination, Block &&source) {
+	auto updated = std::move(destination->text.text);
+	const auto seamOffset = int(updated.text.size());
+	updated.append(std::move(source.text.text));
+	destination->text.text = std::move(updated);
+	MergeRichTextAnchors(&destination->text, std::move(source.text));
+	if (!source.anchorId.isEmpty()) {
+		auto anchor = RichText();
+		anchor.anchorId = std::move(source.anchorId);
+		MergeRichTextAnchors(&destination->text, std::move(anchor));
+	}
+	return seamOffset;
+}
+
 [[nodiscard]] bool CanEditBlocks(const std::vector<Block> &blocks);
 
 [[nodiscard]] bool CanEditBlock(const Block &block) {
@@ -1485,6 +1492,7 @@ State::State(
 	if (_richPage->blocks.empty()) {
 		_richPage->blocks.push_back(MakeParagraphBlock());
 	}
+	StripEditModeWrapperEntities(_richPage->blocks);
 	rebuild();
 }
 
@@ -2835,11 +2843,10 @@ State::TableSelectionInfo State::tableSelectionInfo(
 		.allAlignMiddle = true,
 		.allAlignBottom = true,
 		.singleCell = (selected.size() == 1),
-		.canDeleteRows = TableGridRangeSpansAllColumns(grid, *validated),
-		.canDeleteColumns = TableGridRangeSpansAllRows(grid, *validated),
-		.canDeleteTable = TableGridRangeCoversFullTable(grid, *validated),
 		.selectedRows = validated->rowTill - validated->rowFrom,
 		.selectedColumns = validated->columnTill - validated->columnFrom,
+		.totalRows = grid.rowCount,
+		.totalColumns = grid.columnCount,
 		.bordered = owner->bordered,
 		.striped = owner->striped,
 	};
@@ -3882,6 +3889,10 @@ bool State::isActiveTopLevelParagraphOrHeading() const {
 			|| (owner->kind == BlockKind::Footer));
 }
 
+bool State::hasActiveListItemSurface() const {
+	return activeListItemSurface().has_value();
+}
+
 bool State::activeSurfaceAllowsSeparateLineFormula() const {
 	const auto descriptor = textNode(_activeTextOrdinal);
 	if (!descriptor || descriptor->leaf.kind == LeafKind::MathFormula) {
@@ -4058,12 +4069,7 @@ const TextNodeDescriptor *State::adjacentTextNode(
 	return textNode(ordinal + (forward ? 1 : -1));
 }
 
-bool State::joinActiveParagraphBoundaryUnchecked(
-		bool forward,
-		ActiveTextSelectionTarget *target) {
-	if (!target) {
-		return false;
-	}
+bool State::canJoinActiveTextBlockBoundary(bool forward) const {
 	const auto descriptor = textNode(_activeTextOrdinal);
 	const auto adjacent = descriptor
 		? adjacentTextNode(_activeTextOrdinal, forward)
@@ -4072,14 +4078,40 @@ bool State::joinActiveParagraphBoundaryUnchecked(
 		|| !adjacent
 		|| descriptor->leaf.kind != LeafKind::BlockText
 		|| adjacent->leaf.kind != LeafKind::BlockText
-		|| !(descriptor->leaf.block.container == adjacent->leaf.block.container)) {
+		|| !(descriptor->leaf.block.container
+			== adjacent->leaf.block.container)
+		|| (adjacent->leaf.block.index
+			!= descriptor->leaf.block.index + (forward ? 1 : -1))) {
 		return false;
 	}
+	const auto activeOwner = block(descriptor->leaf.block);
+	const auto adjacentOwner = block(adjacent->leaf.block);
+	return activeOwner
+		&& adjacentOwner
+		&& JoinableTextBlockKind(activeOwner->kind)
+		&& JoinableTextBlockKind(adjacentOwner->kind);
+}
+
+bool State::canJoinActiveListItemBoundary() const {
+	const auto descriptor = textNode(_activeTextOrdinal);
+	if (!descriptor
+		|| (descriptor->leaf.kind == LeafKind::BlockText
+			&& descriptor->leaf.block.index != 0)) {
+		return false;
+	}
+	return activeListItemSurface().has_value();
+}
+
+bool State::joinActiveParagraphBoundaryUnchecked(
+		bool forward,
+		ActiveTextSelectionTarget *target) {
+	if (!target || !canJoinActiveTextBlockBoundary(forward)) {
+		return false;
+	}
+	const auto descriptor = textNode(_activeTextOrdinal);
+	const auto adjacent = adjacentTextNode(_activeTextOrdinal, forward);
 	const auto activeIndex = descriptor->leaf.block.index;
 	const auto adjacentIndex = adjacent->leaf.block.index;
-	if (adjacentIndex != activeIndex + (forward ? 1 : -1)) {
-		return false;
-	}
 	auto *blocks = blockContainer(descriptor->leaf.block.container);
 	if (!blocks
 		|| activeIndex < 0
@@ -4090,28 +4122,12 @@ bool State::joinActiveParagraphBoundaryUnchecked(
 	}
 	auto &activeOwner = (*blocks)[activeIndex];
 	auto &adjacentOwner = (*blocks)[adjacentIndex];
-	if (activeOwner.kind != BlockKind::Paragraph
-		|| adjacentOwner.kind != BlockKind::Paragraph) {
-		return false;
-	}
 	clearTemporaryDownParagraph();
 	auto destinationLeaf = forward ? descriptor->leaf : adjacent->leaf;
-	auto seamOffset = 0;
-	if (forward) {
-		auto updated = std::move(activeOwner.text.text);
-		seamOffset = updated.text.size();
-		updated.append(std::move(adjacentOwner.text.text));
-		activeOwner.text.text = std::move(updated);
-		MergeRichTextAnchors(&activeOwner.text, std::move(adjacentOwner.text));
-		blocks->erase(blocks->begin() + adjacentIndex);
-	} else {
-		auto updated = std::move(adjacentOwner.text.text);
-		seamOffset = updated.text.size();
-		updated.append(std::move(activeOwner.text.text));
-		adjacentOwner.text.text = std::move(updated);
-		MergeRichTextAnchors(&adjacentOwner.text, std::move(activeOwner.text));
-		blocks->erase(blocks->begin() + activeIndex);
-	}
+	const auto seamOffset = forward
+		? AppendParagraphSeam(&activeOwner, std::move(adjacentOwner))
+		: AppendParagraphSeam(&adjacentOwner, std::move(activeOwner));
+	blocks->erase(blocks->begin() + (forward ? adjacentIndex : activeIndex));
 	rebuild();
 	if (!activateRebuiltLeaf(destinationLeaf)) {
 		return false;
@@ -4124,47 +4140,109 @@ bool State::joinActiveParagraphBoundaryUnchecked(
 	return true;
 }
 
+bool State::joinActiveListItemBoundaryUnchecked(
+		ActiveTextSelectionTarget *target) {
+	if (!target || !canJoinActiveListItemBoundary()) {
+		return false;
+	}
+	const auto surface = activeListItemSurface();
+	if (!surface) {
+		return false;
+	}
+	const auto owner = block(surface->path);
+	const auto item = listItem(surface->path, surface->itemIndex);
+	if (!owner || owner->kind != BlockKind::List || !item) {
+		return false;
+	}
+	clearTemporaryDownParagraph();
+	if (surface->itemIndex > 0) {
+		const auto previousIndex = surface->itemIndex - 1;
+		const auto previous = listItem(surface->path, previousIndex);
+		if (!previous) {
+			return false;
+		}
+		auto merged = takeListItemBlocksForUnwrap(previous);
+		previous->anchorId = QString();
+		previous->text = RichText();
+		auto taken = takeListItemBlocksForUnwrap(item);
+		if (taken.empty()) {
+			taken.push_back(MakeParagraphBlock());
+		}
+		auto seamOffset = 0;
+		auto destinationIndex = int(merged.size());
+		if (!merged.empty()
+			&& merged.back().kind == BlockKind::Paragraph
+			&& taken.front().kind == BlockKind::Paragraph) {
+			seamOffset = AppendParagraphSeam(
+				&merged.back(),
+				std::move(taken.front()));
+			taken.erase(taken.begin());
+			destinationIndex = int(merged.size()) - 1;
+		}
+		merged.insert(
+			merged.end(),
+			std::make_move_iterator(taken.begin()),
+			std::make_move_iterator(taken.end()));
+		const auto count = int(merged.size()) - destinationIndex;
+		previous->blocks = std::move(merged);
+		owner->listItems.erase(
+			owner->listItems.begin() + surface->itemIndex);
+		rebuild();
+		(void)destinationTargetForInsertedBlocks(
+			ListItemChildrenContainer(surface->path, previousIndex),
+			destinationIndex,
+			count);
+		const auto destination = textNode(_activeTextOrdinal);
+		if (!destination) {
+			return false;
+		}
+		*target = {
+			.leaf = destination->leaf,
+			.selectionFrom = seamOffset,
+			.selectionTo = seamOffset,
+		};
+		return true;
+	}
+	if (!unwrapListItemIntoParent(surface->path, 0, true)) {
+		return false;
+	}
+	const auto destination = textNode(_activeTextOrdinal);
+	if (!destination) {
+		return false;
+	}
+	*target = {
+		.leaf = destination->leaf,
+		.selectionFrom = 0,
+		.selectionTo = 0,
+	};
+	return true;
+}
+
 State::ParagraphBoundaryJoinResult State::joinActiveParagraphBoundary(
 		bool forward) {
 	auto failure = ParagraphBoundaryJoinResult{
 		.result = ApplyResult::Failed,
 	};
 	return applyCheckedMutation(failure, [forward](State &candidate) {
-		const auto unchanged = ParagraphBoundaryJoinResult{
-			.result = ApplyResult::Unchanged,
-		};
-		const auto descriptor = candidate.textNode(candidate._activeTextOrdinal);
-		const auto adjacent = descriptor
-			? candidate.adjacentTextNode(candidate._activeTextOrdinal, forward)
-			: nullptr;
-		if (!descriptor
-			|| !adjacent
-			|| descriptor->leaf.kind != LeafKind::BlockText
-			|| adjacent->leaf.kind != LeafKind::BlockText
-			|| !(descriptor->leaf.block.container
-				== adjacent->leaf.block.container)
-			|| (adjacent->leaf.block.index
-				!= descriptor->leaf.block.index + (forward ? 1 : -1))) {
+		const auto textJoin = candidate.canJoinActiveTextBlockBoundary(
+			forward);
+		const auto listJoin = !textJoin
+			&& !forward
+			&& candidate.canJoinActiveListItemBoundary();
+		if (!textJoin && !listJoin) {
 			return CheckedMutationResult<ParagraphBoundaryJoinResult>{
-				.result = unchanged,
+				.result = { .result = ApplyResult::Unchanged },
 			};
 		}
-		const auto activeOwner = candidate.block(descriptor->leaf.block);
-		const auto adjacentOwner = candidate.block(adjacent->leaf.block);
-		if (!activeOwner
-			|| !adjacentOwner
-			|| activeOwner->kind != BlockKind::Paragraph
-			|| adjacentOwner->kind != BlockKind::Paragraph) {
+		auto target = ActiveTextSelectionTarget();
+		const auto joined = textJoin
+			? candidate.joinActiveParagraphBoundaryUnchecked(
+				forward,
+				&target)
+			: candidate.joinActiveListItemBoundaryUnchecked(&target);
+		if (!joined) {
 			return CheckedMutationResult<ParagraphBoundaryJoinResult>{
-				.result = unchanged,
-			};
-		}
-		ActiveTextSelectionTarget target;
-		if (!candidate.joinActiveParagraphBoundaryUnchecked(forward, &target)) {
-			return CheckedMutationResult<ParagraphBoundaryJoinResult>{
-				.result = {
-					.result = ApplyResult::Failed,
-				},
+				.result = { .result = ApplyResult::Failed },
 			};
 		}
 		return CheckedMutationResult<ParagraphBoundaryJoinResult>{
@@ -5349,19 +5427,19 @@ auto State::resolveActiveTextInsertTarget()
 	};
 }
 
-auto State::activeNonPullquoteQuote() const
--> std::optional<State::ActiveNonPullquoteQuote> {
+auto State::activeQuote(bool pullquote) const
+-> std::optional<State::ActiveQuote> {
 	const auto descriptor = textNode(_activeTextOrdinal);
 	if (!descriptor) {
 		return std::nullopt;
 	}
 	const auto direct = block(descriptor->leaf.block);
 	if (direct && direct->kind == BlockKind::Quote) {
-		return direct->pullquote
-			? std::nullopt
-			: std::make_optional(ActiveNonPullquoteQuote{
+		return (direct->pullquote == pullquote)
+			? std::make_optional(ActiveQuote{
 				.path = descriptor->leaf.block,
-			});
+			})
+			: std::nullopt;
 	}
 	auto container = descriptor->leaf.block.container;
 	while (!container.steps.empty()) {
@@ -5378,7 +5456,7 @@ auto State::activeNonPullquoteQuote() const
 		if (!owner || owner->kind != BlockKind::Quote) {
 			continue;
 		}
-		if (owner->pullquote) {
+		if (owner->pullquote != pullquote) {
 			return std::nullopt;
 		}
 		const auto body = BlockChildrenContainer(path);
@@ -5390,7 +5468,7 @@ auto State::activeNonPullquoteQuote() const
 				break;
 			}
 		}
-		return ActiveNonPullquoteQuote{
+		return ActiveQuote{
 			.path = path,
 			.activeLeafIsLastEditableBodyLeaf = lastBodyLeaf,
 		};
@@ -5465,11 +5543,12 @@ bool State::unwrapActiveCodeBlockUnchecked(
 	return true;
 }
 
-bool State::unwrapActiveBlockquoteUnchecked(
+bool State::unwrapActiveQuoteUnchecked(
+		bool pullquote,
 		const ActiveTextInsertContext &context,
 		ActiveTextSelectionTarget *target) {
 	const auto descriptor = textNode(_activeTextOrdinal);
-	const auto quote = activeNonPullquoteQuote();
+	const auto quote = activeQuote(pullquote);
 	if (!descriptor || !quote) {
 		return false;
 	}
@@ -5483,7 +5562,9 @@ bool State::unwrapActiveBlockquoteUnchecked(
 		break;
 	}
 	auto *owner = block(quote->path);
-	if (!owner || owner->kind != BlockKind::Quote || owner->pullquote) {
+	if (!owner
+		|| owner->kind != BlockKind::Quote
+		|| owner->pullquote != pullquote) {
 		return false;
 	}
 	auto *activeText = richText(descriptor->leaf);
@@ -5561,6 +5642,50 @@ bool State::unwrapActiveBlockquoteUnchecked(
 			.leaf = *destinationLeaf,
 			.selectionFrom = selectionFrom,
 			.selectionTo = selectionTo,
+		};
+	}
+	return true;
+}
+
+bool State::convertActiveHeadingOrFooterUnchecked(
+		InsertAction action,
+		const ActiveTextInsertContext &context,
+		ActiveTextSelectionTarget *target) {
+	const auto descriptor = textNode(_activeTextOrdinal);
+	if (!descriptor || descriptor->leaf.kind != LeafKind::BlockText) {
+		return false;
+	}
+	auto *owner = block(descriptor->leaf.block);
+	if (!owner) {
+		return false;
+	}
+	const auto heading = (action.type == InsertBlockType::Heading);
+	const auto required = heading ? BlockKind::Heading : BlockKind::Footer;
+	if (owner->kind != required) {
+		return false;
+	}
+	const auto level = std::clamp(action.headingLevel, 1, 6);
+	if (heading && std::clamp(owner->headingLevel, 1, 6) != level) {
+		owner->headingLevel = level;
+	} else {
+		owner->kind = BlockKind::Paragraph;
+		owner->headingLevel = 0;
+	}
+	owner->text.text = JoinText(
+		context.before,
+		context.selected,
+		context.after);
+	clearTemporaryDownParagraph();
+	rebuild();
+	if (!activateRebuiltLeaf(descriptor->leaf)) {
+		return false;
+	}
+	if (target) {
+		const auto selectionFrom = int(context.before.text.size());
+		*target = {
+			.leaf = descriptor->leaf,
+			.selectionFrom = selectionFrom,
+			.selectionTo = selectionFrom + int(context.selected.text.size()),
 		};
 	}
 	return true;
@@ -5879,7 +6004,7 @@ std::optional<int> State::moveActiveSpecialBlockDownUnchecked() {
 	}
 	auto target = std::optional<LeafPath>();
 	auto trackTemporary = false;
-	if (const auto quote = activeNonPullquoteQuote()) {
+	if (const auto quote = activeQuote(false)) {
 		if (descriptor->leaf.kind == LeafKind::BlockCaption
 			&& descriptor->leaf.block == quote->path) {
 			if (const auto paragraph = reuseOrInsertParagraph(
@@ -6400,56 +6525,130 @@ std::optional<int> State::handleActiveListEnterUnchecked(
 	if (!owner || owner->kind != BlockKind::List || !item) {
 		return std::nullopt;
 	}
-	if (context.position != EnterPosition::End) {
-		return handleEnterAtBlockUnchecked(
-			ListItemChildrenContainer(surface->path, surface->itemIndex),
-			paragraphIndex,
-			context);
+	if (paragraphIndex < 0 || paragraphIndex >= int(item->blocks.size())) {
+		return std::nullopt;
+	}
+	const auto itemStart = (context.position == EnterPosition::Beginning)
+		&& (paragraphIndex == 0);
+	const auto itemEnd = (context.position == EnterPosition::End)
+		&& (paragraphIndex + 1 == int(item->blocks.size()));
+	if (!itemStart && !itemEnd) {
+		auto &blocks = item->blocks;
+		const auto moveFrom = (context.position == EnterPosition::Beginning)
+			? paragraphIndex
+			: (paragraphIndex + 1);
+		const auto split = (context.position == EnterPosition::Middle)
+			&& (context.head.text.size() + context.tail.text.size()
+				== blocks[paragraphIndex].text.text.text.size());
+		clearTemporaryDownParagraph();
+		auto next = ListItem();
+		next.taskState = item->taskState;
+		if (split) {
+			blocks[paragraphIndex].text.text = context.head;
+			auto paragraph = MakeParagraphBlock();
+			paragraph.text.text = context.tail;
+			next.blocks.push_back(std::move(paragraph));
+		}
+		next.blocks.insert(
+			next.blocks.end(),
+			std::make_move_iterator(blocks.begin() + moveFrom),
+			std::make_move_iterator(blocks.end()));
+		blocks.erase(blocks.begin() + moveFrom, blocks.end());
+		if (next.blocks.empty()) {
+			next.blocks.push_back(MakeParagraphBlock());
+		}
+		const auto insertedCount = int(next.blocks.size());
+		owner->listItems.insert(
+			owner->listItems.begin() + surface->itemIndex + 1,
+			std::move(next));
+		rebuild();
+		focusInsertedBlocks(
+			ListItemChildrenContainer(surface->path, surface->itemIndex + 1),
+			0,
+			insertedCount);
+		return (_activeTextOrdinal >= 0)
+			? std::make_optional(_activeTextOrdinal)
+			: std::nullopt;
 	}
 	auto target = std::optional<LeafPath>();
-	const auto trailingEmpty = (surface->itemIndex + 1
-			== int(owner->listItems.size()))
-		&& (item->blocks.size() == 1)
-		&& (item->blocks.front().kind == BlockKind::Paragraph)
-		&& ListItemIsEmpty(*item);
-	if (trailingEmpty) {
+	if (itemStart) {
+		const auto first = (surface->itemIndex == 1)
+			? listItem(surface->path, 0)
+			: nullptr;
+		const auto startEscape = first
+			&& ListItemIsEmpty(*first)
+			&& (first->blocks.empty()
+				|| ((first->blocks.size() == 1)
+					&& (first->blocks.front().kind
+						== BlockKind::Paragraph)));
 		clearTemporaryDownParagraph();
-		owner->listItems.erase(owner->listItems.begin() + surface->itemIndex);
-		if (owner->listItems.empty()) {
-			const auto blocks = blockContainer(surface->path.container);
-			if (!blocks
-				|| surface->path.index < 0
-					|| surface->path.index >= int(blocks->size())) {
-				return std::nullopt;
-			}
-			clearTemporaryDownParagraph();
-			blocks->erase(blocks->begin() + surface->path.index);
+		if (startEscape) {
+			owner->listItems.erase(owner->listItems.begin());
 			if (const auto paragraph = reuseOrInsertParagraph(
 					surface->path.container,
 					surface->path.index)) {
 				target = paragraph->leaf;
 			}
 		} else {
-			if (const auto paragraph = reuseOrInsertParagraph(
-					surface->path.container,
-					surface->path.index + 1)) {
-				target = paragraph->leaf;
-			}
+			owner->listItems.insert(
+				owner->listItems.begin() + surface->itemIndex,
+				MakeParagraphListItem(item->taskState));
+			target = LeafPath{
+				.kind = LeafKind::BlockText,
+				.block = {
+					.container = ListItemChildrenContainer(
+						surface->path,
+						surface->itemIndex + 1),
+					.index = 0,
+				},
+			};
 		}
 	} else {
-		clearTemporaryDownParagraph();
-		owner->listItems.insert(
-			owner->listItems.begin() + surface->itemIndex + 1,
-			MakeParagraphListItem(item->taskState));
-		target = LeafPath{
-			.kind = LeafKind::BlockText,
-			.block = {
-				.container = ListItemChildrenContainer(
-					surface->path,
-					surface->itemIndex + 1),
-				.index = 0,
-			},
-		};
+		const auto trailingEmpty = (surface->itemIndex + 1
+				== int(owner->listItems.size()))
+			&& (item->blocks.size() == 1)
+			&& (item->blocks.front().kind == BlockKind::Paragraph)
+			&& ListItemIsEmpty(*item);
+		if (trailingEmpty) {
+			clearTemporaryDownParagraph();
+			owner->listItems.erase(
+				owner->listItems.begin() + surface->itemIndex);
+			if (owner->listItems.empty()) {
+				const auto blocks = blockContainer(surface->path.container);
+				if (!blocks
+					|| surface->path.index < 0
+						|| surface->path.index >= int(blocks->size())) {
+					return std::nullopt;
+				}
+				clearTemporaryDownParagraph();
+				blocks->erase(blocks->begin() + surface->path.index);
+				if (const auto paragraph = reuseOrInsertParagraph(
+						surface->path.container,
+						surface->path.index)) {
+					target = paragraph->leaf;
+				}
+			} else {
+				if (const auto paragraph = reuseOrInsertParagraph(
+						surface->path.container,
+						surface->path.index + 1)) {
+					target = paragraph->leaf;
+				}
+			}
+		} else {
+			clearTemporaryDownParagraph();
+			owner->listItems.insert(
+				owner->listItems.begin() + surface->itemIndex + 1,
+				MakeParagraphListItem(item->taskState));
+			target = LeafPath{
+				.kind = LeafKind::BlockText,
+				.block = {
+					.container = ListItemChildrenContainer(
+						surface->path,
+						surface->itemIndex + 1),
+					.index = 0,
+				},
+			};
+		}
 	}
 	if (!target) {
 		return std::nullopt;
@@ -6896,17 +7095,42 @@ bool State::unwrapMatchingListItemWrapper(
 		return false;
 	}
 	clearTemporaryDownParagraph();
-	const auto hasLeading = (range->from > 0);
-	const auto hasTrailing = (range->till < int(owner->listItems.size()));
+	return unwrapListItemIntoParent(
+		range->block,
+		range->from,
+		false,
+		destination);
+}
+
+bool State::unwrapListItemIntoParent(
+		const BlockPath &listPath,
+		int itemIndex,
+		bool materializeEmptyItem,
+		BoundaryTarget *destination) {
+	auto *owner = block(listPath);
+	auto *parent = blockContainer(listPath.container);
+	if (!owner
+		|| !parent
+		|| itemIndex < 0
+		|| itemIndex >= int(owner->listItems.size())
+		|| listPath.index < 0
+		|| listPath.index >= int(parent->size())) {
+		return false;
+	}
+	const auto hasLeading = (itemIndex > 0);
+	const auto hasTrailing = (itemIndex + 1 < int(owner->listItems.size()));
 	const auto leadingStart = (owner->listKind == ListKind::Ordered
 		&& hasLeading)
 		? EffectiveOrderedItemValue(*owner, 0)
 		: std::optional<int>();
 	const auto trailingStart = (owner->listKind == ListKind::Ordered
 		&& hasTrailing)
-		? EffectiveOrderedItemValue(*owner, range->till)
+		? EffectiveOrderedItemValue(*owner, itemIndex + 1)
 		: std::optional<int>();
-	auto inserted = takeListItemBlocksForUnwrap(&owner->listItems[range->from]);
+	auto inserted = takeListItemBlocksForUnwrap(&owner->listItems[itemIndex]);
+	if (materializeEmptyItem && inserted.empty()) {
+		inserted.push_back(MakeParagraphBlock());
+	}
 	auto trailing = std::optional<Block>();
 	if (hasTrailing) {
 		trailing = Block();
@@ -6917,20 +7141,21 @@ bool State::unwrapMatchingListItemWrapper(
 			trailing->orderedList.start = trailingStart;
 		}
 		trailing->listItems = std::vector<ListItem>(
-			std::make_move_iterator(owner->listItems.begin() + range->till),
+			std::make_move_iterator(
+				owner->listItems.begin() + itemIndex + 1),
 			std::make_move_iterator(owner->listItems.end()));
 	}
 	if (hasLeading) {
 		owner->listItems.erase(
-			owner->listItems.begin() + range->from,
+			owner->listItems.begin() + itemIndex,
 			owner->listItems.end());
 		if (leadingStart.has_value()) {
 			owner->orderedList.start = leadingStart;
 		}
 	} else {
-		parent->erase(parent->begin() + range->block.index);
+		parent->erase(parent->begin() + listPath.index);
 	}
-	auto insertAt = range->block.index + (hasLeading ? 1 : 0);
+	auto insertAt = listPath.index + (hasLeading ? 1 : 0);
 	const auto insertedCount = int(inserted.size());
 	parent->insert(
 		parent->begin() + insertAt,
@@ -6944,7 +7169,7 @@ bool State::unwrapMatchingListItemWrapper(
 	}
 	rebuild();
 	const auto target = destinationTargetForInsertedBlocks(
-		range->block.container,
+		listPath.container,
 		insertAt,
 		insertedCount);
 	if (destination) {
@@ -7805,7 +8030,7 @@ State::TextSelectionDropResult State::moveTextSelectionToDropTarget(
 		}
 		const auto block = std::get_if<Markdown::PreparedEditBlockDropTarget>(
 			&target);
-		const auto container = block
+		auto container = block
 			? candidate.convertBlockContainerPath(block->container)
 			: std::nullopt;
 		const auto destination = container
@@ -7819,17 +8044,66 @@ State::TextSelectionDropResult State::moveTextSelectionToDropTarget(
 				.result = result,
 			};
 		}
-		auto paragraph = MakeParagraphBlock();
-		paragraph.text.text = std::move(moved);
+		const auto &sourceLeaf = source.front().leaf;
+		const auto owner = (sourceLeaf.kind == LeafKind::BlockText)
+			? candidate.block(sourceLeaf.block)
+			: nullptr;
+		const auto textOnly = owner && JoinableTextBlockKind(owner->kind);
+		const auto removeSource = textOnly
+			&& StringIsEmpty(sourceRewrites.front().text.text);
+		auto insertIndex = block->insertIndex;
+		if (removeSource) {
+			const auto &sourcePath = sourceLeaf.block;
+			if (*container == sourcePath.container) {
+				if (insertIndex >= sourcePath.index
+					&& insertIndex <= sourcePath.index + 1) {
+					result.result = ApplyResult::Unchanged;
+					return CheckedMutationResult<TextSelectionDropResult>{
+						.apply = false,
+						.result = result,
+					};
+				} else if (insertIndex > sourcePath.index) {
+					--insertIndex;
+				}
+			}
+			if (!ShiftBlockContainerPathAfterRemovedBlock(
+					*container,
+					sourcePath)) {
+				result.result = ApplyResult::Unchanged;
+				return CheckedMutationResult<TextSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+		}
+		auto inserted = MakeParagraphBlock();
+		if (textOnly) {
+			inserted.kind = owner->kind;
+			inserted.headingLevel = owner->headingLevel;
+		}
+		inserted.text.text = std::move(moved);
 		auto blocks = std::vector<Block>();
-		blocks.push_back(std::move(paragraph));
+		blocks.push_back(std::move(inserted));
 		if (!applySourceRewrites(std::move(sourceRewrites))) {
 			return CheckedMutationResult<TextSelectionDropResult>{
 				.apply = false,
 				.result = result,
 			};
 		}
-		auto insertIndex = block->insertIndex;
+		if (removeSource) {
+			const auto sourceBlocks = candidate.blockContainer(
+				sourceLeaf.block.container);
+			if (!sourceBlocks
+				|| sourceLeaf.block.index < 0
+				|| sourceLeaf.block.index >= int(sourceBlocks->size())) {
+				return CheckedMutationResult<TextSelectionDropResult>{
+					.apply = false,
+					.result = result,
+				};
+			}
+			sourceBlocks->erase(
+				sourceBlocks->begin() + sourceLeaf.block.index);
+		}
 		if (!candidate.insertPreparedBlocksAtExplicitPosition(
 				std::move(blocks),
 				*container,
@@ -7938,6 +8212,19 @@ bool State::insertBlocksAfterActiveWithContextUnchecked(
 	return true;
 }
 
+bool State::BlockConversionExpandsToActiveLine(InsertBlockType type) {
+	switch (type) {
+	case InsertBlockType::Heading:
+	case InsertBlockType::Blockquote:
+	case InsertBlockType::Pullquote:
+	case InsertBlockType::Code:
+	case InsertBlockType::Footer:
+		return true;
+	default:
+		return false;
+	}
+}
+
 State::ActiveTextBlockActionResult State::applyActiveTextBlockAction(
 		InsertAction action,
 		ActiveTextInsertContext context) {
@@ -7960,9 +8247,14 @@ State::ActiveTextBlockActionResult State::applyActiveTextBlockAction(
 				.result = result,
 			};
 		};
-		if (action.type == InsertBlockType::Blockquote) {
-			if (candidate.activeNonPullquoteQuote()) {
-				if (candidate.unwrapActiveBlockquoteUnchecked(context, &target)) {
+		if (action.type == InsertBlockType::Blockquote
+			|| action.type == InsertBlockType::Pullquote) {
+			const auto pullquote = (action.type == InsertBlockType::Pullquote);
+			if (candidate.activeQuote(pullquote)) {
+				if (candidate.unwrapActiveQuoteUnchecked(
+						pullquote,
+						context,
+						&target)) {
 					return changed();
 				}
 				return CheckedMutationResult<ActiveTextBlockActionResult>{
@@ -7974,7 +8266,23 @@ State::ActiveTextBlockActionResult State::applyActiveTextBlockAction(
 			&& candidate.unwrapActiveCodeBlockUnchecked(context, &target)) {
 			return changed();
 		}
+		if ((action.type == InsertBlockType::Heading
+				|| action.type == InsertBlockType::Footer)
+			&& candidate.convertActiveHeadingOrFooterUnchecked(
+				action,
+				context,
+				&target)) {
+			return changed();
+		}
+		const auto hadSelection = !context.selected.text.isEmpty();
+		const auto beforeSize = int(context.before.text.size());
+		const auto lineStart = hadSelection
+			? -1
+			: int(context.before.text.lastIndexOf('\n'));
 		ExpandInsertContextToActiveLine(context);
+		const auto cursorInLine = hadSelection
+			? 0
+			: (beforeSize - (lineStart + 1));
 		auto blocks = std::vector<Block>();
 		blocks.push_back(candidate.makeBlock(action));
 		const auto applied = candidate.insertBlocksAfterActiveUnchecked(
@@ -7996,8 +8304,10 @@ State::ActiveTextBlockActionResult State::applyActiveTextBlockAction(
 			.result = {
 				.result = ApplyResult::Changed,
 				.destinationLeaf = descriptor->leaf,
-				.selectionFrom = 0,
-				.selectionTo = int(context.selected.text.size()),
+				.selectionFrom = (hadSelection ? 0 : cursorInLine),
+				.selectionTo = (hadSelection
+					? int(context.selected.text.size())
+					: cursorInLine),
 			},
 		};
 	});
@@ -8692,6 +9002,9 @@ bool State::leafMutationKeepsTextNodes(
 
 bool State::updatePreparedActiveLeaf(
 		const TextNodeDescriptor &descriptor) {
+	if (DetermineRichPageRtl(*_richPage) != _richPage->rtl) {
+		return false;
+	}
 	const auto source = convertPreparedLeafSource(descriptor);
 	if (!source) {
 		return false;
@@ -8714,6 +9027,7 @@ void State::rebuild() {
 
 void State::rebuildPrepared() {
 	_lastPreparedMutationKind = PreparedMutationKind::FullRebuild;
+	_richPage->rtl = DetermineRichPageRtl(*_richPage);
 	_prepared = Markdown::TryPrepareNativeInstantView({
 		.richPage = _richPage,
 		.mediaRuntime = _mediaRuntime,
@@ -9017,6 +9331,114 @@ std::optional<int> State::firstTableCellOrdinalFromActiveTitle() const {
 		const auto &candidate = _textNodes[i].leaf;
 		if (candidate.block == leaf.block
 			&& candidate.kind == LeafKind::TableCellText) {
+			return i;
+		}
+	}
+	return std::nullopt;
+}
+
+std::optional<int> State::adjacentRowTableCellOrdinal(bool down) const {
+	const auto descriptor = textNode(_activeTextOrdinal);
+	if (!descriptor) {
+		return std::nullopt;
+	}
+	const auto leaf = descriptor->leaf;
+	if (leaf.kind != LeafKind::TableCellText) {
+		return std::nullopt;
+	}
+	const auto owner = block(leaf.block);
+	if (!owner || owner->kind != BlockKind::Table) {
+		return std::nullopt;
+	}
+	const auto grid = BuildTableGrid(*owner, tableRenderLimits());
+	const auto active = [&]() -> const TableGridCellReference* {
+		for (const auto &candidate : grid.cells) {
+			if (candidate.rowIndex == leaf.tableRowIndex
+				&& candidate.cellIndex == leaf.tableCellIndex) {
+				return &candidate;
+			}
+		}
+		return nullptr;
+	}();
+	if (!active) {
+		return std::nullopt;
+	}
+	const auto column = active->columnFrom;
+	const auto step = down ? 1 : -1;
+	for (auto targetRow = down ? active->rowTill : (active->rowFrom - 1);
+			targetRow >= 0 && targetRow < grid.rowCount;
+			targetRow += step) {
+		auto best = (const TableGridCellReference*)nullptr;
+		auto bestDistance = std::numeric_limits<int>::max();
+		for (const auto &candidate : grid.cells) {
+			if (candidate.rowFrom > targetRow
+				|| candidate.rowTill <= targetRow) {
+				continue;
+			}
+			const auto distance = (column < candidate.columnFrom)
+				? (candidate.columnFrom - column)
+				: (column >= candidate.columnTill)
+				? (column - candidate.columnTill + 1)
+				: 0;
+			if (distance < bestDistance) {
+				bestDistance = distance;
+				best = &candidate;
+			}
+		}
+		if (best) {
+			const auto ordinal = textNodeOrdinal({
+				.kind = LeafKind::TableCellText,
+				.block = leaf.block,
+				.tableRowIndex = best->rowIndex,
+				.tableCellIndex = best->cellIndex,
+			});
+			return (ordinal >= 0)
+				? std::make_optional(ordinal)
+				: std::nullopt;
+		}
+	}
+	return std::nullopt;
+}
+
+std::optional<int> State::tableTitleOrdinalFromActiveCell() const {
+	const auto descriptor = textNode(_activeTextOrdinal);
+	if (!descriptor) {
+		return std::nullopt;
+	}
+	const auto leaf = descriptor->leaf;
+	if (leaf.kind != LeafKind::TableCellText) {
+		return std::nullopt;
+	}
+	const auto owner = block(leaf.block);
+	if (!owner || owner->kind != BlockKind::Table) {
+		return std::nullopt;
+	}
+	const auto ordinal = textNodeOrdinal({
+		.kind = LeafKind::BlockText,
+		.block = leaf.block,
+	});
+	return (ordinal >= 0) ? std::make_optional(ordinal) : std::nullopt;
+}
+
+std::optional<int> State::ordinalAfterActiveTable() const {
+	const auto descriptor = textNode(_activeTextOrdinal);
+	if (!descriptor) {
+		return std::nullopt;
+	}
+	const auto leaf = descriptor->leaf;
+	if (leaf.kind != LeafKind::TableCellText) {
+		return std::nullopt;
+	}
+	const auto owner = block(leaf.block);
+	if (!owner || owner->kind != BlockKind::Table) {
+		return std::nullopt;
+	}
+	for (auto i = _activeTextOrdinal + 1, count = textNodeCount();
+			i != count;
+			++i) {
+		const auto &candidate = _textNodes[i].leaf;
+		if (candidate.block != leaf.block
+			|| candidate.kind != LeafKind::TableCellText) {
 			return i;
 		}
 	}
@@ -9738,6 +10160,35 @@ TextWithEntities State::StripEditModeWrapperEntities(TextWithEntities text) {
 	}
 	text.entities = std::move(filtered);
 	return text;
+}
+
+void State::StripEditModeWrapperEntities(RichPage::RichText &text) {
+	const auto strip = ranges::any_of(
+		text.text.entities,
+		[](const EntityInText &entity) {
+			return StripWrapperEntityInEditMode(entity.type());
+		});
+	if (strip) {
+		text.text = StripEditModeWrapperEntities(std::move(text.text));
+	}
+}
+
+void State::StripEditModeWrapperEntities(
+		std::vector<RichPage::Block> &blocks) {
+	for (auto &block : blocks) {
+		StripEditModeWrapperEntities(block.text);
+		StripEditModeWrapperEntities(block.caption);
+		StripEditModeWrapperEntities(block.blocks);
+		for (auto &item : block.listItems) {
+			StripEditModeWrapperEntities(item.text);
+			StripEditModeWrapperEntities(item.blocks);
+		}
+		for (auto &row : block.tableRows) {
+			for (auto &cell : row.cells) {
+				StripEditModeWrapperEntities(cell.text);
+			}
+		}
+	}
 }
 
 bool CanEditRichPage(const RichPage &page) {

@@ -171,7 +171,7 @@ constexpr auto kPreviewPostsLimit = 3;
 [[nodiscard]] object_ptr<SearchEmpty> MakeSearchEmpty(
 		QWidget *parent,
 		SearchState state,
-		Fn<void()> resetChatTypeFilter) {
+		Fn<void()> resetSearchFilters) {
 	const auto query = state.query.trimmed();
 	const auto hashtag = !query.isEmpty() && (query[0] == '#');
 	const auto trimmed = hashtag ? query.mid(1).trimmed() : query;
@@ -189,7 +189,7 @@ constexpr auto kPreviewPostsLimit = 3;
 		&& !fromPeer;
 	const auto suggestAllChats = !waiting
 		&& state.tab == ChatSearchTab::MyMessages
-		&& state.filter != ChatTypeFilter::All;
+		&& (state.filter != ChatTypeFilter::All || !state.fromArchive);
 	const auto icon = waiting
 		? SearchEmptyIcon::Search
 		: SearchEmptyIcon::NoResults;
@@ -228,7 +228,7 @@ constexpr auto kPreviewPostsLimit = 3;
 		rpl::single(std::move(text)));
 	if (suggestAllChats) {
 		result->handlerActivated(
-		) | rpl::on_next(resetChatTypeFilter, result->lifetime());
+		) | rpl::on_next(resetSearchFilters, result->lifetime());
 	}
 	result->show();
 	result->resizeToWidth(parent->width());
@@ -1632,7 +1632,10 @@ void InnerWidget::paintEvent(QPaintEvent *e) {
 				? st::searchedBarFont->underline()
 				: st::searchedBarFont;
 			if (hasChatTypeFilter()) {
-				const auto text = ChatTypeFilterLabel(_searchState.filter);
+				const auto text = (_searchState.filter == ChatTypeFilter::All
+					&& !_searchState.fromArchive)
+					? tr::lng_search_filter_non_archived(tr::now)
+					: ChatTypeFilterLabel(_searchState.filter);
 				if (!_chatTypeFilterWidth) {
 					_chatTypeFilterWidth = filterFont->width(text);
 				}
@@ -4198,7 +4201,8 @@ void InnerWidget::applySearchState(SearchState state) {
 	if (state.inChat) {
 		onHashtagFilterUpdate(QStringView());
 	}
-	if (state.filter != _searchState.filter) {
+	if (state.filter != _searchState.filter
+		|| state.fromArchive != _searchState.fromArchive) {
 		_chatTypeFilterWidth = 0;
 		update();
 	}
@@ -4514,6 +4518,14 @@ rpl::producer<ChatSearchTab> InnerWidget::changeSearchTabRequests() const {
 auto InnerWidget::changeSearchFilterRequests() const
 -> rpl::producer<ChatTypeFilter>{
 	return _changeSearchFilterRequests.events();
+}
+
+rpl::producer<bool> InnerWidget::changeSearchFromArchiveRequests() const {
+	return _changeSearchFromArchiveRequests.events();
+}
+
+rpl::producer<> InnerWidget::resetSearchRestrictionsRequests() const {
+	return _resetSearchRestrictionsRequests.events();
 }
 
 rpl::producer<> InnerWidget::cancelSearchRequests() const {
@@ -4839,7 +4851,7 @@ void InnerWidget::refreshEmpty() {
 		} else if (_searchEmptyState != _searchState) {
 			_searchEmptyState = _searchState;
 			_searchEmpty = MakeSearchEmpty(this, _searchState, [=] {
-				_changeSearchFilterRequests.fire(ChatTypeFilter::All);
+				_resetSearchRestrictionsRequests.fire({});
 			});
 			if (_controller->session().data().chatsListLoaded()) {
 				_searchEmpty->animate();
@@ -5747,6 +5759,10 @@ bool InnerWidget::chooseRow(
 		_menu = base::make_unique_q<Ui::PopupMenu>(
 			this,
 			st::popupMenuWithIcons);
+		_menu->addAction(tr::lng_search_filter_from_archive(tr::now), [=] {
+			_changeSearchFromArchiveRequests.fire_copy(
+				!_searchState.fromArchive);
+		}, _searchState.fromArchive ? &st::mediaPlayerMenuCheck : nullptr);
 		for (const auto tab : {
 			ChatTypeFilter::All,
 			ChatTypeFilter::Private,

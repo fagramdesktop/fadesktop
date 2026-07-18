@@ -61,7 +61,7 @@ void SetPlainTextLeaf(
 		const style::TextStyle &textStyle,
 		int width) {
 	return std::max(
-		leaf.countHeight(width, true),
+		leaf.countHeight(width),
 		TextLineHeight(textStyle));
 }
 
@@ -69,7 +69,7 @@ void SetPlainTextLeaf(
 		const Ui::Text::String &leaf,
 		const QRect &textRect,
 		const style::TextStyle &textStyle) {
-	const auto lines = leaf.countLinesGeometry(textRect.width(), true);
+	const auto lines = leaf.countLinesGeometry(textRect.width());
 	return textRect.y() + (lines.empty()
 		? TextLineBaseline(textStyle)
 		: lines.front().baseline);

@@ -33,43 +33,44 @@ function(generate_lang target_name lang_file src_loc)
     )
     generate_target(${target_name} lang ${gen_timestamp} "${gen_files}" ${gen_dst})
 
-    file(GLOB_RECURSE lang_sources CONFIGURE_DEPENDS
-        ${src_loc}/*.cpp
-        ${src_loc}/*.h
-        ${src_loc}/*.mm
-    )
+    if (CMAKE_GENERATOR STREQUAL "Ninja")
+        file(GLOB_RECURSE lang_sources CONFIGURE_DEPENDS
+            ${src_loc}/*.cpp
+            ${src_loc}/*.h
+            ${src_loc}/*.mm
+        )
 
-    set(subset_headers "")
-    foreach (entry ${lang_sources})
-        if (entry MATCHES "\\.(cpp|mm)$")
-            file(RELATIVE_PATH relative ${src_loc} ${entry})
-            list(APPEND subset_headers ${gen_dst}/lang_subsets/${relative}.h)
-            set_property(SOURCE ${entry} APPEND PROPERTY COMPILE_DEFINITIONS
-                "LANG_KEYS_SUBSET=\"lang_subsets/${relative}.h\"")
-        endif()
-    endforeach()
+        set(subset_headers "")
+        foreach (entry ${lang_sources})
+            if (entry MATCHES "\\.(cpp|mm)$")
+                file(RELATIVE_PATH relative ${src_loc} ${entry})
+                list(APPEND subset_headers ${gen_dst}/lang_subsets/${relative}.h)
+                set_property(SOURCE ${entry} APPEND PROPERTY COMPILE_DEFINITIONS
+                    "LANG_KEYS_SUBSET=\"lang_subsets/${relative}.h\"")
+            endif()
+        endforeach()
 
-    set(subsets_timestamp ${gen_dst}/lang_subsets.timestamp)
-    add_custom_command(
-    OUTPUT
-        ${subsets_timestamp}
-        ${subset_headers}
-    COMMAND
-        codegen_lang
-        --subsets-only
-        -o${gen_dst}
-        -s${src_loc}
-        ${lang_file}
-    COMMAND
-        ${CMAKE_COMMAND} -E touch ${subsets_timestamp}
-    COMMENT "Generating lang subsets (${target_name})"
-    DEPENDS
-        codegen_lang
-        ${gen_keys}
-        ${lang_sources}
-    )
-    add_custom_target(${target_name}_lang_subsets DEPENDS ${subsets_timestamp})
-    init_target_folder(${target_name}_lang_subsets "(gen)")
-    add_dependencies(${target_name}_lang_subsets ${target_name}_lang)
-    add_dependencies(${target_name} ${target_name}_lang_subsets)
+        set(subsets_timestamp ${gen_dst}/lang_subsets.timestamp)
+        add_custom_command(
+        OUTPUT
+            ${subsets_timestamp}
+            ${subset_headers}
+        COMMAND
+            codegen_lang
+            --subsets-only
+            -o${gen_dst}
+            -s${src_loc}
+            ${lang_file}
+        COMMAND
+            ${CMAKE_COMMAND} -E touch ${subsets_timestamp}
+        COMMENT "Generating lang subsets (${target_name})"
+        DEPENDS
+            codegen_lang
+            ${gen_keys}
+            ${lang_sources}
+        )
+        add_custom_target(${target_name}_lang_subsets DEPENDS ${subsets_timestamp})
+        init_target_folder(${target_name}_lang_subsets "(gen)")
+        add_dependencies(${target_name} ${target_name}_lang_subsets)
+    endif()
 endfunction()

@@ -63,6 +63,9 @@ public:
 		double longitude = 0.;
 	};
 
+	[[nodiscard]] static bool BlockConversionExpandsToActiveLine(
+		InsertBlockType type);
+
 	enum class BlockContainerKind : uchar {
 		Root,
 		BlockChildren,
@@ -205,11 +208,10 @@ public:
 		bool singleCell = false;
 		bool canSplitCell = false;
 		bool canUniteCells = false;
-		bool canDeleteRows = false;
-		bool canDeleteColumns = false;
-		bool canDeleteTable = false;
 		int selectedRows = 0;
 		int selectedColumns = 0;
+		int totalRows = 0;
+		int totalColumns = 0;
 		bool bordered = false;
 		bool striped = false;
 	};
@@ -272,11 +274,16 @@ public:
 	[[nodiscard]] std::optional<int> previousEditableOrdinal() const;
 	[[nodiscard]] std::optional<int> nextEditableOrdinal() const;
 	[[nodiscard]] std::optional<int> firstTableCellOrdinalFromActiveTitle() const;
+	[[nodiscard]] std::optional<int> adjacentRowTableCellOrdinal(
+		bool down) const;
+	[[nodiscard]] std::optional<int> tableTitleOrdinalFromActiveCell() const;
+	[[nodiscard]] std::optional<int> ordinalAfterActiveTable() const;
 	[[nodiscard]] BoundaryTarget activeBoundaryTarget(bool forward) const;
 	[[nodiscard]] std::vector<BoundaryTarget> boundarySteps(
 		bool forward) const;
 	[[nodiscard]] bool isActiveTopLevelParagraph() const;
 	[[nodiscard]] bool isActiveTopLevelParagraphOrHeading() const;
+	[[nodiscard]] bool hasActiveListItemSurface() const;
 	[[nodiscard]] bool activeSurfaceAllowsSeparateLineFormula() const;
 	[[nodiscard]] bool activeLeafUsesQuoteCaptionColor() const;
 	[[nodiscard]] bool activeLeafUsesQuotePlaceholderColor() const;
@@ -571,7 +578,7 @@ private:
 		int columnTill = -1;
 	};
 
-	struct ActiveNonPullquoteQuote {
+	struct ActiveQuote {
 		BlockPath path;
 		bool activeLeafIsLastEditableBodyLeaf = false;
 	};
@@ -737,8 +744,8 @@ private:
 		int index);
 	[[nodiscard]] auto resolveActiveTextInsertTarget()
 	-> std::optional<ActiveTextInsertTarget>;
-	[[nodiscard]] auto activeNonPullquoteQuote() const
-	-> std::optional<ActiveNonPullquoteQuote>;
+	[[nodiscard]] auto activeQuote(bool pullquote) const
+	-> std::optional<ActiveQuote>;
 	[[nodiscard]] auto activeListItemSurface() const
 	-> std::optional<ActiveListItemSurface>;
 	[[nodiscard]] std::optional<LeafPath> leafAfterUnwrappingBlockChildren(
@@ -747,11 +754,20 @@ private:
 	[[nodiscard]] bool unwrapActiveCodeBlockUnchecked(
 		const ActiveTextInsertContext &context,
 		ActiveTextSelectionTarget *target);
-	[[nodiscard]] bool unwrapActiveBlockquoteUnchecked(
+	[[nodiscard]] bool unwrapActiveQuoteUnchecked(
+		bool pullquote,
+		const ActiveTextInsertContext &context,
+		ActiveTextSelectionTarget *target);
+	[[nodiscard]] bool convertActiveHeadingOrFooterUnchecked(
+		InsertAction action,
 		const ActiveTextInsertContext &context,
 		ActiveTextSelectionTarget *target);
 	[[nodiscard]] bool joinActiveParagraphBoundaryUnchecked(
 		bool forward,
+		ActiveTextSelectionTarget *target);
+	[[nodiscard]] bool canJoinActiveTextBlockBoundary(bool forward) const;
+	[[nodiscard]] bool canJoinActiveListItemBoundary() const;
+	[[nodiscard]] bool joinActiveListItemBoundaryUnchecked(
 		ActiveTextSelectionTarget *target);
 	[[nodiscard]] auto normalizeActiveListItemSurface()
 	-> std::optional<ActiveListItemSurface>;
@@ -833,6 +849,11 @@ private:
 	[[nodiscard]] bool unwrapMatchingListItemWrapper(
 		const Markdown::PreparedEditSelection &selection,
 		InsertBlockType type,
+		BoundaryTarget *destination = nullptr);
+	[[nodiscard]] bool unwrapListItemIntoParent(
+		const BlockPath &listPath,
+		int itemIndex,
+		bool materializeEmptyItem,
 		BoundaryTarget *destination = nullptr);
 	[[nodiscard]] std::vector<RichPage::Block> takeListItemBlocksForUnwrap(
 		RichPage::ListItem *item);
@@ -948,6 +969,9 @@ private:
 	[[nodiscard]] static bool StripWrapperEntityInEditMode(EntityType type);
 	[[nodiscard]] static TextWithEntities StripEditModeWrapperEntities(
 		TextWithEntities text);
+	static void StripEditModeWrapperEntities(RichPage::RichText &text);
+	static void StripEditModeWrapperEntities(
+		std::vector<RichPage::Block> &blocks);
 
 	std::shared_ptr<RichPage> _richPage;
 	std::shared_ptr<Markdown::MediaRuntime> _mediaRuntime;

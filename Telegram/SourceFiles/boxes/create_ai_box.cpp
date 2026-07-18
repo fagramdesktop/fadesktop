@@ -7,7 +7,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/create_ai_box.h"
 
-#include "apiwrap.h"
 #include "base/object_ptr.h"
 #include "base/weak_ptr.h"
 #include "boxes/create_ai_tone_box.h"
@@ -25,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_app_config.h"
 #include "main/main_session.h"
 #include "mtproto/mtproto_response.h"
+#include "mtproto/sender.h"
 #include "spellcheck/spellcheck_types.h"
 #include "ui/boxes/about_cocoon_box.h"
 #include "ui/boxes/choose_language_box.h"
@@ -372,7 +372,13 @@ void ResponseIsland::resizeEvent(QResizeEvent *e) {
 }
 
 struct State {
+	explicit State(not_null<Main::Session*> session)
+	: session(session)
+	, api(&session->mtp()) {
+	}
+
 	not_null<Main::Session*> session;
+	MTP::Sender api;
 	Fn<void(std::shared_ptr<const RichPage>)> applyToPage;
 	mtpRequestId requestId = 0;
 	Ui::InputField *prompt = nullptr;
@@ -398,11 +404,9 @@ struct State {
 } // namespace
 
 void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
-	const auto state = box->lifetime().make_state<State>(State{
-		.session = args.session,
-		.applyToPage = std::move(args.applyToPage),
-		.language = DefaultAiTranslateTo(LanguageId()),
-	});
+	const auto state = box->lifetime().make_state<State>(args.session);
+	state->applyToPage = std::move(args.applyToPage);
+	state->language = DefaultAiTranslateTo(LanguageId());
 
 	box->setWidth(st::boxWideWidth);
 	box->setTitle(tr::lng_ai_compose_create_title());
@@ -478,10 +482,7 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 		}
 		state->page = nullptr;
 		state->phase = State::Phase::Initial;
-		if (state->requestId) {
-			state->session->api().request(state->requestId).cancel();
-			state->requestId = 0;
-		}
+		state->api.request(base::take(state->requestId)).cancel();
 		state->loading = false;
 		state->rebuildButtons();
 	}, prompt->lifetime());
@@ -597,10 +598,7 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 			|| prompt.size() > promptLimit) {
 			return;
 		}
-		if (state->requestId) {
-			state->session->api().request(state->requestId).cancel();
-			state->requestId = 0;
-		}
+		state->api.request(base::take(state->requestId)).cancel();
 		state->phase = State::Phase::Loading;
 		state->loading = true;
 		state->enterLoading();
@@ -617,7 +615,7 @@ void CreateAiBox(not_null<Ui::GenericBox*> box, CreateAiBoxArgs &&args) {
 		if (!lang.isEmpty()) {
 			flags |= Flag::f_translate_to_lang;
 		}
-		state->requestId = state->session->api().request(
+		state->requestId = state->api.request(
 			MTPmessages_ComposeRichMessageWithAI(
 				MTP_flags(flags),
 				MTPInputRichMessage(),

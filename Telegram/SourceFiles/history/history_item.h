@@ -348,6 +348,13 @@ public:
 	[[nodiscard]] bool isEphemeral() const {
 		return _flags & MessageFlag::Ephemeral;
 	}
+	[[nodiscard]] bool canBeSelected() const {
+		return (isRegular() || isEphemeral()) && !isService();
+	}
+	[[nodiscard]] bool inSameSelectionGroup(
+			not_null<const HistoryItem*> other) const {
+		return isEphemeral() == other->isEphemeral();
+	}
 	[[nodiscard]] bool isFakeAboutView() const {
 		return _flags & MessageFlag::FakeAboutView;
 	}

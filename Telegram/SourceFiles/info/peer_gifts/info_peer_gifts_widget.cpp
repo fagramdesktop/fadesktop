@@ -58,6 +58,7 @@ namespace {
 constexpr auto kPreloadPages = 2;
 constexpr auto kPerPage = 50;
 constexpr auto kScrollFactor = 0.05;
+constexpr auto kPreloadButtonRows = 2;
 
 [[nodiscard]] GiftDescriptor DescriptorForGift(
 		not_null<PeerData*> to,
@@ -792,8 +793,13 @@ void InnerWidget::validateButtons() {
 		? (padding.top() + _collectionsTabs->height() + padding.top())
 		: padding.bottom();
 	const auto row = _single.height() + st::giftBoxGiftSkip.y();
-	const auto fromRow = std::max(_visibleFrom - vskip, 0) / row;
-	const auto tillRow = (_visibleTill - vskip + row - 1) / row;
+	const auto totalRows = (int(_list->size()) + _perRow - 1) / _perRow;
+	const auto fromRow = std::max(
+		(std::max(_visibleFrom - vskip, 0) / row) - kPreloadButtonRows,
+		0);
+	const auto tillRow = std::min(
+		((_visibleTill - vskip + row - 1) / row) + kPreloadButtonRows,
+		totalRows);
 	Assert(tillRow >= fromRow);
 	if (_viewsFromRow == fromRow
 		&& _viewsTillRow == tillRow

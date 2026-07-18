@@ -232,7 +232,7 @@ void RefreshResolvedBlockImage(
 	if (textRect.isEmpty() || (textWidth <= 0)) {
 		return 0;
 	}
-	return int(leaf.countLinesGeometry(textWidth, true).size());
+	return int(leaf.countLinesGeometry(textWidth).size());
 }
 
 void PaintSelectableTextLeaf(
@@ -750,8 +750,7 @@ void PaintTextLeaf(
 			&leaf,
 			[&] {
 				return int(leaf.countLinesGeometry(
-					availableWidth,
-					true).size());
+					availableWidth).size());
 			});
 		const auto baseLine = context.reveal->nextLine;
 		context.reveal->nextLine += lineCount;
@@ -781,7 +780,7 @@ void PaintTextLeaf(
 			.position = rect.topLeft(),
 			.availableWidth = availableWidth,
 			.geometry = (elisionLines
-				? Ui::Text::SimpleGeometry(availableWidth, elisionLines, 0, true)
+				? Ui::Text::SimpleGeometry(availableWidth, elisionLines, 0, false)
 				: TextGeometry(availableWidth)),
 			.align = align,
 			.clip = context.clip,
@@ -2775,7 +2774,7 @@ void PaintDetailsBlock(
 			context,
 			block.actionRect,
 			block.actionRect.width(),
-			style::al_right);
+			block.rtl ? style::al_left : style::al_right);
 	}
 	p.restore();
 

@@ -20,7 +20,7 @@ namespace {
 		const Ui::Text::String &leaf,
 		const QRect &textRect,
 		const style::TextStyle &style) {
-	const auto lines = leaf.countLinesGeometry(textRect.width(), true);
+	const auto lines = leaf.countLinesGeometry(textRect.width());
 	return textRect.y() + (lines.empty()
 		? TextLineBaseline(style)
 		: lines.front().baseline);
@@ -382,24 +382,8 @@ void ClearBlockGeometry(LaidOutBlock *block) {
 		const style::TextStyle &textStyle,
 		int width) {
 	return std::max(
-		leaf.countHeight(width, true),
+		leaf.countHeight(width),
 		TextLineHeight(textStyle));
-}
-
-[[nodiscard]] bool TextNeedsRetainedLeaf(const QString &text) {
-	for (const auto ch : text) {
-		if (!Ui::Text::IsTrimmed(ch)
-			&& !Ui::Text::IsReplacedBySpace(ch)) {
-			return true;
-		}
-	}
-	return false;
-}
-
-[[nodiscard]] bool MissingRetainedLeaf(
-		const QString &text,
-		const Ui::Text::String &leaf) {
-	return TextNeedsRetainedLeaf(text) && leaf.isEmpty();
 }
 
 struct WidthAnalysisNode {
@@ -2071,6 +2055,8 @@ using LayoutListChildCallback = std::function<std::optional<int>(
 			= context.taskMarkerRippleRuntimeFactory(*prepared.editListItem);
 	}
 	if (ordered) {
+		auto markerContext = context;
+		markerContext.rtl = false;
 		BuildOrReusePlainTextLeaf(
 			&block.marker,
 			CachedTextLeafSlot::Marker,
@@ -2078,7 +2064,7 @@ using LayoutListChildCallback = std::function<std::optional<int>(
 			st.body,
 			markerText,
 			PlainTextMinResizeWidth(st.body),
-			context);
+			markerContext);
 	}
 	const auto bottom = LayoutListItemBlockGeometry(
 		prepared,
@@ -2280,6 +2266,8 @@ using LayoutListChildCallback = std::function<std::optional<int>(
 			context);
 	}
 	if (context.editMode) {
+		auto actionContext = context;
+		actionContext.rtl = false;
 		BuildOrReusePlainTextLeaf(
 			&block.actionLeaf,
 			CachedTextLeafSlot::Action,
@@ -2287,7 +2275,7 @@ using LayoutListChildCallback = std::function<std::optional<int>(
 			details.summaryStyle,
 			DetailsStateText(prepared.detailsOpen),
 			PlainTextMinResizeWidth(details.summaryStyle),
-			context);
+			actionContext);
 	}
 	const auto bottom = LayoutDetailsBlockGeometry(
 		prepared,
@@ -2826,7 +2814,7 @@ int LayoutBlocks(
 	} else if (ordered) {
 		markerTextWidth = std::max(block->marker.maxWidth(), 1);
 		markerTextHeight = std::max(
-			block->marker.countHeight(markerTextWidth, true),
+			block->marker.countHeight(markerTextWidth),
 			bodyLineHeight);
 	}
 	ClearBlockGeometry(block);
@@ -2839,7 +2827,9 @@ int LayoutBlocks(
 		currentScrollOwner,
 		logicalWidth);
 	block->markerWidth = std::max(list.markerWidth, markerTextWidth);
-	const auto bodyLeft = left + block->markerWidth + list.markerSkip;
+	const auto bodyLeft = context.rtl
+		? left
+		: (left + block->markerWidth + list.markerSkip);
 	const auto bodyWidth = std::max(
 		width - block->markerWidth - list.markerSkip,
 		1);
@@ -2888,13 +2878,18 @@ int LayoutBlocks(
 		(bodyLineHeight - markerTextHeight) / 2,
 		0);
 	if (task) {
+		const auto markerLeft = context.rtl
+			? (left + width - list.taskCheck.diameter)
+			: left;
 		block->markerRect = QRect(
-			left,
+			markerLeft,
 			markerTop,
 			list.taskCheck.diameter,
 			list.taskCheck.diameter);
 	} else if (ordered) {
-		const auto markerLeft = left + block->markerWidth - markerTextWidth;
+		const auto markerLeft = context.rtl
+			? (left + width - block->markerWidth)
+			: (left + block->markerWidth - markerTextWidth);
 		const auto markerLeafBaseline = LeafFirstLineBaseline(
 			block->marker,
 			QRect(0, 0, markerTextWidth, markerTextHeight),
@@ -2905,7 +2900,10 @@ int LayoutBlocks(
 			markerTextWidth,
 			markerTextHeight);
 	} else {
-		block->markerCenter = BulletMarkerCenter(left, markerBaseline, st);
+		const auto center = BulletMarkerCenter(left, markerBaseline, st);
+		block->markerCenter = context.rtl
+			? QPoint(left + width - (center.x() - left), center.y())
+			: center;
 	}
 	block->contentRect = QRect(bodyLeft, top, bodyWidth, rowHeight);
 	block->horizontalScrollMax = scrollOwner
@@ -2959,7 +2957,7 @@ int LayoutBlocks(
 	const auto markerColumn = context.listItemContentShift;
 	const auto step = std::max(st.textPadding.left(), markerColumn);
 	const auto indent = depthDelta * step - markerColumn;
-	const auto listLeft = left + indent;
+	const auto listLeft = context.rtl ? left : (left + indent);
 	const auto listWidth = std::max(width - indent, 1);
 	const auto currentScrollOwner = NextActiveScrollOwner(
 		analysis,
@@ -3236,6 +3234,7 @@ int LayoutBlocks(
 		return std::nullopt;
 	}
 	ClearBlockGeometry(block);
+	block->rtl = context.rtl;
 	const auto &details = st.details;
 	const auto headerPadding = DetailsHeaderPadding(context, st);
 	const auto bodyPadding = DetailsBodyPadding(context, st);
@@ -3252,10 +3251,12 @@ int LayoutBlocks(
 	const auto iconSkip = iconWidth ? details.iconSkip : 0;
 	const auto actionSkip = actionWidth ? details.stateSkip : 0;
 	const auto actionZoneWidth = actionSkip + actionWidth;
-	const auto textLeft = left
-		+ headerPadding.left()
-		+ iconWidth
-		+ iconSkip;
+	const auto textLeft = context.rtl
+		? (left + headerPadding.right() + actionZoneWidth)
+		: (left
+			+ headerPadding.left()
+			+ iconWidth
+			+ iconSkip);
 	block->textWidth = std::max(
 		headerWidth
 			- headerPadding.left()
@@ -3287,8 +3288,11 @@ int LayoutBlocks(
 		+ headerPadding.bottom();
 	block->headerRect = QRect(left, top, headerWidth, headerHeight);
 	if (iconWidth > 0 && iconHeight > 0) {
+		const auto iconLeft = context.rtl
+			? (left + headerWidth - headerPadding.left() - iconWidth)
+			: (left + headerPadding.left());
 		block->iconRect = QRect(
-			left + headerPadding.left(),
+			iconLeft,
 			top + (headerHeight - iconHeight) / 2,
 			iconWidth,
 			iconHeight);
@@ -3300,8 +3304,11 @@ int LayoutBlocks(
 		block->textWidth,
 		summaryHeight);
 	if (actionZoneWidth > 0 && actionHeight > 0) {
+		const auto actionLeft = context.rtl
+			? (left + headerPadding.right())
+			: (left + headerWidth - headerPadding.right() - actionZoneWidth);
 		block->actionRect = QRect(
-			left + headerWidth - headerPadding.right() - actionZoneWidth,
+			actionLeft,
 			top + headerPadding.top()
 				+ std::max((headerContentHeight - actionHeight) / 2, 0),
 			actionZoneWidth,
@@ -3316,7 +3323,9 @@ int LayoutBlocks(
 		activeScrollOwner);
 	auto bottom = top + headerHeight;
 	if (!prepared.collapsed) {
-		const auto childLeft = left + bodyPadding.left();
+		const auto childLeft = context.rtl
+			? (left + bodyPadding.right())
+			: (left + bodyPadding.left());
 		const auto childTop = bottom + bodyPadding.top();
 		const auto childWidth = std::max(
 			headerWidth
@@ -3762,7 +3771,8 @@ int LayoutBlocks(
 
 [[nodiscard]] int BlockContentMaxRight(
 		const LaidOutBlock &block,
-		const style::Markdown &st) {
+		const style::Markdown &st,
+		bool rtl) {
 	const auto outerRight = block.outer.x() + block.outer.width();
 	const auto textRight = [&] {
 		const auto &leaf = block.placeholderLeaf.isEmpty()
@@ -3776,7 +3786,7 @@ int LayoutBlocks(
 	const auto childrenRight = [&] {
 		auto result = 0;
 		for (const auto &child : block.children) {
-			result = std::max(result, BlockContentMaxRight(child, st));
+			result = std::max(result, BlockContentMaxRight(child, st, rtl));
 		}
 		return result;
 	};
@@ -3837,11 +3847,13 @@ int LayoutBlocks(
 	case PreparedBlockKind::List:
 		return std::min(childrenRight(), outerRight);
 	case PreparedBlockKind::ListItem:
-		return std::min(
-			std::max(
-				block.outer.x() + block.markerWidth,
-				childrenRight()),
-			outerRight);
+		return rtl
+			? outerRight
+			: std::min(
+				std::max(
+					block.outer.x() + block.markerWidth,
+					childrenRight()),
+				outerRight);
 	case PreparedBlockKind::Quote:
 		return block.pullquote
 			? outerRight
@@ -4042,7 +4054,8 @@ std::optional<int> RecountLaidOutBlocks(
 
 int ArticleContentMaxRight(
 		const std::vector<LaidOutBlock> &blocks,
-		const style::Markdown &st) {
+		const style::Markdown &st,
+		bool rtl) {
 	auto result = 0;
 	for (const auto &block : blocks) {
 		const auto bandPadding = UsesMediaBand(block.kind)
@@ -4050,7 +4063,7 @@ int ArticleContentMaxRight(
 			: st.textPadding;
 		result = std::max(
 			result,
-			BlockContentMaxRight(block, st) - bandPadding.left());
+			BlockContentMaxRight(block, st, rtl) - bandPadding.left());
 	}
 	return result;
 }

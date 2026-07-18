@@ -208,8 +208,10 @@ void SendExistingMedia(
 	}
 	if (!action.options.scheduled
 		&& !action.options.shortcutId
-		&& session->ephemeralMessages().isEphemeralBotReply(
-			action.replyTo.messageId)) {
+		&& session->ephemeralMessages().wouldSendMedia(
+			peer,
+			action.replyTo,
+			message.textWithTags.text)) {
 		flags |= MessageFlag::Ephemeral;
 	}
 	const auto silentPost = ShouldSendSilent(peer, action.options);
@@ -280,7 +282,11 @@ void SendExistingMedia(
 		.mediaSpoiler = action.options.mediaSpoiler,
 	}, media, caption);
 
-	if (session->ephemeralMessages().sendMedia(item, inputMedia())) {
+	if (session->ephemeralMessages().sendMedia(
+			item,
+			inputMedia(),
+			origin,
+			inputMedia)) {
 		api->finishForwarding(action);
 		return;
 	}
@@ -625,8 +631,10 @@ void SendConfirmedFile(
 		&& !groupId
 		&& !file->to.options.scheduled
 		&& !file->to.options.shortcutId
-		&& session->ephemeralMessages().isEphemeralBotReply(
-			file->to.replyTo.messageId)) {
+		&& session->ephemeralMessages().wouldSendMedia(
+			peer,
+			file->to.replyTo,
+			caption.text)) {
 		flags |= MessageFlag::Ephemeral;
 	}
 	FillMessagePostFlags(action, peer, flags);

@@ -172,7 +172,7 @@ enum class ToolbarActionId : uchar {
 	case ToolbarActionId::Math:
 		return tr::lng_article_insert_math(tr::now);
 	case ToolbarActionId::Blockquote:
-		return tr::lng_article_insert_blockquote(tr::now);
+		return tr::lng_menu_formatting_blockquote(tr::now);
 	case ToolbarActionId::Pullquote:
 		return tr::lng_article_insert_pullquote(tr::now);
 	case ToolbarActionId::CodeBlock:
@@ -958,7 +958,7 @@ void Toolbar::fillBlockStyleMenu(not_null<Ui::PopupMenu*> menu) {
 	Menu::AddActiveColorAction(
 		menu,
 		WithTabShortcut(
-			tr::lng_article_insert_blockquote(tr::now),
+			tr::lng_menu_formatting_blockquote(tr::now),
 			Ui::kBlockquoteSequence),
 		[=] { insertType(State::InsertBlockType::Blockquote); },
 		&st::ivEditorToolbarBlockquoteIcon,
@@ -981,14 +981,7 @@ void Toolbar::fillBlockStyleMenu(not_null<Ui::PopupMenu*> menu) {
 	Menu::AddActiveColorAction(
 		menu,
 		tr::lng_article_insert_footer(tr::now),
-		[=] {
-			if (kind != Kind::Footer) {
-				insertType(State::InsertBlockType::Footer);
-			} else if (_editor) {
-				_editor->applyToolbarFormatAction(
-					Widget::ToolbarFormatAction::PlainText);
-			}
-		},
+		[=] { insertType(State::InsertBlockType::Footer); },
 		&st::ivEditorToolbarFooterIcon,
 		(kind == Kind::Footer),
 		starSize);
@@ -1019,9 +1012,13 @@ void Toolbar::applyBlockText() {
 		_editor->insertBlock({ .type = State::InsertBlockType::Code });
 		break;
 	case Kind::Heading:
+		_editor->insertBlock({
+			.type = State::InsertBlockType::Heading,
+			.headingLevel = info.headingLevel,
+		});
+		break;
 	case Kind::Footer:
-		_editor->applyToolbarFormatAction(
-			Widget::ToolbarFormatAction::PlainText);
+		_editor->insertBlock({ .type = State::InsertBlockType::Footer });
 		break;
 	default:
 		break;
@@ -1500,7 +1497,6 @@ public:
 	explicit Impl(ShowWindowDescriptor descriptor);
 	~Impl();
 	void close();
-	void activateClose();
 
 private:
 	void setupWindow(ShowWindowDescriptor &&descriptor);
@@ -1576,14 +1572,10 @@ void WindowHost::Impl::close() {
 	finishClose();
 }
 
-void WindowHost::Impl::activateClose() {
-	if (confirmCancel()) {
-		finishClose();
-	}
-}
-
 void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
-	const auto title = tr::lng_article_editor_title(tr::now);
+	const auto title = descriptor.title.isEmpty()
+		? tr::lng_article_editor_title(tr::now)
+		: descriptor.title;
 
 	if (!descriptor.state) {
 		descriptor.state = std::make_shared<State>();
@@ -1601,7 +1593,6 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		descriptor.showCreated(_show);
 	}
 	window->setTitle(title);
-	window->setWindowTitle(title);
 	window->setMinimumSize(st::ivEditorWindowMinSize);
 	window->setGeometry(DefaultWindowGeometry());
 
@@ -1684,7 +1675,9 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		},
 		descriptor.session);
 	window->setMinimumWidth(minimalWindowWidth());
-	if (descriptor.discarded) {
+	const auto save = (descriptor.submitType
+		== ShowWindowDescriptor::SubmitType::Save);
+	if (descriptor.discarded && !save) {
 		_discard = object_ptr<ToolbarPill>(
 			_bottom.data(),
 			st::ivEditorPillShadow);
@@ -1698,7 +1691,7 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 			discard();
 		});
 	}
-	if (descriptor.submitType == ShowWindowDescriptor::SubmitType::Save) {
+	if (save) {
 		_cancel = object_ptr<ToolbarPill>(
 			_bottom.data(),
 			st::ivEditorPillShadow);
@@ -1809,8 +1802,6 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		});
 		setupBottomAiStar(button, session);
 	}
-	const auto save = (descriptor.submitType
-		== ShowWindowDescriptor::SubmitType::Save);
 	_send = object_ptr<Ui::SendButton>(
 		_bottom.data(),
 		save ? st::ivEditorBottomSaveSend : st::ivEditorBottomSend);
@@ -1945,7 +1936,7 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 	_toolbar->raise();
 	_bottom->raise();
 	window->show();
-	editor->activateInitialNode();
+	editor->activateInitialNodeAtEnd();
 }
 
 void WindowHost::Impl::setupBottomAiStar(
@@ -2419,10 +2410,6 @@ WindowHost::~WindowHost() = default;
 
 void WindowHost::close() {
 	_impl->close();
-}
-
-void WindowHost::activateClose() {
-	_impl->activateClose();
 }
 
 std::unique_ptr<WindowHost> ShowWindow(ShowWindowDescriptor descriptor) {

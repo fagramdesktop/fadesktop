@@ -199,7 +199,7 @@ struct PeerBarDetails {
 	TimeId nameChangeDate = 0;
 	TimeId photoChangeDate = 0;
 	QString requestChatTitle;
-	TimeId requestChatDate;
+	TimeId requestChatDate = 0;
 	UserData *businessBot = nullptr;
 	QString businessBotManageUrl;
 	int paysPerMessage = 0;

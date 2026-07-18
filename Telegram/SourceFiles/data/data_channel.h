@@ -620,8 +620,8 @@ private:
 	RestrictionFlags _defaultRestrictions;
 	AdminRightFlags _adminRights;
 	RestrictionFlags _restrictions;
-	TimeId _restrictedUntil;
-	TimeId _subscriptionUntilDate;
+	TimeId _restrictedUntil = 0;
+	TimeId _subscriptionUntilDate = 0;
 
 	std::vector<Data::UnavailableReason> _unavailableReasons;
 	std::unique_ptr<InvitePeek> _invitePeek;

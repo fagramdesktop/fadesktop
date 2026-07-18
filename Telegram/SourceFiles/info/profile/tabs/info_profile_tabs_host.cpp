@@ -684,12 +684,19 @@ void TabsHost::paintEvent(QPaintEvent *e) {
 }
 
 void TabsHost::pushViewportToActive() {
-	if (const auto active = _activeTab.current()) {
-		active->setTopOverlay((_visibleTop >= 0) ? _stripHeight : 0);
-		active->setVisibleRegion(
-			_visibleTop - _stripHeight,
-			_visibleBottom - _stripHeight);
+	const auto active = _activeTab.current();
+	if (!active) {
+		return;
 	}
+	if (_body->width() < st::infoMediaTabsMinBodyWidth) {
+		_viewportPushPending = true;
+		return;
+	}
+	_viewportPushPending = false;
+	active->setTopOverlay((_visibleTop >= 0) ? _stripHeight : 0);
+	active->setVisibleRegion(
+		_visibleTop - _stripHeight,
+		_visibleBottom - _stripHeight);
 }
 
 rpl::producer<MediaTabContent*> TabsHost::activeTabValue() const {
@@ -700,11 +707,28 @@ rpl::producer<Ui::ScrollToRequest> TabsHost::scrollToRequests() const {
 	return _scrollToRequests.events();
 }
 
-rpl::producer<TabTopBarBindings> TabsHost::activeTabBindings() const {
+rpl::producer<TabTopBarBindings> TabsHost::activeTabBindings() {
 	return _activeTab.value(
-	) | rpl::map([](MediaTabContent *tab) {
-		return tab ? tab->topBarBindings() : TabTopBarBindings();
+	) | rpl::map([=](MediaTabContent *tab) {
+		_searching = false;
+		auto result = tab ? tab->topBarBindings() : TabTopBarBindings();
+		if (auto apply = base::take(result.applySearchQuery)) {
+			result.applySearchQuery = crl::guard(this, [=](QString query) {
+				_searching = !query.isEmpty();
+				apply(query);
+				if (_searching) {
+					scrollToBodyTop();
+				}
+			});
+		}
+		return result;
 	});
+}
+
+void TabsHost::scrollToBodyTop() {
+	if (_visibleTop >= 0) {
+		_scrollToRequests.fire({ 0, -1 });
+	}
 }
 
 not_null<Ui::RpWidget*> TabsHost::stripWidget() const {
@@ -751,6 +775,10 @@ void TabsHost::setScrolledToTop(bool scrolledToTop) {
 
 int TabsHost::resizeGetHeight(int newWidth) {
 	_body->resizeToWidth(std::max(newWidth, 1));
+	if (_viewportPushPending && _body->width() >= st::infoMediaTabsMinBodyWidth) {
+		_viewportPushPending = false;
+		InvokeQueued(this, [this] { pushViewportToActive(); });
+	}
 	if (!ranges::contains(_tabsShown, true)) {
 		return 0;
 	}
@@ -765,7 +793,9 @@ int TabsHost::resizeGetHeight(int newWidth) {
 	_body->moveToLeft(0, bodyTop);
 
 	const auto natural = bodyTop + _body->height();
-	if (_keepMinHeight
+	if (_searching && !_scrolledToTop && (natural < _visibleBottom)) {
+		_keepMinHeight = std::max(_keepMinHeight, _visibleBottom);
+	} else if (_keepMinHeight
 		&& ((natural >= _keepMinHeight)
 			|| (natural >= _visibleBottom)
 			|| _scrolledToTop)) {

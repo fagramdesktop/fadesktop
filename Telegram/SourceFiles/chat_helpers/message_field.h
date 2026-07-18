@@ -82,6 +82,7 @@ struct MessageFieldHandlersArgs {
 	const style::InputField *fieldStyle = nullptr;
 	Fn<QString(QString)> linkValidator;
 	base::flat_set<QString> allowMarkdownTags;
+	bool allowTypedMarkdown = true;
 };
 auto InitMessageFieldHandlers(MessageFieldHandlersArgs &&args)
 -> std::shared_ptr<Ui::ChatStyle>;

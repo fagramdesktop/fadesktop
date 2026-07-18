@@ -157,6 +157,7 @@ struct LaidOutBlock {
 	style::align formulaAlign = style::al_left;
 	bool collapsed = false;
 	bool detailsOpen = false;
+	bool rtl = false;
 	bool overflowed = false;
 	bool tableBordered = true;
 	bool tableStriped = false;
@@ -165,6 +166,7 @@ struct LaidOutBlock {
 	bool quoteAuthor = false;
 	bool footer = false;
 	bool insideHorizontalScroll = false;
+	int tableBorder = 0;
 	int horizontalScrollLeft = 0;
 	int horizontalScrollMax = 0;
 	int horizontalScrollAncestorShift = 0;
@@ -282,6 +284,7 @@ struct CachedTextLeafSourceSignature {
 	int minResizeWidth = 1;
 	size_t styleKey = 0;
 	bool dependsOnMediaRuntime = false;
+	bool rtl = false;
 
 	friend inline bool operator==(
 		const CachedTextLeafSourceSignature &a,
@@ -317,6 +320,7 @@ struct LayoutContext {
 	bool tightList = false;
 	bool useArticleBands = false;
 	bool editMode = false;
+	bool rtl = false;
 	bool hideEmptyQuoteAuthor = false;
 	bool allowAsyncSyntaxHighlighting = true;
 	CodeBlockSyntaxHighlightTracker *syntaxHighlightTracker = nullptr;
@@ -348,6 +352,10 @@ private:
 	const LayoutContext *_previous = nullptr;
 };
 
+[[nodiscard]] bool TextNeedsRetainedLeaf(const QString &text);
+[[nodiscard]] bool MissingRetainedLeaf(
+	const QString &text,
+	const Ui::Text::String &leaf);
 [[nodiscard]] bool IsAnchorOnlyBlock(const PreparedBlock &block);
 [[nodiscard]] bool IsFlowKind(PreparedBlockKind kind);
 [[nodiscard]] QString ListMarkerText(const PreparedBlock &block);
@@ -426,6 +434,11 @@ struct TableCellMinimumWidthConstraint {
 	const std::vector<int> &columnWidths,
 	const style::Markdown &st,
 	bool bordered);
+
+[[nodiscard]] QRect TableCellHitRect(
+	const LaidOutBlock &block,
+	const LaidOutTableCell &cell);
+
 [[nodiscard]] int FlowBlockContentMinimumWidth(
 	const PreparedBlock &prepared,
 	const std::vector<PreparedFormulaSlot> &formulas,
@@ -467,11 +480,15 @@ struct TableCellMinimumWidthConstraint {
 [[nodiscard]] const style::TextStyle &EditPlaceholderTextStyleFor(
 	const PreparedBlock &block,
 	const style::Markdown &st);
+[[nodiscard]] TextWithEntities EditPlaceholderTextValue(
+	const PreparedBlock &block,
+	const QString &text);
 void CopyCachedTextLeafs(
 	const std::vector<PreparedBlock> &preparedBlocks,
 	std::vector<LaidOutBlock> *blocks,
 	const style::Markdown &st,
-	CachedTextLeafPool *pool);
+	CachedTextLeafPool *pool,
+	bool rtl);
 void BuildOrReuseMarkedTextLeaf(
 	Ui::Text::String *leaf,
 	CachedTextLeafSlot slot,

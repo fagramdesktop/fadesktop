@@ -1,3 +1,14 @@
+7.0.3 (17.07.26)
+
+- Fix media viewer freezes on macOS.
+
+7.0.2 (17.07.26)
+
+- Fix editing existing rich messages.
+- Fix editing scheduled rich messages.
+- Improve rich messages editor (drag-n-drop, changing tables).
+- Allow forwarding to chats hidden inside a community.
+
 7.0.1 (14.07.26)
 
 - Rich Text Editor.

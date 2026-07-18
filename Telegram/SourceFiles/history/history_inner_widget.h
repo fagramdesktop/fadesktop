@@ -187,8 +187,12 @@ public:
 		-> HistoryView::TopBarWidget::SelectedState;
 	void clearSelected(bool onlyTextSelection = false);
 	[[nodiscard]] MessageIdsList getSelectedItems() const;
+	[[nodiscard]] auto getSelectedEphemeral() const
+		-> std::vector<not_null<HistoryItem*>>;
 	[[nodiscard]] bool hasSelectedItems() const;
 	[[nodiscard]] HistoryView::SelectionModeResult inSelectionMode() const;
+	[[nodiscard]] HistoryView::SelectionModeResult inSelectionMode(
+		const Element *view) const;
 	[[nodiscard]] bool elementIntersectsRange(
 		not_null<const Element*> view,
 		int from,
@@ -321,6 +325,8 @@ private:
 	void playPauseFocusedMedia();
 	void setAccessibilityFocusedItem(int index, HistoryItem *item);
 	void announceAccessibilityFocus(int index);
+	void checkAnnounceFirstMessages();
+	void announceAccessibilityFocusedChild();
 	void applyAccessibilityFocus(int index, bool announceAlways);
 	[[nodiscard]] auto computeActiveColumns(int row) const
 		-> const std::vector<HistoryView::MessageSubItem> &;
@@ -569,6 +575,7 @@ private:
 	int _accessibilityFocusedIndex = -1;
 	HistoryItem *_accessibilityFocusedItem = nullptr;
 	HistoryItem *_accessibilitySelectionAnchor = nullptr;
+	bool _announceFirstMessages = false;
 	mutable base::flat_map<
 		not_null<const HistoryItem*>,
 		quintptr> _accessibilityIdentities;

@@ -2992,23 +2992,7 @@ std::unique_ptr<Ui::DropdownMenu> MakeAttachBotsMenu(
 				return;
 			}
 			const auto details = sendMenuDetails();
-			const auto openCompose = [=, weak = base::make_weak(controller)] {
-				if (const auto strong = weak.get()) {
-					Iv::Editor::ShowComposeBox(
-						strong,
-						peer,
-						action,
-						details);
-				}
-			};
-			const auto handled
-				= Iv::Editor::RequestCloseOpenEditWindowThenCompose(
-					&controller->session(),
-					peer,
-					openCompose);
-			if (!handled) {
-				openCompose();
-			}
+			Iv::Editor::ShowComposeBox(controller, peer, action, details);
 		}, &st::menuIconArticle);
 	}
 	const auto session = &controller->session();

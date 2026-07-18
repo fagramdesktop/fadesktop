@@ -10,5 +10,5 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 constexpr auto AppFAVersion = 2003001;
 constexpr auto AppFAVersionStr = "2.3.1";
-constexpr auto AppTGDVersion = "7.0.1";
+constexpr auto AppTGDVersion = "7.0.3";
 constexpr auto AppFABetaVersion = false;

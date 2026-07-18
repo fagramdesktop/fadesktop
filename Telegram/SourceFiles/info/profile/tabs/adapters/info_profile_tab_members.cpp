@@ -86,6 +86,13 @@ public:
 						_members->applySearchQuery(query);
 					}
 				}),
+			.groupByRoleState = _members->groupByRoleValue(),
+			.setGroupByRole = crl::guard(
+				base::make_weak(_members),
+				[this](bool grouped) {
+					_members->setGroupByRole(grouped);
+				}),
+			.groupByRoleAvailable = _members->groupByRoleAvailableValue(),
 		};
 	}
 

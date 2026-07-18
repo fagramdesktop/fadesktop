@@ -29,7 +29,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "lang/lang_keys.h"
 #include "storage/file_download.h"
 #include "data/data_peer_values.h"
+#include "data/data_channel.h"
 #include "data/data_chat.h"
+#include "data/data_community.h"
 #include "data/data_session.h"
 #include "data/data_changes.h"
 #include "data/stickers/data_custom_emoji.h"
@@ -745,8 +747,16 @@ void PeerListRow::refreshStatus() {
 		}
 	} else if (peer()->isMegagroup()) {
 		setStatusText(tr::lng_group_status(tr::now));
-	} else if (peer()->isChannel()) {
-		setStatusText(tr::lng_channel_status(tr::now));
+	} else if (const auto channel = peer()->asChannel()) {
+		if (channel->isCommunity()) {
+			const auto info = channel->communityInfo();
+			const auto count = info ? int(info->histories().size()) : 0;
+			setStatusText(count
+				? tr::lng_community_chats(tr::now, lt_count, count)
+				: tr::lng_community_status(tr::now));
+		} else {
+			setStatusText(tr::lng_channel_status(tr::now));
+		}
 	}
 }
 
@@ -1041,6 +1051,21 @@ void PeerListRow::paintUserpic(
 		int x,
 		int y,
 		int outerWidth) {
+	if (paintCommunityUserpicEffect()) {
+		if (!_communityUserpicEffect) {
+			_communityUserpicEffect
+				= std::make_unique<Ui::CommunityUserpicEffect>();
+		}
+		Ui::PaintCommunityUserpicEffect(
+			p,
+			*_communityUserpicEffect,
+			x,
+			y,
+			st.photoSize,
+			st::windowSubTextFg->c);
+	} else if (_communityUserpicEffect) {
+		_communityUserpicEffect = nullptr;
+	}
 	if (_disabledState == State::DisabledChecked) {
 		paintDisabledCheckUserpic(p, st, x, y, outerWidth);
 	} else if (_checkbox) {
@@ -1124,6 +1149,11 @@ void PeerListRow::lazyInitialize(const style::PeerListItem &st) {
 
 bool PeerListRow::useForumLikeUserpic() const {
 	return !special() && peer()->isForum();
+}
+
+bool PeerListRow::paintCommunityUserpicEffect() const {
+	const auto channel = special() ? nullptr : peer()->asChannel();
+	return channel && channel->isCommunity();
 }
 
 void PeerListRow::createCheckbox(

@@ -2252,6 +2252,35 @@ std::shared_ptr<const RichPage> ParsePage(
 	return true;
 }
 
+[[nodiscard]] std::optional<bool> RichTextRtl(const RichText &text) {
+	const auto &plain = text.text.text;
+	if (plain.trimmed().isEmpty()) {
+		return std::nullopt;
+	}
+	return plain.isRightToLeft();
+}
+
+[[nodiscard]] std::optional<bool> BlocksTextRtl(
+		const std::vector<Block> &blocks) {
+	for (const auto &block : blocks) {
+		if (const auto result = RichTextRtl(block.text)) {
+			return result;
+		}
+		if (const auto result = BlocksTextRtl(block.blocks)) {
+			return result;
+		}
+		for (const auto &item : block.listItems) {
+			if (const auto result = RichTextRtl(item.text)) {
+				return result;
+			}
+			if (const auto result = BlocksTextRtl(item.blocks)) {
+				return result;
+			}
+		}
+	}
+	return std::nullopt;
+}
+
 } // namespace
 
 bool RichPagesEqual(
@@ -2443,6 +2472,10 @@ TextWithEntities FlattenRichPageToSimpleText(const RichPage &page) {
 	return result;
 }
 
+bool DetermineRichPageRtl(const RichPage &page) {
+	return BlocksTextRtl(page.blocks).value_or(false);
+}
+
 std::optional<TextWithEntities> SerializeAsSimple(
 		const RichPage &page,
 		not_null<Main::Session*> session) {
@@ -2482,8 +2515,19 @@ bool RichPageIsFlattenSafe(const RichPage &page) {
 RichPage SplitTextIntoRichPage(TextWithEntities text) {
 	auto page = RichPage();
 
+	const auto isBlockEntity = [](const EntityInText &entity) {
+		const auto type = entity.type();
+		return (type == EntityType::Pre)
+			|| (type == EntityType::Blockquote);
+	};
+	const auto stripBlockEntities = [&](TextWithEntities &part) {
+		part.entities.erase(
+			ranges::remove_if(part.entities, isBlockEntity),
+			part.entities.end());
+	};
 	const auto emitParagraph = [&](int from, int to) {
 		auto paragraph = Ui::Text::Mid(text, from, to - from);
+		stripBlockEntities(paragraph);
 		TextUtilities::Trim(paragraph);
 		if (!paragraph.empty()) {
 			page.blocks.push_back(Block{
@@ -2501,12 +2545,11 @@ RichPage SplitTextIntoRichPage(TextWithEntities text) {
 	};
 	auto segments = std::vector<Segment>();
 	for (const auto &entity : text.entities) {
-		const auto type = entity.type();
-		if (type == EntityType::Pre || type == EntityType::Blockquote) {
+		if (isBlockEntity(entity)) {
 			segments.push_back({
 				entity.offset(),
 				entity.length(),
-				type,
+				entity.type(),
 				entity.data(),
 			});
 		}
@@ -2520,17 +2563,8 @@ RichPage SplitTextIntoRichPage(TextWithEntities text) {
 			continue;
 		}
 		emitParagraph(cursor, segment.offset);
-		auto source = text;
-		for (auto i = 0; i != int(source.entities.size()); ++i) {
-			const auto &e = source.entities[i];
-			if ((e.type() == segment.type)
-				&& (e.offset() == segment.offset)
-				&& (e.length() == segment.length)) {
-				source.entities.erase(source.entities.begin() + i);
-				break;
-			}
-		}
-		auto body = Ui::Text::Mid(source, segment.offset, segment.length);
+		auto body = Ui::Text::Mid(text, segment.offset, segment.length);
+		stripBlockEntities(body);
 		TextUtilities::Trim(body);
 		cursor = segment.offset + segment.length;
 		if (body.empty()) {
@@ -2552,6 +2586,13 @@ RichPage SplitTextIntoRichPage(TextWithEntities text) {
 	emitParagraph(cursor, size);
 
 	return page;
+}
+
+RichPage SplitTextIntoRichPage(const TextWithTags &text) {
+	return SplitTextIntoRichPage({
+		text.text,
+		TextUtilities::ConvertTextTagsToEntities(text.tags),
+	});
 }
 
 } // namespace Iv

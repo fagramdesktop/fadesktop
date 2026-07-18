@@ -24,6 +24,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "base/qt/qt_key_modifiers.h"
 #include "base/timer_rpl.h"
 #include "base/unixtime.h"
+#include "boxes/choose_filter_box.h"
 #include "boxes/peer_list_box.h"
 #include "boxes/peers/add_bot_to_chat_box.h"
 #include "boxes/peers/edit_contact_box.h"
@@ -43,6 +44,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_changes.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
+#include "data/data_chat_filters.h"
 #include "data/data_folder.h"
 #include "data/data_forum.h"
 #include "data/data_forum_topic.h"
@@ -2620,8 +2622,12 @@ Section DetailsFiller::makeCommunityLink(not_null<PeerData*> peer) {
 
 	class Controller final : public PeerListController {
 	public:
-		Controller(not_null<ChannelData*> community, Fn<void()> open)
-		: _community(community)
+		Controller(
+			not_null<Window::SessionController*> window,
+			not_null<ChannelData*> community,
+			Fn<void()> open)
+		: _window(window)
+		, _community(community)
 		, _open(std::move(open)) {
 			setStyleOverrides(&st::peerListSingleRow);
 		}
@@ -2658,8 +2664,33 @@ Section DetailsFiller::makeCommunityLink(not_null<PeerData*> peer) {
 		void rowClicked(not_null<PeerListRow*> row) override {
 			_open();
 		}
+		base::unique_qptr<Ui::PopupMenu> rowContextMenu(
+				QWidget *parent,
+				not_null<PeerListRow*> row) override {
+			const auto history = _community->owner().history(_community);
+			if (!history->owner().chatsFilters().has()
+				|| !history->inChatList()
+				|| (_community->isCommunity()
+					&& !_community->collapsedInDialogs())) {
+				return nullptr;
+			}
+			auto result = base::make_unique_q<Ui::PopupMenu>(
+				parent,
+				st::popupMenuWithIcons);
+			Ui::Menu::CreateAddActionCallback(result.get())({
+				.text = tr::lng_filters_menu_add(tr::now),
+				.handler = nullptr,
+				.icon = &st::menuIconAddToFolder,
+				.fillSubmenu = [&](not_null<Ui::PopupMenu*> submenu) {
+					FillChooseFilterMenu(_window, submenu, history);
+				},
+				.submenuSt = &st::foldersMenu,
+			});
+			return result;
+		}
 
 	private:
+		const not_null<Window::SessionController*> _window;
 		const not_null<ChannelData*> _community;
 		Fn<void()> _open;
 
@@ -2669,6 +2700,7 @@ Section DetailsFiller::makeCommunityLink(not_null<PeerData*> peer) {
 		PeerListContentDelegateSimple
 	>();
 	const auto controller = container->lifetime().make_state<Controller>(
+		window,
 		community,
 		[=] { window->showPeerInfo(community); });
 	const auto content = container->add(object_ptr<PeerListContent>(

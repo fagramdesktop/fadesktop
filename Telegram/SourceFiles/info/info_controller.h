@@ -219,6 +219,7 @@ public:
 	[[nodiscard]] virtual Key key() const = 0;
 	[[nodiscard]] virtual PeerData *migrated() const = 0;
 	[[nodiscard]] virtual Section section() const = 0;
+	[[nodiscard]] virtual style::color listBackground() const;
 
 	[[nodiscard]] PeerData *peer() const;
 	[[nodiscard]] PeerId migratedPeerId() const;
@@ -329,6 +330,7 @@ public:
 
 	[[nodiscard]] Wrap wrap() const;
 	[[nodiscard]] rpl::producer<Wrap> wrapValue() const;
+	[[nodiscard]] style::color listBackground() const override;
 	[[nodiscard]] not_null<Ui::RpWidget*> wrapWidget() const;
 	[[nodiscard]] rpl::producer<bool> contentTillBottomValue() const;
 	void setSection(not_null<ContentMemento*> memento);

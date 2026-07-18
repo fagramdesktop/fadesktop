@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #pragma once
 
 #include "ui/rp_widget.h"
+#include "ui/rows_scroll_cache.h"
 #include "ui/widgets/tooltip.h"
 #include "info/media/info_media_widget.h"
 #include "info/media/info_media_common.h"
@@ -346,6 +347,7 @@ private:
 	base::flat_set<not_null<const BaseLayout*>> _heavyLayouts;
 	bool _heavyLayoutsInvalidated = false;
 	std::vector<Section> _sections;
+	Ui::RowsScrollCache _rowsScrollCache;
 
 	int _visibleTop = 0;
 	int _visibleBottom = 0;

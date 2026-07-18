@@ -5875,6 +5875,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_search_filter_private" = "Private chats";
 "lng_search_filter_group" = "Group chats";
 "lng_search_filter_channel" = "Channels";
+"lng_search_filter_from_archive" = "From archive";
+"lng_search_filter_non_archived" = "Non archived";
 "lng_search_sponsored_button" = "Ad ⋮";
 "lng_sr_chat_channel" = "Channel";
 "lng_sr_chat_group" = "Group";
@@ -7385,6 +7387,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_polls_stop_sure" = "Stop";
 "lng_article_menu_item" = "Article";
 "lng_article_editor_title" = "Article";
+"lng_article_editor_title_editing" = "Editing";
 "lng_article_insert_heading" = "Heading";
 "lng_article_insert_text" = "Text";
 "lng_article_insert_heading1" = "Heading 1";
@@ -7394,7 +7397,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_article_insert_heading5" = "Heading 5";
 "lng_article_insert_heading6" = "Heading 6";
 "lng_article_insert_emoji" = "Emoji";
-"lng_article_insert_blockquote" = "Blockquote";
 "lng_article_insert_code" = "Code Block";
 "lng_article_insert_math" = "Math";
 "lng_article_insert_footer" = "Footer";
@@ -7443,9 +7445,15 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_article_premium_choice_about_link" = "Telegram Premium";
 "lng_article_premium_choice_plain" = "Send Without Formatting";
 "lng_article_table_change" = "Change Table";
-"lng_article_table_add_row" = "Add Row";
-"lng_article_table_add_column" = "Add Column";
+"lng_article_table_add_cells" = "Add Cells";
+"lng_article_table_add_row_above" = "Add Row Above";
+"lng_article_table_add_row_below" = "Add Row Below";
+"lng_article_table_add_column_left" = "Add Column Left";
+"lng_article_table_add_column_right" = "Add Column Right";
 "lng_article_table_header" = "Header";
+"lng_article_table_header_cell" = "Header Cell";
+"lng_article_table_header_cells" = "Header Cells";
+"lng_article_table_alignment" = "Alignment";
 "lng_article_table_align_left" = "Align Left";
 "lng_article_table_align_center" = "Align Center";
 "lng_article_table_align_right" = "Align Right";
@@ -7454,12 +7462,13 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_article_table_align_bottom" = "Align Bottom";
 "lng_article_table_split_cell" = "Split Cell";
 "lng_article_table_unite_cells" = "Unite Cells";
+"lng_article_table_delete_cells" = "Delete Cells";
 "lng_article_table_delete_row" = "Delete Row";
 "lng_article_table_delete_rows" = "Delete Rows";
 "lng_article_table_delete_column" = "Delete Column";
 "lng_article_table_delete_columns" = "Delete Columns";
 "lng_article_table_delete_table" = "Delete Table";
-"lng_article_table_borderless" = "Borderless";
+"lng_article_table_borderless" = "Borderless Table";
 "lng_article_table_striped" = "Striped Table";
 "lng_polls_menu_item" = "Poll";
 "lng_polls_create" = "Create poll";

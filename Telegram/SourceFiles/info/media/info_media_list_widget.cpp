@@ -172,6 +172,7 @@ ListWidget::ListWidget(
 : RpWidget(parent)
 , _controller(controller)
 , _provider(MakeProvider(_controller))
+, _rowsScrollCache([=] { update(); })
 , _dateBadge(std::make_unique<DateBadge>(
 	_provider->type(),
 	[=] { scrollDateCheck(); },
@@ -195,12 +196,18 @@ void ListWidget::start() {
 
 	_controller->setSearchEnabledByContent(false);
 
+	style::PaletteChanged(
+	) | rpl::on_next([=] {
+		_rowsScrollCache.clear();
+	}, lifetime());
+
 	_provider->layoutRemoved(
 	) | rpl::on_next([=](not_null<BaseLayout*> layout) {
 		if (_overLayout == layout) {
 			_overLayout = nullptr;
 		}
 		_heavyLayouts.remove(layout);
+		_rowsScrollCache.invalidate(GetLayoutCacheKey(layout));
 	}, lifetime());
 
 	_provider->refreshed(
@@ -258,6 +265,7 @@ void ListWidget::subscribeToSession(
 		rpl::lifetime &lifetime) {
 	session->downloaderTaskFinished(
 	) | rpl::on_next([=] {
+		_rowsScrollCache.clear();
 		update();
 	}, lifetime);
 
@@ -410,6 +418,7 @@ void ListWidget::restart() {
 	_overLayout = nullptr;
 	_sections.clear();
 	_heavyLayouts.clear();
+	_rowsScrollCache.clear();
 
 	_provider->restart();
 
@@ -567,6 +576,7 @@ void ListWidget::itemLayoutChanged(
 
 void ListWidget::repaintItem(const HistoryItem *item) {
 	if (const auto found = findItemByItem(item)) {
+		_rowsScrollCache.invalidate(GetLayoutCacheKey(found->layout));
 		repaintItem(found->geometry);
 	}
 }
@@ -830,6 +840,9 @@ auto ListWidget::foundItemInSection(
 void ListWidget::visibleTopBottomUpdated(
 		int visibleTop,
 		int visibleBottom) {
+	if (_visibleTop != visibleTop || _visibleBottom != visibleBottom) {
+		_rowsScrollCache.markScrolling();
+	}
 	_visibleTop = visibleTop;
 	_visibleBottom = visibleBottom;
 
@@ -1066,6 +1079,9 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 		&_dragSelected,
 		_dragSelectAction
 	};
+	context.scrollCache = &_rowsScrollCache;
+	context.hoveredItem = _overLayout;
+	context.bg = _controller->listBackground();
 	if (_mouseAction == MouseAction::Reordering && _reorderState.item) {
 		context.draggedItem = _reorderState.item;
 	}

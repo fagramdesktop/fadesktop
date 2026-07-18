@@ -157,23 +157,27 @@ struct MarkdownArticleHorizontalScrollLookup {
 [[nodiscard]] CachedTextLeafSourceSignature MarkedTextLeafSourceSignature(
 		TextWithEntities text,
 		const style::TextStyle &textStyle,
-		int minResizeWidth) {
+		int minResizeWidth,
+		bool rtl) {
 	auto result = CachedTextLeafSourceSignature();
 	result.dependsOnMediaRuntime = TextDependsOnMediaRuntime(text);
 	result.text = std::move(text);
 	result.minResizeWidth = minResizeWidth;
 	result.styleKey = TextStyleKey(textStyle);
+	result.rtl = rtl;
 	return result;
 }
 
 [[nodiscard]] CachedTextLeafSourceSignature PlainTextLeafSourceSignature(
 		const QString &text,
 		const style::TextStyle &textStyle,
-		int minResizeWidth) {
+		int minResizeWidth,
+		bool rtl) {
 	return MarkedTextLeafSourceSignature(
 		TextWithEntities::Simple(text),
 		textStyle,
-		minResizeWidth);
+		minResizeWidth,
+		rtl);
 }
 
 [[nodiscard]] CachedTextLeafSourceSignature CodeTextLeafSourceSignature(
@@ -182,7 +186,8 @@ struct MarkdownArticleHorizontalScrollLookup {
 	auto result = MarkedTextLeafSourceSignature(
 		CodeBlockDisplayText(prepared.text),
 		st.code,
-		CodeTextMinResizeWidth(st));
+		CodeTextMinResizeWidth(st),
+		false);
 	result.codeLanguage = prepared.codeLanguage;
 	return result;
 }
@@ -286,13 +291,15 @@ void HarvestCachedTextLeafs(
 	std::vector<LaidOutBlock> *blocks,
 	const style::Markdown &st,
 	CachedTextLeafPool *pool,
-	std::vector<int> *preparedPath);
+	std::vector<int> *preparedPath,
+	bool rtl);
 
 void RebuildCachedTextLeafs(
 		const std::vector<PreparedBlock> &preparedBlocks,
 		std::vector<LaidOutBlock> *blocks,
 		const style::Markdown &st,
-		CachedTextLeafPool *pool) {
+		CachedTextLeafPool *pool,
+		bool rtl) {
 	if (!pool) {
 		return;
 	}
@@ -303,7 +310,8 @@ void RebuildCachedTextLeafs(
 		blocks,
 		st,
 		pool,
-		&preparedPath);
+		&preparedPath,
+		rtl);
 }
 
 void HarvestCachedTextLeafs(
@@ -311,7 +319,8 @@ void HarvestCachedTextLeafs(
 		LaidOutBlock *block,
 		const style::Markdown &st,
 		CachedTextLeafPool *pool,
-		const std::vector<int> &preparedPath) {
+		const std::vector<int> &preparedPath,
+		bool rtl) {
 	const auto storeBlockLeaf = [&](CachedTextLeafSlot slot,
 			CachedTextLeafSourceSignature source,
 			Ui::Text::String *leaf) {
@@ -346,7 +355,8 @@ void HarvestCachedTextLeafs(
 			PlainTextLeafSourceSignature(
 				ListMarkerText(prepared),
 				st.body,
-				PlainTextMinResizeWidth(st.body)),
+				PlainTextMinResizeWidth(st.body),
+				false),
 			&block->marker);
 	}
 
@@ -364,14 +374,18 @@ void HarvestCachedTextLeafs(
 			MarkedTextLeafSourceSignature(
 				prepared.text,
 				textStyle,
-				FlowBlockMinimumWidth(prepared, st)),
+				FlowBlockMinimumWidth(prepared, st),
+				rtl),
 			&block->leaf);
 		storeBlockLeaf(
 			CachedTextLeafSlot::Placeholder,
-			PlainTextLeafSourceSignature(
-				prepared.editPlaceholderText,
+			MarkedTextLeafSourceSignature(
+				EditPlaceholderTextValue(
+					prepared,
+					prepared.editPlaceholderText),
 				placeholderStyle,
-				PlainTextMinResizeWidth(placeholderStyle)),
+				PlainTextMinResizeWidth(placeholderStyle),
+				rtl),
 			&block->placeholderLeaf);
 	} break;
 	case PreparedBlockKind::CodeBlock:
@@ -390,7 +404,8 @@ void HarvestCachedTextLeafs(
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.code,
-				PlainTextMinResizeWidth(st.code)),
+				PlainTextMinResizeWidth(st.code),
+				rtl),
 			&block->placeholderLeaf);
 		break;
 	case PreparedBlockKind::DisplayMath:
@@ -399,14 +414,16 @@ void HarvestCachedTextLeafs(
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.displayMath.fallbackStyle,
-				DisplayMathFallbackTextMinResizeWidth(st)),
+				DisplayMathFallbackTextMinResizeWidth(st),
+				rtl),
 			&block->placeholderLeaf);
 		storeBlockLeaf(
 			CachedTextLeafSlot::Fallback,
 			MarkedTextLeafSourceSignature(
 				DisplayMathFallbackText(),
 				st.displayMath.fallbackStyle,
-				DisplayMathFallbackTextMinResizeWidth(st)),
+				DisplayMathFallbackTextMinResizeWidth(st),
+				false),
 			&block->fallbackLeaf);
 		break;
 	case PreparedBlockKind::Table: {
@@ -415,14 +432,16 @@ void HarvestCachedTextLeafs(
 			MarkedTextLeafSourceSignature(
 				prepared.text,
 				st.body,
-				FlowTextMinResizeWidth(st.body)),
+				FlowTextMinResizeWidth(st.body),
+				rtl),
 			&block->leaf);
 		storeBlockLeaf(
 			CachedTextLeafSlot::Placeholder,
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.body,
-				PlainTextMinResizeWidth(st.body)),
+				PlainTextMinResizeWidth(st.body),
+				rtl),
 			&block->placeholderLeaf);
 		const auto rowCount = std::min(
 			int(prepared.tableRows.size()),
@@ -449,7 +468,8 @@ void HarvestCachedTextLeafs(
 					MarkedTextLeafSourceSignature(
 						preparedCell.text,
 						textStyle,
-						minResizeWidth),
+						minResizeWidth,
+						rtl),
 					&cell.leaf);
 				storeTableCellLeaf(
 					CachedTextLeafSlot::TableCellPlaceholder,
@@ -459,7 +479,8 @@ void HarvestCachedTextLeafs(
 					PlainTextLeafSourceSignature(
 						preparedCell.editPlaceholderText,
 						textStyle,
-						minResizeWidth),
+						minResizeWidth,
+						rtl),
 					&cell.placeholderLeaf);
 			}
 		}
@@ -470,21 +491,24 @@ void HarvestCachedTextLeafs(
 			MarkedTextLeafSourceSignature(
 				prepared.text,
 				st.details.summaryStyle,
-				FlowTextMinResizeWidth(st.details.summaryStyle)),
+				FlowTextMinResizeWidth(st.details.summaryStyle),
+				rtl),
 			&block->leaf);
 		storeBlockLeaf(
 			CachedTextLeafSlot::Placeholder,
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.details.summaryStyle,
-				PlainTextMinResizeWidth(st.details.summaryStyle)),
+				PlainTextMinResizeWidth(st.details.summaryStyle),
+				rtl),
 			&block->placeholderLeaf);
 		storeBlockLeaf(
 			CachedTextLeafSlot::Action,
 			PlainTextLeafSourceSignature(
 				DetailsStateText(prepared.detailsOpen),
 				st.details.summaryStyle,
-				PlainTextMinResizeWidth(st.details.summaryStyle)),
+				PlainTextMinResizeWidth(st.details.summaryStyle),
+				false),
 			&block->actionLeaf);
 		break;
 	case PreparedBlockKind::Placeholder:
@@ -493,21 +517,24 @@ void HarvestCachedTextLeafs(
 			PlainTextLeafSourceSignature(
 				prepared.placeholder.label,
 				st.placeholder.labelStyle,
-				PlainTextMinResizeWidth(st.placeholder.labelStyle)),
+				PlainTextMinResizeWidth(st.placeholder.labelStyle),
+				rtl),
 			&block->labelLeaf);
 		storeBlockLeaf(
 			CachedTextLeafSlot::Leaf,
 			MarkedTextLeafSourceSignature(
 				prepared.text,
 				st.body,
-				FlowTextMinResizeWidth(st.body)),
+				FlowTextMinResizeWidth(st.body),
+				rtl),
 			&block->leaf);
 		storeBlockLeaf(
 			CachedTextLeafSlot::Placeholder,
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.body,
-				PlainTextMinResizeWidth(st.body)),
+				PlainTextMinResizeWidth(st.body),
+				rtl),
 			&block->placeholderLeaf);
 		break;
 	case PreparedBlockKind::RelatedArticle:
@@ -516,21 +543,24 @@ void HarvestCachedTextLeafs(
 			PlainTextLeafSourceSignature(
 				prepared.relatedArticle.title,
 				st.relatedArticle.titleStyle,
-				PlainTextMinResizeWidth(st.relatedArticle.titleStyle)),
+				PlainTextMinResizeWidth(st.relatedArticle.titleStyle),
+				rtl),
 			&block->labelLeaf);
 		storeBlockLeaf(
 			CachedTextLeafSlot::Subtitle,
 			PlainTextLeafSourceSignature(
 				prepared.relatedArticle.description,
 				st.relatedArticle.subtitleStyle,
-				PlainTextMinResizeWidth(st.relatedArticle.subtitleStyle)),
+				PlainTextMinResizeWidth(st.relatedArticle.subtitleStyle),
+				rtl),
 			&block->subtitleLeaf);
 		storeBlockLeaf(
 			CachedTextLeafSlot::Action,
 			PlainTextLeafSourceSignature(
 				prepared.relatedArticle.footer,
 				st.relatedArticle.footerStyle,
-				PlainTextMinResizeWidth(st.relatedArticle.footerStyle)),
+				PlainTextMinResizeWidth(st.relatedArticle.footerStyle),
+				rtl),
 			&block->actionLeaf);
 		break;
 	case PreparedBlockKind::EmbedPost:
@@ -539,14 +569,16 @@ void HarvestCachedTextLeafs(
 			PlainTextLeafSourceSignature(
 				prepared.embedPost.author,
 				st.embedPost.authorStyle,
-				PlainTextMinResizeWidth(st.embedPost.authorStyle)),
+				PlainTextMinResizeWidth(st.embedPost.authorStyle),
+				rtl),
 			&block->labelLeaf);
 		storeBlockLeaf(
 			CachedTextLeafSlot::Subtitle,
 			PlainTextLeafSourceSignature(
 				prepared.embedPost.dateText,
 				st.embedPost.dateStyle,
-				PlainTextMinResizeWidth(st.embedPost.dateStyle)),
+				PlainTextMinResizeWidth(st.embedPost.dateStyle),
+				rtl),
 			&block->subtitleLeaf);
 		break;
 	case PreparedBlockKind::Photo:
@@ -560,14 +592,16 @@ void HarvestCachedTextLeafs(
 			MarkedTextLeafSourceSignature(
 				prepared.text,
 				st.body,
-				FlowTextMinResizeWidth(st.body)),
+				FlowTextMinResizeWidth(st.body),
+				rtl),
 			&block->leaf);
 		storeBlockLeaf(
 			CachedTextLeafSlot::Placeholder,
 			PlainTextLeafSourceSignature(
 				prepared.editPlaceholderText,
 				st.body,
-				PlainTextMinResizeWidth(st.body)),
+				PlainTextMinResizeWidth(st.body),
+				rtl),
 			&block->placeholderLeaf);
 		break;
 	case PreparedBlockKind::Rule:
@@ -578,7 +612,7 @@ void HarvestCachedTextLeafs(
 	}
 
 	auto childPath = preparedPath;
-	HarvestCachedTextLeafs(prepared.children, &block->children, st, pool, &childPath);
+	HarvestCachedTextLeafs(prepared.children, &block->children, st, pool, &childPath, rtl);
 }
 
 void HarvestCachedTextLeafs(
@@ -586,7 +620,8 @@ void HarvestCachedTextLeafs(
 		std::vector<LaidOutBlock> *blocks,
 		const style::Markdown &st,
 		CachedTextLeafPool *pool,
-		std::vector<int> *preparedPath) {
+		std::vector<int> *preparedPath,
+		bool rtl) {
 	if (!blocks || !pool || !preparedPath) {
 		return;
 	}
@@ -598,7 +633,8 @@ void HarvestCachedTextLeafs(
 			&(*blocks)[i],
 			st,
 			pool,
-			*preparedPath);
+			*preparedPath,
+			rtl);
 		preparedPath->pop_back();
 	}
 }
@@ -911,7 +947,7 @@ void AppendTextRevealLines(
 	if (textRect.isEmpty() || visibleRect.isEmpty() || (textWidth <= 0)) {
 		return;
 	}
-	const auto geometry = leaf.countLinesGeometry(textWidth, true);
+	const auto geometry = leaf.countLinesGeometry(textWidth);
 	const auto viewportLeft = visibleRect.x();
 	const auto viewportRight = visibleRect.x() + visibleRect.width();
 	for (const auto &line : geometry) {
@@ -1128,7 +1164,7 @@ void AppendBlocksRevealLines(
 	}
 	auto request = Ui::Text::StateRequest();
 	request.align = align;
-	request.flags = flags | Ui::Text::StateRequest::Flag::BreakEverywhere;
+	request.flags = flags;
 	const auto availableWidth = std::max(width, 1);
 	return leaf.getState(
 		point - rect.topLeft(),
@@ -1946,7 +1982,7 @@ void CollectMediaBlockGeometries(
 	}
 	for (const auto &row : block.tableRows) {
 		for (const auto &cell : row.cells) {
-			if (ContainsPoint(cell.outer, point)) {
+			if (ContainsPoint(TableCellHitRect(block, cell), point)) {
 				if (const auto result = EditHitForTableCell(cell, point);
 					result.valid()) {
 					return result;
@@ -2051,15 +2087,20 @@ void CollectMediaBlockGeometries(
 		const LaidOutBlock &block,
 		QPoint point) {
 	if (ContainsPoint(block.headerRect, point) && block.editBlock) {
-		const auto leftWidth = std::max(
-			block.textRect.left() - block.headerRect.left(),
+		const auto textRight = block.textRect.left() + block.textRect.width();
+		const auto toggleWidth = std::max(
+			block.rtl
+				? (block.headerRect.left()
+					+ block.headerRect.width()
+					- textRight)
+				: (block.textRect.left() - block.headerRect.left()),
 			0);
-		const auto leftToggleRect = QRect(
-			block.headerRect.left(),
+		const auto toggleRect = QRect(
+			block.rtl ? textRight : block.headerRect.left(),
 			block.headerRect.top(),
-			leftWidth,
+			toggleWidth,
 			block.headerRect.height());
-		if (ContainsPoint(leftToggleRect, point)
+		if (ContainsPoint(toggleRect, point)
 			|| (!block.actionRect.isEmpty()
 				&& ContainsPoint(block.actionRect, point))) {
 			return {
@@ -3576,6 +3617,7 @@ private:
 	void invalidateGeometry();
 
 	[[nodiscard]] const style::Markdown &layoutStyle() const;
+	[[nodiscard]] bool contentRtl() const;
 	[[nodiscard]] MarkdownArticleScrollOwnerIdentity scrollOwnerIdentity(
 		const LaidOutBlock &block,
 		const std::vector<int> &preparedPath) const;
@@ -3741,7 +3783,8 @@ void MarkdownArticle::Impl::setContent(MarkdownArticleContent content) {
 		_content.blocks.blocks,
 		&_blocks,
 		layoutStyle(),
-		&_cachedTextLeafs);
+		&_cachedTextLeafs,
+		contentRtl());
 	if (!reuseMediaBlocks) {
 		PruneMediaRuntimeBoundCachedTextLeafs(&_cachedTextLeafs);
 	}
@@ -3887,6 +3930,7 @@ void MarkdownArticle::Impl::updatePreparedLeaf(
 	}
 
 	auto context = LayoutContext();
+	context.rtl = contentRtl();
 	context.syntaxHighlightTracker = this;
 	context.repaint = _textRepaint;
 	context.repaintRect = _textRepaintRect;
@@ -4885,7 +4929,8 @@ void MarkdownArticle::Impl::invalidateLayout(bool harvestCurrentBlocks) {
 			_content.blocks.blocks,
 			&_blocks,
 			layoutStyle(),
-			&_cachedTextLeafs);
+			&_cachedTextLeafs,
+			contentRtl());
 	}
 	retainBlocks();
 }
@@ -5231,6 +5276,10 @@ void MarkdownArticle::Impl::setPlaceholderLoadingValue(
 
 const style::Markdown &MarkdownArticle::Impl::layoutStyle() const {
 	return _style;
+}
+
+bool MarkdownArticle::Impl::contentRtl() const {
+	return _content.richPage && _content.richPage->rtl;
 }
 
 MarkdownArticleScrollOwnerIdentity MarkdownArticle::Impl::scrollOwnerIdentity(
@@ -5738,7 +5787,7 @@ void MarkdownArticle::Impl::finalizeRelayout(int heightBottom) {
 	_laidOutWidth = std::min(
 		_width,
 		std::max(
-			ArticleContentMaxRight(_blocks, layoutStyle()) + page.right(),
+			ArticleContentMaxRight(_blocks, layoutStyle(), contentRtl()) + page.right(),
 			page.left() + page.right() + 1));
 	pruneTaskMarkerRuntimes();
 	prunePlaceholderRuntimes();
@@ -5773,7 +5822,8 @@ void MarkdownArticle::Impl::relayout(int width) {
 		_content.blocks.blocks,
 		&_blocks,
 		layoutStyle(),
-		&_cachedTextLeafs);
+		&_cachedTextLeafs,
+		contentRtl());
 	retainBlocks();
 	_missingMediaBlocks = 0;
 
@@ -5786,6 +5836,7 @@ void MarkdownArticle::Impl::relayout(int width) {
 		.mediaPixelScale = _mediaPixelScale,
 		.useArticleBands = true,
 		.editMode = _content.editMode,
+		.rtl = contentRtl(),
 		.syntaxHighlightTracker = this,
 		.cachedTextLeafs = &_cachedTextLeafs,
 		.repaint = _textRepaint,
@@ -5874,6 +5925,7 @@ void MarkdownArticle::Impl::relayoutRetained(int width) {
 		.mediaPixelScale = _mediaPixelScale,
 		.useArticleBands = true,
 		.editMode = _content.editMode,
+		.rtl = contentRtl(),
 		.syntaxHighlightTracker = this,
 		.cachedTextLeafs = &_cachedTextLeafs,
 		.repaint = _textRepaint,
