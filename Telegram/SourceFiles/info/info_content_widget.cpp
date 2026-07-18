@@ -462,6 +462,23 @@ bool ContentWidget::processChosenSticker(ChatHelpers::FileChosen &&) {
 	return false;
 }
 
+bool ContentWidget::processScrollKey(not_null<QKeyEvent*> e) {
+	const auto key = e->key();
+	const auto modifiers = e->modifiers()
+		& ~(Qt::KeypadModifier | Qt::GroupSwitchModifier);
+	const auto scrollKey = (key == Qt::Key_Up)
+		|| (key == Qt::Key_Down)
+		|| (key == Qt::Key_PageUp)
+		|| (key == Qt::Key_PageDown);
+	if ((modifiers != Qt::NoModifier)
+		|| !scrollKey
+		|| _scroll->isHidden()) {
+		return false;
+	}
+	_scroll->keyPressEvent(e);
+	return true;
+}
+
 void ContentWidget::refreshSearchField(bool shown) {
 	auto search = _controller->searchFieldController();
 	if (search && shown) {
@@ -470,6 +487,7 @@ void ContentWidget::refreshSearchField(bool shown) {
 			st::infoLayerMediaSearch);
 		_searchWrap = std::move(rowView.wrap);
 		_searchField = rowView.field;
+		_searchField->customUpDown(true);
 
 		const auto view = _searchWrap.get();
 		widthValue(

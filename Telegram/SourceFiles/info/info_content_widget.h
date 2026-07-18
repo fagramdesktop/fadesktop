@@ -155,6 +155,7 @@ public:
 	virtual bool processZoomKey(not_null<QKeyEvent*> e) {
 		return false;
 	}
+	bool processScrollKey(not_null<QKeyEvent*> e);
 
 	[[nodiscard]] int scrollBottomSkip() const;
 	[[nodiscard]] rpl::producer<int> scrollBottomSkipValue() const;
