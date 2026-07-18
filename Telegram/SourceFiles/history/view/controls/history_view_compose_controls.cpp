@@ -3799,7 +3799,7 @@ void ComposeControls::initExpandButton() {
 			}
 			return;
 		}
-		if (_mode != Mode::Normal) {
+		if (_mode != Mode::Normal || !hasRichDraftThreadScope()) {
 			return;
 		}
 		Iv::Editor::ShowComposeBox(
@@ -4181,7 +4181,8 @@ void ComposeControls::updateExpandButtonVisibility() {
 	const auto hidden = !_wrap->isVisible()
 		|| _recording.current()
 		|| !_field->isVisible()
-		|| (_mode != Mode::Normal && !isEditingMessage())
+		|| ((_mode != Mode::Normal || !hasRichDraftThreadScope())
+			&& !isEditingMessage())
 		|| !hasEnoughLinesForExpand()
 		|| textExceedsMaxSize()
 		|| (media && !media->webpage())
