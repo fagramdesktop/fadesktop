@@ -1,3 +1,8 @@
+2.3.2 (18.07.26)
+
+- Updated tdesktop to v7.0.3
+- Support arm64 MacOS package only
+
 2.3.1 (15.07.26)
 
 - Updated tdesktop to v7.0.1

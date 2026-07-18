@@ -8,7 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #pragma once
 
-constexpr auto AppFAVersion = 2003001;
-constexpr auto AppFAVersionStr = "2.3.1";
+constexpr auto AppFAVersion = 2003002;
+constexpr auto AppFAVersionStr = "2.3.2";
 constexpr auto AppTGDVersion = "7.0.3";
 constexpr auto AppFABetaVersion = false;
