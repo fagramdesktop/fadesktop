@@ -1131,6 +1131,8 @@ void EditFilterBox(
 	};
 	name->submits() | rpl::on_next(save, name->lifetime());
 
+	name->submits() | rpl::on_next(save, name->lifetime());
+
 	box->addButton(rpl::conditional(
 		state->creating.value(),
 		tr::lng_filters_create_button(),
