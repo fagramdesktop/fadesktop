@@ -4618,8 +4618,10 @@ void ComposeControls::editMessage(
 
 void ComposeControls::editMessage(not_null<HistoryItem*> item) {
 	Expects(_history != nullptr);
-	Expects(draftKeyCurrent() != Data::DraftKey::None());
 
+	if (draftKey(DraftType::Edit) == Data::DraftKey::None()) {
+		return;
+	}
 	if (item->richPage()) {
 		if (!_regularWindow) {
 			_show->showToast(tr::lng_edit_error(tr::now));
@@ -4735,8 +4737,10 @@ void ComposeControls::maybeCancelEditMessage() {
 
 void ComposeControls::replyToMessage(FullReplyTo id) {
 	Expects(_history != nullptr);
-	Expects(draftKeyCurrent() != Data::DraftKey::None());
 
+	if (draftKey(DraftType::Normal) == Data::DraftKey::None()) {
+		return;
+	}
 	id.topicRootId = _topicRootId;
 	id.monoforumPeerId = _monoforumPeerId;
 	if (!id) {
