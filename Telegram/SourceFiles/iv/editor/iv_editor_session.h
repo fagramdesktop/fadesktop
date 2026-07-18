@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <rpl/producer.h>
 
 #include <memory>
+#include <optional>
 
 class HistoryItem;
 class PeerData;
@@ -71,7 +72,9 @@ void ShowEditBox(
 void ShowEditFromFieldBox(
 	not_null<Window::SessionController*> controller,
 	not_null<HistoryItem*> item,
-	Api::SendAction action);
+	Api::SendAction action,
+	std::optional<TextWithTags> fieldTextOverride = std::nullopt,
+	Fn<void()> fieldMigratedOverride = nullptr);
 [[nodiscard]] bool ActivateEditWindowFor(
 	not_null<Main::Session*> session,
 	FullMsgId itemId);

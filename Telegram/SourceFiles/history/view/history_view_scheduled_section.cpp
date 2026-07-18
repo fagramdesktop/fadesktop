@@ -356,6 +356,7 @@ void ScheduledWidget::setupComposeControls() {
 		}();
 	_composeControls->setHistory({
 		.history = _history.get(),
+		.sendActionFactory = [=] { return prepareSendAction({}); },
 		.writeRestriction = std::move(writeRestriction),
 	});
 

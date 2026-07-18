@@ -642,27 +642,36 @@ public:
 	static void ShowEditFromField(
 			not_null<HistoryItem*> item,
 			Api::SendAction action,
+			std::optional<TextWithTags> fieldTextOverride,
+			Fn<void()> fieldMigratedOverride,
 			base::weak_ptr<Window::SessionController> controller) {
 		const auto session = &item->history()->session();
 		if (ActivateEditWindow(session, item->fullId())) {
 			return;
 		}
-		const auto topicRootId = action.replyTo.topicRootId;
-		const auto monoforumPeerId = action.replyTo.monoforumPeerId;
-		const auto composeKey = ComposeKey(
-			session,
-			item->history()->peer->id,
-			topicRootId,
-			monoforumPeerId);
 		auto page = std::make_shared<RichPage>();
-		if (const auto entry = LookupComposeThreadEntry(composeKey)) {
-			if (entry->readDraft) {
-				if (const auto draft = entry->readDraft()) {
-					*page = SplitTextIntoRichPage(draft->textWithTags);
-				}
+		if (fieldTextOverride) {
+			*page = SplitTextIntoRichPage(*fieldTextOverride);
+			if (fieldMigratedOverride) {
+				fieldMigratedOverride();
 			}
-			if (entry->migratedAway) {
-				entry->migratedAway();
+		} else {
+			const auto topicRootId = action.replyTo.topicRootId;
+			const auto monoforumPeerId = action.replyTo.monoforumPeerId;
+			const auto composeKey = ComposeKey(
+				session,
+				item->history()->peer->id,
+				topicRootId,
+				monoforumPeerId);
+			if (const auto entry = LookupComposeThreadEntry(composeKey)) {
+				if (entry->readDraft) {
+					if (const auto draft = entry->readDraft()) {
+						*page = SplitTextIntoRichPage(draft->textWithTags);
+					}
+				}
+				if (entry->migratedAway) {
+					entry->migratedAway();
+				}
 			}
 		}
 		auto articleSession = std::shared_ptr<ArticleSession>(new ArticleSession(
@@ -4427,10 +4436,14 @@ void ShowEditBox(
 void ShowEditFromFieldBox(
 		not_null<Window::SessionController*> controller,
 		not_null<HistoryItem*> item,
-		Api::SendAction action) {
+		Api::SendAction action,
+		std::optional<TextWithTags> fieldTextOverride,
+		Fn<void()> fieldMigratedOverride) {
 	ArticleSession::ShowEditFromField(
 		item,
 		std::move(action),
+		std::move(fieldTextOverride),
+		std::move(fieldMigratedOverride),
 		base::make_weak(controller));
 }
 

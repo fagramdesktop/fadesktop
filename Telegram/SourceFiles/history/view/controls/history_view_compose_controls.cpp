@@ -3781,11 +3781,25 @@ void ComposeControls::initExpandButton() {
 			const auto item = _history->owner().message(
 				_header->editMsgId());
 			if (item && Iv::Editor::CheckRichMessagesPremium(_regularWindow)) {
-				Iv::Editor::ShowEditFromFieldBox(
-					_regularWindow,
-					item,
-					_sendActionFactory());
+				if (hasRichDraftThreadScope()) {
+					Iv::Editor::ShowEditFromFieldBox(
+						_regularWindow,
+						item,
+						_sendActionFactory());
+				} else {
+					Iv::Editor::ShowEditFromFieldBox(
+						_regularWindow,
+						item,
+						_sendActionFactory(),
+						getTextWithAppliedMarkdown(),
+						crl::guard(_wrap.get(), [=] {
+							cancelEditMessage();
+						}));
+				}
 			}
+			return;
+		}
+		if (_mode != Mode::Normal) {
 			return;
 		}
 		Iv::Editor::ShowComposeBox(
@@ -4167,6 +4181,7 @@ void ComposeControls::updateExpandButtonVisibility() {
 	const auto hidden = !_wrap->isVisible()
 		|| _recording.current()
 		|| !_field->isVisible()
+		|| (_mode != Mode::Normal && !isEditingMessage())
 		|| !hasEnoughLinesForExpand()
 		|| textExceedsMaxSize()
 		|| (media && !media->webpage())
@@ -4436,7 +4451,8 @@ void ComposeControls::updateAttachBotsMenu() {
 		|| !_features.attachments
 		|| !_history
 		|| !_sendActionFactory
-		|| !_regularWindow) {
+		|| !_regularWindow
+		|| (_mode != Mode::Normal)) {
 		return;
 	}
 	_attachBotsMenu = InlineBots::MakeAttachBotsMenu(
