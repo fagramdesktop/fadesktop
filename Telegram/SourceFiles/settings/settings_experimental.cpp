@@ -7,7 +7,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_experimental.h"
 
+#include "settings/settings_common.h"
 #include "data/components/passkeys.h"
+#include "ui/layers/generic_box.h"
 #include "main/main_session.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/search_field_controller.h"
@@ -48,6 +50,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/session_private.h"
 #include "webview/webview_embed.h"
 #include "window/main_window.h"
+#include "window/window_filters_favorite.h"
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
@@ -215,6 +218,61 @@ void AddOption(
 	}, wrap->lifetime());
 }
 
+void AddFavoriteLinkButton(
+		not_null<Window::Controller*> window,
+		not_null<Ui::VerticalLayout*> container,
+		rpl::producer<QString> query,
+		Fn<void(const QString&, not_null<QWidget*>)> registerHighlight) {
+	const auto option = &base::options::lookup<QString>(
+		Window::kOptionFolderFavoriteLink);
+	const auto name = option->name().isEmpty()
+		? option->id()
+		: option->name();
+	const auto &description = option->description();
+
+	const auto wrap = container->add(
+		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+			container,
+			object_ptr<Ui::VerticalLayout>(container)));
+	const auto inner = wrap->entity();
+
+	auto label = rpl::single(
+		rpl::empty
+	) | rpl::then(
+		option->changes()
+	) | rpl::map([option] {
+		return option->value();
+	});
+	const auto button = AddButtonWithLabel(
+		inner,
+		rpl::single(name),
+		std::move(label),
+		st::settingsButtonNoIcon);
+	button->setClickedCallback([=] {
+		window->show(Box(Window::EditFolderFavoriteLinkBox));
+	});
+
+	if (registerHighlight) {
+		registerHighlight(u"experimental/"_q + option->id(), button);
+	}
+
+	if (!description.isEmpty()) {
+		Ui::AddSkip(inner, st::settingsCheckboxesSkip);
+		Ui::AddDividerText(inner, rpl::single(description));
+		Ui::AddSkip(inner, st::settingsCheckboxesSkip);
+	}
+
+	std::move(
+		query
+	) | rpl::on_next([=](const QString &text) {
+		const auto trimmed = text.trimmed();
+		const auto matches = trimmed.isEmpty()
+			|| name.contains(trimmed, Qt::CaseInsensitive)
+			|| description.contains(trimmed, Qt::CaseInsensitive);
+		wrap->toggle(matches, anim::type::instant);
+	}, wrap->lifetime());
+}
+
 void SetupExperimental(
 		not_null<Window::Controller*> window,
 		not_null<Ui::VerticalLayout*> container,
@@ -317,6 +375,12 @@ void SetupExperimental(
 	addToggle(HistoryView::Controls::kOptionMacCmdReplyImmediately);
 	addToggle(Ui::kOptionQScroller);
 	addToggle(FFmpeg::kOptionFFmpegMultiThread);
+
+	AddFavoriteLinkButton(
+		window,
+		container,
+		rpl::duplicate(query),
+		registerHighlight);
 }
 
 } // namespace
