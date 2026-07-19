@@ -328,7 +328,6 @@ private:
 	rpl::lifetime _userpicLoadingLifetime;
 
 	base::unique_qptr<Ui::IconButton> _close;
-	bool _closeColored = false;
 	base::unique_qptr<Ui::FadeWrap<Ui::IconButton>> _back;
 	rpl::variable<bool> _backToggles;
 

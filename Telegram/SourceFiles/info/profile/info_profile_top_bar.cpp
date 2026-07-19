@@ -2335,9 +2335,7 @@ void TopBar::showTabSearch() {
 
 		const auto cancel = Ui::CreateChild<Ui::IconButton>(
 			inner,
-			_closeColored
-				? st::infoTopBarColoredClose
-				: st::infoTopBarBlackClose);
+			st::infoTopBarBlackClose);
 		cancel->setAccessibleName(tr::lng_sr_cancel_search(tr::now));
 		cancel->show();
 		cancel->addClickHandler([=] {
@@ -2757,7 +2755,6 @@ void TopBar::setupButtons(
 			&& (kMinContrast > Ui::CountContrast(
 				st::boxTitleCloseFg->c,
 				*edgeColor));
-		_closeColored = shouldUseColored;
 		_back = base::make_unique_q<Ui::FadeWrap<Ui::IconButton>>(
 			this,
 			object_ptr<Ui::IconButton>(
