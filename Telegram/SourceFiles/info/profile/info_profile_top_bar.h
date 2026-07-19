@@ -219,6 +219,7 @@ private:
 	[[nodiscard]] bool tabSelectionMode() const;
 	void showTabSearch();
 	void hideTabSearch();
+	void raiseTabSearchOverlay();
 	void updateTabSearchGeometry();
 	[[nodiscard]] int calculateRightButtonsWidth() const;
 	[[nodiscard]] const style::FlatLabel &statusStyle() const;

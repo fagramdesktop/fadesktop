@@ -2356,7 +2356,7 @@ void TopBar::showTabSearch() {
 	_tabSearchShown = true;
 	updateTabSwapVisibility();
 	updateTabSearchGeometry();
-	_tabSearchBar->raise();
+	raiseTabSearchOverlay();
 	_tabSearchBar->toggle(true, anim::type::normal);
 	_tabSearchField->setFocus();
 }
@@ -2367,11 +2367,27 @@ void TopBar::hideTabSearch() {
 		return;
 	}
 	_tabSearchShown = false;
+	if (_back) {
+		_back->entity()->setIconOverride(nullptr, nullptr);
+	}
 	if (_tabSearchField->hasFocus()) {
 		setFocus();
 	}
 	_tabSearchField->setText(QString());
 	_tabSearchBar->toggle(false, anim::type::normal);
+}
+
+void TopBar::raiseTabSearchOverlay() {
+	if (!_tabSearchBar || !_tabSearchShown) {
+		return;
+	}
+	_tabSearchBar->raise();
+	if (_back) {
+		_back->raise();
+		_back->entity()->setIconOverride(
+			&st::infoTopBarBlackBack.icon,
+			&st::infoTopBarBlackBack.iconOver);
+	}
 }
 
 void TopBar::updateTabSearchGeometry() {
@@ -2869,6 +2885,7 @@ void TopBar::setupButtons(
 				addTopBarEditButton(controller, wrap, shouldUseColored);
 			}
 		}
+		raiseTabSearchOverlay();
 	}, lifetime());
 }
 
