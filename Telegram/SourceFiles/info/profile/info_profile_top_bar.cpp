@@ -2390,6 +2390,18 @@ void TopBar::checkBeforeCloseByEscape(Fn<void()> close) {
 	}
 }
 
+bool TopBar::searchAvailable() const {
+	return _tabSearchShown || (tabSwapActive() && _tabSearchAvailable);
+}
+
+void TopBar::showSearch() {
+	if (_tabSearchShown) {
+		_tabSearchField->setFocus();
+	} else if (tabSwapActive() && _tabSearchAvailable) {
+		showTabSearch();
+	}
+}
+
 void TopBar::raiseTabSearchOverlay() {
 	if (!_tabSearchBar || !_tabSearchShown) {
 		return;

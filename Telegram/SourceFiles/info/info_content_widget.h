@@ -142,6 +142,11 @@ public:
 		close();
 	}
 	virtual void checkBeforeCloseByEscape(Fn<void()> close);
+	[[nodiscard]] virtual bool searchAvailable() const {
+		return false;
+	}
+	virtual void showSearch() {
+	}
 	[[nodiscard]] virtual rpl::producer<QString> title() = 0;
 	[[nodiscard]] virtual rpl::producer<QString> subtitle() {
 		return nullptr;

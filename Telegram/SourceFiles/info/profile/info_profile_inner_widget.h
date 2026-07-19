@@ -66,6 +66,8 @@ public:
 	void enableBackButton();
 	void showFinished();
 	void checkBeforeCloseByEscape(Fn<void()> close);
+	[[nodiscard]] bool searchAvailable() const;
+	void showSearch();
 
 	[[nodiscard]] TabsHost *tabsHost() const {
 		return _tabsHost;

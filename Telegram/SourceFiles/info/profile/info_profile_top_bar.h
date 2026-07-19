@@ -132,6 +132,8 @@ public:
 		Fn<void(bool)> toggle);
 
 	void checkBeforeCloseByEscape(Fn<void()> close);
+	[[nodiscard]] bool searchAvailable() const;
+	void showSearch();
 
 	void setRoundEdges(bool value);
 	void setLottieSingleLoop(bool value);

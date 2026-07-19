@@ -544,6 +544,17 @@ void InnerWidget::checkBeforeCloseByEscape(Fn<void()> close) {
 	}
 }
 
+bool InnerWidget::searchAvailable() const {
+	const auto top = _topBar.get();
+	return top && top->searchAvailable();
+}
+
+void InnerWidget::showSearch() {
+	if (const auto top = _topBar.get()) {
+		top->showSearch();
+	}
+}
+
 bool InnerWidget::hasFlexibleTopBar() const {
 	return true;
 }
