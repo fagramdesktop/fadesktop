@@ -919,6 +919,7 @@ dialogsSearchTabs: SettingsSlider(defaultSettingsSlider) {
 chatsFiltersTabs: SettingsSlider(dialogsSearchTabs) {
 	rippleBottomSkip: 0px;
 }
+dialogsFiltersTabsIconSkip: 5px;
 
 dialogsStoriesList: DialogsStoriesList {
 	small: dialogsStories;
