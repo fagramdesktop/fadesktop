@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "info/info_controller.h"
 #include "info/media/info_media_buttons.h"
+#include "info/media/info_media_empty_widget.h"
 #include "info/media/info_media_list_widget.h"
 #include "info/profile/info_profile_values.h"
 #include "info/profile/tabs/adapters/info_profile_tab_sub_controller.h"
@@ -113,6 +114,15 @@ public:
 		_list->show();
 		_skeleton = CreateTabSkeleton(host, _type);
 		_skeleton->show();
+		_empty = Ui::CreateChild<Media::EmptyWidget>(host);
+		_empty->setType(_type);
+		_empty->setSearchQuery(QString());
+		_empty->hide();
+		_empty->setFullHeight(_fullHeight.value());
+		_empty->heightValue(
+		) | rpl::on_next([this](int) {
+			updateHostHeight();
+		}, host->lifetime());
 		_list->heightValue(
 		) | rpl::on_next([this](int newHeight) {
 			if (newHeight > 0 && !_listLoaded) {
@@ -140,6 +150,9 @@ public:
 			_list->resizeToWidth(std::max(
 				newWidth - st::infoMediaTabsRightSkip,
 				1));
+			if (_empty) {
+				_empty->resizeToWidth(newWidth);
+			}
 		}
 		updateHostHeight();
 	}
@@ -178,6 +191,7 @@ public:
 				base::make_weak(_list),
 				[this](const QString &query) {
 					_subController.applySearchQuery(query);
+					_empty->setSearchQuery(query);
 				}),
 		};
 	}
@@ -185,9 +199,11 @@ public:
 	void deactivated() override {
 		_list->selectionAction(SelectionAction::Clear);
 		_subController.applySearchQuery(QString());
+		_empty->setSearchQuery(QString());
 	}
 
 	void setVisibleRegion(int top, int bottom) override {
+		_fullHeight = bottom - top;
 		_list->setExternalViewportHeight(bottom - top);
 		_list->setVisibleTopBottom(top, bottom);
 	}
@@ -203,9 +219,22 @@ private:
 	}
 
 	void updateHostHeight() {
-		const auto height = skeletonShown()
-			? st::infoMediaSkeletonMinHeight
-			: _list->height();
+		auto height = 0;
+		if (skeletonShown()) {
+			if (_empty) {
+				_empty->hide();
+			}
+			height = st::infoMediaSkeletonMinHeight;
+		} else if (_empty && (_list->height() <= 0)) {
+			_empty->moveToLeft(0, 0);
+			_empty->show();
+			height = _empty->height();
+		} else {
+			if (_empty) {
+				_empty->hide();
+			}
+			height = _list->height();
+		}
 		if (_host->height() != height) {
 			_host->resize(_host->width(), height);
 		}
@@ -260,6 +289,8 @@ private:
 	MediaSubController _subController;
 	object_ptr<Ui::RpWidget> _host;
 	Media::ListWidget *_list = nullptr;
+	Media::EmptyWidget *_empty = nullptr;
+	rpl::variable<int> _fullHeight = 0;
 	int _topOverlay = 0;
 	object_ptr<Ui::RpWidget> _skeleton = { nullptr };
 	bool _listLoaded = false;
