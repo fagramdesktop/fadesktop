@@ -471,14 +471,16 @@ void InnerWidget::visibleTopBottomUpdated(
 	setChildVisibleTopBottom(_content, visibleTop, visibleBottom);
 	if (_tabsHost) {
 		const auto top = MapFrom(this, _tabsHost, QPoint()).y();
-		if (!_clampingTabsScroll
-			&& (top > 0)
-			&& (visibleTop < top)
-			&& _tabsHost->searching()) {
-			_clampingTabsScroll = true;
-			_scrollToRequests.fire({ top, -1 });
-			_clampingTabsScroll = false;
-			return;
+		if (!_clampingTabsScroll && (top > 0) && _tabsHost->searching()) {
+			const auto offDock = _tabsHost->searchContentFits()
+				? (visibleTop != top)
+				: (visibleTop < top);
+			if (offDock) {
+				_clampingTabsScroll = true;
+				_scrollToRequests.fire({ top, -1 });
+				_clampingTabsScroll = false;
+				return;
+			}
 		}
 		_tabsHost->setVisibleRegion(visibleTop - top, visibleBottom - top);
 		_tabsDocked = (top > 0) && (visibleTop >= top);

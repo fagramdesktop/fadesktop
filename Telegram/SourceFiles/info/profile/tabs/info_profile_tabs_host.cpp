@@ -792,7 +792,8 @@ int TabsHost::resizeGetHeight(int newWidth) {
 
 	const auto natural = bodyTop + _body->height();
 	const auto span = _visibleBottom - _visibleTop;
-	if (_searching && !_scrolledToTop && (natural < span)) {
+	_searchContentFits = _searching && !_scrolledToTop && (natural < span);
+	if (_searchContentFits) {
 		_keepMinHeight = span;
 	} else if (_keepMinHeight
 		&& ((natural >= _keepMinHeight)
