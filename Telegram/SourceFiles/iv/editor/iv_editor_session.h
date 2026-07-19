@@ -40,6 +40,16 @@ struct RichPage;
 
 namespace Iv::Editor {
 
+struct ComposeBoxOptions {
+	enum class Scope {
+		Thread,
+		DetachedScheduled,
+	};
+
+	Scope scope = Scope::Thread;
+	Fn<void(TextWithTags)> returnText;
+};
+
 void ShowRichMessagesPremiumToast(std::shared_ptr<ChatHelpers::Show> show);
 [[nodiscard]] bool CanAuthorRichMessages(not_null<Main::Session*> session);
 void OfferRichMessagePremiumChoice(
@@ -58,7 +68,8 @@ void ShowComposeBox(
 	Api::SendAction action,
 	SendMenu::Details sendMenuDetails,
 	TextWithTags fieldText = {},
-	Fn<void()> onMigrated = nullptr);
+	Fn<void()> onMigrated = nullptr,
+	ComposeBoxOptions options = {});
 void ShowEditBox(
 	not_null<Window::SessionController*> controller,
 	not_null<HistoryItem*> item);

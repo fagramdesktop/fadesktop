@@ -450,6 +450,7 @@ private:
 	[[nodiscard]] bool hasEditDraft() const;
 	[[nodiscard]] bool shouldShowRichDraftPreview() const;
 	void migrateFieldToRichEditor();
+	void migrateScheduledFieldToRichEditor();
 
 	const style::ComposeControls &_st;
 	ChatHelpers::ComposeFeatures _features;

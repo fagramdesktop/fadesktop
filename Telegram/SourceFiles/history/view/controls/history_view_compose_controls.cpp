@@ -2179,6 +2179,16 @@ void ComposeControls::migrateFieldToRichEditor() {
 	}
 }
 
+void ComposeControls::migrateScheduledFieldToRichEditor() {
+	Expects(_history != nullptr);
+	Expects(!isEditingMessage());
+	Expects(_mode == Mode::Scheduled);
+
+	cancelPendingDraftSaves();
+	clearFieldText();
+	_history->clearDraft(draftKey(DraftType::Normal));
+}
+
 void ComposeControls::clearFieldText(
 		TextUpdateEvents events,
 		FieldHistoryAction fieldHistoryAction) {
@@ -3750,6 +3760,26 @@ void ComposeControls::initExpandButton() {
 			}
 			return;
 		}
+		if (_mode == Mode::Scheduled) {
+			Iv::Editor::ShowComposeBox(
+				_regularWindow,
+				_history->peer,
+				_sendActionFactory(),
+				sendMenuDetails(),
+				getTextWithAppliedMarkdown(),
+				crl::guard(_wrap.get(), [=] {
+					migrateScheduledFieldToRichEditor();
+				}),
+				Iv::Editor::ComposeBoxOptions{
+					.scope = Iv::Editor::ComposeBoxOptions::Scope::DetachedScheduled,
+					.returnText = crl::guard(
+						_wrap.get(),
+						[=](TextWithTags text) {
+							setText(text);
+						}),
+				});
+			return;
+		}
 		if (_mode != Mode::Normal || !hasRichDraftThreadScope()) {
 			return;
 		}
@@ -4133,11 +4163,12 @@ void ComposeControls::updateExpandButtonVisibility() {
 		? _history->owner().message(_header->editMsgId())
 		: nullptr;
 	const auto media = item ? item->media() : nullptr;
+	const auto composeEligible = (_mode == Mode::Scheduled)
+		|| ((_mode == Mode::Normal) && hasRichDraftThreadScope());
 	const auto hidden = !_wrap->isVisible()
 		|| _recording.current()
 		|| !_field->isVisible()
-		|| ((_mode != Mode::Normal || !hasRichDraftThreadScope())
-			&& !isEditingMessage())
+		|| (!composeEligible && !isEditingMessage())
 		|| !hasEnoughLinesForExpand()
 		|| textExceedsMaxSize()
 		|| (media && !media->webpage())

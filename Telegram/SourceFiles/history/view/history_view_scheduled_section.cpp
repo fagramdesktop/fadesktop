@@ -162,7 +162,9 @@ ScheduledWidget::ScheduledWidget(
 			listShowPremiumToast(emoji);
 		},
 		.mode = ComposeControls::Mode::Scheduled,
-		.sendMenuDetails = [] { return SendMenu::Details(); },
+		.sendMenuDetails = crl::guard(this, [=] {
+			return sendMenuDetails();
+		}),
 		.regularWindow = controller,
 		.stickerOrEmojiChosen = controller->stickerOrEmojiChosen(),
 	}))

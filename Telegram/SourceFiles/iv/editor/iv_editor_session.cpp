@@ -39,6 +39,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_saved_sublist.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
+#include "history/view/history_view_schedule_box.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/history_item_helpers.h"
@@ -548,26 +549,36 @@ public:
 		SendMenu::Details sendMenuDetails,
 		TextWithTags fieldText,
 		Fn<void()> onMigrated,
+		ComposeBoxOptions options,
 		base::weak_ptr<Window::SessionController> controller) {
 		const auto history = action.history;
-		const auto topicRootId = action.replyTo.topicRootId;
-		const auto monoforumPeerId = action.replyTo.monoforumPeerId;
-		const auto composeKey = ComposeKey(
-			session,
-			history->peer->id,
-			topicRootId,
-			monoforumPeerId);
-		if (const auto entry = LookupComposeThreadEntry(composeKey)) {
-			if (const auto existing = entry->articleSession.lock()) {
-				existing->focusWindow();
-				return;
+		auto composeThreadKey = std::optional<ComposeThreadKey>();
+		auto page = std::make_shared<RichPage>();
+		auto hasRichDraft = false;
+		auto fieldTextAdopted = false;
+		if (options.scope == ComposeBoxOptions::Scope::Thread) {
+			const auto topicRootId = action.replyTo.topicRootId;
+			const auto monoforumPeerId = action.replyTo.monoforumPeerId;
+			const auto composeKey = ComposeKey(
+				session,
+				history->peer->id,
+				topicRootId,
+				monoforumPeerId);
+			if (const auto entry = LookupComposeThreadEntry(composeKey)) {
+				if (const auto existing = entry->articleSession.lock()) {
+					existing->focusWindow();
+					return;
+				}
 			}
+			const auto cloudDraft = history->cloudDraft(
+				topicRootId,
+				monoforumPeerId);
+			hasRichDraft = cloudDraft && cloudDraft->hasRichMessage();
+			if (hasRichDraft) {
+				page = std::make_shared<RichPage>(*cloudDraft->richMessage);
+			}
+			composeThreadKey = composeKey;
 		}
-		const auto cloudDraft = history->cloudDraft(topicRootId, monoforumPeerId);
-		const auto hasRichDraft = (cloudDraft && cloudDraft->hasRichMessage());
-		const auto page = hasRichDraft
-			? std::make_shared<RichPage>(*cloudDraft->richMessage)
-			: std::make_shared<RichPage>();
 		if (!fieldText.empty()) {
 			auto migrated = SplitTextIntoRichPage(fieldText);
 			if (!migrated.blocks.empty()) {
@@ -579,10 +590,15 @@ public:
 				} else {
 					*page = std::move(migrated);
 				}
+				fieldTextAdopted = true;
 				if (onMigrated) {
 					onMigrated();
 				}
 			}
+		}
+		if (!fieldTextAdopted
+			&& options.scope == ComposeBoxOptions::Scope::DetachedScheduled) {
+			(void)base::take(options.returnText);
 		}
 		auto articleSession = std::shared_ptr<ArticleSession>(new ArticleSession(
 			session,
@@ -592,8 +608,9 @@ public:
 			std::move(page),
 			std::move(action),
 			std::move(sendMenuDetails),
+			std::move(options),
 			std::nullopt,
-			composeKey,
+			std::move(composeThreadKey),
 			std::move(controller)));
 		articleSession->showWindow();
 	}
@@ -619,6 +636,7 @@ public:
 			item->fullId(),
 			std::make_shared<RichPage>(*richPage),
 			std::nullopt,
+			{},
 			{},
 			EditedItemSnapshot{
 				.item = item,
@@ -655,6 +673,7 @@ public:
 			item->fullId(),
 			std::move(page),
 			std::move(action),
+			{},
 			{},
 			EditedItemSnapshot{
 				.item = item,
@@ -763,6 +782,7 @@ private:
 		std::shared_ptr<RichPage> page,
 		std::optional<Api::SendAction> action,
 		SendMenu::Details sendMenuDetails,
+		ComposeBoxOptions composeOptions,
 		std::optional<EditedItemSnapshot> edited,
 		std::optional<ComposeThreadKey> composeThreadKey,
 		base::weak_ptr<Window::SessionController> controller = {})
@@ -776,6 +796,7 @@ private:
 	, _articleId(articleId)
 	, _composeAction(std::move(action))
 	, _sendMenuDetails(std::move(sendMenuDetails))
+	, _composeOptions(std::move(composeOptions))
 	, _edited(std::move(edited))
 	, _composeThreadKey(std::move(composeThreadKey))
 	, _page(page ? std::move(page) : std::make_shared<RichPage>())
@@ -860,6 +881,72 @@ private:
 			: composeDraftOrigin();
 	}
 
+	[[nodiscard]] bool detachedScheduled() const {
+		return _composeOptions.scope
+			== ComposeBoxOptions::Scope::DetachedScheduled;
+	}
+
+	void dropDetachedReturnText() {
+		if (detachedScheduled()) {
+			(void)base::take(_composeOptions.returnText);
+		}
+	}
+
+	[[nodiscard]] bool deliverDetachedReturnText() {
+		Expects(detachedScheduled());
+
+		if (hasPendingPreparation()) {
+			return false;
+		}
+		auto result = TextWithTags();
+		if (!_state->articleEmpty()) {
+			const auto simple = SerializeAsSimple(_state->richPage(), _session);
+			if (!simple) {
+				return false;
+			}
+			result = {
+				simple->text,
+				TextUtilities::ConvertEntitiesToTextTags(simple->entities),
+			};
+		}
+		const auto callback = base::take(_composeOptions.returnText);
+		if (callback) {
+			callback(std::move(result));
+		}
+		return true;
+	}
+
+	[[nodiscard]] bool showDetachedScheduleBox() {
+		if (!detachedScheduled() || _submitOptions.scheduled) {
+			return false;
+		} else if (_scheduleBox) {
+			return true;
+		}
+		const auto show = resolveShow();
+		if (!show) {
+			return true;
+		}
+		const auto generation = ++_scheduleBoxGeneration;
+		const auto weak = base::make_weak(this);
+		auto box = HistoryView::PrepareScheduleBox(
+			base::make_weak(show->toastParent()),
+			show,
+			_sendMenuDetails,
+			[weak, generation](Api::SendOptions options) {
+				if (const auto session = weak.get()) {
+					if (session->_scheduleBoxGeneration != generation) {
+						return;
+					}
+					++session->_scheduleBoxGeneration;
+					session->_scheduleBox.reset();
+					session->requestSubmit(std::move(options));
+				}
+			},
+			_submitOptions);
+		_scheduleBox = show->show(std::move(box));
+		return true;
+	}
+
 	[[nodiscard]] bool submitWouldBeEphemeral(
 			const std::optional<TextWithEntities> &simple) const {
 		if (!_composeAction) {
@@ -913,6 +1000,9 @@ private:
 		}
 		if (_state->articleEmpty()) {
 			showEmptySubmittedPageToast();
+			return false;
+		}
+		if (showDetachedScheduleBox()) {
 			return false;
 		}
 		auto simple = SerializeAsSimple(_state->richPage(), _session);
@@ -994,16 +1084,19 @@ private:
 			}
 			auto action = *_composeAction;
 			action.options = _submitOptions;
-			action.clearDraft = true;
-			action.history->clearCloudDraft(
-				action.replyTo.topicRootId,
-				action.replyTo.monoforumPeerId);
+			action.clearDraft = !detachedScheduled();
+			if (action.clearDraft) {
+				action.history->clearCloudDraft(
+					action.replyTo.topicRootId,
+					action.replyTo.monoforumPeerId);
+			}
 			auto message = Api::MessageToSend(action);
 			message.textWithTags = {
 				text.text,
 				TextUtilities::ConvertEntitiesToTextTags(text.entities),
 			};
 			cancelRichDraftAutosave();
+			dropDetachedReturnText();
 			_session->api().sendMessage(std::move(message));
 			return true;
 		}
@@ -1055,11 +1148,16 @@ private:
 
 	[[nodiscard]] bool cancelRequested() {
 		_submitDeferred = false;
-		return true;
+		return detachedScheduled()
+			? deliverDetachedReturnText()
+			: true;
 	}
 
 	[[nodiscard]] bool changedCancelRequested() {
 		_submitDeferred = false;
+		if (detachedScheduled()) {
+			return deliverDetachedReturnText();
+		}
 		if (!_composeAction || !_composeThreadKey) {
 			return true;
 		}
@@ -1070,6 +1168,7 @@ private:
 	[[nodiscard]] bool discardRequested() {
 		_submitDeferred = false;
 		cancelRichDraftAutosave();
+		dropDetachedReturnText();
 		if (!_composeAction || !_composeThreadKey) {
 			return true;
 		}
@@ -1410,10 +1509,13 @@ private:
 		if (_mode == Mode::Compose) {
 			auto action = *_composeAction;
 			action.options = _submitOptions;
-			action.clearDraft = true;
-			action.history->clearCloudDraft(
-				action.replyTo.topicRootId,
-				action.replyTo.monoforumPeerId);
+			action.clearDraft = !detachedScheduled();
+			if (action.clearDraft) {
+				action.history->clearCloudDraft(
+					action.replyTo.topicRootId,
+					action.replyTo.monoforumPeerId);
+			}
+			dropDetachedReturnText();
 			_session->api().sendRichMessage(
 				item,
 				*richMessage.value,
@@ -1799,6 +1901,12 @@ private:
 		}
 		cancelRichDraftAutosave();
 		cancelCloseWithDraftSave(_closeDraftSaveGeneration);
+		if (detachedScheduled()
+			&& _composeOptions.returnText
+			&& !_submittedPage
+			&& !_submitApiRequested) {
+			(void)deliverDetachedReturnText();
+		}
 		const auto sync = _composeAction
 			&& _composeThreadKey
 			&& !_submittedPage
@@ -3754,6 +3862,7 @@ private:
 	const FullMsgId _articleId;
 	std::optional<Api::SendAction> _composeAction;
 	const SendMenu::Details _sendMenuDetails;
+	ComposeBoxOptions _composeOptions;
 	const std::optional<EditedItemSnapshot> _edited;
 	const std::optional<ComposeThreadKey> _composeThreadKey;
 	const std::shared_ptr<RichPage> _page;
@@ -3775,12 +3884,14 @@ private:
 	std::vector<MediaBatch> _mediaBatches;
 	TaskQueue _attachmentPrepareQueue;
 	base::Timer _richDraftAutosaveTimer;
+	base::weak_qptr<Ui::GenericBox> _scheduleBox;
 	base::weak_qptr<Ui::GenericBox> _closeDraftSaveBox;
 	rpl::lifetime _editorAutosaveLifetime;
 	rpl::lifetime _photoEditSourceLifetime;
 	rpl::lifetime _lifetime;
 	uint64 _prepareBatchId = 0;
 	uint64 _rejectedToastBatchId = 0;
+	uint64 _scheduleBoxGeneration = 0;
 	uint64 _closeDraftSaveGeneration = 0;
 	mtpRequestId _closeDraftSaveRequestId = 0;
 	int _pendingAttachmentPrepareCount = 0;
@@ -4349,7 +4460,8 @@ void ShowComposeBox(
 		Api::SendAction action,
 		SendMenu::Details sendMenuDetails,
 		TextWithTags fieldText,
-		Fn<void()> onMigrated) {
+		Fn<void()> onMigrated,
+		ComposeBoxOptions options) {
 	ArticleSession::ShowCompose(
 		&controller->session(),
 		peer,
@@ -4357,6 +4469,7 @@ void ShowComposeBox(
 		std::move(sendMenuDetails),
 		std::move(fieldText),
 		std::move(onMigrated),
+		std::move(options),
 		base::make_weak(controller));
 }
 
