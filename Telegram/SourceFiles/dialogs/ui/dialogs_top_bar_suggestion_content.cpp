@@ -797,6 +797,7 @@ void MountTopBarSuggestion(MountTopBarSuggestionArgs args) {
 	}
 	wrap->setParent(scroll);
 	wrap->raise();
+	wrap->setVisible(wrap->toggled() || wrap->animating());
 	const auto lastHeight = wrap->entity()->lifetime().make_state<int>(-1);
 	const auto syncHeight = [=] {
 		const auto h = wrap->height();
