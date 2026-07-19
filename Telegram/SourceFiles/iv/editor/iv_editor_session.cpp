@@ -597,7 +597,7 @@ public:
 			}
 		}
 		if (!fieldTextAdopted
-			&& options.scope == ComposeBoxOptions::Scope::DetachedScheduled) {
+			&& options.scope == ComposeBoxOptions::Scope::Detached) {
 			(void)base::take(options.returnText);
 		}
 		auto articleSession = std::shared_ptr<ArticleSession>(new ArticleSession(
@@ -881,19 +881,19 @@ private:
 			: composeDraftOrigin();
 	}
 
-	[[nodiscard]] bool detachedScheduled() const {
+	[[nodiscard]] bool detachedCompose() const {
 		return _composeOptions.scope
-			== ComposeBoxOptions::Scope::DetachedScheduled;
+			== ComposeBoxOptions::Scope::Detached;
 	}
 
 	void dropDetachedReturnText() {
-		if (detachedScheduled()) {
+		if (detachedCompose()) {
 			(void)base::take(_composeOptions.returnText);
 		}
 	}
 
 	[[nodiscard]] bool deliverDetachedReturnText() {
-		Expects(detachedScheduled());
+		Expects(detachedCompose());
 
 		if (hasPendingPreparation()) {
 			return false;
@@ -917,7 +917,10 @@ private:
 	}
 
 	[[nodiscard]] bool showDetachedScheduleBox() {
-		if (!detachedScheduled() || _submitOptions.scheduled) {
+		if (!detachedCompose()
+			|| _composeOptions.submitPolicy
+				!= ComposeBoxOptions::SubmitPolicy::Schedule
+			|| _submitOptions.scheduled) {
 			return false;
 		} else if (_scheduleBox) {
 			return true;
@@ -1084,7 +1087,7 @@ private:
 			}
 			auto action = *_composeAction;
 			action.options = _submitOptions;
-			action.clearDraft = !detachedScheduled();
+			action.clearDraft = !detachedCompose();
 			if (action.clearDraft) {
 				action.history->clearCloudDraft(
 					action.replyTo.topicRootId,
@@ -1148,14 +1151,14 @@ private:
 
 	[[nodiscard]] bool cancelRequested() {
 		_submitDeferred = false;
-		return detachedScheduled()
+		return detachedCompose()
 			? deliverDetachedReturnText()
 			: true;
 	}
 
 	[[nodiscard]] bool changedCancelRequested() {
 		_submitDeferred = false;
-		if (detachedScheduled()) {
+		if (detachedCompose()) {
 			return deliverDetachedReturnText();
 		}
 		if (!_composeAction || !_composeThreadKey) {
@@ -1509,7 +1512,7 @@ private:
 		if (_mode == Mode::Compose) {
 			auto action = *_composeAction;
 			action.options = _submitOptions;
-			action.clearDraft = !detachedScheduled();
+			action.clearDraft = !detachedCompose();
 			if (action.clearDraft) {
 				action.history->clearCloudDraft(
 					action.replyTo.topicRootId,
@@ -1901,7 +1904,7 @@ private:
 		}
 		cancelRichDraftAutosave();
 		cancelCloseWithDraftSave(_closeDraftSaveGeneration);
-		if (detachedScheduled()
+		if (detachedCompose()
 			&& _composeOptions.returnText
 			&& !_submittedPage
 			&& !_submitApiRequested) {

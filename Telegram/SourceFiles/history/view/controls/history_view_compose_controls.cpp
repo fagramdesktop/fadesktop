@@ -1201,6 +1201,7 @@ void ComposeControls::updateShortcutId(BusinessShortcutId shortcutId) {
 	unregisterDraftSources();
 	_shortcutId = shortcutId;
 	registerDraftSource();
+	updateExpandButtonVisibility();
 }
 
 void ComposeControls::setHistory(SetHistoryArgs &&args) {
@@ -2131,6 +2132,15 @@ bool ComposeControls::hasRichDraftThreadScope() const {
 		&& draftKey(DraftType::Normal).isLocal();
 }
 
+bool ComposeControls::isShortcutComposeEligible() const {
+	return _history
+		&& !isEditingMessage()
+		&& (_mode == Mode::Normal)
+		&& (_currentDialogsEntryState.section
+			== Dialogs::EntryState::Section::ShortcutMessages)
+		&& (_shortcutId > 0);
+}
+
 bool ComposeControls::hasEditDraft() const {
 	return _history
 		&& (_history->draft(draftKey(DraftType::Edit)) != nullptr);
@@ -2187,6 +2197,18 @@ void ComposeControls::migrateScheduledFieldToRichEditor() {
 	cancelPendingDraftSaves();
 	clearFieldText();
 	_history->clearDraft(draftKey(DraftType::Normal));
+}
+
+void ComposeControls::migrateShortcutFieldToRichEditor(
+		BusinessShortcutId expectedShortcutId) {
+	if (!isShortcutComposeEligible()
+		|| _shortcutId != expectedShortcutId) {
+		return;
+	}
+
+	cancelPendingDraftSaves();
+	clearFieldText();
+	_history->clearDraft(Data::DraftKey::Shortcut(expectedShortcutId));
 }
 
 void ComposeControls::clearFieldText(
@@ -3771,11 +3793,48 @@ void ComposeControls::initExpandButton() {
 					migrateScheduledFieldToRichEditor();
 				}),
 				Iv::Editor::ComposeBoxOptions{
-					.scope = Iv::Editor::ComposeBoxOptions::Scope::DetachedScheduled,
+					.scope = Iv::Editor::ComposeBoxOptions::Scope::Detached,
+					.submitPolicy = Iv::Editor::ComposeBoxOptions::SubmitPolicy::Schedule,
 					.returnText = crl::guard(
 						_wrap.get(),
 						[=](TextWithTags text) {
 							setText(text);
+						}),
+				});
+			return;
+		}
+		if (_currentDialogsEntryState.section
+				== Dialogs::EntryState::Section::ShortcutMessages) {
+			if (!isShortcutComposeEligible()) {
+				return;
+			}
+			const auto expectedShortcutId = _shortcutId;
+			auto action = _sendActionFactory();
+			if (!isShortcutComposeEligible()
+				|| _shortcutId != expectedShortcutId
+				|| action.options.shortcutId != expectedShortcutId) {
+				return;
+			}
+			auto fieldText = getTextWithAppliedMarkdown();
+			Iv::Editor::ShowComposeBox(
+				_regularWindow,
+				_history->peer,
+				std::move(action),
+				sendMenuDetails(),
+				std::move(fieldText),
+				crl::guard(_wrap.get(), [=] {
+					migrateShortcutFieldToRichEditor(
+						expectedShortcutId);
+				}),
+				Iv::Editor::ComposeBoxOptions{
+					.scope = Iv::Editor::ComposeBoxOptions::Scope::Detached,
+					.returnText = crl::guard(
+						_wrap.get(),
+						[=](TextWithTags text) {
+							if (isShortcutComposeEligible()
+								&& _shortcutId == expectedShortcutId) {
+								setText(text);
+							}
 						}),
 				});
 			return;
@@ -4164,7 +4223,8 @@ void ComposeControls::updateExpandButtonVisibility() {
 		: nullptr;
 	const auto media = item ? item->media() : nullptr;
 	const auto composeEligible = (_mode == Mode::Scheduled)
-		|| ((_mode == Mode::Normal) && hasRichDraftThreadScope());
+		|| ((_mode == Mode::Normal) && hasRichDraftThreadScope())
+		|| isShortcutComposeEligible();
 	const auto hidden = !_wrap->isVisible()
 		|| _recording.current()
 		|| !_field->isVisible()

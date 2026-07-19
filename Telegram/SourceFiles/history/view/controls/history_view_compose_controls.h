@@ -446,11 +446,14 @@ private:
 	[[nodiscard]] Data::Draft *cloudDraft() const;
 	[[nodiscard]] bool isComposeBoxOpen() const;
 	[[nodiscard]] bool hasRichDraftThreadScope() const;
+	[[nodiscard]] bool isShortcutComposeEligible() const;
 	[[nodiscard]] bool bypassNormalDraftHandling() const;
 	[[nodiscard]] bool hasEditDraft() const;
 	[[nodiscard]] bool shouldShowRichDraftPreview() const;
 	void migrateFieldToRichEditor();
 	void migrateScheduledFieldToRichEditor();
+	void migrateShortcutFieldToRichEditor(
+		BusinessShortcutId expectedShortcutId);
 
 	const style::ComposeControls &_st;
 	ChatHelpers::ComposeFeatures _features;

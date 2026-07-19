@@ -43,10 +43,15 @@ namespace Iv::Editor {
 struct ComposeBoxOptions {
 	enum class Scope {
 		Thread,
-		DetachedScheduled,
+		Detached,
+	};
+	enum class SubmitPolicy {
+		Immediate,
+		Schedule,
 	};
 
 	Scope scope = Scope::Thread;
+	SubmitPolicy submitPolicy = SubmitPolicy::Immediate;
 	Fn<void(TextWithTags)> returnText;
 };
 
