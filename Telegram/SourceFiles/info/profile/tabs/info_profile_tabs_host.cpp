@@ -791,8 +791,9 @@ int TabsHost::resizeGetHeight(int newWidth) {
 	_body->moveToLeft(0, bodyTop);
 
 	const auto natural = bodyTop + _body->height();
-	if (_searching && !_scrolledToTop && (natural < _visibleBottom)) {
-		_keepMinHeight = std::max(_keepMinHeight, _visibleBottom);
+	const auto span = _visibleBottom - _visibleTop;
+	if (_searching && !_scrolledToTop && (natural < span)) {
+		_keepMinHeight = span;
 	} else if (_keepMinHeight
 		&& ((natural >= _keepMinHeight)
 			|| (natural >= _visibleBottom)
