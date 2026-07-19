@@ -952,7 +952,8 @@ private:
 					if (const auto strong = weak.get()) {
 						strong->submitWithoutFormatting(page);
 					}
-				});
+				},
+				_mode == Mode::Edit);
 			return false;
 		}
 		auto page = std::shared_ptr<const RichPage>(
@@ -4225,7 +4226,8 @@ void OfferRichMessagePremiumChoice(
 		std::shared_ptr<ChatHelpers::Show> show,
 		not_null<Main::Session*> session,
 		const RichPage &page,
-		Fn<void()> sendWithoutFormatting) {
+		Fn<void()> sendWithoutFormatting,
+		bool save) {
 	if (!show) {
 		return;
 	}
@@ -4305,7 +4307,9 @@ void OfferRichMessagePremiumChoice(
 		const auto plain = box->addRow(
 			object_ptr<Ui::RoundButton>(
 				box,
-				tr::lng_article_premium_choice_plain(),
+				(save
+					? tr::lng_article_premium_choice_plain_save()
+					: tr::lng_article_premium_choice_plain()),
 				st::defaultLightButton),
 			st::boxRowPadding,
 			style::al_justify);
@@ -4339,18 +4343,6 @@ bool CanAuthorRichMessages(not_null<Main::Session*> session) {
 	return RichMessagePostingMode(session) != RichMessagePosting::Disabled;
 }
 
-bool CheckRichMessagesPremium(
-		not_null<Window::SessionController*> controller) {
-	if (!CanAuthorRichMessages(&controller->session())) {
-		return false;
-	}
-	if (CanUseRichMessages(&controller->session())) {
-		return true;
-	}
-	ShowRichMessagesPremiumToast(controller->uiShow());
-	return false;
-}
-
 void ShowComposeBox(
 		not_null<Window::SessionController*> controller,
 		not_null<PeerData*> peer,
@@ -4372,10 +4364,6 @@ void ShowEditBox(
 		not_null<Window::SessionController*> controller,
 		not_null<HistoryItem*> item) {
 	if (!CanAuthorRichMessages(&controller->session())) {
-		return;
-	}
-	if (!CanUseRichMessages(&controller->session())) {
-		ShowRichMessagesPremiumToast(controller->uiShow());
 		return;
 	}
 	const auto weak = base::make_weak(controller);

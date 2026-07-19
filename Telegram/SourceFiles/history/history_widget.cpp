@@ -1422,7 +1422,7 @@ void HistoryWidget::initExpandButton() {
 			const auto item = session().data().message(
 				_history->peer,
 				_editMsgId);
-			if (item && Iv::Editor::CheckRichMessagesPremium(window)) {
+			if (item) {
 				Iv::Editor::ShowEditFromFieldBox(
 					window,
 					item,

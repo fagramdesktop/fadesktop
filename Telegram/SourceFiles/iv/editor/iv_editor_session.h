@@ -40,15 +40,14 @@ struct RichPage;
 
 namespace Iv::Editor {
 
-[[nodiscard]] bool CheckRichMessagesPremium(
-	not_null<Window::SessionController*> controller);
 void ShowRichMessagesPremiumToast(std::shared_ptr<ChatHelpers::Show> show);
 [[nodiscard]] bool CanAuthorRichMessages(not_null<Main::Session*> session);
 void OfferRichMessagePremiumChoice(
 	std::shared_ptr<ChatHelpers::Show> show,
 	not_null<Main::Session*> session,
 	const RichPage &page,
-	Fn<void()> sendWithoutFormatting);
+	Fn<void()> sendWithoutFormatting,
+	bool save = false);
 void SetupSendLockBadge(
 	not_null<Ui::SendButton*> button,
 	QPoint position,

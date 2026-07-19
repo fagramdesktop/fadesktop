@@ -3738,7 +3738,7 @@ void ComposeControls::initExpandButton() {
 		if (isEditingMessage()) {
 			const auto item = _history->owner().message(
 				_header->editMsgId());
-			if (item && Iv::Editor::CheckRichMessagesPremium(_regularWindow)) {
+			if (item) {
 				Iv::Editor::ShowEditFromFieldBox(
 					_regularWindow,
 					item,

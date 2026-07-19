@@ -7444,6 +7444,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_article_premium_choice_about" = "This message uses rich formatting, which requires {link}.";
 "lng_article_premium_choice_about_link" = "Telegram Premium";
 "lng_article_premium_choice_plain" = "Send Without Formatting";
+"lng_article_premium_choice_plain_save" = "Save Without Formatting";
 "lng_article_table_change" = "Change Table";
 "lng_article_table_add_cells" = "Add Cells";
 "lng_article_table_add_row_above" = "Add Row Above";
