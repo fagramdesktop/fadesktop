@@ -2339,12 +2339,7 @@ void TopBar::showTabSearch() {
 		cancel->setAccessibleName(tr::lng_sr_cancel_search(tr::now));
 		cancel->show();
 		cancel->addClickHandler([=] {
-			if (_tabSearchField->getLastText().isEmpty()) {
-				hideTabSearch();
-				updateTabSwapVisibility();
-			} else {
-				_tabSearchField->setText(QString());
-			}
+			cancelTabSearch();
 		});
 		inner->widthValue(
 		) | rpl::on_next([=](int newWidth) {
@@ -2375,6 +2370,24 @@ void TopBar::hideTabSearch() {
 	}
 	_tabSearchField->setText(QString());
 	_tabSearchBar->toggle(false, anim::type::normal);
+}
+
+bool TopBar::cancelTabSearch() {
+	if (!_tabSearchShown) {
+		return false;
+	} else if (!_tabSearchField->getLastText().isEmpty()) {
+		_tabSearchField->setText(QString());
+	} else {
+		hideTabSearch();
+		updateTabSwapVisibility();
+	}
+	return true;
+}
+
+void TopBar::checkBeforeCloseByEscape(Fn<void()> close) {
+	if (!cancelTabSearch()) {
+		close();
+	}
 }
 
 void TopBar::raiseTabSearchOverlay() {

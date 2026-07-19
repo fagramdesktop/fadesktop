@@ -536,6 +536,14 @@ void InnerWidget::showFinished() {
 	_showFinished.fire({});
 }
 
+void InnerWidget::checkBeforeCloseByEscape(Fn<void()> close) {
+	if (const auto top = _topBar.get()) {
+		top->checkBeforeCloseByEscape(std::move(close));
+	} else {
+		close();
+	}
+}
+
 bool InnerWidget::hasFlexibleTopBar() const {
 	return true;
 }
@@ -571,6 +579,7 @@ base::weak_qptr<Ui::RpWidget> InnerWidget::createPinnedToTop(
 			}));
 	}
 	_topBarColor = content->edgeColor();
+	_topBar = content;
 	return base::make_weak(not_null<Ui::RpWidget*>{ content });
 }
 

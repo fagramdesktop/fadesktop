@@ -131,6 +131,8 @@ public:
 		rpl::producer<bool> available,
 		Fn<void(bool)> toggle);
 
+	void checkBeforeCloseByEscape(Fn<void()> close);
+
 	void setRoundEdges(bool value);
 	void setLottieSingleLoop(bool value);
 	void setColorProfileIndex(std::optional<uint8> index);
@@ -219,6 +221,7 @@ private:
 	[[nodiscard]] bool tabSelectionMode() const;
 	void showTabSearch();
 	void hideTabSearch();
+	bool cancelTabSearch();
 	void raiseTabSearchOverlay();
 	void updateTabSearchGeometry();
 	[[nodiscard]] int calculateRightButtonsWidth() const;
