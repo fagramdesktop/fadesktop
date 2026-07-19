@@ -5326,6 +5326,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_context_delete_gif" = "Delete";
 "lng_context_open_channel" = "Open Channel";
 "lng_context_open_group" = "Open Group";
+"lng_context_open_community" = "Open Community";
 "lng_context_attached_stickers" = "Attached Stickers";
 "lng_context_to_msg" = "Go To Message";
 "lng_context_reply_msg" = "Reply";
