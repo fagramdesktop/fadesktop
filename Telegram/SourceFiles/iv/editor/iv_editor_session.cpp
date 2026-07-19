@@ -690,8 +690,16 @@ public:
 
 	~ArticleSession() {
 		_submitDeferred = false;
-		for (const auto &attachment : _attachments) {
-			_session->uploader().cancel(attachment.uploadId);
+		auto attachments = base::take(_attachments);
+		_mediaBatches.clear();
+		for (const auto &attachment : attachments) {
+			if (attachment.state != AttachmentState::Ready) {
+				_session->uploader().cancel(attachment.uploadId);
+			}
+			if (attachment.finalizationRequestId) {
+				_session->api().request(
+					attachment.finalizationRequestId).cancel();
+			}
 		}
 	}
 
@@ -707,6 +715,7 @@ private:
 		RichPage::BlockKind blockKind = RichPage::BlockKind::Unsupported;
 		uint64 localMediaId = 0;
 		AttachmentState state = AttachmentState::Uploading;
+		mtpRequestId finalizationRequestId = 0;
 		QString caption;
 		QString filename;
 		QString filemime;
@@ -2100,11 +2109,15 @@ private:
 	}
 
 	void cancelMediaUploadByMediaId(uint64 mediaId) {
+		auto uploadId = FullMsgId();
 		for (const auto &attachment : _attachments) {
 			if (mediaIdMatchesAttachment(mediaId, attachment)) {
-				eraseAttachment(attachment.uploadId);
-				return;
+				uploadId = attachment.uploadId;
+				break;
 			}
+		}
+		if (uploadId) {
+			eraseAttachment(uploadId);
 		}
 	}
 
@@ -2667,7 +2680,9 @@ private:
 		}, _lifetime);
 		_session->uploader().documentReady(
 		) | rpl::on_next([=](const Storage::UploadedMedia &data) {
-			if (const auto attachment = findAttachment(data.fullId)) {
+			const auto attachment = findAttachment(data.fullId);
+			if (attachment
+				&& attachment->state == AttachmentState::Uploading) {
 				finalizeUploadedDocument(*attachment, data);
 			}
 		}, _lifetime);
@@ -2760,21 +2775,23 @@ private:
 			: QVector<MTPDocumentAttribute>(
 				1,
 				MTP_documentAttributeFilename(MTP_string(attachment.filename)));
-		_session->api().request(MTPmessages_UploadMedia(
-			MTP_flags(0),
-			MTPstring(),
-			_peer->input(),
-			MTP_inputMediaUploadedDocument(
-				MTP_flags(flags),
-				data.info.file,
-				data.info.thumb.value_or(MTPInputFile()),
-				MTP_string(attachment.filemime),
-				MTP_vector<MTPDocumentAttribute>(std::move(attributes)),
-				MTP_vector<MTPInputDocument>(std::move(stickers)),
-				data.info.videoCover.value_or(MTPInputPhoto()),
-				MTP_int(0),
-				MTP_int(0))
-		)).done([weak = base::make_weak(this), uploadId = attachment.uploadId](
+		attachment.finalizationRequestId = _session->api().request(
+			MTPmessages_UploadMedia(
+				MTP_flags(0),
+				MTPstring(),
+				_peer->input(),
+				MTP_inputMediaUploadedDocument(
+					MTP_flags(flags),
+					data.info.file,
+					data.info.thumb.value_or(MTPInputFile()),
+					MTP_string(attachment.filemime),
+					MTP_vector<MTPDocumentAttribute>(std::move(attributes)),
+					MTP_vector<MTPInputDocument>(std::move(stickers)),
+					data.info.videoCover.value_or(MTPInputPhoto()),
+					MTP_int(0),
+					MTP_int(0))
+			)
+		).done([weak = base::make_weak(this), uploadId = attachment.uploadId](
 				const MTPMessageMedia &result) {
 			if (const auto session = weak.get()) {
 				session->applyUploadedDocumentResult(uploadId, result);
@@ -2864,9 +2881,12 @@ private:
 		FullMsgId uploadId,
 		const MTPMessageMedia &result) {
 		const auto attachment = findAttachment(uploadId);
-		if (!attachment) {
+		if (!attachment
+			|| attachment->state != AttachmentState::Finalizing
+			|| !attachment->finalizationRequestId) {
 			return;
 		}
+		base::take(attachment->finalizationRequestId);
 		auto ok = false;
 		auto failed = false;
 		const auto fail = [&] {
@@ -2934,13 +2954,22 @@ private:
 	}
 
 	void markAttachmentFailed(FullMsgId uploadId) {
-		if (const auto attachment = findAttachment(uploadId)) {
-			attachment->state = AttachmentState::Failed;
-			showAttachmentFailedToast();
-			requestEditorUpdate();
-			retryRichDraftCloseSaveIfNeeded();
-			maybeContinueSubmittedRequest();
+		const auto attachment = findAttachment(uploadId);
+		if (!attachment
+			|| attachment->state == AttachmentState::Ready
+			|| attachment->state == AttachmentState::Failed) {
+			return;
 		}
+		const auto requestId = base::take(
+			attachment->finalizationRequestId);
+		attachment->state = AttachmentState::Failed;
+		if (requestId) {
+			_session->api().request(requestId).cancel();
+		}
+		showAttachmentFailedToast();
+		requestEditorUpdate();
+		retryRichDraftCloseSaveIfNeeded();
+		maybeContinueSubmittedRequest();
 	}
 
 	void requestEditorUpdate() {
@@ -3263,6 +3292,20 @@ private:
 		item.blockKind = blockKind;
 	}
 
+	void detachMediaBatchUpload(FullMsgId uploadId) {
+		for (auto &batch : _mediaBatches) {
+			for (auto &item : batch.items) {
+				if (item.uploadId != uploadId) {
+					continue;
+				}
+				item.uploadId = FullMsgId();
+				if (item.state == MediaBatchItemState::Ready) {
+					item.state = MediaBatchItemState::Skipped;
+				}
+			}
+		}
+	}
+
 	void eraseAttachment(FullMsgId uploadId) {
 		const auto i = std::find_if(
 			_attachments.begin(),
@@ -3273,10 +3316,17 @@ private:
 		if (i == _attachments.end()) {
 			return;
 		}
-		if (i->state != AttachmentState::Ready) {
-			_session->uploader().cancel(i->uploadId);
-		}
+		const auto erasedUploadId = i->uploadId;
+		const auto state = i->state;
+		const auto finalizationRequestId = i->finalizationRequestId;
+		detachMediaBatchUpload(erasedUploadId);
 		_attachments.erase(i);
+		if (state != AttachmentState::Ready) {
+			_session->uploader().cancel(erasedUploadId);
+		}
+		if (finalizationRequestId) {
+			_session->api().request(finalizationRequestId).cancel();
+		}
 	}
 
 	[[nodiscard]] bool hasUninsertedMediaBatchUpload(
@@ -3293,27 +3343,26 @@ private:
 	}
 
 	void abandonMediaBatch(uint64 batchId) {
-		const auto batch = findMediaBatch(batchId);
-		if (!batch) {
+		const auto i = std::find_if(
+			_mediaBatches.begin(),
+			_mediaBatches.end(),
+			[=](const MediaBatch &batch) {
+				return batch.id == batchId;
+			});
+		if (i == _mediaBatches.end()) {
 			return;
 		}
-		for (auto &item : batch->items) {
+		auto uploadIds = std::vector<FullMsgId>();
+		for (const auto &item : i->items) {
 			if (item.state == MediaBatchItemState::Ready
 				&& item.uploadId) {
-				eraseAttachment(item.uploadId);
-			}
-			if (item.state != MediaBatchItemState::Inserted) {
-				item.state = MediaBatchItemState::Skipped;
+				uploadIds.push_back(item.uploadId);
 			}
 		}
-		_mediaBatches.erase(
-			std::remove_if(
-				_mediaBatches.begin(),
-				_mediaBatches.end(),
-				[=](const MediaBatch &batch) {
-					return batch.id == batchId;
-				}),
-			_mediaBatches.end());
+		_mediaBatches.erase(i);
+		for (const auto &uploadId : uploadIds) {
+			eraseAttachment(uploadId);
+		}
 		maybeContinueDeferredSubmit();
 	}
 
@@ -3659,19 +3708,18 @@ private:
 		for (auto &attachment : _attachments) {
 			refreshAttachmentLocators(page, attachment);
 		}
-		for (auto i = _attachments.begin(); i != _attachments.end();) {
-			if (!i->blockLocators.empty()) {
-				++i;
+		auto uploadIds = std::vector<FullMsgId>();
+		for (const auto &attachment : _attachments) {
+			if (!attachment.blockLocators.empty()) {
 				continue;
 			}
-			if (hasUninsertedMediaBatchUpload(i->uploadId)) {
-				++i;
+			if (hasUninsertedMediaBatchUpload(attachment.uploadId)) {
 				continue;
 			}
-			if (i->state != AttachmentState::Ready) {
-				_session->uploader().cancel(i->uploadId);
-			}
-			i = _attachments.erase(i);
+			uploadIds.push_back(attachment.uploadId);
+		}
+		for (const auto &uploadId : uploadIds) {
+			eraseAttachment(uploadId);
 		}
 	}
 
@@ -3911,9 +3959,6 @@ private:
 
 void ArticleSession::editorCreated(not_null<Widget*> editor) {
 	_editor = editor;
-	if (!_composeAction || !_composeThreadKey) {
-		return;
-	}
 	_editorAutosaveLifetime.destroy();
 	editor->autosaveEvents(
 	) | rpl::on_next([weak = weak_from_this()](Widget::AutosaveEvent event) {
@@ -3934,6 +3979,9 @@ void ArticleSession::restartRichDraftAutosave() {
 }
 
 void ArticleSession::handleRichDraftAutosave(Widget::AutosaveEvent event) {
+	if (event.type == Widget::AutosaveEventType::StructuralMutation) {
+		refreshAttachmentLocatorsAndDropMissing();
+	}
 	if (!_composeAction
 		|| !_composeThreadKey
 		|| !_windowHost
