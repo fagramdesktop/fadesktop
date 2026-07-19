@@ -1384,6 +1384,14 @@ void ComposeControls::updateFeatures(ChatHelpers::ComposeFeatures features) {
 	if (was.emojiOnlyPanel != features.emojiOnlyPanel) {
 		initFieldAutocomplete();
 	}
+	if (was.richEditor != features.richEditor) {
+		untrackThreadFieldVisibility();
+		unregisterDraftSources();
+		trackThreadFieldVisibility();
+		registerDraftSource();
+		updateExpandButtonVisibility();
+		changed = true;
+	}
 	if (changed) {
 		updateControlsGeometry(_wrap->size());
 	}
@@ -2119,7 +2127,8 @@ bool ComposeControls::isComposeBoxOpen() const {
 }
 
 bool ComposeControls::hasRichDraftThreadScope() const {
-	return draftKey(DraftType::Normal).isLocal();
+	return _features.richEditor
+		&& draftKey(DraftType::Normal).isLocal();
 }
 
 bool ComposeControls::hasEditDraft() const {
