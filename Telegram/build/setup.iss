@@ -110,10 +110,13 @@ Type: dirifempty; Name: "{userappdata}\{#MyAppName}"
 [Code]
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var ResultCode: Integer;
+    LaunchSucceeded: Boolean;
 begin
   if CurUninstallStep = usUninstall then
   begin
-    ShellExec('', ExpandConstant('{app}\{#MyAppExeName}'), '-cleanup', '', SW_SHOW, ewWaitUntilTerminated, ResultCode);
+    LaunchSucceeded := Exec(ExpandConstant('{app}\{#MyAppExeName}'), '-uninstall', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    if (not LaunchSucceeded) or (ResultCode <> 0) then
+      Abort;
   end;
 end;
 

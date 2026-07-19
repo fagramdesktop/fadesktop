@@ -4,6 +4,7 @@
 # For license and copyright information please follow this link:
 # https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
+if (DESKTOP_APP_TEST_APPS)
 add_executable(test_text WIN32)
 init_target(test_text "(tests)")
 
@@ -42,3 +43,29 @@ set_target_properties(test_text PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINA
 add_dependencies(Telegram test_text)
 
 target_prepare_qrc(test_text)
+endif()
+
+if (WIN32)
+    add_executable(test_uninstall EXCLUDE_FROM_ALL)
+    init_target(test_uninstall "(tests)")
+
+    target_include_directories(test_uninstall PRIVATE ${src_loc})
+
+    nice_target_sources(test_uninstall ${src_loc}
+    PRIVATE
+        core/uninstall.cpp
+        core/uninstall.h
+        platform/win/uninstall_win.cpp
+        platform/win/uninstall_win.h
+        tests/test_uninstall.cpp
+    )
+
+    target_link_libraries(test_uninstall
+    PRIVATE
+        desktop-app::lib_base
+        desktop-app::lib_crl
+        desktop-app::external_qt
+    )
+
+    set_target_properties(test_uninstall PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+endif()

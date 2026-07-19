@@ -44,6 +44,9 @@ enum LaunchMode {
 	LaunchModeAutoStart,
 	LaunchModeFixPrevious,
 	LaunchModeCleanup,
+#ifdef Q_OS_WIN
+	LaunchModeUninstall,
+#endif // Q_OS_WIN
 };
 DeclareReadSetting(LaunchMode, LaunchMode);
 DeclareSetting(QString, WorkingDir);

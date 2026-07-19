@@ -7,12 +7,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "base/timer.h"
 #include "mtproto/mtproto_proxy_data.h"
 
-#include <QtWidgets/QApplication>
+#include <QtCore/QAbstractNativeEventFilter>
 #include <QtNetwork/QLocalServer>
 #include <QtNetwork/QLocalSocket>
-#include <QtCore/QAbstractNativeEventFilter>
+#include <QtWidgets/QApplication>
 
 class QLockFile;
 
@@ -22,6 +23,11 @@ extern const char kOptionDeadlockDetector[];
 
 class UpdateChecker;
 class Application;
+#ifdef Q_OS_WIN
+namespace Uninstall {
+class Lifecycle;
+} // namespace Uninstall
+#endif // Q_OS_WIN
 
 class Sandbox final
 	: public QApplication
@@ -103,6 +109,9 @@ private:
 	void socketWritten(qint64 bytes);
 	void socketReading();
 	void newInstanceConnected();
+#ifdef Q_OS_WIN
+	void finishUninstall();
+#endif // Q_OS_WIN
 
 	void readClients();
 	void removeClients();
@@ -127,6 +136,13 @@ private:
 	static bool SystemShuttingDown;
 
 	std::unique_ptr<UpdateChecker> _updateChecker;
+
+#ifdef Q_OS_WIN
+	std::unique_ptr<Uninstall::Lifecycle> _uninstallLifecycle;
+	base::Timer _uninstallIpcTimer;
+	int _uninstallExitCode = -1;
+	bool _uninstallEventLoopStarted = false;
+#endif // Q_OS_WIN
 
 	QByteArray _lastCrashDump;
 	MTP::ProxyData _sandboxProxy;
