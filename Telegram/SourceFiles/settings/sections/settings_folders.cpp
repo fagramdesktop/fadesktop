@@ -1118,7 +1118,6 @@ void BuildViewSection(SectionBuilder &builder) {
 		wrap->toggleOn(controller->enoughSpaceForFiltersValue());
 		const auto content = wrap->entity();
 
-		Ui::AddDivider(content);
 		Ui::AddSkip(content);
 		const auto title = Ui::AddSubsectionTitle(
 			content,
