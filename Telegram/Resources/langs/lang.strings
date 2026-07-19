@@ -7656,6 +7656,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_filters_view_subtitle" = "Tabs view";
 "lng_filters_vertical" = "Tabs on the left";
 "lng_filters_horizontal" = "Tabs at the top";
+"lng_filters_tabs_subtitle" = "Tabs appearance";
+"lng_filters_tabs_text" = "Text only";
+"lng_filters_tabs_text_icons" = "Text and icons";
+"lng_filters_tabs_icons" = "Icons only";
 "lng_filters_enable_tags" = "Show Folder Tags";
 "lng_filters_enable_tags_about" = "Display folder names for each chat in the chat list.";
 "lng_filters_enable_tags_about_premium" = "Subscribe to **{link}** to display folder names for each chat in the chat list.";
