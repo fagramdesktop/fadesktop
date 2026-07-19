@@ -513,6 +513,8 @@ template <typename Container>
 	const auto sendType = (file.type == PreparedFileType::Photo)
 		? SendMediaType::Photo
 		: SendMediaType::File;
+	const auto sendLargePhotos = (sendType == SendMediaType::Photo)
+		|| file.sendLargePhotos;
 	return {
 		.session = session,
 		.filepath = file.path,
@@ -532,7 +534,7 @@ template <typename Container>
 		.spoiler = file.spoiler,
 		.album = std::make_shared<SendingAlbum>(),
 		.forceFile = false,
-		.sendLargePhotos = file.sendLargePhotos,
+		.sendLargePhotos = sendLargePhotos,
 		.idOverride = 0,
 		.displayName = file.displayName,
 	};
@@ -2268,7 +2270,7 @@ private:
 		_prepareQueue.pop_front();
 		const auto weak = base::make_weak(this);
 		_preparing = true;
-		const auto sideLimit = PhotoSideLimit();
+		const auto sideLimit = PhotoSideLimit(true);
 		crl::async([weak, queued = std::move(queued), sideLimit]() mutable {
 			Storage::PrepareDetails(
 				queued.file,
