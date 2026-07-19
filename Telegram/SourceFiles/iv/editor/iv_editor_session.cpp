@@ -555,6 +555,8 @@ public:
 		not_null<PeerData*> peer,
 		Api::SendAction action,
 		SendMenu::Details sendMenuDetails,
+		TextWithTags fieldText,
+		Fn<void()> onMigrated,
 		base::weak_ptr<Window::SessionController> controller) {
 		const auto history = action.history;
 		const auto topicRootId = action.replyTo.topicRootId;
@@ -576,7 +578,22 @@ public:
 		const auto page = hasRichDraft
 			? std::make_shared<RichPage>(*cloudDraft->richMessage)
 			: std::make_shared<RichPage>();
-		if (!hasRichDraft) {
+		if (!fieldText.empty()) {
+			auto migrated = SplitTextIntoRichPage(fieldText);
+			if (!migrated.blocks.empty()) {
+				if (hasRichDraft) {
+					page->blocks.insert(
+						page->blocks.end(),
+						std::make_move_iterator(migrated.blocks.begin()),
+						std::make_move_iterator(migrated.blocks.end()));
+				} else {
+					*page = std::move(migrated);
+				}
+				if (onMigrated) {
+					onMigrated();
+				}
+			}
+		} else if (!hasRichDraft) {
 			if (const auto entry = LookupComposeThreadEntry(composeKey)) {
 				if (entry->readDraft) {
 					if (const auto draft = entry->readDraft()) {
@@ -4392,12 +4409,16 @@ void ShowComposeBox(
 		not_null<Window::SessionController*> controller,
 		not_null<PeerData*> peer,
 		Api::SendAction action,
-		SendMenu::Details sendMenuDetails) {
+		SendMenu::Details sendMenuDetails,
+		TextWithTags fieldText,
+		Fn<void()> onMigrated) {
 	ArticleSession::ShowCompose(
 		&controller->session(),
 		peer,
 		std::move(action),
 		std::move(sendMenuDetails),
+		std::move(fieldText),
+		std::move(onMigrated),
 		base::make_weak(controller));
 }
 

@@ -1426,7 +1426,11 @@ void HistoryWidget::initExpandButton() {
 				Iv::Editor::ShowEditFromFieldBox(
 					window,
 					item,
-					prepareSendAction({}));
+					prepareSendAction({}),
+					_field->getTextWithAppliedMarkdown(),
+					crl::guard(this, [=] {
+						cancelEdit();
+					}));
 			}
 			return;
 		}
@@ -1434,7 +1438,11 @@ void HistoryWidget::initExpandButton() {
 			window,
 			_history->peer,
 			prepareSendAction({}),
-			sendMenuDetails());
+			sendMenuDetails(),
+			_field->getTextWithAppliedMarkdown(),
+			crl::guard(this, [=] {
+				migrateFieldToRichEditor();
+			}));
 	});
 }
 
@@ -3438,7 +3446,13 @@ void HistoryWidget::refreshAttachBotsMenu() {
 		_history->peer,
 		[=] { return prepareSendAction({}); },
 		[=] { return sendMenuDetails(); },
-		[=](bool compress) { chooseAttach(compress); });
+		[=](bool compress) { chooseAttach(compress); },
+		crl::guard(this, [=] {
+			return _field->getTextWithAppliedMarkdown();
+		}),
+		crl::guard(this, [=] {
+			migrateFieldToRichEditor();
+		}));
 	if (!_attachBotsMenu) {
 		return;
 	}

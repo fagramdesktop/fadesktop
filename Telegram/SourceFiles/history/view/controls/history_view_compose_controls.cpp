@@ -3781,21 +3781,14 @@ void ComposeControls::initExpandButton() {
 			const auto item = _history->owner().message(
 				_header->editMsgId());
 			if (item && Iv::Editor::CheckRichMessagesPremium(_regularWindow)) {
-				if (hasRichDraftThreadScope()) {
-					Iv::Editor::ShowEditFromFieldBox(
-						_regularWindow,
-						item,
-						_sendActionFactory());
-				} else {
-					Iv::Editor::ShowEditFromFieldBox(
-						_regularWindow,
-						item,
-						_sendActionFactory(),
-						getTextWithAppliedMarkdown(),
-						crl::guard(_wrap.get(), [=] {
-							cancelEditMessage();
-						}));
-				}
+				Iv::Editor::ShowEditFromFieldBox(
+					_regularWindow,
+					item,
+					_sendActionFactory(),
+					getTextWithAppliedMarkdown(),
+					crl::guard(_wrap.get(), [=] {
+						cancelEditMessage();
+					}));
 			}
 			return;
 		}
@@ -3806,7 +3799,11 @@ void ComposeControls::initExpandButton() {
 			_regularWindow,
 			_history->peer,
 			_sendActionFactory(),
-			sendMenuDetails());
+			sendMenuDetails(),
+			getTextWithAppliedMarkdown(),
+			crl::guard(_wrap.get(), [=] {
+				migrateFieldToRichEditor();
+			}));
 	});
 }
 
@@ -4462,7 +4459,13 @@ void ComposeControls::updateAttachBotsMenu() {
 		_history->peer,
 		_sendActionFactory,
 		[=] { return sendMenuDetails(); },
-		[=](bool compress) { _attachRequests.fire_copy(compress); });
+		[=](bool compress) { _attachRequests.fire_copy(compress); },
+		crl::guard(_wrap.get(), [=] {
+			return getTextWithAppliedMarkdown();
+		}),
+		crl::guard(_wrap.get(), [=] {
+			migrateFieldToRichEditor();
+		}));
 	if (!_attachBotsMenu) {
 		return;
 	}

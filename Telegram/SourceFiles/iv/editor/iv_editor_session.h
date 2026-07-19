@@ -65,7 +65,9 @@ void ShowComposeBox(
 	not_null<Window::SessionController*> controller,
 	not_null<PeerData*> peer,
 	Api::SendAction action,
-	SendMenu::Details sendMenuDetails);
+	SendMenu::Details sendMenuDetails,
+	TextWithTags fieldText = {},
+	Fn<void()> onMigrated = nullptr);
 void ShowEditBox(
 	not_null<Window::SessionController*> controller,
 	not_null<HistoryItem*> item);
