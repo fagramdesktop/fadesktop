@@ -18,10 +18,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 class HistoryItem;
 class PeerData;
 
-namespace Data {
-struct Draft;
-} // namespace Data
-
 namespace Main {
 class Session;
 } // namespace Main
@@ -43,10 +39,6 @@ struct RichPage;
 } // namespace Iv
 
 namespace Iv::Editor {
-
-using ThreadFieldDraftReader = Fn<std::unique_ptr<::Data::Draft>()>;
-using ThreadFieldDraftSaver = Fn<void(std::unique_ptr<::Data::Draft>)>;
-using ThreadFieldMigratedAway = Fn<void()>;
 
 [[nodiscard]] bool CheckRichMessagesPremium(
 	not_null<Window::SessionController*> controller);
@@ -86,19 +78,6 @@ void ShowEditFromFieldBox(
 	MsgId topicRootId,
 	PeerId monoforumPeerId);
 [[nodiscard]] rpl::producer<bool> FieldVisibleValue(
-	not_null<Main::Session*> session,
-	PeerId peerId,
-	MsgId topicRootId,
-	PeerId monoforumPeerId);
-void RegisterThreadFieldBridge(
-	not_null<Main::Session*> session,
-	PeerId peerId,
-	MsgId topicRootId,
-	PeerId monoforumPeerId,
-	ThreadFieldDraftReader readDraft,
-	ThreadFieldDraftSaver saveDraft,
-	ThreadFieldMigratedAway migratedAway);
-void UnregisterThreadFieldBridge(
 	not_null<Main::Session*> session,
 	PeerId peerId,
 	MsgId topicRootId,

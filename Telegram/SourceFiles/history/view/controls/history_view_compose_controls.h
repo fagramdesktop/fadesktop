@@ -437,8 +437,8 @@ private:
 
 	void unregisterDraftSources();
 	void registerDraftSource();
-	void unregisterThreadFieldBridge();
-	void registerThreadFieldBridge();
+	void untrackThreadFieldVisibility();
+	void trackThreadFieldVisibility();
 	void updateFieldVisibility();
 	void changeFocusedControl();
 
@@ -449,8 +449,6 @@ private:
 	[[nodiscard]] bool bypassNormalDraftHandling() const;
 	[[nodiscard]] bool hasEditDraft() const;
 	[[nodiscard]] bool shouldShowRichDraftPreview() const;
-	[[nodiscard]] std::unique_ptr<Data::Draft> readThreadFieldDraft() const;
-	void saveThreadFieldDraft(std::unique_ptr<Data::Draft> draft);
 	void migrateFieldToRichEditor();
 
 	const style::ComposeControls &_st;
@@ -582,7 +580,7 @@ private:
 	bool _threadFieldVisible = false;
 
 	rpl::lifetime _historyLifetime;
-	rpl::lifetime _threadFieldBridgeLifetime;
+	rpl::lifetime _threadFieldVisibleLifetime;
 	rpl::lifetime _uploaderSubscriptions;
 
 };

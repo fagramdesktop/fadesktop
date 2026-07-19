@@ -110,9 +110,6 @@ struct ComposeThreadKey {
 struct ComposeThreadEntry {
 	std::weak_ptr<ArticleSession> articleSession;
 	rpl::variable<bool> fieldVisible = false;
-	ThreadFieldDraftReader readDraft;
-	ThreadFieldDraftSaver saveDraft;
-	ThreadFieldMigratedAway migratedAway;
 };
 
 [[nodiscard]] ComposeThreadKey ComposeKey(
@@ -151,12 +148,6 @@ struct ComposeThreadEntry {
 	auto &threads = ComposeThreads();
 	const auto i = threads.find(key);
 	return (i != end(threads)) ? &i->second : nullptr;
-}
-
-void SetComposeFieldVisible(
-		const ComposeThreadKey &key,
-		bool visible) {
-	ComposeThreadEntryFor(key).fieldVisible.force_assign(visible);
 }
 
 enum class AttachmentState : uchar {
@@ -568,7 +559,6 @@ public:
 			monoforumPeerId);
 		if (const auto entry = LookupComposeThreadEntry(composeKey)) {
 			if (const auto existing = entry->articleSession.lock()) {
-				SetComposeFieldVisible(composeKey, true);
 				existing->focusWindow();
 				return;
 			}
@@ -591,21 +581,6 @@ public:
 				}
 				if (onMigrated) {
 					onMigrated();
-				}
-			}
-		} else if (!hasRichDraft) {
-			if (const auto entry = LookupComposeThreadEntry(composeKey)) {
-				if (entry->readDraft) {
-					if (const auto draft = entry->readDraft()) {
-						auto migrated = SplitTextIntoRichPage(
-							draft->textWithTags);
-						if (!migrated.blocks.empty()) {
-							*page = std::move(migrated);
-							if (entry->migratedAway) {
-								entry->migratedAway();
-							}
-						}
-					}
 				}
 			}
 		}
@@ -671,24 +646,6 @@ public:
 			*page = SplitTextIntoRichPage(*fieldTextOverride);
 			if (fieldMigratedOverride) {
 				fieldMigratedOverride();
-			}
-		} else {
-			const auto topicRootId = action.replyTo.topicRootId;
-			const auto monoforumPeerId = action.replyTo.monoforumPeerId;
-			const auto composeKey = ComposeKey(
-				session,
-				item->history()->peer->id,
-				topicRootId,
-				monoforumPeerId);
-			if (const auto entry = LookupComposeThreadEntry(composeKey)) {
-				if (entry->readDraft) {
-					if (const auto draft = entry->readDraft()) {
-						*page = SplitTextIntoRichPage(draft->textWithTags);
-					}
-				}
-				if (entry->migratedAway) {
-					entry->migratedAway();
-				}
 			}
 		}
 		auto articleSession = std::shared_ptr<ArticleSession>(new ArticleSession(
@@ -889,12 +846,6 @@ private:
 		}
 		entry.articleSession.reset();
 		entry.fieldVisible.force_assign(false);
-	}
-
-	[[nodiscard]] ComposeThreadEntry *composeThreadEntry() const {
-		return _composeThreadKey
-			? LookupComposeThreadEntry(*_composeThreadKey)
-			: nullptr;
 	}
 
 	[[nodiscard]] ::Data::FileOrigin composeDraftOrigin() const {
@@ -1124,11 +1075,6 @@ private:
 		const auto topicRootId = _composeThreadKey->draftKey.topicRootId();
 		const auto monoforumPeerId = _composeThreadKey->draftKey.monoforumPeerId();
 		const auto history = _composeAction->history;
-		if (const auto entry = composeThreadEntry()) {
-			if (entry->saveDraft) {
-				entry->saveDraft(nullptr);
-			}
-		}
 		history->clearCloudDraft(topicRootId, monoforumPeerId);
 		if (const auto thread = history->threadFor(topicRootId, monoforumPeerId)) {
 			const auto cloudDraft = history->createCloudDraft(
@@ -4492,33 +4438,6 @@ rpl::producer<bool> FieldVisibleValue(
 	return ComposeThreadEntryFor(
 		ComposeKey(session, peerId, topicRootId, monoforumPeerId)
 	).fieldVisible.value();
-}
-
-void RegisterThreadFieldBridge(
-		not_null<Main::Session*> session,
-		PeerId peerId,
-		MsgId topicRootId,
-		PeerId monoforumPeerId,
-		ThreadFieldDraftReader readDraft,
-		ThreadFieldDraftSaver saveDraft,
-		ThreadFieldMigratedAway migratedAway) {
-	auto &entry = ComposeThreadEntryFor(
-		ComposeKey(session, peerId, topicRootId, monoforumPeerId));
-	entry.readDraft = std::move(readDraft);
-	entry.saveDraft = std::move(saveDraft);
-	entry.migratedAway = std::move(migratedAway);
-}
-
-void UnregisterThreadFieldBridge(
-		not_null<Main::Session*> session,
-		PeerId peerId,
-		MsgId topicRootId,
-		PeerId monoforumPeerId) {
-	auto &entry = ComposeThreadEntryFor(
-		ComposeKey(session, peerId, topicRootId, monoforumPeerId));
-	entry.readDraft = nullptr;
-	entry.saveDraft = nullptr;
-	entry.migratedAway = nullptr;
 }
 
 void CloseAllWindows() {

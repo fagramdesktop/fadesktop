@@ -1178,7 +1178,6 @@ rpl::producer<> ComposeControls::showScheduledRequests() const {
 
 ComposeControls::~ComposeControls() {
 	saveFieldToHistoryLocalDraft();
-	unregisterThreadFieldBridge();
 	unregisterDraftSources();
 	setTabbedPanel(nullptr);
 	session().api().request(_inlineBotResolveRequestId).cancel();
@@ -1189,11 +1188,11 @@ Main::Session &ComposeControls::session() const {
 }
 
 void ComposeControls::updateTopicRootId(MsgId topicRootId) {
-	unregisterThreadFieldBridge();
+	untrackThreadFieldVisibility();
 	unregisterDraftSources();
 	_topicRootId = topicRootId;
 	_header->updateTopicRootId(_topicRootId);
-	registerThreadFieldBridge();
+	trackThreadFieldVisibility();
 	registerDraftSource();
 	updateFieldVisibility();
 }
@@ -1222,15 +1221,14 @@ void ComposeControls::setHistory(SetHistoryArgs &&args) {
 	if (_history == history) {
 		return;
 	}
-	unregisterThreadFieldBridge();
+	untrackThreadFieldVisibility();
 	unregisterDraftSources();
 	_history = history;
 	_topicRootId = args.topicRootId;
 	_monoforumPeerId = args.monoforumPeerId;
 	_historyLifetime.destroy();
-	_threadFieldBridgeLifetime.destroy();
 	_header->setHistory(args);
-	registerThreadFieldBridge();
+	trackThreadFieldVisibility();
 	registerDraftSource();
 	_selector->setCurrentPeer(history ? history->peer.get() : nullptr);
 	initFieldAutocomplete();
@@ -1393,14 +1391,14 @@ void ComposeControls::updateFeatures(ChatHelpers::ComposeFeatures features) {
 
 void ComposeControls::setCurrentDialogsEntryState(
 		Dialogs::EntryState state) {
-	unregisterThreadFieldBridge();
+	untrackThreadFieldVisibility();
 	unregisterDraftSources();
 	state.currentReplyTo.topicRootId = _topicRootId;
 	state.currentReplyTo.monoforumPeerId = _monoforumPeerId;
 	state.currentSuggest = SuggestOptions();
 	_currentDialogsEntryState = state;
 	updateForwarding();
-	registerThreadFieldBridge();
+	trackThreadFieldVisibility();
 	registerDraftSource();
 }
 
@@ -2144,37 +2142,6 @@ bool ComposeControls::shouldShowRichDraftPreview() const {
 		&& draft->hasRichMessage();
 }
 
-std::unique_ptr<Data::Draft> ComposeControls::readThreadFieldDraft() const {
-	if (!_history || !hasRichDraftThreadScope()) {
-		return nullptr;
-	}
-	auto result = std::make_unique<Data::Draft>(
-		getTextWithAppliedMarkdown(),
-		_header->getDraftReply(),
-		_header->suggestOptions(),
-		MessageCursor(_field),
-		_preview ? _preview->draft() : Data::WebPageDraft());
-	result->reply.topicRootId = _topicRootId;
-	result->reply.monoforumPeerId = _monoforumPeerId;
-	return Data::DraftIsNull(result.get()) ? nullptr : std::move(result);
-}
-
-void ComposeControls::saveThreadFieldDraft(std::unique_ptr<Data::Draft> draft) {
-	if (!_history || !hasRichDraftThreadScope()) {
-		return;
-	}
-	const auto key = draftKey(DraftType::Normal);
-	if (!key) {
-		return;
-	}
-	if (!draft || Data::DraftIsNull(draft.get())) {
-		_history->clearDraft(key);
-	} else {
-		_history->setDraft(key, std::move(draft));
-	}
-	applyDraft(Ui::InputField::HistoryAction::NewEntry);
-}
-
 void ComposeControls::migrateFieldToRichEditor() {
 	if (!_history) {
 		return;
@@ -2183,7 +2150,10 @@ void ComposeControls::migrateFieldToRichEditor() {
 		cancelEditMessage();
 	} else {
 		clearFieldText();
-		saveThreadFieldDraft(nullptr);
+		if (const auto key = draftKey(DraftType::Normal)) {
+			_history->clearDraft(key);
+		}
+		applyDraft(Ui::InputField::HistoryAction::NewEntry);
 		_history->clearCloudDraft(_topicRootId, _monoforumPeerId);
 		if (const auto thread = _history->threadFor(
 				_topicRootId,
@@ -2916,19 +2886,12 @@ void ComposeControls::registerDraftSource() {
 	}
 }
 
-void ComposeControls::unregisterThreadFieldBridge() {
-	_threadFieldBridgeLifetime.destroy();
-	if (_history) {
-		Iv::Editor::UnregisterThreadFieldBridge(
-			_session,
-			_history->peer->id,
-			_topicRootId,
-			_monoforumPeerId);
-	}
+void ComposeControls::untrackThreadFieldVisibility() {
+	_threadFieldVisibleLifetime.destroy();
 	_threadFieldVisible = false;
 }
 
-void ComposeControls::registerThreadFieldBridge() {
+void ComposeControls::trackThreadFieldVisibility() {
 	if (!_history || !hasRichDraftThreadScope()) {
 		_threadFieldVisible = false;
 		updateFieldVisibility();
@@ -2937,20 +2900,6 @@ void ComposeControls::registerThreadFieldBridge() {
 	const auto peerId = _history->peer->id;
 	const auto topicRootId = _topicRootId;
 	const auto monoforumPeerId = _monoforumPeerId;
-	Iv::Editor::RegisterThreadFieldBridge(
-		_session,
-		peerId,
-		topicRootId,
-		monoforumPeerId,
-		[this] {
-			return readThreadFieldDraft();
-		},
-		[this](std::unique_ptr<Data::Draft> draft) {
-			saveThreadFieldDraft(std::move(draft));
-		},
-		[this] {
-			migrateFieldToRichEditor();
-		});
 	Iv::Editor::FieldVisibleValue(
 		_session,
 		peerId,
@@ -2969,7 +2918,7 @@ void ComposeControls::registerThreadFieldBridge() {
 		updateControlsVisibility();
 		updateHeight();
 		updateControlsGeometry(_wrap->size());
-	}, _threadFieldBridgeLifetime);
+	}, _threadFieldVisibleLifetime);
 }
 
 void ComposeControls::updateFieldVisibility() {
