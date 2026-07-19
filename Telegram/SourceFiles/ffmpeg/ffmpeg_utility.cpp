@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #endif // !Q_OS_WIN && !Q_OS_MAC
 
 #include <QImage>
+#include <cmath>
 #include <limits>
 #include <new>
 
@@ -732,9 +733,12 @@ int ReadRotationFromMetadata(not_null<AVStream*> stream) {
 		AV_PKT_DATA_DISPLAYMATRIX);
 	if (displaymatrix) {
 		const auto matrix = (int32_t*)displaymatrix->data;
-		if (const auto result = NormalizeRotation(
-				-base::SafeRound(av_display_rotation_get(matrix)))) {
-			return result;
+		const auto angle = av_display_rotation_get(matrix);
+		if (std::isfinite(angle)) {
+			if (const auto result = NormalizeRotation(
+					-base::SafeRound(angle))) {
+				return result;
+			}
 		}
 	}
 	const auto rotateTag = av_dict_get(
