@@ -46,6 +46,8 @@ public:
 	[[nodiscard]] virtual not_null<Ui::RpWidget*> widget() = 0;
 	[[nodiscard]] virtual TabTopBarBindings topBarBindings() = 0;
 
+	virtual void resizeToWidth(int newWidth) = 0;
+
 	virtual void deactivated() {
 	}
 

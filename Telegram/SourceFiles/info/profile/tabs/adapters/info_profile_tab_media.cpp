@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/text_utilities.h"
 #include "ui/effects/animations.h"
 #include "ui/painter.h"
+#include "ui/rect.h"
 #include "ui/rp_widget.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/menu/menu_add_action_callback.h"
@@ -112,23 +113,6 @@ public:
 		_list->show();
 		_skeleton = CreateTabSkeleton(host, _type);
 		_skeleton->show();
-		host->widthValue(
-		) | rpl::on_next([this](int newWidth) {
-			_list->resizeToWidth(std::max(
-				newWidth - st::infoMediaTabsRightSkip,
-				1));
-			updateHostHeight();
-		}, host->lifetime());
-		host->sizeValue(
-		) | rpl::on_next([this](QSize size) {
-			_skeleton->setGeometry(QRect(
-				QPoint(),
-				QSize(
-					std::max(
-						size.width() - st::infoMediaTabsRightSkip,
-						1),
-					size.height())));
-		}, host->lifetime());
 		_list->heightValue(
 		) | rpl::on_next([this](int newHeight) {
 			if (newHeight > 0 && !_listLoaded) {
@@ -149,6 +133,15 @@ public:
 
 	not_null<Ui::RpWidget*> widget() override {
 		return _host.data();
+	}
+	void resizeToWidth(int newWidth) override {
+		if (_host->width() != newWidth) {
+			_host->resize(newWidth, _host->height());
+			_list->resizeToWidth(std::max(
+				newWidth - st::infoMediaTabsRightSkip,
+				1));
+		}
+		updateHostHeight();
 	}
 	TabTopBarBindings topBarBindings() override {
 		return {
@@ -215,6 +208,13 @@ private:
 			: _list->height();
 		if (_host->height() != height) {
 			_host->resize(_host->width(), height);
+		}
+		if (_skeleton) {
+			_skeleton->setGeometry(Rect(QSize(
+				std::max(
+					_host->width() - st::infoMediaTabsRightSkip,
+					1),
+				_host->height())));
 		}
 	}
 
