@@ -550,6 +550,7 @@ PRIVATE
     ui/widgets/fields/time_part_input_with_placeholder.cpp
     ui/widgets/fields/time_part_input_with_placeholder.h
 
+    ui/widgets/chat_filters_tabs_mode.h
     ui/widgets/chat_filters_tabs_slider.cpp
     ui/widgets/chat_filters_tabs_slider.h
     ui/widgets/chat_filters_tabs_slider_reorder.cpp
