@@ -381,8 +381,6 @@ int Launcher::exec() {
 
 	if (cLaunchMode() == LaunchModeFixPrevious) {
 		return psFixPrevious();
-	} else if (cLaunchMode() == LaunchModeCleanup) {
-		return psCleanup();
 	}
 
 	// Must be started before Platform is started.
@@ -555,7 +553,6 @@ void Launcher::processArguments() {
 		{ "-autostart"      , KeyFormat::NoValues },
 		{ "-fixprevious"    , KeyFormat::NoValues },
 		{ "-cleanup"        , KeyFormat::NoValues },
-		{ "-uninstall"      , KeyFormat::NoValues },
 		{ "-noupdate"       , KeyFormat::NoValues },
 		{ "-tosettings"     , KeyFormat::NoValues },
 		{ "-startintray"    , KeyFormat::NoValues },
@@ -604,7 +601,6 @@ void Launcher::processArguments() {
 	gLaunchMode = parseResult.contains("-autostart") ? LaunchModeAutoStart
 		: parseResult.contains("-fixprevious") ? LaunchModeFixPrevious
 		: parseResult.contains("-cleanup") ? LaunchModeCleanup
-		: parseResult.contains("-uninstall") ? LaunchModeUninstall
 		: LaunchModeNormal;
 	gNoStartUpdate = parseResult.contains("-noupdate");
 	gStartToSettings = parseResult.contains("-tosettings");
