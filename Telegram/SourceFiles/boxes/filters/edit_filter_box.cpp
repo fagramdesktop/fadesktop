@@ -303,9 +303,10 @@ void CreateIconSelector(
 		if (!fly->animation.animating()) {
 			icons.userpic->paintInCenter(p, userpic);
 		} else if (const auto scale = fly->scaleOut.value(0.); scale > 0.) {
+			const auto ratio = fly->previous.devicePixelRatio();
 			auto shrunk = QRectF(
 				QPointF(),
-				fly->previous.deviceIndependentSize() * scale);
+				QSizeF(fly->previous.size()) * scale / ratio);
 			shrunk.moveCenter(rect::center(QRectF(userpic)));
 			p.setOpacity(scale);
 			p.drawImage(shrunk, fly->previous);
