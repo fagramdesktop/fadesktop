@@ -555,9 +555,6 @@ void Launcher::processArguments() {
 		{ "-autostart"      , KeyFormat::NoValues },
 		{ "-fixprevious"    , KeyFormat::NoValues },
 		{ "-cleanup"        , KeyFormat::NoValues },
-#ifdef Q_OS_WIN
-		{ "-uninstall"      , KeyFormat::NoValues },
-#endif // Q_OS_WIN
 		{ "-noupdate"       , KeyFormat::NoValues },
 		{ "-tosettings"     , KeyFormat::NoValues },
 		{ "-startintray"    , KeyFormat::NoValues },
@@ -607,11 +604,6 @@ void Launcher::processArguments() {
 		: parseResult.contains("-fixprevious") ? LaunchModeFixPrevious
 		: parseResult.contains("-cleanup") ? LaunchModeCleanup
 		: LaunchModeNormal;
-#ifdef Q_OS_WIN
-	if (parseResult.contains("-uninstall")) {
-		gLaunchMode = LaunchModeUninstall;
-	}
-#endif // Q_OS_WIN
 	gNoStartUpdate = parseResult.contains("-noupdate");
 	gStartToSettings = parseResult.contains("-tosettings");
 	gStartInTray = parseResult.contains("-startintray");

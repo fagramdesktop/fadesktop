@@ -39,7 +39,7 @@ include(cmake/td_ui.cmake)
 include(cmake/telegram_apple_swift_runtime.cmake)
 include(cmake/generate_appstream_changelog.cmake)
 
-if (WIN32 OR DESKTOP_APP_TEST_APPS)
+if (DESKTOP_APP_TEST_APPS)
     include(cmake/tests.cmake)
 endif()
 
@@ -576,8 +576,6 @@ PRIVATE
     core/shortcuts.h
     core/ui_integration.cpp
     core/ui_integration.h
-    core/uninstall.cpp
-    core/uninstall.h
     core/update_checker.cpp
     core/update_checker.h
     core/utils.cpp
@@ -1687,8 +1685,6 @@ PRIVATE
     platform/win/translate_provider_win.h
     platform/win/tray_win.cpp
     platform/win/tray_win.h
-    platform/win/uninstall_win.cpp
-    platform/win/uninstall_win.h
     platform/win/webauthn_win.cpp
     platform/win/windows_app_user_model_id.cpp
     platform/win/windows_app_user_model_id.h
