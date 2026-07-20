@@ -457,6 +457,7 @@ ListWidget::ListWidget(
 	session,
 	[=](not_null<const Element*> view) { return itemTop(view); }))
 , _context(_delegate->listContext())
+, _inverted(_delegate->listInvertedOrder())
 , _itemAverageHeight(itemMinimalHeight())
 , _pathGradient(
 	MakePathShiftGradient(
@@ -705,7 +706,7 @@ void ListWidget::refreshRows(const Data::MessagesSlice &old) {
 	saveScrollState();
 
 	const auto scrolledTillEnd = _itemsKnownTillEnd
-		&& (_visibleBottom == height())
+		&& atNewestEdge()
 		&& (_visibleBottom > _visibleTop);
 
 	const auto addedToEndFrom = (old.skippedAfter == 0
@@ -726,7 +727,7 @@ void ListWidget::refreshRows(const Data::MessagesSlice &old) {
 	_items.reserve(_slice.ids.size());
 	std::swap(_views, _viewsCapacity);
 	auto nearestIndex = -1;
-	for (const auto &fullId : _slice.ids) {
+	const auto pushItem = [&](const FullMsgId &fullId) {
 		if (const auto item = session().data().message(fullId)) {
 			if (_slice.nearestToAround == fullId) {
 				nearestIndex = int(_items.size());
@@ -740,11 +741,23 @@ void ListWidget::refreshRows(const Data::MessagesSlice &old) {
 				clearingOverElement = nullptr;
 			}
 		}
+	};
+	if (_inverted) {
+		for (const auto &fullId : ranges::views::reverse(_slice.ids)) {
+			pushItem(fullId);
+		}
+	} else {
+		for (const auto &fullId : _slice.ids) {
+			pushItem(fullId);
+		}
 	}
 	if (_translateTracker) {
 		_translateTracker->addBunchFrom(_items);
 	}
-	for (auto e = end(_items), i = e - addedToEndCount; i != e; ++i) {
+	const auto revealCount = _inverted
+		? 0
+		: std::min(addedToEndCount, int(_items.size()));
+	for (auto e = end(_items), i = e - revealCount; i != e; ++i) {
 		const auto item = (*i)->data();
 		if (!item->history()->streamedDrafts().hasFor(item)) {
 			_itemRevealPending.emplace(*i);
@@ -802,7 +815,11 @@ std::optional<int> ListWidget::scrollTopForPosition(
 	if (_visibleTop >= _visibleBottom) {
 		return std::nullopt;
 	} else if (position == Data::MaxMessagePosition) {
-		if (loadedAtBottom()) {
+		if (_inverted) {
+			if (loadedAtTop()) {
+				return 0;
+			}
+		} else if (loadedAtBottom()) {
 			return height() - (_visibleBottom - _visibleTop);
 		}
 		return std::nullopt;
@@ -922,14 +939,20 @@ bool ListWidget::isAbovePosition(Data::MessagePosition position) const {
 	if (_items.empty() || loadedAtBottom()) {
 		return false;
 	}
-	return _items.back()->data()->position() < position;
+	const auto bottomPosition = _items.back()->data()->position();
+	return _inverted
+		? (bottomPosition > position)
+		: (bottomPosition < position);
 }
 
 bool ListWidget::isBelowPosition(Data::MessagePosition position) const {
 	if (_items.empty() || loadedAtTop()) {
 		return false;
 	}
-	return _items.front()->data()->position() > position;
+	const auto topPosition = _items.front()->data()->position();
+	return _inverted
+		? (topPosition < position)
+		: (topPosition > position);
 }
 
 void ListWidget::highlightMessage(
@@ -1196,7 +1219,10 @@ int ListWidget::findNearestItem(Data::MessagePosition position) const {
 	const auto after = ranges::find_if(
 		_items,
 		[&](not_null<Element*> view) {
-			return (view->data()->position() >= position);
+			const auto itemPosition = view->data()->position();
+			return _inverted
+				? (itemPosition <= position)
+				: (itemPosition >= position);
 		});
 	return (after == end(_items))
 		? int(_items.size() - 1)
@@ -1246,8 +1272,12 @@ void ListWidget::applyUpdatedScrollState() {
 	checkMoveToOtherViewer();
 }
 
+bool ListWidget::atNewestEdge() const {
+	return _inverted ? (_visibleTop == 0) : (_visibleBottom == height());
+}
+
 void ListWidget::updateVisibleTopItem() {
-	if (_itemsKnownTillEnd && _visibleBottom == height()) {
+	if (_itemsKnownTillEnd && atNewestEdge()) {
 		_visibleTopItem = nullptr;
 	} else if (_items.empty()) {
 		_visibleTopItem = nullptr;
@@ -1697,20 +1727,28 @@ void ListWidget::setTextSelection(
 	}
 }
 
+std::optional<int> ListWidget::skippedAtTop() const {
+	return _inverted ? _slice.skippedAfter : _slice.skippedBefore;
+}
+
+std::optional<int> ListWidget::skippedAtBottom() const {
+	return _inverted ? _slice.skippedBefore : _slice.skippedAfter;
+}
+
 bool ListWidget::loadedAtTopKnown() const {
-	return !!_slice.skippedBefore;
+	return !!skippedAtTop();
 }
 
 bool ListWidget::loadedAtTop() const {
-	return _slice.skippedBefore && (*_slice.skippedBefore == 0);
+	return skippedAtTop() == 0;
 }
 
 bool ListWidget::loadedAtBottomKnown() const {
-	return !!_slice.skippedAfter;
+	return !!skippedAtBottom();
 }
 
 bool ListWidget::loadedAtBottom() const {
-	return _slice.skippedAfter && (*_slice.skippedAfter == 0);
+	return skippedAtBottom() == 0;
 }
 
 bool ListWidget::isEmpty() const {
@@ -1881,12 +1919,10 @@ void ListWidget::checkMoveToOtherViewer() {
 		+ (visibleHeight / _itemAverageHeight);
 
 	auto preloadBefore = kPreloadIfLessThanScreens * visibleHeight;
-	auto before = _slice.skippedBefore;
 	auto preloadTop = (_visibleTop < preloadBefore);
-	auto topLoaded = before && (*before == 0);
-	auto after = _slice.skippedAfter;
+	auto topLoaded = loadedAtTop();
 	auto preloadBottom = (height() - _visibleBottom < preloadBefore);
-	auto bottomLoaded = after && (*after == 0);
+	auto bottomLoaded = loadedAtBottom();
 
 	auto minScreenDelta = kPreloadedScreensCount
 		- kPreloadIfLessThanScreens;
@@ -2409,6 +2445,8 @@ int ListWidget::resizeGetHeight(int newWidth) {
 void ListWidget::restoreScrollPosition() {
 	auto newVisibleTop = _visibleTopItem
 		? (itemTop(_visibleTopItem) + _visibleTopFromItem)
+		: _inverted
+		? 0
 		: ScrollMax;
 	_delegate->listScrollTo(newVisibleTop);
 }
@@ -3033,8 +3071,7 @@ Element *ListWidget::strictFindItemByY(int y) const {
 }
 
 auto ListWidget::countScrollState() const -> ScrollTopState {
-	if (_items.empty()
-		|| (_itemsKnownTillEnd && _visibleBottom == height())) {
+	if (_items.empty() || (_itemsKnownTillEnd && atNewestEdge())) {
 		return { Data::MessagePosition(), 0 };
 	}
 	const auto topItem = findItemByY(_visibleTop);
@@ -3105,14 +3142,18 @@ void ListWidget::keyPressEvent(QKeyEvent *e) {
 		case Qt::Key_Down:
 			if (plainKey || shiftRange) {
 				newIndex = std::min(
-					(newIndex < 0) ? (count - 1) : (newIndex + 1),
+					(newIndex < 0)
+						? accessibilityNewestIndex(count)
+						: (newIndex + 1),
 					count - 1);
 			}
 			break;
 		case Qt::Key_Up:
 			if (plainKey || shiftRange) {
 				newIndex = std::max(
-					(newIndex < 0) ? (count - 1) : (newIndex - 1),
+					(newIndex < 0)
+						? accessibilityNewestIndex(count)
+						: (newIndex - 1),
 					0);
 			}
 			break;
@@ -5172,6 +5213,10 @@ std::vector<HistoryView::Element*> ListWidget::accessibleElements() const {
 	return result;
 }
 
+int ListWidget::accessibilityNewestIndex(int count) const {
+	return _inverted ? 0 : (count - 1);
+}
+
 int ListWidget::accessibilityUnreadBarIndex() const {
 	if (!_bar.element || _bar.hidden) {
 		return -1;
@@ -5590,7 +5635,7 @@ void ListWidget::focusInEvent(QFocusEvent *e) {
 		const auto barIndex = accessibilityUnreadBarIndex();
 		const auto index = (barIndex >= 0 && barIndex + 1 < count)
 			? (barIndex + 1)
-			: (count - 1);
+			: accessibilityNewestIndex(count);
 		const auto elements = accessibleElements();
 		const auto item = accessibilityItemAtIndex(
 			index,
