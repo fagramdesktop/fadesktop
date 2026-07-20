@@ -2125,10 +2125,17 @@ void TopBar::setTabSelectedItems(SelectedItems &&items) {
 	if (_tabSelectionBar) {
 		if (mode) {
 			updateTabSelectionState();
-			_tabSelectionBar->raise();
+			raiseTabSelectionOverlay();
 		}
 		_tabSelectionBar->toggle(mode, anim::type::normal);
 	}
+}
+
+void TopBar::raiseTabSelectionOverlay() {
+	if (!_tabSelectionBar || !tabSelectionMode()) {
+		return;
+	}
+	_tabSelectionBar->raise();
 }
 
 void TopBar::createTabSelectionBar() {
@@ -2924,6 +2931,7 @@ void TopBar::setupButtons(
 			}
 		}
 		raiseTabSearchOverlay();
+		raiseTabSelectionOverlay();
 	}, lifetime());
 }
 

@@ -220,6 +220,7 @@ private:
 	void createTabSelectionBar();
 	void updateTabSelectionState();
 	void updateTabSelectionGeometry();
+	void raiseTabSelectionOverlay();
 	[[nodiscard]] bool tabSelectionMode() const;
 	void showTabSearch();
 	void hideTabSearch();
