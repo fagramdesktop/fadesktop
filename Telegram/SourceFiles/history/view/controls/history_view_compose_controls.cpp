@@ -2133,7 +2133,8 @@ bool ComposeControls::hasRichDraftThreadScope() const {
 }
 
 bool ComposeControls::isShortcutComposeEligible() const {
-	return _history
+	return _features.richEditor
+		&& _history
 		&& !isEditingMessage()
 		&& (_mode == Mode::Normal)
 		&& (_currentDialogsEntryState.section
