@@ -310,6 +310,8 @@ windowFilterIconUserpicBadge: 16px;
 windowFilterIconUserpicBadgePosition: point(30px, 30px);
 windowFilterIconUserpicBadgeBorder: 2px;
 windowFilterIconUserpicBadgeIcon: icon {{ "chat/paid_edit-14x14", windowFgActive }};
+windowFilterIconFlyUp: 24px;
+windowFilterIconFlyDuration: 270;
 windwoFilterIconPanelPosition: point(2px, -1px);
 windowFilterIconSingle: size(44px, 42px);
 windowFilterIconPadding: margins(10px, 36px, 10px, 8px);

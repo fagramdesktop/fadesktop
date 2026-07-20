@@ -206,6 +206,45 @@ void EditExceptions(
 		Box<PeerListBox>(std::move(controller), std::move(initBox)));
 }
 
+struct ParabolicPath {
+	float64 a = 0.;
+	float64 b = 0.;
+	int from = 0;
+
+	[[nodiscard]] int y(float64 progress) const {
+		return int(base::SafeRound(
+			(a * progress * progress) + (b * progress) + from));
+	}
+};
+
+[[nodiscard]] ParabolicPath ComputeParabolicPath(int from, int to, int up) {
+	const auto y_1 = to - from;
+	const auto y_0 = std::min(0, y_1) - up;
+	const auto ratio = y_1 ? (float64(y_0) / y_1) : 0.;
+	const auto root = y_1 ? sqrt(ratio * (ratio - 1)) : 0.;
+	const auto t_0 = !y_1
+		? 0.5
+		: (y_1 > 0)
+		? (ratio + root)
+		: (ratio - root);
+	const auto a = y_1 ? (y_1 / (1 - 2 * t_0)) : (-4. * y_0);
+	return { .a = a, .b = y_1 - a, .from = from };
+}
+
+[[nodiscard]] QImage PrepareFlyIcon(
+		not_null<const style::icon*> icon,
+		QColor color) {
+	const auto ratio = style::DevicePixelRatio();
+	auto result = QImage(
+		icon->size() * ratio,
+		QImage::Format_ARGB32_Premultiplied);
+	result.setDevicePixelRatio(ratio);
+	result.fill(Qt::transparent);
+	auto p = QPainter(&result);
+	icon->paint(p, 0, 0, icon->width(), color);
+	return result;
+}
+
 void CreateIconSelector(
 		not_null<QWidget*> outer,
 		not_null<QWidget*> box,
@@ -219,6 +258,19 @@ void CreateIconSelector(
 	const auto border = st::windowFilterIconUserpicBadgeBorder;
 	const auto toggle = Ui::CreateChild<Ui::AbstractButton>(parent.get());
 	toggle->resize(Size(badgePosition.x() + badge + border));
+
+	struct FlyState {
+		Ui::Animations::Simple animation;
+		QImage from;
+		QImage to;
+		QRect fromRect;
+		QRect toRect;
+		QRect bounds;
+		QRect last;
+		ParabolicPath path;
+		base::unique_qptr<Ui::RpWidget> layer;
+	};
+	const auto fly = toggle->lifetime().make_state<FlyState>();
 
 	const auto type = toggle->lifetime().make_state<Ui::FilterIcon>();
 	data->value(
@@ -246,7 +298,9 @@ void CreateIconSelector(
 		p.drawEllipse(userpic);
 
 		const auto icons = Ui::LookupFilterIcon(*type);
-		icons.userpic->paintInCenter(p, userpic);
+		if (!fly->animation.animating()) {
+			icons.userpic->paintInCenter(p, userpic);
+		}
 
 		const auto badgeRect = Rect(
 			badgePosition.x(),
@@ -265,16 +319,94 @@ void CreateIconSelector(
 	toggle->addClickHandler([=] {
 		panel->toggleAnimated();
 	});
+	const auto startFly = [=](Ui::FilterIconChosen chosen) {
+		const auto icons = Ui::LookupFilterIcon(chosen.icon);
+		const auto map = [&](not_null<QWidget*> from, QRect geometry) {
+			return QRect(
+				outer->mapFromGlobal(from->mapToGlobal(geometry.topLeft())),
+				geometry.size());
+		};
+		const auto centerOn = [](QRect where, QSize size) {
+			auto result = QRect(QPoint(), size);
+			result.moveCenter(rect::center(where));
+			return result;
+		};
+		fly->from = PrepareFlyIcon(icons.normal, st::dialogsUnreadBgMuted->c);
+		fly->to = PrepareFlyIcon(icons.userpic, st::windowFgActive->c);
+		fly->fromRect = centerOn(
+			map(panel, chosen.geometry),
+			icons.normal->size());
+		fly->toRect = centerOn(
+			map(toggle, Rect(Size(size))),
+			icons.userpic->size());
+		fly->path = ComputeParabolicPath(
+			fly->fromRect.y(),
+			fly->toRect.y(),
+			st::windowFilterIconFlyUp);
+
+		const auto frameRect = [=](float64 progress) {
+			return QRect(
+				anim::interpolate(
+					fly->fromRect.x(),
+					fly->toRect.x(),
+					progress),
+				fly->path.y(progress),
+				anim::interpolate(
+					fly->fromRect.width(),
+					fly->toRect.width(),
+					progress),
+				anim::interpolate(
+					fly->fromRect.height(),
+					fly->toRect.height(),
+					progress));
+		};
+		fly->bounds = fly->fromRect.united(fly->toRect).marginsAdded(
+			{ 0, st::windowFilterIconFlyUp, 0, 0 });
+		fly->last = fly->fromRect;
+
+		fly->layer = base::make_unique_q<Ui::RpWidget>(outer);
+		const auto layer = fly->layer.get();
+		layer->setAttribute(Qt::WA_TransparentForMouseEvents);
+		layer->setGeometry(fly->bounds);
+		layer->show();
+		layer->raise();
+		layer->paintRequest(
+		) | rpl::on_next([=] {
+			auto p = QPainter(layer);
+			auto hq = PainterHighQualityEnabler(p);
+			const auto progress = fly->animation.value(1.);
+			const auto rect = frameRect(progress).translated(
+				-fly->bounds.topLeft());
+			p.setOpacity(1. - progress);
+			p.drawImage(rect, fly->from);
+			p.setOpacity(progress);
+			p.drawImage(rect, fly->to);
+		}, layer->lifetime());
+
+		fly->animation.start([=] {
+			const auto finished = !fly->animation.animating();
+			const auto rect = frameRect(fly->animation.value(1.));
+			layer->update(
+				rect.united(fly->last).translated(-fly->bounds.topLeft()));
+			fly->last = rect;
+			toggle->update();
+			if (finished) {
+				InvokeQueued(toggle, [=] { fly->layer = nullptr; });
+			}
+		}, 0., 1., st::windowFilterIconFlyDuration, anim::sineInOut);
+	};
+
 	panel->chosen(
-	) | rpl::filter([=](Ui::FilterIcon icon) {
-		return icon != Ui::ComputeFilterIcon(data->current());
-	}) | rpl::on_next([=](Ui::FilterIcon icon) {
+	) | rpl::filter([=](Ui::FilterIconChosen chosen) {
+		return chosen.icon != Ui::ComputeFilterIcon(data->current());
+	}) | rpl::on_next([=](Ui::FilterIconChosen chosen) {
+		startFly(chosen);
 		panel->hideAnimated();
 		const auto rules = data->current();
 		*data = Data::ChatFilter(
 			rules.id(),
 			rules.title(),
-			Ui::LookupFilterIcon(icon).emoji,
+			Ui::LookupFilterIcon(chosen.icon).emoji,
 			rules.colorIndex(),
 			rules.flags(),
 			rules.always(),
