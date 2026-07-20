@@ -1,3 +1,10 @@
+7.0.4 (20.07.26)
+
+- Enable rich text editor for scheduled messages and quick replies.
+- Upload rich message photos in high quality.
+- Fix crash in some video files viewer.
+- Fix crash in shared files section.
+
 7.0.3 (17.07.26)
 
 - Fix media viewer freezes on macOS.
