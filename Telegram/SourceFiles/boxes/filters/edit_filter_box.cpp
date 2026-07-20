@@ -261,6 +261,8 @@ void CreateIconSelector(
 
 	struct FlyState {
 		Ui::Animations::Simple animation;
+		Ui::Animations::Simple scaleOut;
+		QImage previous;
 		QImage from;
 		QImage to;
 		QRect fromRect;
@@ -300,6 +302,14 @@ void CreateIconSelector(
 		const auto icons = Ui::LookupFilterIcon(*type);
 		if (!fly->animation.animating()) {
 			icons.userpic->paintInCenter(p, userpic);
+		} else if (const auto scale = fly->scaleOut.value(0.); scale > 0.) {
+			auto shrunk = QRectF(
+				QPointF(),
+				fly->previous.deviceIndependentSize() * scale);
+			shrunk.moveCenter(rect::center(QRectF(userpic)));
+			p.setOpacity(scale);
+			p.drawImage(shrunk, fly->previous);
+			p.setOpacity(1.);
 		}
 
 		const auto badgeRect = Rect(
@@ -320,6 +330,9 @@ void CreateIconSelector(
 		panel->toggleAnimated();
 	});
 	const auto startFly = [=](Ui::FilterIconChosen chosen) {
+		fly->previous = PrepareFlyIcon(
+			Ui::LookupFilterIcon(*type).userpic,
+			st::windowFgActive->c);
 		const auto icons = Ui::LookupFilterIcon(chosen.icon);
 		const auto map = [&](not_null<QWidget*> from, QRect geometry) {
 			return QRect(
@@ -382,6 +395,10 @@ void CreateIconSelector(
 			p.setOpacity(progress);
 			p.drawImage(rect, fly->to);
 		}, layer->lifetime());
+
+		fly->scaleOut.start([=] {
+			toggle->update();
+		}, 1., 0., st::windowFilterIconScaleOutDuration);
 
 		fly->animation.start([=] {
 			const auto finished = !fly->animation.animating();
