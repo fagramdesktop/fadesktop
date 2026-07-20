@@ -213,8 +213,12 @@ void CreateIconSelector(
 		not_null<Ui::InputField*> input,
 		not_null<rpl::variable<Data::ChatFilter>*> data) {
 	const auto rules = data->current();
+	const auto size = st::windowFilterIconUserpicSize;
+	const auto badge = st::windowFilterIconUserpicBadge;
+	const auto badgePosition = st::windowFilterIconUserpicBadgePosition;
+	const auto border = st::windowFilterIconUserpicBadgeBorder;
 	const auto toggle = Ui::CreateChild<Ui::AbstractButton>(parent.get());
-	toggle->resize(st::windowFilterIconToggleSize);
+	toggle->resize(Size(badgePosition.x() + badge + border));
 
 	const auto type = toggle->lifetime().make_state<Ui::FilterIcon>();
 	data->value(
@@ -227,21 +231,32 @@ void CreateIconSelector(
 
 	input->geometryValue(
 	) | rpl::on_next([=](QRect geometry) {
-		const auto left = geometry.x() + geometry.width() - toggle->width();
-		const auto position = st::windowFilterIconTogglePosition;
 		toggle->move(
-			left - position.x(),
-			geometry.y() + position.y());
+			geometry.x() - st::windowFilterIconUserpicSkip - size,
+			geometry.y() + st::windowFilterIconUserpicTop);
 	}, toggle->lifetime());
 
 	toggle->paintRequest(
 	) | rpl::on_next([=] {
 		auto p = QPainter(toggle);
+		auto hq = PainterHighQualityEnabler(p);
+		const auto userpic = Rect(Size(size));
+		p.setPen(Qt::NoPen);
+		p.setBrush(st::windowBgActive);
+		p.drawEllipse(userpic);
+
 		const auto icons = Ui::LookupFilterIcon(*type);
-		icons.normal->paintInCenter(
-			p,
-			toggle->rect(),
-			st::dialogsUnreadBgMuted->c);
+		icons.userpic->paintInCenter(p, userpic);
+
+		const auto badgeRect = Rect(
+			badgePosition.x(),
+			badgePosition.y(),
+			Size(badge));
+		p.setBrush(st::boxBg);
+		p.drawEllipse(badgeRect.marginsAdded(Margins(border)));
+		p.setBrush(st::windowBgActive);
+		p.drawEllipse(badgeRect);
+		st::windowFilterIconUserpicBadgeIcon.paintInCenter(p, badgeRect);
 	}, toggle->lifetime());
 
 	const auto panel = toggle->lifetime().make_state<Ui::FilterIconPanel>(
@@ -268,15 +283,12 @@ void CreateIconSelector(
 	}, panel->lifetime());
 
 	const auto updatePanelGeometry = [=] {
-		const auto global = toggle->mapToGlobal({
-			toggle->width(),
-			toggle->height()
-		});
+		const auto global = toggle->mapToGlobal({ 0, toggle->height() });
 		const auto local = outer->mapFromGlobal(global);
 		const auto position = st::windwoFilterIconPanelPosition;
 		const auto padding = panel->innerPadding();
 		panel->move(
-			local.x() - panel->width() + position.x() + padding.right(),
+			local.x() + position.x() - padding.left(),
 			local.y() + position.y() - padding.top());
 	};
 
@@ -426,7 +438,7 @@ void EditFilterBox(
 			st::windowFilterNameInput,
 			Ui::InputField::Mode::SingleLine,
 			tr::lng_filters_new_name()),
-		st::markdownLinkFieldPadding);
+		st::windowFilterNameInputPadding);
 	InitMessageFieldHandlers(window, name, ChatHelpers::PauseReason::Layer);
 	name->setTextWithTags({
 		current.text,
