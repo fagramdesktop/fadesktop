@@ -468,6 +468,18 @@ settingsReactionCornerSkip: point(11px, -6px);
 settingsReactionMessageSize: 18px;
 
 settingsReactionRightIcon: 20px;
+settingsReactionsIslandPadding: margins(12px, 12px, 12px, 4px);
+settingsReactionsFillerOpacity: 0.4;
+settingsReactionsFlyUp: 12px;
+settingsReactionsAboutLabel: FlatLabel(defaultFlatLabel) {
+	textFg: windowSubTextFg;
+	align: align(center);
+	minWidth: 240px;
+}
+settingsReactionsAboutPadding: margins(22px, 9px, 22px, 2px);
+reactionsSettingsBox: Box(defaultBox) {
+	shadowIgnoreTopSkip: true;
+}
 
 notifyPreviewMargins: margins(40px, 20px, 40px, 58px);
 notifyPreviewUserpicSize: 36px;
