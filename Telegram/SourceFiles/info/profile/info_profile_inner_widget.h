@@ -39,6 +39,7 @@ namespace Profile {
 class Memento;
 class Members;
 class TabsHost;
+class TopBar;
 struct Origin;
 
 class InnerWidget final : public Ui::RpWidget {
@@ -64,6 +65,9 @@ public:
 
 	void enableBackButton();
 	void showFinished();
+	void checkBeforeCloseByEscape(Fn<void()> close);
+	[[nodiscard]] bool searchAvailable() const;
+	void showSearch();
 
 	[[nodiscard]] TabsHost *tabsHost() const {
 		return _tabsHost;
@@ -116,6 +120,7 @@ private:
 	rpl::variable<std::optional<QColor>> _topBarColor;
 
 	Members *_members = nullptr;
+	base::weak_qptr<TopBar> _topBar;
 	Ui::SlideWrap<RpWidget> *_sharedMediaWrap = nullptr;
 	TabsHost *_tabsHost = nullptr;
 	rpl::variable<bool> _tabsDocked = false;

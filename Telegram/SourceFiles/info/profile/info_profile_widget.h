@@ -90,6 +90,9 @@ public:
 	void setInnerFocus() override;
 	void enableBackButton() override;
 	void showFinished() override;
+	void checkBeforeCloseByEscape(Fn<void()> close) override;
+	bool searchAvailable() const override;
+	void showSearch() override;
 
 	rpl::producer<QString> title() override;
 	rpl::producer<Dialogs::Stories::Content> titleStories() override;

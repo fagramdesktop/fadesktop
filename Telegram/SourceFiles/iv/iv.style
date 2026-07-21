@@ -988,7 +988,6 @@ defaultMarkdown: Markdown {
 }
 messageMarkdownBodyStyle: TextStyle(messageTextStyle) {
 	font: font(13px);
-	lineHeight: 20px;
 }
 messageMarkdownCodeStyle: TextStyle(defaultMarkdownCodeStyle) {
 	font: font(13px);
@@ -1042,7 +1041,7 @@ messageMarkdownAudioTitleStyle: TextStyle(messageMarkdownBodyStyle) {
 messageMarkdownAudioSubtitleStyle: TextStyle(messageMarkdownDetailsSummaryStyle) {
 }
 messageMarkdownBlockSkips: MarkdownBlockSkips {
-	paragraph: 8px;
+	paragraph: 4px;
 	heading: 10px;
 	code: 8px;
 	rule: 8px;

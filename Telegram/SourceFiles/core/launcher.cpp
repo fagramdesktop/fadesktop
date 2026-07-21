@@ -384,8 +384,6 @@ int Launcher::exec() {
 
 	if (cLaunchMode() == LaunchModeFixPrevious) {
 		return psFixPrevious();
-	} else if (cLaunchMode() == LaunchModeCleanup) {
-		return psCleanup();
 	}
 
 	// Must be started before Platform is started.

@@ -1461,11 +1461,15 @@ void HistoryWidget::initExpandButton() {
 			const auto item = session().data().message(
 				_history->peer,
 				_editMsgId);
-			if (item && Iv::Editor::CheckRichMessagesPremium(window)) {
+			if (item) {
 				Iv::Editor::ShowEditFromFieldBox(
 					window,
 					item,
-					prepareSendAction({}));
+					prepareSendAction({}),
+					_field->getTextWithAppliedMarkdown(),
+					crl::guard(this, [=] {
+						cancelEdit();
+					}));
 			}
 			return;
 		}
@@ -1473,7 +1477,11 @@ void HistoryWidget::initExpandButton() {
 			window,
 			_history->peer,
 			prepareSendAction({}),
-			sendMenuDetails());
+			sendMenuDetails(),
+			_field->getTextWithAppliedMarkdown(),
+			crl::guard(this, [=] {
+				migrateFieldToRichEditor();
+			}));
 	});
 }
 
@@ -2303,31 +2311,6 @@ bool HistoryWidget::shouldShowRichDraftPreview() const {
 		&& draft->hasRichMessage();
 }
 
-std::unique_ptr<Data::Draft> HistoryWidget::readThreadFieldDraft() const {
-	if (!_history) {
-		return nullptr;
-	}
-	auto result = std::make_unique<Data::Draft>(
-		_field->getTextWithAppliedMarkdown(),
-		_replyTo,
-		suggestOptions(),
-		MessageCursor(_field),
-		_preview ? _preview->draft() : Data::WebPageDraft());
-	return Data::DraftIsNull(result.get()) ? nullptr : std::move(result);
-}
-
-void HistoryWidget::saveThreadFieldDraft(std::unique_ptr<Data::Draft> draft) {
-	if (!_history) {
-		return;
-	}
-	if (!draft || Data::DraftIsNull(draft.get())) {
-		_history->clearLocalDraft(MsgId(), PeerId());
-	} else {
-		_history->setLocalDraft(std::move(draft));
-	}
-	applyDraft(Ui::InputField::HistoryAction::NewEntry);
-}
-
 void HistoryWidget::migrateFieldToRichEditor() {
 	if (!_history) {
 		return;
@@ -2336,7 +2319,8 @@ void HistoryWidget::migrateFieldToRichEditor() {
 		cancelEdit();
 	} else {
 		clearFieldText();
-		saveThreadFieldDraft(nullptr);
+		_history->clearLocalDraft(MsgId(), PeerId());
+		applyDraft(Ui::InputField::HistoryAction::NewEntry);
 		_history->clearCloudDraft(MsgId(), PeerId());
 		if (const auto cloudDraft = _history->createCloudDraft(
 				MsgId(),
@@ -3365,7 +3349,7 @@ void HistoryWidget::setHistory(History *history) {
 	};
 
 	if (_history) {
-		unregisterThreadFieldBridge();
+		untrackThreadFieldVisibility();
 		unregisterDraftSources();
 		clearAllLoadRequests();
 		clearSupportPreloadRequest();
@@ -3385,7 +3369,7 @@ void HistoryWidget::setHistory(History *history) {
 		registerDraftSource();
 		if (_history) {
 			setupPreview();
-			registerThreadFieldBridge();
+			trackThreadFieldVisibility();
 		} else {
 			_previewDrawPreview = nullptr;
 			_preview = nullptr;
@@ -3442,7 +3426,13 @@ void HistoryWidget::refreshAttachBotsMenu() {
 		_history->peer,
 		[=] { return prepareSendAction({}); },
 		[=] { return sendMenuDetails(); },
-		[=](bool compress) { chooseAttach(compress); });
+		[=](bool compress) { chooseAttach(compress); },
+		crl::guard(this, [=] {
+			return _field->getTextWithAppliedMarkdown();
+		}),
+		crl::guard(this, [=] {
+			migrateFieldToRichEditor();
+		}));
 	if (!_attachBotsMenu) {
 		return;
 	}
@@ -3500,44 +3490,17 @@ void HistoryWidget::registerDraftSource() {
 		std::move(draftSource));
 }
 
-void HistoryWidget::unregisterThreadFieldBridge() {
-	_threadFieldBridgeLifetime.destroy();
-	if (_history) {
-		Iv::Editor::UnregisterThreadFieldBridge(
-			&session(),
-			_history->peer->id,
-			MsgId(),
-			PeerId());
-	}
+void HistoryWidget::untrackThreadFieldVisibility() {
+	_threadFieldVisibleLifetime.destroy();
 	_threadFieldVisible = false;
 }
 
-void HistoryWidget::registerThreadFieldBridge() {
+void HistoryWidget::trackThreadFieldVisibility() {
 	if (!_history) {
 		_threadFieldVisible = false;
 		return;
 	}
 	const auto peerId = _history->peer->id;
-	const auto weak = base::make_weak(this);
-	Iv::Editor::RegisterThreadFieldBridge(
-		&session(),
-		peerId,
-		MsgId(),
-		PeerId(),
-		[weak] {
-			const auto widget = weak.get();
-			return widget ? widget->readThreadFieldDraft() : nullptr;
-		},
-		[weak](std::unique_ptr<Data::Draft> draft) {
-			if (const auto widget = weak.get()) {
-				widget->saveThreadFieldDraft(std::move(draft));
-			}
-		},
-		[weak] {
-			if (const auto widget = weak.get()) {
-				widget->migrateFieldToRichEditor();
-			}
-		});
 	Iv::Editor::FieldVisibleValue(
 		&session(),
 		peerId,
@@ -3555,7 +3518,7 @@ void HistoryWidget::registerThreadFieldBridge() {
 		updateSendButtonType();
 		updateControlsVisibility();
 		updateControlsGeometry();
-	}, _threadFieldBridgeLifetime);
+	}, _threadFieldVisibleLifetime);
 }
 
 void HistoryWidget::setEditMsgId(MsgId msgId) {
@@ -4334,7 +4297,7 @@ void HistoryWidget::destroyUnreadBar() {
 void HistoryWidget::destroyUnreadBarOnClose() {
 	if (!_history || !_historyInited) {
 		return;
-	} else if (_scroll->scrollTop() == _scroll->scrollTopMax()) {
+	} else if (_scroll->scrollTop() >= _scroll->scrollTopMax()) {
 		destroyUnreadBar();
 		return;
 	}
@@ -8312,7 +8275,7 @@ void HistoryWidget::updateHistoryGeometry(
 		return;
 	}
 	const auto wasScrollTop = _scroll->scrollTop();
-	const auto wasAtBottom = (wasScrollTop == _scroll->scrollTopMax());
+	const auto wasAtBottom = (wasScrollTop >= _scroll->scrollTopMax());
 	const auto needResize = (_scroll->width() != newScrollWidth)
 		|| (_scroll->height() != newScrollHeight);
 	if (needResize) {
@@ -8414,7 +8377,7 @@ void HistoryWidget::revealItemsCallback() {
 	}
 	if (_itemsRevealHeight != height) {
 		const auto wasScrollTop = _scroll->scrollTop();
-		const auto wasAtBottom = (wasScrollTop == _scroll->scrollTopMax());
+		const auto wasAtBottom = (wasScrollTop >= _scroll->scrollTopMax());
 		if (!wasAtBottom) {
 			height = 0;
 			_itemRevealAnimations.clear();

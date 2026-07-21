@@ -504,6 +504,7 @@ EmojiListWidget::EmojiListWidget(
 , _freeEffects(std::move(descriptor.freeEffects))
 , _customTextColor(std::move(descriptor.customTextColor))
 , _overBg(st::emojiPanRadius, st().overBg)
+, _markedBg(st::emojiPanRadius, st::stickersEmojiPickerSelectedBg)
 , _premiumMark(std::make_unique<StickerPremiumMark>(
 	&session(),
 	st::emojiPremiumLock))
@@ -1469,6 +1470,13 @@ void EmojiListWidget::provideRecent(
 	clearSelection();
 	fillRecentFrom(customRecentList);
 	resizeToWidth(width());
+}
+
+void EmojiListWidget::setMarkedCustomIds(base::flat_set<DocumentId> ids) {
+	if (_markedCustomIds != ids) {
+		_markedCustomIds = std::move(ids);
+		update();
+	}
 }
 
 void EmojiListWidget::repaintCustom(uint64 setId) {
@@ -2482,6 +2490,7 @@ void EmojiListWidget::paint(
 					const auto selected = (state == _selected)
 						|| (!_picker->isHidden()
 							&& state == _pickerSelected);
+					const auto marked = customMarked(info.section, index);
 					const auto position = QPoint(
 						_rowsLeft + j * _singleSize.width(),
 						info.rowsTop + i * _singleSize.height()
@@ -2508,13 +2517,14 @@ void EmojiListWidget::paint(
 						continue;
 					}
 					if (!_grabbingChosen
-						&& selected
-						&& st().overBg->c.alpha() > 0) {
+						&& (marked || (selected && st().overBg->c.alpha() > 0))) {
 						auto tl = w;
 						if (rtl()) {
 							tl.setX(width() - tl.x() - st::emojiPanArea.width());
 						}
-						_overBg.paint(p, QRect(tl, st::emojiPanArea));
+						(marked ? _markedBg : _overBg).paint(
+							p,
+							QRect(tl, st::emojiPanArea));
 					}
 					if (_searchMode && info.section == 0) {
 						drawRecent(p, context, w, _searchResults[index]);
@@ -2731,6 +2741,14 @@ EmojiListWidget::ResolvedCustom EmojiListWidget::lookupCustomEmoji(
 		return { entry.document, entry.collectible };
 	}
 	return {};
+}
+
+bool EmojiListWidget::customMarked(int section, int index) const {
+	if (_markedCustomIds.empty()) {
+		return false;
+	}
+	const auto custom = lookupCustomEmoji(index, section);
+	return custom && _markedCustomIds.contains(custom.document->id);
 }
 
 EmojiPtr EmojiListWidget::lookupOverEmoji(const OverEmoji *over) const {

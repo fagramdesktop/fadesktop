@@ -36,15 +36,18 @@ public:
 			&& !_images.contains(rowId)) {
 			clear();
 		}
-		auto &image = _images[rowId];
-		if (image.size() != physicalSize) {
-			_memory -= image.sizeInBytes();
-			image = QImage(physicalSize, QImage::Format_RGB32);
-			image.setDevicePixelRatio(ratio);
-			paintToImage(image);
-			_memory += image.sizeInBytes();
+		if (const auto i = _images.find(rowId)
+			; i != end(_images) && i->second.size() == physicalSize) {
+			p.drawImage(0, 0, i->second);
+			return;
 		}
+		auto image = QImage(physicalSize, QImage::Format_RGB32);
+		image.setDevicePixelRatio(ratio);
+		paintToImage(image);
 		p.drawImage(0, 0, image);
+		auto &slot = _images[rowId];
+		_memory += image.sizeInBytes() - slot.sizeInBytes();
+		slot = std::move(image);
 	}
 
 	void invalidate(uint64 rowId);

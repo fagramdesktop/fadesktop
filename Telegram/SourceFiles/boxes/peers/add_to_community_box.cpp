@@ -134,6 +134,7 @@ void CreateCommunityBox(
 		st::defaultInputField,
 		tr::lng_community_create_name()));
 	box->setFocusCallback([=] { field->setFocusFast(); });
+	box->addSkip(st::defaultBoxCheckbox.margin.top() + st::defaultVerticalListSkip);
 
 	const auto hidden = box->addRow(object_ptr<Ui::Checkbox>(
 		box,

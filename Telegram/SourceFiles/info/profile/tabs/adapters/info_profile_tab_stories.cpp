@@ -71,12 +71,6 @@ public:
 		const auto host = _host.data();
 		_list = Ui::CreateChild<Media::ListWidget>(host, &_subController);
 		_list->show();
-		host->widthValue(
-		) | rpl::on_next([this](int newWidth) {
-			_list->resizeToWidth(std::max(
-				newWidth - st::infoMediaTabsRightSkip,
-				1));
-		}, host->lifetime());
 		_list->heightValue(
 		) | rpl::on_next([this](int newHeight) {
 			_host->resize(_host->width(), newHeight);
@@ -92,6 +86,14 @@ public:
 
 	not_null<Ui::RpWidget*> widget() override {
 		return _host.data();
+	}
+	void resizeToWidth(int newWidth) override {
+		if (_host->width() != newWidth) {
+			_list->resizeToWidth(std::max(
+				newWidth - st::infoMediaTabsRightSkip,
+				1));
+		}
+		_host->resize(newWidth, _list->height());
 	}
 	TabTopBarBindings topBarBindings() override {
 		const auto channel = _peer->isChannel();

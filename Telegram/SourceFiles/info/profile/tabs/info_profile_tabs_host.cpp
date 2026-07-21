@@ -571,12 +571,6 @@ void TabsHost::activateTab(const QString &id, bool animated) {
 		if (raw->parentWidget() != _body) {
 			raw->setParent(_body);
 		}
-		_body->widthValue(
-		) | rpl::on_next([raw](int newWidth) {
-			if (!raw->isHidden()) {
-				raw->resizeToWidth(newWidth);
-			}
-		}, raw->lifetime());
 		raw->heightValue(
 		) | rpl::on_next([this, raw](int) {
 			if (!raw->isHidden()) {
@@ -585,7 +579,7 @@ void TabsHost::activateTab(const QString &id, bool animated) {
 		}, raw->lifetime());
 	}
 	raw->show();
-	raw->resizeToWidth(_body->width());
+	active->resizeToWidth(_body->width());
 	_body->resize(_body->width(), raw->height());
 
 	_activeTab = active;
@@ -775,6 +769,10 @@ void TabsHost::setScrolledToTop(bool scrolledToTop) {
 
 int TabsHost::resizeGetHeight(int newWidth) {
 	_body->resizeToWidth(std::max(newWidth, 1));
+	if (const auto active = _activeTab.current()) {
+		active->resizeToWidth(_body->width());
+		syncBodyNow();
+	}
 	if (_viewportPushPending && _body->width() >= st::infoMediaTabsMinBodyWidth) {
 		_viewportPushPending = false;
 		InvokeQueued(this, [this] { pushViewportToActive(); });
@@ -793,8 +791,10 @@ int TabsHost::resizeGetHeight(int newWidth) {
 	_body->moveToLeft(0, bodyTop);
 
 	const auto natural = bodyTop + _body->height();
-	if (_searching && !_scrolledToTop && (natural < _visibleBottom)) {
-		_keepMinHeight = std::max(_keepMinHeight, _visibleBottom);
+	const auto span = _visibleBottom - _visibleTop;
+	_searchContentFits = _searching && !_scrolledToTop && (natural < span);
+	if (_searchContentFits) {
+		_keepMinHeight = span;
 	} else if (_keepMinHeight
 		&& ((natural >= _keepMinHeight)
 			|| (natural >= _visibleBottom)

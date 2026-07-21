@@ -4627,6 +4627,9 @@ void Widget::performUndoRedo(bool redo, bool allowFieldLocal) {
 		: false;
 	clearFieldUndoRedoNoopState();
 	notifyToolbarStateChanged();
+	_autosaveEvents.fire({
+		.type = AutosaveEventType::StructuralMutation,
+	});
 }
 
 void Widget::notifyToolbarStateChanged() {

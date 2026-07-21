@@ -8722,6 +8722,7 @@ void OverlayWidget::updateHeader() {
 			}
 		}
 	} else {
+		const auto channel = _peer ? _peer->asChannel() : nullptr;
 		if (_document) {
 			_headerText = _document->filename().isEmpty()
 				? tr::lng_mediaview_doc_image(tr::now)
@@ -8736,8 +8737,10 @@ void OverlayWidget::updateHeader() {
 			} else {
 				_headerText = tr::lng_mediaview_profile_photo(tr::now);
 			}
+		} else if (channel && channel->isCommunity()) {
+			_headerText = tr::lng_mediaview_community_photo(tr::now);
 		} else if ((_history && _history->peer->isBroadcast())
-			|| (_peer && _peer->isChannel() && !_peer->isMegagroup())) {
+			|| (channel && !channel->isMegagroup())) {
 			_headerText = tr::lng_mediaview_channel_photo(tr::now);
 		} else if (_peer) {
 			_headerText = tr::lng_mediaview_group_photo(tr::now);

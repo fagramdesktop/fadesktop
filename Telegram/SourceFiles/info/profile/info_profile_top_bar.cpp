@@ -2134,26 +2134,46 @@ void TopBar::setTabSelectedItems(SelectedItems &&items) {
 	if (_tabSelectionBar) {
 		if (mode) {
 			updateTabSelectionState();
-			_tabSelectionBar->raise();
+			raiseTabSelectionOverlay();
 		}
 		_tabSelectionBar->toggle(mode, anim::type::normal);
 	}
 }
 
+void TopBar::raiseTabSelectionOverlay() {
+	if (!_tabSelectionBar || !tabSelectionMode()) {
+		return;
+	}
+	_tabSelectionBar->raise();
+}
+
 void TopBar::createTabSelectionBar() {
 	_tabSelectionBar.create(
 		this,
-		object_ptr<Ui::RpWidget>(this),
-		st::infoTopBarScale);
+		object_ptr<Ui::RpWidget>(this));
 	const auto bar = _tabSelectionBar.data();
 	bar->setDuration(st::infoTopBarDuration);
 	bar->toggle(false, anim::type::instant);
 
 	const auto inner = bar->entity();
 	inner->paintRequest(
-	) | rpl::on_next([=](QRect clip) {
+	) | rpl::on_next([=] {
 		auto p = QPainter(inner);
-		p.fillRect(clip, _st.bg);
+		auto hq = PainterHighQualityEnabler(p);
+		const auto radius = _roundEdges ? st::boxRadius : 0;
+		p.setPen(Qt::NoPen);
+		p.setBrush(_st.bg);
+		p.drawRoundedRect(
+			inner->rect() + QMargins(0, 0, 0, radius),
+			radius,
+			radius);
+		const auto line = st::lineWidth;
+		p.fillRect(
+			0,
+			inner->height() - line,
+			inner->width(),
+			line,
+			st::shadowFg);
 	}, inner->lifetime());
 
 	const auto forwardAction = [=](SelectionAction action) {
@@ -2276,7 +2296,7 @@ void TopBar::updateTabSelectionGeometry() {
 	_tabSelectionBar->move(0, 0);
 
 	_tabSelectionCancel->moveToLeft(0, 0);
-	auto right = 0;
+	auto right = _st.mediaActionsSkip;
 	if (!_tabSelectionDelete->isHidden()) {
 		_tabSelectionDelete->moveToRight(right, 0, inner->width());
 		right += _tabSelectionDelete->width();
@@ -2344,18 +2364,11 @@ void TopBar::showTabSearch() {
 
 		const auto cancel = Ui::CreateChild<Ui::IconButton>(
 			inner,
-			_closeColored
-				? st::infoTopBarColoredClose
-				: st::infoTopBarBlackClose);
+			st::infoTopBarBlackClose);
 		cancel->setAccessibleName(tr::lng_sr_cancel_search(tr::now));
 		cancel->show();
 		cancel->addClickHandler([=] {
-			if (_tabSearchField->getLastText().isEmpty()) {
-				hideTabSearch();
-				updateTabSwapVisibility();
-			} else {
-				_tabSearchField->setText(QString());
-			}
+			cancelTabSearch();
 		});
 		inner->widthValue(
 		) | rpl::on_next([=](int newWidth) {
@@ -2367,7 +2380,7 @@ void TopBar::showTabSearch() {
 	_tabSearchShown = true;
 	updateTabSwapVisibility();
 	updateTabSearchGeometry();
-	_tabSearchBar->raise();
+	raiseTabSearchOverlay();
 	_tabSearchBar->toggle(true, anim::type::normal);
 	_tabSearchField->setFocus();
 }
@@ -2378,11 +2391,57 @@ void TopBar::hideTabSearch() {
 		return;
 	}
 	_tabSearchShown = false;
+	if (_back) {
+		_back->entity()->setIconOverride(nullptr, nullptr);
+	}
 	if (_tabSearchField->hasFocus()) {
 		setFocus();
 	}
 	_tabSearchField->setText(QString());
 	_tabSearchBar->toggle(false, anim::type::normal);
+}
+
+bool TopBar::cancelTabSearch() {
+	if (!_tabSearchShown) {
+		return false;
+	} else if (!_tabSearchField->getLastText().isEmpty()) {
+		_tabSearchField->setText(QString());
+	} else {
+		hideTabSearch();
+		updateTabSwapVisibility();
+	}
+	return true;
+}
+
+void TopBar::checkBeforeCloseByEscape(Fn<void()> close) {
+	if (!cancelTabSearch()) {
+		close();
+	}
+}
+
+bool TopBar::searchAvailable() const {
+	return _tabSearchShown || (tabSwapActive() && _tabSearchAvailable);
+}
+
+void TopBar::showSearch() {
+	if (_tabSearchShown) {
+		_tabSearchField->setFocus();
+	} else if (tabSwapActive() && _tabSearchAvailable) {
+		showTabSearch();
+	}
+}
+
+void TopBar::raiseTabSearchOverlay() {
+	if (!_tabSearchBar || !_tabSearchShown) {
+		return;
+	}
+	_tabSearchBar->raise();
+	if (_back) {
+		_back->raise();
+		_back->entity()->setIconOverride(
+			&st::infoTopBarBlackBack.icon,
+			&st::infoTopBarBlackBack.iconOver);
+	}
 }
 
 void TopBar::updateTabSearchGeometry() {
@@ -2769,7 +2828,6 @@ void TopBar::setupButtons(
 			&& (kMinContrast > Ui::CountContrast(
 				st::boxTitleCloseFg->c,
 				*edgeColor));
-		_closeColored = shouldUseColored;
 		_back = base::make_unique_q<Ui::FadeWrap<Ui::IconButton>>(
 			this,
 			object_ptr<Ui::IconButton>(
@@ -2884,6 +2942,8 @@ void TopBar::setupButtons(
 				addTopBarEditButton(controller, wrap, shouldUseColored);
 			}
 		}
+		raiseTabSearchOverlay();
+		raiseTabSelectionOverlay();
 	}, lifetime());
 }
 

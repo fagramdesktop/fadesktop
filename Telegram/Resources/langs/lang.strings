@@ -5328,6 +5328,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_context_delete_gif" = "Delete";
 "lng_context_open_channel" = "Open Channel";
 "lng_context_open_group" = "Open Group";
+"lng_context_open_community" = "Open Community";
 "lng_context_attached_stickers" = "Attached Stickers";
 "lng_context_to_msg" = "Go To Message";
 "lng_context_reply_msg" = "Reply";
@@ -6014,6 +6015,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_mediaview_single_photo" = "Single Photo";
 "lng_mediaview_group_photo" = "Group Photo";
 "lng_mediaview_channel_photo" = "Channel Photo";
+"lng_mediaview_community_photo" = "Community Photo";
 "lng_mediaview_profile_photo" = "Profile Photo";
 "lng_mediaview_profile_public_photo" = "Public Photo";
 "lng_mediaview_profile_photo_by_you" = "Photo set by you";
@@ -7444,6 +7446,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_article_premium_choice_about" = "This message uses rich formatting, which requires {link}.";
 "lng_article_premium_choice_about_link" = "Telegram Premium";
 "lng_article_premium_choice_plain" = "Send Without Formatting";
+"lng_article_premium_choice_plain_save" = "Save Without Formatting";
 "lng_article_table_change" = "Change Table";
 "lng_article_table_add_cells" = "Add Cells";
 "lng_article_table_add_row_above" = "Add Row Above";
@@ -7658,6 +7661,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_filters_view_subtitle" = "Tabs view";
 "lng_filters_vertical" = "Tabs on the left";
 "lng_filters_horizontal" = "Tabs at the top";
+"lng_filters_tabs_subtitle" = "Tabs appearance";
+"lng_filters_tabs_text" = "Text only";
+"lng_filters_tabs_text_icons" = "Text and icons";
+"lng_filters_tabs_icons" = "Icons only";
 "lng_filters_enable_tags" = "Show Folder Tags";
 "lng_filters_enable_tags_about" = "Display folder names for each chat in the chat list.";
 "lng_filters_enable_tags_about_premium" = "Subscribe to **{link}** to display folder names for each chat in the chat list.";

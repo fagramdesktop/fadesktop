@@ -305,6 +305,20 @@ void Widget::showFinished() {
 	_inner->showFinished();
 }
 
+void Widget::checkBeforeCloseByEscape(Fn<void()> close) {
+	_inner->checkBeforeCloseByEscape([=] {
+		ContentWidget::checkBeforeCloseByEscape(close);
+	});
+}
+
+bool Widget::searchAvailable() const {
+	return _inner->searchAvailable();
+}
+
+void Widget::showSearch() {
+	_inner->showSearch();
+}
+
 rpl::producer<QString> Widget::title() {
 	if (const auto topic = controller()->key().topic()) {
 		return topic->peer()->isBot()

@@ -42,6 +42,9 @@ public:
 	TabTopBarBindings topBarBindings() override {
 		return _bindings();
 	}
+	void resizeToWidth(int newWidth) override {
+		_content->resizeToWidth(newWidth);
+	}
 	void setVisibleRegion(int top, int bottom) override {
 		_content->setVisibleTopBottom(top, bottom);
 	}
@@ -153,6 +156,9 @@ public:
 
 	not_null<Ui::RpWidget*> widget() override {
 		return _content.data();
+	}
+	void resizeToWidth(int newWidth) override {
+		_content->resizeToWidth(newWidth);
 	}
 	TabTopBarBindings topBarBindings() override {
 		const auto peer = _peer;

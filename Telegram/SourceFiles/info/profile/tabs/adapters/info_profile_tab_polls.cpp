@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/profile/tabs/info_profile_tab_skeleton.h"
 #include "lang/lang_keys.h"
 #include "ui/painter.h"
+#include "ui/rect.h"
 #include "ui/rp_widget.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/menu/menu_add_action_callback.h"
@@ -63,15 +64,6 @@ public:
 				_polls.paintBackground(p, clip);
 			}
 		}, host->lifetime());
-		host->widthValue(
-		) | rpl::on_next([this](int newWidth) {
-			_width = newWidth;
-			updatePollsGeometry();
-		}, host->lifetime());
-		host->sizeValue(
-		) | rpl::on_next([this](QSize size) {
-			_skeleton->setGeometry(QRect(QPoint(), size));
-		}, host->lifetime());
 		_polls.list->heightValue(
 		) | rpl::on_next([this](int newHeight) {
 			if (newHeight > 0 && !_listLoaded) {
@@ -84,6 +76,15 @@ public:
 
 	not_null<Ui::RpWidget*> widget() override {
 		return _host.data();
+	}
+	void resizeToWidth(int newWidth) override {
+		if (_width == newWidth) {
+			updateHostHeight();
+			return;
+		}
+		_width = newWidth;
+		_host->resize(newWidth, _host->height());
+		updatePollsGeometry();
 	}
 	TabTopBarBindings topBarBindings() override {
 		return {
@@ -162,6 +163,9 @@ private:
 			: _polls.list->height();
 		if (_host->height() != height) {
 			_host->resize(_host->width(), height);
+		}
+		if (_skeleton) {
+			_skeleton->setGeometry(Rect(_host->size()));
 		}
 	}
 

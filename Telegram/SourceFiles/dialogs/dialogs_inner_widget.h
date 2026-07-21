@@ -489,6 +489,7 @@ private:
 	[[nodiscard]] int communityRowCount() const;
 	[[nodiscard]] Row *communityRowAt(int index) const;
 	[[nodiscard]] int communityRowAbsoluteTop(int index) const;
+	[[nodiscard]] bool communityModeShown() const;
 
 	void paintCollapsedRows(
 		Painter &p,

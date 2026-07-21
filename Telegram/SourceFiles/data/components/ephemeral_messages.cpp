@@ -389,6 +389,7 @@ bool EphemeralMessages::trySend(const Api::MessageToSend &message) {
 	if (text.text.isEmpty()) {
 		return false;
 	}
+	auto realReply = FullReplyTo();
 	if (const auto replyToId = realReplyId(message)) {
 		const auto replyTo = _session->data().message(replyToId);
 		if (replyTo && replyTo->isEphemeral()) {
@@ -402,6 +403,7 @@ bool EphemeralMessages::trySend(const Api::MessageToSend &message) {
 			}
 			return true;
 		}
+		realReply = message.action.replyTo;
 	}
 	const auto bot = findCommandBot(peer, text.text);
 	if (!bot) {
@@ -412,13 +414,17 @@ bool EphemeralMessages::trySend(const Api::MessageToSend &message) {
 		bot,
 		std::move(text),
 		0,
-		message.action.replyTo.topicRootId);
+		message.action.replyTo.topicRootId,
+		realReply);
 	return true;
 }
 
 UserData *EphemeralMessages::findCommandBot(
 		not_null<PeerData*> peer,
 		const QString &text) const {
+	if (!peer->isChat() && !peer->isMegagroup()) {
+		return nullptr;
+	}
 	const auto parsed = ParseCommand(text);
 	if (!parsed) {
 		return nullptr;
@@ -452,7 +458,8 @@ void EphemeralMessages::send(
 		not_null<UserData*> bot,
 		TextWithEntities text,
 		int32 replyToEphemeralId,
-		MsgId topicRootId) {
+		MsgId topicRootId,
+		FullReplyTo realReply) {
 	request(
 		history,
 		bot,
@@ -460,7 +467,8 @@ void EphemeralMessages::send(
 		MTPInputMedia(),
 		false,
 		replyToEphemeralId,
-		topicRootId);
+		topicRootId,
+		realReply);
 }
 
 bool EphemeralMessages::sendMedia(
@@ -476,6 +484,11 @@ bool EphemeralMessages::sendMedia(
 			history->peer,
 			item->originalText().text.trimmed());
 		if (bot) {
+			const auto realReply = (replyTo.messageId
+				&& !(replyTo.topicRootId
+					&& replyTo.messageId.msg == replyTo.topicRootId))
+				? replyTo
+				: FullReplyTo();
 			request(
 				history,
 				bot,
@@ -484,6 +497,7 @@ bool EphemeralMessages::sendMedia(
 				true,
 				0,
 				item->topicRootId(),
+				realReply,
 				item->fullId(),
 				origin,
 				rebuildMedia);
@@ -503,6 +517,7 @@ bool EphemeralMessages::sendMedia(
 				true,
 				entry->ephemeralId,
 				MsgId(0),
+				FullReplyTo(),
 				item->fullId(),
 				origin,
 				rebuildMedia);
@@ -546,6 +561,7 @@ void EphemeralMessages::request(
 		bool hasMedia,
 		int32 replyToEphemeralId,
 		MsgId topicRootId,
+		FullReplyTo realReply,
 		FullMsgId destroyOnResult,
 		Data::FileOrigin origin,
 		Fn<MTPInputMedia()> rebuildMedia) {
@@ -567,6 +583,9 @@ void EphemeralMessages::request(
 		replyTo = MTP_inputReplyToEphemeralMessage(
 			MTP_int(replyToEphemeralId));
 		hasReplyTo = true;
+	} else if (realReply.messageId) {
+		replyTo = Data::ReplyToForMTP(history, realReply);
+		hasReplyTo = (replyTo.type() == mtpc_inputReplyToMessage);
 	} else if (topicRootId && topicRootId != Data::ForumTopic::kGeneralId) {
 		auto anchor = FullReplyTo();
 		anchor.messageId = { history->peer->id, topicRootId };

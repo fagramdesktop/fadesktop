@@ -1542,8 +1542,8 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 			if (markingAsViewed
 				&& !item->out()
 				&& !_animatedStickersPlayed.contains(item)
-				&& item->isOnlyEmojiAndSpaces()
 				&& !PowerSaving::On(PowerSaving::kEmojiChat)
+				&& HistoryView::CanPlayEmojiInteraction(view)
 				&& session().emojiStickersPack().hasAnimationsFor(item)) {
 				startInteractions.emplace(view);
 			}

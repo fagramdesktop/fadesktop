@@ -28,10 +28,6 @@ public:
 		const auto host = _host.data();
 		_members = Ui::CreateChild<Members>(host, context.controller, true);
 		_members->show();
-		host->widthValue(
-		) | rpl::on_next([this](int newWidth) {
-			_members->resizeToWidth(newWidth);
-		}, host->lifetime());
 		_members->heightValue(
 		) | rpl::on_next([this](int newHeight) {
 			_host->resize(_host->width(), newHeight);
@@ -57,6 +53,12 @@ public:
 
 	not_null<Ui::RpWidget*> widget() override {
 		return _host.data();
+	}
+	void resizeToWidth(int newWidth) override {
+		if (_host->width() != newWidth) {
+			_members->resizeToWidth(newWidth);
+		}
+		_host->resize(newWidth, _members->height());
 	}
 	TabTopBarBindings topBarBindings() override {
 		using namespace rpl::mappers;

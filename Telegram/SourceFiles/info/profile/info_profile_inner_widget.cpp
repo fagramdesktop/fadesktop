@@ -471,14 +471,16 @@ void InnerWidget::visibleTopBottomUpdated(
 	setChildVisibleTopBottom(_content, visibleTop, visibleBottom);
 	if (_tabsHost) {
 		const auto top = MapFrom(this, _tabsHost, QPoint()).y();
-		if (!_clampingTabsScroll
-			&& (top > 0)
-			&& (visibleTop < top)
-			&& _tabsHost->searching()) {
-			_clampingTabsScroll = true;
-			_scrollToRequests.fire({ top, -1 });
-			_clampingTabsScroll = false;
-			return;
+		if (!_clampingTabsScroll && (top > 0) && _tabsHost->searching()) {
+			const auto offDock = _tabsHost->searchContentFits()
+				? (visibleTop != top)
+				: (visibleTop < top);
+			if (offDock) {
+				_clampingTabsScroll = true;
+				_scrollToRequests.fire({ top, -1 });
+				_clampingTabsScroll = false;
+				return;
+			}
 		}
 		_tabsHost->setVisibleRegion(visibleTop - top, visibleBottom - top);
 		_tabsDocked = (top > 0) && (visibleTop >= top);
@@ -534,6 +536,25 @@ void InnerWidget::showFinished() {
 	_showFinished.fire({});
 }
 
+void InnerWidget::checkBeforeCloseByEscape(Fn<void()> close) {
+	if (const auto top = _topBar.get()) {
+		top->checkBeforeCloseByEscape(std::move(close));
+	} else {
+		close();
+	}
+}
+
+bool InnerWidget::searchAvailable() const {
+	const auto top = _topBar.get();
+	return top && top->searchAvailable();
+}
+
+void InnerWidget::showSearch() {
+	if (const auto top = _topBar.get()) {
+		top->showSearch();
+	}
+}
+
 bool InnerWidget::hasFlexibleTopBar() const {
 	return true;
 }
@@ -569,6 +590,7 @@ base::weak_qptr<Ui::RpWidget> InnerWidget::createPinnedToTop(
 			}));
 	}
 	_topBarColor = content->edgeColor();
+	_topBar = content;
 	return base::make_weak(not_null<Ui::RpWidget*>{ content });
 }
 

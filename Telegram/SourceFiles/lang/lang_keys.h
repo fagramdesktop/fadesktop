@@ -33,6 +33,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 [[nodiscard]] QString langDateTime(const QDateTime &date);
 [[nodiscard]] QString langDateTimeFull(const QDateTime &date);
+[[nodiscard]] QString langFullName(
+	const QString &firstName,
+	const QString &lastName);
 [[nodiscard]] bool langFirstNameGoesSecond();
 
 namespace Lang {
