@@ -1129,7 +1129,9 @@ private:
 			[weak = base::make_weak(this)](
 					const QString &error,
 					mtpRequestId) {
-				if (const auto session = weak.get()) {
+				if (error == u"MESSAGE_NOT_MODIFIED"_q) {
+					return;
+				} else if (const auto session = weak.get()) {
 					session->showToast(error.isEmpty()
 						? tr::lng_edit_error(tr::now)
 						: error);
@@ -1558,9 +1560,11 @@ private:
 			[weak = base::make_weak(this)](const QString &error, mtpRequestId) {
 				if (const auto session = weak.get()) {
 					session->restoreEditedItem();
-					session->showToast(error.isEmpty()
-						? tr::lng_edit_error(tr::now)
-						: error);
+					if (error != u"MESSAGE_NOT_MODIFIED"_q) {
+						session->showToast(error.isEmpty()
+							? tr::lng_edit_error(tr::now)
+							: error);
+					}
 					session->finishSubmittedWork();
 				}
 			});
