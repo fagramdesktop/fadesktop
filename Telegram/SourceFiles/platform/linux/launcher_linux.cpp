@@ -15,6 +15,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <ksandbox.h>
 #include <glib/glib.hpp>
 
+#include "base/platform/linux/base_linux_library.h"
+
 #ifdef __GLIBC__
 #include <malloc.h>
 #endif // __GLIBC__
@@ -28,6 +30,14 @@ Launcher::Launcher(int argc, char *argv[])
 #ifdef __GLIBC__
 	mallopt(M_ARENA_MAX, 1);
 #endif // __GLIBC__
+
+	if (const auto lib = base::Platform::LoadLibrary("libX11.so.6")) {
+		using XInitThreads_t = int (*)();
+		if (const auto xInitThreads = reinterpret_cast<XInitThreads_t>(
+				base::Platform::LoadSymbolGeneric(lib, "XInitThreads"))) {
+			xInitThreads();
+		}
+	}
 }
 
 int Launcher::exec() {
