@@ -7,10 +7,22 @@ on:
         description: "Release tag name"
         type: string
         required: true
-      run_id:
-        description: "Workflow run ID to download artifacts from"
+      linux_run_id:
+        description: "Linux build workflow run ID"
         type: string
-        required: true
+        required: false
+      windows_run_id:
+        description: "Windows build workflow run ID"
+        type: string
+        required: false
+      mac_run_id:
+        description: "macOS build workflow run ID"
+        type: string
+        required: false
+      run_id:
+        description: "Workflow run ID to download artifacts from (fallback)"
+        type: string
+        required: false
       build_type:
         description: "Build type (ci or rel)"
         type: choice
@@ -25,10 +37,22 @@ on:
         description: "Release tag name"
         type: string
         required: true
-      run_id:
-        description: "Workflow run ID to download artifacts from"
+      linux_run_id:
+        description: "Linux build workflow run ID"
         type: string
-        required: true
+        required: false
+      windows_run_id:
+        description: "Windows build workflow run ID"
+        type: string
+        required: false
+      mac_run_id:
+        description: "macOS build workflow run ID"
+        type: string
+        required: false
+      run_id:
+        description: "Workflow run ID to download artifacts from (fallback)"
+        type: string
+        required: false
       build_type:
         description: "Build type (ci or rel)"
         type: string
@@ -58,7 +82,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT }}
         run: |
           REPO="${{ github.repository }}"
-          RUN_ID="${{ inputs.run_id }}"
+          RUN_ID="${{ inputs.linux_run_id || inputs.windows_run_id || inputs.mac_run_id || inputs.run_id }}"
 
           RUN_INFO=$(curl -s -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
@@ -113,7 +137,7 @@ jobs:
           name: fagram-${{ inputs.tagname }}
           path: artifacts/linux
           github-token: ${{ secrets.PAT }}
-          run-id: ${{ inputs.run_id }}
+          run-id: ${{ inputs.linux_run_id || inputs.run_id }}
 
       - name: Download Windows portable artifact
         uses: actions/download-artifact@v8
@@ -121,7 +145,7 @@ jobs:
           name: FAgram_Win-x64
           path: artifacts/windows
           github-token: ${{ secrets.PAT }}
-          run-id: ${{ inputs.run_id }}
+          run-id: ${{ inputs.windows_run_id || inputs.run_id }}
 
       - name: Download Windows installer artifact
         uses: actions/download-artifact@v8
@@ -129,15 +153,17 @@ jobs:
           name: FAgram_Win-x64_installer
           path: artifacts/windows-installer
           github-token: ${{ secrets.PAT }}
-          run-id: ${{ inputs.run_id }}
+          run-id: ${{ inputs.windows_run_id || inputs.run_id }}
 
       - name: Download macOS artifact
+        if: ${{ inputs.mac_run_id != '' || inputs.run_id != '' }}
         uses: actions/download-artifact@v8
         with:
           name: fagram-mac-${{ inputs.tagname }}
           path: artifacts/mac
           github-token: ${{ secrets.PAT }}
-          run-id: ${{ inputs.run_id }}
+          run-id: ${{ inputs.mac_run_id || inputs.run_id }}
+        continue-on-error: true
 
       - name: List artifacts
         run: |
@@ -148,7 +174,7 @@ jobs:
           echo "=== Windows installer artifacts ==="
           ls -la artifacts/windows-installer/
           echo "=== macOS artifacts ==="
-          ls -la artifacts/mac/
+          ls -la artifacts/mac/ 2>/dev/null || echo "(not present)"
 
       - name: Upload Linux artifact to Telegram
         env:
@@ -191,8 +217,9 @@ jobs:
           API_ID: ${{ secrets.API_ID_CONFIG }}
           API_HASH: ${{ secrets.API_HASH_CONFIG }}
         run: |
-          MAC_FILE=$(find artifacts/mac -name "fagram-mac-*.dmg" | head -1)
-          python3 scripts/tgupload.py "$MAC_FILE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
+          MAC_FILE=$(find artifacts/mac -name "fagram-mac-*.dmg" 2>/dev/null | head -1 || true)
+          if [ -n "$MAC_FILE" ]; then
+            python3 scripts/tgupload.py "$MAC_FILE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
           <b>FAgram macOS ${{ inputs.tagname }}</b>
           TGD Base: <code>${{ env.TGD_VERSION }}</code>
           Build Type: <code>${{ inputs.build_type }}</code>
@@ -201,3 +228,6 @@ jobs:
           <blockquote expandable>${{ env.CHANGELOG }}</blockquote>
           EOF
           )"
+          else
+            echo "No macOS artifact found to upload."
+          fi

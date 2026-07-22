@@ -66,7 +66,9 @@ jobs:
     uses: ./.github/workflows/tg-upload.yml
     with:
       tagname: ${{ inputs.tagname }}
-      run_id: ${{ github.run_id }}
+      linux_run_id: ${{ github.run_id }}
+      windows_run_id: ${{ github.run_id }}
+      mac_run_id: ${{ github.run_id }}
       build_type: ${{ inputs.build_type }}
     secrets: inherit
 
