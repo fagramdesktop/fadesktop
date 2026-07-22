@@ -3,24 +3,40 @@ name: Publish OTA Update
 on:
   workflow_dispatch:
     inputs:
-      run_id:
-        description: "Run ID to download OTA artifacts from"
+      linux_run_id:
+        description: "Linux build workflow run ID"
         type: string
-        required: true
+        required: false
+      windows_run_id:
+        description: "Windows build workflow run ID"
+        type: string
+        required: false
       mac_run_id:
-        description: "macOS build run ID for OTA artifact (optional)"
+        description: "macOS build workflow run ID"
         type: string
-        required: true
+        required: false
+      run_id:
+        description: "Fallback run ID to download OTA artifacts from"
+        type: string
+        required: false
   workflow_call:
     inputs:
-      run_id:
-        description: "Run ID to download OTA artifacts from"
+      linux_run_id:
+        description: "Linux build workflow run ID"
         type: string
-        required: true
+        required: false
+      windows_run_id:
+        description: "Windows build workflow run ID"
+        type: string
+        required: false
       mac_run_id:
-        description: "macOS build run ID for OTA artifact (optional)"
+        description: "macOS build workflow run ID"
         type: string
-        required: true
+        required: false
+      run_id:
+        description: "Fallback run ID to download OTA artifacts from"
+        type: string
+        required: false
 
 jobs:
   publish:
@@ -48,7 +64,7 @@ jobs:
         with:
           name: ota-win64
           path: ota-artifacts/win64
-          run-id: ${{ inputs.run_id }}
+          run-id: ${{ inputs.windows_run_id || inputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download Linux OTA artifact
@@ -56,16 +72,18 @@ jobs:
         with:
           name: ota-linux
           path: ota-artifacts/linux
-          run-id: ${{ inputs.run_id }}
+          run-id: ${{ inputs.linux_run_id || inputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download macOS OTA artifact
+        if: ${{ inputs.mac_run_id != '' || inputs.run_id != '' }}
         uses: actions/download-artifact@v8
         with:
           name: ota-macos
           path: ota-artifacts/macos
-          run-id: ${{ inputs.mac_run_id }}
+          run-id: ${{ inputs.mac_run_id || inputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
 
       - name: Clone OTA repo
         run: |

@@ -101,6 +101,7 @@ jobs:
     if: inputs.build_type == 'rel'
     uses: ./.github/workflows/publish-ota.yml
     with:
-      run_id: ${{ github.run_id }}
+      linux_run_id: ${{ github.run_id }}
+      windows_run_id: ${{ github.run_id }}
       mac_run_id: ${{ github.run_id }}
     secrets: inherit
