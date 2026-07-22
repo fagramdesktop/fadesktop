@@ -44,8 +44,22 @@ $pathsToFree = @(
     "C:\Program Files\LibreOffice",
     "C:\Program Files\Android",
     "C:\Android",
-    "C:\Program Files (x86)\Windows Kits\10\Testing"
+    "C:\Program Files (x86)\Windows Kits\10\Testing",
+    "C:\Program Files\Julia",
+    "C:\Program Files\CodeQL",
+    "C:\Program Files\LLVM",
+    "C:\Program Files (x86)\Microsoft Visual Studio\2019",
+    "C:\pipx",
+    "C:\msys64",
+    "C:\Strawberry",
+    "C:\Program Files\Boost",
+    "C:\Program Files\Amazon",
+    "C:\Program Files (x86)\Microsoft SDKs\NuGetPackages"
 )
+
+Write-Host "Clearing package caches..."
+if (Get-Command nuget -ErrorAction SilentlyContinue) { nuget locals all -clear 2>$null }
+if (Get-Command npm -ErrorAction SilentlyContinue) { npm cache clean --force 2>$null }
 
 foreach ($path in $pathsToFree) {
     Free-Space $path

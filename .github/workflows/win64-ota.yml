@@ -138,7 +138,7 @@ jobs:
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=NO ^
           -D DESKTOP_APP_SPECIAL_TARGET=win64
 
-          cmake --build ..\out --config Release --parallel
+          cmake --build ..\out --config Release --parallel 2
 
       - name: Move artifacts
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
