@@ -1,3 +1,7 @@
+2.3.4 (23.07.26)
+
+- Fix startup crash
+
 2.3.3 (22.07.26)
 
 - Updated tdesktop to v7.0.4
