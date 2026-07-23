@@ -159,6 +159,7 @@ jobs:
     env:
       UPLOAD_ARTIFACT: "true"
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      PreferredToolArchitecture: "x64"
 
     defaults:
       run:
