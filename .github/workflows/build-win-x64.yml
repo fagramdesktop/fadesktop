@@ -434,3 +434,11 @@ jobs:
           <blockquote expandable>${{ env.CHANGELOG }}</blockquote>
           EOF
           )"
+
+  update-scoop:
+    name: Update Scoop Manifest
+    if: ${{ inputs.build_type == 'rel' }}
+    uses: ./.github/workflows/scoop-manifest.yml
+    with:
+      release_tag: ${{ inputs.tagname }}
+    secrets: inherit

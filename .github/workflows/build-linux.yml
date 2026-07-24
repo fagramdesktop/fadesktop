@@ -259,3 +259,16 @@ jobs:
           <blockquote expandable>${{ env.CHANGELOG }}</blockquote>
           EOF
           )"
+
+  trigger-rpm:
+    name: Trigger RPM Build
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ inputs.build_type == 'rel' }}
+    steps:
+      - name: Trigger repository dispatch event
+        uses: peter-evans/repository-dispatch@v4
+        with:
+          token: ${{ secrets.ARPAT }}
+          repository: fagramdesktop/fagram-rpm
+          event-type: new-release

@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       tagname:
-        description: "Tag name for the release"
+        description: "Tag name for the release (leave empty to read AppFAVersionStr from fa_version.h)"
         type: string
-        required: true
+        required: false
       build_type:
         description: "Build type"
         type: choice
@@ -30,80 +30,77 @@ permissions:
   actions: read
 
 jobs:
-  build-linux:
-    name: Build Linux
-    uses: ./.github/workflows/build-linux.yml
-    with:
-      tagname: ${{ inputs.tagname }}
-      build_type: ${{ inputs.build_type }}
-      skip_upload: true
-      disable_cache: ${{ inputs.disable_cache }}
-    secrets: inherit
-
-  build-windows:
-    name: Build Windows x64
-    uses: ./.github/workflows/win-release-x64.yml
-    with:
-      tagname: ${{ inputs.tagname }}
-      build_type: ${{ inputs.build_type }}
-      skip_upload: true
-      disable_cache: ${{ inputs.disable_cache }}
-    secrets: inherit
-
-  build-mac:
-    name: Build macOS
-    uses: ./.github/workflows/build-mac.yml
-    with:
-      tagname: ${{ inputs.tagname }}
-      build_type: ${{ inputs.build_type }}
-      skip_upload: true
-      disable_cache: ${{ inputs.disable_cache }}
-    secrets: inherit
-
-  upload-telegram:
-    name: Upload to Telegram
-    needs: [build-linux, build-windows, build-mac]
-    uses: ./.github/workflows/tg-upload.yml
-    with:
-      tagname: ${{ inputs.tagname }}
-      linux_run_id: ${{ github.run_id }}
-      windows_run_id: ${{ github.run_id }}
-      mac_run_id: ${{ github.run_id }}
-      build_type: ${{ inputs.build_type }}
-    secrets: inherit
-
-  generate-changelog:
-    name: Changelog
-    needs: [build-linux, build-windows, build-mac]
-    if: inputs.build_type == 'rel'
+  create-draft:
+    name: Create Draft Release & Trigger Builds
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Get version from fa_version.h
+        id: version
+        run: |
+          if [ -n "${{ inputs.tagname }}" ]; then
+            VERSION="${{ inputs.tagname }}"
+          else
+            VERSION=$(grep -E 'AppFAVersionStr\s*=' Telegram/SourceFiles/fa/fa_version.h | sed -E 's/.*"([^"]+)".*/\1/')
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog for release
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          awk -v ver="$VERSION" '/^[0-9]+\.[0-9]+\.[0-9]+ \([0-9]{2}\.[0-9]{2}\.[0-9]{2}\)/ {
+            if (found) exit;
+            if ($1 == ver) {
+              found=1;
+              next;
+            }
+          }
+          found && /^-/ { print; }
+          found && /^—/ { print; }' changelog.txt > body.txt
+
+          echo "Release body:"
+          cat body.txt
+
+      - name: Create Draft Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "FAgram ${{ steps.version.outputs.version }}"
+          tag_name: "${{ steps.version.outputs.version }}"
+          draft: true
+          prerelease: false
+          body_path: body.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.ARPAT }}
+
       - name: Trigger changelog workflow on dev branch
+        if: inputs.build_type == 'rel'
         run: |
           gh workflow run changelog.yml --ref dev
         env:
           GH_TOKEN: ${{ secrets.ARPAT }}
           GH_REPO: ${{ github.repository }}
 
-  create-release:
-    name: Create Release
-    needs: [build-linux, build-windows, build-mac]
-    if: inputs.build_type == 'rel'
-    uses: ./.github/workflows/release.yml
-    with:
-      tagname: ${{ inputs.tagname }}
-      linux_run_id: ${{ github.run_id }}
-      windows_run_id: ${{ github.run_id }}
-      mac_run_id: ${{ github.run_id }}
-    secrets: inherit
+      - name: Trigger MacOS Build
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: build-mac.yml
+          token: ${{ secrets.ARPAT }}
+          inputs: '{"tagname": "${{ steps.version.outputs.version }}", "build_type": "${{ inputs.build_type }}", "disable_cache": "${{ inputs.disable_cache }}"}'
 
-  publish-ota:
-    name: Publish OTA Update
-    needs: [build-linux, build-windows, build-mac]
-    if: inputs.build_type == 'rel'
-    uses: ./.github/workflows/publish-ota.yml
-    with:
-      linux_run_id: ${{ github.run_id }}
-      windows_run_id: ${{ github.run_id }}
-      mac_run_id: ${{ github.run_id }}
-    secrets: inherit
+      - name: Trigger Windows Build
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: win-release-x64.yml
+          token: ${{ secrets.ARPAT }}
+          inputs: '{"tagname": "${{ steps.version.outputs.version }}", "build_type": "${{ inputs.build_type }}", "disable_cache": "${{ inputs.disable_cache }}"}'
+
+      - name: Trigger Linux Build
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: build-linux.yml
+          token: ${{ secrets.ARPAT }}
+          inputs: '{"tagname": "${{ steps.version.outputs.version }}", "build_type": "${{ inputs.build_type }}", "disable_cache": "${{ inputs.disable_cache }}"}'
