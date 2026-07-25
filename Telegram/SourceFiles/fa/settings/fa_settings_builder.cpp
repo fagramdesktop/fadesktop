@@ -357,6 +357,15 @@ const auto kFAChatsMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
+			.id = u"fa/chats/disable-greeting-sticker"_q,
+			.title = fatr::fa_disable_greeting_sticker(fatr::now),
+			.keywords = { u"greeting"_q, u"sticker"_q, u"intro"_q, u"welcome"_q, u"disable"_q, u"hide"_q },
+			.icon = { &st::menuIconChatBubble },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
 			.id = u"fa/chats/status-dot"_q,
 			.title = fatr::fa_show_status_dot(fatr::now),
 			.keywords = { u"status"_q, u"dot"_q, u"online"_q, u"indicator"_q },

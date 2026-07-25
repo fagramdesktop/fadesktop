@@ -220,6 +220,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "show_forwarded_date_in_title", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "disable_greeting_sticker", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 	{ "pinned_chat_order", {
 		.scope = SettingScope::Account,
 		.type = SettingType::QJsonArraySetting,

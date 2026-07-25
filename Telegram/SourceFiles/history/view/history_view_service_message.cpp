@@ -32,6 +32,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_info.h"
 
+#include "fa/settings/fa_settings.h"
+
 namespace HistoryView {
 namespace {
 
@@ -867,6 +869,9 @@ EmptyPainter::EmptyPainter(not_null<History*> history)
 , _text(st::msgMinWidth) {
 	if (NeedAboutGroup(_history)) {
 		fillAboutGroup();
+	} else if (_history->peer->isUser()
+		&& ::FASettings::JsonSettings::GetBool("disable_greeting_sticker")) {
+		SetText(_header, tr::lng_chat_intro_default_title(tr::now));
 	}
 }
 
@@ -918,7 +923,33 @@ void EmptyPainter::paint(
 		not_null<const Ui::ChatStyle*> st,
 		int width,
 		int height) {
+	if (_phrases.empty() && _text.isEmpty() && _header.isEmpty()) {
+		return;
+	}
 	if (_phrases.empty() && _text.isEmpty()) {
+		const auto w = st::msgServiceFont->width(_header.toString())
+			+ st::msgPadding.left()
+			+ st::msgPadding.right();
+		const auto h = st::msgServiceFont->height
+			+ st::msgServicePadding.top()
+			+ st::msgServicePadding.bottom();
+		const auto rect = QRect(
+			(width - w) / 2,
+			(height - h) / 2,
+			w,
+			h);
+		ServiceMessagePainter::PaintBubble(
+			p,
+			st->msgServiceBg(),
+			st->serviceBgCornersNormal(),
+			rect);
+		p.setPen(st->msgServiceFg());
+		p.setFont(st::msgServiceFont->f);
+		p.drawTextLeft(
+			rect.left() + st::msgPadding.left(),
+			rect.top() + st::msgServicePadding.top(),
+			width,
+			_header.toString());
 		return;
 	}
 	constexpr auto kMaxTextLines = 3;

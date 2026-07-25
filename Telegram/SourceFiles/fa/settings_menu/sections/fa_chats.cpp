@@ -131,6 +131,8 @@ namespace Settings {
 		Ui::AddDividerText(container, fatr::fa_last_seen_timestamp_desc());
 		SettingsMenuJsonSwitch(fa_show_forwarded_date_in_title, show_forwarded_date_in_title, u"fa/chats/show-forwarded-date-in-title"_q);
 		Ui::AddDividerText(container, fatr::fa_show_forwarded_date_in_title_desc());
+		SettingsMenuJsonSwitch(fa_disable_greeting_sticker, disable_greeting_sticker, u"fa/chats/disable-greeting-sticker"_q);
+		Ui::AddDividerText(container, fatr::fa_disable_greeting_sticker_desc());
 
 		const auto statusDotBtn = container->add(object_ptr<Button>(
 			container,
