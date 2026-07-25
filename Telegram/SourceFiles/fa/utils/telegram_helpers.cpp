@@ -59,7 +59,9 @@ public:
 		if (it == _map.end()) {
 			return std::nullopt;
 		}
-		_list.splice(_list.begin(), _list, it->second);
+		if (it->second != _list.begin()) {
+			_list.splice(_list.begin(), _list, it->second);
+		}
 		return it->second->second;
 	}
 
