@@ -214,6 +214,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "delete_for_everyone", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "last_seen_timestamp", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = true, }},
 	{ "pinned_chat_order", {
 		.scope = SettingScope::Account,
 		.type = SettingType::QJsonArraySetting,

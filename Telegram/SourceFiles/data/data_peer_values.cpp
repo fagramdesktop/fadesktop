@@ -468,7 +468,8 @@ QString OnlineText(Data::LastseenStatus status, TimeId now) {
 		return tr::lng_status_lastseen_minutes(tr::now, lt_count, minutes);
 	}
 	const auto hours = (now - till) / 3600;
-	if (hours < 12) {
+	const auto showTimestampAfterHour = FASettings::JsonSettings::GetBool("last_seen_timestamp");
+	if (hours < 12 && !showTimestampAfterHour) {
 		return tr::lng_status_lastseen_hours(tr::now, lt_count, hours);
 	}
 	const auto onlineFull = base::unixtime::parse(till);
@@ -482,6 +483,10 @@ QString OnlineText(Data::LastseenStatus status, TimeId now) {
 		return tr::lng_status_lastseen_yesterday(tr::now, lt_time, onlineTime);
 	}
 	const auto date = locale.toString(onlineFull.date(), QLocale::ShortFormat);
+	if (showTimestampAfterHour) {
+		const auto time = locale.toString(onlineFull.time(), QLocale::ShortFormat);
+		return tr::lng_status_lastseen_date_time(tr::now, lt_date, date, lt_time, time);
+	}
 	return tr::lng_status_lastseen_date(tr::now, lt_date, date);
 }
 

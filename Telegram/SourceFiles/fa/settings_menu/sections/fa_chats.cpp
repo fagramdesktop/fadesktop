@@ -127,6 +127,8 @@ namespace Settings {
 		Ui::AddDividerText(container, fatr::fa_unlimited_chat_folders_desc());
 		SettingsMenuJsonSwitch(fa_delete_for_everyone, delete_for_everyone, u"fa/chats/delete-for-everyone"_q);
 		Ui::AddDividerText(container, fatr::fa_delete_for_everyone_desc());
+		SettingsMenuJsonSwitch(fa_last_seen_timestamp, last_seen_timestamp, u"fa/chats/last-seen-timestamp"_q);
+		Ui::AddDividerText(container, fatr::fa_last_seen_timestamp_desc());
 
 		const auto statusDotBtn = container->add(object_ptr<Button>(
 			container,

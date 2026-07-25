@@ -339,6 +339,15 @@ const auto kFAChatsMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
+			.id = u"fa/chats/last-seen-timestamp"_q,
+			.title = fatr::fa_last_seen_timestamp(fatr::now),
+			.keywords = { u"lastseen"_q, u"online"_q, u"timestamp"_q, u"time"_q, u"hour"_q, u"status"_q },
+			.icon = { &st::menuIconChatBubble },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
 			.id = u"fa/chats/status-dot"_q,
 			.title = fatr::fa_show_status_dot(fatr::now),
 			.keywords = { u"status"_q, u"dot"_q, u"online"_q, u"indicator"_q },
