@@ -421,13 +421,13 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 
 		for (auto i = values.constBegin(); i != values.constEnd(); ++i) {
 			const auto value = i.value();
-			const auto jsonValue = (value.userType() == QMetaType::Bool)
+			const auto jsonValue = (value.typeId() == QMetaType::Bool)
 									? QJsonValue(value.toBool())
-									: (value.userType() == QMetaType::Int)
+									: (value.typeId() == QMetaType::Int)
 									? QJsonValue(value.toInt())
-									: (value.userType() == QMetaType::QString)
+									: (value.typeId() == QMetaType::QString)
 									? QJsonValue(value.toString())
-									: (value.userType() == QMetaType::QJsonArray)
+									: (value.typeId() == QMetaType::QJsonArray)
 									? QJsonValue(value.toJsonArray())
 									: QJsonValue(QJsonValue::Null);
 			resultObject.insert(i.key(), jsonValue);

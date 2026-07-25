@@ -27,6 +27,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <list>
 #include <optional>
 #include <algorithm>
+#include <mutex>
 
 namespace {
 
@@ -35,6 +36,7 @@ constexpr size_t kMaxOnlineStateEntries = 100;
 class OnlineStateLRUCache {
 public:
 	void put(FaID key, bool value) {
+		const auto lock = std::unique_lock(_mutex);
 		auto it = _map.find(key);
 		if (it != _map.end()) {
 			_list.erase(it->second);
@@ -52,6 +54,7 @@ public:
 	}
 
 	[[nodiscard]] std::optional<bool> get(FaID key) {
+		const auto lock = std::unique_lock(_mutex);
 		auto it = _map.find(key);
 		if (it == _map.end()) {
 			return std::nullopt;
@@ -61,10 +64,12 @@ public:
 	}
 
 	[[nodiscard]] bool contains(FaID key) const {
+		const auto lock = std::unique_lock(_mutex);
 		return _map.find(key) != _map.end();
 	}
 
 private:
+	mutable std::mutex _mutex;
 	std::list<std::pair<FaID, bool>> _list;
 	std::unordered_map<FaID, std::list<std::pair<FaID, bool>>::iterator> _map;
 };
