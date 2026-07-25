@@ -7,6 +7,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "overview/overview_layout.h"
 
+#include "fa/settings/fa_settings.h"
+
 #include "overview/overview_checkbox.h"
 #include "overview/overview_layout_delegate.h"
 #include "core/application.h"
@@ -1250,7 +1252,7 @@ const style::RoundCheckbox &Voice::checkboxStyle() const {
 void Voice::updateName() {
 	if (parent()->Has<HistoryMessageForwarded>()) {
 		const auto info = parent()->originalHiddenSenderInfo();
-		const auto name = info
+		auto name = info
 			? tr::lng_forwarded(tr::now, lt_user, info->nameText().toString())
 			: parent()->fromOriginal()->isChannel()
 			? tr::lng_forwarded_channel(
@@ -1261,6 +1263,14 @@ void Voice::updateName() {
 				tr::now,
 				lt_user,
 				parent()->fromOriginal()->name());
+		if (FASettings::JsonSettings::GetBool("show_forwarded_date_in_title")) {
+			if (const auto fwd = parent()->Get<HistoryMessageForwarded>()) {
+				const auto dateToUse = fwd->originalDate ? fwd->originalDate : fwd->savedFromDate;
+				if (dateToUse) {
+					name += u", "_q + langDateTime(base::unixtime::parse(dateToUse));
+				}
+			}
+		}
 		_name.setText(st::semiboldTextStyle, name, Ui::NameTextOptions());
 	} else {
 		_name.setText(

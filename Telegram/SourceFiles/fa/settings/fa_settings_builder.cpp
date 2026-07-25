@@ -348,6 +348,15 @@ const auto kFAChatsMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
+			.id = u"fa/chats/show-forwarded-date-in-title"_q,
+			.title = fatr::fa_show_forwarded_date_in_title(fatr::now),
+			.keywords = { u"forward"_q, u"forwarded"_q, u"date"_q, u"title"_q, u"header"_q, u"time"_q },
+			.icon = { &st::menuIconChatBubble },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
 			.id = u"fa/chats/status-dot"_q,
 			.title = fatr::fa_show_status_dot(fatr::now),
 			.keywords = { u"status"_q, u"dot"_q, u"online"_q, u"indicator"_q },

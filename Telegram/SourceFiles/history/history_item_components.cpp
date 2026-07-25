@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/history_item_components.h"
 
 #include "fa_lang_auto.h"
+#include "fa/settings/fa_settings.h"
 
 #include "api/api_text_entities.h"
 #include "base/qt/qt_key_modifiers.h"
@@ -380,6 +381,11 @@ void HistoryMessageForwarded::create(
 				Ui::Text::Wrapped(phrase, EntityType::CustomUrl, QString()), // Link 1.
 				tr::marked);
 		}
+	}
+	const auto dateToUse = originalDate ? originalDate : savedFromDate;
+	if (FASettings::JsonSettings::GetBool("show_forwarded_date_in_title") && dateToUse) {
+		const auto dt = base::unixtime::parse(dateToUse);
+		phrase.append(u", "_q + langDateTime(dt));
 	}
 	text.setMarkedText(st::fwdTextStyle, phrase, kMarkupTextOptions, context);
 

@@ -217,6 +217,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "last_seen_timestamp", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},
+	{ "show_forwarded_date_in_title", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 	{ "pinned_chat_order", {
 		.scope = SettingScope::Account,
 		.type = SettingType::QJsonArraySetting,
