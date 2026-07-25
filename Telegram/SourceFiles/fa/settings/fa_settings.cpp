@@ -213,7 +213,7 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.defaultValue = false, }},
 	{ "delete_for_everyone", {
 		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
+		.defaultValue = true, }},
 	{ "last_seen_timestamp", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},
