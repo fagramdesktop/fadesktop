@@ -135,16 +135,17 @@ jobs:
         run: |
           PACKER=$(find out -name Packer -type f | head -1)
           TELEGRAM=$(find out -name fagram -type f -not -path "*/install/*" | head -1)
-          if [ -z "$PACKER" ] || [ -z "$TELEGRAM" ]; then
-            echo "Error: Packer or Telegram binary not found"
-            find out -type f -name 'Packer' -o -name 'fagram'
+          UPDATER=$(find out -name Updater -type f -not -path "*/install/*" | head -1)
+          if [ -z "$PACKER" ] || [ -z "$TELEGRAM" ] || [ -z "$UPDATER" ]; then
+            echo "Error: Packer, Telegram, or Updater binary not found"
+            find out -type f -name 'Packer' -o -name 'fagram' -o -name 'Updater'
             exit 1
           fi
           docker run --rm \
           -u $(id -u) \
           -v $PWD:/usr/src/tdesktop \
           $IMAGE_TAG \
-          /bin/bash -c "cd /usr/src/tdesktop && ./$PACKER -path ./$TELEGRAM -version $APP_VERSION"
+          /bin/bash -c "cd /usr/src/tdesktop && ./$PACKER -path ./$TELEGRAM -path ./$UPDATER -version $APP_VERSION"
 
       - name: Create Tar
         run: |

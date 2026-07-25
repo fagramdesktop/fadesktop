@@ -285,7 +285,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true' && inputs.build_type == 'rel'
         run: |
           cd %TBUILD%\%REPO_NAME%\out\Release
-          Packer.exe -path fagram.exe -version %APP_VERSION% -target win64
+          Packer.exe -path fagram.exe -path Updater.exe -version %APP_VERSION% -target win64
 
       - name: Prepare artifacts
         if: env.UPLOAD_ARTIFACT == 'true'
