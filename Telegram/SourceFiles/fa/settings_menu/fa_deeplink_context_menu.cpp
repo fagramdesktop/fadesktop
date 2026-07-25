@@ -12,6 +12,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "lang/lang_keys.h"
 #include "fa/deep_links/fa_deep_links.h"
 #include "fa/lang/fa_lang.h"
+#include "ui/rp_widget.h"
 #include "ui/widgets/popup_menu.h"
 #include "window/window_session_controller.h"
 
@@ -21,7 +22,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 namespace Settings::FADeepLinkMenu {
 
 void AttachSettingsContextMenu(
-		not_null<QWidget*> widget,
+		not_null<Ui::RpWidget*> widget,
 		const QString &controlId,
 		not_null<Window::SessionController*> controller) {
 	const auto deepLink = Core::DeepLinks::FASettingsDeepLink(controlId);

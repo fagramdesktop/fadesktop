@@ -7,7 +7,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #pragma once
 
-class QWidget;
+namespace Ui {
+class RpWidget;
+} // namespace Ui
 
 namespace Window {
 class SessionController;
@@ -16,7 +18,7 @@ class SessionController;
 namespace Settings::FADeepLinkMenu {
 
 void AttachSettingsContextMenu(
-	not_null<QWidget*> widget,
+	not_null<Ui::RpWidget*> widget,
 	const QString &controlId,
 	not_null<Window::SessionController*> controller);
 
