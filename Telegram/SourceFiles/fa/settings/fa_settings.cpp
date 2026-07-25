@@ -211,6 +211,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "unlimited_chat_folders", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "delete_for_everyone", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 	{ "pinned_chat_order", {
 		.scope = SettingScope::Account,
 		.type = SettingType::QJsonArraySetting,

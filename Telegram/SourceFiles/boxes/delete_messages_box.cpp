@@ -7,6 +7,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "boxes/delete_messages_box.h"
 
+#include "fa/settings/fa_settings.h"
+
 #include "apiwrap.h"
 #include "base/unixtime.h"
 #include "core/application.h"
@@ -157,10 +159,12 @@ void DeleteMessagesBox::prepare() {
 		}
 		if (_revokeJustClearForChannel) {
 		} else if (auto revoke = revokeText(peer)) {
+			const auto revokeByDefault
+				= FASettings::JsonSettings::GetBool("delete_for_everyone");
 			_revoke.create(
 				this,
 				revoke->checkbox,
-				false,
+				revokeByDefault,
 				st::defaultBoxCheckbox);
 			appendDetails(std::move(revoke->description));
 			if (!peer->isUser() && !_wipeHistoryJustClear) {
@@ -190,7 +194,9 @@ void DeleteMessagesBox::prepare() {
 			} else if (auto revoke = revokeText(peer)) {
 				const auto &settings = Core::App().settings();
 				const auto revokeByDefault
-					= !settings.rememberedDeleteMessageOnlyForYou();
+					= FASettings::JsonSettings::GetBool("delete_for_everyone")
+					? true
+					: !settings.rememberedDeleteMessageOnlyForYou();
 				_revoke.create(
 					this,
 					revoke->checkbox,

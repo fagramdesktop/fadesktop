@@ -7,6 +7,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "calls/calls_box_controller.h"
 
+#include "fa/settings/fa_settings.h"
+
 #include "lang/lang_keys.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/layers/generic_box.h"
@@ -743,7 +745,7 @@ void ClearCallsBox(
 		object_ptr<Ui::Checkbox>(
 			box,
 			tr::lng_delete_for_everyone_check(tr::now),
-			false,
+			FASettings::JsonSettings::GetBool("delete_for_everyone"),
 			st::defaultBoxCheckbox),
 		style::margins(
 			st::boxPadding.left(),

@@ -125,6 +125,8 @@ namespace Settings {
 		Ui::AddDividerText(container, fatr::fa_unlimited_pinned_chats_desc());
 		SettingsMenuJsonSwitch(fa_unlimited_chat_folders, unlimited_chat_folders, u"fa/chats/unlimited-chat-folders"_q);
 		Ui::AddDividerText(container, fatr::fa_unlimited_chat_folders_desc());
+		SettingsMenuJsonSwitch(fa_delete_for_everyone, delete_for_everyone, u"fa/chats/delete-for-everyone"_q);
+		Ui::AddDividerText(container, fatr::fa_delete_for_everyone_desc());
 
 		const auto statusDotBtn = container->add(object_ptr<Button>(
 			container,

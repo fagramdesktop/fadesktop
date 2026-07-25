@@ -330,6 +330,15 @@ const auto kFAChatsMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
+			.id = u"fa/chats/delete-for-everyone"_q,
+			.title = fatr::fa_delete_for_everyone(fatr::now),
+			.keywords = { u"delete"_q, u"everyone"_q, u"default"_q, u"revoke"_q, u"checkmark"_q, u"checkbox"_q },
+			.icon = { &st::menuIconChatBubble },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
 			.id = u"fa/chats/status-dot"_q,
 			.title = fatr::fa_show_status_dot(fatr::now),
 			.keywords = { u"status"_q, u"dot"_q, u"online"_q, u"indicator"_q },

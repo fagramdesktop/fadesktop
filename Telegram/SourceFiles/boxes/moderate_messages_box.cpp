@@ -7,6 +7,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "boxes/moderate_messages_box.h"
 
+#include "fa/settings/fa_settings.h"
+
 #include "api/api_blocked_peers.h"
 #include "api/api_chat_participants.h"
 #include "api/api_messages_search.h"
@@ -1636,7 +1638,7 @@ void DeleteChatBox(not_null<Ui::GenericBox*> box, not_null<PeerData*> peer) {
 					: tr::lng_delete_for_everyone_check(
 						tr::now,
 						tr::marked),
-				false,
+				FASettings::JsonSettings::GetBool("delete_for_everyone"),
 				st::defaultBoxCheckbox));
 	}();
 
