@@ -132,7 +132,7 @@ namespace Settings {
                     u"Export FAgram Settings"_q,
                     u"FA Config (*.faconfig)"_q,
                     u"settings.faconfig"_q,
-                    [=](QString &&path) {
+                    crl::guard(this, [=](const QString &path) {
                         if (path.isEmpty()) {
                             return;
                         }
@@ -141,7 +141,7 @@ namespace Settings {
                             return;
                         }
                         f.write(data);
-                    });
+                    }));
             },
             &st::menuIconExport);
         addAction(

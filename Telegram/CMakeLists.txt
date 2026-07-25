@@ -889,8 +889,8 @@ PRIVATE
     fa/deep_links/fa_deep_links.h
     fa/settings_menu/fa_settings_menu.cpp
     fa/settings_menu/fa_settings_menu.h
-    fa/settings_menu/fa_settings_builder.cpp
-    fa/settings_menu/fa_settings_builder.h
+    fa/settings/fa_settings_builder.cpp
+    fa/settings/fa_settings_builder.h
     fa/settings_menu/fa_deeplink_context_menu.cpp
     fa/settings_menu/fa_deeplink_context_menu.h
     fa/settings/fa_settings.cpp

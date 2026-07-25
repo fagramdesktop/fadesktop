@@ -6,7 +6,7 @@ For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 
-#include "fa/settings_menu/fa_settings_builder.h"
+#include "fa/settings/fa_settings_builder.h"
 
 #include "fa/settings_menu/fa_settings_menu.h"
 #include "fa/settings_menu/sections/fa_general.h"
@@ -145,6 +145,24 @@ const auto kFAGeneralMeta = BuildHelper({
 			.id = u"fa/general/disable-ai"_q,
 			.title = fatr::fa_disable_ai(fatr::now),
 			.keywords = { u"ai"_q, u"compose"_q, u"text"_q, u"editor"_q, u"disable"_q, u"summaries"_q, u"summary"_q },
+			.icon = { &st::menuIconShowAll },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
+			.id = u"fa/general/disable-animated-avatars"_q,
+			.title = fatr::fa_disable_animated_avatars(fatr::now),
+			.keywords = { u"animated"_q, u"avatars"_q, u"userpic"_q, u"disable"_q, u"profile"_q, u"photo"_q },
+			.icon = { &st::menuIconShowAll },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
+			.id = u"fa/general/disable-premium-animation"_q,
+			.title = fatr::fa_disable_premium_animation(fatr::now),
+			.keywords = { u"premium"_q, u"animation"_q, u"effects"_q, u"disable"_q, u"stickers"_q, u"emoji"_q },
 			.icon = { &st::menuIconShowAll },
 		};
 	});
@@ -413,7 +431,7 @@ const auto kFAAppearanceMeta = BuildHelper({
 		return SearchEntry{
 			.id = u"fa/appearance/use-tdesktop-themes"_q,
 			.title = fatr::fa_use_tdesktop_themes(fatr::now),
-			.keywords = { u"tdesktop"_q, u"themes"_q, u"theme"_q, u"default"_q, },
+			.keywords = { u"tdesktop"_q, u"themes"_q, u"theme"_q, u"default"_q },
 			.icon = { &st::menuIconPalette },
 		};
 	});

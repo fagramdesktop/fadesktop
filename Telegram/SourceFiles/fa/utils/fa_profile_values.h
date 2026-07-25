@@ -12,12 +12,12 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/text/text_utilities.h"
 #include "fa/settings/fa_settings.h"
 
-QString IDString(not_null<PeerData*> peer);
+[[nodiscard]] QString IDString(not_null<PeerData*> peer);
 
-rpl::producer<TextWithEntities> IDValue(not_null<PeerData*> peer);
+[[nodiscard]] rpl::producer<TextWithEntities> IDValue(not_null<PeerData*> peer);
 
-QString parseRegistrationTime(QString prefix, long long regTime);
+[[nodiscard]] QString parseRegistrationTime(const QString &prefix, int64 regTime);
 
-QString findRegistrationTime(long long userId);
+[[nodiscard]] QString findRegistrationTime(int64 userId);
 
-[[nodiscard]] rpl::producer<TextWithEntities> RegistrationValue(not_null<PeerData*> peer_id);
+[[nodiscard]] rpl::producer<TextWithEntities> RegistrationValue(not_null<PeerData*> peer);

@@ -19,11 +19,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <QClipboard>
 
 namespace Settings::FADeepLinkMenu {
-namespace {
-
-base::unique_qptr<Ui::PopupMenu> ContextMenu;
-
-} // namespace
 
 void AttachSettingsContextMenu(
 		not_null<QWidget*> widget,
@@ -35,14 +30,16 @@ void AttachSettingsContextMenu(
 	}
 	controller->checkHighlightControl(controlId, widget);
 
+	const auto menu = widget->lifetime().make_state<base::unique_qptr<Ui::PopupMenu>>();
+
 	base::install_event_filter(widget, [=](not_null<QEvent*> e) {
 		if (e->type() != QEvent::ContextMenu) {
 			return base::EventFilterResult::Continue;
 		}
 
-		ContextMenu = base::make_unique_q<Ui::PopupMenu>(widget);
+		*menu = base::make_unique_q<Ui::PopupMenu>(widget);
 
-		ContextMenu->addAction(
+		(*menu)->addAction(
 			tr::lng_context_copy_link(tr::now),
 			[=] {
 				QGuiApplication::clipboard()->setText(deepLink);
@@ -50,13 +47,13 @@ void AttachSettingsContextMenu(
 					tr::lng_background_link_copied(tr::now));
 			});
 
-		ContextMenu->addAction(
+		(*menu)->addAction(
 			FAlang::Translate(u"fa_share"_q),
 			[=] {
 				FastShareLink(controller, deepLink);
 			});
 
-		ContextMenu->popup(QCursor::pos());
+		(*menu)->popup(QCursor::pos());
 		return base::EventFilterResult::Cancel;
 	});
 }
