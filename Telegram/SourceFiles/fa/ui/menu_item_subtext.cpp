@@ -240,9 +240,7 @@ void ActionStickerPackAuthor::searchAuthor(FaID authorId) {
 						   {
 							   QGuiApplication::clipboard()->setText(QString::number(authorId));
 							   if (const auto window = _session->tryResolveWindow()) {
-								   if (const auto mainWidget = window->widget()->sessionController()) {
-									   mainWidget->showToast(fatr::fa_id_copied(fatr::now));
-								   }
+								   window->showToast(fatr::fa_id_copied(fatr::now));
 							   }
 						   });
 
@@ -258,9 +256,7 @@ void ActionStickerPackAuthor::searchAuthor(FaID authorId) {
 				   {
 					   if (user) {
 						   if (const auto window = _session->tryResolveWindow()) {
-							   if (const auto mainWidget = window->widget()->sessionController()) {
-								   mainWidget->showPeer(user);
-							   }
+							   window->showPeer(user);
 						   }
 					   } else {
 						   QGuiApplication::clipboard()->setText(title);
