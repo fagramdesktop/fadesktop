@@ -37,9 +37,9 @@ stdenv.mkDerivation (finalAttrs: {
   src = fetchFromGitHub {
     owner = "fagramdesktop";
     repo = "fadesktop";
-    rev = "3774ccfeebbc9f00f466a41df72716b535a2268f";
+    rev = "4bb0940a99b35d62b4e46d32bca14e4e4be618c6";
     fetchSubmodules = true;
-    hash = "sha256-ibkJxfnyCwd5iLHRQuDssZKN/HJvZfpqz/tDACMcj8M=";
+    hash = "sha256-f0KguYHiO0+A2PERUnMHNfcfO14D2JClk72W/ZGRISQ=";
   };
 
   nativeBuildInputs = [
