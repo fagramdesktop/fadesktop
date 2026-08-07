@@ -12,7 +12,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "media/audio/media_audio.h"
 #include "ui/painter.h"
 #include "ui/rp_widget.h"
-#include "styles/style_widgets.h"
 #include "styles/style_media_view.h"
 
 namespace Media::Stories {

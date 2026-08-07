@@ -67,6 +67,12 @@ public:
 		const MarkdownArticlePaintContext &context) const = 0;
 	[[nodiscard]] virtual ClickHandlerPtr linkAt(QPoint point) const = 0;
 	[[nodiscard]] virtual MediaActivation activationAt(QPoint point) const = 0;
+	virtual void clickHandlerActiveChanged(const ClickHandlerPtr &, bool) {
+	}
+	virtual void clickHandlerPressedChanged(const ClickHandlerPtr &, bool) {
+	}
+	virtual void updatePressed(QPoint) {
+	}
 	[[nodiscard]] virtual MediaBlockSelectionData selectionData() const = 0;
 	[[nodiscard]] virtual bool hasHeavyPart() const;
 	virtual void unloadHeavyPart();
@@ -78,6 +84,12 @@ public:
 		return -1;
 	}
 	virtual void setActiveItemIndex(int index) {
+	}
+	[[nodiscard]] virtual bool canHandleHorizontalScroll() const {
+		return false;
+	}
+	virtual bool handleHorizontalScroll(int delta, Qt::ScrollPhase phase) {
+		return false;
 	}
 
 protected:

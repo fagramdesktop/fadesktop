@@ -24,7 +24,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "base/random.h"
 #include "ui/power_saving.h"
 #include "ui/ui_utility.h"
-#include "styles/style_chat.h"
 
 namespace HistoryView {
 namespace {

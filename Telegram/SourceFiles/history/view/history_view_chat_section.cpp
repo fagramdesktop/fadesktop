@@ -28,6 +28,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/history_drag_area.h"
 #include "history/history_item_components.h"
 #include "history/history_item_helpers.h" // GetErrorForSending.
+#include "history/history_view_pull_to_next_channel.h"
 #include "iv/iv_rich_message_serializer.h"
 #include "iv/iv_rich_page.h"
 #include "ui/chat/pinned_bar.h"
@@ -283,6 +284,15 @@ ChatWidget::ChatWidget(
 , _scroll(std::make_unique<Ui::ElasticScroll>(
 	this,
 	controller->chatStyle()->value(lifetime(), st::historyScroll)))
+, _pullToNext(std::make_unique<PullToNextChannel>(
+	this,
+	_scroll.get(),
+	controller,
+	[=] {
+		return _inner
+			&& _inner->loadedAtBottomKnown()
+			&& _inner->loadedAtBottom();
+	}))
 , _cornerButtons(
 		_scroll.get(),
 		controller->chatStyle(),
@@ -363,6 +373,7 @@ ChatWidget::ChatWidget(
 	}, [=] {
 		return _inner->loadedAtBottomKnown() && _inner->loadedAtBottom();
 	});
+	_pullToNext->setTopic(_topic);
 	_scroll->scrolls(
 	) | rpl::on_next([=] {
 		onScroll();
@@ -720,6 +731,7 @@ void ChatWidget::setTopic(Data::ForumTopic *topic) {
 	}
 	_topicLifetime.destroy();
 	_topic = topic;
+	_pullToNext->setTopic(topic);
 	refreshReplies();
 	refreshTopBarActiveChat();
 	validateSubsectionTabs();
@@ -844,7 +856,7 @@ void ChatWidget::setupComposeControls() {
 	) | rpl::filter([=] {
 		return !_joinGroup;
 	}) | rpl::on_next([=] {
-		const auto wasMax = (_scroll->scrollTopMax() == _scroll->scrollTop());
+		const auto wasMax = (_scroll->scrollTop() >= _scroll->scrollTopMax());
 		updateControlsGeometry();
 		if (wasMax) {
 			listScrollTo(_scroll->scrollTopMax());
@@ -1078,7 +1090,9 @@ void ChatWidget::setupSwipeReplyAndBack() {
 		}
 		const auto view = _inner->lookupItemByY(data.cursorPosition.y());
 		if (!view
-			|| !view->data()->isRegular()
+			|| (!view->data()->isRegular()
+				&& (!view->data()->isEphemeral()
+					|| view->data()->out()))
 			|| view->data()->isService()) {
 			return result;
 		}
@@ -1856,12 +1870,14 @@ void ChatWidget::validateSubsectionTabs() {
 			? ElementChatMode::Narrow
 			: std::optional<ElementChatMode>());
 		updateControlsGeometry();
+		updateSubsectionTabsGeometry();
 		orderWidgets();
 	}, _subsectionTabsLifetime);
 	_inner->overrideChatMode((_subsectionTabs->leftSkip() > 0)
 		? ElementChatMode::Narrow
 		: std::optional<ElementChatMode>());
 	updateControlsGeometry();
+	updateSubsectionTabsGeometry();
 	orderWidgets();
 }
 
@@ -1873,7 +1889,7 @@ void ChatWidget::refreshJoinGroupButton() {
 		if (!button && !_joinGroup) {
 			return;
 		}
-		const auto atMax = (_scroll->scrollTopMax() == _scroll->scrollTop());
+		const auto atMax = (_scroll->scrollTop() >= _scroll->scrollTopMax());
 		_joinGroup = std::move(button);
 		if (!animatingShow()) {
 			if (button) {
@@ -2064,7 +2080,13 @@ SendMenu::Details ChatWidget::sendMenuDetails() const {
 		: (_topic && !_peer->starsPerMessageChecked())
 		? Type::Scheduled
 		: Type::SilentOnly;
-	return SendMenu::Details{ .type = type };
+	return SendMenu::Details{
+		.type = type,
+		.barePeerId = (_sublist
+			? _sublist->owningHistory()
+			: _history)->peer->id.value,
+		.bareTopicRootId = _topic ? _topic->rootId().bare : 0,
+	};
 }
 
 bool ChatWidget::processChosenSticker(ChatHelpers::FileChosen &&chosen) {
@@ -2671,14 +2693,21 @@ bool ChatWidget::preventsClose(Fn<void()> &&continueCallback) const {
 
 QPixmap ChatWidget::grabForShowAnimation(const Window::SectionSlideParams &params) {
 	_topBar->updateControlsVisibility();
-	if (params.withTopBarShadow) _topBarShadow->hide();
+	const auto hideTopBarShadow = params.withTopBarShadow
+		&& !params.fromBottom;
+	if (hideTopBarShadow) {
+		_topBarShadow->hide();
+	}
 	if (_joinGroup) {
 		_composeControls->hide();
 	} else {
 		_composeControls->showForGrab();
 	}
+	if (params.fromBottom && _subsectionTabs) {
+		_subsectionTabs->hide();
+	}
 	auto result = Ui::GrabWidget(this);
-	if (params.withTopBarShadow) {
+	if (hideTopBarShadow) {
 		_topBarShadow->show();
 	}
 	_topBars->hide();
@@ -3017,10 +3046,12 @@ void ChatWidget::recountChatWidth() {
 void ChatWidget::updateControlsGeometry() {
 	const auto contentWidth = width();
 
+	const auto wasAtBottom = !_scroll->isHidden()
+		&& (_scroll->scrollTop() >= _scroll->scrollTopMax());
 	const auto newScrollDelta = _scroll->isHidden()
 		? std::nullopt
 		: _scroll->scrollTop()
-		? base::make_optional(topDelta() + _scrollTopDelta)
+		? base::make_optional(takeTopDelta() + _scrollTopDelta)
 		: 0;
 	_topBar->resizeToWidth(contentWidth);
 	_topBarShadow->resize(contentWidth, st::lineWidth);
@@ -3083,27 +3114,35 @@ void ChatWidget::updateControlsGeometry() {
 	}
 	_scroll->move(tabsLeftSkip, top);
 	if (!_scroll->isHidden()) {
-		const auto newScrollTop = (newScrollDelta && _scroll->scrollTop())
-			? (_scroll->scrollTop() + *newScrollDelta)
-			: std::optional<int>();
-		if (newScrollTop) {
-			_scroll->scrollToY(*newScrollTop);
+		if (wasAtBottom) {
+			_scroll->scrollToY(_scroll->scrollTopMax());
+		} else if (newScrollDelta && _scroll->scrollTop()) {
+			_scroll->scrollToY(_scroll->scrollTop() + *newScrollDelta);
 		}
 		updateInnerVisibleArea();
 	}
 	_composeControls->move(0, composeTop);
 	_composeControls->setAutocompleteBoundingRect(_scroll->geometry());
 
-	if (_subsectionTabs) {
-		const auto scrollBottom = _scroll->y() + scrollHeight;
-		const auto areaHeight = scrollBottom
-			+ tabsBottomSkip
-			- subsectionTabsTop;
-		_subsectionTabs->setBoundingRect(
-			{ 0, subsectionTabsTop, width(), areaHeight });
+	if (!animatingShow()) {
+		updateSubsectionTabsGeometry();
 	}
 
 	_cornerButtons.updatePositions();
+	_pullToNext->updateGeometry();
+}
+
+void ChatWidget::updateSubsectionTabsGeometry() {
+	if (!_subsectionTabs) {
+		return;
+	}
+	const auto subsectionTabsTop = _topBar->bottomNoMargins();
+	const auto scrollBottom = _scroll->y() + _scroll->height();
+	const auto areaHeight = scrollBottom
+		+ _subsectionTabs->bottomSkip()
+		- subsectionTabsTop;
+	_subsectionTabs->setBoundingRect(
+		{ 0, subsectionTabsTop, width(), areaHeight });
 }
 
 void ChatWidget::paintEvent(QPaintEvent *e) {
@@ -3186,11 +3225,7 @@ void ChatWidget::setPinnedVisibility(bool shown) {
 			const auto height = shown ? st::historyReplyHeight : 0;
 			if (const auto delta = height - _repliesRootViewHeight) {
 				_repliesRootViewHeight = height;
-				if (_scroll->scrollTop() == _scroll->scrollTopMax()) {
-					setGeometryWithTopMoved(geometry(), delta);
-				} else {
-					updateControlsGeometry();
-				}
+				setGeometryWithTopMoved(geometry(), delta);
 			}
 		}
 		_repliesRootVisible = shown;
@@ -3211,8 +3246,12 @@ void ChatWidget::setPinnedVisibility(bool shown) {
 void ChatWidget::showAnimatedHook(
 		const Window::SectionSlideParams &params) {
 	_topBar->setAnimatingMode(true);
-	if (params.withTopBarShadow) {
+	if (params.withTopBarShadow && !params.fromBottom) {
 		_topBarShadow->show();
+	}
+	if (params.fromBottom && _subsectionTabs) {
+		_subsectionTabs->show();
+		orderWidgets();
 	}
 	_composeControls->showStarted();
 }
@@ -3228,6 +3267,7 @@ void ChatWidget::showFinishedHook() {
 		_composeControls->showFinished();
 	}
 	_inner->showFinished();
+	updateSubsectionTabsGeometry();
 	_topBars->show();
 	if (_subsectionTabs) {
 		_subsectionTabs->show();
@@ -3392,8 +3432,7 @@ void ChatWidget::listSelectionChanged(SelectedItems &&items) {
 	if ((state.count > 0) && _composeSearch) {
 		_composeSearch->hideAnimated();
 	}
-	if (items.empty()
-		&& !(_inner->hasFocus() && Ui::ScreenReaderModeActive())) {
+	if (!_inner->hasFocus() || !Ui::ScreenReaderModeActive()) {
 		doSetInnerFocus();
 	}
 }

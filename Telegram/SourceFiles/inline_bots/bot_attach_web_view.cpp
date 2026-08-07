@@ -81,18 +81,17 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/dropdown_menu.h"
 #include "ui/widgets/menu/menu_item_base.h"
 #include "ui/widgets/popup_menu.h"
+#include "webview/webview_dialog.h"
 #include "webview/webview_interface.h"
 #include "window/themes/window_theme.h"
 #include "window/window_controller.h"
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
 #include "styles/style_boxes.h"
-#include "styles/style_channel_earn.h"
 #include "styles/style_chat.h"
 #include "styles/style_info.h" // infoVerifiedStar.
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
-#include "styles/style_window.h"
 
 #include <QSvgRenderer>
 
@@ -925,15 +924,16 @@ WebViewInstance::WebViewInstance(WebViewDescriptor &&descriptor)
 , _bot(descriptor.bot)
 , _context(ResolveContext(_bot, std::move(descriptor.context)))
 , _button(std::move(descriptor.button))
-, _source(std::move(descriptor.source)) {
+, _source(std::move(descriptor.source))
+, _api(&_session->mtp()) {
 	Expects(_parentShow != nullptr);
 
 	resolve();
 }
 
 WebViewInstance::~WebViewInstance() {
-	_session->api().request(base::take(_requestId)).cancel();
-	_session->api().request(base::take(_prolongId)).cancel();
+	_api.request(base::take(_requestId)).cancel();
+	_api.request(base::take(_prolongId)).cancel();
 	base::take(_panel);
 }
 
@@ -1060,7 +1060,7 @@ void WebViewInstance::resolveApp(
 		const QString &startparam,
 		ConfirmType confirmType) {
 	const auto already = _session->data().findBotApp(_bot->id, appname);
-	_requestId = _session->api().request(MTPmessages_GetBotApp(
+	_requestId = _api.request(MTPmessages_GetBotApp(
 		MTP_inputBotAppShortName(
 			_bot->inputUser(),
 			MTP_string(appname)),
@@ -1201,7 +1201,7 @@ void WebViewInstance::requestButton() {
 
 	const auto &action = *_context.action;
 	using Flag = MTPmessages_RequestWebView::Flag;
-	_requestId = _session->api().request(MTPmessages_RequestWebView(
+	_requestId = _api.request(MTPmessages_RequestWebView(
 		MTP_flags(Flag::f_theme_params
 			| (_context.fullscreen ? Flag::f_fullscreen : Flag(0))
 			| (_button.url.isEmpty() ? Flag(0) : Flag::f_url)
@@ -1239,7 +1239,7 @@ void WebViewInstance::requestButton() {
 
 void WebViewInstance::requestSimple() {
 	using Flag = MTPmessages_RequestSimpleWebView::Flag;
-	_requestId = _session->api().request(MTPmessages_RequestSimpleWebView(
+	_requestId = _api.request(MTPmessages_RequestSimpleWebView(
 		MTP_flags(Flag::f_theme_params
 			| (_context.fullscreen ? Flag::f_fullscreen : Flag(0))
 			| (v::is<WebViewSourceSwitch>(_source)
@@ -1267,7 +1267,7 @@ void WebViewInstance::requestSimple() {
 
 void WebViewInstance::requestMain() {
 	using Flag = MTPmessages_RequestMainWebView::Flag;
-	_requestId = _session->api().request(MTPmessages_RequestMainWebView(
+	_requestId = _api.request(MTPmessages_RequestMainWebView(
 		MTP_flags(Flag::f_theme_params
 			| (_context.fullscreen ? Flag::f_fullscreen : Flag(0))
 			| (_button.startCommand.isEmpty()
@@ -1304,7 +1304,7 @@ void WebViewInstance::requestApp(bool allowWrite) {
 		| (_context.fullscreen ? Flag::f_fullscreen : Flag(0))
 		| (_appStartParam.isEmpty() ? Flag(0) : Flag::f_start_param)
 		| (allowWrite ? Flag::f_write_allowed : Flag(0));
-	_requestId = _session->api().request(MTPmessages_RequestAppWebView(
+	_requestId = _api.request(MTPmessages_RequestAppWebView(
 		MTP_flags(flags),
 		_context.action->history->peer->input(),
 		MTP_inputBotAppID(MTP_long(app->id), MTP_long(app->accessHash)),
@@ -1329,7 +1329,7 @@ void WebViewInstance::requestApp(bool allowWrite) {
 void WebViewInstance::requestChatJoin() {
 	const auto &join = v::get<WebViewSourceJoinChat>(_source);
 	using Flag = MTPmessages_RequestChatJoinWebView::Flag;
-	_requestId = _session->api().request(MTPmessages_RequestChatJoinWebView(
+	_requestId = _api.request(MTPmessages_RequestChatJoinWebView(
 		MTP_flags(Flag::f_theme_params),
 		MTP_long(join.queryId),
 		MTP_dataJSON(MTP_bytes(botThemeParams().json)),
@@ -1537,8 +1537,8 @@ void WebViewInstance::started(uint64 queryId) {
 		kProlongTimeout
 	) | rpl::on_next([=] {
 		using Flag = MTPmessages_ProlongWebView::Flag;
-		_session->api().request(base::take(_prolongId)).cancel();
-		_prolongId = _session->api().request(MTPmessages_ProlongWebView(
+		_api.request(base::take(_prolongId)).cancel();
+		_prolongId = _api.request(MTPmessages_ProlongWebView(
 			MTP_flags(Flag(0)
 				| (action.replyTo ? Flag::f_reply_to : Flag(0))
 				| (action.options.sendAs ? Flag::f_send_as : Flag(0))
@@ -1653,13 +1653,14 @@ auto WebViewInstance::nonPanelPaymentFormFactory(
 	using namespace Payments;
 	const auto panel = base::make_weak(_panel.get());
 	const auto weak = _context.controller;
+	const auto show = uiShow();
 	return [=](Payments::NonPanelPaymentForm form) {
 		using CreditsFormDataPtr = std::shared_ptr<CreditsFormData>;
 		using CreditsReceiptPtr = std::shared_ptr<CreditsReceiptData>;
 		v::match(form, [&](const CreditsFormDataPtr &form) {
 			if (const auto strong = panel.get()) {
 				ProcessCreditsPayment(
-					uiShow(),
+					show,
 					strong->toastParent().get(),
 					form,
 					reactivate);
@@ -1669,7 +1670,9 @@ auto WebViewInstance::nonPanelPaymentFormFactory(
 				ProcessCreditsReceipt(controller, receipt, reactivate);
 			}
 		}, [&](RealFormPresentedNotification) {
-			_panel->hideForPayment();
+			if (const auto strong = panel.get()) {
+				strong->hideForPayment();
+			}
 		});
 	};
 }
@@ -1817,7 +1820,7 @@ void WebViewInstance::botSwitchInlineQuery(
 }
 
 void WebViewInstance::botCheckWriteAccess(Fn<void(bool allowed)> callback) {
-	_session->api().request(MTPbots_CanSendMessage(
+	_api.request(MTPbots_CanSendMessage(
 		_bot->inputUser()
 	)).done([=](const MTPBool &result) {
 		callback(mtpIsTrue(result));
@@ -1924,7 +1927,8 @@ void WebViewInstance::botSendPreparedMessage(
 		callback(u"UNKNOWN_ERROR"_q);
 		return;
 	}
-	_session->api().request(MTPmessages_GetPreparedInlineMessage(
+	const auto show = uiShow();
+	_api.request(MTPmessages_GetPreparedInlineMessage(
 		bot->inputUser(),
 		MTP_string(request.id)
 	)).done([=](const MTPmessages_PreparedInlineMessage &result) {
@@ -2043,7 +2047,7 @@ void WebViewInstance::botSendPreparedMessage(
 					}
 				};
 				const auto checked = state->sendPayment.check(
-					uiShow(),
+					show,
 					strong->peer(),
 					options,
 					1,
@@ -2078,7 +2082,7 @@ void WebViewInstance::botRequestChat(
 		return;
 	}
 	const auto show = uiShow();
-	bot->session().api().request(MTPbots_GetRequestedWebViewButton(
+	_api.request(MTPbots_GetRequestedWebViewButton(
 		bot->inputUser(),
 		MTP_string(requestId)
 	)).done([show, bot, callback, requestId](
@@ -2186,7 +2190,7 @@ void WebViewInstance::botDownloadFile(
 		return;
 	}
 	_confirmingDownload = true;
-	const auto done = [=](QString path) {
+	const auto done = crl::guard(this, [=](QString path) {
 		_confirmingDownload = false;
 		if (path.isEmpty()) {
 			callback(false);
@@ -2198,8 +2202,8 @@ void WebViewInstance::botDownloadFile(
 			.path = path,
 		});
 		callback(true);
-	};
-	_session->api().request(MTPbots_CheckDownloadFileParams(
+	});
+	_api.request(MTPbots_CheckDownloadFileParams(
 		_bot->inputUser(),
 		MTP_string(request.name),
 		MTP_string(request.url)
@@ -2502,20 +2506,51 @@ void AttachWebView::watchJoinChatWebView(
 	};
 }
 
+void AttachWebView::destroyDeferred(
+		std::vector<std::unique_ptr<WebViewInstance>> instances) {
+	if (instances.empty()) {
+		return;
+	} else if (!Webview::InsideBlockingPopup()) {
+		// Destroyed right here, `instances` goes out of scope.
+		return;
+	}
+
+	// A popup may have been opened from inside a webview callback, so the
+	// frames of that callback, and the closures owning them, are still on
+	// the stack below the popup. Destroy the instances only from a clean
+	// stack, after the popup is finished.
+	const auto was = _closing.size();
+	for (auto &instance : instances) {
+		_closing.push_back(std::move(instance));
+	}
+	if (was > 0) {
+		return;
+	}
+	const auto weak = base::make_weak(this);
+	Webview::RunWhenBlockingPopupFinished([=] {
+		if (const auto strong = weak.get()) {
+			base::take(strong->_closing);
+		}
+	});
+}
+
 void AttachWebView::close(not_null<WebViewInstance*> instance) {
 	const auto i = ranges::find(
 		_instances,
 		instance.get(),
 		&std::unique_ptr<WebViewInstance>::get);
-	if (i != end(_instances)) {
-		const auto taken = base::take(*i);
-		_instances.erase(i);
+	if (i == end(_instances)) {
+		return;
 	}
+	auto taken = std::vector<std::unique_ptr<WebViewInstance>>();
+	taken.push_back(base::take(*i));
+	_instances.erase(i);
+	destroyDeferred(std::move(taken));
 }
 
 void AttachWebView::closeAll() {
 	cancel();
-	base::take(_instances);
+	destroyDeferred(base::take(_instances));
 }
 
 void AttachWebView::loadPopularAppBots() {

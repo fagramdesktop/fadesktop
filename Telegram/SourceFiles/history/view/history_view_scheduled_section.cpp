@@ -185,6 +185,13 @@ ScheduledWidget::ScheduledWidget(
 		controller->setChatStyleTheme(_theme);
 	}, lifetime());
 
+	if (_forumTopic) {
+		_forumTopic->destroyed(
+		) | rpl::on_next([=] {
+			controller->showBackFromStack();
+		}, lifetime());
+	}
+
 	const auto state = Dialogs::EntryState{
 		.key = _history,
 		.section = Dialogs::EntryState::Section::Scheduled,
@@ -364,7 +371,7 @@ void ScheduledWidget::setupComposeControls() {
 
 	_composeControls->height(
 	) | rpl::on_next([=] {
-		const auto wasMax = (_scroll->scrollTopMax() == _scroll->scrollTop());
+		const auto wasMax = (_scroll->scrollTop() >= _scroll->scrollTopMax());
 		updateControlsGeometry();
 		if (wasMax) {
 			listScrollTo(_scroll->scrollTopMax());
@@ -940,7 +947,12 @@ SendMenu::Details ScheduledWidget::sendMenuDetails() const {
 		? SendMenu::Type::ScheduledToUser
 		: SendMenu::Type::Scheduled;
 	const auto effectAllowed = _history->peer->isUser();
-	return { .type = type, .effectAllowed = effectAllowed };
+	return {
+		.type = type,
+		.barePeerId = _history->peer->id.value,
+		.bareTopicRootId = _forumTopic ? _forumTopic->rootId().bare : 0,
+		.effectAllowed = effectAllowed,
+	};
 }
 
 bool ScheduledWidget::processChosenSticker(ChatHelpers::FileChosen &&chosen) {
@@ -1127,7 +1139,7 @@ void ScheduledWidget::updateControlsGeometry() {
 
 	const auto newScrollTop = _scroll->isHidden()
 		? std::nullopt
-		: base::make_optional(_scroll->scrollTop() + topDelta());
+		: base::make_optional(_scroll->scrollTop() + takeTopDelta());
 	_topBar->resizeToWidth(contentWidth);
 	_topBarShadow->resize(contentWidth, st::lineWidth);
 

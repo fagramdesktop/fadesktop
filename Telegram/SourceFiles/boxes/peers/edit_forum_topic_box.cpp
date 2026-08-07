@@ -34,7 +34,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "window/window_controller.h"
 #include "apiwrap.h"
 #include "mainwindow.h"
-#include "styles/style_layers.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_chat_helpers.h"
 

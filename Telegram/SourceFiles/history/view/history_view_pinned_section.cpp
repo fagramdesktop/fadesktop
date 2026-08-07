@@ -55,8 +55,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_window.h"
-#include "styles/style_info.h"
-#include "styles/style_boxes.h"
 
 #include <QtCore/QMimeData>
 
@@ -515,7 +513,7 @@ void PinnedWidget::updateControlsGeometry() {
 
 	const auto newScrollTop = _scroll->isHidden()
 		? std::nullopt
-		: base::make_optional(_scroll->scrollTop() + topDelta());
+		: base::make_optional(_scroll->scrollTop() + takeTopDelta());
 	_topBar->resizeToWidth(contentWidth);
 	_topBarShadow->resize(contentWidth, st::lineWidth);
 

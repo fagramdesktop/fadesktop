@@ -11,6 +11,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/image/image_prepare.h"
 #include "ui/chat/chat_style.h"
 #include "styles/style_chat.h"
+#include "styles/style_chat_style.h"
 
 namespace Ui {
 namespace {

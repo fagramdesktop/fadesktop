@@ -21,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "editor/editor_layer_widget.h"
 #include "editor/photo_editor.h"
 #include "editor/photo_editor_common.h"
+#include "iv/editor/iv_editor_clipboard_import.h"
 #include "iv/editor/iv_editor_text_entities.h"
 #include "iv/editor/iv_editor_window.h"
 #include "iv/markdown/iv_markdown_article_paint.h"
@@ -1417,48 +1418,6 @@ struct InlineFieldTrimResult {
 	return context;
 }
 
-[[nodiscard]] bool IsUsernameChar(QChar ch) {
-	const auto code = ch.unicode();
-	return (code >= 'a' && code <= 'z')
-		|| (code >= 'A' && code <= 'Z')
-		|| (code >= '0' && code <= '9')
-		|| (ch == '_');
-}
-
-[[nodiscard]] QStringView TrimmedView(QStringView text) {
-	auto from = 0;
-	auto till = text.size();
-	while (from != till && text[from].isSpace()) {
-		++from;
-	}
-	while (till != from && text[till - 1].isSpace()) {
-		--till;
-	}
-	return text.mid(from, till - from);
-}
-
-[[nodiscard]] QString StartingMention(QStringView text) {
-	const auto trimmed = TrimmedView(text);
-	if (trimmed.size() < 3 || trimmed[0] != '@') {
-		return QString();
-	}
-	auto till = 1;
-	while (till != trimmed.size() && IsUsernameChar(trimmed[till])) {
-		++till;
-	}
-	return (till > 1 && till != trimmed.size())
-		? trimmed.mid(0, till).toString()
-		: QString();
-}
-
-[[nodiscard]] bool HtmlTextMatchesPlainTextStart(
-		const QString &htmlText,
-		const QString &plainText) {
-	const auto htmlMention = StartingMention(QStringView(htmlText));
-	return htmlMention.isEmpty()
-		|| StartingMention(QStringView(plainText)) == htmlMention;
-}
-
 [[nodiscard]] std::optional<ClipboardData> BlockClipboardDataFromRichText(
 		TextWithEntities text) {
 	const auto isBlockEntity = [](const EntityInText &entity) {
@@ -1492,26 +1451,6 @@ struct InlineFieldTrimResult {
 	auto entities = TextUtilities::ConvertTextTagsToEntities(tags);
 	return BlockClipboardDataFromRichText({
 		std::move(text),
-		std::move(entities),
-	});
-}
-
-[[nodiscard]] std::optional<ClipboardData> BlockClipboardDataFromHtml(
-		not_null<const QMimeData*> data) {
-	const auto textMime = TextUtilities::TagsTextMimeType();
-	const auto tagsMime = TextUtilities::TagsMimeType();
-	if (!data->hasHtml()
-		|| (data->hasFormat(textMime) && data->hasFormat(tagsMime))) {
-		return std::nullopt;
-	}
-	auto parsed = TextUtilities::TextWithTagsFromHtml(data->html());
-	if (!parsed
-		|| !HtmlTextMatchesPlainTextStart(parsed->text, data->text())) {
-		return std::nullopt;
-	}
-	auto entities = TextUtilities::ConvertTextTagsToEntities(parsed->tags);
-	return BlockClipboardDataFromRichText({
-		std::move(parsed->text),
 		std::move(entities),
 	});
 }
@@ -2761,6 +2700,7 @@ Widget::Widget(
 , _customEmojiPaused(std::move(services.customEmojiPaused))
 , _requestMedia(std::move(services.requestMedia))
 , _applyPreparedMedia(std::move(services.applyPreparedMedia))
+, _prepareDeferredMedia(std::move(services.prepareDeferredMedia))
 , _requestPhotoEditSource(std::move(services.requestPhotoEditSource))
 , _replacePhotoWithList(std::move(services.replacePhotoWithList))
 , _mediaUploadState(std::move(services.mediaUploadState))
@@ -3777,6 +3717,159 @@ void Widget::copyCurrentSelectionToClipboard() {
 	QApplication::clipboard()->setMimeData(mimeData.release());
 }
 
+std::optional<TableImportResult> Widget::importTableFromMimeData(
+		not_null<const QMimeData*> data) const {
+	return TableFromMimeData(
+		data,
+		TableImportLimitsFor(
+			_state->limits(),
+			CountRichPageBlocks(_state->richPage())));
+}
+
+void Widget::pasteImportedTable(TableImportResult &&imported) {
+	auto tableData = ClipboardBlockData();
+	tableData.blocks.push_back(std::move(imported.block));
+	pasteStructuredClipboardData(ClipboardData(std::move(tableData)));
+	if (imported.truncated) {
+		_show->showToast(tr::lng_article_table_truncated(tr::now));
+	}
+}
+
+std::optional<BlocksImportResult> Widget::importBlocksFromMimeData(
+		not_null<const QMimeData*> data) const {
+	return BlocksFromMimeData(
+		_session,
+		data,
+		_state->limits(),
+		CountRichPageBlocks(_state->richPage()));
+}
+
+[[nodiscard]] std::vector<RichPage::Block> DropImportedMediaPlaceholders(
+		std::vector<RichPage::Block> blocks,
+		const std::vector<std::optional<RichPage::Block>> &prepared) {
+	const auto resolve = [&](uint64 id) -> const RichPage::Block* {
+		const auto index = ImportedMediaPlaceholderIndex(id);
+		if (!index || *index >= int(prepared.size()) || !prepared[*index]) {
+			return nullptr;
+		}
+		return &*prepared[*index];
+	};
+	auto result = std::vector<RichPage::Block>();
+	result.reserve(blocks.size());
+	for (auto &block : blocks) {
+		const auto placeholder = ImportedMediaPlaceholderIndex(
+			block.photoId ? block.photoId : block.documentId);
+		if (placeholder) {
+			const auto ready = resolve(
+				block.photoId ? block.photoId : block.documentId);
+			if (!ready) {
+				continue;
+			}
+			auto caption = std::move(block.caption);
+			auto anchorId = std::move(block.anchorId);
+			block = *ready;
+			block.caption = std::move(caption);
+			block.anchorId = std::move(anchorId);
+		}
+		for (auto i = block.mediaItems.begin()
+			; i != block.mediaItems.end();) {
+			const auto id = i->photoId ? i->photoId : i->documentId;
+			if (!ImportedMediaPlaceholderIndex(id)) {
+				++i;
+				continue;
+			}
+			const auto ready = resolve(id);
+			if (!ready) {
+				i = block.mediaItems.erase(i);
+				continue;
+			}
+			i->kind = ready->kind;
+			i->photoId = ready->photoId;
+			i->documentId = ready->documentId;
+			i->width = ready->width;
+			i->height = ready->height;
+			i->autoplay = ready->autoplay;
+			i->loop = ready->loop;
+			i->spoiler = ready->spoiler;
+			++i;
+		}
+		if ((block.kind == RichPage::BlockKind::GroupedMedia)
+			&& block.mediaItems.empty()) {
+			continue;
+		}
+		block.blocks = DropImportedMediaPlaceholders(
+			std::move(block.blocks),
+			prepared);
+		for (auto &item : block.listItems) {
+			item.blocks = DropImportedMediaPlaceholders(
+				std::move(item.blocks),
+				prepared);
+		}
+		result.push_back(std::move(block));
+	}
+	return result;
+}
+
+void Widget::pasteImportedBlocks(BlocksImportResult &&imported) {
+	if (!imported.localMediaPaths.isEmpty()) {
+		resolveImportedLocalMedia(std::move(imported));
+		return;
+	}
+	if (!imported.blocks.empty()) {
+		auto blocksData = ClipboardBlockData();
+		blocksData.blocks = std::move(imported.blocks);
+		pasteStructuredClipboardData(ClipboardData(std::move(blocksData)));
+	}
+	if (imported.truncated) {
+		_show->showToast(tr::lng_article_paste_truncated(tr::now));
+	}
+}
+
+void Widget::resolveImportedLocalMedia(BlocksImportResult &&imported) {
+	auto paths = base::take(imported.localMediaPaths);
+	auto list = Ui::PreparedList();
+	auto order = std::vector<int>();
+	if (_prepareDeferredMedia) {
+		for (auto i = 0; i != int(paths.size()); ++i) {
+			auto single = Storage::PrepareMediaList(
+				QStringList{ paths[i] },
+				st::sendMediaPreviewSize,
+				_session->premium());
+			if (single.error != Ui::PreparedList::Error::None
+				|| single.files.size() != 1) {
+				continue;
+			}
+			list.files.push_back(std::move(single.files.front()));
+			order.push_back(i);
+		}
+	}
+	if (list.files.empty()) {
+		imported.blocks = DropImportedMediaPlaceholders(
+			std::move(imported.blocks),
+			{});
+		pasteImportedBlocks(std::move(imported));
+		return;
+	}
+	const auto total = int(paths.size());
+	_prepareDeferredMedia(
+		not_null<Widget*>(this),
+		std::move(list),
+		crl::guard(this, [=, imported = std::move(imported)](
+				std::vector<std::optional<RichPage::Block>> prepared)
+		mutable {
+			auto mapped = std::vector<std::optional<RichPage::Block>>(total);
+			for (auto i = 0; i != int(prepared.size()); ++i) {
+				if (i < int(order.size()) && order[i] < total) {
+					mapped[order[i]] = std::move(prepared[i]);
+				}
+			}
+			imported.blocks = DropImportedMediaPlaceholders(
+				std::move(imported.blocks),
+				mapped);
+			pasteImportedBlocks(std::move(imported));
+		}));
+}
+
 void Widget::pasteStructuredClipboardData(const ClipboardData &data) {
 	const auto blocks = std::get_if<ClipboardBlockData>(&data);
 	const auto items = std::get_if<ClipboardListItemsData>(&data);
@@ -3908,6 +4001,14 @@ bool Widget::hasActiveSelection() const {
 	return hasStructuralSelection()
 		|| !_selection.empty()
 		|| hasFieldTextSpanSelection();
+}
+
+rpl::producer<bool> Widget::hasSelectionValue() const {
+	return _hasSelection.value();
+}
+
+void Widget::updateHasSelection() {
+	_hasSelection = hasActiveSelection();
 }
 
 TextWithEntities Widget::textSpanForCurrentSelection() {
@@ -4185,6 +4286,21 @@ bool Widget::handleClipboardKey(QKeyEvent *e) {
 			pasteStructuredClipboardData(*data);
 			e->accept();
 			return true;
+		}
+		if (mimeData && mimeData->hasHtml()) {
+			if (auto imported = importBlocksFromMimeData(
+					not_null<const QMimeData*>(mimeData))) {
+				pasteImportedBlocks(std::move(*imported));
+				e->accept();
+				return true;
+			}
+		}
+		if (mimeData && MimeDataLooksLikeTable(mimeData)) {
+			if (auto imported = importTableFromMimeData(mimeData)) {
+				pasteImportedTable(std::move(*imported));
+				e->accept();
+				return true;
+			}
 		}
 		if (mimeData && _applyPreparedMedia) {
 			if (auto list = PreparedMediaFromClipboard(
@@ -4633,6 +4749,7 @@ void Widget::performUndoRedo(bool redo, bool allowFieldLocal) {
 }
 
 void Widget::notifyToolbarStateChanged() {
+	updateHasSelection();
 	_toolbarStateChanges.fire_copy(toolbarStateValue());
 }
 
@@ -5301,19 +5418,16 @@ bool Widget::handleHorizontalScrollWheel(
 	if (!_article->horizontalScrollHit(articlePoint).scrollable) {
 		return false;
 	}
-	if (horizontal) {
-		if (_horizontalScrollLock == Qt::Vertical) {
-			return false;
-		}
+	if (horizontal && _horizontalScrollLock == Qt::Vertical) {
+		return false;
+	}
+	if (horizontal || _horizontalScrollLock == Qt::Horizontal) {
 		if (_article->consumeHorizontalScroll(
 				articlePoint,
-				int(std::round(delta.x())))) {
+				int(std::round(delta.x())),
+				phase)) {
 			syncInlineFieldGeometry();
 		}
-		e->accept();
-		return true;
-	}
-	if (_horizontalScrollLock == Qt::Horizontal) {
 		e->accept();
 		return true;
 	}
@@ -6380,6 +6494,16 @@ void Widget::showGroupedMediaMenu(
 			});
 		},
 		&st::menuIconExpand);
+	const auto toSlideshow = (block->mediaIntent
+		!= RichPage::GroupedMediaIntent::Slideshow);
+	menu->addAction(
+		toSlideshow
+			? tr::lng_article_media_slideshow(tr::now)
+			: tr::lng_article_media_collage(tr::now),
+		[=] {
+			toggleGroupedMediaIntent(path);
+		},
+		toSlideshow ? &st::menuIconPhotoSet : &st::menuIconShowAll);
 	if (GroupedMediaHasPhotoVideoItems(*block)) {
 		Menu::AddCheckedAction(
 			menu,
@@ -6473,6 +6597,16 @@ void Widget::showStructuralPhotoVideoMenu(QPoint globalPos) {
 			});
 		},
 		&st::menuIconPhotoSet);
+	if (_state->canUngroupGroupedMediaBlocks(selection)) {
+		menu->addAction(
+			tr::lng_article_media_ungroup(tr::now),
+			[=] {
+				[[maybe_unused]] const auto changed = applyMediaBlockChange([=] {
+					return _state->ungroupGroupedMediaBlocks(selection);
+				});
+			},
+			&st::menuIconExpand);
+	}
 	Ui::Menu::CreateAddActionCallback(menu)({
 		.text = tr::lng_box_remove(tr::now),
 		.handler = [=] {
@@ -8756,9 +8890,10 @@ bool Widget::handleIvClipboardMime(
 		&& (modifiers & Qt::ShiftModifier)) {
 		return false;
 	}
+	const auto insertContext = ClipboardPasteInsertContext(
+		activeTextInsertContext());
 	const auto clipboardData = ClipboardDataFromMimeData(data.get());
-	if (clipboardData
-		&& ClipboardPasteInsertContext(activeTextInsertContext())) {
+	if (clipboardData && insertContext) {
 		if (action == Ui::InputField::MimeAction::Check) {
 			return true;
 		}
@@ -8768,11 +8903,30 @@ bool Widget::handleIvClipboardMime(
 		return true;
 	}
 	auto blockData = BlockClipboardDataFromFieldTags(data);
-	if (!blockData) {
-		blockData = BlockClipboardDataFromHtml(data);
+	if (!blockData
+		&& insertContext
+		&& (data->hasHtml() || MimeDataLooksLikeExportedHtml(data))) {
+		if (auto imported = importBlocksFromMimeData(data)) {
+			if (action == Ui::InputField::MimeAction::Check) {
+				return true;
+			}
+			crl::on_main(this, [=, imported = std::move(*imported)]() mutable {
+				pasteImportedBlocks(std::move(imported));
+			});
+			return true;
+		}
 	}
-	if (blockData
-		&& ClipboardPasteInsertContext(activeTextInsertContext())) {
+	if (!blockData && insertContext && MimeDataLooksLikeTable(data)) {
+		if (action == Ui::InputField::MimeAction::Check) {
+			return true;
+		} else if (auto imported = importTableFromMimeData(data)) {
+			crl::on_main(this, [=, imported = std::move(*imported)]() mutable {
+				pasteImportedTable(std::move(imported));
+			});
+			return true;
+		}
+	}
+	if (blockData && insertContext) {
 		if (action == Ui::InputField::MimeAction::Check) {
 			return true;
 		}
@@ -11033,6 +11187,7 @@ void Widget::startArticleSelection(
 		.from = MakeSelectionEndpoint(hit),
 		.to = MakeSelectionEndpoint(hit),
 	};
+	updateHasSelection();
 	update();
 }
 
@@ -11205,6 +11360,7 @@ void Widget::updateArticleSelection(
 		if (_selection != selection || endpointsChanged || forceUpdate) {
 			_selection = selection;
 			_selectionEndpoints = endpoints;
+			updateHasSelection();
 			update();
 		} else {
 			_selectionEndpoints = endpoints;

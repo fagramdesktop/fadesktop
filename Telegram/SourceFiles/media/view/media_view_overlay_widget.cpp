@@ -102,6 +102,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "platform/platform_overlay_widget.h"
 #include "storage/file_download.h"
 #include "storage/storage_account.h"
+#include "styles/style_chat_style.h"
 #include "styles/style_media_view.h"
 #include "styles/style_calls.h"
 #include "styles/style_chat.h"
@@ -8306,7 +8307,9 @@ void OverlayWidget::handleMouseRelease(
 }
 
 bool OverlayWidget::handleContextMenu(std::optional<QPoint> position) {
-	if (position) {
+	if (_layerBg->topShownLayer()) {
+		return false;
+	} else if (position) {
 		if (!QRect(_x, _y, _w, _h).contains(*position)
 				|| position->y() <= st::mediaviewTitleButton.height) {
 			return false;

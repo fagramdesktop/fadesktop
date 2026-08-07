@@ -35,7 +35,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/wrap/slide_wrap.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_layers.h"
-#include "styles/style_boxes.h"
 
 namespace {
 

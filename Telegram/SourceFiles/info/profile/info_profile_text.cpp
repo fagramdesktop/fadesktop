@@ -13,6 +13,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/labels.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
+#include "styles/style_boxes.h"
 #include "styles/style_info.h"
 
 namespace Info {

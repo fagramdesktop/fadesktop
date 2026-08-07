@@ -17,7 +17,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/scroll_area.h"
 #include "ui/painter.h"
 #include "ui/screen_reader_mode.h"
-#include "styles/style_boxes.h"
+#include "styles/style_country_select_box.h"
 #include "styles/style_intro.h"
 #include "styles/style_layers.h"
 

@@ -49,6 +49,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/unread_badge_paint.h"
 #include "ui/unread_counter_format.h"
 #include "styles/style_dialogs.h"
+#include "styles/style_dialogs_layout.h"
 #include "styles/style_widgets.h"
 #include "styles/style_window.h"
 

@@ -15,7 +15,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/painter.h"
 #include "ui/ui_utility.h"
 #include "core/mime_type.h"
-#include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_media_player.h"
 

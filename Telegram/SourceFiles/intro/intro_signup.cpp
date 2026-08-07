@@ -17,7 +17,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/labels.h"
 #include "styles/style_intro.h"
-#include "styles/style_boxes.h"
+#include "styles/style_userpic_button.h"
 
 namespace Intro {
 namespace details {

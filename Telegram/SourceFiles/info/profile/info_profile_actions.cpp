@@ -114,6 +114,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_channel_earn.h" // st::channelEarnCurrencyCommonMargins
 #include "styles/style_chat_helpers.h"
 #include "styles/style_info.h"
+#include "styles/style_info_profile_actions.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h" // settingsButtonRightSkip.

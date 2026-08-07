@@ -28,6 +28,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/labels.h"
 #include "ui/wrap/follow_slide_wrap.h"
 #include "ui/wrap/slide_wrap.h"
+#include "styles/style_edit_peer_members.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 

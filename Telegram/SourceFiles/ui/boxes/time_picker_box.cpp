@@ -14,7 +14,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/ui_utility.h"
 #include "ui/widgets/vertical_drum_picker.h"
 #include "styles/style_chat_helpers.h"
-#include "styles/style_layers.h"
 
 namespace Ui {
 

@@ -23,7 +23,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "lang/lang_keys.h"
 #include "info/info_controller.h"
 #include "base/event_filter.h"
-#include "styles/style_info.h"
 
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QScrollBar>
@@ -118,15 +117,12 @@ Widget::Widget(
 	}
 
 	_inner->scrollToRequests(
-	) | rpl::on_next([this, tabs](Ui::ScrollToRequest request) {
+	) | rpl::on_next([this](Ui::ScrollToRequest request) {
+		const auto reserve = innerTopReserve();
 		if (request.ymin < 0) {
 			scrollTopRestore(
-				qMin(scrollTopSave(), request.ymax));
-		} else if (!tabs) {
-			scrollTo(request);
+				qMin(scrollTopSave(), request.ymax + reserve));
 		} else {
-			// Inner coordinates miss the flexible cover top padding.
-			const auto reserve = innerTopReserve();
 			scrollTo({
 				request.ymin + reserve,
 				(request.ymax < 0) ? -1 : (request.ymax + reserve),

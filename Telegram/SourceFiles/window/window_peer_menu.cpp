@@ -131,10 +131,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_credits.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
+#include "styles/style_share_box.h"
 #include "styles/style_window.h" // st::windowMinWidth
 #include "styles/style_menu_icons.h"
 #include "styles/style_premium.h"
-#include "styles/style_settings.h"
 
 #include <QAction>
 #include <QtWidgets/QApplication>
@@ -238,16 +238,6 @@ void SetActionText(not_null<QAction*> action, rpl::producer<QString> &&text) {
 	) | rpl::on_next([=](const QString &actionText) {
 		action->setText(actionText);
 	}, *lifetime);
-}
-
-void MarkAsReadChatList(not_null<Dialogs::MainList*> list) {
-	auto mark = std::vector<not_null<History*>>();
-	for (const auto &row : list->indexed()->all()) {
-		if (const auto history = row->history()) {
-			mark.push_back(history);
-		}
-	}
-	ranges::for_each(mark, MarkAsReadThread);
 }
 
 void PeerMenuAddMuteSubmenuAction(
@@ -848,17 +838,7 @@ void Filler::addUngroup() {
 	}
 	const auto controller = _controller;
 	_addAction(tr::lng_community_ungroup(tr::now), [=] {
-		controller->show(Ui::MakeConfirmBox({
-			.text = tr::lng_community_ungroup_text(),
-			.confirmed = [=](Fn<void()> close) {
-				channel->session().api().communities()
-					.toggleCollapsedInDialogs(channel, false);
-				close();
-			},
-			.confirmText = tr::lng_community_ungroup(),
-			.confirmStyle = &st::attentionBoxButton,
-			.title = tr::lng_community_ungroup_title(),
-		}));
+		PeerMenuUngroupCommunity(controller, channel);
 	}, &st::menuIconExpand);
 }
 
@@ -3823,6 +3803,22 @@ base::weak_qptr<Ui::BoxContent> ShowSendNowMessagesBox(
 	}));
 }
 
+void PeerMenuUngroupCommunity(
+		not_null<Window::SessionController*> controller,
+		not_null<ChannelData*> channel) {
+	controller->show(Ui::MakeConfirmBox({
+		.text = tr::lng_community_ungroup_text(),
+		.confirmed = [=](Fn<void()> close) {
+			channel->session().api().communities()
+				.toggleCollapsedInDialogs(channel, false);
+			close();
+		},
+		.confirmText = tr::lng_community_ungroup(),
+		.confirmStyle = &st::attentionBoxButton,
+		.title = tr::lng_community_ungroup_title(),
+	}));
+}
+
 void PeerMenuAddChannelMembers(
 		not_null<Window::SessionNavigation*> navigation,
 		not_null<ChannelData*> channel) {
@@ -4558,6 +4554,16 @@ void MarkAsReadThread(not_null<Data::Thread*> thread) {
 	} else if (const auto sublist = thread->asSublist()) {
 		sublist->readTillEnd();
 	}
+}
+
+void MarkAsReadChatList(not_null<Dialogs::MainList*> list) {
+	auto mark = std::vector<not_null<History*>>();
+	for (const auto &row : list->indexed()->all()) {
+		if (const auto history = row->history()) {
+			mark.push_back(history);
+		}
+	}
+	ranges::for_each(mark, MarkAsReadThread);
 }
 
 void AddSeparatorAndShiftUp(const PeerMenuCallback &addAction) {

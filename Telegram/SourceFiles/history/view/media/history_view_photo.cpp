@@ -46,7 +46,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "fa/utils/telegram_helpers.h"
 #include "styles/style_chat.h"
-#include "styles/style_chat_helpers.h"
 
 namespace HistoryView {
 namespace {

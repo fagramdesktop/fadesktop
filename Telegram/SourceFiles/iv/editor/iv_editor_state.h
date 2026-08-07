@@ -244,6 +244,7 @@ public:
 		RichMessageLimits limits = {});
 
 	[[nodiscard]] const RichPage &richPage() const;
+	[[nodiscard]] const RichMessageLimits &limits() const;
 	[[nodiscard]] bool articleEmpty() const;
 	[[nodiscard]] const Markdown::MarkdownArticleContent &prepared() const;
 	[[nodiscard]] const std::vector<TextNodeDescriptor> &textNodes() const;
@@ -539,6 +540,10 @@ public:
 		const Markdown::PreparedEditSelection &selection,
 		RichPage::GroupedMediaIntent intent);
 	[[nodiscard]] bool ungroupGroupedMediaBlock(const BlockPath &path);
+	[[nodiscard]] bool canUngroupGroupedMediaBlocks(
+		const Markdown::PreparedEditSelection &selection) const;
+	[[nodiscard]] bool ungroupGroupedMediaBlocks(
+		const Markdown::PreparedEditSelection &selection);
 	[[nodiscard]] bool removeGroupedItem(
 		const BlockPath &path,
 		int itemIndex);

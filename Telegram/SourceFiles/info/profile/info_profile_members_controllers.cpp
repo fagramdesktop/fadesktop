@@ -17,8 +17,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/painter.h"
 #include "styles/style_info.h"
 #include "styles/style_boxes.h"
-#include "styles/style_chat.h"
-#include "styles/style_dialogs.h"
 #include "styles/style_widgets.h"
 
 namespace Info {

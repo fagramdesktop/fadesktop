@@ -68,7 +68,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "window/window_session_controller.h"
 #include "fa/utils/telegram_helpers.h"
 #include "styles/style_boxes.h"
-#include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"

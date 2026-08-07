@@ -162,6 +162,7 @@ enum class AttachmentInsertMode : uchar {
 	Normal,
 	ClipboardPaste,
 	ReplaceBlock,
+	Deferred,
 };
 
 struct PreparedDocumentInfo {
@@ -251,7 +252,7 @@ enum class RichMessagePosting {
 		not_null<Main::Session*> session) {
 	const auto value = session->appConfig().get<QString>(
 		u"rich_message_posting"_q,
-		u"disabled"_q);
+		u"premium"_q);
 	if (value == u"enabled"_q) {
 		return RichMessagePosting::Enabled;
 	} else if (value == u"premium"_q) {
@@ -1777,6 +1778,16 @@ private:
 					std::move(list),
 					std::move(target));
 			},
+			.prepareDeferredMedia = [session = shared_from_this()](
+					not_null<Widget*> editor,
+					PreparedList list,
+					Fn<void(
+						std::vector<std::optional<RichPage::Block>>)> done) {
+				session->prepareDeferredMedia(
+					QPointer<Widget>(editor.get()),
+					std::move(list),
+					std::move(done));
+			},
 			.requestPhotoEditSource = [session = shared_from_this()](
 					uint64 photoId,
 					Fn<void(QImage)> done) {
@@ -1870,6 +1881,9 @@ public:
 	[[nodiscard]] static bool ActivateEditWindow(
 		not_null<Main::Session*> session,
 		FullMsgId itemId);
+
+	[[nodiscard]] static std::shared_ptr<ChatHelpers::Show> ActiveShow(
+		not_null<Main::Session*> session);
 
 private:
 	// Registry of all editor sessions that currently own a window, so that
@@ -2348,6 +2362,65 @@ private:
 			std::move(replaceTarget));
 	}
 
+	void prepareDeferredMedia(
+			QPointer<Widget> editor,
+			PreparedList list,
+			Fn<void(std::vector<std::optional<RichPage::Block>>)> done) {
+		const auto count = int(list.files.size());
+		if (!count) {
+			done({});
+			return;
+		}
+		const auto batchId = ++_prepareBatchId;
+		auto &pending = _deferredBatches[batchId];
+		pending.results.resize(count);
+		pending.left = count;
+		pending.done = std::move(done);
+		for (auto i = 0; i != count; ++i) {
+			prepareAttachment(
+				editor,
+				std::move(list.files[i]),
+				batchId,
+				i,
+				AttachmentInsertMode::Deferred,
+				std::nullopt);
+		}
+	}
+
+	void pendingDeferredUpload(uint64 batchId, FullMsgId uploadId) {
+		const auto i = _deferredBatches.find(batchId);
+		if (i != end(_deferredBatches)) {
+			i->second.uploads.push_back(uploadId);
+		}
+	}
+
+	void deferredAttachmentReady(
+			uint64 batchId,
+			int order,
+			std::optional<RichPage::Block> block) {
+		const auto i = _deferredBatches.find(batchId);
+		if (i == end(_deferredBatches)) {
+			return;
+		}
+		auto &pending = i->second;
+		if (order >= 0 && order < int(pending.results.size())) {
+			pending.results[order] = std::move(block);
+		}
+		if (--pending.left > 0) {
+			return;
+		}
+		auto callback = std::move(pending.done);
+		auto results = std::move(pending.results);
+		auto uploads = std::move(pending.uploads);
+		_deferredBatches.erase(i);
+		if (callback) {
+			callback(std::move(results));
+		}
+		for (const auto &uploadId : uploads) {
+			_deferredUploads.remove(uploadId);
+		}
+	}
+
 	void prepareAttachment(
 		QPointer<Widget> editor,
 		PreparedFile file,
@@ -2398,6 +2471,26 @@ private:
 		_pendingAttachmentPrepareCount = std::max(
 			_pendingAttachmentPrepareCount - 1,
 			0);
+		if (insertMode == AttachmentInsertMode::Deferred) {
+			auto block = std::optional<RichPage::Block>();
+			if (prepared && editor) {
+				const auto uploadId = createAttachmentUpload(
+					std::move(meta),
+					std::move(prepared),
+					std::move(originalImage));
+				if (uploadId && !_attachments.empty()) {
+					block = makeAttachmentBlock(_attachments.back());
+					_deferredUploads.emplace(*uploadId);
+					pendingDeferredUpload(batchId, *uploadId);
+				}
+			}
+			if (!block) {
+				showAttachmentFailedToast();
+			}
+			deferredAttachmentReady(batchId, order, std::move(block));
+			maybeContinueDeferredSubmit();
+			return;
+		}
 		if (!prepared) {
 			if (!IsReplacing(insertMode, replaceTarget)) {
 				markMediaBatchItemSkipped(batchId, order);
@@ -2620,7 +2713,7 @@ private:
 		return item;
 	}
 
-	[[nodiscard]] RichPage::Block makeGroupedAttachmentBlock(
+	[[nodiscard]] std::vector<RichPage::Block> makeGroupedAttachmentBlocks(
 			const std::vector<FullMsgId> &uploadIds) const {
 		auto block = RichPage::Block();
 		block.kind = RichPage::BlockKind::GroupedMedia;
@@ -2648,7 +2741,7 @@ private:
 		if (captionCount == 1) {
 			block.caption = ToRichText(std::move(caption));
 		}
-		return block;
+		return SplitGroupedMediaBlock(std::move(block));
 	}
 
 	[[nodiscard]] RichPage::Block makeMapBlock(::Data::InputVenue venue) const {
@@ -3407,7 +3500,11 @@ private:
 					}
 				}
 			} else {
-				blocks.push_back(makeGroupedAttachmentBlock(uploadIds));
+				auto grouped = makeGroupedAttachmentBlocks(uploadIds);
+				blocks.insert(
+					blocks.end(),
+					std::make_move_iterator(grouped.begin()),
+					std::make_move_iterator(grouped.end()));
 			}
 			emittedUploadIds.insert(
 				emittedUploadIds.end(),
@@ -3717,7 +3814,8 @@ private:
 			if (!attachment.blockLocators.empty()) {
 				continue;
 			}
-			if (hasUninsertedMediaBatchUpload(attachment.uploadId)) {
+			if (hasUninsertedMediaBatchUpload(attachment.uploadId)
+				|| _deferredUploads.contains(attachment.uploadId)) {
 				continue;
 			}
 			uploadIds.push_back(attachment.uploadId);
@@ -3946,6 +4044,14 @@ private:
 	rpl::lifetime _editorAutosaveLifetime;
 	rpl::lifetime _photoEditSourceLifetime;
 	rpl::lifetime _lifetime;
+	struct DeferredMediaBatch {
+		std::vector<std::optional<RichPage::Block>> results;
+		std::vector<FullMsgId> uploads;
+		Fn<void(std::vector<std::optional<RichPage::Block>>)> done;
+		int left = 0;
+	};
+	base::flat_map<uint64, DeferredMediaBatch> _deferredBatches;
+	base::flat_set<FullMsgId> _deferredUploads;
 	uint64 _prepareBatchId = 0;
 	uint64 _rejectedToastBatchId = 0;
 	uint64 _scheduleBoxGeneration = 0;
@@ -4049,7 +4155,7 @@ std::optional<::Data::Draft> ArticleSession::prepareRichDraftForAutosave() const
 		_session,
 		*richMessage,
 		SerializeInputRichMessageMode::Draft);
-	if (serialized.status == SerializeInputRichMessageStatus::Failed) {
+	if (serialized.status != SerializeInputRichMessageStatus::Success) {
 		return std::nullopt;
 	}
 	draft.richMessage = std::move(richMessage);
@@ -4318,7 +4424,35 @@ bool ArticleSession::ActivateEditWindow(
 	return false;
 }
 
+std::shared_ptr<ChatHelpers::Show> ArticleSession::ActiveShow(
+		not_null<Main::Session*> session) {
+	const auto active = QApplication::activeWindow();
+	if (!active) {
+		return nullptr;
+	}
+	for (const auto &weak : Live()) {
+		const auto strong = weak.lock();
+		if (!strong
+			|| strong->_session != session
+			|| !strong->_windowHost) {
+			continue;
+		}
+		const auto show = strong->_editorShow;
+		if (show
+			&& show->valid()
+			&& (show->toastParent()->window() == active)) {
+			return show;
+		}
+	}
+	return nullptr;
+}
+
 } // namespace
+
+std::shared_ptr<ChatHelpers::Show> ActiveWindowShow(
+		not_null<Main::Session*> session) {
+	return ArticleSession::ActiveShow(session);
+}
 
 void ShowRichMessagesPremiumToast(std::shared_ptr<ChatHelpers::Show> show) {
 	if (!show) {
@@ -4538,7 +4672,7 @@ void ShowEditBox(
 	}
 	const auto weak = base::make_weak(controller);
 	const auto itemId = item->fullId();
-	Core::App().iv().resolveRichMessage(controller, item, [=](
+	Core::App().iv().resolveRichMessage(&controller->session(), item, [=](
 			std::shared_ptr<const RichPage> page) {
 		const auto strong = weak.get();
 		const auto current = strong

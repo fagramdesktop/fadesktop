@@ -21,7 +21,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "tray.h"
 #include "window/window_controller.h"
 
-#include "styles/style_window.h"
 
 #include <QtCore/QAbstractNativeEventFilter>
 #include <private/qguiapplication_p.h>

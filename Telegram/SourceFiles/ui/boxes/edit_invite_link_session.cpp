@@ -27,7 +27,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/labels.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
-#include "styles/style_channel_earn.h"
 #include "styles/style_chat.h"
 #include "styles/style_settings.h"
 #include "styles/style_layers.h"

@@ -77,6 +77,7 @@ class StickerToast;
 class TopicReopenBar;
 class EmptyPainter;
 class PinnedTracker;
+class PullToNextChannel;
 class TranslateBar;
 class SubsectionTabs;
 class SelfForwardsTagger;
@@ -394,6 +395,7 @@ private:
 		std::optional<MsgId> localMessageId);
 
 	void validateSubsectionTabs() override;
+	void updateSubsectionTabsGeometry();
 	void setupEmptyPainter();
 	void refreshJoinGroupButton();
 	[[nodiscard]] bool emptyShown() const;
@@ -455,6 +457,7 @@ private:
 	rpl::variable<bool> _repliesRootVisible = false;
 
 	std::unique_ptr<Ui::ElasticScroll> _scroll;
+	std::unique_ptr<PullToNextChannel> _pullToNext;
 	std::unique_ptr<HistoryView::StickerToast> _stickerToast;
 
 	FullMsgId _lastShownAt;

@@ -22,9 +22,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/ui_utility.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat.h"
+#include "styles/style_chat_style.h"
 #include "styles/style_settings.h"
 #include "styles/style_layers.h"
-#include "styles/style_window.h"
 
 #include <QtGui/QFontDatabase>
 

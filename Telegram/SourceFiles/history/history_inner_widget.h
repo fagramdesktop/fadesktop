@@ -152,7 +152,6 @@ public:
 	Ui::ChatPaintContext preparePaintContext(const QRect &clip) const;
 
 	using CollapseGap = Ui::CollapseGap;
-	void setCollapseGaps(std::vector<CollapseGap> gaps);
 
 	void messagesReceived(
 		not_null<PeerData*> peer,
@@ -281,7 +280,7 @@ public:
 	bool tooltipWindowActive() const override;
 
 	void onParentGeometryChanged();
-	bool consumeScrollAction(QPoint delta);
+	bool consumeScrollAction(QPoint delta, Qt::ScrollPhase phase);
 
 	[[nodiscard]] Fn<HistoryView::ElementDelegate*()> elementDelegateFactory(
 		FullMsgId itemId) const;
@@ -610,6 +609,9 @@ private:
 	// the first _history message date (just skip it by height).
 	int _historySkipHeight = 0;
 
+	FullMsgId _prependAnchorId;
+	int _prependAnchorDateHeight = 0;
+
 	std::unique_ptr<HistoryView::AboutView> _aboutView;
 	std::unique_ptr<HistoryView::EmptyPainter> _emptyPainter;
 	std::unique_ptr<HistoryView::TranslateTracker> _translateTracker;
@@ -718,9 +720,10 @@ private:
 	std::unique_ptr<HistoryView::ElementOverlayHost> _overlayHost;
 
 	void setupThanosEffect();
+	void collapseGapsUpdated();
+	[[nodiscard]] const std::vector<CollapseGap> &collapseGaps() const;
 
 	std::unique_ptr<Ui::ThanosEffectController> _thanosController;
-	std::vector<CollapseGap> _collapseGaps;
 
 };
 

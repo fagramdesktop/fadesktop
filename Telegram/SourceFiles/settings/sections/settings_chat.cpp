@@ -209,6 +209,7 @@ ColorsPalette::Button::Button(
 , _colors(std::move(colors))
 , _selected(selected) {
 	_widget.show();
+	_widget.setIsListItem(true);
 	_widget.resize(st::settingsAccentColorSize, st::settingsAccentColorSize);
 	_widget.paintRequest(
 	) | rpl::on_next([=] {

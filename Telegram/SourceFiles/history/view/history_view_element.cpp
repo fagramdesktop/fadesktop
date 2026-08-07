@@ -67,6 +67,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_user.h"
 #include "lang/lang_keys.h"
 #include "styles/style_chat.h"
+#include "styles/style_chat_style.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_iv.h"
 
@@ -1914,6 +1915,7 @@ auto Element::contextDependentServiceText() -> TextWithLinks {
 void Element::validateText() {
 	const auto clearRichPage = [&] {
 		if (Has<HistoryMessageRichPage>()) {
+			ClickHandler::clearActive(this);
 			RemoveComponents(0
 				| HistoryMessageRichPage::Bit()
 				| InstantViewMediaRuntime::Bit());
@@ -1999,6 +2001,7 @@ void Element::validateText() {
 			clearRichPage();
 			return;
 		}
+		ClickHandler::clearActive(this);
 		runtime->article.setContent(std::move(prepared.content));
 		runtime->handler = nullptr;
 		runtime->handlerPreparedLink = std::nullopt;
@@ -3204,6 +3207,9 @@ void Element::clickHandlerActiveChanged(
 	if (const auto media = this->media()) {
 		media->clickHandlerActiveChanged(handler, active);
 	}
+	if (const auto rich = richpage()) {
+		rich->article.clickHandlerActiveChanged(handler, active);
+	}
 }
 
 void Element::clickHandlerPressedChanged(
@@ -3213,6 +3219,9 @@ void Element::clickHandlerPressedChanged(
 	repaint();
 	if (const auto media = this->media()) {
 		media->clickHandlerPressedChanged(handler, pressed);
+	}
+	if (const auto rich = richpage()) {
+		rich->article.clickHandlerPressedChanged(handler, pressed);
 	}
 }
 
@@ -3252,6 +3261,7 @@ QPoint Element::mediaTopLeft() const {
 }
 
 Element::~Element() {
+	ClickHandler::clearActive(this);
 	setReactions(nullptr);
 
 	// Delete media while owner still exists.
@@ -3262,9 +3272,12 @@ Element::~Element() {
 		_text.unloadPersistentAnimation();
 		checkHeavyPart();
 	}
-	if (const auto rich = richpage(); rich && rich->article.hasHeavyPart()) {
+	if (const auto rich = richpage()) {
+		const auto hadHeavyPart = rich->article.hasHeavyPart();
 		rich->article.clearBeforeDestroy();
-		checkHeavyPart();
+		if (hadHeavyPart) {
+			checkHeavyPart();
+		}
 	}
 	if (_data->mainView() == this) {
 		_data->clearMainView();

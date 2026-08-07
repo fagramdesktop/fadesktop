@@ -39,7 +39,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/ui_utility.h"
 #include "window/window_session_controller.h"
 #include "window/window_separate_id.h"
-#include "styles/style_filter_icons.h"
 #include "styles/style_info.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"

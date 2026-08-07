@@ -56,6 +56,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/ui_utility.h"
 #include "styles/style_boxes.h"
 #include "styles/style_layers.h"
+#include "styles/style_moderate_messages_box.h"
 #include "styles/style_window.h"
 
 #include "window/window_session_controller.h"

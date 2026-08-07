@@ -26,7 +26,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "base/unixtime.h"
 #include "base/timer_rpl.h"
 #include "styles/style_boxes.h"
-#include "styles/style_layers.h"
 #include "styles/style_calls.h"
 #include "styles/style_chat_helpers.h"
 

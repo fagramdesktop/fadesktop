@@ -123,6 +123,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_chat_helpers.h"
 #include "styles/style_credits.h"
 #include "styles/style_iv.h"
+#include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
 
 namespace HistoryView {
@@ -1080,6 +1081,9 @@ ComposeControls::ComposeControls(
 , _expand(Ui::CreateChild<Ui::IconButton>(
 	_wrap.get(),
 	st::historyExpandComposeButton))
+, _discardRichDraft(Ui::CreateChild<Ui::IconButton>(
+	_wrap.get(),
+	st::historyDiscardRichDraftButton))
 , _like(_features.likes
 	? Ui::CreateChild<Ui::IconButton>(_wrap.get(), _st.like)
 	: nullptr)
@@ -1132,7 +1136,7 @@ ComposeControls::ComposeControls(
 		.send = _send,
 		.customCancelText = descriptor.voiceCustomCancelText,
 		.stOverride = &_st.record,
-		.recorderHeight = st::historySendSize.height(),
+		.recorderHeight = _st.attach.height,
 		.lockFromBottom = descriptor.voiceLockFromBottom,
 	}))
 , _sendMenuDetails(descriptor.sendMenuDetails)
@@ -2009,6 +2013,7 @@ void ComposeControls::showFinished() {
 		_sendAsFile->raise();
 	}
 	_expand->raise();
+	_discardRichDraft->raise();
 	if (_aiTooltipManager) {
 		_aiTooltipManager->raise();
 	}
@@ -2165,6 +2170,30 @@ bool ComposeControls::shouldShowRichDraftPreview() const {
 		&& draft->hasRichMessage();
 }
 
+void ComposeControls::clearRichDraft() {
+	if (!_history) {
+		return;
+	}
+	clearFieldText();
+	if (const auto key = draftKey(DraftType::Normal)) {
+		_history->clearDraft(key);
+	}
+	_history->clearCloudDraft(_topicRootId, _monoforumPeerId);
+	applyDraft(Ui::InputField::HistoryAction::NewEntry);
+	if (const auto thread = _history->threadFor(
+			_topicRootId,
+			_monoforumPeerId)) {
+		if (const auto cloudDraft = _history->createCloudDraft(
+				_topicRootId,
+				_monoforumPeerId,
+				nullptr)) {
+			session().api().saveDraftToCloud(
+				not_null{ thread },
+				*cloudDraft);
+		}
+	}
+}
+
 void ComposeControls::migrateFieldToRichEditor() {
 	if (!_history) {
 		return;
@@ -2172,24 +2201,7 @@ void ComposeControls::migrateFieldToRichEditor() {
 	if (isEditingMessage()) {
 		cancelEditMessage();
 	} else {
-		clearFieldText();
-		if (const auto key = draftKey(DraftType::Normal)) {
-			_history->clearDraft(key);
-		}
-		applyDraft(Ui::InputField::HistoryAction::NewEntry);
-		_history->clearCloudDraft(_topicRootId, _monoforumPeerId);
-		if (const auto thread = _history->threadFor(
-				_topicRootId,
-				_monoforumPeerId)) {
-			if (const auto cloudDraft = _history->createCloudDraft(
-					_topicRootId,
-					_monoforumPeerId,
-					nullptr)) {
-				session().api().saveDraftToCloud(
-					not_null{ thread },
-					*cloudDraft);
-			}
-		}
+		clearRichDraft();
 	}
 }
 
@@ -2263,6 +2275,7 @@ void ComposeControls::init() {
 	initAiButton();
 	initSendAsFileButton();
 	initExpandButton();
+	initDiscardRichDraftButton();
 	initWriteRestriction();
 	initVoiceRecordBar();
 	initKeyHandler();
@@ -2988,6 +3001,7 @@ void ComposeControls::updateFieldVisibility() {
 	updateBotCommandShown();
 	updateLikeShown();
 	updateSendLockBadge();
+	updateDiscardRichDraftVisibility();
 }
 
 void ComposeControls::writeDrafts() {
@@ -3764,6 +3778,30 @@ void ComposeControls::initSendAsFileButton() {
 		[=] { return _wrap->width(); });
 }
 
+void ComposeControls::initDiscardRichDraftButton() {
+	_discardRichDraft->hide();
+	_richDraftPreview->shownValue(
+	) | rpl::on_next([=] {
+		updateDiscardRichDraftVisibility();
+	}, _wrap->lifetime());
+	_discardRichDraft->setAccessibleName(
+		tr::lng_record_lock_discard(tr::now));
+	_discardRichDraft->setClickedCallback([=] {
+		if (!shouldShowRichDraftPreview()) {
+			return;
+		}
+		_show->show(Ui::MakeConfirmBox({
+			.text = tr::lng_iv_editor_discard_draft_sure(tr::now),
+			.confirmed = crl::guard(_wrap.get(), [=](Fn<void()> close) {
+				clearRichDraft();
+				close();
+			}),
+			.confirmText = tr::lng_record_lock_discard(),
+			.confirmStyle = &st::attentionBoxButton,
+		}));
+	});
+}
+
 void ComposeControls::initExpandButton() {
 	_expand->hide();
 	_expand->setAccessibleName(tr::lng_article_menu_item(tr::now));
@@ -3930,6 +3968,7 @@ void ComposeControls::updateWrappingVisibility() {
 	updateAiButtonVisibility();
 	updateSendAsFileVisibility();
 	updateExpandButtonVisibility();
+	updateDiscardRichDraftVisibility();
 	if (!hidden && !restricted) {
 		updateControlsGeometry(_wrap->size());
 		_wrap->raise();
@@ -4156,6 +4195,7 @@ void ComposeControls::updateControlsGeometry(QSize size) {
 	updateAiButtonGeometry();
 	updateSendAsFileGeometry();
 	updateExpandButtonGeometry();
+	updateDiscardRichDraftGeometry();
 
 	_voiceRecordBar->resizeToWidth(size.width());
 	_voiceRecordBar->moveToLeft(
@@ -4201,6 +4241,7 @@ void ComposeControls::updateControlsVisibility() {
 	updateAiButtonVisibility();
 	updateSendAsFileVisibility();
 	updateExpandButtonVisibility();
+	updateDiscardRichDraftVisibility();
 }
 
 void ComposeControls::updateAiButtonVisibility() {
@@ -4249,6 +4290,35 @@ void ComposeControls::updateExpandButtonGeometry() {
 	}
 	const auto x = _send->x() + _send->width() - _expand->width();
 	_expand->move(QPoint(x, _field->y()) + st::historyAiComposeButtonPosition);
+}
+
+void ComposeControls::updateDiscardRichDraftVisibility() {
+	const auto top = _richDraftPreview->y()
+		+ st::historyAiComposeButtonPosition.y();
+	const auto hidden = !_wrap->isVisible()
+		|| _recording.current()
+		|| !shouldShowRichDraftPreview()
+		|| (top + _discardRichDraft->height() > _send->y());
+	if (_discardRichDraft->isHidden() != hidden) {
+		_discardRichDraft->setVisible(!hidden);
+	}
+	updateDiscardRichDraftGeometry();
+}
+
+void ComposeControls::updateDiscardRichDraftGeometry() {
+	if (_discardRichDraft->isHidden()) {
+		return;
+	}
+	const auto width = _attachToggle
+		? _attachToggle->width()
+		: _discardRichDraft->width();
+	const auto left = _attachToggle
+		? _attachToggle->x()
+		: _richDraftPreview->x();
+	const auto x = left + (width - _discardRichDraft->width()) / 2;
+	const auto y = _richDraftPreview->y()
+		+ st::historyAiComposeButtonPosition.y();
+	_discardRichDraft->move(x, y);
 }
 
 void ComposeControls::updateAiButtonGeometry() {

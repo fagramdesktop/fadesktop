@@ -15,6 +15,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <vector>
 #include <map>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 #include <deque>
 #include <atomic>
 

@@ -77,7 +77,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/file_utilities.h"
 #include "core/application.h"
 #include "ui/toast/toast.h"
-#include "styles/style_overview.h"
 #include "styles/style_info.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
@@ -1270,7 +1269,20 @@ void ListWidget::showContextMenu(
 		? reinterpret_cast<DocumentData*>(
 			link->property(kDocumentLinkMediaProperty).toULongLong())
 		: nullptr;
-	if (lnkPhoto || lnkDocument) {
+	using ExternalState = Data::DownloadManager::ExternalLoadingState;
+	const auto externalState = _controller->isDownloads()
+		? Core::App().downloadManager().loadingExternalState(item)
+		: std::optional<ExternalState>();
+	if (externalState && !externalState->done) {
+		_contextMenu->addAction(
+			tr::lng_context_cancel_download(tr::now),
+			[globalId] {
+				if (const auto item = MessageByGlobalId(globalId)) {
+					Core::App().downloadManager().cancelLoadingExternal(item);
+				}
+			},
+			&st::menuIconCancel);
+	} else if (lnkPhoto || lnkDocument) {
 		if (lnkPhoto) {
 		} else {
 			if (lnkDocument->loading()) {

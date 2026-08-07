@@ -14,6 +14,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/text/format_values.h" // Ui::FormatPhone
 #include "ui/text/text_utilities.h"
 #include "lang/lang_keys.h"
+#include "styles/style_edit_peer_members.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 

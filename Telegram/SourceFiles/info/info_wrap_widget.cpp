@@ -53,8 +53,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "menu/menu_send.h"
 #include "styles/style_chat.h" // popupMenuExpandedSeparator
 #include "styles/style_info.h"
-#include "styles/style_profile.h"
-#include "styles/style_menu_icons.h"
 #include "styles/style_layers.h"
 
 namespace Info {

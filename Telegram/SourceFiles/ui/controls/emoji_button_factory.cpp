@@ -19,7 +19,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/fields/input_field.h"
 #include "window/window_session_controller.h"
 #include "styles/style_chat_helpers.h" // defaultComposeFiles.
-#include "styles/style_settings.h"
 
 namespace Ui {
 

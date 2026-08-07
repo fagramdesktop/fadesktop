@@ -18,6 +18,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_boxes.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
+#include "styles/style_chat_style.h"
 #include "styles/style_layers.h"
 
 namespace Ui {

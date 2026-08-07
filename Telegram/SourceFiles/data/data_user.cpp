@@ -40,7 +40,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "apiwrap.h"
 #include "lang/lang_keys.h"
 #include "window/notifications_manager.h"
-#include "styles/style_chat.h"
 
 namespace {
 

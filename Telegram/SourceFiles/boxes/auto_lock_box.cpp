@@ -14,7 +14,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/time_input.h"
 #include "ui/ui_utility.h"
 #include "styles/style_layers.h"
-#include "styles/style_boxes.h"
+#include "styles/style_passcode_box.h"
 
 namespace {
 

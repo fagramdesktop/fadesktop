@@ -21,7 +21,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "main/main_account.h"
 #include "base/random.h"
 #include "styles/style_intro.h"
-#include "styles/style_boxes.h"
+#include "styles/style_widgets.h"
 
 namespace Intro {
 namespace details {

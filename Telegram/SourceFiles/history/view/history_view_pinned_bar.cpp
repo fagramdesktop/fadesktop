@@ -25,7 +25,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
 #include "ui/basic_click_handlers.h"
-#include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 
 namespace HistoryView {

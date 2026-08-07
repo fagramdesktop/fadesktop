@@ -17,7 +17,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "menu/menu_send.h"
 #include "ui/widgets/popup_menu.h"
 #include "styles/style_chat_helpers.h"
-#include "styles/style_menu_icons.h"
 
 namespace HistoryView {
 

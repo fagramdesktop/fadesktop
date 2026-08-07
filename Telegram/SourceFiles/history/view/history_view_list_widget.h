@@ -353,6 +353,7 @@ public:
 	void cancelSelection();
 	void selectItem(not_null<HistoryItem*> item);
 	void selectItemAsGroup(not_null<HistoryItem*> item);
+	void showEditCaptionUploadLayer(not_null<HistoryItem*> item);
 
 	void touchScrollUpdated(const QPoint &screenPos);
 	[[nodiscard]] rpl::producer<bool> touchMaybeSelectingValue() const;
@@ -386,7 +387,10 @@ public:
 	[[nodiscard]] bool canConsumeHorizontalScroll(
 		QPoint position,
 		int delta) const;
-	bool consumeScrollAction(QPoint delta);
+	bool consumeScrollAction(
+		QPoint delta,
+		Qt::ScrollPhase phase,
+		std::optional<QPoint> globalPosition = {});
 
 	[[nodiscard]] std::pair<Element*, int> findViewForPinnedTracking(
 		int top) const;
@@ -493,7 +497,9 @@ public:
 	QString elementAuthorRank(not_null<const Element*> view) override;
 	bool elementHideTopicButton(not_null<const Element*> view) override;
 
-	void setCollapseGaps(std::vector<Ui::CollapseGap> gaps);
+	void collapseGapsUpdated();
+	[[nodiscard]] auto collapseGaps() const
+		-> const std::vector<Ui::CollapseGap> &;
 
 	void setEmptyInfoWidget(base::unique_qptr<Ui::RpWidget> &&w);
 	void overrideChatMode(std::optional<ElementChatMode> mode);
@@ -695,6 +701,9 @@ private:
 	void updateVisibleTopItem();
 	void updateItemsGeometry();
 	void updateSize();
+	[[nodiscard]] int collapseGapsTotal() const;
+	[[nodiscard]] int countItemsTop() const;
+	void setItemsTop(int top);
 	void refreshAttachmentsFromTill(int from, int till);
 	void refreshAttachmentsAtIndex(int index);
 
@@ -877,7 +886,6 @@ private:
 		not_null<Element*>,
 		ItemRevealAnimation> _itemRevealAnimations;
 	int _itemsRevealHeight = 0;
-	std::vector<Ui::CollapseGap> _collapseGaps;
 	base::flat_set<FullMsgId> _animatedStickersPlayed;
 	base::flat_map<not_null<PeerData*>, Ui::PeerUserpicView> _userpics;
 	base::flat_map<not_null<PeerData*>, Ui::PeerUserpicView> _userpicsCache;
@@ -981,6 +989,7 @@ private:
 	bool _touchScroll = false;
 	bool _touchSelect = false;
 	bool _touchInProgress = false;
+	bool _horizontalScrollLocked = false;
 	QPoint _touchStart, _touchPrevPos, _touchPos;
 	rpl::variable<bool> _touchMaybeSelecting;
 	base::Timer _touchSelectTimer;

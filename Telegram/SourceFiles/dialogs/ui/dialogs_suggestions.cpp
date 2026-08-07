@@ -77,7 +77,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_dialogs.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
-#include "styles/style_settings.h"
 #include "styles/style_window.h"
 
 namespace Dialogs {
@@ -271,7 +270,7 @@ RecentRow::RecentRow(not_null<PeerData*> peer)
 					chat->count));
 		}
 	} else if (const auto channel = peer->asChannel()) {
-		if (channel->membersCountKnown()) {
+		if (!channel->isCommunity() && channel->membersCountKnown()) {
 			setCustomStatus((channel->isBroadcast()
 				? tr::lng_chat_status_subscribers
 				: tr::lng_chat_status_members)(

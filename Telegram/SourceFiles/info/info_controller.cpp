@@ -29,7 +29,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/history_item.h"
 #include "main/main_session.h"
 #include "window/window_session_controller.h"
-#include "styles/style_layers.h"
 #include "styles/style_profile.h"
 
 namespace Info {

@@ -7,7 +7,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "platform/linux/main_window_linux.h"
 
-#include "styles/style_window.h"
 #include "platform/linux/specific_linux.h"
 #include "history/history.h"
 #include "history/history_widget.h"

@@ -1173,6 +1173,64 @@ void AdoptLeadingParagraphListItemText(ListItem *item) {
 	item->blocks.erase(item->blocks.begin());
 }
 
+[[nodiscard]] Block ParseGroupedMediaBlock(
+		const QVector<MTPPageBlock> &items,
+		const MTPPageCaption &caption,
+		GroupedMediaIntent intent,
+		ParseContext *context) {
+	auto parsed = MakeBlock(BlockKind::GroupedMedia);
+	parsed.mediaIntent = intent;
+	parsed.mediaItems.reserve(items.size());
+	for (const auto &item : items) {
+		item.match([&](const MTPDpageBlockPhoto &row) {
+			const auto photoId = uint64(row.vphoto_id().v);
+			const auto size = FindPhotoSize(*context, photoId);
+			parsed.mediaItems.push_back({
+				.kind = BlockKind::Photo,
+				.photo = FindPhoto(*context, photoId),
+				.photoId = photoId,
+				.width = size.width(),
+				.height = size.height(),
+				.spoiler = row.is_spoiler(),
+			});
+		}, [&](const MTPDpageBlockVideo &row) {
+			const auto documentId = uint64(row.vvideo_id().v);
+			const auto info = FindDocumentInfo(*context, documentId);
+			parsed.mediaItems.push_back({
+				.kind = BlockKind::Video,
+				.document = FindDocument(*context, documentId),
+				.documentId = documentId,
+				.width = info.width,
+				.height = info.height,
+				.autoplay = row.is_autoplay(),
+				.loop = row.is_loop(),
+				.spoiler = row.is_spoiler(),
+			});
+		}, [](const auto &) {
+		});
+	}
+	parsed.caption = ParseCaption(caption, context);
+	AdoptAnchor(&parsed.anchorId, &parsed.caption);
+	return parsed;
+}
+
+void AppendGroupedMediaBlock(
+		const QVector<MTPPageBlock> &items,
+		const MTPPageCaption &caption,
+		GroupedMediaIntent intent,
+		std::vector<Block> *result,
+		ParseContext *context) {
+	auto blocks = SplitGroupedMediaBlock(ParseGroupedMediaBlock(
+		items,
+		caption,
+		intent,
+		context));
+	result->insert(
+		result->end(),
+		std::make_move_iterator(blocks.begin()),
+		std::make_move_iterator(blocks.end()));
+}
+
 void AppendBlocks(
 		const QVector<MTPPageBlock> &blocks,
 		std::vector<Block> *result,
@@ -1341,75 +1399,19 @@ void AppendBlock(
 		AdoptAnchor(&parsed.anchorId, &parsed.caption);
 		result->push_back(std::move(parsed));
 	}, [&](const MTPDpageBlockCollage &data) {
-		auto parsed = MakeBlock(BlockKind::GroupedMedia);
-		parsed.mediaIntent = GroupedMediaIntent::Collage;
-		parsed.mediaItems.reserve(data.vitems().v.size());
-		for (const auto &item : data.vitems().v) {
-			item.match([&](const MTPDpageBlockPhoto &row) {
-				const auto photoId = uint64(row.vphoto_id().v);
-				const auto size = FindPhotoSize(*context, photoId);
-				parsed.mediaItems.push_back({
-					.kind = BlockKind::Photo,
-					.photo = FindPhoto(*context, photoId),
-					.photoId = photoId,
-					.width = size.width(),
-					.height = size.height(),
-					.spoiler = row.is_spoiler(),
-				});
-			}, [&](const MTPDpageBlockVideo &row) {
-				const auto documentId = uint64(row.vvideo_id().v);
-				const auto info = FindDocumentInfo(*context, documentId);
-				parsed.mediaItems.push_back({
-					.kind = BlockKind::Video,
-					.document = FindDocument(*context, documentId),
-					.documentId = documentId,
-					.width = info.width,
-					.height = info.height,
-					.autoplay = row.is_autoplay(),
-					.loop = row.is_loop(),
-					.spoiler = row.is_spoiler(),
-				});
-			}, [](const auto &) {
-			});
-		}
-		parsed.caption = ParseCaption(data.vcaption(), context);
-		AdoptAnchor(&parsed.anchorId, &parsed.caption);
-		result->push_back(std::move(parsed));
+		AppendGroupedMediaBlock(
+			data.vitems().v,
+			data.vcaption(),
+			GroupedMediaIntent::Collage,
+			result,
+			context);
 	}, [&](const MTPDpageBlockSlideshow &data) {
-		auto parsed = MakeBlock(BlockKind::GroupedMedia);
-		parsed.mediaIntent = GroupedMediaIntent::Slideshow;
-		parsed.mediaItems.reserve(data.vitems().v.size());
-		for (const auto &item : data.vitems().v) {
-			item.match([&](const MTPDpageBlockPhoto &row) {
-				const auto photoId = uint64(row.vphoto_id().v);
-				const auto size = FindPhotoSize(*context, photoId);
-				parsed.mediaItems.push_back({
-					.kind = BlockKind::Photo,
-					.photo = FindPhoto(*context, photoId),
-					.photoId = photoId,
-					.width = size.width(),
-					.height = size.height(),
-					.spoiler = row.is_spoiler(),
-				});
-			}, [&](const MTPDpageBlockVideo &row) {
-				const auto documentId = uint64(row.vvideo_id().v);
-				const auto info = FindDocumentInfo(*context, documentId);
-				parsed.mediaItems.push_back({
-					.kind = BlockKind::Video,
-					.document = FindDocument(*context, documentId),
-					.documentId = documentId,
-					.width = info.width,
-					.height = info.height,
-					.autoplay = row.is_autoplay(),
-					.loop = row.is_loop(),
-					.spoiler = row.is_spoiler(),
-				});
-			}, [](const auto &) {
-			});
-		}
-		parsed.caption = ParseCaption(data.vcaption(), context);
-		AdoptAnchor(&parsed.anchorId, &parsed.caption);
-		result->push_back(std::move(parsed));
+		AppendGroupedMediaBlock(
+			data.vitems().v,
+			data.vcaption(),
+			GroupedMediaIntent::Slideshow,
+			result,
+			context);
 	}, [&](const MTPDpageBlockChannel &data) {
 		auto parsed = MakeBlock(BlockKind::Channel);
 		parsed.peer = context->session->data().processChat(data.vchannel()).get();
@@ -2011,27 +2013,37 @@ void AppendSummaryBlock(
 		auto ordered = OrderedListSequenceStart(block);
 		const auto step = block.orderedList.reversed ? -1 : 1;
 		for (const auto &item : block.listItems) {
-			auto prefix = QString();
 			const auto orderedValue = item.number.value.value_or(ordered);
-			if (item.taskState == TaskState::Unchecked) {
-				prefix = u"[ ] "_q;
-			} else if (item.taskState == TaskState::Checked) {
-				prefix = u"[x] "_q;
-			} else if (block.listKind == ListKind::Ordered) {
-				const auto marker = OrderedMarkerText(
-					block.orderedList,
-					item.number,
-					ordered);
-				prefix = marker.isEmpty() ? QString() : (marker + u" "_q);
+			const auto task = (item.taskState != TaskState::None);
+			auto line = tr::marked();
+			if (withIcons && task) {
+				line = Ui::Text::IconEmoji(
+					item.taskState == TaskState::Checked
+						? &st::ivSummaryTaskCheckedIcon
+						: &st::ivSummaryTaskUncheckedIcon);
 			} else {
-				prefix = u"- "_q;
+				auto prefix = QString();
+				if (item.taskState == TaskState::Unchecked) {
+					prefix = u"[ ] "_q;
+				} else if (item.taskState == TaskState::Checked) {
+					prefix = u"[x] "_q;
+				} else if (block.listKind == ListKind::Ordered) {
+					const auto marker = OrderedMarkerText(
+						block.orderedList,
+						item.number,
+						ordered);
+					prefix = marker.isEmpty()
+						? QString()
+						: (marker + u" "_q);
+				} else {
+					prefix = u"- "_q;
+				}
+				line = tr::marked(prefix);
 			}
-			if (!item.text.text.empty()) {
-				AppendSummaryLine(result, item.text, withIcons, prefix);
-			} else {
-				auto nested = FlattenSummaryBlocks(item.blocks, withIcons);
-				AppendSummaryLine(result, std::move(nested), withIcons, prefix);
-			}
+			line.append(item.text.text.empty()
+				? FlattenSummaryBlocks(item.blocks, withIcons)
+				: item.text.text);
+			AppendSummaryLine(result, std::move(line), withIcons);
 			if (block.listKind == ListKind::Ordered) {
 				ordered = orderedValue + step;
 			}
@@ -2144,9 +2156,15 @@ void AppendSummaryBlock(
 		return;
 	case BlockKind::Table:
 		if (withIcons) {
-			AppendSummaryLine(result, Ui::Text::IconEmoji(
+			auto line = block.text.text;
+			TextUtilities::Trim(line);
+			if (!line.empty()) {
+				line.append(QChar(' '));
+			}
+			line.append(Ui::Text::IconEmoji(
 				&st::ivSummaryTableIcon,
-				tr::lng_in_dlg_table(tr::now)), withIcons);
+				tr::lng_in_dlg_table(tr::now)));
+			AppendSummaryLine(result, std::move(line), withIcons);
 		} else if (!block.text.text.empty()) {
 			AppendSummaryLine(result, block.text, withIcons);
 		} else {
@@ -2283,6 +2301,39 @@ std::shared_ptr<const RichPage> ParsePage(
 
 } // namespace
 
+std::vector<RichPage::Block> SplitGroupedMediaBlock(RichPage::Block block) {
+	if (block.kind != BlockKind::GroupedMedia
+		|| block.mediaIntent != GroupedMediaIntent::Collage
+		|| block.mediaItems.size() <= RichPage::kCollageMaxItems) {
+		auto result = std::vector<Block>();
+		result.push_back(std::move(block));
+		return result;
+	}
+	auto items = std::move(block.mediaItems);
+	auto caption = std::move(block.caption);
+	auto anchorId = std::move(block.anchorId);
+	auto result = std::vector<Block>();
+	result.reserve(
+		(items.size() + RichPage::kCollageMaxItems - 1)
+		/ RichPage::kCollageMaxItems);
+	for (auto from = 0; from < int(items.size());) {
+		const auto till = std::min(
+			from + RichPage::kCollageMaxItems,
+			int(items.size()));
+		auto slice = MakeBlock(BlockKind::GroupedMedia);
+		slice.mediaIntent = GroupedMediaIntent::Collage;
+		slice.mediaItems.insert(
+			slice.mediaItems.end(),
+			std::make_move_iterator(items.begin() + from),
+			std::make_move_iterator(items.begin() + till));
+		result.push_back(std::move(slice));
+		from = till;
+	}
+	result.back().caption = std::move(caption);
+	result.back().anchorId = std::move(anchorId);
+	return result;
+}
+
 bool RichPagesEqual(
 		const RichPage &a,
 		const RichPage &b) {
@@ -2326,6 +2377,13 @@ std::optional<RichMessageLimitError> ValidateRichMessage(
 		return RichMessageLimitError::TableColumns;
 	}
 	return std::nullopt;
+}
+
+int CountRichPageBlocks(const RichPage &page) {
+	auto metrics = RichMessageMetrics();
+	metrics.tableColumnMeasurementLimit = TableColumnMeasurementLimit(0);
+	AccumulateBlockMetrics(&metrics, page.blocks, 1);
+	return metrics.blockCount;
 }
 
 QString EncodeRichPageLinkUrl(
@@ -2404,8 +2462,31 @@ std::shared_ptr<const RichPage> ParseRichPage(
 TextWithEntities FlattenRichPageSummary(
 		const RichPage &page,
 		bool emptyFallback) {
-	auto result = FlattenSummaryBlocks(page.blocks, true);
+	auto result = tr::marked();
+	auto contributionCount = 0;
+	const Block *soleTable = nullptr;
+	for (const auto &block : page.blocks) {
+		const auto previousSize = result.text.size();
+		AppendSummaryBlock(&result, block, true);
+		if (result.text.size() == previousSize) {
+			continue;
+		}
+		++contributionCount;
+		if (block.kind == BlockKind::Table) {
+			soleTable = &block;
+		}
+	}
 	TextUtilities::Trim(result);
+	if (contributionCount == 1 && soleTable) {
+		auto title = soleTable->text.text;
+		TextUtilities::Trim(title);
+		if (title.empty()) {
+			auto line = Ui::Text::IconEmoji(&st::ivSummaryTableIcon);
+			line.append(tr::lng_in_dlg_table(tr::now));
+			result = tr::marked();
+			AppendSummaryLine(&result, std::move(line), true);
+		}
+	}
 	if (result.empty() && emptyFallback) {
 		result = TextWithEntities::Simple(tr::lng_message_empty(tr::now));
 	}

@@ -33,7 +33,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "window/window_session_controller.h"
-#include "styles/style_info.h"
 #include "styles/style_layers.h"
 #include "styles/style_media_view.h"
 #include "styles/style_menu_icons.h"

@@ -1359,6 +1359,32 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_settings_passkeys_unsigned_error" = "Passkeys are not available in unsigned builds. Please use an official signed version of Telegram Desktop.";
 "lng_settings_passkey_unknown" = "Passkey";
 
+"lng_passkey_touch" = "Touch your security key";
+"lng_passkey_insert" = "Insert your security key, then touch it to continue.";
+"lng_passkey_pin_title" = "Security key PIN";
+"lng_passkey_pin_about" = "Enter the PIN of your security key.";
+"lng_passkey_pin_invalid" = "Incorrect PIN. Please try again.";
+"lng_passkey_pin_placeholder" = "PIN";
+"lng_passkey_pin_blocked" = "The security key PIN is blocked. Reconnect the key or reset it.";
+"lng_passkey_confirm" = "Confirm";
+"lng_passkey_error_no_device" = "No security key found. Insert one and try again.";
+"lng_passkey_error_no_credentials" = "This security key has no passkey for your account.";
+"lng_passkey_error_login" = "Couldn't sign in with the security key.";
+"lng_passkey_error_register" = "Couldn't add a passkey with the security key.";
+"lng_passkey_method_key" = "Use a security key";
+"lng_passkey_cable_register_title" = "Add a passkey";
+"lng_passkey_cable_login_title" = "Sign in with a passkey";
+"lng_passkey_cable_register_about" = "Scan this QR code with the camera on the phone or tablet where you want to save your passkey.";
+"lng_passkey_cable_login_about" = "Scan this QR code with the camera on the phone or tablet that has your passkey.";
+"lng_passkey_cable_bluetooth" = "Keep Bluetooth on — your phone connects to this device over Bluetooth.";
+"lng_passkey_cable_key_about" = "Insert and touch your security key.";
+"lng_passkey_cable_connecting" = "Connecting to your phone…";
+"lng_passkey_cable_continue" = "Continue on your phone";
+"lng_passkey_cable_follow" = "Follow the instructions on your phone.";
+"lng_passkey_cable_error_title" = "Something went wrong";
+"lng_passkey_cable_no_bluetooth" = "Bluetooth is unavailable. Turn on Bluetooth to sign in with a phone.";
+"lng_passkey_cable_error" = "Couldn't connect to your phone.\nPlease try again.";
+
 "lng_settings_quick_dialog_action_title" = "Chat list quick action";
 "lng_settings_quick_dialog_action_about" = "Choose the action you want to perform when you middle-click or swipe left in the chat list.";
 "lng_settings_quick_dialog_action_both" = "Swipe left and Middle-click";
@@ -1676,6 +1702,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_pull_next_channel" = "Pull up to go to the next unread channel";
 "lng_release_next_channel" = "Release to go to the next unread channel";
 "lng_pull_no_unread_channels" = "You have no unread channels";
+"lng_pull_next_topic" = "Pull up to go to the next unread topic";
+"lng_release_next_topic" = "Release to go to the next unread topic";
+"lng_pull_no_unread_topics" = "No more unread topics in {group}";
 
 "lng_profile_apply_to_join_group" = "Apply to Join Group";
 "lng_profile_kick" = "Remove";
@@ -2278,6 +2307,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_community_chats_viewable" = "Chats you can view";
 "lng_community_chats_requestable" = "Hidden chats";
 "lng_community_add_chat" = "Add a Chat to Community";
+"lng_community_add_chat_title" = "Add a Chat to Community";
+"lng_community_create_chat" = "Create a New Chat";
 "lng_community_requests_title" = "Pending Requests";
 "lng_community_requests_about" = "Chats require admin approval before they're added to the community. {link}";
 "lng_community_requests_about_link" = "Change Settings.";
@@ -5367,6 +5398,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_context_delete_selected" = "Delete Selected";
 "lng_context_save_images_selected" = "Save Selected";
 "lng_context_save_documents_selected" = "Download Selected";
+"lng_context_save_html" = "Save as HTML";
 "lng_context_clear_selection" = "Clear Selection";
 "lng_context_seen_loading" = "Loading...";
 "lng_context_seen_text#one" = "{count} Seen";
@@ -6038,6 +6070,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_mediaview_saved_images_to" = "Images were saved to your {downloads} folder";
 "lng_mediaview_video_saved_to" = "Video file was saved to your {downloads} folder";
 "lng_mediaview_downloads" = "Downloads";
+"lng_export_html_saved_to" = "Message was saved to your {downloads} folder";
+"lng_export_html_failed" = "Could not save the message as HTML.";
+"lng_export_html_media_missing" = "Media unavailable";
+"lng_export_html_embed" = "Embedded content";
 "lng_mediaview_playback_speed" = "Playback speed: {speed}";
 "lng_mediaview_rotate_video" = "Rotate video";
 "lng_mediaview_quality_auto" = "Auto";
@@ -7439,6 +7475,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_article_limit_blocks" = "The article has too many blocks.";
 "lng_article_limit_columns" = "The article table has too many columns.";
 "lng_article_limit_media" = "The article has too many media files.";
+"lng_article_table_truncated" = "The pasted table didn't fit and was truncated.";
+"lng_article_paste_truncated" = "The pasted content didn't fit and was truncated.";
 "lng_article_submit_empty" = "The article can't be empty.";
 "lng_article_premium_required" = "Subscribe to {link} to be able to send rich articles.";
 "lng_article_premium_required_link" = "Telegram Premium";
@@ -7662,6 +7700,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_filters_vertical" = "Tabs on the left";
 "lng_filters_horizontal" = "Tabs at the top";
 "lng_filters_tabs_subtitle" = "Tabs appearance";
+"lng_filters_tabs_default" = "Default";
 "lng_filters_tabs_text" = "Text only";
 "lng_filters_tabs_text_icons" = "Text and icons";
 "lng_filters_tabs_icons" = "Icons only";
@@ -7771,6 +7810,14 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_photo_editor_corners_medium" = "Medium";
 "lng_photo_editor_corners_small" = "Small";
 "lng_photo_editor_corners_none" = "None";
+"lng_photo_editor_keep_ratio" = "Keep original aspect ratio";
+
+"lng_photo_editor_shape_circle" = "Circle";
+"lng_photo_editor_shape_rectangle" = "Rectangle";
+"lng_photo_editor_shape_star" = "Star";
+"lng_photo_editor_shape_bubble" = "Bubble";
+"lng_photo_editor_shape_arrow" = "Arrow";
+"lng_photo_editor_shape_filled" = "Filled";
 
 "lng_voice_speed_slow" = "Slow";
 "lng_voice_speed_normal" = "Normal";
@@ -8452,6 +8499,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 "lng_ai_compose_select_style" = "Select Style";
 "lng_ai_compose_apply_style" = "Apply Style";
 "lng_ai_compose_style_tooltip" = "Choose Style";
+"lng_ai_compose_style_prompt_placeholder" = "Write a prompt...";
 "lng_ai_compose_create_tone_title" = "New Style";
 "lng_ai_compose_edit_tone_title" = "Edit Style";
 "lng_ai_compose_create_title" = "Create with AI";

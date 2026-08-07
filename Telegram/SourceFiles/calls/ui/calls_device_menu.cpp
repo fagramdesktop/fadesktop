@@ -17,7 +17,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "webrtc/webrtc_device_common.h"
 #include "webrtc/webrtc_environment.h"
 #include "styles/style_calls.h"
-#include "styles/style_layers.h"
 
 namespace Calls {
 namespace {

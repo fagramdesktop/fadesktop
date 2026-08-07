@@ -26,8 +26,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/text/text_options.h"
 #include "ui/ui_utility.h"
 #include "styles/style_passport.h"
-#include "styles/style_layers.h"
-#include "styles/style_boxes.h"
 
 namespace Passport {
 

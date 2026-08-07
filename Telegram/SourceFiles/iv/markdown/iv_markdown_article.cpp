@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "iv/markdown/iv_markdown_article.h"
 
 #include "base/algorithm.h"
+#include "data/data_file_click_handler.h"
 #include "iv/markdown/iv_markdown_article_layout_structure.h"
 #include "iv/markdown/iv_markdown_article_paint.h"
 #include "iv/markdown/iv_markdown_article_selection.h"
@@ -3348,6 +3349,7 @@ public:
 	Impl(
 		const style::Markdown &st,
 		std::shared_ptr<MathRenderer> renderer);
+	~Impl();
 
 	void setRenderer(std::shared_ptr<MathRenderer> renderer);
 
@@ -3424,12 +3426,23 @@ public:
 	[[nodiscard]] MarkdownArticleEditControlHit editControlHitTest(
 		QPoint point) const;
 
+	void clickHandlerActiveChanged(
+		const ClickHandlerPtr &handler,
+		bool active);
+	void clickHandlerPressedChanged(
+		const ClickHandlerPtr &handler,
+		bool pressed);
+	void updatePressed(QPoint point);
+
 	[[nodiscard]] MarkdownArticleHorizontalScrollHit horizontalScrollHit(
 		QPoint point) const;
 	[[nodiscard]] bool canConsumeHorizontalScroll(
 		QPoint point,
 		int delta) const;
-	[[nodiscard]] bool consumeHorizontalScroll(QPoint point, int delta);
+	[[nodiscard]] bool consumeHorizontalScroll(
+		QPoint point,
+		int delta,
+		Qt::ScrollPhase phase);
 	[[nodiscard]] bool beginHorizontalScroll(QPoint point, bool fromTouch);
 	[[nodiscard]] bool updateHorizontalScroll(QPoint point);
 	void endHorizontalScroll();
@@ -3559,6 +3572,7 @@ private:
 	void refreshVisibleSegmentSpan();
 
 	void clearMediaBlocks();
+	void releasePressedHandler();
 
 	void refreshMediaBlockHosts();
 
@@ -3741,6 +3755,10 @@ MarkdownArticle::Impl::Impl(
 	_style.code.font = _style.code.font->monospace();
 }
 
+MarkdownArticle::Impl::~Impl() {
+	releasePressedHandler();
+}
+
 void MarkdownArticle::Impl::setRenderer(std::shared_ptr<MathRenderer> renderer) {
 	_renderer = std::move(renderer);
 	SetInlineFormulaObjectCacheRenderer(_inlineFormulaObjects, _renderer);
@@ -3774,6 +3792,7 @@ void MarkdownArticle::Impl::setTextRepaintCallbacks(
 }
 
 void MarkdownArticle::Impl::setContent(MarkdownArticleContent content) {
+	releasePressedHandler();
 	if (hasHeavyPart()) {
 		unloadHeavyPart();
 	}
@@ -4972,6 +4991,12 @@ void MarkdownArticle::Impl::clearMediaBlocks() {
 	ClearMediaBlockStorage(&_mediaBlocks);
 }
 
+void MarkdownArticle::Impl::releasePressedHandler() {
+	if (const auto handler = ClickHandler::getPressed()) {
+		clickHandlerPressedChanged(handler, false);
+	}
+}
+
 void MarkdownArticle::Impl::clearPlaceholderRuntimes() {
 	_placeholderRuntimes.clear();
 }
@@ -5342,6 +5367,15 @@ MarkdownArticle::Impl::findHorizontalScrollOwner(
 				};
 			}
 		}
+		if (block.mediaBlock
+			&& block.mediaBlock->canHandleHorizontalScroll()
+			&& ContainsPoint(block.mediaBlock->geometry(), point)) {
+			return {
+				.hit = { .scrollable = true, .overViewport = true },
+				.identity = scrollOwnerIdentity(block, *preparedPath),
+				.block = &block,
+			};
+		}
 		preparedPath->pop_back();
 	}
 	return {};
@@ -5665,6 +5699,38 @@ bool MarkdownArticle::Impl::revealSegment(int segmentIndex) {
 	return false;
 }
 
+void MarkdownArticle::Impl::clickHandlerActiveChanged(
+		const ClickHandlerPtr &handler,
+		bool active) {
+	for (const auto &entry : _mediaBlocks) {
+		if (const auto &block = entry.second) {
+			block->clickHandlerActiveChanged(handler, active);
+		}
+	}
+}
+
+void MarkdownArticle::Impl::clickHandlerPressedChanged(
+		const ClickHandlerPtr &handler,
+		bool pressed) {
+	for (const auto &entry : _mediaBlocks) {
+		if (const auto &block = entry.second) {
+			block->clickHandlerPressedChanged(handler, pressed);
+		}
+	}
+}
+
+void MarkdownArticle::Impl::updatePressed(QPoint point) {
+	if (!std::dynamic_pointer_cast<VoiceSeekClickHandler>(
+			ClickHandler::getPressed())) {
+		return;
+	}
+	for (const auto &entry : _mediaBlocks) {
+		if (const auto &block = entry.second) {
+			block->updatePressed(point);
+		}
+	}
+}
+
 MarkdownArticleHorizontalScrollHit MarkdownArticle::Impl::horizontalScrollHit(
 		QPoint point) const {
 	return findHorizontalScrollOwner(point).hit;
@@ -5675,6 +5741,10 @@ bool MarkdownArticle::Impl::canConsumeHorizontalScroll(
 		int delta) const {
 	if (const auto lookup = findHorizontalScrollOwner(point);
 		lookup.block) {
+		if (lookup.block->mediaBlock
+			&& lookup.block->mediaBlock->canHandleHorizontalScroll()) {
+			return true;
+		}
 		const auto left = std::clamp(
 			lookup.block->horizontalScrollLeft - delta,
 			0,
@@ -5684,15 +5754,24 @@ bool MarkdownArticle::Impl::canConsumeHorizontalScroll(
 	return false;
 }
 
-bool MarkdownArticle::Impl::consumeHorizontalScroll(QPoint point, int delta) {
-	if (const auto lookup = findHorizontalScrollOwner(point);
-		lookup.block) {
-		if (const auto block = findScrollOwnerByIdentity(lookup.identity)) {
-			return setScrollLeft(
-				*block,
-				lookup.identity,
-				block->horizontalScrollLeft - delta);
+bool MarkdownArticle::Impl::consumeHorizontalScroll(
+		QPoint point,
+		int delta,
+		Qt::ScrollPhase phase) {
+	const auto lookup = findHorizontalScrollOwner(point);
+	if (!lookup.block) {
+		return false;
+	}
+	if (const auto &media = lookup.block->mediaBlock) {
+		if (media->canHandleHorizontalScroll()) {
+			return media->handleHorizontalScroll(delta, phase);
 		}
+	}
+	if (const auto block = findScrollOwnerByIdentity(lookup.identity)) {
+		return setScrollLeft(
+			*block,
+			lookup.identity,
+			block->horizontalScrollLeft - delta);
 	}
 	return false;
 }
@@ -5702,6 +5781,9 @@ bool MarkdownArticle::Impl::beginHorizontalScroll(
 		bool fromTouch) {
 	const auto lookup = findHorizontalScrollOwner(point);
 	if (!lookup.block) {
+		return false;
+	}
+	if (lookup.block->scrollViewportRect.isEmpty()) {
 		return false;
 	}
 	if (fromTouch) {
@@ -6157,6 +6239,22 @@ void MarkdownArticle::addTaskMarkerRipple(
 	_impl->addTaskMarkerRipple(source, point);
 }
 
+void MarkdownArticle::clickHandlerActiveChanged(
+		const ClickHandlerPtr &handler,
+		bool active) {
+	_impl->clickHandlerActiveChanged(handler, active);
+}
+
+void MarkdownArticle::clickHandlerPressedChanged(
+		const ClickHandlerPtr &handler,
+		bool pressed) {
+	_impl->clickHandlerPressedChanged(handler, pressed);
+}
+
+void MarkdownArticle::updatePressed(QPoint point) {
+	_impl->updatePressed(point);
+}
+
 MarkdownArticleHorizontalScrollHit MarkdownArticle::horizontalScrollHit(
 		QPoint point) const {
 	return _impl->horizontalScrollHit(point);
@@ -6168,8 +6266,11 @@ bool MarkdownArticle::canConsumeHorizontalScroll(
 	return _impl->canConsumeHorizontalScroll(point, delta);
 }
 
-bool MarkdownArticle::consumeHorizontalScroll(QPoint point, int delta) {
-	return _impl->consumeHorizontalScroll(point, delta);
+bool MarkdownArticle::consumeHorizontalScroll(
+		QPoint point,
+		int delta,
+		Qt::ScrollPhase phase) {
+	return _impl->consumeHorizontalScroll(point, delta, phase);
 }
 
 bool MarkdownArticle::beginHorizontalScroll(QPoint point, bool fromTouch) {

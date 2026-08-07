@@ -25,7 +25,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_forum_topic.h"
 #include "lang/lang_keys.h"
 #include "ui/toast/toast.h"
-#include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 
 namespace HistoryView {

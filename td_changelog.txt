@@ -1,3 +1,37 @@
+7.0.9 (05.08.26)
+
+- Add saving rich messages to HTML and importing them back.
+- Add custom prompt tab to AI editing in the article editor.
+- Add experimental Vulkan rendering option on Linux.
+- Crash fixes.
+
+7.0.8 (03.08.26)
+
+- Fix launch on some Windows 7 machines.
+
+7.0.7 (31.07.26)
+
+- Add geometric shapes to the image editor.
+- Add better passkeys support on Windows, macOS and Linux.
+- Add undo for moving and resizing items in the image editor.
+- Extend chats list pull gesture to unread forum topics.
+- Fix Mini App cookies on Linux.
+- Crash fixes.
+
+7.0.6 (27.07.26)
+
+- Allow muting forever by left click on the profile mute button.
+- Improve tables, tasks and titles in rich message previews.
+- Fix adding admins in communities.
+- Crash fixes.
+
+7.0.5 (23.07.26)
+
+- Improve slideshow preload / animation / swipes in rich messages.
+- Fix stories leaving empty space on chats list top.
+- Fix custom emoji frame size in favorite reactions.
+- Crash fixes.
+
 7.0.4 (20.07.26)
 
 - Enable rich text editor for scheduled messages and quick replies.

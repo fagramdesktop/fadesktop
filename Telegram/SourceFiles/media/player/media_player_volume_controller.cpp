@@ -20,7 +20,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/application.h"
 #include "core/core_settings.h"
 #include "styles/style_media_player.h"
-#include "styles/style_widgets.h"
 
 #include <QtGui/QGuiApplication>
 

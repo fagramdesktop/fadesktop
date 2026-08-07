@@ -68,7 +68,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "base/unixtime.h"
 #include "base/random.h"
 #include "styles/style_chat.h" // popupMenuExpandedSeparator
-#include "styles/style_dialogs.h" // dialogsPremiumIcon
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"
 #include "styles/style_menu_icons.h"

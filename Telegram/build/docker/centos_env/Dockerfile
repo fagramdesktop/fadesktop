@@ -113,6 +113,7 @@ implib /usr/lib64/libGLX.so
 implib /usr/lib64/libOpenGL.so
 implib /usr/lib64/libGL.so
 implib /usr/lib64/libdrm.so
+implib /usr/lib64/libudev.so
 implib /usr/lib64/libwayland-egl.so
 implib /usr/lib64/libwayland-cursor.so
 implib /usr/lib64/libwayland-client.so
@@ -160,7 +161,7 @@ RUN <<EOF
 git init patches
 cd patches
 git remote add origin https://github.com/desktop-app/patches.git
-git fetch --depth=1 origin b4612b87914e5116e9910ff175d8e11766e96f43
+git fetch --depth=1 origin 27efa67b60881c52b112cf924d705e573d03a0ab
 git reset --hard FETCH_HEAD
 rm -rf .git
 EOF
@@ -227,7 +228,7 @@ EOF
 
 FROM builder AS brotli
 RUN --mount=type=cache,target=/var/cache/ccache <<EOF
-git clone -b v1.1.0 --depth=1 https://github.com/google/brotli.git
+git clone -b v1.2.0 --depth=1 https://github.com/google/brotli.git
 cd brotli
 cmake -B build . -DBUILD_SHARED_LIBS=OFF -DBROTLI_DISABLE_TESTS=ON
 cmake --build build
@@ -238,7 +239,7 @@ EOF
 
 FROM builder AS highway
 RUN --mount=type=cache,target=/var/cache/ccache <<EOF
-git clone -b 1.0.7 --depth=1 https://github.com/google/highway.git
+git clone -b 1.4.0 --depth=1 https://github.com/google/highway.git
 cd highway
 cmake -B build . -DBUILD_TESTING=OFF -DHWY_ENABLE_CONTRIB=OFF -DHWY_ENABLE_EXAMPLES=OFF
 cmake --build build
@@ -276,7 +277,7 @@ EOF
 
 FROM builder AS dav1d
 RUN --mount=type=cache,target=/var/cache/ccache <<EOF
-git clone -b 1.5.3 --depth=1 https://github.com/videolan/dav1d.git
+git clone -b 1.5.4 --depth=1 https://github.com/videolan/dav1d.git
 cd dav1d
 meson build \
 	--buildtype=plain \
@@ -302,7 +303,7 @@ EOF
 
 FROM builder AS de265
 RUN --mount=type=cache,target=/var/cache/ccache <<EOF
-git clone -b v1.0.16 --depth=1 https://github.com/strukturag/libde265.git
+git clone -b v1.1.1 --depth=1 https://github.com/strukturag/libde265.git
 cd libde265
 cmake -B build . \
 	-DCMAKE_BUILD_TYPE=None \
@@ -361,7 +362,7 @@ FROM builder AS avif
 COPY --link --from=dav1d /usr/src/dav1d-cache /
 
 RUN --mount=type=cache,target=/var/cache/ccache <<EOF
-git clone -b v1.3.0 --depth=1 https://github.com/AOMediaCodec/libavif.git
+git clone -b v1.4.2 --depth=1 https://github.com/AOMediaCodec/libavif.git
 cd libavif
 cmake -B build . -DBUILD_SHARED_LIBS=OFF -DAVIF_CODEC_DAV1D=SYSTEM -DAVIF_LIBYUV=OFF
 cmake --build build
@@ -374,11 +375,11 @@ FROM builder AS heif
 COPY --link --from=de265 /usr/src/de265-cache /
 
 RUN --mount=type=cache,target=/var/cache/ccache <<EOF
-git clone -b v1.21.2 --depth=1 https://github.com/strukturag/libheif.git
+git clone -b v1.23.1 --depth=1 https://github.com/strukturag/libheif.git
 cd libheif
 cmake -B build . \
 	-DBUILD_SHARED_LIBS=OFF \
-	-DCMAKE_DISABLE_FIND_PACKAGE_Doxygen=ON \
+	-DBUILD_DOCUMENTATION=OFF \
 	-DBUILD_TESTING=OFF \
 	-DENABLE_PLUGIN_LOADING=OFF \
 	-DWITH_X265=OFF \
@@ -405,7 +406,7 @@ COPY --link --from=brotli /usr/src/brotli-cache /
 COPY --link --from=highway /usr/src/highway-cache /
 
 RUN --mount=type=cache,target=/var/cache/ccache <<EOF
-git clone -b v0.11.2 --depth=1 https://github.com/libjxl/libjxl.git
+git clone -b v0.12.0 --depth=1 https://github.com/libjxl/libjxl.git
 cd libjxl
 cmake -B build . \
 	-DBUILD_SHARED_LIBS=OFF \
@@ -664,7 +665,7 @@ COPY --link --from=xv /usr/src/xv-cache /
 COPY --link --from=nv-codec-headers /usr/src/nv-codec-headers-cache /
 
 RUN --mount=type=cache,target=/var/cache/ccache <<EOF
-git clone -b n6.1.1 --depth=1 https://github.com/FFmpeg/FFmpeg.git
+git clone -b n6.1.6 --depth=1 https://github.com/FFmpeg/FFmpeg.git
 cd FFmpeg
 ./configure \
 	--extra-cflags="-fno-lto -DCONFIG_SAFE_BITSTREAM_READER=1" \
@@ -831,7 +832,7 @@ FROM builder AS openal
 COPY --link --from=pipewire /usr/src/pipewire-cache /
 
 RUN --mount=type=cache,target=/var/cache/ccache <<EOF
-git clone -b 1.24.3 --depth=1 https://github.com/kcat/openal-soft.git
+git clone -b 1.25.2 --depth=1 https://github.com/kcat/openal-soft.git
 cd openal-soft
 cmake -B build . \
 	-DLIBTYPE:STRING=STATIC \

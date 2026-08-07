@@ -34,7 +34,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/text/text_custom_emoji.h"
 #include "ui/text/text_utilities.h"
 #include "styles/style_dialogs.h"
-#include "styles/style_chat_helpers.h"
 
 #include <QtSvg/QSvgRenderer>
 

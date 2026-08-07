@@ -709,6 +709,18 @@ GroupedItemFromPhotoVideoBlock(const Block &block) {
 	return result;
 }
 
+[[nodiscard]] bool IsGroupableMediaBlock(const Block &block) {
+	if (IsPhotoVideoBlockKind(block.kind)) {
+		return true;
+	}
+	return (block.kind == BlockKind::GroupedMedia)
+		&& !block.mediaItems.empty()
+		&& ranges::all_of(
+			block.mediaItems,
+			IsPhotoVideoBlockKind,
+			&RichPage::GroupedMediaItem::kind);
+}
+
 [[nodiscard]] bool GroupingRichTextIsEmpty(const RichText &text) {
 	return text.text.text.trimmed().isEmpty()
 		&& text.anchorId.isEmpty()
@@ -718,22 +730,6 @@ GroupedItemFromPhotoVideoBlock(const Block &block) {
 [[nodiscard]] bool BlockHasGroupingCaptionOrAnchor(const Block &block) {
 	return !GroupingRichTextIsEmpty(block.caption)
 		|| !block.anchorId.isEmpty();
-}
-
-[[nodiscard]] bool HasValidGroupingCaptionAndAnchorSource(
-		const std::vector<Block> &blocks,
-		int from,
-		int till) {
-	auto found = false;
-	for (auto i = from; i != till; ++i) {
-		if (!BlockHasGroupingCaptionOrAnchor(blocks[i])) {
-			continue;
-		} else if (found) {
-			return false;
-		}
-		found = true;
-	}
-	return true;
 }
 
 [[nodiscard]] BlockContainerPath BlockChildrenContainer(BlockPath path) {
@@ -1515,6 +1511,10 @@ auto State::tableRenderLimits() const
 	return Markdown::PrepareTableRenderLimitsForRichMessage(_limits);
 }
 
+const RichMessageLimits &State::limits() const {
+	return _limits;
+}
+
 template <typename Result, typename Callback>
 Result State::applyCheckedMutation(Result failure, Callback &&callback) {
 	_lastLimitError = std::nullopt;
@@ -2211,15 +2211,19 @@ bool State::canGroupPhotoVideoBlocks(
 	if (!blocks) {
 		return false;
 	}
+	auto sources = 0;
+	auto captioned = 0;
 	for (auto i = range->from; i != range->till; ++i) {
-		if (!IsPhotoVideoBlockKind((*blocks)[i].kind)) {
-			return false;
+		const auto &block = (*blocks)[i];
+		if (!IsGroupableMediaBlock(block)) {
+			continue;
+		}
+		++sources;
+		if (BlockHasGroupingCaptionOrAnchor(block)) {
+			++captioned;
 		}
 	}
-	return HasValidGroupingCaptionAndAnchorSource(
-		*blocks,
-		range->from,
-		range->till);
+	return (sources > 1) && (captioned < 2);
 }
 
 bool State::groupPhotoVideoBlocks(
@@ -2239,14 +2243,31 @@ bool State::groupPhotoVideoBlocks(
 		}
 		auto items = std::vector<RichPage::GroupedMediaItem>();
 		items.reserve(range->till - range->from);
+		auto kept = std::vector<Block>();
+		auto keptBeforeMedia = 0;
+		auto seenMedia = false;
 		auto captionSource = std::optional<int>();
 		for (auto i = range->from; i != range->till; ++i) {
-			const auto item = GroupedItemFromPhotoVideoBlock((*blocks)[i]);
-			if (!item) {
+			auto &block = (*blocks)[i];
+			if (!IsGroupableMediaBlock(block)) {
+				if (!seenMedia) {
+					++keptBeforeMedia;
+				}
+				kept.push_back(std::move(block));
+				continue;
+			}
+			seenMedia = true;
+			if (block.kind == BlockKind::GroupedMedia) {
+				items.insert(
+					items.end(),
+					block.mediaItems.begin(),
+					block.mediaItems.end());
+			} else if (const auto item = GroupedItemFromPhotoVideoBlock(block)) {
+				items.push_back(*item);
+			} else {
 				return CheckedMutationResult<bool>{ .result = false };
 			}
-			items.push_back(*item);
-			if (!BlockHasGroupingCaptionOrAnchor((*blocks)[i])) {
+			if (!BlockHasGroupingCaptionOrAnchor(block)) {
 				continue;
 			} else if (captionSource) {
 				return CheckedMutationResult<bool>{ .result = false };
@@ -2262,10 +2283,28 @@ bool State::groupPhotoVideoBlocks(
 			grouped.caption = std::move(source.caption);
 			grouped.anchorId = std::move(source.anchorId);
 		}
+		auto groupedBlocks = SplitGroupedMediaBlock(std::move(grouped));
+		auto replacement = std::vector<Block>();
+		replacement.reserve(kept.size() + groupedBlocks.size());
+		replacement.insert(
+			replacement.end(),
+			std::make_move_iterator(kept.begin()),
+			std::make_move_iterator(kept.begin() + keptBeforeMedia));
+		replacement.insert(
+			replacement.end(),
+			std::make_move_iterator(groupedBlocks.begin()),
+			std::make_move_iterator(groupedBlocks.end()));
+		replacement.insert(
+			replacement.end(),
+			std::make_move_iterator(kept.begin() + keptBeforeMedia),
+			std::make_move_iterator(kept.end()));
 		blocks->erase(
 			blocks->begin() + range->from,
 			blocks->begin() + range->till);
-		blocks->insert(blocks->begin() + range->from, std::move(grouped));
+		blocks->insert(
+			blocks->begin() + range->from,
+			std::make_move_iterator(replacement.begin()),
+			std::make_move_iterator(replacement.end()));
 		candidate.rebuild();
 		return CheckedMutationResult<bool>{
 			.apply = true,
@@ -2303,6 +2342,81 @@ bool State::ungroupGroupedMediaBlock(const BlockPath &path) {
 			blocks->begin() + path.index,
 			std::make_move_iterator(emitted.begin()),
 			std::make_move_iterator(emitted.end()));
+		candidate.rebuild();
+		return CheckedMutationResult<bool>{
+			.apply = true,
+			.result = true,
+		};
+	});
+}
+
+bool State::canUngroupGroupedMediaBlocks(
+		const PreparedEditSelection &selection) const {
+	if (selection.kind != PreparedEditSelectionKind::Blocks) {
+		return false;
+	}
+	const auto range = validateBlockRange(selection.blocks);
+	if (!range) {
+		return false;
+	}
+	const auto blocks = blockContainer(range->container);
+	if (!blocks) {
+		return false;
+	}
+	for (auto i = range->from; i != range->till; ++i) {
+		const auto &block = (*blocks)[i];
+		if (block.kind == BlockKind::GroupedMedia
+			&& IsGroupableMediaBlock(block)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool State::ungroupGroupedMediaBlocks(
+		const PreparedEditSelection &selection) {
+	return applyCheckedMutation(false, [selection](State &candidate) {
+		if (!candidate.canUngroupGroupedMediaBlocks(selection)) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		const auto range = candidate.validateBlockRange(selection.blocks);
+		if (!range) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		auto *blocks = candidate.blockContainer(range->container);
+		if (!blocks) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		auto replacement = std::vector<Block>();
+		replacement.reserve(range->till - range->from);
+		for (auto i = range->from; i != range->till; ++i) {
+			auto &block = (*blocks)[i];
+			if (block.kind != BlockKind::GroupedMedia
+				|| !IsGroupableMediaBlock(block)) {
+				replacement.push_back(std::move(block));
+				continue;
+			}
+			auto first = true;
+			for (const auto &item : block.mediaItems) {
+				auto single = PhotoVideoBlockFromGroupedItem(item);
+				if (!single) {
+					return CheckedMutationResult<bool>{ .result = false };
+				}
+				if (first) {
+					single->caption = std::move(block.caption);
+					single->anchorId = std::move(block.anchorId);
+					first = false;
+				}
+				replacement.push_back(std::move(*single));
+			}
+		}
+		blocks->erase(
+			blocks->begin() + range->from,
+			blocks->begin() + range->till);
+		blocks->insert(
+			blocks->begin() + range->from,
+			std::make_move_iterator(replacement.begin()),
+			std::make_move_iterator(replacement.end()));
 		candidate.rebuild();
 		return CheckedMutationResult<bool>{
 			.apply = true,
@@ -2395,7 +2509,14 @@ bool State::addItemsToGroupedMedia(
 			group.mediaItems.end(),
 			std::make_move_iterator(appended.begin()),
 			std::make_move_iterator(appended.end()));
-		blocks->erase(blocks->begin() + from, blocks->begin() + till);
+		auto groupedBlocks = SplitGroupedMediaBlock(std::move(group));
+		blocks->erase(
+			blocks->begin() + path.index,
+			blocks->begin() + till);
+		blocks->insert(
+			blocks->begin() + path.index,
+			std::make_move_iterator(groupedBlocks.begin()),
+			std::make_move_iterator(groupedBlocks.end()));
 		candidate.rebuild();
 		return CheckedMutationResult<bool>{
 			.apply = true,
@@ -2408,13 +2529,25 @@ bool State::setGroupedMediaIntent(
 		const BlockPath &path,
 		RichPage::GroupedMediaIntent intent) {
 	return applyCheckedMutation(false, [path, intent](State &candidate) {
-		auto *current = candidate.block(path);
-		if (!current || current->kind != BlockKind::GroupedMedia) {
-			return CheckedMutationResult<bool>{ .result = false };
-		} else if (current->mediaIntent == intent) {
+		auto *blocks = candidate.blockContainer(path.container);
+		if (!blocks
+			|| path.index < 0
+			|| path.index >= int(blocks->size())) {
 			return CheckedMutationResult<bool>{ .result = false };
 		}
-		current->mediaIntent = intent;
+		auto &current = (*blocks)[path.index];
+		if (current.kind != BlockKind::GroupedMedia) {
+			return CheckedMutationResult<bool>{ .result = false };
+		} else if (current.mediaIntent == intent) {
+			return CheckedMutationResult<bool>{ .result = false };
+		}
+		current.mediaIntent = intent;
+		auto groupedBlocks = SplitGroupedMediaBlock(std::move(current));
+		blocks->erase(blocks->begin() + path.index);
+		blocks->insert(
+			blocks->begin() + path.index,
+			std::make_move_iterator(groupedBlocks.begin()),
+			std::make_move_iterator(groupedBlocks.end()));
 		candidate.rebuild();
 		return CheckedMutationResult<bool>{
 			.apply = true,

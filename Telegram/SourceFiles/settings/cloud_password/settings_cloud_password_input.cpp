@@ -33,8 +33,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/labels.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
-#include "styles/style_boxes.h"
 #include "styles/style_layers.h"
+#include "styles/style_passcode_box.h"
 #include "styles/style_settings.h"
 
 /*

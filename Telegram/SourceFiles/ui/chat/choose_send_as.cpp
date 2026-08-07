@@ -22,7 +22,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "lang/lang_keys.h"
 #include "settings/sections/settings_premium.h"
 #include "styles/style_calls.h"
-#include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 
 namespace Ui {

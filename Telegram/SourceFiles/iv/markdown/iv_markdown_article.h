@@ -403,12 +403,22 @@ public:
 	void addTaskMarkerRipple(
 		const PreparedEditListItemSource &source,
 		QPoint point);
+	void clickHandlerActiveChanged(
+		const ClickHandlerPtr &handler,
+		bool active);
+	void clickHandlerPressedChanged(
+		const ClickHandlerPtr &handler,
+		bool pressed);
+	void updatePressed(QPoint point);
 	[[nodiscard]] MarkdownArticleHorizontalScrollHit horizontalScrollHit(
 		QPoint point) const;
 	[[nodiscard]] bool canConsumeHorizontalScroll(
 		QPoint point,
 		int delta) const;
-	[[nodiscard]] bool consumeHorizontalScroll(QPoint point, int delta);
+	[[nodiscard]] bool consumeHorizontalScroll(
+		QPoint point,
+		int delta,
+		Qt::ScrollPhase phase);
 	[[nodiscard]] bool beginHorizontalScroll(QPoint point, bool fromTouch);
 	[[nodiscard]] bool updateHorizontalScroll(QPoint point);
 	void endHorizontalScroll();

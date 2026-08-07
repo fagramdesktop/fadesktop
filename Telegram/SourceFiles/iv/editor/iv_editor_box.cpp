@@ -34,6 +34,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/stickers/data_custom_emoji.h"
 #include "data/stickers/data_stickers.h"
 #include "chat_helpers/tabbed_selector.h"
+#include "iv/editor/iv_editor_session.h"
 #include "iv/editor/iv_editor_state.h"
 #include "iv/editor/iv_editor_toolbar_pill.h"
 #include "iv/editor/iv_editor_widget.h"
@@ -50,7 +51,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/ripple_animation.h"
 #include "ui/layers/generic_box.h"
 #include "ui/rp_widget.h"
-#include "ui/toast/toast.h"
 #include "data/data_peer_values.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/buttons.h"
@@ -82,7 +82,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "styles/style_chat_helpers.h"
 #include "styles/style_basic.h"
-#include "styles/style_editor.h"
 #include "styles/style_iv.h"
 #include "styles/style_layers.h"
 #include "styles/style_widgets.h"
@@ -1368,19 +1367,20 @@ int Toolbar::contentMaxWidth() const {
 int Toolbar::resizeGetHeight(int width) {
 	const auto padding = st::ivEditorToolbarPadding;
 	const auto top = padding.top();
-	const auto column = _editor
-		? _editor->articleColumnForWidth(width)
-		: Widget::ArticleColumn{ 0, width };
-	const auto fitsArticle = (column.width >= contentMaxWidth());
-	const auto left = fitsArticle ? column.left : 0;
-	const auto right = fitsArticle ? (column.left + column.width) : width;
-	const auto undoRedoLeft = left;
+	const auto undoRedoLeft = padding.left();
 	_undoRedoPill->moveToLeft(undoRedoLeft, top, width);
-	const auto controlsLeft = undoRedoLeft
+	const auto controlsWidth = _controlsPill->naturalSize().width();
+	const auto staticCommandLeft = undoRedoLeft
 		+ _undoRedoPill->naturalSize().width()
 		+ st::ivEditorToolbarGroupsSkip;
+	const auto centeredCommandLeft = (width - controlsWidth) / 2;
+	const auto controlsLeft = std::max(
+		staticCommandLeft,
+		centeredCommandLeft);
 	_controlsPill->moveToLeft(controlsLeft, top, width);
-	const auto emojiLeft = right - _emojiPill->naturalSize().width();
+	const auto emojiLeft = width
+		- padding.right()
+		- _emojiPill->naturalSize().width();
 	_emojiPill->moveToLeft(emojiLeft, top, width);
 	updateInputMask();
 	if (_hovered && _hovered->isHidden()) {
@@ -1643,6 +1643,8 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 			},
 			.requestMedia = std::move(descriptor.requestMedia),
 			.applyPreparedMedia = std::move(descriptor.applyPreparedMedia),
+			.prepareDeferredMedia = std::move(
+				descriptor.prepareDeferredMedia),
 			.requestPhotoEditSource
 				= std::move(descriptor.requestPhotoEditSource),
 			.replacePhotoWithList
@@ -1722,44 +1724,20 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 		_aiPill->addButton(std::move(owned), st::ivEditorToolbarButton);
 		button->setAccessibleName(tr::lng_ai_compose_title(tr::now));
 		button->setClickedCallback([=] {
-			if (!session->premium()) {
-				const auto show = _show;
-				show->showToast({
-					.text = tr::lng_article_premium_required(
-						tr::now,
-						lt_link,
-						tr::link(tr::bold(
-							tr::lng_article_premium_required_link(
-								tr::now))),
-						tr::marked),
-					.filter = [=](
-							const ClickHandlerPtr &handler,
-							Qt::MouseButton button) {
-						if (button != Qt::LeftButton) {
-							return false;
-						}
-						if (show && show->valid()) {
-							ShowPremiumPreviewToBuy(
-								show,
-								PremiumFeature::RichFormatting);
-						} else if (const auto window
-								= session->tryResolveWindow(nullptr)) {
-							ShowPremiumPreviewToBuy(
-								window,
-								PremiumFeature::RichFormatting);
-						}
-						return true;
-					},
-					.icon = &st::settingsToastStarIcon,
-					.adaptive = true,
-					.duration = Ui::Toast::kDefaultDuration * 2,
-				});
-				return;
-			}
+			const auto premiumRequired = [=] {
+				if (session->premium()) {
+					return false;
+				}
+				ShowRichMessagesPremiumToast(_show);
+				return true;
+			};
 			const auto editor = _editor;
 			if (editor && editor->hasActiveSelection()) {
 				auto span = editor->textSpanForCurrentSelection();
 				if (!span.text.isEmpty()) {
+					if (premiumRequired()) {
+						return;
+					}
 					HistoryView::Controls::ShowComposeAiBox(_show, {
 						.session = session,
 						.text = std::move(span),
@@ -1770,11 +1748,15 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 							editor->replaceCurrentSelectionWithText(
 								std::move(result));
 						},
+						.allowPrompt = true,
 					});
 					return;
 				}
 				auto source = editor->richPageForCurrentSelection();
 				if (source && !source->blocks.empty()) {
+					if (premiumRequired()) {
+						return;
+					}
 					HistoryView::Controls::ShowComposeAiBox(_show, {
 						.session = session,
 						.richSource = std::move(source),
@@ -1786,6 +1768,7 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 							editor->replaceCurrentSelectionWithRichPage(
 								std::move(page));
 						},
+						.allowPrompt = true,
 					});
 					return;
 				}
@@ -1942,9 +1925,10 @@ void WindowHost::Impl::setupWindow(ShowWindowDescriptor &&descriptor) {
 void WindowHost::Impl::setupBottomAiStar(
 		not_null<HistoryView::Controls::ComposeAiButton*> button,
 		not_null<Main::Session*> session) {
-	const auto premium = button->lifetime().make_state<bool>(false);
+	const auto editor = not_null<Widget*>(_editor.data());
+	const auto locked = button->lifetime().make_state<bool>(false);
 	const auto refresh = [=] {
-		if (*premium) {
+		if (!*locked) {
 			button->setPremiumStar(QImage(), QPoint(), 0);
 		} else {
 			const auto side = st::ivEditorToolbarPremiumStarSize;
@@ -1957,8 +1941,11 @@ void WindowHost::Impl::setupBottomAiStar(
 				st::ivEditorToolbarPremiumStarOutline);
 		}
 	};
-	Data::AmPremiumValue(session) | rpl::on_next([=](bool value) {
-		*premium = value;
+	rpl::combine(
+		Data::AmPremiumValue(session),
+		editor->hasSelectionValue()
+	) | rpl::on_next([=](bool premium, bool selection) {
+		*locked = (selection && !premium);
 		refresh();
 	}, button->lifetime());
 	style::PaletteChanged() | rpl::on_next([=] {
@@ -2060,12 +2047,8 @@ void WindowHost::Impl::layout() {
 	_toolbar->raise();
 	_bottomFade->setGeometry(0, height - bottomHeight, editorWidth, bottomHeight);
 	_bottom->setGeometry(0, height - bottomHeight, editorWidth, bottomHeight);
-	const auto column = _editor->articleColumnForWidth(editorWidth);
-	const auto fitsArticle = (column.width >= _toolbar->contentMaxWidth());
-	const auto right = fitsArticle
-		? (column.left + column.width)
-		: editorWidth;
-	const auto left = fitsArticle ? column.left : 0;
+	const auto right = editorWidth - padding.right();
+	const auto left = padding.left();
 	const auto leftPill = _discard
 		? _discard.data()
 		: _cancel.data();

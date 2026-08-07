@@ -27,7 +27,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "api/api_chat_participants.h"
 #include "window/window_session_controller.h"
 #include "apiwrap.h"
-#include "styles/style_boxes.h"
 
 namespace {
 

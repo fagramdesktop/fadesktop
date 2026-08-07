@@ -14,8 +14,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/ui_utility.h"
 #include "ui/widgets/fields/masked_input_field.h"
 #include "ui/widgets/shadow.h"
-#include "styles/style_boxes.h"
-#include "styles/style_media_view.h"
+#include "styles/style_color_editor.h"
+#include "styles/style_widgets.h"
 
 class ColorEditor::Picker : public Ui::RpWidget {
 public:

@@ -40,7 +40,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/shadow.h"
 #include "ui/wrap/slide_wrap.h"
 #include "window/window_session_controller.h"
-#include "styles/style_boxes.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_info.h"
 #include "styles/style_layers.h"

@@ -40,7 +40,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/ui_utility.h"
 #include "apiwrap.h"
 #include "styles/style_chat.h"
-#include "styles/style_chat_helpers.h"
 
 namespace Data {
 namespace {

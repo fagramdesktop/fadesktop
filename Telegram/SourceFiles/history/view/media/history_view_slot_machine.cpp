@@ -14,7 +14,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "history/history_item_components.h"
 #include "history/view/history_view_element.h"
 #include "main/main_session.h"
-#include "styles/style_chat.h"
 
 namespace HistoryView {
 namespace {

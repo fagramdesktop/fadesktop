@@ -32,8 +32,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_chat.h"
 #include "data/data_channel.h"
 #include "lang/lang_keys.h"
-#include "styles/style_boxes.h"
 #include "styles/style_menu_icons.h"
+#include "styles/style_widgets.h"
 
 namespace HistoryView::Reactions {
 namespace {

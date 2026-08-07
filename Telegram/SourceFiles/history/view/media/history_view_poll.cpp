@@ -82,10 +82,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "window/themes/window_theme.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
+#include "styles/style_chat_style.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_polls.h"
 #include "styles/style_widgets.h"
-#include "styles/style_window.h"
 
 
 namespace HistoryView {

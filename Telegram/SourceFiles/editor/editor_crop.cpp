@@ -10,7 +10,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/userpic_view.h"
 #include "styles/style_editor.h"
 #include "styles/style_basic.h"
-#include "styles/style_dialogs.h"
 
 namespace Editor {
 namespace {

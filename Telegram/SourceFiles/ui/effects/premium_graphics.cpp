@@ -26,6 +26,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_boxes.h"
 #include "styles/style_layers.h"
 #include "styles/style_premium.h"
+#include "styles/style_premium_limits.h"
 #include "styles/style_settings.h"
 #include "styles/style_window.h"
 

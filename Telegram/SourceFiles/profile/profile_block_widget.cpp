@@ -9,7 +9,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "ui/painter.h"
 #include "styles/style_profile.h"
-#include "styles/style_widgets.h"
 
 namespace Profile {
 

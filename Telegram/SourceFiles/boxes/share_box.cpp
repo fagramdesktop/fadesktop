@@ -65,8 +65,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_calls.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_layers.h"
-#include "styles/style_boxes.h"
-#include "styles/style_menu_icons.h"
+#include "styles/style_share_box.h"
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>

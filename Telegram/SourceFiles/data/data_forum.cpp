@@ -32,7 +32,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "storage/storage_shared_media.h"
 #include "window/window_session_controller.h"
 #include "window/notifications_manager.h"
-#include "styles/style_boxes.h"
 
 namespace Data {
 namespace {

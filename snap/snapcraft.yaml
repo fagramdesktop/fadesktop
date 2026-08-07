@@ -17,6 +17,7 @@ apps:
     plugs:
       - audio-playback
       - audio-record
+      - bluez
       - camera
       - hardware-observe
       - home
@@ -24,6 +25,7 @@ apps:
       - network-bind
       - network-status
       - removable-media
+      - u2f-devices
     slots:
       - mpris
 
@@ -121,7 +123,7 @@ parts:
   patches:
     source: https://github.com/desktop-app/patches.git
     source-depth: 1
-    source-commit: 701cfb4b3d6612188d168f198c842114fd64726f
+    source-commit: 27efa67b60881c52b112cf924d705e573d03a0ab
     plugin: nil
     override-pull: |
       craftctl default
@@ -162,7 +164,7 @@ parts:
   ffmpeg:
     source: https://github.com/FFmpeg/FFmpeg.git
     source-depth: 1
-    source-branch: n6.1.1
+    source-branch: n6.1.6
     plugin: autotools
     build-packages:
       - nasm

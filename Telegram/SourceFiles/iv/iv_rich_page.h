@@ -27,6 +27,8 @@ class Session;
 namespace Iv {
 
 struct RichPage {
+	static constexpr auto kCollageMaxItems = 10;
+
 	struct RichText {
 		TextWithEntities text;
 		QString anchorId;
@@ -272,14 +274,21 @@ enum class RichParseMode : uchar {
 inline constexpr auto kTextDiffInsertedColorIndex = 10;
 inline constexpr auto kTextDiffDeletedColorIndex = 11;
 
+[[nodiscard]] inline QString RichExportGeneratorMarker() {
+	return u"Telegram Desktop rich message export"_q;
+}
+
 [[nodiscard]] RichMessageLimits ResolveRichMessageLimits(
 	not_null<Main::Session*> session);
+[[nodiscard]] std::vector<RichPage::Block> SplitGroupedMediaBlock(
+	RichPage::Block block);
 [[nodiscard]] bool RichPagesEqual(
 	const RichPage &a,
 	const RichPage &b);
 [[nodiscard]] std::optional<RichMessageLimitError> ValidateRichMessage(
 	const RichPage &page,
 	const RichMessageLimits &limits);
+[[nodiscard]] int CountRichPageBlocks(const RichPage &page);
 [[nodiscard]] QString EncodeRichPageLinkUrl(
 	const QString &url,
 	uint64 webpageId);
