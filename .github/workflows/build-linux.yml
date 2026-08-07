@@ -80,23 +80,30 @@ jobs:
           docker pull ghcr.io/telegramdesktop/tdesktop/centos_env
           docker tag ghcr.io/telegramdesktop/tdesktop/centos_env $IMAGE_TAG
 
+      - name: Set up ccache.
+        run: |
+          curl -sSL https://github.com/ccache/ccache/releases/download/v4.13.6/ccache-4.13.6-linux-x86_64-glibc.tar.xz \
+          | sudo tar xJ -C /usr/local/bin --strip-components=1 ccache-4.13.6-linux-x86_64-glibc/ccache
+          echo "CCACHE_DIR=${{ runner.temp }}/.tdesktop-cache" >> $GITHUB_ENV
+
       - name: Restore Telegram Desktop cache.
         id: cache-tdesktop
         if: ${{ inputs.disable_cache != true && inputs.disable_cache != 'true' }}
         uses: actions/cache/restore@v6
         with:
-          path: ${{ runner.temp }}/.tdesktop-cache
-          key: ${{ runner.OS }}-tdesktop-${{ env.WEEK }}
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ runner.OS }}-tdesktop-${{ github.run_id }}
           restore-keys: ${{ runner.OS }}-tdesktop-
 
       - name: Configure & Build FAgram with CMake
         run: |
-          mkdir -p ${{ runner.temp }}/.tdesktop-cache
+          mkdir -p ${{ env.CCACHE_DIR }}
+          ccache -z
           docker run --rm \
           -u $(id -u) \
           -v $PWD:/usr/src/tdesktop \
           -v $GITHUB_WORKSPACE/../DesktopPrivate:/usr/src/DesktopPrivate \
-          -v ${{ runner.temp }}/.tdesktop-cache:/var/cache/ccache \
+          -v ${{ env.CCACHE_DIR }}:/var/cache/ccache \
           -e CONFIG=Release \
           -e CCACHE_SLOPPINESS=pch_defines,time_macros \
           $IMAGE_TAG \
@@ -111,15 +118,32 @@ jobs:
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
           -D DESKTOP_APP_BUILD_PACKER=ON
 
+      - name: Count ccache misses.
+        id: ccache-stats
+        if: ${{ inputs.disable_cache != true && inputs.disable_cache != 'true' }}
+        run: |
+          MISSES=$(ccache --print-stats | sed -n 's/^cache_miss\t//p' | head -1)
+          case "$MISSES" in (*[!0-9]*|'') MISSES=0;; esac
+          echo "misses=$MISSES" >> $GITHUB_OUTPUT
+          echo "ccache misses this run: $MISSES"
+
+      - name: Trim Telegram Desktop cache.
+        if: >
+          github.ref_name == github.event.repository.default_branch
+            && inputs.disable_cache != true
+            && inputs.disable_cache != 'true'
+            && fromJSON(steps.ccache-stats.outputs.misses) > 300
+        run: ccache --evict-older-than 1d
+
       - name: Save Telegram Desktop cache.
         if: >
           github.ref_name == github.event.repository.default_branch
-            && steps.cache-tdesktop.outputs.cache-hit != 'true'
             && inputs.disable_cache != true
             && inputs.disable_cache != 'true'
+            && fromJSON(steps.ccache-stats.outputs.misses) > 300
         uses: actions/cache/save@v6
         with:
-          path: ${{ runner.temp }}/.tdesktop-cache
+          path: ${{ env.CCACHE_DIR }}
           key: ${{ steps.cache-tdesktop.outputs.cache-primary-key }}
 
       - name: Read version info
