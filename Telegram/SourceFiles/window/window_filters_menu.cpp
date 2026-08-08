@@ -390,7 +390,7 @@ void FiltersMenu::refresh() {
 			filter.title(),
 			Ui::ComputeFilterIcon(filter),
 			nextIsLocked);
-		button->setHideTitle(hide_folder_tabs_titles);
+		button->setShowText(!hide_folder_tabs_titles);
 		now.emplace(filter.id(), std::move(button));
 	}
 	_filters = std::move(now);
@@ -444,7 +444,7 @@ void FiltersMenu::setupList() {
 		-1,
 		{ TextWithEntities{ tr::lng_filters_setup(tr::now) } },
 		Ui::FilterIcon::Edit);
-	_setup->setHideTitle(hide_folder_tabs_titles);
+	_setup->setShowText(!hide_folder_tabs_titles);
 	_reorder = std::make_unique<Ui::VerticalLayoutReorder>(_list, &_scroll);
 
 	_reorder->updates(
