@@ -173,7 +173,8 @@ jobs:
           -D TDESKTOP_API_ID=${{ secrets.API_ID_CONFIG }} \
           -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }} \
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
-          -D DESKTOP_APP_BUILD_PACKER=ON
+          -D DESKTOP_APP_BUILD_PACKER=ON \
+          -D DESKTOP_APP_SPECIAL_TARGET=linux
 
       - name: Count ccache misses.
         id: ccache-stats
