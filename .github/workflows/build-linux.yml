@@ -49,7 +49,7 @@ jobs:
       tagname: ${{ steps.tagname.outputs.tagname }}
       run_id: ${{ github.run_id }}
     env:
-      IMAGE_TAG: fagram:build
+      IMAGE_TAG: ghcr.io/${{ github.repository }}/centos_env:latest
 
     steps:
       - name: Set TAGNAME
@@ -80,62 +80,8 @@ jobs:
         with:
           tool-cache: true
 
-      - name: Generate the Dockerfile
-        run: |
-          set -e
-          curl -sSL https://install.python-poetry.org | python3 -
-          export PATH="$HOME/.local/bin:$PATH"
-          cd Telegram/build/docker/centos_env
-          poetry install
-
-          # The checked-in Dockerfile is itself the Jinja template, so redirecting
-          # into it truncates the input before the generator reads it.
-          DOCKERFILE=$(DEBUG= LTO= poetry run gen_dockerfile)
-          printf '%s\n' "$DOCKERFILE" > Dockerfile
-          rm -rf __pycache__
-
-          if [ "$(grep -c '^FROM' Dockerfile)" -lt 1 ]; then
-            echo "Generated Dockerfile has no FROM instruction:"
-            head -20 Dockerfile
-            exit 1
-          fi
-          echo "Generated Dockerfile: $(wc -l < Dockerfile) lines."
-
-      - name: Set up Docker Buildx
-        id: setup-buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Libraries cache
-        id: cache-libs
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ runner.temp }}/.buildx-cache
-            ${{ runner.temp }}/.mount-cache
-          key: ${{ runner.OS }}-libs-${{ hashFiles('Telegram/build/docker/centos_env/**') }}
-          restore-keys: ${{ runner.OS }}-libs-
-
-      - name: Restore Docker cache mounts
-        uses: reproducible-containers/buildkit-cache-dance@5422eac04292c961a382e0f584ea0f03ad9da723
-        with:
-          builder: ${{ steps.setup-buildx.outputs.name }}
-          cache-dir: ${{ runner.temp }}/.mount-cache
-          dockerfile: Telegram/build/docker/centos_env/Dockerfile
-          skip-extraction: ${{ steps.cache-libs.outputs.cache-hit }}
-
-      - name: Libraries
-        uses: docker/build-push-action@v5
-        with:
-          context: Telegram/build/docker/centos_env
-          load: true
-          tags: ${{ env.IMAGE_TAG }}
-          cache-from: type=local,src=${{ runner.temp }}/.buildx-cache
-          cache-to: type=local,dest=${{ runner.temp }}/.buildx-cache-new,mode=max
-
-      - name: Move cache.
-        run: |
-          rm -rf ${{ runner.temp }}/.buildx-cache
-          mv ${{ runner.temp }}/.buildx-cache-new ${{ runner.temp }}/.buildx-cache
+      - name: Pull Docker IMG
+        run: docker pull ${{ env.IMAGE_TAG }}
 
       - name: Set up ccache
         run: |
