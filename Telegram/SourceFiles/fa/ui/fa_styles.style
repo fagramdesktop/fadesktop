@@ -29,8 +29,8 @@ topBarAdmins: IconButton {
 	width: 40px;
 	height: topBarHeight;
 
-	icon: icon {{ "fa/top_bar_admins", menuIconFg }};
-	iconOver: icon {{ "fa/top_bar_admins", menuIconFgOver }};
+	icon: icon {{ "menu/admin", menuIconFg }};
+	iconOver: icon {{ "menu/admin", menuIconFgOver }};
 	iconPosition: point(4px, 11px);
 
 	rippleAreaPosition: point(0px, 7px);
@@ -44,8 +44,8 @@ topBarRecentActions: IconButton {
 	width: 40px;
 	height: topBarHeight;
 
-	icon: icon {{ "fa/top_bar_recent_actions", menuIconFg }};
-	iconOver: icon {{ "fa/top_bar_recent_actions", menuIconFgOver }};
+	icon: icon {{ "menu/group_log", menuIconFg }};
+	iconOver: icon {{ "menu/group_log", menuIconFgOver }};
 	iconPosition: point(4px, 11px);
 
 	rippleAreaPosition: point(0px, 7px);
