@@ -1912,9 +1912,12 @@ void InitFieldAutocomplete(
 			auto name = user->firstName.isEmpty()
 				? user->name()
 				: user->firstName;
-			field->insertTag(name, PrepareMentionTag(user), suffix);
+			field->insertTag(name, PrepareMentionTag(user));
 		} else {
-			field->insertTag('@' + data.mention, QString(), suffix);
+			field->insertTag('@' + data.mention);
+		}
+		if (!suffix.isEmpty()) {
+			field->textCursor().insertText(suffix);
 		}
 		if (data.method == FieldAutocompleteChooseMethod::ByTab) {
 			field->textCursor().insertText(" @");
