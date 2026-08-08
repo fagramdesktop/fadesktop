@@ -75,18 +75,75 @@ jobs:
         run: |
           git clone https://x-access-token:${{ secrets.PAT }}@github.com/fagramdesktop/DesktopPrivate.git $GITHUB_WORKSPACE/../DesktopPrivate
 
-      - name: Pull Docker IMG
-        run: |
-          docker pull ghcr.io/telegramdesktop/tdesktop/centos_env
-          docker tag ghcr.io/telegramdesktop/tdesktop/centos_env $IMAGE_TAG
+      - name: Free up some disk space
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        with:
+          tool-cache: true
 
-      - name: Set up ccache.
+      - name: Generate the Dockerfile
+        run: |
+          set -e
+          curl -sSL https://install.python-poetry.org | python3 -
+          export PATH="$HOME/.local/bin:$PATH"
+          cd Telegram/build/docker/centos_env
+          poetry install
+
+          # The checked-in Dockerfile is itself the Jinja template, so redirecting
+          # into it truncates the input before the generator reads it.
+          DOCKERFILE=$(DEBUG= LTO= poetry run gen_dockerfile)
+          printf '%s\n' "$DOCKERFILE" > Dockerfile
+          rm -rf __pycache__
+
+          if [ "$(grep -c '^FROM' Dockerfile)" -lt 1 ]; then
+            echo "Generated Dockerfile has no FROM instruction:"
+            head -20 Dockerfile
+            exit 1
+          fi
+          echo "Generated Dockerfile: $(wc -l < Dockerfile) lines."
+
+      - name: Set up Docker Buildx
+        id: setup-buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Libraries cache
+        id: cache-libs
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/.buildx-cache
+            ${{ runner.temp }}/.mount-cache
+          key: ${{ runner.OS }}-libs-${{ hashFiles('Telegram/build/docker/centos_env/**') }}
+          restore-keys: ${{ runner.OS }}-libs-
+
+      - name: Restore Docker cache mounts
+        uses: reproducible-containers/buildkit-cache-dance@5422eac04292c961a382e0f584ea0f03ad9da723
+        with:
+          builder: ${{ steps.setup-buildx.outputs.name }}
+          cache-dir: ${{ runner.temp }}/.mount-cache
+          dockerfile: Telegram/build/docker/centos_env/Dockerfile
+          skip-extraction: ${{ steps.cache-libs.outputs.cache-hit }}
+
+      - name: Libraries
+        uses: docker/build-push-action@v5
+        with:
+          context: Telegram/build/docker/centos_env
+          load: true
+          tags: ${{ env.IMAGE_TAG }}
+          cache-from: type=local,src=${{ runner.temp }}/.buildx-cache
+          cache-to: type=local,dest=${{ runner.temp }}/.buildx-cache-new,mode=max
+
+      - name: Move cache.
+        run: |
+          rm -rf ${{ runner.temp }}/.buildx-cache
+          mv ${{ runner.temp }}/.buildx-cache-new ${{ runner.temp }}/.buildx-cache
+
+      - name: Set up ccache
         run: |
           curl -sSL https://github.com/ccache/ccache/releases/download/v4.13.6/ccache-4.13.6-linux-x86_64-glibc.tar.xz \
           | sudo tar xJ -C /usr/local/bin --strip-components=1 ccache-4.13.6-linux-x86_64-glibc/ccache
-          echo "CCACHE_DIR=${{ runner.temp }}/.tdesktop-cache" >> $GITHUB_ENV
+          echo "CCACHE_DIR=$RUNNER_TEMP/.tdesktop-cache" >> $GITHUB_ENV
 
-      - name: Restore Telegram Desktop cache.
+      - name: Restore FAgram cache
         id: cache-tdesktop
         if: ${{ inputs.disable_cache != true && inputs.disable_cache != 'true' }}
         uses: actions/cache/restore@v6
