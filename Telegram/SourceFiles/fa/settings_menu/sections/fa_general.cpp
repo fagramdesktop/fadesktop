@@ -126,6 +126,10 @@ namespace Settings {
 				});
 			}));
 		});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			translationProviderBtn,
+			u"fa/general/translation-provider"_q,
+			controller);
 		Ui::AddDivider(container);
 
         SettingsMenuJsonSwitch(fa_disable_ads, disable_ads, u"fa/general/disable-ads"_q);

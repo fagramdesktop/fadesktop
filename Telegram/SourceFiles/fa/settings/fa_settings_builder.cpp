@@ -133,6 +133,15 @@ const auto kFAGeneralMeta = BuildHelper({
 }, [](SectionBuilder &builder) {
 	builder.add(nullptr, [] {
 		return SearchEntry{
+			.id = u"fa/general/translation-provider"_q,
+			.title = QString("Translation Provider"),
+			.keywords = { u"translation"_q, u"provider"_q, u"translate"_q, u"engine"_q, u"google"_q, u"yandex"_q },
+			.icon = { &st::menuIconShowAll },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
 			.id = u"fa/general/disable-ads"_q,
 			.title = fatr::fa_disable_ads(fatr::now),
 			.keywords = { u"ads"_q, u"advertising"_q, u"sponsored"_q, u"disable"_q, u"block"_q, u"remove"_q },
