@@ -1,3 +1,20 @@
+2.3.5 (09.08.26)
+
+- Updated tdesktop to v7.0.9
+- Replace GoogleAppTranslator with multi-provider engine
+- Updated FAsettings implementation
+- Display full timestamps in last seen status
+- Show forwarded message date in title
+- Disable delete for everyone by default
+- Disable adaptive layout for wide screens by default
+- Disable greeting stickers in chat intros
+- Option to hide archived stories
+- Remove solar icons due to inconsistency
+- Remove hide folder tabs titles option 
+- Re-use menu icons for topbar recent actions and admin instead of custom ones
+- Switch to zstd for better tarball compression
+- Bug fixes
+
 2.3.4 (23.07.26)
 
 - Fix startup crash
