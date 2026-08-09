@@ -5,7 +5,7 @@
 - Updated FAsettings implementation
 - Display full timestamps in last seen status
 - Show forwarded message date in title
-- Disable delete for everyone by default
+- Enable delete for everyone by default
 - Disable adaptive layout for wide screens by default
 - Disable greeting stickers in chat intros
 - Option to hide archived stories

@@ -117,7 +117,7 @@ jobs:
       - name: Build release file list
         id: release-files
         run: |
-          FILES="artifacts/linux/fagram-${{ inputs.tagname }}.tar.gz
+          FILES="artifacts/linux/fagram-${{ inputs.tagname }}.tar.zst
           artifacts/windows/FAgram_Win-x64_${{ inputs.tagname }}_portable.zip
           artifacts/windows-installer/*.exe"
           if [ -n "${{ inputs.mac_run_id }}" ] && [ -f "artifacts/mac/fagram-mac-${{ inputs.tagname }}.dmg" ]; then
