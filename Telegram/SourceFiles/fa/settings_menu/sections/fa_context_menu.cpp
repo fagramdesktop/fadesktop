@@ -110,6 +110,10 @@ namespace Settings {
 				container,
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			buttonSizeSlider,
+			u"fa/context-menu/button-size"_q,
+			controller);
 		const auto updateButtonSizeLabel = [=](int value) {
 			buttonSizeLabel->setText(fatr::fa_shortcut_button_size(fatr::now).arg(value));
 		};
@@ -154,6 +158,10 @@ namespace Settings {
 				container,
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			iconSizeSlider,
+			u"fa/context-menu/icon-size"_q,
+			controller);
 		const auto updateIconSizeLabel = [=](int value) {
 			iconSizeLabel->setText(fatr::fa_shortcut_icon_size(fatr::now).arg(value));
 		};
@@ -198,6 +206,10 @@ namespace Settings {
 				container,
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			spacingSlider,
+			u"fa/context-menu/spacing"_q,
+			controller);
 		const auto updateSpacingLabel = [=](int value) {
 			spacingLabel->setText(fatr::fa_shortcut_spacing(fatr::now).arg(value));
 		};
@@ -242,6 +254,10 @@ namespace Settings {
 				container,
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			hPaddingSlider,
+			u"fa/context-menu/h-padding"_q,
+			controller);
 		const auto updateHPaddingLabel = [=](int value) {
 			hPaddingLabel->setText(fatr::fa_shortcut_horizontal_padding(fatr::now).arg(value));
 		};
@@ -286,6 +302,10 @@ namespace Settings {
 				container,
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			vPaddingSlider,
+			u"fa/context-menu/v-padding"_q,
+			controller);
 		const auto updateVPaddingLabel = [=](int value) {
 			vPaddingLabel->setText(fatr::fa_shortcut_vertical_padding(fatr::now).arg(value));
 		};
@@ -330,6 +350,10 @@ namespace Settings {
 				container,
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			cornerRadiusSlider,
+			u"fa/context-menu/corner-radius"_q,
+			controller);
 		const auto updateCornerRadiusLabel = [=](int value) {
 			cornerRadiusLabel->setText(fatr::fa_shortcut_corner_radius(fatr::now).arg(value));
 		};

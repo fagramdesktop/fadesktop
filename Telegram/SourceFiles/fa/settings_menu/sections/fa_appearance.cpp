@@ -119,6 +119,10 @@ namespace Settings {
 				container,
 				st::settingsAudioVolumeSlider),
 			st::settingsAudioVolumeSliderPadding);
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			userpicRoundnessSlider,
+			u"fa/appearance/roundness"_q,
+			controller);
 
 		const auto savedRoundness = container->lifetime().make_state<int>(
 			::FASettings::JsonSettings::GetInt("roundness"));
