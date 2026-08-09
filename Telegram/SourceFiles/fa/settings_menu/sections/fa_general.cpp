@@ -104,6 +104,30 @@ namespace Settings {
     void FAGeneral::SetupGeneral(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
         Ui::AddSubsectionTitle(container, fatr::fa_general());
 
+		const auto translationProviderBtn = container->add(object_ptr<Button>(
+			container,
+			rpl::single(QString("Translation Provider")),
+			st::settingsButton
+		));
+		translationProviderBtn->setClickedCallback([=] {
+			const auto options = std::vector<QString>{
+				"Telegram", "Google", "Yandex", "Native"
+			};
+			controller->show(Ui::MakeBox<Ui::GenericBox>([=](not_null<Ui::GenericBox*> box) {
+				SingleChoiceBox(box, {
+					.title = rpl::single(QString("Translation Provider")),
+					.options = options,
+					.initialSelection = ::FASettings::JsonSettings::GetInt("translationProvider"),
+					.callback = [=](int selection) {
+						::FASettings::JsonSettings::Set("translationProvider", selection);
+						::FASettings::JsonSettings::Write();
+						box->closeBox();
+					},
+				});
+			}));
+		});
+		Ui::AddDivider(container);
+
         SettingsMenuJsonSwitch(fa_disable_ads, disable_ads, u"fa/general/disable-ads"_q);
         Ui::AddDividerText(container, fatr::fa_disable_ads_desc());
 		const auto disableAi = container->add(object_ptr<Button>(

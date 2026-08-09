@@ -406,9 +406,18 @@ PRIVATE
     boxes/preview_ai_tone_box.h
     boxes/translate_box.cpp
     boxes/translate_box.h
-    boxes/BaseTranslator.h
-    boxes/GoogleAppTranslator.h
-    boxes/GoogleAppTranslator.cpp
+    fa/translator/fa_translate_provider.cpp
+    fa/translator/fa_translate_provider.h
+    fa/translator/fa_translator.cpp
+    fa/translator/fa_translator.h
+    fa/translator/html_parser.cpp
+    fa/translator/html_parser.h
+    fa/translator/implementations/base.cpp
+    fa/translator/implementations/base.h
+    fa/translator/implementations/google.cpp
+    fa/translator/implementations/google.h
+    fa/translator/implementations/yandex.cpp
+    fa/translator/implementations/yandex.h
     boxes/unconfirmed_auth_denied_box.cpp
     boxes/unconfirmed_auth_denied_box.h
     boxes/url_auth_box.cpp

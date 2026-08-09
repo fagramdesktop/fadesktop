@@ -15,6 +15,13 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <QtCore/QVariant>
 #include <QtCore/QJsonArray>
 
+enum class TranslationProvider {
+	Telegram = 0,
+	Google = 1,
+	Yandex = 2,
+	Native = 3,
+};
+
 namespace FASettings {
 
 namespace JsonSettings {
