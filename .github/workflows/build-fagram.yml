@@ -42,7 +42,7 @@ jobs:
 
   build-windows:
     name: Build Windows x64
-    uses: ./.github/workflows/win-release-x64.yml
+    uses: ./.github/workflows/build-win-x64.yml
     with:
       tagname: ${{ inputs.tagname }}
       build_type: ${{ inputs.build_type }}

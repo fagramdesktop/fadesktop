@@ -110,17 +110,6 @@ jobs:
           sdk: ${{ env.SDK }}
           toolset: 14.44
 
-      - name: Install ATL
-        if: steps.cache-libs.outputs.cache-hit != 'true'
-        shell: pwsh
-        run: |
-          $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
-          $p = Start-Process -FilePath "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe" -Wait -PassThru -ArgumentList `
-            'modify', '--installPath', "`"$vsPath`"", `
-            '--add', 'Microsoft.VisualStudio.Component.VC.ATL', `
-            '--passive', '--norestart', '--wait'
-          if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { Write-Warning "Installer exited with code $($p.ExitCode)" }
-
       - name: NuGet sources
         if: steps.cache-libs.outputs.cache-hit != 'true'
         run: |
@@ -135,15 +124,8 @@ jobs:
 
       - name: Clean up build intermediates
         if: steps.cache-libs.outputs.cache-hit != 'true'
-        run: |
-          cd %TBUILD%
-          del /S /Q Libraries\*.pdb 2>nul
-          del /S /Q Libraries\*.pch 2>nul
-          del /S /Q Libraries\*.ilk 2>nul
-          del /S /Q Libraries\*.exp 2>nul
-          del /S /Q Libraries\*.log 2>nul
-          del /S /Q Libraries\*.tlog 2>nul
-          for /d /r Libraries %%d in (.git) do @if exist "%%d" rd /s /q "%%d"
+        shell: bash
+        run: find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' ')' -type f ')' -o -empty ')' -delete
 
   build-fagram:
     name: Build FAgram Desktop
@@ -324,7 +306,7 @@ jobs:
     name: Build Windows x64 Installer
     needs: build-fagram
     if: always() && needs.build-fagram.result == 'success'
-    uses: ./.github/workflows/win-installer-x64.yml
+    uses: ./.github/workflows/build-win-installer-x64.yml
     with:
       artifact_name: FAgram_Win-x64
       release_tag: ${{ inputs.tagname }}
