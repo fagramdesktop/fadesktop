@@ -6,7 +6,7 @@ For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 
-#include <ui/boxes/single_choice_box.h>
+
 
 #include "fa/settings/fa_settings.h"
 #include "fa/settings_menu/sections/fa_general.h"
@@ -104,32 +104,36 @@ namespace Settings {
     void FAGeneral::SetupGeneral(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
         Ui::AddSubsectionTitle(container, fatr::fa_general());
 
-		const auto translationProviderBtn = container->add(object_ptr<Button>(
-			container,
-			rpl::single(QString("Translation Provider")),
-			st::settingsButton
-		));
-		translationProviderBtn->setClickedCallback([=] {
-			const auto options = std::vector<QString>{
-				"Telegram", "Google", "Yandex", "Native"
-			};
-			controller->show(Ui::MakeBox<Ui::GenericBox>([=](not_null<Ui::GenericBox*> box) {
-				SingleChoiceBox(box, {
-					.title = rpl::single(QString("Translation Provider")),
-					.options = options,
-					.initialSelection = ::FASettings::JsonSettings::GetInt("translationProvider"),
-					.callback = [=](int selection) {
-						::FASettings::JsonSettings::Set("translationProvider", selection);
-						::FASettings::JsonSettings::Write();
-						box->closeBox();
-					},
-				});
-			}));
+		Ui::AddSubsectionTitle(container, rpl::single(QString("Translation Provider")));
+
+		const auto translationGroup = std::make_shared<Ui::RadiobuttonGroup>(
+			::FASettings::JsonSettings::GetInt("translationProvider"));
+		translationGroup->setChangedCallback([=](int value) {
+			::FASettings::JsonSettings::Set("translationProvider", value);
+			::FASettings::JsonSettings::Write();
 		});
-		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-			translationProviderBtn,
-			u"fa/general/translation-provider"_q,
-			controller);
+
+		const auto addTranslationRadio = [&](int value, const QString &text) {
+			const auto radio = container->add(
+				object_ptr<Ui::Radiobutton>(
+					container,
+					translationGroup,
+					value,
+					text,
+					st::settingsSendType),
+				st::settingsSendTypePadding);
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				radio,
+				u"fa/general/translation-provider"_q,
+				controller);
+		};
+
+		addTranslationRadio(0, "Telegram");
+		addTranslationRadio(1, "Google");
+		addTranslationRadio(2, "Yandex");
+		addTranslationRadio(3, "Native");
+
+		Ui::AddSkip(container);
 		Ui::AddDivider(container);
 
         SettingsMenuJsonSwitch(fa_disable_ads, disable_ads, u"fa/general/disable-ads"_q);
