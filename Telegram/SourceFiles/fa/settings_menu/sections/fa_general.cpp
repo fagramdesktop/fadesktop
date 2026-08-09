@@ -104,7 +104,7 @@ namespace Settings {
     void FAGeneral::SetupGeneral(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
         Ui::AddSubsectionTitle(container, fatr::fa_general());
 
-		Ui::AddSubsectionTitle(container, rpl::single(QString("Translation Provider")));
+		Ui::AddSubsectionTitle(container, fatr::fa_translation_provider());
 
 		const auto translationGroup = std::make_shared<Ui::RadiobuttonGroup>(
 			::FASettings::JsonSettings::GetInt("translationProvider"));
@@ -128,10 +128,10 @@ namespace Settings {
 				controller);
 		};
 
-		addTranslationRadio(0, "Telegram");
-		addTranslationRadio(1, "Google");
-		addTranslationRadio(2, "Yandex");
-		addTranslationRadio(3, "Native");
+		addTranslationRadio(0, fatr::fa_translate_telegram(fatr::now));
+		addTranslationRadio(1, fatr::fa_translate_google(fatr::now));
+		addTranslationRadio(2, fatr::fa_translate_yandex(fatr::now));
+		addTranslationRadio(3, fatr::fa_translate_native(fatr::now));
 
 		Ui::AddSkip(container);
 		Ui::AddDivider(container);

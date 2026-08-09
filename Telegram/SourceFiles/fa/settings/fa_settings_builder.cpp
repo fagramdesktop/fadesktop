@@ -134,7 +134,7 @@ const auto kFAGeneralMeta = BuildHelper({
 	builder.add(nullptr, [] {
 		return SearchEntry{
 			.id = u"fa/general/translation-provider"_q,
-			.title = QString("Translation Provider"),
+			.title = fatr::fa_translation_provider(fatr::now),
 			.keywords = { u"translation"_q, u"provider"_q, u"translate"_q, u"engine"_q, u"google"_q, u"yandex"_q },
 			.icon = { &st::menuIconShowAll },
 		};
