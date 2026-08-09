@@ -191,6 +191,8 @@ namespace Settings {
 		Ui::AddDividerText(container, fatr::fa_force_snow_desc());
 		RestartSettingsMenuJsonSwitch(fa_hide_stories, hide_stories, u"fa/appearance/hide-stories"_q);
 		Ui::AddDividerText(container, fatr::fa_hide_stories_desc());
+		RestartSettingsMenuJsonSwitch(fa_hide_archived_stories, hide_archived_stories, u"fa/appearance/hide-archived-stories"_q);
+		Ui::AddDividerText(container, fatr::fa_hide_archived_stories_desc());
 		SettingsMenuJsonSwitch(fa_use_tdesktop_themes, use_tdesktop_themes, u"fa/appearance/use-tdesktop-themes"_q);
 		Ui::AddDividerText(container, fatr::fa_use_tdesktop_themes_desc());
 		const auto iconPackBtn = container->add(object_ptr<Button>(
