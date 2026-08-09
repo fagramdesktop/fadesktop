@@ -182,7 +182,7 @@ jobs:
           API_ID: ${{ secrets.API_ID_CONFIG }}
           API_HASH: ${{ secrets.API_HASH_CONFIG }}
         run: |
-          LINUX_FILE=$(find artifacts/linux -name "fagram-*.tar.gz" | head -1)
+          LINUX_FILE=$(find artifacts/linux -name "fagram-*.tar.zst" | head -1)
           python3 scripts/tgupload.py "$LINUX_FILE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
           <b>FAgram Linux ${{ inputs.tagname }}</b>
           TGD Base: <code>${{ env.TGD_VERSION }}</code>
