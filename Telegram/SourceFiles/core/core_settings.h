@@ -1084,7 +1084,7 @@ private:
 
 	SettingsProxy _proxy;
 
-	rpl::variable<bool> _adaptiveForWide = true;
+	rpl::variable<bool> _adaptiveForWide = false;
 	bool _moderateModeEnabled = false;
 	rpl::variable<float64> _songVolume = kDefaultVolume;
 	rpl::variable<float64> _videoVolume = kDefaultVolume;
