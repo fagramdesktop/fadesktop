@@ -341,7 +341,6 @@ bool FiltersMenu::listFocused() const {
 
 void FiltersMenu::refresh() {
 	bool hide_all_chats_folder = FASettings::JsonSettings::GetBool("hide_all_chats_folder");
-	bool hide_folder_tabs_titles = FASettings::JsonSettings::GetBool("hide_folder_tabs_titles");
 
 	const auto filters = &_session->session().data().chatsFilters();
 	if (!filters->has() || _ignoreRefresh) {
@@ -390,7 +389,6 @@ void FiltersMenu::refresh() {
 			filter.title(),
 			Ui::ComputeFilterIcon(filter),
 			nextIsLocked);
-		button->setShowText(!hide_folder_tabs_titles);
 		now.emplace(filter.id(), std::move(button));
 	}
 	_filters = std::move(now);
@@ -435,8 +433,6 @@ void FiltersMenu::refresh() {
 }
 
 void FiltersMenu::setupList() {
-	bool hide_folder_tabs_titles = FASettings::JsonSettings::GetBool("hide_folder_tabs_titles");
-
 	_list = _container->add(object_ptr<TabListLayout>(_container));
 	_list->setAccessibleName(tr::lng_filters_title(tr::now));
 	_setup = prepareButton(
@@ -444,7 +440,6 @@ void FiltersMenu::setupList() {
 		-1,
 		{ TextWithEntities{ tr::lng_filters_setup(tr::now) } },
 		Ui::FilterIcon::Edit);
-	_setup->setShowText(!hide_folder_tabs_titles);
 	_reorder = std::make_unique<Ui::VerticalLayoutReorder>(_list, &_scroll);
 
 	_reorder->updates(

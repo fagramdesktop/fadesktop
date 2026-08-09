@@ -275,9 +275,6 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "context_menu_forward_submenu", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
-	{ "hide_folder_tabs_titles", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
 	{ "use_tdesktop_themes", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
