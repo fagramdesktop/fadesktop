@@ -31,7 +31,7 @@ topBarAdmins: IconButton {
 
 	icon: icon {{ "menu/admin", menuIconFg }};
 	iconOver: icon {{ "menu/admin", menuIconFgOver }};
-	iconPosition: point(4px, 11px);
+	iconPosition: point(8px, 15px);
 
 	rippleAreaPosition: point(0px, 7px);
 	rippleAreaSize: 40px;
@@ -46,7 +46,7 @@ topBarRecentActions: IconButton {
 
 	icon: icon {{ "menu/group_log", menuIconFg }};
 	iconOver: icon {{ "menu/group_log", menuIconFgOver }};
-	iconPosition: point(4px, 11px);
+	iconPosition: point(8px, 15px);
 
 	rippleAreaPosition: point(0px, 7px);
 	rippleAreaSize: 40px;
