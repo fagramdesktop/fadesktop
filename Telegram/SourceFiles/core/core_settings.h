@@ -1183,7 +1183,7 @@ private:
 #endif // Q_OS_MAC
 	HistoryView::DoubleClickQuickAction _chatQuickAction
 		= HistoryView::DoubleClickQuickAction();
-	bool _translateButtonEnabled = false;
+	bool _translateButtonEnabled = true;
 	bool _usePlatformTranslation = false;
 	rpl::variable<bool> _translateChatEnabled = true;
 	rpl::variable<int> _translateToRaw = 0;
