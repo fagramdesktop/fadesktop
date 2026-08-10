@@ -159,3 +159,12 @@ jobs:
     with:
       release_tag: ${{ inputs.tagname }}
     secrets: inherit
+
+  update-homebrew:
+    name: Update Homebrew Cask
+    needs: create-release
+    uses: ./.github/workflows/homebrew-cask.yml
+    if: ${{ inputs.mac_run_id != '' }}
+    with:
+      release_tag: ${{ inputs.tagname }}
+    secrets: inherit

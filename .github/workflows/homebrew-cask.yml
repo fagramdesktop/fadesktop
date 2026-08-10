@@ -1,0 +1,61 @@
+name: Update Homebrew Cask
+
+on:
+  workflow_call:
+    inputs:
+      release_tag:
+        description: 'Release tag to update cask for'
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to update cask for'
+        type: string
+        required: true
+
+jobs:
+  update-cask:
+    name: Update Homebrew Cask
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Clone homebrew tap repository
+        uses: actions/checkout@v7
+        with:
+          repository: fagramdesktop/homebrew-fagram
+          token: ${{ secrets.PAT }}
+          path: homebrew-fagram
+          
+      - name: Get release tag
+        id: get_tag
+        run: |
+          echo "RELEASE_TAG=${{ inputs.release_tag }}" >> $GITHUB_ENV
+          
+      - name: Download release asset
+        run: |
+          ASSET_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/fagram-mac-${RELEASE_TAG}.dmg"
+          echo "Downloading from: $ASSET_URL"
+          curl -L -o fagram.dmg "$ASSET_URL"
+          
+      - name: Calculate hash and update cask
+        run: |
+          HASH=$(sha256sum fagram.dmg | awk '{print $1}')
+          echo "Hash: $HASH"
+          echo "Version: $RELEASE_TAG"
+          
+          cd homebrew-fagram
+          sed -i "s/version \".*\"/version \"$RELEASE_TAG\"/" Casks/fagram.rb
+          sed -i "s/sha256 \".*\"/sha256 \"$HASH\"/" Casks/fagram.rb
+          
+          echo "Updated fagram.rb:"
+          cat Casks/fagram.rb
+          
+      - name: Commit and push changes
+        run: |
+          cd homebrew-fagram
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/fagram.rb
+          git commit -m "Update Homebrew cask to $RELEASE_TAG"
+          git push
