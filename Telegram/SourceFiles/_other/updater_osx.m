@@ -8,7 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #import <Cocoa/Cocoa.h>
 #include <sys/xattr.h>
 
-NSString *appName = @"FAgram.app";
+NSString *appName = @"fagram.app";
 NSString *appDir = nil;
 NSString *workDir = nil;
 
