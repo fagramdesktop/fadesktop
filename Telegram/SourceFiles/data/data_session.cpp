@@ -116,11 +116,11 @@ const auto ThumbnailLevels = "mbsa"_q;
 const auto LargeLevels = "ydxcwmbsa"_q;
 
 [[nodiscard]] bool LocalUnlimitedPinnedChatsEnabled() {
-	return FASettings::JsonSettings::GetBool("unlimited_pinned_chats");
+	return FASettings::FASettings::getInstance().unlimitedPinnedChats();
 }
 
 [[nodiscard]] QJsonArray LocalPinnedChatsOrder(uint64 accountId) {
-	return FASettings::JsonSettings::GetJsonArray("pinned_chat_order", accountId);
+	return FASettings::FASettings::getInstance().pinnedChatOrder(accountId);
 }
 
 [[nodiscard]] bool LocalPinnedChatsContains(
@@ -380,7 +380,7 @@ Session::Session(not_null<Main::Session*> session)
 			}
 		}, _lifetime);
 
-		bool hide_stories = FASettings::JsonSettings::GetBool("hide_stories");
+		bool hide_stories = FASettings::FASettings::getInstance().hideStories();
 		if (!hide_stories) {
 			_stories->loadMore(Data::StorySourcesList::NotHidden);
 		}
@@ -2457,11 +2457,8 @@ void Session::notifyPinnedDialogsOrderUpdated() {
 			}
 		}
 		const auto accountId = _session->uniqueId();
-		FASettings::JsonSettings::Set(
-			"pinned_chat_order",
-			peerIds,
-			accountId);
-		FASettings::JsonSettings::Write();
+		FASettings::FASettings::getInstance().setPinnedChatOrder(peerIds, accountId);
+		
 	}
 }
 
@@ -2876,7 +2873,7 @@ int Session::pinnedChatsLimit(not_null<Data::SavedMessages*> saved) const {
 rpl::producer<int> Session::maxPinnedChatsLimitValue(
 		Data::Folder *folder) const {
 	if (!folder
-		&& FASettings::JsonSettings::GetBool("unlimited_pinned_chats")) {
+		&& FASettings::FASettings::getInstance().unlimitedPinnedChats()) {
 		return rpl::single(100);
 	}
 	return _session->appConfig().value(

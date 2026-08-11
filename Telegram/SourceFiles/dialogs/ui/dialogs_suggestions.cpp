@@ -247,7 +247,7 @@ RecentRow::RecentRow(not_null<PeerData*> peer)
 : PeerListRow(peer)
 , _history(peer->owner().history(peer))
 , _mainAppText([&]() -> std::unique_ptr<Ui::Text::String> {
-	bool hide_open_webapp_button_chatlist = FASettings::JsonSettings::GetBool("hide_open_webapp_button_chatlist");
+	bool hide_open_webapp_button_chatlist = FASettings::FASettings::getInstance().hideOpenWebappButtonChatlist();
 	if (!hide_open_webapp_button_chatlist) {
 		if (const auto user = peer->asUser()) {
 			if (user->botInfo && user->botInfo->hasMainApp) {

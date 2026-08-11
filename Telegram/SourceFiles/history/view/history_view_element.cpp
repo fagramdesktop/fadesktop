@@ -2037,7 +2037,7 @@ void Element::validateText() {
 	const auto summaryShownWas = (_flags & Flag::SummaryShown) != 0;
 	const auto summaryShownNow = !summary.result.empty()
 		&& summary.shown
-		&& !FASettings::JsonSettings::GetBool(u"disable_ai"_q);
+		&& !FASettings::FASettings::getInstance().disableAi();
 	const auto summaryShownChanged = (summaryShownWas != summaryShownNow);
 	if (summaryShownNow) {
 		_flags |= Flag::SummaryShown;

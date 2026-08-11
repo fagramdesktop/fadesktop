@@ -1495,7 +1495,7 @@ bool FieldAutocomplete::Inner::chooseAtIndex(
 			const auto user = _mrows->at(index).user;
 			const auto mentionUsername = PrimaryUsername(user);
 			const auto addComma = !user->isBot()
-				&& FASettings::JsonSettings::GetBool("add_comma_after_mention");
+				&& FASettings::FASettings::getInstance().addCommaAfterMention();
 			_mentionChosen.fire({ user, mentionUsername, addComma, method });
 			return true;
 		}

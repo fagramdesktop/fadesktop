@@ -56,7 +56,7 @@ void PeerSearch::request(
 	cache.requested = true;
 	cache.result.query = _query;
 	if (_query.size() < kMinSponsoredQueryLength
-		|| FASettings::JsonSettings::GetBool("disable_ads")) {
+		|| FASettings::FASettings::getInstance().disableAds()) {
 		cache.sponsoredReady = true;
 	} else if (_type == Type::WithSponsored) {
 		requestSponsored();

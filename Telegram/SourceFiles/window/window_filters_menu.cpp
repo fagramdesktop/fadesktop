@@ -340,7 +340,7 @@ bool FiltersMenu::listFocused() const {
 }
 
 void FiltersMenu::refresh() {
-	bool hide_all_chats_folder = FASettings::JsonSettings::GetBool("hide_all_chats_folder");
+	bool hide_all_chats_folder = FASettings::FASettings::getInstance().hideAllChatsFolder();
 
 	const auto filters = &_session->session().data().chatsFilters();
 	if (!filters->has() || _ignoreRefresh) {
@@ -811,7 +811,7 @@ void FiltersMenu::applyReorder(
 		return;
 	}
 
-	bool hide_all_chats_folder = FASettings::JsonSettings::GetBool("hide_all_chats_folder");
+	bool hide_all_chats_folder = FASettings::FASettings::getInstance().hideAllChatsFolder();
 
 	const auto filters = &_session->session().data().chatsFilters();
 	const auto &list = filters->list();

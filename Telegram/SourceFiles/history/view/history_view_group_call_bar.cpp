@@ -61,11 +61,11 @@ void GenerateUserpicsInRow(
 		q.setBrush(Qt::NoBrush);
 		q.setPen(pen);
 
-		const auto useDefaultRounding = FASettings::JsonSettings::GetBool("use_default_rounding");
+		const auto useDefaultRounding = FASettings::FASettings::getInstance().useDefaultRounding();
 		if (useDefaultRounding) {
 			q.drawEllipse(x, 0, single, single);
 		} else {
-			const auto roundness = FASettings::JsonSettings::GetInt("roundness");
+			const auto roundness = FASettings::FASettings::getInstance().roundness();
 			const auto radius = single * roundness / 100.0;
 			q.drawRoundedRect(QRectF(x, 0, single, single), radius, radius);
 		}

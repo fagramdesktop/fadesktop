@@ -159,7 +159,7 @@ void DeleteMessagesBox::prepare() {
 		if (_revokeJustClearForChannel) {
 		} else if (auto revoke = revokeText(peer)) {
 			const auto revokeByDefault
-				= FASettings::JsonSettings::GetBool("delete_for_everyone");
+				= FASettings::FASettings::getInstance().deleteForEveryone();
 			_revoke.create(
 				this,
 				revoke->checkbox,
@@ -193,7 +193,7 @@ void DeleteMessagesBox::prepare() {
 			} else if (auto revoke = revokeText(peer)) {
 				const auto &settings = Core::App().settings();
 				const auto revokeByDefault
-					= FASettings::JsonSettings::GetBool("delete_for_everyone")
+					= FASettings::FASettings::getInstance().deleteForEveryone()
 					? true
 					: !settings.rememberedDeleteMessageOnlyForYou();
 				_revoke.create(

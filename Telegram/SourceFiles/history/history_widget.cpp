@@ -3958,7 +3958,7 @@ void HistoryWidget::updateControlsVisibility() {
 			toggleOne(_unblock);
 		};
 
-		const auto discuss_button = FASettings::JsonSettings::GetBool("show_discuss_button");
+		const auto discuss_button = FASettings::FASettings::getInstance().showDiscussButton();
 		
 		if (isChoosingTheme()) {
 			_chooseTheme->show();
@@ -3991,7 +3991,7 @@ void HistoryWidget::updateControlsVisibility() {
 			toggle(_botStart);
 
 			const auto startToken = _peer->asUser()->botInfo->startToken;
-			bool showStartToken = FASettings::JsonSettings::GetBool("show_start_token");
+			bool showStartToken = FASettings::FASettings::getInstance().showStartToken();
 			if (!startToken.isEmpty() && showStartToken) {
     			const auto s = QString("START (%1)").arg(startToken);
     			_botStart->setText(s);
@@ -7072,7 +7072,7 @@ bool HistoryWidget::hideExtraButtons() const {
 }
 
 bool HistoryWidget::hasEnoughLinesForAi() const {
-	if (FASettings::JsonSettings::GetBool(u"disable_ai"_q)) {
+	if (FASettings::FASettings::getInstance().disableAi()) {
 		return false;
 	}
 	return _history
@@ -7319,7 +7319,7 @@ void HistoryWidget::moveFieldControls() {
 		bottom - _botStart->height(),
 		width(),
 		_botStart->height());
-	bool discuss_button = FASettings::JsonSettings::GetBool("show_discuss_button");
+	bool discuss_button = FASettings::FASettings::getInstance().showDiscussButton();
 	_botStart->setGeometry(fullWidthButtonRect);
 	_unblock->setGeometry(fullWidthButtonRect);
 	if (hasDiscussionGroup() && discuss_button) {

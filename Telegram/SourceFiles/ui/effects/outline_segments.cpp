@@ -18,7 +18,7 @@ void PaintOutlineSegments(
 		float64 fromFullProgress) {
 	Expects(!segments.empty());
 
-	bool use_default_rounding = FASettings::JsonSettings::GetBool("use_default_rounding");
+	bool use_default_rounding = FASettings::FASettings::getInstance().useDefaultRounding();
 
 	p.setBrush(Qt::NoBrush);
 	const auto count = std::min(int(segments.size()), kOutlineSegmentsMax);
@@ -26,8 +26,8 @@ void PaintOutlineSegments(
 		p.setPen(QPen(segments.front().brush, segments.front().width));
 		p.drawRoundedRect(
 			ellipse, 
-			ellipse.height() * FASettings::JsonSettings::GetInt("roundness") * 0.0102, 
-			ellipse.width() * FASettings::JsonSettings::GetInt("roundness") * 0.0102);
+			ellipse.height() * FASettings::FASettings::getInstance().roundness() * 0.0102, 
+			ellipse.width() * FASettings::FASettings::getInstance().roundness() * 0.0102);
 		return;
 	}
 	const auto small = 160;

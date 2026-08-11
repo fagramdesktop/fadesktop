@@ -608,7 +608,7 @@ void PaintRow(
 		}
 	}
 	auto texttop = context.st->textTop;
-	const auto screenshotModeOn = FASettings::JsonSettings::GetBool("screenshot_mode");
+	const auto screenshotModeOn = FASettings::FASettings::getInstance().screenshotMode();
 	if (const auto folder = entry->asFolder()) {
 		const auto availableWidth = PaintWideCounter(
 			p,
@@ -1190,7 +1190,7 @@ void RowPainter::Paint(
 		| (row->topicJumpRipple() ? Flag::TopicJumpRipple : Flag(0));
 	const auto paintItemCallback = [&](int nameleft, int namewidth) {
 		// Skip painting message preview in screenshot mode
-		if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+		if (FASettings::FASettings::getInstance().screenshotMode()) {
 			return;
 		}
 		const auto texttop = context.st->textTop;
@@ -1323,7 +1323,7 @@ void RowPainter::Paint(
 
 	const auto paintItemCallback = [&](int nameleft, int namewidth) {
 		// Skip painting message preview in screenshot mode
-		if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+		if (FASettings::FASettings::getInstance().screenshotMode()) {
 			return;
 		}
 		const auto texttop = context.st->textTop;

@@ -46,7 +46,7 @@ void SendAsButton::paintEvent(QPaintEvent *e) {
 
 	const auto active = _activeAnimation.value(_active ? 1. : 0.);
 
-	bool use_default_rounding = FASettings::JsonSettings::GetBool("use_default_rounding");
+	bool use_default_rounding = FASettings::FASettings::getInstance().useDefaultRounding();
 
 	if (active < 1. && !_userpic.isNull()) {
 		p.drawImage(QRect(left, top, _st.size, _st.size), _userpic);
@@ -59,7 +59,7 @@ void SendAsButton::paintEvent(QPaintEvent *e) {
 		{
 			PainterHighQualityEnabler hq(p);
 			if (!use_default_rounding) {
-				auto radius = _st.size * FASettings::JsonSettings::GetInt("roundness") / 100;
+				auto radius = _st.size * FASettings::FASettings::getInstance().roundness() / 100;
 				p.drawRoundedRect(left, top, _st.size, _st.size, radius, radius);
 			}
 			else {

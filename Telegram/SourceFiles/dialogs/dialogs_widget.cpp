@@ -1697,7 +1697,7 @@ void Widget::setupMainMenuToggle() {
 }
 
 void Widget::setupStories() {
-	bool hide_stories = FASettings::JsonSettings::GetBool("hide_stories");
+	bool hide_stories = FASettings::FASettings::getInstance().hideStories();
 	if (hide_stories) {
 		return;
 	}
@@ -2780,7 +2780,7 @@ void Widget::updateStoriesVisibility() {
 		|| (widthAnimation && !suggestionsAnimation)
 		|| _childList
 		|| _stories->empty()
-		|| (FASettings::JsonSettings::GetBool("hide_archived_stories") ? (_openedFolder != nullptr) : false)
+		|| (FASettings::FASettings::getInstance().hideArchivedStories() ? (_openedFolder != nullptr) : false)
 		|| (pulledDown && hiddenAnimated);
 	const auto hidden = hiddenInstant || hiddenAnimated;
 	const auto changed = (_stories->toggledHidden() != hidden);

@@ -166,7 +166,7 @@ void Photo::create(FullMsgId contextId, PeerData *chat) {
 	} else if (_data->inlineThumbnailBytes().isEmpty()
 		&& (_data->hasExact(PhotoSize::Small)
 			|| _data->hasExact(PhotoSize::Thumbnail))
-		&& !FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+		&& !FASettings::FASettings::getInstance().disableAutoDownload()) {
 		_data->load(PhotoSize::Small, contextId);
 	}
 	if (_spoiler) {
@@ -190,7 +190,7 @@ void Photo::dataMediaCreated() const {
 		&& !_dataMedia->image(PhotoSize::Large)
 		&& !_dataMedia->image(PhotoSize::Thumbnail)
 		&& !_data->extendedMediaPreview()
-		&& !FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+		&& !FASettings::FASettings::getInstance().disableAutoDownload()) {
 		_dataMedia->wanted(PhotoSize::Small, _realParent->fullId());
 	}
 	history()->owner().registerHeavyViewPart(_parent);

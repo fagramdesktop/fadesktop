@@ -157,7 +157,7 @@ bool StickersSet::thumbnailFailed() const {
 }
 
 void StickersSet::loadThumbnail() {
-	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+	if (FASettings::FASettings::getInstance().disableAutoDownload()) {
 		return;
 	}
 	const auto autoLoading = false;

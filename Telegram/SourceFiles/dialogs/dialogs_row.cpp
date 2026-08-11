@@ -407,10 +407,10 @@ void Row::updateCornerBadgeShown(
 	const auto user = peer->asUser();
 	const auto now = user ? base::unixtime::now() : TimeId();
 	const auto channel = user ? nullptr : peer->asChannel();
-	const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
-	const auto onlineOnlyDot = FASettings::JsonSettings::GetBool("status_dot_online_only");
+	const auto showStatusDot = FASettings::FASettings::getInstance().showStatusDot();
+	const auto onlineOnlyDot = FASettings::FASettings::getInstance().statusDotOnlineOnly();
 	const auto nextLayer = [&] {
-		if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+		if (FASettings::FASettings::getInstance().screenshotMode()) {
 			return kNoneLayer;
 		} else if (hasUnreadBadgesAbove) {
 			return kNoneLayer;
@@ -798,8 +798,8 @@ void Row::paintUserpic(
 		context.st->padding.top() - framePadding,
 		_cornerBadgeUserpic->frame);
 
-	const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
-	const auto onlineOnlyDot = FASettings::JsonSettings::GetBool("status_dot_online_only");
+	const auto showStatusDot = FASettings::FASettings::getInstance().showStatusDot();
+	const auto onlineOnlyDot = FASettings::FASettings::getInstance().statusDotOnlineOnly();
 	if (showStatusDot && peer) {
 		if (const auto user = peer->asUser()) {
 			if (!user->isBot() && !user->isServiceUser()) {

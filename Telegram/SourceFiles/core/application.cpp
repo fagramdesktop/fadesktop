@@ -8,7 +8,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "core/application.h"
 
 #include "fa/lang/fa_lang.h"
-
+#include "fa/settings/fa_settings.h"
+#include "fa/utils/fa_icon_pack.h"
 #include "data/data_abstract_structure.h"
 #include "data/data_channel.h"
 #include "data/data_forum.h"
@@ -266,6 +267,9 @@ Application::~Application() {
 }
 
 void Application::run() {
+	FASettings::FASettings::load();
+	FAIcons::InitIconPack();
+
 	// Depends on OpenSSL on macOS, so on ThirdParty::start().
 	// Depends on notifications settings.
 	_notifications = std::make_unique<Window::Notifications::System>();

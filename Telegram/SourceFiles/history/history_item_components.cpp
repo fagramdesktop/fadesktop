@@ -386,7 +386,7 @@ void HistoryMessageForwarded::create(
 		}
 	}
 	const auto dateToUse = originalDate ? originalDate : savedFromDate;
-	if (FASettings::JsonSettings::GetBool("show_forwarded_date_in_title") && dateToUse) {
+	if (FASettings::FASettings::getInstance().showForwardedDateInTitle() && dateToUse) {
 		const auto dt = base::unixtime::parse(dateToUse);
 		phrase.append(u", "_q + langDateTime(dt));
 	}

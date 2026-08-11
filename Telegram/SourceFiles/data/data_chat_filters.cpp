@@ -589,7 +589,7 @@ void ChatFilters::received(const QVector<MTPDialogFilter> &list) {
 	auto position = 0;
 	auto changed = false;
 
-	bool hide_all_chats_folder = FASettings::JsonSettings::GetBool("hide_all_chats_folder");
+	bool hide_all_chats_folder = FASettings::FASettings::getInstance().hideAllChatsFolder();
 
 	auto savedLocalFilters = std::vector<ChatFilter>();
 	for (auto &filter : _list) {
@@ -648,7 +648,7 @@ void ChatFilters::received(const QVector<MTPDialogFilter> &list) {
 
 void ChatFilters::apply(const MTPUpdate &update) {
 
-	bool hide_all_chats_folder = FASettings::JsonSettings::GetBool("hide_all_chats_folder");
+	bool hide_all_chats_folder = FASettings::FASettings::getInstance().hideAllChatsFolder();
 
 	update.match([&](const MTPDupdateDialogFilter &data) {
 		if (const auto filter = data.vfilter()) {
@@ -1333,7 +1333,7 @@ FilterId ChatFilters::allocateLocalId() const {
 }
 
 void ChatFilters::saveLocalFilters() {
-	if (!FASettings::JsonSettings::GetBool("unlimited_chat_folders")) {
+	if (!FASettings::FASettings::getInstance().unlimitedChatFolders()) {
 		return;
 	}
 	const auto accountId = _owner->session().uniqueId();
@@ -1344,10 +1344,7 @@ void ChatFilters::saveLocalFilters() {
 			folders.push_back(filter.toJson());
 		}
 	}
-	FASettings::JsonSettings::Set(
-		"local_chat_folders",
-		folders,
-		accountId);
+	FASettings::FASettings::getInstance().setLocalChatFolders(folders, accountId);
 
 	auto order = QJsonArray();
 	for (const auto &filter : _list) {
@@ -1355,22 +1352,17 @@ void ChatFilters::saveLocalFilters() {
 			order.push_back(int(filter.id()));
 		}
 	}
-	FASettings::JsonSettings::Set(
-		"local_chat_folders_order",
-		order,
-		accountId);
+	FASettings::FASettings::getInstance().setLocalChatFoldersOrder(order, accountId);
 
-	FASettings::JsonSettings::Write();
+	
 }
 
 void ChatFilters::loadLocalFilters() {
-	if (!FASettings::JsonSettings::GetBool("unlimited_chat_folders")) {
+	if (!FASettings::FASettings::getInstance().unlimitedChatFolders()) {
 		return;
 	}
 	const auto accountId = _owner->session().uniqueId();
-	const auto folders = FASettings::JsonSettings::GetJsonArray(
-		"local_chat_folders",
-		accountId);
+	const auto folders = FASettings::FASettings::getInstance().localChatFolders(accountId);
 	if (folders.isEmpty()) {
 		return;
 	}
@@ -1391,9 +1383,7 @@ void ChatFilters::loadLocalFilters() {
 		_list.push_back(std::move(filter));
 	}
 
-	const auto savedOrder = FASettings::JsonSettings::GetJsonArray(
-		"local_chat_folders_order",
-		accountId);
+	const auto savedOrder = FASettings::FASettings::getInstance().localChatFoldersOrder(accountId);
 	if (!savedOrder.isEmpty()) {
 		auto ordered = std::vector<ChatFilter>();
 		ordered.reserve(_list.size());

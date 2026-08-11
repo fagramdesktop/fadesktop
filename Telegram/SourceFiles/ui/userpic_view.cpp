@@ -150,7 +150,7 @@ void ValidateUserpicCache(
 		|| (cloud && !view.empty.null())
 		|| (empty && empty != view.empty.get())
 		|| (empty && view.paletteVersion != version);
-	bool use_default_rounding = FASettings::JsonSettings::GetBool("use_default_rounding");
+	bool use_default_rounding = FASettings::FASettings::getInstance().useDefaultRounding();
 	if (!regenerate) {
 		return;
 	}
@@ -159,7 +159,7 @@ void ValidateUserpicCache(
 	view.paletteVersion = version;
 
 	const auto forum = (shape == PeerUserpicShape::Forum);
-	const auto radius = size * FASettings::JsonSettings::GetInt("roundness") / 100 / style::DevicePixelRatio();
+	const auto radius = size * FASettings::FASettings::getInstance().roundness() / 100 / style::DevicePixelRatio();
 
 	if (cloud) {
 		view.cached = cloud->scaled(

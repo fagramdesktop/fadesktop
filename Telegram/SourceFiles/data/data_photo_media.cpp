@@ -81,7 +81,7 @@ auto PhotoMedia::resolveLoadedImage(PhotoSize size) const
 }
 
 void PhotoMedia::wanted(PhotoSize size, Data::FileOrigin origin) {
-	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+	if (FASettings::FASettings::getInstance().disableAutoDownload()) {
 		return;
 	}
 	const auto index = _owner->validSizeIndex(size);
@@ -132,7 +132,7 @@ QSize PhotoMedia::videoSize(PhotoSize size) const {
 }
 
 void PhotoMedia::videoWanted(PhotoSize size, Data::FileOrigin origin) {
-	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+	if (FASettings::FASettings::getInstance().disableAutoDownload()) {
 		return;
 	}
 	if (videoContent(size).isEmpty()) {
@@ -161,7 +161,7 @@ bool PhotoMedia::autoLoadThumbnailAllowed(not_null<PeerData*> peer) const {
 	if (loaded() || _owner->cancelled()) {
 		return false;
 	}
-	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+	if (FASettings::FASettings::getInstance().disableAutoDownload()) {
 		return false;
 	}
 	return _owner->hasExact(PhotoSize::Small)

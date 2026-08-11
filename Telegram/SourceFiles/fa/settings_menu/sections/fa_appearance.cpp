@@ -42,53 +42,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "api/api_blocked_peers.h"
 #include "ui/widgets/continuous_sliders.h"
 
-#define SettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
-	const auto _btn = container->add(object_ptr<Button>( \
-		container, \
-		fatr::LangKey(), \
-		st::settingsButtonNoIcon \
-	)); \
-	_btn->toggleOn( \
-		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-	)->toggledValue( \
-	) | rpl::filter([](bool enabled) { \
-		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-	}) | rpl::on_next([](bool enabled) { \
-		::FASettings::JsonSettings::Write(); \
-		::FASettings::JsonSettings::Set(#Option, enabled); \
-		::FASettings::JsonSettings::Write(); \
-	}, container->lifetime()); \
-	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
-		_btn, ControlId, controller); \
-} while (false)
-
-#define RestartSettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
-	const auto _btn = container->add(object_ptr<Button>( \
-		container, \
-		fatr::LangKey(), \
-		st::settingsButtonNoIcon \
-	)); \
-	_btn->toggleOn( \
-		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-	)->toggledValue( \
-	) | rpl::filter([](bool enabled) { \
-		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-	}) | rpl::on_next([=](bool enabled) { \
-		::FASettings::JsonSettings::Write(); \
-		::FASettings::JsonSettings::Set(#Option, enabled); \
-		::FASettings::JsonSettings::Write(); \
-		controller->show(Ui::MakeConfirmBox({ \
-			.text = fatr::fa_setting_need_restart(), \
-			.confirmed = [=] { \
-				::Core::Restart(); \
-			}, \
-			.confirmText = fatr::fa_restart() \
-		})); \
-	}, container->lifetime()); \
-	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
-		_btn, ControlId, controller); \
-} while (false)
-
 namespace Settings {
 
     rpl::producer<QString> FAAppearance::title() {
@@ -125,7 +78,7 @@ namespace Settings {
 			controller);
 
 		const auto savedRoundness = container->lifetime().make_state<int>(
-			::FASettings::JsonSettings::GetInt("roundness"));
+			FASettings::FASettings::getInstance().roundness());
 		const auto inSetRoundness = container->lifetime().make_state<bool>(false);
 
 		const auto updateUserpicRoundnessLabel = [=](int value) {
@@ -149,12 +102,12 @@ namespace Settings {
 			if (value != *savedRoundness) {
 				const auto confirmed = crl::guard(userpicRoundnessSlider, [=] {
 					*savedRoundness = value;
-					::FASettings::JsonSettings::Set("roundness", value);
-					::FASettings::JsonSettings::Write();
+					FASettings::FASettings::getInstance().setRoundness(value);
+					
 					::Core::Restart();
 				});
 				const auto cancelled = crl::guard(userpicRoundnessSlider, [=](Fn<void()> close) {
-					::FASettings::JsonSettings::Set("roundness", *savedRoundness);
+					FASettings::FASettings::getInstance().setRoundness(*savedRoundness);
 					base::call_delayed(
 						st::defaultSettingsSlider.duration,
 						userpicRoundnessSlider,
@@ -172,28 +125,151 @@ namespace Settings {
 		const auto updateUserpicRoundness = [=](int value) {
 			updateUserpicRoundnessLabel(value);
 			roundnessPreview->repaint();
-			::FASettings::JsonSettings::Set("roundness", value);
+			FASettings::FASettings::getInstance().setRoundness(value);
 		};
     	userpicRoundnessSlider->resize(st::settingsAudioVolumeSlider.seekSize);
     	userpicRoundnessSlider->setPseudoDiscrete(
 			51,
 			[](int val) { return val; },
-			::FASettings::JsonSettings::GetInt("roundness"),
+			FASettings::FASettings::getInstance().roundness(),
 			updateUserpicRoundness,
 			[=](int value) { setRoundness(value, setRoundness); });
-    	updateUserpicRoundnessLabel(::FASettings::JsonSettings::GetInt("roundness"));
+    	updateUserpicRoundnessLabel(FASettings::FASettings::getInstance().roundness());
         Ui::AddDividerText(container, fatr::fa_rounding_desc());
-		RestartSettingsMenuJsonSwitch(fa_use_default_rounding, use_default_rounding, u"fa/appearance/default-rounding"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_use_default_rounding(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.useDefaultRoundingValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.useDefaultRounding());
+			}) | rpl::on_next([=, &settings](bool enabled) {
+				settings.setUseDefaultRounding(enabled);
+				controller->show(Ui::MakeConfirmBox({
+					.text = fatr::fa_setting_need_restart(),
+					.confirmed = [=] {
+						::Core::Restart();
+					},
+					.confirmText = fatr::fa_restart()
+				}));
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/appearance/default-rounding"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_use_default_rounding_desc());
-		SettingsMenuJsonSwitch(fa_screenshot_mode, screenshot_mode, u"fa/appearance/screenshot-mode"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_screenshot_mode(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.screenshotModeValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.screenshotMode());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setScreenshotMode(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/appearance/screenshot-mode"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_screenshot_mode_desc());
-		SettingsMenuJsonSwitch(fa_force_snow, force_snow, u"fa/appearance/force-snow"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_force_snow(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.forceSnowValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.forceSnow());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setForceSnow(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/appearance/force-snow"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_force_snow_desc());
-		RestartSettingsMenuJsonSwitch(fa_hide_stories, hide_stories, u"fa/appearance/hide-stories"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_hide_stories(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.hideStoriesValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.hideStories());
+			}) | rpl::on_next([=, &settings](bool enabled) {
+				settings.setHideStories(enabled);
+				controller->show(Ui::MakeConfirmBox({
+					.text = fatr::fa_setting_need_restart(),
+					.confirmed = [=] {
+						::Core::Restart();
+					},
+					.confirmText = fatr::fa_restart()
+				}));
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/appearance/hide-stories"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_hide_stories_desc());
-		RestartSettingsMenuJsonSwitch(fa_hide_archived_stories, hide_archived_stories, u"fa/appearance/hide-archived-stories"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_hide_archived_stories(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.hideArchivedStoriesValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.hideArchivedStories());
+			}) | rpl::on_next([=, &settings](bool enabled) {
+				settings.setHideArchivedStories(enabled);
+				controller->show(Ui::MakeConfirmBox({
+					.text = fatr::fa_setting_need_restart(),
+					.confirmed = [=] {
+						::Core::Restart();
+					},
+					.confirmText = fatr::fa_restart()
+				}));
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/appearance/hide-archived-stories"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_hide_archived_stories_desc());
-		SettingsMenuJsonSwitch(fa_use_tdesktop_themes, use_tdesktop_themes, u"fa/appearance/use-tdesktop-themes"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_use_tdesktop_themes(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.useTdesktopThemesValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.useTdesktopThemes());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setUseTdesktopThemes(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/appearance/use-tdesktop-themes"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_use_tdesktop_themes_desc());
 		const auto iconPackBtn = container->add(object_ptr<Button>(
 			container,
@@ -201,13 +277,13 @@ namespace Settings {
 			st::settingsButtonNoIcon
 		));
 		iconPackBtn->toggleOn(
-			rpl::single(::FASettings::JsonSettings::GetBool("use_material_icon_pack"))
+			rpl::single(FASettings::FASettings::getInstance().useMaterialIconPack())
 		)->toggledValue(
 		) | rpl::filter([](bool enabled) {
-			return (enabled != ::FASettings::JsonSettings::GetBool("use_material_icon_pack"));
+			return (enabled != FASettings::FASettings::getInstance().useMaterialIconPack());
 		}) | rpl::on_next([=](bool enabled) {
-			::FASettings::JsonSettings::Set("use_material_icon_pack", enabled);
-			::FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setUseMaterialIconPack(enabled);
+			
 			controller->show(Ui::MakeConfirmBox({
 				.text = fatr::fa_icon_pack_restart_prompt(),
 				.confirmed = [=] {

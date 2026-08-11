@@ -1639,7 +1639,7 @@ void DeleteChatBox(not_null<Ui::GenericBox*> box, not_null<PeerData*> peer) {
 					: tr::lng_delete_for_everyone_check(
 						tr::now,
 						tr::marked),
-				FASettings::JsonSettings::GetBool("delete_for_everyone"),
+				FASettings::FASettings::getInstance().deleteForEveryone(),
 				st::defaultBoxCheckbox));
 	}();
 

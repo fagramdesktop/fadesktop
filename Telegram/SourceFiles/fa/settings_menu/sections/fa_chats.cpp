@@ -42,53 +42,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/buttons.h"
 #include "base/call_delayed.h"
 
-#define SettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
-	const auto _btn = container->add(object_ptr<Button>( \
-		container, \
-		fatr::LangKey(), \
-		st::settingsButtonNoIcon \
-	)); \
-	_btn->toggleOn( \
-		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-	)->toggledValue( \
-	) | rpl::filter([](bool enabled) { \
-		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-	}) | rpl::on_next([](bool enabled) { \
-		::FASettings::JsonSettings::Write(); \
-		::FASettings::JsonSettings::Set(#Option, enabled); \
-		::FASettings::JsonSettings::Write(); \
-	}, container->lifetime()); \
-	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
-		_btn, ControlId, controller); \
-} while (false)
-
-#define RestartSettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
-	const auto _btn = container->add(object_ptr<Button>( \
-		container, \
-		fatr::LangKey(), \
-		st::settingsButtonNoIcon \
-	)); \
-	_btn->toggleOn( \
-		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-	)->toggledValue( \
-	) | rpl::filter([](bool enabled) { \
-		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-	}) | rpl::on_next([=](bool enabled) { \
-		::FASettings::JsonSettings::Write(); \
-		::FASettings::JsonSettings::Set(#Option, enabled); \
-		::FASettings::JsonSettings::Write(); \
-		controller->show(Ui::MakeConfirmBox({ \
-			.text = fatr::fa_setting_need_restart(), \
-			.confirmed = [=] { \
-				::Core::Restart(); \
-			}, \
-			.confirmText = fatr::fa_restart() \
-		})); \
-	}, container->lifetime()); \
-	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
-		_btn, ControlId, controller); \
-} while (false)
-
 namespace Settings {
 
     rpl::producer<QString> FAChats::title() {
@@ -105,33 +58,271 @@ namespace Settings {
     void FAChats::SetupChats(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
         Ui::AddSubsectionTitle(container, fatr::fa_chats());
 
-		SettingsMenuJsonSwitch(fa_parse_markdown_hyperlink, auto_format_markdown, u"fa/chats/markdown-hyperlink"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_parse_markdown_hyperlink(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.autoFormatMarkdownValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.autoFormatMarkdown());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setAutoFormatMarkdown(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/markdown-hyperlink"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_parse_markdown_hyperlink_desc());
-		SettingsMenuJsonSwitch(fa_show_seconds_message, seconds_message, u"fa/chats/seconds-message"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_show_seconds_message(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.secondsMessageValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.secondsMessage());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setSecondsMessage(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/seconds-message"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_show_seconds_message_desc());
-		SettingsMenuJsonSwitch(fa_disable_custom_chat_background, disable_custom_chat_background, u"fa/chats/disable-custom-background"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_disable_custom_chat_background(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.disableCustomChatBackgroundValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.disableCustomChatBackground());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setDisableCustomChatBackground(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/disable-custom-background"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_disable_custom_chat_background_desc());
-		SettingsMenuJsonSwitch(fa_hide_open_webapp_button_chatlist, hide_open_webapp_button_chatlist, u"fa/chats/hide-webapp-button"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_hide_open_webapp_button_chatlist(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.hideOpenWebappButtonChatlistValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.hideOpenWebappButtonChatlist());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setHideOpenWebappButtonChatlist(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/hide-webapp-button"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_hide_open_webapp_button_chatlist_desc());
-		SettingsMenuJsonSwitch(fa_show_discuss_button, show_discuss_button, u"fa/chats/show-discuss-button"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_show_discuss_button(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.showDiscussButtonValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.showDiscussButton());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setShowDiscussButton(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/show-discuss-button"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_show_discuss_button_desc());
-		SettingsMenuJsonSwitch(fa_show_fastshare_in_chats, show_fastshare_in_chats, u"fa/chats/show-share-in-chats"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_show_fastshare_in_chats(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.showFastshareInChatsValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.showFastshareInChats());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setShowFastshareInChats(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/show-share-in-chats"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_show_fastshare_in_chats_desc());
-		SettingsMenuJsonSwitch(fa_show_message_details, show_message_details, u"fa/chats/message-details"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_show_message_details(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.showMessageDetailsValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.showMessageDetails());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setShowMessageDetails(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/message-details"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_show_message_details_desc());
-		SettingsMenuJsonSwitch(fa_add_comma_after_mention, add_comma_after_mention, u"fa/chats/add-comma-after-mention"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_add_comma_after_mention(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.addCommaAfterMentionValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.addCommaAfterMention());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setAddCommaAfterMention(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/add-comma-after-mention"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_add_comma_after_mention_desc());
-		SettingsMenuJsonSwitch(fa_unlimited_pinned_chats, unlimited_pinned_chats, u"fa/chats/unlimited-pinned-chats"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_unlimited_pinned_chats(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.unlimitedPinnedChatsValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.unlimitedPinnedChats());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setUnlimitedPinnedChats(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/unlimited-pinned-chats"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_unlimited_pinned_chats_desc());
-		SettingsMenuJsonSwitch(fa_unlimited_chat_folders, unlimited_chat_folders, u"fa/chats/unlimited-chat-folders"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_unlimited_chat_folders(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.unlimitedChatFoldersValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.unlimitedChatFolders());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setUnlimitedChatFolders(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/unlimited-chat-folders"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_unlimited_chat_folders_desc());
-		SettingsMenuJsonSwitch(fa_delete_for_everyone, delete_for_everyone, u"fa/chats/delete-for-everyone"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_delete_for_everyone(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.deleteForEveryoneValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.deleteForEveryone());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setDeleteForEveryone(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/delete-for-everyone"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_delete_for_everyone_desc());
-		SettingsMenuJsonSwitch(fa_last_seen_timestamp, last_seen_timestamp, u"fa/chats/last-seen-timestamp"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_last_seen_timestamp(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.lastSeenTimestampValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.lastSeenTimestamp());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setLastSeenTimestamp(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/last-seen-timestamp"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_last_seen_timestamp_desc());
-		SettingsMenuJsonSwitch(fa_show_forwarded_date_in_title, show_forwarded_date_in_title, u"fa/chats/show-forwarded-date-in-title"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_show_forwarded_date_in_title(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.showForwardedDateInTitleValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.showForwardedDateInTitle());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setShowForwardedDateInTitle(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/show-forwarded-date-in-title"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_show_forwarded_date_in_title_desc());
-		SettingsMenuJsonSwitch(fa_disable_greeting_sticker, disable_greeting_sticker, u"fa/chats/disable-greeting-sticker"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_disable_greeting_sticker(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.disableGreetingStickerValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.disableGreetingSticker());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setDisableGreetingSticker(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/disable-greeting-sticker"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_disable_greeting_sticker_desc());
 
 		const auto statusDotBtn = container->add(object_ptr<Button>(
@@ -146,33 +337,57 @@ namespace Settings {
 		));
 
 		statusDotBtn->toggleOn(
-			rpl::single(::FASettings::JsonSettings::GetBool("show_status_dot"))
+			rpl::single(FASettings::FASettings::getInstance().showStatusDot())
 		)->toggledValue(
 		) | rpl::filter([](bool enabled) {
-			return (enabled != ::FASettings::JsonSettings::GetBool("show_status_dot"));
+			return (enabled != FASettings::FASettings::getInstance().showStatusDot());
 		}) | rpl::on_next([=](bool enabled) {
-			::FASettings::JsonSettings::Set("show_status_dot", enabled);
-			::FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setShowStatusDot(enabled);
+			
 			onlineOnlyBtn->setEnabled(enabled);
 		}, container->lifetime());
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			statusDotBtn, u"fa/chats/status-dot"_q, controller);
 
 		onlineOnlyBtn->toggleOn(
-			rpl::single(::FASettings::JsonSettings::GetBool("status_dot_online_only"))
+			rpl::single(FASettings::FASettings::getInstance().statusDotOnlineOnly())
 		)->toggledValue(
 		) | rpl::filter([](bool enabled) {
-			return (enabled != ::FASettings::JsonSettings::GetBool("status_dot_online_only"));
+			return (enabled != FASettings::FASettings::getInstance().statusDotOnlineOnly());
 		}) | rpl::on_next([=](bool enabled) {
-			::FASettings::JsonSettings::Set("status_dot_online_only", enabled);
-			::FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setStatusDotOnlineOnly(enabled);
+			
 		}, container->lifetime());
-		onlineOnlyBtn->setEnabled(::FASettings::JsonSettings::GetBool("show_status_dot"));
+		onlineOnlyBtn->setEnabled(FASettings::FASettings::getInstance().showStatusDot());
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			onlineOnlyBtn, u"fa/chats/status-dot-online"_q, controller);
 		Ui::AddDividerText(container, fatr::fa_status_dot_desc());
 
-		RestartSettingsMenuJsonSwitch(fa_hide_all_chats_folder, hide_all_chats_folder, u"fa/chats/hide-all-chats-folder"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_hide_all_chats_folder(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.hideAllChatsFolderValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.hideAllChatsFolder());
+			}) | rpl::on_next([=, &settings](bool enabled) {
+				settings.setHideAllChatsFolder(enabled);
+				controller->show(Ui::MakeConfirmBox({
+					.text = fatr::fa_setting_need_restart(),
+					.confirmed = [=] {
+						::Core::Restart();
+					},
+					.confirmText = fatr::fa_restart()
+				}));
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/chats/hide-all-chats-folder"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_hide_all_chats_folder_desc());
 
 		const auto hideBlockedBtn = container->add(object_ptr<Button>(
@@ -182,13 +397,13 @@ namespace Settings {
 		));
 		hideBlockedBtn->setColorOverride(QColor(255, 0, 0));
 		hideBlockedBtn->toggleOn(
-			rpl::single(::FASettings::JsonSettings::GetBool("hide_blocked_user_messages"))
+			rpl::single(FASettings::FASettings::getInstance().hideBlockedUserMessages())
 		)->toggledValue(
 		) | rpl::filter([](bool enabled) {
-			return (enabled != ::FASettings::JsonSettings::GetBool("hide_blocked_user_messages"));
+			return (enabled != FASettings::FASettings::getInstance().hideBlockedUserMessages());
 		}) | rpl::on_next([=](bool enabled) {
-			::FASettings::JsonSettings::Set("hide_blocked_user_messages", enabled);
-			::FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setHideBlockedUserMessages(enabled);
+			
 
 			controller->showToast(fatr::fa_restarting_in_seconds(fatr::now));
 			base::call_delayed(crl::time(3000), container, [] {

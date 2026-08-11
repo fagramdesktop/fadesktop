@@ -713,13 +713,13 @@ void InlineList::paintSingleBg(
 		const QRect &fill,
 		const QColor &color,
 		float64 opacity) const {
-	bool use_default_rounding = FASettings::JsonSettings::GetBool("use_default_rounding");
+	bool use_default_rounding = FASettings::FASettings::getInstance().useDefaultRounding();
 	p.setOpacity(opacity);
 	if (!areTags()) {
 		// const auto radius = fill.height() / 2.;
 		double radius;
 		if (!use_default_rounding) {
-			radius = FASettings::JsonSettings::GetInt("roundness") / 100. * fill.height();
+			radius = FASettings::FASettings::getInstance().roundness() / 100. * fill.height();
 		}
 		else {
 			radius = fill.height() / 2.;

@@ -14,7 +14,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 namespace FAIcons {
 
 void InitIconPack() {
-	if (FASettings::JsonSettings::GetBool("use_material_icon_pack")) {
+	if (FASettings::FASettings::getInstance().useMaterialIconPack()) {
 		style::internal::SetUseIconOverride(true);
 	}
 }

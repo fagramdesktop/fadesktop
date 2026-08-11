@@ -393,7 +393,7 @@ void PeerData::updateNameDelayed(
 }
 
 not_null<Ui::EmptyUserpic*> PeerData::ensureEmptyUserpic() const {
-	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
+	const auto screenshotMode = FASettings::FASettings::getInstance().screenshotMode();
 	QMutexLocker lock(&EmptyUserpicScreenshotModeMutex);
 	if (_userpicEmpty && EmptyUserpicScreenshotMode.value(this, !screenshotMode) != screenshotMode) {
 		_userpicEmpty = nullptr;
@@ -493,7 +493,7 @@ void PeerData::paintUserpic(
 	const auto size = context.size;
 	const auto x = context.position.x();
 	const auto y = context.position.y();
-	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
+	const auto screenshotMode = FASettings::FASettings::getInstance().screenshotMode();
 	const auto cloud = userpicCloudImage(view);
 	const auto shouldLoad = cloud
 		&& (!screenshotMode
@@ -504,7 +504,7 @@ void PeerData::paintUserpic(
 		context.shape = userpicShape();
 	}
 
-	auto use_default_rounding = FASettings::JsonSettings::GetBool("use_default_rounding");
+	auto use_default_rounding = FASettings::FASettings::getInstance().useDefaultRounding();
 
 	if (use_default_rounding) {
 		Ui::ValidateUserpicCache(
@@ -528,8 +528,8 @@ void PeerData::paintUserpic(
 		QImage image = view.cached;
 		roundedRect.addRoundedRect(
 			QRect(x, y, size, size),
-			size * FASettings::JsonSettings::GetInt("roundness") / 100.,
-			size * FASettings::JsonSettings::GetInt("roundness") / 100.);
+			size * FASettings::FASettings::getInstance().roundness() / 100.,
+			size * FASettings::FASettings::getInstance().roundness() / 100.);
 		p.setClipPath(roundedRect);
 		p.drawImage(x, y, image);
 		p.restore();
@@ -1385,7 +1385,7 @@ const QString &PeerData::topBarNameText() const {
 	if (const auto to = migrateTo()) {
 		return to->topBarNameText();
 	}
-	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
+	const auto screenshotMode = FASettings::FASettings::getInstance().screenshotMode();
 	if (const auto user = asUser()) {
 		if (!user->nameOrPhone.isEmpty() && !screenshotMode) {
 			// Always show name
@@ -1434,7 +1434,7 @@ const QString &PeerData::screenshotModeName() const {
 }
 
 int PeerData::nameVersion() const {
-	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
+	const auto screenshotMode = FASettings::FASettings::getInstance().screenshotMode();
 	if (LastScreenshotMode.exchange(screenshotMode) != screenshotMode) {
 		++ScreenshotModeVersion;
 	}
@@ -1447,7 +1447,7 @@ const QString &PeerData::name() const {
 	} else if (const auto broadcast = monoforumBroadcast()) {
 		return broadcast->name();
 	}
-	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
+	const auto screenshotMode = FASettings::FASettings::getInstance().screenshotMode();
 	
 	if (isLoaded()
 		&& !isServiceUser()
@@ -1459,7 +1459,7 @@ const QString &PeerData::name() const {
 }
 
 const QString &PeerData::shortName() const {
-	const auto screenshotMode = FASettings::JsonSettings::GetBool("screenshot_mode");
+	const auto screenshotMode = FASettings::FASettings::getInstance().screenshotMode();
 	if (isLoaded()
 		&& !isServiceUser()
 		&& !isVerified()
@@ -1477,7 +1477,7 @@ const QString &PeerData::shortName() const {
 }
 
 QString PeerData::username() const {
-	if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+	if (FASettings::FASettings::getInstance().screenshotMode()) {
 		return QString();
 	}
 	if (const auto user = asUser()) {
@@ -1489,7 +1489,7 @@ QString PeerData::username() const {
 }
 
 QString PeerData::editableUsername() const {
-	if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+	if (FASettings::FASettings::getInstance().screenshotMode()) {
 		return QString();
 	}
 	if (const auto user = asUser()) {
@@ -1501,7 +1501,7 @@ QString PeerData::editableUsername() const {
 }
 
 const std::vector<QString> &PeerData::usernames() const {
-	if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+	if (FASettings::FASettings::getInstance().screenshotMode()) {
 		static const auto kEmpty = std::vector<QString>();
 		return kEmpty;
 	}
@@ -1647,7 +1647,7 @@ void PeerData::setEmojiStatus(EmojiStatusId emojiStatusId, TimeId until) {
 }
 
 EmojiStatusId PeerData::emojiStatusId() const {
-	if (FASettings::JsonSettings::GetBool("screenshot_mode")) {
+	if (FASettings::FASettings::getInstance().screenshotMode()) {
 		return EmojiStatusId();
 	}
 	return _emojiStatusId;

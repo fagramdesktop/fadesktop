@@ -2035,7 +2035,7 @@ void SessionController::activateFirstChatsFilter() {
 	}
 	_filtersActivated = true;
 
-	bool hide_all_chats_folder = FASettings::JsonSettings::GetBool("hide_all_chats_folder");
+	bool hide_all_chats_folder = FASettings::FASettings::getInstance().hideAllChatsFolder();
 	if (!hide_all_chats_folder)
 	{
 		setActiveChatsFilter(session().data().chatsFilters().defaultId());

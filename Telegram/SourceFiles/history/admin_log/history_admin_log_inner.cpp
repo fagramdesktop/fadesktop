@@ -1943,8 +1943,8 @@ void InnerWidget::paintEvent(QPaintEvent *e) {
 			context.translate(0, top);
 			p.translate(0, -top);
 
-			const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
-			const auto onlineOnlyDot = FASettings::JsonSettings::GetBool("status_dot_online_only");
+			const auto showStatusDot = FASettings::FASettings::getInstance().showStatusDot();
+			const auto onlineOnlyDot = FASettings::FASettings::getInstance().statusDotOnlineOnly();
 			const auto nowTime = showStatusDot ? base::unixtime::now() : TimeId(0);
 
 			enumerateUserpics([&](not_null<Element*> view, int userpicTop) {

@@ -41,53 +41,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "api/api_blocked_peers.h"
 #include "ui/widgets/continuous_sliders.h"
 
-#define SettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
-	const auto _btn = container->add(object_ptr<Button>( \
-		container, \
-		fatr::LangKey(), \
-		st::settingsButtonNoIcon \
-	)); \
-	_btn->toggleOn( \
-		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-	)->toggledValue( \
-	) | rpl::filter([](bool enabled) { \
-		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-	}) | rpl::on_next([](bool enabled) { \
-		::FASettings::JsonSettings::Write(); \
-		::FASettings::JsonSettings::Set(#Option, enabled); \
-		::FASettings::JsonSettings::Write(); \
-	}, container->lifetime()); \
-	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
-		_btn, ControlId, controller); \
-} while (false)
-
-#define RestartSettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
-	const auto _btn = container->add(object_ptr<Button>( \
-		container, \
-		fatr::LangKey(), \
-		st::settingsButtonNoIcon \
-	)); \
-	_btn->toggleOn( \
-		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-	)->toggledValue( \
-	) | rpl::filter([](bool enabled) { \
-		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-	}) | rpl::on_next([=](bool enabled) { \
-		::FASettings::JsonSettings::Write(); \
-		::FASettings::JsonSettings::Set(#Option, enabled); \
-		::FASettings::JsonSettings::Write(); \
-		controller->show(Ui::MakeConfirmBox({ \
-			.text = fatr::fa_setting_need_restart(), \
-			.confirmed = [=] { \
-				::Core::Restart(); \
-			}, \
-			.confirmText = fatr::fa_restart() \
-		})); \
-	}, container->lifetime()); \
-	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
-		_btn, ControlId, controller); \
-} while (false)
-
 namespace Settings {
 
     rpl::producer<QString> FAGeneral::title() {
@@ -107,10 +60,10 @@ namespace Settings {
 		Ui::AddSubsectionTitle(container, fatr::fa_translation_provider());
 
 		const auto translationGroup = std::make_shared<Ui::RadiobuttonGroup>(
-			::FASettings::JsonSettings::GetInt("translationProvider"));
+			FASettings::FASettings::getInstance().translationProvider());
 		translationGroup->setChangedCallback([=](int value) {
-			::FASettings::JsonSettings::Set("translationProvider", value);
-			::FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setTranslationProvider(value);
+			
 		});
 
 		const auto addTranslationRadio = [&](int value, const QString &text) {
@@ -136,7 +89,24 @@ namespace Settings {
 		Ui::AddSkip(container);
 		Ui::AddDivider(container);
 
-        SettingsMenuJsonSwitch(fa_disable_ads, disable_ads, u"fa/general/disable-ads"_q);
+        {
+        	auto &settings = FASettings::FASettings::getInstance();
+        	const auto btn = container->add(object_ptr<Button>(
+        		container,
+        		fatr::fa_disable_ads(),
+        		st::settingsButtonNoIcon
+        	));
+        	btn->toggleOn(
+        		settings.disableAdsValue()
+        	)->toggledValue(
+        	) | rpl::filter([&settings](bool enabled) {
+        		return (enabled != settings.disableAds());
+        	}) | rpl::on_next([&settings](bool enabled) {
+        		settings.setDisableAds(enabled);
+        	}, container->lifetime());
+        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+        		btn, u"fa/general/disable-ads"_q, controller);
+        }
         Ui::AddDividerText(container, fatr::fa_disable_ads_desc());
 		const auto disableAi = container->add(object_ptr<Button>(
 			container,
@@ -145,14 +115,14 @@ namespace Settings {
 		));
 		const auto hideAiOption = &base::options::lookup<bool>(Ui::kOptionHideAiButton);
 		disableAi->toggleOn(
-			rpl::single(::FASettings::JsonSettings::GetBool(u"disable_ai"_q))
+			rpl::single(FASettings::FASettings::getInstance().disableAi())
 		)->toggledValue(
 		) | rpl::filter([=](bool enabled) {
-			return (enabled != ::FASettings::JsonSettings::GetBool(u"disable_ai"_q));
+			return (enabled != FASettings::FASettings::getInstance().disableAi());
 		}) | rpl::on_next([=](bool enabled) {
 			hideAiOption->set(enabled);
-			::FASettings::JsonSettings::Set(u"disable_ai"_q, enabled);
-			::FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setDisableAi(enabled);
+			
 		}, container->lifetime());
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			disableAi,
@@ -160,10 +130,44 @@ namespace Settings {
 			controller);
 		Ui::AddDividerText(container, fatr::fa_disable_ai_desc());
 
-        SettingsMenuJsonSwitch(fa_disable_animated_avatars, disable_animated_avatars, u"fa/general/disable-animated-avatars"_q);
+        {
+        	auto &settings = FASettings::FASettings::getInstance();
+        	const auto btn = container->add(object_ptr<Button>(
+        		container,
+        		fatr::fa_disable_animated_avatars(),
+        		st::settingsButtonNoIcon
+        	));
+        	btn->toggleOn(
+        		settings.disableAnimatedAvatarsValue()
+        	)->toggledValue(
+        	) | rpl::filter([&settings](bool enabled) {
+        		return (enabled != settings.disableAnimatedAvatars());
+        	}) | rpl::on_next([&settings](bool enabled) {
+        		settings.setDisableAnimatedAvatars(enabled);
+        	}, container->lifetime());
+        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+        		btn, u"fa/general/disable-animated-avatars"_q, controller);
+        }
         Ui::AddDividerText(container, fatr::fa_disable_animated_avatars_desc());
 
-        SettingsMenuJsonSwitch(fa_disable_premium_animation, disable_premium_animation, u"fa/general/disable-premium-animation"_q);
+        {
+        	auto &settings = FASettings::FASettings::getInstance();
+        	const auto btn = container->add(object_ptr<Button>(
+        		container,
+        		fatr::fa_disable_premium_animation(),
+        		st::settingsButtonNoIcon
+        	));
+        	btn->toggleOn(
+        		settings.disablePremiumAnimationValue()
+        	)->toggledValue(
+        	) | rpl::filter([&settings](bool enabled) {
+        		return (enabled != settings.disablePremiumAnimation());
+        	}) | rpl::on_next([&settings](bool enabled) {
+        		settings.setDisablePremiumAnimation(enabled);
+        	}, container->lifetime());
+        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+        		btn, u"fa/general/disable-premium-animation"_q, controller);
+        }
         Ui::AddDividerText(container, fatr::fa_disable_premium_animation_desc());
 
 		const auto disableAutoDownload = container->add(object_ptr<Button>(
@@ -172,13 +176,13 @@ namespace Settings {
 			st::settingsButtonNoIcon
 		));
 		disableAutoDownload->toggleOn(
-			rpl::single(::FASettings::JsonSettings::GetBool(u"disable_auto_download"_q))
+			rpl::single(FASettings::FASettings::getInstance().disableAutoDownload())
 		)->toggledValue(
 		) | rpl::filter([](bool enabled) {
-			return (enabled != ::FASettings::JsonSettings::GetBool(u"disable_auto_download"_q));
+			return (enabled != FASettings::FASettings::getInstance().disableAutoDownload());
 		}) | rpl::on_next([=](bool enabled) {
-			::FASettings::JsonSettings::Set(u"disable_auto_download"_q, enabled);
-			::FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setDisableAutoDownload(enabled);
+			
 			auto &session = controller->session();
 			session.data().photoLoadSettingsChanged();
 			session.data().documentLoadSettingsChanged();
@@ -191,17 +195,119 @@ namespace Settings {
 			u"fa/general/disable-auto-download"_q,
 			controller);
 		Ui::AddDividerText(container, fatr::fa_disable_auto_download_desc());
-        SettingsMenuJsonSwitch(fa_show_start_token, show_start_token, u"fa/general/start-token"_q);
+        {
+        	auto &settings = FASettings::FASettings::getInstance();
+        	const auto btn = container->add(object_ptr<Button>(
+        		container,
+        		fatr::fa_show_start_token(),
+        		st::settingsButtonNoIcon
+        	));
+        	btn->toggleOn(
+        		settings.showStartTokenValue()
+        	)->toggledValue(
+        	) | rpl::filter([&settings](bool enabled) {
+        		return (enabled != settings.showStartToken());
+        	}) | rpl::on_next([&settings](bool enabled) {
+        		settings.setShowStartToken(enabled);
+        	}, container->lifetime());
+        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+        		btn, u"fa/general/start-token"_q, controller);
+        }
         Ui::AddDividerText(container, fatr::fa_show_start_token_desc());
-        SettingsMenuJsonSwitch(fa_show_peer_ids, show_peer_id, u"fa/general/peer-ids"_q);
+        {
+        	auto &settings = FASettings::FASettings::getInstance();
+        	const auto btn = container->add(object_ptr<Button>(
+        		container,
+        		fatr::fa_show_peer_ids(),
+        		st::settingsButtonNoIcon
+        	));
+        	btn->toggleOn(
+        		settings.showPeerIdValue()
+        	)->toggledValue(
+        	) | rpl::filter([&settings](bool enabled) {
+        		return (enabled != settings.showPeerId());
+        	}) | rpl::on_next([&settings](bool enabled) {
+        		settings.setShowPeerId(enabled);
+        	}, container->lifetime());
+        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+        		btn, u"fa/general/peer-ids"_q, controller);
+        }
         Ui::AddDividerText(container, fatr::fa_show_peer_ids_desc());
-        SettingsMenuJsonSwitch(fa_show_dc_ids, show_dc_id, u"fa/general/dc-ids"_q);
+        {
+        	auto &settings = FASettings::FASettings::getInstance();
+        	const auto btn = container->add(object_ptr<Button>(
+        		container,
+        		fatr::fa_show_dc_ids(),
+        		st::settingsButtonNoIcon
+        	));
+        	btn->toggleOn(
+        		settings.showDcIdValue()
+        	)->toggledValue(
+        	) | rpl::filter([&settings](bool enabled) {
+        		return (enabled != settings.showDcId());
+        	}) | rpl::on_next([&settings](bool enabled) {
+        		settings.setShowDcId(enabled);
+        	}, container->lifetime());
+        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+        		btn, u"fa/general/dc-ids"_q, controller);
+        }
         Ui::AddDividerText(container, fatr::fa_show_dc_ids_desc());
-        SettingsMenuJsonSwitch(fa_id_in_botapi_type, show_id_botapi, u"fa/general/botapi-id"_q);
+        {
+        	auto &settings = FASettings::FASettings::getInstance();
+        	const auto btn = container->add(object_ptr<Button>(
+        		container,
+        		fatr::fa_id_in_botapi_type(),
+        		st::settingsButtonNoIcon
+        	));
+        	btn->toggleOn(
+        		settings.showIdBotapiValue()
+        	)->toggledValue(
+        	) | rpl::filter([&settings](bool enabled) {
+        		return (enabled != settings.showIdBotapi());
+        	}) | rpl::on_next([&settings](bool enabled) {
+        		settings.setShowIdBotapi(enabled);
+        	}, container->lifetime());
+        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+        		btn, u"fa/general/botapi-id"_q, controller);
+        }
         Ui::AddDividerText(container, fatr::fa_id_in_botapi_type_desc());
-        SettingsMenuJsonSwitch(fa_local_tg_premium, local_premium, u"fa/general/local-premium"_q);
+        {
+        	auto &settings = FASettings::FASettings::getInstance();
+        	const auto btn = container->add(object_ptr<Button>(
+        		container,
+        		fatr::fa_local_tg_premium(),
+        		st::settingsButtonNoIcon
+        	));
+        	btn->toggleOn(
+        		settings.localPremiumValue()
+        	)->toggledValue(
+        	) | rpl::filter([&settings](bool enabled) {
+        		return (enabled != settings.localPremium());
+        	}) | rpl::on_next([&settings](bool enabled) {
+        		settings.setLocalPremium(enabled);
+        	}, container->lifetime());
+        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+        		btn, u"fa/general/local-premium"_q, controller);
+        }
         Ui::AddDividerText(container, fatr::fa_local_tg_premium_desc());
-        SettingsMenuJsonSwitch(fa_show_registration_date, show_registration_date, u"fa/general/registration-date"_q);
+        {
+        	auto &settings = FASettings::FASettings::getInstance();
+        	const auto btn = container->add(object_ptr<Button>(
+        		container,
+        		fatr::fa_show_registration_date(),
+        		st::settingsButtonNoIcon
+        	));
+        	btn->toggleOn(
+        		settings.showRegistrationDateValue()
+        	)->toggledValue(
+        	) | rpl::filter([&settings](bool enabled) {
+        		return (enabled != settings.showRegistrationDate());
+        	}) | rpl::on_next([&settings](bool enabled) {
+        		settings.setShowRegistrationDate(enabled);
+        	}, container->lifetime());
+        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+        		btn, u"fa/general/registration-date"_q, controller);
+        }
         Ui::AddDividerText(container, fatr::fa_show_registration_date_desc());
     }
 

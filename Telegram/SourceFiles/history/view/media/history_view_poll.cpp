@@ -3453,7 +3453,7 @@ void Poll::Header::paintRecentVoters(
 	auto created = false;
 	for (const auto &recent : ranges::views::reverse(_recentVoters)) {
 		const auto was = !recent.userpic.null();
-		bool use_default_rounding = FASettings::JsonSettings::GetBool("use_default_rounding");
+		bool use_default_rounding = FASettings::FASettings::getInstance().useDefaultRounding();
 		recent.peer->paintUserpic(p, recent.userpic, x, y, size);
 		if (!was && !recent.userpic.null()) {
 			created = true;
@@ -3463,7 +3463,7 @@ void Poll::Header::paintRecentVoters(
 			p.setBrush(Qt::NoBrush);
 			PainterHighQualityEnabler hq(p);
 			if (use_default_rounding) {
-				auto radius = FASettings::JsonSettings::GetInt("roundness") / 100. * size;
+				auto radius = FASettings::FASettings::getInstance().roundness() / 100. * size;
 				p.drawRoundedRect(x, y, size, size, radius, radius);
 			}
 			else {

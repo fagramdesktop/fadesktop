@@ -746,7 +746,7 @@ void ClearCallsBox(
 		object_ptr<Ui::Checkbox>(
 			box,
 			tr::lng_delete_for_everyone_check(tr::now),
-			FASettings::JsonSettings::GetBool("delete_for_everyone"),
+			FASettings::FASettings::getInstance().deleteForEveryone(),
 			st::defaultBoxCheckbox),
 		style::margins(
 			st::boxPadding.left(),

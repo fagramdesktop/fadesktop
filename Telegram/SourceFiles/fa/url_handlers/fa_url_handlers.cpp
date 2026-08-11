@@ -99,11 +99,11 @@ bool HandleSwitchDebugLogs(
 		return false;
 	}
 
-	bool debug_logs = FASettings::JsonSettings::GetBool("debug_logs");
+	bool debug_logs = FASettings::FASettings::getInstance().debugLogs();
 
-	FASettings::JsonSettings::Write();
-	FASettings::JsonSettings::Set("debug_logs", !debug_logs);
-	FASettings::JsonSettings::Write();
+	
+	FASettings::FASettings::getInstance().setDebugLogs(!debug_logs);
+	
 
 	QString message = debug_logs
 		? fatr::fa_debug_logs_off(fatr::now)

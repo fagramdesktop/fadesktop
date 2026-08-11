@@ -344,8 +344,8 @@ InnerWidget::InnerWidget(
 	}, lifetime());
 
 	rpl::merge(
-		FASettings::JsonSettings::Events(u"disable_animated_avatars"_q),
-		FASettings::JsonSettings::Events(u"disable_premium_animation"_q)
+		FASettings::FASettings::getInstance().disableAnimatedAvatarsChanges(),
+		FASettings::FASettings::getInstance().disablePremiumAnimationChanges()
 	) | rpl::on_next([=] {
 		_videoUserpics.clear();
 		update();
@@ -1726,7 +1726,7 @@ void InnerWidget::fillRightButton(
 }
 
 [[nodiscard]] RightButton *InnerWidget::maybeCacheRightButton(Row *row) {
-	bool hide_open_webapp_button_chatlist = FASettings::JsonSettings::GetBool("hide_open_webapp_button_chatlist");
+	bool hide_open_webapp_button_chatlist = FASettings::FASettings::getInstance().hideOpenWebappButtonChatlist();
 	if (!hide_open_webapp_button_chatlist) {
 		if (const auto user = MaybeBotWithApp(row)) {
 			const auto it = _rightButtons.find(user->id);
@@ -1779,9 +1779,9 @@ Ui::VideoUserpic *InnerWidget::validateVideoUserpic(
 		|| !peer->userpicHasVideo()
 		|| peer->isSelf()
 		|| peer->isRepliesChat()
-		|| FASettings::JsonSettings::GetBool("disable_premium_animation")
-		|| FASettings::JsonSettings::GetBool("screenshot_mode")
-		|| FASettings::JsonSettings::GetBool(u"disable_animated_avatars"_q)) {
+		|| FASettings::FASettings::getInstance().disablePremiumAnimation()
+		|| FASettings::FASettings::getInstance().screenshotMode()
+		|| FASettings::FASettings::getInstance().disableAnimatedAvatars()) {
 		_videoUserpics.remove(peer);
 		return nullptr;
 	}

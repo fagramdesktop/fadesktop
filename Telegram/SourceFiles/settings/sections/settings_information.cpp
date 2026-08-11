@@ -897,7 +897,7 @@ void SetupAccountsWrap(
 			const auto rect = QRectF(shift, shift, diameter, diameter);
 			auto hq = PainterHighQualityEnabler(p);
 			auto pen = st::windowBgActive->p; // The same as '+' in add.
-			bool use_default_rounding = FASettings::JsonSettings::GetBool("use_default_rounding");
+			bool use_default_rounding = FASettings::FASettings::getInstance().useDefaultRounding();
 			pen.setWidthF(line);
 			p.setPen(pen);
 			p.setBrush(Qt::NoBrush);
@@ -909,8 +909,8 @@ void SetupAccountsWrap(
 				auto width = rect.width();
 				p.drawRoundedRect(
 					rect, 
-					height * FASettings::JsonSettings::GetInt("roundness") / 100, 
-					width * FASettings::JsonSettings::GetInt("roundness") / 100
+					height * FASettings::FASettings::getInstance().roundness() / 100, 
+					width * FASettings::FASettings::getInstance().roundness() / 100
 				);
 			}
 		}

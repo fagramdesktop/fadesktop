@@ -60,20 +60,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_boxes.h"
 
-#define SettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
-	container, \
-    fatr::LangKey(), \
-	st::settingsButtonNoIcon \
-))->toggleOn( \
-	rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-)->toggledValue( \
-) | rpl::filter([](bool enabled) { \
-	return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-}) | rpl::on_next([](bool enabled) { \
-	::FASettings::JsonSettings::Write(); \
-	::FASettings::JsonSettings::Set(#Option, enabled); \
-	::FASettings::JsonSettings::Write(); \
-}, container->lifetime());
 
 namespace Settings {
 
@@ -93,7 +79,7 @@ namespace Settings {
         addAction(
             fatr::fa_share_settings_to_chat(fatr::now),
             [=] {
-                const auto data = FASettings::JsonSettings::ExportSettingsJson();
+                const auto data = FASettings::FASettings::getInstance().exportSettingsJson();
                 const auto tempPath = QDir::temp().filePath(u"settings.faconfig"_q);
                 auto f = QFile(tempPath);
                 if (!f.open(QIODevice::WriteOnly)) {
@@ -126,7 +112,7 @@ namespace Settings {
         addAction(
             fatr::fa_share_settings(fatr::now),
             [=] {
-                const auto data = FASettings::JsonSettings::ExportSettingsJson();
+                const auto data = FASettings::FASettings::getInstance().exportSettingsJson();
                 FileDialog::GetWritePath(
                     Core::App().getFileDialogParent(),
                     u"Export FAgram Settings"_q,

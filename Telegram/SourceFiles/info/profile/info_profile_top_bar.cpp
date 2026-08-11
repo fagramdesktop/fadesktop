@@ -474,8 +474,8 @@ TopBar::TopBar(
 	} else {
 		updateVideoUserpic();
 		rpl::merge(
-			FASettings::JsonSettings::Events(u"disable_animated_avatars"_q),
-			FASettings::JsonSettings::Events(u"disable_premium_animation"_q)
+			FASettings::FASettings::getInstance().disableAnimatedAvatarsChanges(),
+			FASettings::FASettings::getInstance().disablePremiumAnimationChanges()
 		) | rpl::on_next([=] {
 			updateVideoUserpic();
 			update();
@@ -2647,8 +2647,8 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 	}
 	if (_videoUserpicPlayer
 		&& _videoUserpicPlayer->ready()
-		&& !FASettings::JsonSettings::GetBool(u"disable_animated_avatars"_q)
-		&& !FASettings::JsonSettings::GetBool(u"disable_premium_animation"_q)) {
+		&& !FASettings::FASettings::getInstance().disableAnimatedAvatars()
+		&& !FASettings::FASettings::getInstance().disablePremiumAnimation()) {
 		const auto size = st::infoProfileTopBarPhotoSize;
 		const auto frame = _videoUserpicPlayer->frame(Size(size), _peer);
 		if (!frame.isNull()) {
@@ -3044,8 +3044,8 @@ void TopBar::fillTopBarMenu(
 void TopBar::updateVideoUserpic() {
 	if (width() <= 0) {
 		return;
-	} else if (FASettings::JsonSettings::GetBool(u"disable_animated_avatars"_q)
-		|| FASettings::JsonSettings::GetBool(u"disable_premium_animation"_q)) {
+	} else if (FASettings::FASettings::getInstance().disableAnimatedAvatars()
+		|| FASettings::FASettings::getInstance().disablePremiumAnimation()) {
 		_videoUserpicPlayer = nullptr;
 		return;
 	}

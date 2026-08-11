@@ -406,13 +406,7 @@ rpl::producer<bool> PeerPremiumValue(not_null<PeerData*> peer) {
 }
 
 rpl::producer<bool> AmPremiumValue(not_null<Main::Session*> session) {
-	auto localPremium = rpl::single(
-		FASettings::JsonSettings::GetBool("local_premium")
-	) | rpl::then(
-		FASettings::JsonSettings::Events("local_premium") | rpl::map([](const QString &) {
-			return FASettings::JsonSettings::GetBool("local_premium");
-		})
-	);
+	auto localPremium = FASettings::FASettings::getInstance().localPremiumValue();
 	return rpl::combine(
 		std::move(localPremium),
 		PeerPremiumValue(session->user())
@@ -468,7 +462,7 @@ QString OnlineText(Data::LastseenStatus status, TimeId now) {
 		return tr::lng_status_lastseen_minutes(tr::now, lt_count, minutes);
 	}
 	const auto hours = (now - till) / 3600;
-	const auto showTimestampAfterHour = FASettings::JsonSettings::GetBool("last_seen_timestamp");
+	const auto showTimestampAfterHour = FASettings::FASettings::getInstance().lastSeenTimestamp();
 	if (hours < 12 && !showTimestampAfterHour) {
 		return tr::lng_status_lastseen_hours(tr::now, lt_count, hours);
 	}

@@ -424,7 +424,7 @@ bool AddForwardSelectedAction(
 		}
 	};
 
-	if (::FASettings::JsonSettings::GetBool("context_menu_forward_submenu")) {
+	if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
 		const auto ids = ExtractIdsList(selectedItems);
 		const auto session = &navigation->session();
 		const auto hasMediaWithCaption = ranges::any_of(
@@ -538,7 +538,7 @@ bool AddForwardMessageAction(
 	const auto itemId = item->fullId();
 	const auto navigation = request.navigation;
 
-	if (::FASettings::JsonSettings::GetBool("context_menu_forward_submenu")) {
+	if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
 		const auto getMessageIds = [=]() -> MessageIdsList {
 			if (const auto item = owner->message(itemId)) {
 				return asGroup
@@ -1703,7 +1703,7 @@ void FillContextMenuItems(
 	const auto hasWhoReactedItem = item
 		&& Api::WhoReactedExists(item, Api::WhoReactedList::All);
 
-	const auto shortcutsAtBottom = FASettings::JsonSettings::GetBool("context_menu_shortcuts_at_bottom");
+	const auto shortcutsAtBottom = FASettings::FASettings::getInstance().contextMenuShortcutsAtBottom();
 	auto shortcutsResult = FaHistoryView::AddContextMenuShortcuts(
 		result->menu(),
 		request,

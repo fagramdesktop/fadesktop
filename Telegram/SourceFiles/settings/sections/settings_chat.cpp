@@ -102,7 +102,7 @@ constexpr auto kCustomColorButtonParts = 7;
 
 [[nodiscard]] std::vector<Window::Theme::EmbeddedScheme> FilteredSchemesList() {
 	using Type = Window::Theme::EmbeddedType;
-	const auto useTd = FASettings::JsonSettings::GetBool("use_tdesktop_themes");
+	const auto useTd = FASettings::FASettings::getInstance().useTdesktopThemes();
 	auto result = std::vector<Window::Theme::EmbeddedScheme>();
 	for (const auto &scheme : kSchemesList) {
 		const auto type = scheme.type;

@@ -39,7 +39,7 @@ void SetForceAll(bool force);
 
 [[nodiscard]] inline bool On(Flag flag) {
 	if (flag == kEmojiStatus || flag == kChatEffects) {
-		if (FASettings::JsonSettings::GetBool(u"disable_premium_animation"_q)) {
+		if (FASettings::FASettings::getInstance().disablePremiumAnimation()) {
 			return true;
 		}
 	}

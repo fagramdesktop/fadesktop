@@ -259,8 +259,8 @@ QString AddOption(
 		}
 		option.set(toggled);
 		if (option.id() == Ui::kOptionHideAiButton) {
-			FASettings::JsonSettings::Set(u"disable_ai"_q, toggled);
-			FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setDisableAi(toggled);
+			
 		}
 		if (restarter) {
 			restarter->callOnce(st::settingsButtonNoIcon.toggle.duration);

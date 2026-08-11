@@ -240,7 +240,7 @@ Main::Session &Stories::session() const {
 }
 
 void Stories::apply(const MTPDupdateStory &data) {
-	bool hide_stories = FASettings::JsonSettings::GetBool("hide_stories");
+	bool hide_stories = FASettings::FASettings::getInstance().hideStories();
 	if (hide_stories) {
 		return;
 	}
@@ -294,7 +294,7 @@ void Stories::apply(const MTPDupdateStory &data) {
 }
 
 void Stories::apply(const MTPDupdateReadStories &data) {
-	bool hide_stories = FASettings::JsonSettings::GetBool("hide_stories");
+	bool hide_stories = FASettings::FASettings::getInstance().hideStories();
 	if (hide_stories) {
 		return;
 	}
@@ -310,7 +310,7 @@ void Stories::apply(const MTPStoriesStealthMode &stealthMode) {
 }
 
 void Stories::apply(not_null<PeerData*> peer, const MTPPeerStories *data) {
-	bool hide_stories = FASettings::JsonSettings::GetBool("hide_stories");
+	bool hide_stories = FASettings::FASettings::getInstance().hideStories();
 	if (hide_stories) {
 		return;
 	}
@@ -327,7 +327,7 @@ void Stories::apply(not_null<PeerData*> peer, const MTPPeerStories *data) {
 }
 
 Story *Stories::applySingle(PeerId peerId, const MTPstoryItem &story) {
-	bool hide_stories = FASettings::JsonSettings::GetBool("hide_stories");
+	bool hide_stories = FASettings::FASettings::getInstance().hideStories();
 	if (hide_stories) {
 		return nullptr;
 	}

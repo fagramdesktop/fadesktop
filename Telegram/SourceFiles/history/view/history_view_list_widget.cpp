@@ -2770,8 +2770,8 @@ void ListWidget::paintUserpics(
 		return;
 	}
 	const auto session = &this->session();
-	const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
-	const auto onlineOnlyDot = FASettings::JsonSettings::GetBool("status_dot_online_only");
+	const auto showStatusDot = FASettings::FASettings::getInstance().showStatusDot();
+	const auto onlineOnlyDot = FASettings::FASettings::getInstance().statusDotOnlineOnly();
 	const auto now = showStatusDot ? base::unixtime::now() : TimeId(0);
 
 	enumerateUserpics([&](not_null<Element*> view, int userpicTop) {

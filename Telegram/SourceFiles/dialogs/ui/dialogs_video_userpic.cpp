@@ -95,7 +95,7 @@ if (_video && _video->ready()) {
 
 		const auto now = paused ? crl::time(0) : crl::now();
 
-		bool use_default_rounding = FASettings::JsonSettings::GetBool("use_default_rounding");
+		bool use_default_rounding = FASettings::FASettings::getInstance().useDefaultRounding();
 
 		if (use_default_rounding) {
 			p.drawImage(x, y, _video->current(request(size), now));
@@ -104,7 +104,7 @@ if (_video && _video->ready()) {
 			p.save();
 			QPainterPath clipPath;
 			QImage frame = _video->current(request(size), now);
-			auto radius = frame.height() * FASettings::JsonSettings::GetInt("roundness") / 100.;
+			auto radius = frame.height() * FASettings::FASettings::getInstance().roundness() / 100.;
 			clipPath.addRoundedRect(
 				QRect(x, y, frame.width(), frame.height()),
 				radius, radius);
@@ -192,8 +192,8 @@ void PaintUserpic(
 		peer->paintUserpicLeft(p, view, x, y, outerWidth, size);
 	}
 
-	const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
-	const auto onlineOnlyDot = FASettings::JsonSettings::GetBool("status_dot_online_only");
+	const auto showStatusDot = FASettings::FASettings::getInstance().showStatusDot();
+	const auto onlineOnlyDot = FASettings::FASettings::getInstance().statusDotOnlineOnly();
 	if (showStatusDot) {
 		if (const auto user = peer->asUser()) {
 			if (!user->isBot() && !user->isServiceUser()) {

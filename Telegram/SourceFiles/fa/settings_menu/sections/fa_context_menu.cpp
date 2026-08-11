@@ -42,26 +42,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/buttons.h"
 #include "base/call_delayed.h"
 
-#define SettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
-	const auto _btn = container->add(object_ptr<Button>( \
-		container, \
-		fatr::LangKey(), \
-		st::settingsButtonNoIcon \
-	)); \
-	_btn->toggleOn( \
-		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-	)->toggledValue( \
-	) | rpl::filter([](bool enabled) { \
-		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-	}) | rpl::on_next([](bool enabled) { \
-		::FASettings::JsonSettings::Write(); \
-		::FASettings::JsonSettings::Set(#Option, enabled); \
-		::FASettings::JsonSettings::Write(); \
-	}, container->lifetime()); \
-	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
-		_btn, ControlId, controller); \
-} while (false)
-
 namespace Settings {
 
     rpl::producer<QString> FAContextMenu::title() {
@@ -84,19 +64,36 @@ namespace Settings {
 			st::settingsButtonNoIcon
 		));
 		shortcutsBtn->toggleOn(
-			rpl::single(::FASettings::JsonSettings::GetBool("context_menu_use_shortcuts"))
+			rpl::single(FASettings::FASettings::getInstance().contextMenuUseShortcuts())
 		)->toggledValue(
 		) | rpl::filter([](bool enabled) {
-			return (enabled != ::FASettings::JsonSettings::GetBool("context_menu_use_shortcuts"));
+			return (enabled != FASettings::FASettings::getInstance().contextMenuUseShortcuts());
 		}) | rpl::on_next([](bool enabled) {
-			::FASettings::JsonSettings::Write();
-			::FASettings::JsonSettings::Set("context_menu_use_shortcuts", enabled);
-			::FASettings::JsonSettings::Write();
+			
+			FASettings::FASettings::getInstance().setContextMenuUseShortcuts(enabled);
+			
 		}, container->lifetime());
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			shortcutsBtn, u"fa/context-menu/shortcuts"_q, controller);
 
-		SettingsMenuJsonSwitch(fa_context_menu_move_to_bottom, context_menu_shortcuts_at_bottom, u"fa/context-menu/shortcuts-bottom"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_context_menu_move_to_bottom(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.contextMenuShortcutsAtBottomValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.contextMenuShortcutsAtBottom());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setContextMenuShortcutsAtBottom(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/context-menu/shortcuts-bottom"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_context_menu_desc());
 
 		// Shortcut button size slider
@@ -119,16 +116,16 @@ namespace Settings {
 		};
 		const auto updateButtonSize = [=](int value) {
 			updateButtonSizeLabel(value);
-			::FASettings::JsonSettings::Set("context_menu_shortcut_button_size", value);
-			::FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setContextMenuShortcutButtonSize(value);
+			
 		};
 		buttonSizeSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 		buttonSizeSlider->setPseudoDiscrete(
 			41, // 24 to 64 = 41 values
 			[](int val) { return val + 24; },
-			::FASettings::JsonSettings::GetInt("context_menu_shortcut_button_size"),
+			FASettings::FASettings::getInstance().contextMenuShortcutButtonSize(),
 			updateButtonSize);
-		updateButtonSizeLabel(::FASettings::JsonSettings::GetInt("context_menu_shortcut_button_size"));
+		updateButtonSizeLabel(FASettings::FASettings::getInstance().contextMenuShortcutButtonSize());
 		const auto resetButtonSize = Ui::CreateChild<Ui::IconButton>(
 			container,
 			st::settingsSliderRestore);
@@ -167,16 +164,16 @@ namespace Settings {
 		};
 		const auto updateIconSize = [=](int value) {
 			updateIconSizeLabel(value);
-			::FASettings::JsonSettings::Set("context_menu_shortcut_icon_size", value);
-			::FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setContextMenuShortcutIconSize(value);
+			
 		};
 		iconSizeSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 		iconSizeSlider->setPseudoDiscrete(
 			33, // 16 to 48 = 33 values
 			[](int val) { return val + 16; },
-			::FASettings::JsonSettings::GetInt("context_menu_shortcut_icon_size"),
+			FASettings::FASettings::getInstance().contextMenuShortcutIconSize(),
 			updateIconSize);
-		updateIconSizeLabel(::FASettings::JsonSettings::GetInt("context_menu_shortcut_icon_size"));
+		updateIconSizeLabel(FASettings::FASettings::getInstance().contextMenuShortcutIconSize());
 		const auto resetIconSize = Ui::CreateChild<Ui::IconButton>(
 			container,
 			st::settingsSliderRestore);
@@ -215,16 +212,16 @@ namespace Settings {
 		};
 		const auto updateSpacing = [=](int value) {
 			updateSpacingLabel(value);
-			::FASettings::JsonSettings::Set("context_menu_shortcut_spacing", value);
-			::FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setContextMenuShortcutSpacing(value);
+			
 		};
 		spacingSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 		spacingSlider->setPseudoDiscrete(
 			25, // 0 to 24 = 25 values
 			[](int val) { return val; },
-			::FASettings::JsonSettings::GetInt("context_menu_shortcut_spacing"),
+			FASettings::FASettings::getInstance().contextMenuShortcutSpacing(),
 			updateSpacing);
-		updateSpacingLabel(::FASettings::JsonSettings::GetInt("context_menu_shortcut_spacing"));
+		updateSpacingLabel(FASettings::FASettings::getInstance().contextMenuShortcutSpacing());
 		const auto resetSpacing = Ui::CreateChild<Ui::IconButton>(
 			container,
 			st::settingsSliderRestore);
@@ -263,16 +260,16 @@ namespace Settings {
 		};
 		const auto updateHPadding = [=](int value) {
 			updateHPaddingLabel(value);
-			::FASettings::JsonSettings::Set("context_menu_shortcut_horizontal_padding", value);
-			::FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setContextMenuShortcutHorizontalPadding(value);
+			
 		};
 		hPaddingSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 		hPaddingSlider->setPseudoDiscrete(
 			17, // 0 to 16 = 17 values
 			[](int val) { return val; },
-			::FASettings::JsonSettings::GetInt("context_menu_shortcut_horizontal_padding"),
+			FASettings::FASettings::getInstance().contextMenuShortcutHorizontalPadding(),
 			updateHPadding);
-		updateHPaddingLabel(::FASettings::JsonSettings::GetInt("context_menu_shortcut_horizontal_padding"));
+		updateHPaddingLabel(FASettings::FASettings::getInstance().contextMenuShortcutHorizontalPadding());
 		const auto resetHPadding = Ui::CreateChild<Ui::IconButton>(
 			container,
 			st::settingsSliderRestore);
@@ -311,16 +308,16 @@ namespace Settings {
 		};
 		const auto updateVPadding = [=](int value) {
 			updateVPaddingLabel(value);
-			::FASettings::JsonSettings::Set("context_menu_shortcut_vertical_padding", value);
-			::FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setContextMenuShortcutVerticalPadding(value);
+			
 		};
 		vPaddingSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 		vPaddingSlider->setPseudoDiscrete(
 			17, // 0 to 16 = 17 values
 			[](int val) { return val; },
-			::FASettings::JsonSettings::GetInt("context_menu_shortcut_vertical_padding"),
+			FASettings::FASettings::getInstance().contextMenuShortcutVerticalPadding(),
 			updateVPadding);
-		updateVPaddingLabel(::FASettings::JsonSettings::GetInt("context_menu_shortcut_vertical_padding"));
+		updateVPaddingLabel(FASettings::FASettings::getInstance().contextMenuShortcutVerticalPadding());
 		const auto resetVPadding = Ui::CreateChild<Ui::IconButton>(
 			container,
 			st::settingsSliderRestore);
@@ -359,16 +356,16 @@ namespace Settings {
 		};
 		const auto updateCornerRadius = [=](int value) {
 			updateCornerRadiusLabel(value);
-			::FASettings::JsonSettings::Set("context_menu_shortcut_corner_radius", value);
-			::FASettings::JsonSettings::Write();
+			FASettings::FASettings::getInstance().setContextMenuShortcutCornerRadius(value);
+			
 		};
 		cornerRadiusSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 		cornerRadiusSlider->setPseudoDiscrete(
 			21, // 0 to 20 = 21 values
 			[](int val) { return val; },
-			::FASettings::JsonSettings::GetInt("context_menu_shortcut_corner_radius"),
+			FASettings::FASettings::getInstance().contextMenuShortcutCornerRadius(),
 			updateCornerRadius);
-		updateCornerRadiusLabel(::FASettings::JsonSettings::GetInt("context_menu_shortcut_corner_radius"));
+		updateCornerRadiusLabel(FASettings::FASettings::getInstance().contextMenuShortcutCornerRadius());
 		const auto resetCornerRadius = Ui::CreateChild<Ui::IconButton>(
 			container,
 			st::settingsSliderRestore);
@@ -389,10 +386,44 @@ namespace Settings {
 
 		Ui::AddDividerText(container, fatr::fa_shortcut_customization_desc());
 
-		SettingsMenuJsonSwitch(fa_context_menu_reply_in_private, context_menu_reply_in_private, u"fa/context-menu/reply-private"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_context_menu_reply_in_private(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.contextMenuReplyInPrivateValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.contextMenuReplyInPrivate());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setContextMenuReplyInPrivate(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/context-menu/reply-private"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_context_menu_reply_in_private_desc());
 
-		SettingsMenuJsonSwitch(fa_context_menu_forward_submenu, context_menu_forward_submenu, u"fa/context-menu/forward-submenu"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_context_menu_forward_submenu(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.contextMenuForwardSubmenuValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.contextMenuForwardSubmenu());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setContextMenuForwardSubmenu(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/context-menu/forward-submenu"_q, controller);
+		}
 		Ui::AddDividerText(container, fatr::fa_context_menu_forward_submenu_desc());
     }
 

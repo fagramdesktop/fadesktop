@@ -32,7 +32,7 @@ base::options::option<QString> OptionTranslateUrlTemplate({
 });
 
 [[nodiscard]] TranslationProvider ResolveTranslateProvider() {
-	const auto provider = static_cast<TranslationProvider>(FASettings::JsonSettings::GetInt("translationProvider"));
+	const auto provider = static_cast<TranslationProvider>(FASettings::FASettings::getInstance().translationProvider());
 	if ((provider == TranslationProvider::Native)
 		&& !Platform::IsTranslateProviderAvailable()) {
 		return TranslationProvider::Telegram;

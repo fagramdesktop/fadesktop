@@ -47,27 +47,27 @@ namespace FaHistoryView {
 namespace {
 
 [[nodiscard]] int ShortcutButtonSize() {
-	return FASettings::JsonSettings::GetInt("context_menu_shortcut_button_size");
+	return FASettings::FASettings::getInstance().contextMenuShortcutButtonSize();
 }
 
 [[nodiscard]] int ShortcutButtonIconSize() {
-	return FASettings::JsonSettings::GetInt("context_menu_shortcut_icon_size");
+	return FASettings::FASettings::getInstance().contextMenuShortcutIconSize();
 }
 
 [[nodiscard]] int ShortcutButtonSpacing() {
-	return FASettings::JsonSettings::GetInt("context_menu_shortcut_spacing");
+	return FASettings::FASettings::getInstance().contextMenuShortcutSpacing();
 }
 
 [[nodiscard]] int ShortcutVerticalPadding() {
-	return FASettings::JsonSettings::GetInt("context_menu_shortcut_vertical_padding");
+	return FASettings::FASettings::getInstance().contextMenuShortcutVerticalPadding();
 }
 
 [[nodiscard]] int ShortcutHorizontalPadding() {
-	return FASettings::JsonSettings::GetInt("context_menu_shortcut_horizontal_padding");
+	return FASettings::FASettings::getInstance().contextMenuShortcutHorizontalPadding();
 }
 
 [[nodiscard]] int ShortcutCornerRadius() {
-	return FASettings::JsonSettings::GetInt("context_menu_shortcut_corner_radius");
+	return FASettings::FASettings::getInstance().contextMenuShortcutCornerRadius();
 }
 
 class ShortcutButton final : public Ui::RippleButton {
@@ -413,7 +413,7 @@ AddContextMenuShortcutsResult AddContextMenuShortcuts(
 	const HistoryView::ContextMenuRequest &request,
 	not_null<HistoryView::ListWidget*> list) {
 
-	if (!FASettings::JsonSettings::GetBool("context_menu_use_shortcuts")) {
+	if (!FASettings::FASettings::getInstance().contextMenuUseShortcuts()) {
 		return { nullptr, {} };
 	}
 
@@ -495,7 +495,7 @@ AddContextMenuShortcutsResult AddContextMenuShortcuts(
 	ShortcutCallbacks callbacks,
 	HistoryView::SelectedQuote quote) {
 
-	if (!FASettings::JsonSettings::GetBool("context_menu_use_shortcuts")) {
+	if (!FASettings::FASettings::getInstance().contextMenuUseShortcuts()) {
 		return { nullptr, {} };
 	}
 
@@ -515,7 +515,7 @@ std::set<ShortcutType> GetAvailableShortcuts(
 	not_null<HistoryItem*> item,
 	Fn<bool(HistoryItem*)> hasCopyRestriction) {
 
-	if (!FASettings::JsonSettings::GetBool("context_menu_use_shortcuts")) {
+	if (!FASettings::FASettings::getInstance().contextMenuUseShortcuts()) {
 		return {};
 	}
 

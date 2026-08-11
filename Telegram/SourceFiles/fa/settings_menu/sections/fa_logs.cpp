@@ -39,26 +39,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "api/api_blocked_peers.h"
 #include "ui/widgets/continuous_sliders.h"
 
-#define SettingsMenuJsonSwitch(LangKey, Option, ControlId) do { \
-	const auto _btn = container->add(object_ptr<Button>( \
-		container, \
-		fatr::LangKey(), \
-		st::settingsButtonNoIcon \
-	)); \
-	_btn->toggleOn( \
-		rpl::single(::FASettings::JsonSettings::GetBool(#Option)) \
-	)->toggledValue( \
-	) | rpl::filter([](bool enabled) { \
-		return (enabled != ::FASettings::JsonSettings::GetBool(#Option)); \
-	}) | rpl::on_next([](bool enabled) { \
-		::FASettings::JsonSettings::Write(); \
-		::FASettings::JsonSettings::Set(#Option, enabled); \
-		::FASettings::JsonSettings::Write(); \
-	}, container->lifetime()); \
-	Settings::FADeepLinkMenu::AttachSettingsContextMenu( \
-		_btn, ControlId, controller); \
-} while (false)
-
 namespace Settings {
 
     rpl::producer<QString> FALogs::title() {
@@ -92,7 +72,24 @@ namespace Settings {
 			u"fa/logs/clean"_q,
 			controller);
 		
-		SettingsMenuJsonSwitch(fa_debug_logs, debug_logs, u"fa/logs/debug-logs"_q);
+		{
+			auto &settings = FASettings::FASettings::getInstance();
+			const auto btn = container->add(object_ptr<Button>(
+				container,
+				fatr::fa_debug_logs(),
+				st::settingsButtonNoIcon
+			));
+			btn->toggleOn(
+				settings.debugLogsValue()
+			)->toggledValue(
+			) | rpl::filter([&settings](bool enabled) {
+				return (enabled != settings.debugLogs());
+			}) | rpl::on_next([&settings](bool enabled) {
+				settings.setDebugLogs(enabled);
+			}, container->lifetime());
+			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+				btn, u"fa/logs/debug-logs"_q, controller);
+		}
 
 		Ui::AddSkip(container);
 		Ui::AddDividerText(container, fatr::fa_logs_dir());

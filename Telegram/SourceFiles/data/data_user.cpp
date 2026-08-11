@@ -611,7 +611,7 @@ bool UserData::isFake() const {
 }
 
 bool UserData::isPremium() const {
-	if (FASettings::JsonSettings::GetBool("local_premium") && isSelf()) {
+	if (FASettings::FASettings::getInstance().localPremium() && isSelf()) {
 		return true;
 	}
 

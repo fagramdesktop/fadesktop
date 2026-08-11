@@ -459,14 +459,14 @@ void RoundImageCheckbox::paintFrame(
 			const auto pen = QPen(
 				segments ? _segments.front().brush : _st.selectFg->b,
 				segments ? _segments.front().width : _st.selectWidth);
-			bool use_default_rounding = FASettings::JsonSettings::GetBool("use_default_rounding");
+			bool use_default_rounding = FASettings::FASettings::getInstance().useDefaultRounding();
 			p.setPen(pen);
 			if (!radius) {
 				if (!use_default_rounding) {
 					p.drawRoundedRect(
 						outline,
-				 		outline.height() * FASettings::JsonSettings::GetInt("roundness") / 100, 
-						outline.width() * FASettings::JsonSettings::GetInt("roundness") / 100);
+				 		outline.height() * FASettings::FASettings::getInstance().roundness() / 100, 
+						outline.width() * FASettings::FASettings::getInstance().roundness() / 100);
 				}
 				else {
 					p.drawEllipse(outline);

@@ -1286,7 +1286,7 @@ QSize Message::performCountOptimalSize() {
 	const auto &summary = item->summaryEntry();
 	const auto showSummaryReply = !summary.result.empty()
 		&& summary.shown
-		&& !FASettings::JsonSettings::GetBool(u"disable_ai"_q);
+		&& !FASettings::FASettings::getInstance().disableAi();
 
 	if (replyData && !_hideReply) {
 		AddComponents(Reply::Bit());
@@ -5781,9 +5781,9 @@ bool Message::displayFastShare() const {
 		return false;
 	} else if (peer->isChannel()) {
 		return !peer->isMegagroup()
-			|| (FASettings::JsonSettings::GetBool("show_fastshare_in_chats")
+			|| (FASettings::FASettings::getInstance().showFastshareInChats()
 				&& !hasOutLayout());
-	} else if (FASettings::JsonSettings::GetBool("show_fastshare_in_chats")
+	} else if (FASettings::FASettings::getInstance().showFastshareInChats()
 		&& (peer->isChat() || peer->asUser())) {
 		return !hasOutLayout();
 	} else if (const auto user = peer->asUser()) {
@@ -6986,7 +6986,7 @@ const HistoryMessageEdited *Message::displayedEditBadge() const {
 
 void Message::ensureSummarizeButton() const {
 	if (data()->canBeSummarized()
-		&& !FASettings::JsonSettings::GetBool(u"disable_ai"_q)) {
+		&& !FASettings::FASettings::getInstance().disableAi()) {
 		if (!_summarize) {
 			_summarize
 				= std::make_unique<TranscribeButton>(data(), false, true);

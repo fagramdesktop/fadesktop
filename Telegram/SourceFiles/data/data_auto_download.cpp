@@ -218,7 +218,7 @@ void Full::setBytesLimit(Source source, Type type, int64 bytesLimit) {
 }
 
 bool Full::shouldDownload(Source source, Type type, int64 fileSize) const {
-	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)
+	if (FASettings::FASettings::getInstance().disableAutoDownload()
 	) {
 		return false;
 	}
@@ -358,7 +358,7 @@ bool Should(
 		const Full &data,
 		Source source,
 		not_null<DocumentData*> document) {
-	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+	if (FASettings::FASettings::getInstance().disableAutoDownload()) {
 		return false;
 	}
 	if (document->sticker() || document->isGifv()) {
@@ -403,7 +403,7 @@ bool Should(
 bool Should(
 		const Full &data,
 		not_null<DocumentData*> document) {
-	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+	if (FASettings::FASettings::getInstance().disableAutoDownload()) {
 		return false;
 	}
 	if (document->sticker()) {
@@ -418,7 +418,7 @@ bool Should(
 		const Full &data,
 		not_null<PeerData*> peer,
 		not_null<PhotoData*> photo) {
-	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+	if (FASettings::FASettings::getInstance().disableAutoDownload()) {
 		return false;
 	}
 	const auto override = data.peerOverride(peer->id);
@@ -441,7 +441,7 @@ bool ShouldAutoPlay(
 		const Full &data,
 		not_null<PeerData*> peer,
 		not_null<DocumentData*> document) {
-	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+	if (FASettings::FASettings::getInstance().disableAutoDownload()) {
 		return false;
 	}
 	if (document->sticker()) {
@@ -467,7 +467,7 @@ bool ShouldAutoPlay(
 		const Full &data,
 		not_null<PeerData*> peer,
 		not_null<PhotoData*> photo) {
-	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+	if (FASettings::FASettings::getInstance().disableAutoDownload()) {
 		return false;
 	}
 	if (!photo->hasVideo()) {

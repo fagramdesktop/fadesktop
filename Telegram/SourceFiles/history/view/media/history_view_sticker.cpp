@@ -113,7 +113,7 @@ Sticker::Sticker(
 		if (_player) {
 			if (hasPremiumEffect() && !_premiumEffectPlayed) {
 				_premiumEffectPlayed = true;
-				if ((On(PowerSaving::kStickersChat) || FASettings::JsonSettings::GetBool(u"disable_premium_animation"_q))
+				if ((On(PowerSaving::kStickersChat) || FASettings::FASettings::getInstance().disablePremiumAnimation())
 					&& !_premiumEffectSkipped) {
 					_premiumEffectSkipped = true;
 				} else {
@@ -651,7 +651,7 @@ void Sticker::setupPlayer() {
 void Sticker::checkPremiumEffectStart() {
 	if (!_premiumEffectPlayed && hasPremiumEffect()) {
 		_premiumEffectPlayed = true;
-		if ((On(PowerSaving::kStickersChat) || FASettings::JsonSettings::GetBool(u"disable_premium_animation"_q))
+		if ((On(PowerSaving::kStickersChat) || FASettings::FASettings::getInstance().disablePremiumAnimation())
 			&& !_premiumEffectSkipped) {
 			_premiumEffectSkipped = true;
 		} else {

@@ -374,7 +374,7 @@ std::unique_ptr<Data::Media> HistoryItem::CreateMedia(
 		});
 	}, [&](const MTPDmessageMediaWebPage &media) -> Result {
 		// FAgram: Block web preview from blocked users
-		if (FASettings::JsonSettings::GetBool("hide_blocked_user_messages") && item->author()) {
+		if (FASettings::FASettings::getInstance().hideBlockedUserMessages() && item->author()) {
 			if (item->author()->isBlocked()) {
 				return nullptr;
 			}

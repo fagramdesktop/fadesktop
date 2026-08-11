@@ -98,7 +98,7 @@ QString IDString(not_null<PeerData*> peer) {
 		: peerIsChannel(peer->id)
 		? peerToChannel(peer->id).bare
 		: peer->id.value);
-	const bool showBotApi = FASettings::JsonSettings::GetBool("show_id_botapi");
+	const bool showBotApi = FASettings::FASettings::getInstance().showIdBotapi();
 	if (showBotApi) {
 		if (peer->isChannel()) {
 			resultId = QString::number(peerToChannel(peer->id).bare - kMaxChannelId).prepend(u"-"_q);

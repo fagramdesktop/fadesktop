@@ -425,7 +425,7 @@ MainMenu::MainMenu(
 
 	initResetScaleButton();
 
-	if ((CanCheckSpecialEvent() && CheckSpecialEvent()) || FASettings::JsonSettings::GetBool("force_snow")) {
+	if ((CanCheckSpecialEvent() && CheckSpecialEvent()) || FASettings::FASettings::getInstance().forceSnow()) {
 		const auto snowLifetime = lifetime().make_state<rpl::lifetime>();
 		const auto rebuild = [=] {
 			const auto snowRaw = Ui::CreateChild<Ui::RpWidget>(this);

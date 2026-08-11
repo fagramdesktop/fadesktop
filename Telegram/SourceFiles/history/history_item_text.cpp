@@ -448,7 +448,7 @@ TextForMimeData HistoryItemText(not_null<HistoryItem*> item) {
 	const auto &summary = item->summaryEntry();
 	if (!summary.result.empty()
 		&& summary.shown
-		&& !FASettings::JsonSettings::GetBool(u"disable_ai"_q)) {
+		&& !FASettings::FASettings::getInstance().disableAi()) {
 		return TextForMimeData::WithExpandedLinks(summary.result);
 	}
 	return AppendExtraCopyText(item, HistoryItemMainText(item));

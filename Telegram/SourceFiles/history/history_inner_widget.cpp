@@ -431,8 +431,8 @@ HistoryInner::HistoryInner(
 	refreshAboutView();
 
 	rpl::merge(
-		FASettings::JsonSettings::Events(u"disable_animated_avatars"_q),
-		FASettings::JsonSettings::Events(u"disable_premium_animation"_q)
+		FASettings::FASettings::getInstance().disableAnimatedAvatarsChanges(),
+		FASettings::FASettings::getInstance().disablePremiumAnimationChanges()
 	) | rpl::on_next([=] {
 		_videoUserpics.clear();
 		update();
@@ -1737,8 +1737,8 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 		p.translate(0, -top);
 	}
 
-	const auto showStatusDot = FASettings::JsonSettings::GetBool("show_status_dot");
-	const auto onlineOnlyDot = FASettings::JsonSettings::GetBool("status_dot_online_only");
+	const auto showStatusDot = FASettings::FASettings::getInstance().showStatusDot();
+	const auto onlineOnlyDot = FASettings::FASettings::getInstance().statusDotOnlineOnly();
 	const auto nowTime = showStatusDot ? base::unixtime::now() : TimeId(0);
 
 	enumerateUserpics([&](not_null<Element*> view, int userpicTop) {
@@ -1955,9 +1955,9 @@ HistoryInner::VideoUserpic *HistoryInner::validateVideoUserpic(
 	if (!peer->isPremium()
 		|| peer->userpicPhotoUnknown()
 		|| !peer->userpicHasVideo()
-		|| FASettings::JsonSettings::GetBool("disable_premium_animation")
-		|| FASettings::JsonSettings::GetBool("screenshot_mode")
-		|| FASettings::JsonSettings::GetBool(u"disable_animated_avatars"_q)) {
+		|| FASettings::FASettings::getInstance().disablePremiumAnimation()
+		|| FASettings::FASettings::getInstance().screenshotMode()
+		|| FASettings::FASettings::getInstance().disableAnimatedAvatars()) {
 		_videoUserpics.remove(peer);
 		return nullptr;
 	}
@@ -3435,7 +3435,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 
 	const auto addReplyInPrivateAction = [&](HistoryItem *item) {
 		// Check if the feature is enabled in settings
-		if (!FASettings::JsonSettings::GetBool("context_menu_reply_in_private")) {
+		if (!FASettings::FASettings::getInstance().contextMenuReplyInPrivate()) {
 			return;
 		}
 		if (!item || !item->isRegular()) {
@@ -3569,7 +3569,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		}
 		if (isUponSelected > 1) {
 			if (selectedState.count > 0 && selectedState.canForwardCount == selectedState.count) {
-				if (::FASettings::JsonSettings::GetBool("context_menu_forward_submenu")) {
+				if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
 					const auto ids = getSelectedItems();
 					const auto weak = base::make_weak(_widget);
 					const auto callback = [=] {
@@ -3678,7 +3678,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			const auto blockSender = item->history()->peer->isRepliesChat();
 			if (isUponSelected != -2) {
 				if (item->allowsForward()) {
-					if (::FASettings::JsonSettings::GetBool("context_menu_forward_submenu")) {
+					if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
 						const auto forwardAction = _menu->addAction(
 							tr::lng_context_forward_msg(tr::now),
 							[=] {
@@ -4026,7 +4026,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		}
 		if (isUponSelected > 1) {
 			if (selectedState.count > 0 && selectedState.count == selectedState.canForwardCount) {
-				if (::FASettings::JsonSettings::GetBool("context_menu_forward_submenu")) {
+				if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
 					const auto ids = getSelectedItems();
 					const auto weak = base::make_weak(_widget);
 					const auto callback = [=] {
@@ -4136,7 +4136,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				|| item->isEphemeral())) {
 			if (isUponSelected != -2) {
 				if (canForward) {
-					if (::FASettings::JsonSettings::GetBool("context_menu_forward_submenu")) {
+					if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
 						const auto getGroupIds = [=]() -> MessageIdsList {
 							if (const auto item = session->data().message(itemId)) {
 								return session->data().itemOrItsGroup(item);
@@ -4339,7 +4339,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 	}
 
 	if (leaderOrSelf) {
-		const auto shortcutsAtBottom = FASettings::JsonSettings::GetBool("context_menu_shortcuts_at_bottom");
+		const auto shortcutsAtBottom = FASettings::FASettings::getInstance().contextMenuShortcutsAtBottom();
 		const auto inner = this;
 		const auto widget = _widget;
 		const auto controller = _controller;

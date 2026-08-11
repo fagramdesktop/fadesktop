@@ -879,7 +879,7 @@ void TopBarWidget::infoClicked() {
 
 void TopBarWidget::backClicked() {
 	if (_activeChat.key.folder()) {
-		bool hide_all_chats_folder = FASettings::JsonSettings::GetBool("hide_all_chats_folder");
+		bool hide_all_chats_folder = FASettings::FASettings::getInstance().hideAllChatsFolder();
 
 		if (hide_all_chats_folder) {
 			const auto filters = &_controller->session().data().chatsFilters();

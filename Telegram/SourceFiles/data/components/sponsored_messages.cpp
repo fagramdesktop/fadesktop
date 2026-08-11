@@ -241,7 +241,7 @@ void SponsoredMessages::inject(
 }
 
 bool SponsoredMessages::canHaveFor(not_null<History*> history) const {
-    return !FASettings::JsonSettings::GetBool("disable_ads");
+    return !FASettings::FASettings::getInstance().disableAds();
 }
 
 bool SponsoredMessages::canHaveFor(not_null<HistoryItem*> item) const {

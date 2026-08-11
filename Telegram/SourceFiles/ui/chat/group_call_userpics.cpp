@@ -275,11 +275,11 @@ void GroupCallUserpics::validateCache(Userpic &userpic) {
 			p.setBrush(Qt::transparent);
 			p.setPen(pen);
 
-			const auto useDefaultRounding = FASettings::JsonSettings::GetBool("use_default_rounding");
+			const auto useDefaultRounding = FASettings::FASettings::getInstance().useDefaultRounding();
 			if (useDefaultRounding) {
 				p.drawEllipse(skip - size + shift, skip, size, size);
 			} else {
-				const auto roundness = FASettings::JsonSettings::GetInt("roundness");
+				const auto roundness = FASettings::FASettings::getInstance().roundness();
 				const auto radius = size * roundness / 100.0;
 				p.drawRoundedRect(QRectF(skip - size + shift, skip, size, size), radius, radius);
 			}

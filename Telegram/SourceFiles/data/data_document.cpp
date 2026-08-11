@@ -857,7 +857,7 @@ bool DocumentData::thumbnailFailed() const {
 }
 
 void DocumentData::loadThumbnail(Data::FileOrigin origin) {
-	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+	if (FASettings::FASettings::getInstance().disableAutoDownload()) {
 		return;
 	}
 	const auto autoLoading = false;
@@ -905,7 +905,7 @@ bool DocumentData::videoThumbnailFailed() const {
 }
 
 void DocumentData::loadVideoThumbnail(Data::FileOrigin origin) {
-	if (FASettings::JsonSettings::GetBool(u"disable_auto_download"_q)) {
+	if (FASettings::FASettings::getInstance().disableAutoDownload()) {
 		return;
 	}
 	const auto autoLoading = false;

@@ -500,7 +500,7 @@ void BottomInfo::layoutDateText() {
 		? FormatEditedDate(_data.date, _data.editedDate)
 		: edited + ((_data.flags & Data::Flag::ForwardedDate)
 		? Ui::FormatDateTimeSavedFrom(_data.date)
-		: (FASettings::JsonSettings::GetBool("seconds_message")
+		: (FASettings::FASettings::getInstance().secondsMessage()
 			? QLocale().toString(_data.date.time(), QLocale().timeFormat(QLocale::ShortFormat).replace(QString("mm"), QString("mm:ss")))
 			: QLocale().toString(_data.date.time(), QLocale::ShortFormat)));
 	const auto afterAuthor = prefix + date;

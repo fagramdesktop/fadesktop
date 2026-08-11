@@ -465,7 +465,7 @@ QString getMediaDC(not_null<HistoryItem*> message) {
 
 // thanks ayugram
 void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
-    bool show_message_details = FASettings::JsonSettings::GetBool("show_message_details");
+    bool show_message_details = FASettings::FASettings::getInstance().showMessageDetails();
     if (!show_message_details) {
         return;
     }
@@ -952,7 +952,7 @@ bool shouldHideBlockedUserMessage(PeerData *from) {
 	if (!from) {
 		return false;
 	}
-	if (!FASettings::JsonSettings::GetBool("hide_blocked_user_messages")) {
+	if (!FASettings::FASettings::getInstance().hideBlockedUserMessages()) {
 		return false;
 	}
 	return from->isBlocked();
@@ -988,7 +988,7 @@ TextWithEntities applyBlockedUserSpoiler(TextWithEntities text) {
 }
 
 TextWithTags applyAutoParseMarkdownHyperlink(const TextWithTags &textWithTags) {
-	if (!FASettings::JsonSettings::GetBool("auto_format_markdown")) {
+	if (!FASettings::FASettings::getInstance().autoFormatMarkdown()) {
 		return textWithTags;
 	}
 	

@@ -523,7 +523,7 @@ void TopBar::updateControlsVisibility(anim::type animated) {
 }
 
 void TopBar::setStories(rpl::producer<Dialogs::Stories::Content> content) {
-	bool hide_stories = FASettings::JsonSettings::GetBool("hide_stories");
+	bool hide_stories = FASettings::FASettings::getInstance().hideStories();
 	if (hide_stories) {
 		return;
 	}

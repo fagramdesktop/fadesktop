@@ -268,7 +268,7 @@ void ResolveDocument(
 				.text = fatr::fa_import_config_confirm(fatr::now),
 				.confirmed = [=, data = bytes](Fn<void()> close) {
 					close();
-					if (FASettings::JsonSettings::ImportSettingsFromJson(data)) {
+					if (FASettings::FASettings::getInstance().importSettingsFromJson(data)) {
 						controller->show(Ui::MakeConfirmBox({
 							.text = fatr::fa_import_config_restart(fatr::now),
 							.confirmed = [] { Core::Restart(); },

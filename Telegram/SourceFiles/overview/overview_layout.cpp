@@ -1264,7 +1264,7 @@ void Voice::updateName() {
 				tr::now,
 				lt_user,
 				parent()->fromOriginal()->name());
-		if (FASettings::JsonSettings::GetBool("show_forwarded_date_in_title")) {
+		if (FASettings::FASettings::getInstance().showForwardedDateInTitle()) {
 			if (const auto fwd = parent()->Get<HistoryMessageForwarded>()) {
 				const auto dateToUse = fwd->originalDate ? fwd->originalDate : fwd->savedFromDate;
 				if (dateToUse) {

@@ -7,8 +7,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "core/launcher.h"
 
-#include "fa/settings/fa_settings.h"
-#include "fa/utils/fa_icon_pack.h"
 #include "platform/platform_launcher.h"
 #include "platform/platform_specific.h"
 #include "base/options.h"
@@ -379,7 +377,6 @@ void Launcher::initHighDpi() {
 }
 
 int Launcher::exec() {
-	FASettings::JsonSettings::Start();
 	init();
 
 	if (cLaunchMode() == LaunchModeFixPrevious) {
@@ -389,8 +386,6 @@ int Launcher::exec() {
 	// Must be started before Platform is started.
 	Logs::start();
 	base::options::init(cWorkingDir() + "tdata/experimental_options.json");
-	FASettings::JsonSettings::Load();
-	FAIcons::InitIconPack();
 
 	// Must be called after options are inited.
 	initHighDpi();
@@ -432,7 +427,6 @@ int Launcher::exec() {
 	CrashReports::Finish();
 	ThirdParty::finish();
 	Platform::finish();
-	FASettings::JsonSettings::Finish();
 	Logs::finish();
 
 	return result;
@@ -635,7 +629,6 @@ void Launcher::processArguments() {
 int Launcher::executeApplication() {
 	FilteredCommandLineArguments arguments(_argc, _argv);
 	Sandbox sandbox(arguments.count(), arguments.values());
-	FASettings::JsonSettings::SyncExperimentalOptions();
 	Ui::MainQueueProcessor processor;
 	base::ConcurrentTimerEnvironment environment;
 	return sandbox.start();

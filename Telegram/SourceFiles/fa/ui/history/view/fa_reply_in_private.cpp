@@ -101,7 +101,7 @@ bool AddReplyInPrivateChatAction(
 		not_null<Ui::PopupMenu*> menu,
 		const HistoryView::ContextMenuRequest &request,
 		not_null<HistoryView::ListWidget*> list) {
-	if (!FASettings::JsonSettings::GetBool("context_menu_reply_in_private")) {
+	if (!FASettings::FASettings::getInstance().contextMenuReplyInPrivate()) {
 		return false;
 	}
 

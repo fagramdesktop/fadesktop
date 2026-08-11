@@ -26,7 +26,7 @@ void RoundnessPreview::paintEvent(QPaintEvent *e)  {
     PainterHighQualityEnabler hq(p);
 
     auto size = st::rndPreviewSize;
-    auto radius = size * (FASettings::JsonSettings::GetInt("roundness") / 100.);
+    auto radius = size * (FASettings::FASettings::getInstance().roundness() / 100.);
 
     p.setPen(Qt::NoPen);
     p.setBrush(QBrush(st::rndPreviewFill));

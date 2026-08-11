@@ -557,7 +557,7 @@ auto ChatThemeValueFromPeer(
 		peer
 	) | rpl::map([=](ResolvedTheme resolved)
 	-> rpl::producer<std::shared_ptr<Ui::ChatTheme>> {
-		bool disable_custom_chat_background = FASettings::JsonSettings::GetBool("disable_custom_chat_background");
+		bool disable_custom_chat_background = FASettings::FASettings::getInstance().disableCustomChatBackground();
 		if (disable_custom_chat_background && resolved.paper && resolved.paper->media) {
 			resolved.paper = std::nullopt;
 		}

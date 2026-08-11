@@ -262,7 +262,7 @@ Session::Session(
 	_api->requestNotifySettings(MTP_inputNotifyChats());
 	_api->requestNotifySettings(MTP_inputNotifyBroadcasts());
 	
-	if (FASettings::JsonSettings::GetBool("hide_blocked_user_messages")) {
+	if (FASettings::FASettings::getInstance().hideBlockedUserMessages()) {
 		_api->blockedPeers().reload();
 		
 		changes().peerUpdates(
@@ -379,7 +379,7 @@ rpl::producer<> Session::downloaderTaskFinished() const {
 }
 
 bool Session::premium() const {
-	bool local_premium = FASettings::JsonSettings::GetBool("local_premium");
+	bool local_premium = FASettings::FASettings::getInstance().localPremium();
 	if (local_premium) {
 		return true;
 	}

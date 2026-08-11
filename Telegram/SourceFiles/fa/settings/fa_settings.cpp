@@ -8,1037 +8,580 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "fa/settings/fa_settings.h"
 
-#include "fa/fa_version.h"
-#include "mainwindow.h"
-#include "mainwidget.h"
-#include "window/window_controller.h"
-#include "core/application.h"
-#include "data/data_peer_id.h"
-#include "base/parse_helper.h"
-#include "base/options.h"
-#include "base/timer.h"
-#include "data/data_chat_filters.h"
-#include "platform/platform_file_utilities.h"
-#include "ui/controls/compose_ai_button_factory.h"
-
 #include <QtCore/QJsonDocument>
-#include <QtCore/QJsonObject>
-#include <QtCore/QJsonValue>
-#include <QtCore/QTimer>
-#include <QtCore/QReadWriteLock>
-#include <QtCore/QCoreApplication>
+#include <QtCore/QFile>
+#include <QtCore/QDir>
+#include <QtCore/QStandardPaths>
+#include <algorithm>
+#include "core/application.h"
+#include "core/file_utilities.h"
 
 namespace FASettings {
-namespace JsonSettings {
+
 namespace {
 
-constexpr auto kWriteJsonTimeout = crl::time(5000);
-
-class Manager : public QObject {
-public:
-	Manager();
-	void load();
-	void fill();
-	void write(bool force = false);
-
-	[[nodiscard]] QVariant get(
-		const QString &key,
-		uint64 accountId = 0,
-		bool isTestAccount = false);
-	[[nodiscard]] QVariant getWithPending(
-		const QString &key,
-		uint64 accountId = 0,
-		bool isTestAccount = false);
-	[[nodiscard]] QVariantMap getAllWithPending(const QString &key);
-	[[nodiscard]] rpl::producer<QString> events(
-		const QString &key,
-		uint64 accountId = 0,
-		bool isTestAccount = false);
-	[[nodiscard]] rpl::producer<QString> eventsWithPending(
-		const QString &key,
-		uint64 accountId = 0,
-		bool isTestAccount = false);
-	void set(
-		const QString &key,
-		QVariant value,
-		uint64 accountId = 0,
-		bool isTestAccount = false);
-	void setAfterRestart(
-		const QString &key,
-		QVariant value,
-		uint64 accountId = 0,
-		bool isTestAccount = false);
-	void reset(
-		const QString &key,
-		uint64 accountId = 0,
-		bool isTestAccount = false);
-	void resetAfterRestart(
-		const QString &key,
-		uint64 accountId = 0,
-		bool isTestAccount = false);
-	void writeTimeout();
-
-private:
-	[[nodiscard]] QVariant getDefault(const QString &key);
-
-	void writeDefaultFile();
-	void writeCurrentSettings();
-	bool readCustomFile();
-	void writing();
-
-	base::Timer _jsonWriteTimer;
-
-	rpl::event_stream<QString> _eventStream;
-	rpl::event_stream<QString> _pendingEventStream;
-	QHash<QString, QVariant> _settingsHashMap;
-	QHash<QString, QVariant> _defaultSettingsHashMap;
-	mutable QReadWriteLock _lock;
-
-};
-
-inline QString MakeMapKey(const QString &key, uint64 accountId, bool isTestAccount) {
-	return (accountId == 0)	? key : key
-				+ (isTestAccount ? qsl(":test_") : qsl(":"))
-				+ QString::number(accountId);
+QString getSettingsPath() {
+	return cWorkingDir() + qsl("tdata/fa_settings.json");
 }
 
-QVariantMap GetAllWithPending(const QString &key);
-
-enum SettingScope {
-	Global,
-	Account,
-};
-
-enum SettingStorage {
-	None,
-	MainJson,
-};
-
-enum SettingType {
-	BoolSetting,
-	IntSetting,
-	QStringSetting,
-	QJsonArraySetting,
-};
-
-using CheckHandler = Fn<QVariant(QVariant)>;
-
-CheckHandler IntLimit(int min, int max, int defaultValue) {
-	return [=] (QVariant value) -> QVariant {
-		if (value.canConvert<int>()) {
-			auto intValue = value.toInt();
-			if (intValue < min) {
-				return min;
-			} else if (intValue > max) {
-				return max;
-			} else {
-				return value;
-			}
-		} else {
-			return defaultValue;
-		}
-	};
-}
-
-inline CheckHandler IntLimit(int min, int max) {
-	return IntLimit(min, max, min);
-}
-
-struct Definition {
-	SettingScope scope = SettingScope::Global;
-	SettingStorage storage = SettingStorage::MainJson;
-	SettingType type = SettingType::BoolSetting;
-	QVariant defaultValue;
-	QVariant fillerValue;
-	CheckHandler limitHandler = nullptr;
-};
-
-const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
-
-	// Stored settings
-	//   General
-	{ "debug_logs", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "seconds_message", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "disable_ads", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "disable_ai", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "disable_animated_avatars", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "disable_auto_download", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "show_start_token", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "show_peer_id", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "show_dc_id", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "show_id_botapi", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "show_registration_date", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "disable_custom_chat_background", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "hide_all_chats_folder", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "hide_stories", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "hide_archived_stories", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "hide_open_webapp_button_chatlist", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "local_premium", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "unlimited_pinned_chats", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "unlimited_chat_folders", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "delete_for_everyone", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "last_seen_timestamp", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "show_forwarded_date_in_title", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "disable_greeting_sticker", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "pinned_chat_order", {
-		.scope = SettingScope::Account,
-		.type = SettingType::QJsonArraySetting,
-		.defaultValue = QJsonArray(), }},
-	{ "local_chat_folders", {
-		.scope = SettingScope::Account,
-		.type = SettingType::QJsonArraySetting,
-		.defaultValue = QJsonArray(), }},
-	{ "local_chat_folders_order", {
-		.scope = SettingScope::Account,
-		.type = SettingType::QJsonArraySetting,
-		.defaultValue = QJsonArray(), }},
-	{ "use_default_rounding", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "show_discuss_button", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "show_fastshare_in_chats", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "roundness", {
-		.type = SettingType::IntSetting,
-		.defaultValue = 50,
-		.limitHandler = IntLimit(0, 50, 50), }},
-	{ "force_snow", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "show_message_details", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "hide_blocked_user_messages", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "show_status_dot", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "status_dot_online_only", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "context_menu_use_shortcuts", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "context_menu_shortcuts_at_bottom", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "context_menu_reply_in_private", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "context_menu_forward_submenu", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "use_tdesktop_themes", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "use_material_icon_pack", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "disable_premium_animation", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "screenshot_mode", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-
-	//   Auto format markdown
-	{ "auto_format_markdown", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
-	{ "add_comma_after_mention", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-
-	//   Context menu shortcuts customization
-	{ "context_menu_shortcut_button_size", {
-		.type = SettingType::IntSetting,
-		.defaultValue = 40,
-		.limitHandler = IntLimit(24, 64, 40), }},
-	{ "context_menu_shortcut_icon_size", {
-		.type = SettingType::IntSetting,
-		.defaultValue = 24,
-		.limitHandler = IntLimit(16, 48, 24), }},
-	{ "context_menu_shortcut_spacing", {
-		.type = SettingType::IntSetting,
-		.defaultValue = 10,
-		.limitHandler = IntLimit(0, 24, 10), }},
-	{ "context_menu_shortcut_vertical_padding", {
-		.type = SettingType::IntSetting,
-		.defaultValue = 2,
-		.limitHandler = IntLimit(0, 16, 2), }},
-	{ "context_menu_shortcut_horizontal_padding", {
-		.type = SettingType::IntSetting,
-		.defaultValue = 10,
-		.limitHandler = IntLimit(0, 16, 10), }},
-	{ "context_menu_shortcut_corner_radius", {
-		.type = SettingType::IntSetting,
-		.defaultValue = 20,
-		.limitHandler = IntLimit(0, 20, 20), }},
-};
-
-using OldOptionKey = QString;
-using NewOptionKey = QString;
-
-const std::map<OldOptionKey, NewOptionKey, std::greater<OldOptionKey>> ReplacedOptionsMap {
-	{ "adaptive_baloons", "adaptive_bubbles" },
-	{ "disable_ai_text_editor", "disable_ai" },
-};
-
-QString DefaultFilePath() {
-	return cWorkingDir() + qsl("tdata/FA-settings-default.json");
-}
-
-QString CustomFilePath() {
+QString getOldCustomSettingsPath() {
 	return cWorkingDir() + qsl("tdata/FA-settings-custom.json");
-}
-
-bool DefaultFileIsValid() {
-	QFile file(DefaultFilePath());
-	if (!file.open(QIODevice::ReadOnly)) {
-		return false;
-	}
-	auto error = QJsonParseError{ 0, QJsonParseError::NoError };
-	const auto document = QJsonDocument::fromJson(
-		base::parse::stripComments(file.readAll()),
-		&error);
-	file.close();
-
-	if (error.error != QJsonParseError::NoError || !document.isObject()) {
-		return false;
-	}
-	const auto settings = document.object();
-
-	const auto version = settings.constFind(qsl("version"));
-	if (version == settings.constEnd() || (*version).toInt() != AppFAVersion) {
-		return false;
-	}
-
-	return true;
-}
-
-void WriteDefaultCustomFile() {
-	const auto path = CustomFilePath();
-	auto input = QFile(":/misc/default_FA-settings-custom.json");
-	auto output = QFile(path);
-	if (input.open(QIODevice::ReadOnly) && output.open(QIODevice::WriteOnly)) {
-		output.write(input.readAll());
-	}
-}
-
-QByteArray GenerateSettingsJson(bool areDefault = false) {
-	auto settings = QJsonObject();
-
-	auto settingsFoldersLocal = QJsonObject();
-
-	const auto getRef = [&settings] (
-			QStringList &keyParts,
-			const Definition &def) -> QJsonValueRef {
-		const auto firstKey = keyParts.takeFirst();
-		if (!settings.contains(firstKey)) {
-			settings.insert(firstKey, QJsonObject());
-		}
-		auto resultRef = settings[firstKey];
-		for (const auto &key : keyParts) {
-			auto referenced = resultRef.toObject();
-			if (!referenced.contains(key)) {
-				referenced.insert(key, QJsonObject());
-				resultRef = referenced;
-			}
-			resultRef = referenced[key];
-		}
-		return resultRef;
-	};
-
-	const auto getValue = [=] (
-			const QString &key,
-			const Definition &def) -> QJsonValue {
-		auto value = (!areDefault)
-						? GetWithPending(key)
-						: def.fillerValue.isValid()
-						? def.fillerValue
-						: def.defaultValue.isValid()
-						? def.defaultValue
-						: QVariant();
-		switch (def.type) {
-			case SettingType::BoolSetting:
-				return value.isValid() ? value.toBool() : false;
-			case SettingType::IntSetting:
-				return value.isValid() ? value.toInt() : 0;
-			case SettingType::QStringSetting:
-				return value.isValid() ? value.toString() : QString();
-			case SettingType::QJsonArraySetting:
-				return value.isValid() ? value.toJsonArray() : QJsonArray();
-		}
-
-		return QJsonValue();
-	};
-
-	const auto getAccountValue = [=] (const QString &key) -> QJsonValue {
-		if (areDefault) {
-			return QJsonObject();
-		}
-
-		auto values = GetAllWithPending(key);
-		auto resultObject = QJsonObject();
-
-		for (auto i = values.constBegin(); i != values.constEnd(); ++i) {
-			const auto value = i.value();
-			const auto jsonValue = (value.userType() == QMetaType::Bool)
-									? QJsonValue(value.toBool())
-									: (value.userType() == QMetaType::Int)
-									? QJsonValue(value.toInt())
-									: (value.userType() == QMetaType::QString)
-									? QJsonValue(value.toString())
-									: (value.userType() == QMetaType::QJsonArray)
-									? QJsonValue(value.toJsonArray())
-									: QJsonValue(QJsonValue::Null);
-			resultObject.insert(i.key(), jsonValue);
-		}
-
-		return resultObject;
-	};
-
-	for (const auto &[key, def] : DefinitionMap) {
-		if (def.storage == SettingStorage::None) {
-			continue;
-		}
-
-		auto parts = key.split(QChar('/'));
-		auto value = (def.scope == SettingScope::Account)
-						? getAccountValue(key)
-						: getValue(key, def);
-		if (parts.size() > 1) {
-			const auto lastKey = parts.takeLast();
-			auto ref = getRef(parts, def);
-			auto referenced = ref.toObject();
-			referenced.insert(lastKey, value);
-			ref = referenced;
-		} else {
-			settings.insert(key, value);
-		}
-	}
-
-	if (areDefault) {
-		settings.insert(qsl("version"), QString::number(AppFAVersion));
-	}
-
-	auto document = QJsonDocument();
-	document.setObject(settings);
-	return document.toJson(QJsonDocument::Indented);
-}
-
-std::unique_ptr<Manager> Data;
-
-QVariantMap GetAllWithPending(const QString &key) {
-	return (Data) ? Data->getAllWithPending(key) : QVariantMap();
 }
 
 } // namespace
 
-Manager::Manager()
-: _jsonWriteTimer([=] { writeTimeout(); }) {
+FASettings::FASettings() = default;
+
+FASettings &FASettings::getInstance() {
+	static FASettings instance;
+	return instance;
 }
 
-void Manager::load() {
-	if (!DefaultFileIsValid()) {
-		writeDefaultFile();
+void FASettings::load() {
+	auto &settings = getInstance();
+	QFile file(getSettingsPath());
+	if (file.open(QIODevice::ReadOnly)) {
+		const auto data = file.readAll();
+		const auto doc = QJsonDocument::fromJson(data);
+		if (doc.isObject()) {
+			settings.loadFromJson(doc.object());
+		}
+		file.close();
+	} else {
+		// Try to migrate from old FA-settings-custom.json
+		QFile oldFile(getOldCustomSettingsPath());
+		if (oldFile.open(QIODevice::ReadOnly)) {
+			const auto data = oldFile.readAll();
+			const auto doc = QJsonDocument::fromJson(data);
+			if (doc.isObject()) {
+				// Old format was direct key-value at the root
+				settings.loadFromJson(doc.object());
+				settings.save(); // Save to new file
+			}
+			oldFile.close();
+		}
 	}
-	if (!readCustomFile()) {
-		WriteDefaultCustomFile();
+	settings.validate();
+}
+
+void FASettings::save() {
+	auto &settings = getInstance();
+	QFile file(getSettingsPath());
+	if (file.open(QIODevice::WriteOnly)) {
+		const auto doc = QJsonDocument(settings.saveToJson());
+		file.write(doc.toJson(QJsonDocument::Indented));
+		file.close();
 	}
 }
 
-void Manager::fill() {
-	_settingsHashMap.reserve(DefinitionMap.size());
-	_defaultSettingsHashMap.reserve(DefinitionMap.size());
+void FASettings::validate() {
+	bool modified = false;
 
-	const auto addDefaultValue = [&] (const QString &option, QVariant value) {
-		_settingsHashMap.insert(option, value);
+	auto validateRange = [&](auto &var, int min, int max, int defaultVar) {
+		if (var.current() < min || var.current() > max) {
+			var = defaultVar;
+			modified = true;
+		}
 	};
 
-	for (const auto &[key, def] : DefinitionMap) {
-		if (def.scope != SettingScope::Global) {
-			continue;
-		}
+	validateRange(_roundness, 0, 50, 50);
+	validateRange(_contextMenuShortcutButtonSize, 24, 64, 40);
+	validateRange(_contextMenuShortcutIconSize, 16, 48, 24);
+	validateRange(_contextMenuShortcutSpacing, 0, 24, 10);
+	validateRange(_contextMenuShortcutVerticalPadding, 0, 16, 2);
+	validateRange(_contextMenuShortcutHorizontalPadding, 0, 16, 10);
+	validateRange(_contextMenuShortcutCornerRadius, 0, 20, 20);
+	validateRange(_translationProvider, 0, 3, static_cast<int>(TranslationProvider::Telegram));
 
-		auto defaultValue = def.defaultValue;
-		if (!defaultValue.isValid()) {
-			if (def.type == SettingType::BoolSetting) {
-				defaultValue = false;
-			} else if (def.type == SettingType::IntSetting) {
-				defaultValue = 0;
-			} else if (def.type == SettingType::QStringSetting) {
-				defaultValue = QString();
-			} else if (def.type == SettingType::QJsonArraySetting) {
-				defaultValue = QJsonArray();
-			} else {
-				continue;
-			}
-		}
-
-		addDefaultValue(key, defaultValue);
+	if (modified) {
+		save();
 	}
 }
 
-void Manager::write(bool force) {
-	if (force && _jsonWriteTimer.isActive()) {
-		_jsonWriteTimer.cancel();
-		writeTimeout();
-	} else if (!force && !_jsonWriteTimer.isActive()) {
-		_jsonWriteTimer.callOnce(kWriteJsonTimeout);
+void FASettings::loadFromJson(const QJsonObject &obj) {
+	_debugLogs = obj.contains("debug_logs") ? obj["debug_logs"].toBool() : _debugLogs.current();
+	_secondsMessage = obj.contains("seconds_message") ? obj["seconds_message"].toBool() : _secondsMessage.current();
+	_disableAds = obj.contains("disable_ads") ? obj["disable_ads"].toBool() : _disableAds.current();
+	_disableAi = obj.contains("disable_ai") ? obj["disable_ai"].toBool() : _disableAi.current();
+	_disableAnimatedAvatars = obj.contains("disable_animated_avatars") ? obj["disable_animated_avatars"].toBool() : _disableAnimatedAvatars.current();
+	_disableAutoDownload = obj.contains("disable_auto_download") ? obj["disable_auto_download"].toBool() : _disableAutoDownload.current();
+	_showStartToken = obj.contains("show_start_token") ? obj["show_start_token"].toBool() : _showStartToken.current();
+	_showPeerId = obj.contains("show_peer_id") ? obj["show_peer_id"].toBool() : _showPeerId.current();
+	_showDcId = obj.contains("show_dc_id") ? obj["show_dc_id"].toBool() : _showDcId.current();
+	_showIdBotapi = obj.contains("show_id_botapi") ? obj["show_id_botapi"].toBool() : _showIdBotapi.current();
+	_showRegistrationDate = obj.contains("show_registration_date") ? obj["show_registration_date"].toBool() : _showRegistrationDate.current();
+	_disableCustomChatBackground = obj.contains("disable_custom_chat_background") ? obj["disable_custom_chat_background"].toBool() : _disableCustomChatBackground.current();
+	_hideAllChatsFolder = obj.contains("hide_all_chats_folder") ? obj["hide_all_chats_folder"].toBool() : _hideAllChatsFolder.current();
+	_hideStories = obj.contains("hide_stories") ? obj["hide_stories"].toBool() : _hideStories.current();
+	_hideArchivedStories = obj.contains("hide_archived_stories") ? obj["hide_archived_stories"].toBool() : _hideArchivedStories.current();
+	_hideOpenWebappButtonChatlist = obj.contains("hide_open_webapp_button_chatlist") ? obj["hide_open_webapp_button_chatlist"].toBool() : _hideOpenWebappButtonChatlist.current();
+	_localPremium = obj.contains("local_premium") ? obj["local_premium"].toBool() : _localPremium.current();
+	_unlimitedPinnedChats = obj.contains("unlimited_pinned_chats") ? obj["unlimited_pinned_chats"].toBool() : _unlimitedPinnedChats.current();
+	_unlimitedChatFolders = obj.contains("unlimited_chat_folders") ? obj["unlimited_chat_folders"].toBool() : _unlimitedChatFolders.current();
+	_deleteForEveryone = obj.contains("delete_for_everyone") ? obj["delete_for_everyone"].toBool() : _deleteForEveryone.current();
+	_lastSeenTimestamp = obj.contains("last_seen_timestamp") ? obj["last_seen_timestamp"].toBool() : _lastSeenTimestamp.current();
+	_showForwardedDateInTitle = obj.contains("show_forwarded_date_in_title") ? obj["show_forwarded_date_in_title"].toBool() : _showForwardedDateInTitle.current();
+	_disableGreetingSticker = obj.contains("disable_greeting_sticker") ? obj["disable_greeting_sticker"].toBool() : _disableGreetingSticker.current();
+	_useDefaultRounding = obj.contains("use_default_rounding") ? obj["use_default_rounding"].toBool() : _useDefaultRounding.current();
+	_showDiscussButton = obj.contains("show_discuss_button") ? obj["show_discuss_button"].toBool() : _showDiscussButton.current();
+	_showFastshareInChats = obj.contains("show_fastshare_in_chats") ? obj["show_fastshare_in_chats"].toBool() : _showFastshareInChats.current();
+	_roundness = obj.contains("roundness") ? obj["roundness"].toInt() : _roundness.current();
+	_forceSnow = obj.contains("force_snow") ? obj["force_snow"].toBool() : _forceSnow.current();
+	_showMessageDetails = obj.contains("show_message_details") ? obj["show_message_details"].toBool() : _showMessageDetails.current();
+	_hideBlockedUserMessages = obj.contains("hide_blocked_user_messages") ? obj["hide_blocked_user_messages"].toBool() : _hideBlockedUserMessages.current();
+	_showStatusDot = obj.contains("show_status_dot") ? obj["show_status_dot"].toBool() : _showStatusDot.current();
+	_statusDotOnlineOnly = obj.contains("status_dot_online_only") ? obj["status_dot_online_only"].toBool() : _statusDotOnlineOnly.current();
+	_contextMenuUseShortcuts = obj.contains("context_menu_use_shortcuts") ? obj["context_menu_use_shortcuts"].toBool() : _contextMenuUseShortcuts.current();
+	_contextMenuShortcutsAtBottom = obj.contains("context_menu_shortcuts_at_bottom") ? obj["context_menu_shortcuts_at_bottom"].toBool() : _contextMenuShortcutsAtBottom.current();
+	_contextMenuReplyInPrivate = obj.contains("context_menu_reply_in_private") ? obj["context_menu_reply_in_private"].toBool() : _contextMenuReplyInPrivate.current();
+	_contextMenuForwardSubmenu = obj.contains("context_menu_forward_submenu") ? obj["context_menu_forward_submenu"].toBool() : _contextMenuForwardSubmenu.current();
+	_useTdesktopThemes = obj.contains("use_tdesktop_themes") ? obj["use_tdesktop_themes"].toBool() : _useTdesktopThemes.current();
+	_useMaterialIconPack = obj.contains("use_material_icon_pack") ? obj["use_material_icon_pack"].toBool() : _useMaterialIconPack.current();
+	_disablePremiumAnimation = obj.contains("disable_premium_animation") ? obj["disable_premium_animation"].toBool() : _disablePremiumAnimation.current();
+	_screenshotMode = obj.contains("screenshot_mode") ? obj["screenshot_mode"].toBool() : _screenshotMode.current();
+	_autoFormatMarkdown = obj.contains("auto_format_markdown") ? obj["auto_format_markdown"].toBool() : _autoFormatMarkdown.current();
+	_addCommaAfterMention = obj.contains("add_comma_after_mention") ? obj["add_comma_after_mention"].toBool() : _addCommaAfterMention.current();
+	_contextMenuShortcutButtonSize = obj.contains("context_menu_shortcut_button_size") ? obj["context_menu_shortcut_button_size"].toInt() : _contextMenuShortcutButtonSize.current();
+	_contextMenuShortcutIconSize = obj.contains("context_menu_shortcut_icon_size") ? obj["context_menu_shortcut_icon_size"].toInt() : _contextMenuShortcutIconSize.current();
+	_contextMenuShortcutSpacing = obj.contains("context_menu_shortcut_spacing") ? obj["context_menu_shortcut_spacing"].toInt() : _contextMenuShortcutSpacing.current();
+	_contextMenuShortcutVerticalPadding = obj.contains("context_menu_shortcut_vertical_padding") ? obj["context_menu_shortcut_vertical_padding"].toInt() : _contextMenuShortcutVerticalPadding.current();
+	_contextMenuShortcutHorizontalPadding = obj.contains("context_menu_shortcut_horizontal_padding") ? obj["context_menu_shortcut_horizontal_padding"].toInt() : _contextMenuShortcutHorizontalPadding.current();
+	_contextMenuShortcutCornerRadius = obj.contains("context_menu_shortcut_corner_radius") ? obj["context_menu_shortcut_corner_radius"].toInt() : _contextMenuShortcutCornerRadius.current();
+	_translationProvider = obj.contains("translation_provider") ? obj["translation_provider"].toInt() : _translationProvider.current();
+
+	if (obj.contains("accounts")) {
+		_accountSettings = obj["accounts"].toObject();
 	}
 }
 
-QVariant Manager::get(const QString &key, uint64 accountId, bool isTestAccount) {
-	const auto mapKey = MakeMapKey(key, accountId, isTestAccount);
-	_lock.lockForRead();
-	auto result = _settingsHashMap.contains(mapKey)
-		? _settingsHashMap.value(mapKey)
-		: QVariant();
-	_lock.unlock();
-	if (!result.isValid()) {
-		_lock.lockForWrite();
-		result = _settingsHashMap.contains(mapKey)
-			? _settingsHashMap.value(mapKey)
-			: QVariant();
-		if (!result.isValid()) {
-			result = _settingsHashMap.contains(key)
-						? _settingsHashMap.value(key)
-						: getDefault(key);
-			_settingsHashMap.insert(mapKey, result);
-		}
-		_lock.unlock();
-	}
-	return result;
-}
+QJsonObject FASettings::saveToJson() const {
+	QJsonObject obj;
+	obj["debug_logs"] = _debugLogs.current();
+	obj["seconds_message"] = _secondsMessage.current();
+	obj["disable_ads"] = _disableAds.current();
+	obj["disable_ai"] = _disableAi.current();
+	obj["disable_animated_avatars"] = _disableAnimatedAvatars.current();
+	obj["disable_auto_download"] = _disableAutoDownload.current();
+	obj["show_start_token"] = _showStartToken.current();
+	obj["show_peer_id"] = _showPeerId.current();
+	obj["show_dc_id"] = _showDcId.current();
+	obj["show_id_botapi"] = _showIdBotapi.current();
+	obj["show_registration_date"] = _showRegistrationDate.current();
+	obj["disable_custom_chat_background"] = _disableCustomChatBackground.current();
+	obj["hide_all_chats_folder"] = _hideAllChatsFolder.current();
+	obj["hide_stories"] = _hideStories.current();
+	obj["hide_archived_stories"] = _hideArchivedStories.current();
+	obj["hide_open_webapp_button_chatlist"] = _hideOpenWebappButtonChatlist.current();
+	obj["local_premium"] = _localPremium.current();
+	obj["unlimited_pinned_chats"] = _unlimitedPinnedChats.current();
+	obj["unlimited_chat_folders"] = _unlimitedChatFolders.current();
+	obj["delete_for_everyone"] = _deleteForEveryone.current();
+	obj["last_seen_timestamp"] = _lastSeenTimestamp.current();
+	obj["show_forwarded_date_in_title"] = _showForwardedDateInTitle.current();
+	obj["disable_greeting_sticker"] = _disableGreetingSticker.current();
+	obj["use_default_rounding"] = _useDefaultRounding.current();
+	obj["show_discuss_button"] = _showDiscussButton.current();
+	obj["show_fastshare_in_chats"] = _showFastshareInChats.current();
+	obj["roundness"] = _roundness.current();
+	obj["force_snow"] = _forceSnow.current();
+	obj["show_message_details"] = _showMessageDetails.current();
+	obj["hide_blocked_user_messages"] = _hideBlockedUserMessages.current();
+	obj["show_status_dot"] = _showStatusDot.current();
+	obj["status_dot_online_only"] = _statusDotOnlineOnly.current();
+	obj["context_menu_use_shortcuts"] = _contextMenuUseShortcuts.current();
+	obj["context_menu_shortcuts_at_bottom"] = _contextMenuShortcutsAtBottom.current();
+	obj["context_menu_reply_in_private"] = _contextMenuReplyInPrivate.current();
+	obj["context_menu_forward_submenu"] = _contextMenuForwardSubmenu.current();
+	obj["use_tdesktop_themes"] = _useTdesktopThemes.current();
+	obj["use_material_icon_pack"] = _useMaterialIconPack.current();
+	obj["disable_premium_animation"] = _disablePremiumAnimation.current();
+	obj["screenshot_mode"] = _screenshotMode.current();
+	obj["auto_format_markdown"] = _autoFormatMarkdown.current();
+	obj["add_comma_after_mention"] = _addCommaAfterMention.current();
+	obj["context_menu_shortcut_button_size"] = _contextMenuShortcutButtonSize.current();
+	obj["context_menu_shortcut_icon_size"] = _contextMenuShortcutIconSize.current();
+	obj["context_menu_shortcut_spacing"] = _contextMenuShortcutSpacing.current();
+	obj["context_menu_shortcut_vertical_padding"] = _contextMenuShortcutVerticalPadding.current();
+	obj["context_menu_shortcut_horizontal_padding"] = _contextMenuShortcutHorizontalPadding.current();
+	obj["context_menu_shortcut_corner_radius"] = _contextMenuShortcutCornerRadius.current();
+	obj["translation_provider"] = _translationProvider.current();
 
-QVariant Manager::getWithPending(const QString &key, uint64 accountId, bool isTestAccount) {
-	const auto mapKey = MakeMapKey(key, accountId, isTestAccount);
-	_lock.lockForRead();
-	auto result = _defaultSettingsHashMap.contains(mapKey)
-		? _defaultSettingsHashMap.value(mapKey)
-		: _settingsHashMap.contains(mapKey)
-		? _settingsHashMap.value(mapKey)
-		: QVariant();
-	_lock.unlock();
-	if (!result.isValid()) {
-		_lock.lockForWrite();
-		result = _defaultSettingsHashMap.contains(mapKey)
-			? _defaultSettingsHashMap.value(mapKey)
-			: _settingsHashMap.contains(mapKey)
-			? _settingsHashMap.value(mapKey)
-			: QVariant();
-		if (!result.isValid()) {
-			result = _settingsHashMap.contains(key)
-						? _settingsHashMap.value(key)
-						: getDefault(key);
-			_settingsHashMap.insert(mapKey, result);
-		}
-		_lock.unlock();
-	}
-	return result;
-}
-
-QVariantMap Manager::getAllWithPending(const QString &key) {
-	auto resultMap = QVariantMap();
-
-	_lock.lockForRead();
-	if (_defaultSettingsHashMap.contains(key) || _settingsHashMap.contains(key)) {
-		resultMap.insert(
-			qsl("0"),
-			_defaultSettingsHashMap.contains(key)
-				? _defaultSettingsHashMap.value(key)
-				: _settingsHashMap.value(key));
-		_lock.unlock();
-		return resultMap;
+	if (!_accountSettings.isEmpty()) {
+		obj["accounts"] = _accountSettings;
 	}
 
-	const auto prefix = key + qsl(":");
-
-	for (auto i = _settingsHashMap.constBegin(); i != _settingsHashMap.constEnd(); ++i) {
-		const auto mapKey = i.key();
-		if (!mapKey.startsWith(prefix)) {
-			continue;
-		}
-
-		const auto accountKey = mapKey.mid(prefix.size());
-		resultMap.insert(accountKey, i.value());
-	}
-
-	for (auto i = _defaultSettingsHashMap.constBegin(); i != _defaultSettingsHashMap.constEnd(); ++i) {
-		const auto mapKey = i.key();
-		if (!mapKey.startsWith(prefix)) {
-			continue;
-		}
-
-		const auto accountKey = mapKey.mid(prefix.size());
-		resultMap.insert(accountKey, i.value());
-	}
-	_lock.unlock();
-
-	return resultMap;
+	return obj;
 }
 
-QVariant Manager::getDefault(const QString &key) {
-	const auto &defIterator = DefinitionMap.find(key);
-	if (defIterator == DefinitionMap.end()) {
-		return QVariant();
-	}
-	const auto defaultValue = &defIterator->second.defaultValue;
-	const auto settingType = defIterator->second.type;
-	switch (settingType) {
-		case SettingType::QStringSetting:
-			return QVariant(defaultValue->isValid()
-					? defaultValue->toString()
-					: QString());
-		case SettingType::IntSetting:
-			return QVariant(defaultValue->isValid()
-					? defaultValue->toInt()
-					: 0);
-		case SettingType::BoolSetting:
-			return QVariant(defaultValue->isValid()
-					? defaultValue->toBool()
-					: false);
-		case SettingType::QJsonArraySetting:
-			return QVariant(defaultValue->isValid()
-					? defaultValue->toJsonArray()
-					: QJsonArray());
-	}
-
-	return QVariant();
+QByteArray FASettings::exportSettingsJson() const {
+	const auto doc = QJsonDocument(saveToJson());
+	return doc.toJson(QJsonDocument::Indented);
 }
 
-rpl::producer<QString> Manager::events(const QString &key, uint64 accountId, bool isTestAccount) {
-	const auto mapKey = MakeMapKey(key, accountId, isTestAccount);
-	return _eventStream.events() | rpl::filter(rpl::mappers::_1 == mapKey);
-}
-
-rpl::producer<QString> Manager::eventsWithPending(const QString &key, uint64 accountId, bool isTestAccount) {
-	const auto mapKey = MakeMapKey(key, accountId, isTestAccount);
-	return _pendingEventStream.events() | rpl::filter(rpl::mappers::_1 == mapKey);
-}
-
-void Manager::set(const QString &key, QVariant value, uint64 accountId, bool isTestAccount) {
-	const auto mapKey = MakeMapKey(key, accountId, isTestAccount);
-	_lock.lockForWrite();
-	_settingsHashMap.insert(mapKey, value);
-	_lock.unlock();
-	_eventStream.fire_copy(mapKey);
-}
-
-void Manager::setAfterRestart(const QString &key, QVariant value, uint64 accountId, bool isTestAccount) {
-	const auto mapKey = MakeMapKey(key, accountId, isTestAccount);
-	_lock.lockForWrite();
-	if (!_settingsHashMap.contains(mapKey)
-		|| _settingsHashMap.value(mapKey) != value) {
-		_defaultSettingsHashMap.insert(mapKey, value);
-	} else if (_settingsHashMap.contains(mapKey)
-		&& _settingsHashMap.value(mapKey) == value) {
-		_defaultSettingsHashMap.remove(mapKey);
-	}
-	_lock.unlock();
-	_pendingEventStream.fire_copy(mapKey);
-}
-
-void Manager::reset(const QString &key, uint64 accountId, bool isTestAccount) {
-	set(key, getDefault(key), accountId, isTestAccount);
-}
-
-void Manager::resetAfterRestart(const QString &key, uint64 accountId, bool isTestAccount) {
-	setAfterRestart(key, getDefault(key), accountId, isTestAccount);
-}
-
-bool Manager::readCustomFile() {
-	QFile file(CustomFilePath());
-	if (!file.exists()) {
-		return false;
-	}
-	if (!file.open(QIODevice::ReadOnly)) {
+bool FASettings::importSettingsFromJson(const QByteArray &json) {
+	const auto doc = QJsonDocument::fromJson(json);
+	if (doc.isObject()) {
+		loadFromJson(doc.object());
+		validate();
+		save();
 		return true;
 	}
-	auto error = QJsonParseError{ 0, QJsonParseError::NoError };
-	const auto document = QJsonDocument::fromJson(
-		base::parse::stripComments(file.readAll()),
-		&error);
-	file.close();
-
-	if (error.error != QJsonParseError::NoError) {
-		return true;
-	} else if (!document.isObject()) {
-		return true;
-	}
-	const auto settings = document.object();
-
-	if (settings.isEmpty()) {
-		return true;
-	}
-
-	const auto getObjectValue = [&settings] (
-			QStringList &keyParts,
-			const Definition &def) -> QJsonValue {
-		const auto firstKey = keyParts.takeFirst();
-		if (!settings.contains(firstKey)) {
-			return QJsonValue();
-		}
-		auto resultRef = settings.value(firstKey);
-		for (const auto &key : keyParts) {
-			auto referenced = resultRef.toObject();
-			if (!referenced.contains(key)) {
-				return QJsonValue();
-			}
-			resultRef = referenced.value(key);
-		}
-		return resultRef;
-	};
-
-	const auto prepareAccountOptions = [] (
-		const QString &key,
-		const Definition &def,
-		const QJsonValue &val,
-		Fn<void(const QString &,
-				const Definition &,
-				const QJsonValue &,
-				uint64,
-				bool)> callback) {
-
-		if (val.isUndefined()) {
-			return;
-		} else if (def.scope == SettingScope::Account && val.isObject()) {
-			const auto accounts = val.toObject();
-			if (accounts.isEmpty()) {
-				return;
-			}
-
-			for (auto i = accounts.constBegin(); i != accounts.constEnd(); ++i) {
-				auto optionKey = i.key();
-				auto isTestAccount = false;
-				if (optionKey.startsWith("test_")) {
-					isTestAccount = true;
-					optionKey = optionKey.mid(5);
-				}
-				auto accountId = optionKey.toULongLong();
-				callback(key, def, i.value(), accountId, (accountId == 0) ? false : isTestAccount);
-			}
-		} else {
-			callback(key, def, val, 0, false);
-		}
-	};
-
-	const auto setValue = [this] (
-		const QString &key,
-		const Definition &def,
-		const QJsonValue &val,
-		uint64 accountId,
-		bool isTestAccount) {
-
-		const auto defType = def.type;
-		if (defType == SettingType::BoolSetting) {
-			if (val.isBool()) {
-				set(key, val.toBool(), accountId, isTestAccount);
-			} else if (val.isDouble()) {
-				set(key, val.toDouble() != 0.0, accountId, isTestAccount);
-			}
-		} else if (defType == SettingType::IntSetting) {
-			if (val.isDouble()) {
-				auto intValue = qFloor(val.toDouble());
-				set(key,
-					(def.limitHandler)
-						? def.limitHandler(intValue)
-						: intValue,
-					accountId,
-					isTestAccount);
-			}
-		} else if (defType == SettingType::QStringSetting) {
-			if (val.isString()) {
-				set(key, val.toString(), accountId, isTestAccount);
-			}
-		} else if (defType == SettingType::QJsonArraySetting) {
-			if (val.isArray()) {
-				auto arrayValue = val.toArray();
-				set(key, (def.limitHandler)
-					? def.limitHandler(arrayValue)
-					: arrayValue,
-					accountId,
-					isTestAccount);
-			}
-		}
-	};
-
-	for (const auto &[oldkey, newkey] : ReplacedOptionsMap) {
-		const auto &defIterator = DefinitionMap.find(newkey);
-		if (defIterator == DefinitionMap.end()) {
-			continue;
-		}
-		auto parts = oldkey.split(QChar('/'));
-		const auto val = (parts.size() > 1)
-							? getObjectValue(parts, defIterator->second)
-							: settings.value(oldkey);
-
-		if (!val.isUndefined()) {
-			prepareAccountOptions(newkey, defIterator->second, val, setValue);
-		}
-	}
-
-	for (const auto &[key, def] : DefinitionMap) {
-		if (def.storage == SettingStorage::None) {
-			continue;
-		}
-		auto parts = key.split(QChar('/'));
-		const auto val = (parts.size() > 1)
-							? getObjectValue(parts, def)
-							: settings.value(key);
-
-		if (!val.isUndefined()) {
-			prepareAccountOptions(key, def, val, setValue);
-		}
-	}
-	return true;
+	return false;
 }
 
-void Manager::writeDefaultFile() {
-	auto file = QFile(DefaultFilePath());
-	if (!file.open(QIODevice::WriteOnly)) {
-		return;
-	}
-	const char *defaultHeader = R"HEADER(
-// This is a list of default options for FAGram Desktop
-// Please don't modify it, its content is not used in any way
-// You can place your own options in the 'FA-settings-custom.json' file
-
-)HEADER";
-	file.write(defaultHeader);
-	file.write(GenerateSettingsJson(true));
+void FASettings::setDebugLogs(bool val) {
+	if (_debugLogs.current() == val) return;
+	_debugLogs = val;
+	save();
 }
 
-void Manager::writeCurrentSettings() {
-	auto file = QFile(CustomFilePath());
-	if (!file.open(QIODevice::WriteOnly)) {
-		return;
-	}
-	if (_jsonWriteTimer.isActive()) {
-		writing();
-	}
-	const char *customHeader = R"HEADER(
-// This file was automatically generated from current settings
-// It's better to edit it with app closed, so there will be no rewrites
-// You should restart app to see changes
-
-)HEADER";
-	file.write(customHeader);
-	file.write(GenerateSettingsJson());
+void FASettings::setSecondsMessage(bool val) {
+	if (_secondsMessage.current() == val) return;
+	_secondsMessage = val;
+	save();
 }
 
-void Manager::writeTimeout() {
-	writeCurrentSettings();
+void FASettings::setDisableAds(bool val) {
+	if (_disableAds.current() == val) return;
+	_disableAds = val;
+	save();
 }
 
-void Manager::writing() {
-	_jsonWriteTimer.cancel();
+void FASettings::setDisableAi(bool val) {
+	if (_disableAi.current() == val) return;
+	_disableAi = val;
+	save();
 }
 
-void Start() {
-	if (Data) return;
-
-	Data = std::make_unique<Manager>();
-	Data->fill();
+void FASettings::setDisableAnimatedAvatars(bool val) {
+	if (_disableAnimatedAvatars.current() == val) return;
+	_disableAnimatedAvatars = val;
+	save();
 }
 
-void SyncExperimentalOptions() {
-	if (!Data) return;
-
-	const auto disabled = GetBool(u"disable_ai"_q);
-	if (disabled && QCoreApplication::instance()) {
-		const auto hideAiOption = &base::options::lookup<bool>(Ui::kOptionHideAiButton);
-		if (!hideAiOption->value()) {
-			hideAiOption->set(true);
-		}
-	}
+void FASettings::setDisableAutoDownload(bool val) {
+	if (_disableAutoDownload.current() == val) return;
+	_disableAutoDownload = val;
+	save();
 }
 
-void Load() {
-	if (!Data) return;
-
-	Data->load();
-	SyncExperimentalOptions();
+void FASettings::setShowStartToken(bool val) {
+	if (_showStartToken.current() == val) return;
+	_showStartToken = val;
+	save();
 }
 
-void Write() {
-	if (!Data) return;
-
-	Data->write();
+void FASettings::setShowPeerId(bool val) {
+	if (_showPeerId.current() == val) return;
+	_showPeerId = val;
+	save();
 }
 
-void Finish() {
-	if (!Data) return;
-
-	Data->write(true);
+void FASettings::setShowDcId(bool val) {
+	if (_showDcId.current() == val) return;
+	_showDcId = val;
+	save();
 }
 
-QVariant Get(const QString &key, uint64 accountId, bool isTestAccount) {
-	return (Data) ? Data->get(key, accountId, isTestAccount) : QVariant();
+void FASettings::setShowIdBotapi(bool val) {
+	if (_showIdBotapi.current() == val) return;
+	_showIdBotapi = val;
+	save();
 }
 
-QVariant GetWithPending(const QString &key, uint64 accountId, bool isTestAccount) {
-	return (Data) ? Data->getWithPending(key, accountId, isTestAccount) : QVariant();
+void FASettings::setShowRegistrationDate(bool val) {
+	if (_showRegistrationDate.current() == val) return;
+	_showRegistrationDate = val;
+	save();
 }
 
-rpl::producer<QString> Events(const QString &key, uint64 accountId, bool isTestAccount) {
-	return (Data) ? Data->events(key, accountId, isTestAccount) : rpl::single(QString());
+void FASettings::setDisableCustomChatBackground(bool val) {
+	if (_disableCustomChatBackground.current() == val) return;
+	_disableCustomChatBackground = val;
+	save();
 }
 
-rpl::producer<QString> EventsWithPending(const QString &key, uint64 accountId, bool isTestAccount) {
-	return (Data) ? Data->eventsWithPending(key, accountId, isTestAccount) : rpl::single(QString());
+void FASettings::setHideAllChatsFolder(bool val) {
+	if (_hideAllChatsFolder.current() == val) return;
+	_hideAllChatsFolder = val;
+	save();
 }
 
-void Set(const QString &key, QVariant value, uint64 accountId, bool isTestAccount) {
-	if (!Data) return;
-
-	Data->set(key, value, accountId, isTestAccount);
+void FASettings::setHideStories(bool val) {
+	if (_hideStories.current() == val) return;
+	_hideStories = val;
+	save();
 }
 
-void SetAfterRestart(const QString &key, QVariant value, uint64 accountId, bool isTestAccount) {
-	if (!Data) return;
-
-	Data->setAfterRestart(key, value, accountId, isTestAccount);
+void FASettings::setHideArchivedStories(bool val) {
+	if (_hideArchivedStories.current() == val) return;
+	_hideArchivedStories = val;
+	save();
 }
 
-void Reset(const QString &key, uint64 accountId, bool isTestAccount) {
-	if (!Data) return;
-
-	Data->reset(key, accountId, isTestAccount);
+void FASettings::setHideOpenWebappButtonChatlist(bool val) {
+	if (_hideOpenWebappButtonChatlist.current() == val) return;
+	_hideOpenWebappButtonChatlist = val;
+	save();
 }
 
-void ResetAfterRestart(const QString &key, uint64 accountId, bool isTestAccount) {
-	if (!Data) return;
-
-	Data->resetAfterRestart(key, accountId, isTestAccount);
+void FASettings::setLocalPremium(bool val) {
+	if (_localPremium.current() == val) return;
+	_localPremium = val;
+	save();
 }
 
-QByteArray ExportSettingsJson() {
-	return GenerateSettingsJson();
+void FASettings::setUnlimitedPinnedChats(bool val) {
+	if (_unlimitedPinnedChats.current() == val) return;
+	_unlimitedPinnedChats = val;
+	save();
 }
 
-bool ImportSettingsFromJson(const QByteArray &json) {
-	auto error = QJsonParseError{ 0, QJsonParseError::NoError };
-	const auto document = QJsonDocument::fromJson(json, &error);
-	if (error.error != QJsonParseError::NoError || !document.isObject()) {
-		return false;
-	}
-	const auto settings = document.object();
-	if (settings.isEmpty()) {
-		return false;
-	}
+void FASettings::setUnlimitedChatFolders(bool val) {
+	if (_unlimitedChatFolders.current() == val) return;
+	_unlimitedChatFolders = val;
+	save();
+}
 
-	const auto getObjectValue = [&settings](
-			QStringList &keyParts,
-			const Definition &def) -> QJsonValue {
-		const auto firstKey = keyParts.takeFirst();
-		if (!settings.contains(firstKey)) {
-			return QJsonValue();
-		}
-		auto resultRef = settings.value(firstKey);
-		for (const auto &key : keyParts) {
-			auto referenced = resultRef.toObject();
-			if (!referenced.contains(key)) {
-				return QJsonValue();
-			}
-			resultRef = referenced.value(key);
-		}
-		return resultRef;
-	};
+void FASettings::setDeleteForEveryone(bool val) {
+	if (_deleteForEveryone.current() == val) return;
+	_deleteForEveryone = val;
+	save();
+}
 
-	for (const auto &[key, def] : DefinitionMap) {
-		if (def.storage == None) {
-			continue;
-		}
-		auto parts = key.split(QChar('/'));
-		const auto val = (parts.size() > 1)
-			? getObjectValue(parts, def)
-			: settings.value(key);
-		if (val.isUndefined()) {
-			continue;
-		}
-		if (def.type == BoolSetting) {
-			if (val.isBool()) {
-				Set(key, val.toBool());
-			} else if (val.isDouble()) {
-				Set(key, val.toDouble() != 0.0);
-			}
-		} else if (def.type == IntSetting) {
-			if (val.isDouble()) {
-				auto intValue = qFloor(val.toDouble());
-				Set(key,
-					(def.limitHandler)
-						? def.limitHandler(intValue)
-						: intValue);
-			}
-		} else if (def.type == QStringSetting) {
-			if (val.isString()) {
-				Set(key, val.toString());
-			}
-		} else if (def.type == QJsonArraySetting) {
-			if (val.isArray()) {
-				auto arrayValue = val.toArray();
-				Set(key,
-					(def.limitHandler)
-						? def.limitHandler(arrayValue)
-						: arrayValue);
-			}
+void FASettings::setLastSeenTimestamp(bool val) {
+	if (_lastSeenTimestamp.current() == val) return;
+	_lastSeenTimestamp = val;
+	save();
+}
+
+void FASettings::setShowForwardedDateInTitle(bool val) {
+	if (_showForwardedDateInTitle.current() == val) return;
+	_showForwardedDateInTitle = val;
+	save();
+}
+
+void FASettings::setDisableGreetingSticker(bool val) {
+	if (_disableGreetingSticker.current() == val) return;
+	_disableGreetingSticker = val;
+	save();
+}
+
+void FASettings::setUseDefaultRounding(bool val) {
+	if (_useDefaultRounding.current() == val) return;
+	_useDefaultRounding = val;
+	save();
+}
+
+void FASettings::setShowDiscussButton(bool val) {
+	if (_showDiscussButton.current() == val) return;
+	_showDiscussButton = val;
+	save();
+}
+
+void FASettings::setShowFastshareInChats(bool val) {
+	if (_showFastshareInChats.current() == val) return;
+	_showFastshareInChats = val;
+	save();
+}
+
+void FASettings::setRoundness(int val) {
+	if (_roundness.current() == val) return;
+	_roundness = val;
+	save();
+}
+
+void FASettings::setForceSnow(bool val) {
+	if (_forceSnow.current() == val) return;
+	_forceSnow = val;
+	save();
+}
+
+void FASettings::setShowMessageDetails(bool val) {
+	if (_showMessageDetails.current() == val) return;
+	_showMessageDetails = val;
+	save();
+}
+
+void FASettings::setHideBlockedUserMessages(bool val) {
+	if (_hideBlockedUserMessages.current() == val) return;
+	_hideBlockedUserMessages = val;
+	save();
+}
+
+void FASettings::setShowStatusDot(bool val) {
+	if (_showStatusDot.current() == val) return;
+	_showStatusDot = val;
+	save();
+}
+
+void FASettings::setStatusDotOnlineOnly(bool val) {
+	if (_statusDotOnlineOnly.current() == val) return;
+	_statusDotOnlineOnly = val;
+	save();
+}
+
+void FASettings::setContextMenuUseShortcuts(bool val) {
+	if (_contextMenuUseShortcuts.current() == val) return;
+	_contextMenuUseShortcuts = val;
+	save();
+}
+
+void FASettings::setContextMenuShortcutsAtBottom(bool val) {
+	if (_contextMenuShortcutsAtBottom.current() == val) return;
+	_contextMenuShortcutsAtBottom = val;
+	save();
+}
+
+void FASettings::setContextMenuReplyInPrivate(bool val) {
+	if (_contextMenuReplyInPrivate.current() == val) return;
+	_contextMenuReplyInPrivate = val;
+	save();
+}
+
+void FASettings::setContextMenuForwardSubmenu(bool val) {
+	if (_contextMenuForwardSubmenu.current() == val) return;
+	_contextMenuForwardSubmenu = val;
+	save();
+}
+
+void FASettings::setUseTdesktopThemes(bool val) {
+	if (_useTdesktopThemes.current() == val) return;
+	_useTdesktopThemes = val;
+	save();
+}
+
+void FASettings::setUseMaterialIconPack(bool val) {
+	if (_useMaterialIconPack.current() == val) return;
+	_useMaterialIconPack = val;
+	save();
+}
+
+void FASettings::setDisablePremiumAnimation(bool val) {
+	if (_disablePremiumAnimation.current() == val) return;
+	_disablePremiumAnimation = val;
+	save();
+}
+
+void FASettings::setScreenshotMode(bool val) {
+	if (_screenshotMode.current() == val) return;
+	_screenshotMode = val;
+	save();
+}
+
+void FASettings::setAutoFormatMarkdown(bool val) {
+	if (_autoFormatMarkdown.current() == val) return;
+	_autoFormatMarkdown = val;
+	save();
+}
+
+void FASettings::setAddCommaAfterMention(bool val) {
+	if (_addCommaAfterMention.current() == val) return;
+	_addCommaAfterMention = val;
+	save();
+}
+
+void FASettings::setContextMenuShortcutButtonSize(int val) {
+	if (_contextMenuShortcutButtonSize.current() == val) return;
+	_contextMenuShortcutButtonSize = val;
+	save();
+}
+
+void FASettings::setContextMenuShortcutIconSize(int val) {
+	if (_contextMenuShortcutIconSize.current() == val) return;
+	_contextMenuShortcutIconSize = val;
+	save();
+}
+
+void FASettings::setContextMenuShortcutSpacing(int val) {
+	if (_contextMenuShortcutSpacing.current() == val) return;
+	_contextMenuShortcutSpacing = val;
+	save();
+}
+
+void FASettings::setContextMenuShortcutVerticalPadding(int val) {
+	if (_contextMenuShortcutVerticalPadding.current() == val) return;
+	_contextMenuShortcutVerticalPadding = val;
+	save();
+}
+
+void FASettings::setContextMenuShortcutHorizontalPadding(int val) {
+	if (_contextMenuShortcutHorizontalPadding.current() == val) return;
+	_contextMenuShortcutHorizontalPadding = val;
+	save();
+}
+
+void FASettings::setContextMenuShortcutCornerRadius(int val) {
+	if (_contextMenuShortcutCornerRadius.current() == val) return;
+	_contextMenuShortcutCornerRadius = val;
+	save();
+}
+
+void FASettings::setTranslationProvider(int val) {
+	if (_translationProvider.current() == val) return;
+	_translationProvider = val;
+	save();
+}
+
+
+QJsonArray FASettings::pinnedChatOrder(uint64 accountId) const {
+	if (_accountSettings.contains(QString::number(accountId))) {
+		const auto accObj = _accountSettings[QString::number(accountId)].toObject();
+		if (accObj.contains("pinned_chat_order")) {
+			return accObj["pinned_chat_order"].toArray();
 		}
 	}
-	Write();
-	return true;
+	return QJsonArray();
 }
 
-} // namespace JsonSettings
+void FASettings::setPinnedChatOrder(const QJsonArray &val, uint64 accountId) {
+	QJsonObject accObj;
+	if (_accountSettings.contains(QString::number(accountId))) {
+		accObj = _accountSettings[QString::number(accountId)].toObject();
+	}
+	accObj["pinned_chat_order"] = val;
+	_accountSettings[QString::number(accountId)] = accObj;
+	save();
+}
+
+QJsonArray FASettings::localChatFolders(uint64 accountId) const {
+	if (_accountSettings.contains(QString::number(accountId))) {
+		const auto accObj = _accountSettings[QString::number(accountId)].toObject();
+		if (accObj.contains("local_chat_folders")) {
+			return accObj["local_chat_folders"].toArray();
+		}
+	}
+	return QJsonArray();
+}
+
+void FASettings::setLocalChatFolders(const QJsonArray &val, uint64 accountId) {
+	QJsonObject accObj;
+	if (_accountSettings.contains(QString::number(accountId))) {
+		accObj = _accountSettings[QString::number(accountId)].toObject();
+	}
+	accObj["local_chat_folders"] = val;
+	_accountSettings[QString::number(accountId)] = accObj;
+	save();
+}
+
+QJsonArray FASettings::localChatFoldersOrder(uint64 accountId) const {
+	if (_accountSettings.contains(QString::number(accountId))) {
+		const auto accObj = _accountSettings[QString::number(accountId)].toObject();
+		if (accObj.contains("local_chat_folders_order")) {
+			return accObj["local_chat_folders_order"].toArray();
+		}
+	}
+	return QJsonArray();
+}
+
+void FASettings::setLocalChatFoldersOrder(const QJsonArray &val, uint64 accountId) {
+	QJsonObject accObj;
+	if (_accountSettings.contains(QString::number(accountId))) {
+		accObj = _accountSettings[QString::number(accountId)].toObject();
+	}
+	accObj["local_chat_folders_order"] = val;
+	_accountSettings[QString::number(accountId)] = accObj;
+	save();
+}
+
 } // namespace FASettings

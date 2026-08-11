@@ -1365,7 +1365,7 @@ void ListWidget::showContextMenu(
 			}
 		}
 		if (canForwardAll()) {
-			if (::FASettings::JsonSettings::GetBool("context_menu_forward_submenu")) {
+			if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
 				const auto ids = collectSelectedIds();
 				const auto controller = _controller;
 				const auto weak = base::make_weak(this);
@@ -1502,7 +1502,7 @@ void ListWidget::showContextMenu(
 				}
 			}
 			if (selectionData.canForward) {
-				if (::FASettings::JsonSettings::GetBool("context_menu_forward_submenu")) {
+				if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
 					const auto controller = _controller;
 					const auto session = &controller->session();
 					const auto weak = base::make_weak(this);

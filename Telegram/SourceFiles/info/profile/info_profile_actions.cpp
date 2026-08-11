@@ -1768,8 +1768,8 @@ Section DetailsFiller::makeInfo() {
 			).text->setLinksTrusted();
 		}
 
-		bool show_peer_id = FASettings::JsonSettings::GetBool("show_peer_id");
-		bool show_dc_id = FASettings::JsonSettings::GetBool("show_dc_id");
+		bool show_peer_id = FASettings::FASettings::getInstance().showPeerId();
+		bool show_dc_id = FASettings::FASettings::getInstance().showDcId();
 		if (show_peer_id) {
 			const auto dataCenter = getPeerDC(_peer);
 			const auto idLabel = !show_dc_id ? QString("ID") : dataCenter;
@@ -1794,7 +1794,7 @@ Section DetailsFiller::makeInfo() {
 			});
 		}
 
-		bool show_registration_date = FASettings::JsonSettings::GetBool("show_registration_date");
+		bool show_registration_date = FASettings::FASettings::getInstance().showRegistrationDate();
 		if (show_registration_date) {
 			auto idInfo = addInfoOneLine(
 					fatr::fa_registration_date(),
@@ -1891,8 +1891,8 @@ Section DetailsFiller::makeInfo() {
 			SetupAboutPeerIdDrag(about.text, _peer);
 		}
 
-		bool show_peer_id = FASettings::JsonSettings::GetBool("show_peer_id");
-		bool show_dc_id = FASettings::JsonSettings::GetBool("show_dc_id");
+		bool show_peer_id = FASettings::FASettings::getInstance().showPeerId();
+		bool show_dc_id = FASettings::FASettings::getInstance().showDcId();
         if (show_peer_id) {
 			const auto dataCenter = getPeerDC(_peer);
 			const auto idLabel = !show_dc_id ? QString("ID") : dataCenter;
