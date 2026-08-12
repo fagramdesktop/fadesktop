@@ -146,16 +146,14 @@ jobs:
 
       - name: Trim Telegram Desktop cache.
         if: >
-          github.ref_name == github.event.repository.default_branch
-            && inputs.disable_cache != true
+          inputs.disable_cache != true
             && inputs.disable_cache != 'true'
             && fromJSON(steps.ccache-stats.outputs.misses) > 300
         run: ccache --evict-older-than 1d
 
       - name: Save Telegram Desktop cache.
         if: >
-          github.ref_name == github.event.repository.default_branch
-            && inputs.disable_cache != true
+          inputs.disable_cache != true
             && inputs.disable_cache != 'true'
             && fromJSON(steps.ccache-stats.outputs.misses) > 300
         uses: actions/cache/save@v6

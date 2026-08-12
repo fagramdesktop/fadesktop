@@ -165,6 +165,7 @@ jobs:
           cd ${{ env.REPO_NAME }}/Telegram
           ./configure.sh \
             -D CMAKE_OSX_ARCHITECTURES=arm64 \
+            -D CMAKE_CONFIGURATION_TYPES=MinSizeRel \
             -D TDESKTOP_API_ID=${{ secrets.API_ID_CONFIG }} \
             -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }} \
             -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
@@ -174,7 +175,7 @@ jobs:
         env:
           MAKE_THREADS_CNT: -j3
           CMAKE_BUILD_PARALLEL_LEVEL: 3
-        run: cmake --build ${{ env.REPO_NAME }}/out --config Release --target Telegram
+        run: cmake --build ${{ env.REPO_NAME }}/out --config MinSizeRel --target Telegram
 
       - name: Read version info
         run: |
@@ -185,7 +186,7 @@ jobs:
         if: ${{ inputs.build_type == 'rel' }}
         run: |
           PACKER=$(find ${{ env.REPO_NAME }}/out -name Packer -type f | head -1)
-          TELEGRAM="${{ env.REPO_NAME }}/out/Release/fagram.app"
+          TELEGRAM="${{ env.REPO_NAME }}/out/MinSizeRel/fagram.app"
           if [ -z "$PACKER" ] || [ ! -d "$TELEGRAM" ]; then
             echo "Error: Packer or fagram.app not found"
             find ${{ env.REPO_NAME }}/out -type f -name 'Packer'
@@ -205,7 +206,7 @@ jobs:
       - name: Package DMG
         run: |
           mkdir -p dmg_staging
-          cp -r ${{ env.REPO_NAME }}/out/Release/fagram.app dmg_staging/FAgram.app
+          cp -r ${{ env.REPO_NAME }}/out/MinSizeRel/fagram.app dmg_staging/FAgram.app
           ln -s /Applications dmg_staging/Applications
           hdiutil create \
             -volname "FAgram" \

@@ -57,8 +57,15 @@ jobs:
     steps:
       - name: Prepare directories
         run: |
-          mkdir %userprofile%\TBuild\Libraries
-          mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
+          if exist D:\ (
+            mkdir D:\TBuild\Libraries
+            mkdir D:\TBuild\ThirdParty
+            mklink /d %GITHUB_WORKSPACE%\TBuild D:\TBuild
+          ) else (
+            mkdir %userprofile%\TBuild\Libraries
+            mkdir %userprofile%\TBuild\ThirdParty
+            mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
+          )
           echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
           echo LibrariesPath=%GITHUB_WORKSPACE%\TBuild\Libraries\win64>>%GITHUB_ENV%
 
@@ -76,6 +83,13 @@ jobs:
         shell: pwsh
         run: pwsh -File "$env:TBUILD/$env:REPO_NAME/.github/scripts/free_disk_space_win.ps1"
 
+      - name: Set up pagefile
+        uses: al-cheb/configure-pagefile-action@v1.5
+        with:
+          minimum-size: 16GB
+          maximum-size: 16GB
+          disk-root: "C:"
+
       - name: Set up environment paths
         shell: bash
         run: |
@@ -92,16 +106,45 @@ jobs:
           git config --global user.email "you@example.com"
           git config --global user.name "Sample"
 
-      - name: Restore libraries cache
-        id: cache-libs
+      - name: ThirdParty cache (Restore)
         if: ${{ inputs.disable_cache != true && inputs.disable_cache != 'true' }}
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: ${{ runner.os }}-third-party-${{ env.CACHE_KEY }}-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-third-party-${{ env.CACHE_KEY }}-
+
+      - name: Libraries cache (Restore)
+        if: ${{ inputs.disable_cache != true && inputs.disable_cache != 'true' }}
+        uses: actions/cache/restore@v6
         with:
           path: |
-            ${{ env.TBUILD }}/Libraries
-            ${{ env.TBUILD }}/ThirdParty
-          key: ${{ runner.os }}-libs-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.os }}-libs-
+            ${{ env.LibrariesPath }}\*
+            !${{ env.LibrariesPath }}\cache_keys
+            ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.os }}-libs-${{ env.CACHE_KEY }}-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-libs-${{ env.CACHE_KEY }}-
+
+      - name: Qt cache (Restore)
+        if: ${{ inputs.disable_cache != true && inputs.disable_cache != 'true' }}
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\Qt*
+            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.os }}-qt-${{ env.CACHE_KEY }}-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-qt-${{ env.CACHE_KEY }}-
+
+      - name: Heal stale cache keys
+        shell: bash
+        run: |
+          if [ -d "$LibrariesPath/cache_keys" ]; then
+            if ! ls "$LibrariesPath"/Qt-* 1> /dev/null 2>&1; then
+              rm -f "$LibrariesPath"/cache_keys/[qQ]t*
+              echo "Qt missing, dropped its cache key"
+            fi
+          fi
 
       - uses: Eden-CI/msvc-dev-cmd@master
         name: Native Tools Command Prompt
@@ -111,21 +154,45 @@ jobs:
           toolset: 14.44
 
       - name: NuGet sources
-        if: steps.cache-libs.outputs.cache-hit != 'true'
         run: |
           nuget sources Disable -Name "Microsoft Visual Studio Offline Packages"
           nuget sources Add -Source https://api.nuget.org/v3/index.json & exit 0
 
       - name: Prepare Libraries
-        if: steps.cache-libs.outputs.cache-hit != 'true'
         run: |
           cd %TBUILD%
           %REPO_NAME%\Telegram\build\prepare\win.bat silent
 
       - name: Clean up build intermediates
-        if: steps.cache-libs.outputs.cache-hit != 'true'
         shell: bash
-        run: find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' ')' -type f ')' -o -empty ')' -delete
+        run: find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' -o -path '*/Qt-*/*' ')' -type f ')' -o -empty ')' -delete || true
+
+      - name: ThirdParty cache (Save)
+        if: ${{ always() && (inputs.disable_cache != true && inputs.disable_cache != 'true') }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: ${{ runner.os }}-third-party-${{ env.CACHE_KEY }}-${{ github.run_id }}
+
+      - name: Libraries cache (Save)
+        if: ${{ always() && (inputs.disable_cache != true && inputs.disable_cache != 'true') }}
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\*
+            !${{ env.LibrariesPath }}\cache_keys
+            ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.os }}-libs-${{ env.CACHE_KEY }}-${{ github.run_id }}
+
+      - name: Qt cache (Save)
+        if: ${{ always() && (inputs.disable_cache != true && inputs.disable_cache != 'true') }}
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\Qt*
+            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.os }}-qt-${{ env.CACHE_KEY }}-${{ github.run_id }}
 
   build-fagram:
     name: Build FAgram Desktop
@@ -150,9 +217,15 @@ jobs:
     steps:
       - name: Prepare directories
         run: |
-          mkdir %userprofile%\TBuild\Libraries
-          mkdir %userprofile%\TBuild\ThirdParty
-          mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
+          if exist D:\ (
+            mkdir D:\TBuild\Libraries
+            mkdir D:\TBuild\ThirdParty
+            mklink /d %GITHUB_WORKSPACE%\TBuild D:\TBuild
+          ) else (
+            mkdir %userprofile%\TBuild\Libraries
+            mkdir %userprofile%\TBuild\ThirdParty
+            mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
+          )
           echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
           echo LibrariesPath=%GITHUB_WORKSPACE%\TBuild\Libraries\win64>>%GITHUB_ENV%
 
@@ -169,6 +242,13 @@ jobs:
       - name: Free disk space
         shell: pwsh
         run: pwsh -File "$env:TBUILD/$env:REPO_NAME/.github/scripts/free_disk_space_win.ps1"
+
+      - name: Set up pagefile
+        uses: al-cheb/configure-pagefile-action@v1.5
+        with:
+          minimum-size: 16GB
+          maximum-size: 16GB
+          disk-root: "C:"
 
       - name: Clone DesktopPrivate
         run: |
@@ -196,14 +276,49 @@ jobs:
           sdk: ${{ env.SDK }}
           toolset: 14.44
 
-      - name: Restore libraries cache
-        uses: actions/cache@v6
+      - name: ThirdParty cache (Restore)
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: ${{ runner.os }}-third-party-${{ env.CACHE_KEY }}-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-third-party-${{ env.CACHE_KEY }}-
+
+      - name: Libraries cache (Restore)
+        uses: actions/cache/restore@v6
         with:
           path: |
-            ${{ env.TBUILD }}/Libraries
-            ${{ env.TBUILD }}/ThirdParty
-          key: ${{ runner.os }}-libs-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.os }}-libs-
+            ${{ env.LibrariesPath }}\*
+            !${{ env.LibrariesPath }}\cache_keys
+            ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.os }}-libs-${{ env.CACHE_KEY }}-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-libs-${{ env.CACHE_KEY }}-
+
+      - name: Qt cache (Restore)
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\Qt*
+            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.os }}-qt-${{ env.CACHE_KEY }}-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-qt-${{ env.CACHE_KEY }}-
+
+      - name: Heal stale cache keys
+        shell: bash
+        run: |
+          if [ -d "$LibrariesPath/cache_keys" ]; then
+            if ! ls "$LibrariesPath"/Qt-* 1> /dev/null 2>&1; then
+              rm -f "$LibrariesPath"/cache_keys/[qQ]t*
+              echo "Qt missing, dropped its cache key"
+            fi
+          fi
+
+      - name: Build tree cache (Restore)
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}\out
+          key: ${{ runner.os }}-out-minsizerel-${{ env.CACHE_KEY }}-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-out-minsizerel-${{ env.CACHE_KEY }}-
 
       - name: Build Configuration
         shell: bash
@@ -217,21 +332,43 @@ jobs:
       - name: Build FAgram Desktop
         run: |
           cd %TBUILD%\%REPO_NAME%\Telegram
+          
+          set "CFG_FLAGS=%TDESKTOP_BUILD_ARCH% %TDESKTOP_BUILD_API%"
+          set "CFG_MARKER=..\out\.ci_configure_flags"
+          set "REUSE_TREE=0"
+          if exist ..\out\CMakeCache.txt if exist "%CFG_MARKER%" (
+            for /f "usebackq delims=" %%a in ("%CFG_MARKER%") do (
+              if "%%a"=="%CFG_FLAGS%" set "REUSE_TREE=1"
+            )
+          )
+          if "%REUSE_TREE%"=="1" (
+            echo Reusing the configured build tree.
+            goto :build
+          )
+          echo Configuring the build tree.
+
           call configure.bat ^
           %TDESKTOP_BUILD_ARCH% ^
           %TDESKTOP_BUILD_API% ^
-          -D CMAKE_C_FLAGS="/bigobj /WX-" ^
-          -D CMAKE_CXX_FLAGS="/bigobj /WX-" ^
-          -D CMAKE_CONFIGURATION_TYPES=Release ^
+          -D CMAKE_C_FLAGS="/WX-" ^
+          -D CMAKE_CXX_FLAGS="/WX-" ^
+          -D CMAKE_CONFIGURATION_TYPES=MinSizeRel ^
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT= ^
-          -D CMAKE_LINKER_TYPE=LLD ^
-          -D CMAKE_EXE_LINKER_FLAGS="/FORCE:MULTIPLE" ^
-          -D CMAKE_SHARED_LINKER_FLAGS="/FORCE:MULTIPLE" ^
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF ^
-          -D DESKTOP_APP_BUILD_PACKER=ON
+          -D DESKTOP_APP_BUILD_PACKER=ON || exit /b 1
 
-          cmake --build ..\out --config Release --parallel 2
+          > "%CFG_MARKER%" echo %CFG_FLAGS%
+
+          :build
+          cmake --build ..\out --config MinSizeRel --parallel 2 || exit /b 1
+
+      - name: Build tree cache (Save)
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}\out
+          key: ${{ runner.os }}-out-minsizerel-${{ env.CACHE_KEY }}-${{ github.run_id }}
+
 
       - name: Get tag name
         if: env.UPLOAD_ARTIFACT == 'true'
@@ -266,14 +403,14 @@ jobs:
       - name: Sign OTA update
         if: env.UPLOAD_ARTIFACT == 'true' && inputs.build_type == 'rel'
         run: |
-          cd %TBUILD%\%REPO_NAME%\out\Release
+          cd %TBUILD%\%REPO_NAME%\out\MinSizeRel
           Packer.exe -path fagram.exe -path Updater.exe -version %APP_VERSION% -target win64
 
       - name: Prepare artifacts
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
           cd %TBUILD%\%REPO_NAME%
-          set OUT=%TBUILD%\%REPO_NAME%\out\Release
+          set OUT=%TBUILD%\%REPO_NAME%\out\MinSizeRel
           if not exist artifact mkdir artifact
           move %OUT%\fagram.exe artifact\
           move %OUT%\Updater.exe artifact\
@@ -284,7 +421,7 @@ jobs:
       - name: Prepare OTA artifact
         if: env.UPLOAD_ARTIFACT == 'true' && inputs.build_type == 'rel'
         run: |
-          cd %TBUILD%\%REPO_NAME%\out\Release
+          cd %TBUILD%\%REPO_NAME%\out\MinSizeRel
           if not exist ota mkdir ota
           move tx64upd%APP_VERSION% ota\
 
@@ -300,7 +437,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true' && inputs.build_type == 'rel'
         with:
           name: ota-win64
-          path: ${{ env.TBUILD }}/${{ env.REPO_NAME }}/out/Release/ota/
+          path: ${{ env.TBUILD }}/${{ env.REPO_NAME }}/out/MinSizeRel/ota/
 
   build-installer:
     name: Build Windows x64 Installer
