@@ -20,6 +20,11 @@ on:
         type: boolean
         required: false
         default: false
+      enable_debug:
+        description: "Build with debug configuration"
+        type: boolean
+        required: false
+        default: false
   workflow_call:
     inputs:
       tagname:
@@ -38,6 +43,11 @@ on:
         default: false
       disable_cache:
         description: "Skip restore cache (rebuild from source)"
+        type: boolean
+        required: false
+        default: false
+      enable_debug:
+        description: "Build with debug configuration"
         type: boolean
         required: false
         default: false
@@ -102,20 +112,24 @@ jobs:
         run: |
           mkdir -p ${{ env.CCACHE_DIR }}
           ccache -z
+
+          if [ "${{ inputs.enable_debug }}" == "true" ] || [ "${{ inputs.enable_debug }}" == true ]; then
+            CONFIG_TYPE="Debug"
+          else
+            CONFIG_TYPE="MinSizeRel"
+          fi
+
           docker run --rm \
           -u $(id -u) \
           -v $PWD:/usr/src/tdesktop \
           -v $GITHUB_WORKSPACE/../DesktopPrivate:/usr/src/DesktopPrivate \
           -v ${{ env.CCACHE_DIR }}:/var/cache/ccache \
-          -e CONFIG=Release \
+          -e CONFIG=$CONFIG_TYPE \
           -e CCACHE_SLOPPINESS=pch_defines,time_macros \
           $IMAGE_TAG \
           env -u CCACHE_DISABLE /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
-          -D CMAKE_CONFIGURATION_TYPES=Release \
+          -D CMAKE_CONFIGURATION_TYPES=$CONFIG_TYPE \
           -D CMAKE_INSTALL_PREFIX="/usr" \
-          -D CMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld -Wl,-z,muldefs" \
-          -D CMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld -Wl,-z,muldefs" \
-          -D HAVE_EGL=TRUE \
           -D TDESKTOP_API_ID=${{ secrets.API_ID_CONFIG }} \
           -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }} \
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
