@@ -136,6 +136,7 @@ void FASettings::loadFromJson(const QJsonObject &obj) {
 	_contextMenuForwardSubmenu = obj.contains("context_menu_forward_submenu") ? obj["context_menu_forward_submenu"].toBool() : _contextMenuForwardSubmenu.current();
 	_useTdesktopThemes = obj.contains("use_tdesktop_themes") ? obj["use_tdesktop_themes"].toBool() : _useTdesktopThemes.current();
 	_useMaterialIconPack = obj.contains("use_material_icon_pack") ? obj["use_material_icon_pack"].toBool() : _useMaterialIconPack.current();
+	_avatarShape = obj.contains("avatar_shape") ? obj["avatar_shape"].toInt() : _avatarShape.current();
 	_disablePremiumAnimation = obj.contains("disable_premium_animation") ? obj["disable_premium_animation"].toBool() : _disablePremiumAnimation.current();
 	_screenshotMode = obj.contains("screenshot_mode") ? obj["screenshot_mode"].toBool() : _screenshotMode.current();
 	_autoFormatMarkdown = obj.contains("auto_format_markdown") ? obj["auto_format_markdown"].toBool() : _autoFormatMarkdown.current();
@@ -192,6 +193,7 @@ QJsonObject FASettings::saveToJson() const {
 	obj["context_menu_forward_submenu"] = _contextMenuForwardSubmenu.current();
 	obj["use_tdesktop_themes"] = _useTdesktopThemes.current();
 	obj["use_material_icon_pack"] = _useMaterialIconPack.current();
+	obj["avatar_shape"] = _avatarShape.current();
 	obj["disable_premium_animation"] = _disablePremiumAnimation.current();
 	obj["screenshot_mode"] = _screenshotMode.current();
 	obj["auto_format_markdown"] = _autoFormatMarkdown.current();
@@ -446,6 +448,12 @@ void FASettings::setUseTdesktopThemes(bool val) {
 void FASettings::setUseMaterialIconPack(bool val) {
 	if (_useMaterialIconPack.current() == val) return;
 	_useMaterialIconPack = val;
+	save();
+}
+
+void FASettings::setAvatarShape(int val) {
+	if (_avatarShape.current() == val) return;
+	_avatarShape = val;
 	save();
 }
 

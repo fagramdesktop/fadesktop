@@ -11,6 +11,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "fa/settings_menu/sections/fa_general.h"
 #include "fa/settings_menu/fa_deeplink_context_menu.h"
+#include "fa/ui/components/fa_ui_components.h"
 
 #include "fa_lang_auto.h"
 
@@ -55,260 +56,188 @@ namespace Settings {
     }
 
     void FAGeneral::SetupGeneral(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
-        Ui::AddSubsectionTitle(container, fatr::fa_general());
-
-		Ui::AddSubsectionTitle(container, fatr::fa_translation_provider());
+		FA::Ui::AddModernSectionHeader(container, fatr::fa_translation_provider());
+		const auto transCard = FA::Ui::CreateCardContainer(container);
 
 		const auto translationGroup = std::make_shared<Ui::RadiobuttonGroup>(
 			FASettings::FASettings::getInstance().translationProvider());
 		translationGroup->setChangedCallback([=](int value) {
 			FASettings::FASettings::getInstance().setTranslationProvider(value);
-			
 		});
 
-		const auto addTranslationRadio = [&](int value, const QString &text) {
-			const auto radio = container->add(
-				object_ptr<Ui::Radiobutton>(
-					container,
-					translationGroup,
-					value,
-					text,
-					st::settingsSendType),
-				st::settingsSendTypePadding);
+		const auto addTranslationRadio = [&](int value, rpl::producer<QString> label, bool isLast) {
+			const auto radio = FA::Ui::AddCardRadio(
+				transCard,
+				translationGroup,
+				value,
+				std::move(label));
 			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 				radio,
 				u"fa/general/translation-provider"_q,
 				controller);
+			if (!isLast) {
+				FA::Ui::AddCardDivider(transCard);
+			}
 		};
 
-		addTranslationRadio(0, fatr::fa_translate_telegram(fatr::now));
-		addTranslationRadio(1, fatr::fa_translate_google(fatr::now));
-		addTranslationRadio(2, fatr::fa_translate_yandex(fatr::now));
-		addTranslationRadio(3, fatr::fa_translate_native(fatr::now));
+		addTranslationRadio(0, fatr::fa_translate_telegram(), false);
+		addTranslationRadio(1, fatr::fa_translate_google(), false);
+		addTranslationRadio(2, fatr::fa_translate_yandex(), false);
+		addTranslationRadio(3, fatr::fa_translate_native(), true);
 
-		Ui::AddSkip(container);
-		Ui::AddDivider(container);
+		FA::Ui::AddModernSectionHeader(container, fatr::fa_general());
+		const auto privacyCard = FA::Ui::CreateCardContainer(container);
+		auto &settings = FASettings::FASettings::getInstance();
 
-        {
-        	auto &settings = FASettings::FASettings::getInstance();
-        	const auto btn = container->add(object_ptr<Button>(
-        		container,
-        		fatr::fa_disable_ads(),
-        		st::settingsButtonNoIcon
-        	));
-        	btn->toggleOn(
-        		settings.disableAdsValue()
-        	)->toggledValue(
-        	) | rpl::filter([&settings](bool enabled) {
-        		return (enabled != settings.disableAds());
-        	}) | rpl::on_next([&settings](bool enabled) {
-        		settings.setDisableAds(enabled);
-        	}, container->lifetime());
-        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-        		btn, u"fa/general/disable-ads"_q, controller);
-        }
-        Ui::AddDividerText(container, fatr::fa_disable_ads_desc());
-		const auto disableAi = container->add(object_ptr<Button>(
-			container,
-			fatr::fa_disable_ai(),
-			st::settingsButtonNoIcon
-		));
+		const auto adsRow = FA::Ui::AddCardToggle(
+			privacyCard,
+			fatr::fa_disable_ads(),
+			fatr::fa_disable_ads_desc(),
+			settings.disableAdsValue(),
+			[&settings](bool enabled) {
+				settings.setDisableAds(enabled);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			adsRow, u"fa/general/disable-ads"_q, controller);
+
+		FA::Ui::AddCardDivider(privacyCard);
+
 		const auto hideAiOption = &base::options::lookup<bool>(Ui::kOptionHideAiButton);
-		disableAi->toggleOn(
-			rpl::single(FASettings::FASettings::getInstance().disableAi())
-		)->toggledValue(
-		) | rpl::filter([=](bool enabled) {
-			return (enabled != FASettings::FASettings::getInstance().disableAi());
-		}) | rpl::on_next([=](bool enabled) {
-			hideAiOption->set(enabled);
-			FASettings::FASettings::getInstance().setDisableAi(enabled);
-			
-		}, container->lifetime());
+		const auto aiRow = FA::Ui::AddCardToggle(
+			privacyCard,
+			fatr::fa_disable_ai(),
+			fatr::fa_disable_ai_desc(),
+			rpl::single(settings.disableAi()),
+			[=, &settings](bool enabled) {
+				hideAiOption->set(enabled);
+				settings.setDisableAi(enabled);
+			});
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-			disableAi,
-			u"fa/general/disable-ai"_q,
-			controller);
-		Ui::AddDividerText(container, fatr::fa_disable_ai_desc());
+			aiRow, u"fa/general/disable-ai"_q, controller);
 
-        {
-        	auto &settings = FASettings::FASettings::getInstance();
-        	const auto btn = container->add(object_ptr<Button>(
-        		container,
-        		fatr::fa_disable_animated_avatars(),
-        		st::settingsButtonNoIcon
-        	));
-        	btn->toggleOn(
-        		settings.disableAnimatedAvatarsValue()
-        	)->toggledValue(
-        	) | rpl::filter([&settings](bool enabled) {
-        		return (enabled != settings.disableAnimatedAvatars());
-        	}) | rpl::on_next([&settings](bool enabled) {
-        		settings.setDisableAnimatedAvatars(enabled);
-        	}, container->lifetime());
-        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-        		btn, u"fa/general/disable-animated-avatars"_q, controller);
-        }
-        Ui::AddDividerText(container, fatr::fa_disable_animated_avatars_desc());
+		FA::Ui::AddCardDivider(privacyCard);
 
-        {
-        	auto &settings = FASettings::FASettings::getInstance();
-        	const auto btn = container->add(object_ptr<Button>(
-        		container,
-        		fatr::fa_disable_premium_animation(),
-        		st::settingsButtonNoIcon
-        	));
-        	btn->toggleOn(
-        		settings.disablePremiumAnimationValue()
-        	)->toggledValue(
-        	) | rpl::filter([&settings](bool enabled) {
-        		return (enabled != settings.disablePremiumAnimation());
-        	}) | rpl::on_next([&settings](bool enabled) {
-        		settings.setDisablePremiumAnimation(enabled);
-        	}, container->lifetime());
-        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-        		btn, u"fa/general/disable-premium-animation"_q, controller);
-        }
-        Ui::AddDividerText(container, fatr::fa_disable_premium_animation_desc());
+		const auto animAvatarsRow = FA::Ui::AddCardToggle(
+			privacyCard,
+			fatr::fa_disable_animated_avatars(),
+			fatr::fa_disable_animated_avatars_desc(),
+			settings.disableAnimatedAvatarsValue(),
+			[&settings](bool enabled) {
+				settings.setDisableAnimatedAvatars(enabled);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			animAvatarsRow, u"fa/general/disable-animated-avatars"_q, controller);
 
-		const auto disableAutoDownload = container->add(object_ptr<Button>(
-			container,
+		FA::Ui::AddCardDivider(privacyCard);
+
+		const auto premiumAnimRow = FA::Ui::AddCardToggle(
+			privacyCard,
+			fatr::fa_disable_premium_animation(),
+			fatr::fa_disable_premium_animation_desc(),
+			settings.disablePremiumAnimationValue(),
+			[&settings](bool enabled) {
+				settings.setDisablePremiumAnimation(enabled);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			premiumAnimRow, u"fa/general/disable-premium-animation"_q, controller);
+
+		FA::Ui::AddCardDivider(privacyCard);
+
+		const auto autoDownloadRow = FA::Ui::AddCardToggle(
+			privacyCard,
 			fatr::fa_disable_auto_download(),
-			st::settingsButtonNoIcon
-		));
-		disableAutoDownload->toggleOn(
-			rpl::single(FASettings::FASettings::getInstance().disableAutoDownload())
-		)->toggledValue(
-		) | rpl::filter([](bool enabled) {
-			return (enabled != FASettings::FASettings::getInstance().disableAutoDownload());
-		}) | rpl::on_next([=](bool enabled) {
-			FASettings::FASettings::getInstance().setDisableAutoDownload(enabled);
-			
-			auto &session = controller->session();
-			session.data().photoLoadSettingsChanged();
-			session.data().documentLoadSettingsChanged();
-			if (enabled) {
-				session.data().checkPlayingAnimations();
-			}
-		}, container->lifetime());
+			fatr::fa_disable_auto_download_desc(),
+			rpl::single(settings.disableAutoDownload()),
+			[=, &settings](bool enabled) {
+				settings.setDisableAutoDownload(enabled);
+				auto &session = controller->session();
+				session.data().photoLoadSettingsChanged();
+				session.data().documentLoadSettingsChanged();
+				if (enabled) {
+					session.data().checkPlayingAnimations();
+				}
+			});
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-			disableAutoDownload,
-			u"fa/general/disable-auto-download"_q,
-			controller);
-		Ui::AddDividerText(container, fatr::fa_disable_auto_download_desc());
-        {
-        	auto &settings = FASettings::FASettings::getInstance();
-        	const auto btn = container->add(object_ptr<Button>(
-        		container,
-        		fatr::fa_show_start_token(),
-        		st::settingsButtonNoIcon
-        	));
-        	btn->toggleOn(
-        		settings.showStartTokenValue()
-        	)->toggledValue(
-        	) | rpl::filter([&settings](bool enabled) {
-        		return (enabled != settings.showStartToken());
-        	}) | rpl::on_next([&settings](bool enabled) {
-        		settings.setShowStartToken(enabled);
-        	}, container->lifetime());
-        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-        		btn, u"fa/general/start-token"_q, controller);
-        }
-        Ui::AddDividerText(container, fatr::fa_show_start_token_desc());
-        {
-        	auto &settings = FASettings::FASettings::getInstance();
-        	const auto btn = container->add(object_ptr<Button>(
-        		container,
-        		fatr::fa_show_peer_ids(),
-        		st::settingsButtonNoIcon
-        	));
-        	btn->toggleOn(
-        		settings.showPeerIdValue()
-        	)->toggledValue(
-        	) | rpl::filter([&settings](bool enabled) {
-        		return (enabled != settings.showPeerId());
-        	}) | rpl::on_next([&settings](bool enabled) {
-        		settings.setShowPeerId(enabled);
-        	}, container->lifetime());
-        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-        		btn, u"fa/general/peer-ids"_q, controller);
-        }
-        Ui::AddDividerText(container, fatr::fa_show_peer_ids_desc());
-        {
-        	auto &settings = FASettings::FASettings::getInstance();
-        	const auto btn = container->add(object_ptr<Button>(
-        		container,
-        		fatr::fa_show_dc_ids(),
-        		st::settingsButtonNoIcon
-        	));
-        	btn->toggleOn(
-        		settings.showDcIdValue()
-        	)->toggledValue(
-        	) | rpl::filter([&settings](bool enabled) {
-        		return (enabled != settings.showDcId());
-        	}) | rpl::on_next([&settings](bool enabled) {
-        		settings.setShowDcId(enabled);
-        	}, container->lifetime());
-        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-        		btn, u"fa/general/dc-ids"_q, controller);
-        }
-        Ui::AddDividerText(container, fatr::fa_show_dc_ids_desc());
-        {
-        	auto &settings = FASettings::FASettings::getInstance();
-        	const auto btn = container->add(object_ptr<Button>(
-        		container,
-        		fatr::fa_id_in_botapi_type(),
-        		st::settingsButtonNoIcon
-        	));
-        	btn->toggleOn(
-        		settings.showIdBotapiValue()
-        	)->toggledValue(
-        	) | rpl::filter([&settings](bool enabled) {
-        		return (enabled != settings.showIdBotapi());
-        	}) | rpl::on_next([&settings](bool enabled) {
-        		settings.setShowIdBotapi(enabled);
-        	}, container->lifetime());
-        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-        		btn, u"fa/general/botapi-id"_q, controller);
-        }
-        Ui::AddDividerText(container, fatr::fa_id_in_botapi_type_desc());
-        {
-        	auto &settings = FASettings::FASettings::getInstance();
-        	const auto btn = container->add(object_ptr<Button>(
-        		container,
-        		fatr::fa_local_tg_premium(),
-        		st::settingsButtonNoIcon
-        	));
-        	btn->toggleOn(
-        		settings.localPremiumValue()
-        	)->toggledValue(
-        	) | rpl::filter([&settings](bool enabled) {
-        		return (enabled != settings.localPremium());
-        	}) | rpl::on_next([&settings](bool enabled) {
-        		settings.setLocalPremium(enabled);
-        	}, container->lifetime());
-        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-        		btn, u"fa/general/local-premium"_q, controller);
-        }
-        Ui::AddDividerText(container, fatr::fa_local_tg_premium_desc());
-        {
-        	auto &settings = FASettings::FASettings::getInstance();
-        	const auto btn = container->add(object_ptr<Button>(
-        		container,
-        		fatr::fa_show_registration_date(),
-        		st::settingsButtonNoIcon
-        	));
-        	btn->toggleOn(
-        		settings.showRegistrationDateValue()
-        	)->toggledValue(
-        	) | rpl::filter([&settings](bool enabled) {
-        		return (enabled != settings.showRegistrationDate());
-        	}) | rpl::on_next([&settings](bool enabled) {
-        		settings.setShowRegistrationDate(enabled);
-        	}, container->lifetime());
-        	Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-        		btn, u"fa/general/registration-date"_q, controller);
-        }
-        Ui::AddDividerText(container, fatr::fa_show_registration_date_desc());
+			autoDownloadRow, u"fa/general/disable-auto-download"_q, controller);
+
+		FA::Ui::AddModernSectionHeader(container, fatr::fa_developer_and_profile());
+		const auto devCard = FA::Ui::CreateCardContainer(container);
+
+		const auto startTokenRow = FA::Ui::AddCardToggle(
+			devCard,
+			fatr::fa_show_start_token(),
+			fatr::fa_show_start_token_desc(),
+			settings.showStartTokenValue(),
+			[&settings](bool enabled) {
+				settings.setShowStartToken(enabled);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			startTokenRow, u"fa/general/start-token"_q, controller);
+
+		FA::Ui::AddCardDivider(devCard);
+
+		const auto peerIdRow = FA::Ui::AddCardToggle(
+			devCard,
+			fatr::fa_show_peer_ids(),
+			fatr::fa_show_peer_ids_desc(),
+			settings.showPeerIdValue(),
+			[&settings](bool enabled) {
+				settings.setShowPeerId(enabled);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			peerIdRow, u"fa/general/peer-ids"_q, controller);
+
+		FA::Ui::AddCardDivider(devCard);
+
+		const auto dcIdRow = FA::Ui::AddCardToggle(
+			devCard,
+			fatr::fa_show_dc_ids(),
+			fatr::fa_show_dc_ids_desc(),
+			settings.showDcIdValue(),
+			[&settings](bool enabled) {
+				settings.setShowDcId(enabled);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			dcIdRow, u"fa/general/dc-ids"_q, controller);
+
+		FA::Ui::AddCardDivider(devCard);
+
+		const auto botapiRow = FA::Ui::AddCardToggle(
+			devCard,
+			fatr::fa_id_in_botapi_type(),
+			fatr::fa_id_in_botapi_type_desc(),
+			settings.showIdBotapiValue(),
+			[&settings](bool enabled) {
+				settings.setShowIdBotapi(enabled);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			botapiRow, u"fa/general/botapi-id"_q, controller);
+
+		FA::Ui::AddCardDivider(devCard);
+
+		const auto premiumRow = FA::Ui::AddCardToggle(
+			devCard,
+			fatr::fa_local_tg_premium(),
+			fatr::fa_local_tg_premium_desc(),
+			settings.localPremiumValue(),
+			[&settings](bool enabled) {
+				settings.setLocalPremium(enabled);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			premiumRow, u"fa/general/local-premium"_q, controller);
+
+		FA::Ui::AddCardDivider(devCard);
+
+		const auto regDateRow = FA::Ui::AddCardToggle(
+			devCard,
+			fatr::fa_show_registration_date(),
+			fatr::fa_show_registration_date_desc(),
+			settings.showRegistrationDateValue(),
+			[&settings](bool enabled) {
+				settings.setShowRegistrationDate(enabled);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			regDateRow, u"fa/general/registration-date"_q, controller);
     }
 
     void FAGeneral::SetupFAGeneral(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

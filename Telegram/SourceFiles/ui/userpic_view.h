@@ -41,6 +41,7 @@ enum class PeerUserpicShape : uint8 {
 	Circle,
 	Forum,
 	Monoforum,
+	Material,
 };
 
 struct PeerUserpicView {
@@ -51,8 +52,8 @@ struct PeerUserpicView {
 	QImage cached;
 	std::shared_ptr<QImage> cloud;
 	base::weak_ptr<const EmptyUserpic> empty;
-	uint32 paletteVersion : 30 = 0;
-	uint32 shape : 2 = 0;
+	uint32 paletteVersion : 28 = 0;
+	uint32 shape : 4 = 0;
 };
 
 [[nodiscard]] bool PeerUserpicLoading(const PeerUserpicView &view);

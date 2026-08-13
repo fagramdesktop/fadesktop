@@ -596,6 +596,7 @@ infoProfileToggleOver: Toggle(infoProfileToggle) {
 	untoggledFg: menuIconFgOver;
 }
 infoProfileButton: SettingsButton(defaultSettingsButton) {
+	textBg: transparent;
 	style: defaultTextStyle;
 
 	padding: margins(79px, 10px, 8px, 8px);
@@ -611,7 +612,9 @@ infoMainButton: SettingsButton(infoProfileButton) {
 	style: semiboldTextStyle;
 	padding: margins(23px, 10px, 8px, 8px);
 }
-infoSharedMediaButton: infoProfileButton;
+infoSharedMediaButton: SettingsButton(infoProfileButton) {
+	textBg: transparent;
+}
 
 infoBlockButton: SettingsButton(infoProfileButton) {
 	textFg: attentionButtonFg;
@@ -1319,7 +1322,7 @@ collectionEditMenuToggle: IconButton(infoTopBarMenu) {
 	ripple: defaultRippleAnimationBgOver;
 }
 collectionSubTabs: SubTabs(defaultSubTabs) {
-	bg: boxDividerBg;
+	bg: transparent;
 }
 
 earnTonIconSize: 16px;

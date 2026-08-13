@@ -1,15 +1,15 @@
 /*
-This file is part of Telegram Desktop,
-the official desktop application for the Telegram messaging service.
+This file is part of FAgram Desktop,
+the unofficial desktop client based on Telegram Desktop.
 
 For license and copyright information please follow this link:
-https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 using "info/info.style";
 
-infoProfileLabeledPadding: margins(23px, 9px, 20px, 7px);
-infoProfileLabeledUsernamePadding: margins(23px, 9px, 20px, 7px);
-infoProfilePersonalChannelPadding: margins(79px, 9px, 20px, 7px);
+infoProfileLabeledPadding: margins(16px, 9px, 16px, 7px);
+infoProfileLabeledUsernamePadding: margins(16px, 9px, 16px, 7px);
+infoProfilePersonalChannelPadding: margins(64px, 9px, 16px, 7px);
 infoProfileLabeledButtonQrRightSkip: 0px;
 infoIconInformation: icon {{ "info/info_information", infoIconFg }};
 infoIconAddMember: icon {{ "info/info_add_member", infoIconFg }};
@@ -25,13 +25,13 @@ infoChannelAdminsIconPosition: point(24px, 7px);
 infoEarnCreditsIconPosition: point(24px, 7px);
 infoEarnCurrencyIconPosition: point(20px, 3px);
 infoOpenAppMargin: margins(16px, 12px, 16px, 12px);
-infoPersonalChannelIconPosition: point(25px, 12px);
+infoPersonalChannelIconPosition: point(16px, 12px);
 infoPersonalChannelNameLabel: FlatLabel(infoProfileStatus) {
 	textFg: windowBoldFg;
 	style: semiboldTextStyle;
 	maxHeight: 20px;
 }
-infoPersonalChannelDateSkip: 20px;
+infoPersonalChannelDateSkip: 16px;
 infoPersonalChannelDateLabel: FlatLabel(infoProfileStatus) {
 	textFg: dialogsDateFg;
 	style: TextStyle(semiboldTextStyle) {

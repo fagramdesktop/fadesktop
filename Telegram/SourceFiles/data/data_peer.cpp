@@ -504,36 +504,13 @@ void PeerData::paintUserpic(
 		context.shape = userpicShape();
 	}
 
-	auto use_default_rounding = FASettings::FASettings::getInstance().useDefaultRounding();
-
-	if (use_default_rounding) {
-		Ui::ValidateUserpicCache(
-			view,
-			shouldLoad ? cloud : nullptr,
-			shouldLoad ? nullptr : ensureEmptyUserpic().get(),
-			size * ratio,
-			context.shape);
-		p.drawImage(QRect(x, y, size, size), view.cached);
-	} else {
-		Ui::ValidateUserpicCache(
-			view,
-			shouldLoad ? cloud : nullptr,
-			shouldLoad ? nullptr : ensureEmptyUserpic().get(),
-			size * ratio,
-			context.shape);
-
-		p.save();
-		auto hq = PainterHighQualityEnabler(p);
-		QPainterPath roundedRect;
-		QImage image = view.cached;
-		roundedRect.addRoundedRect(
-			QRect(x, y, size, size),
-			size * FASettings::FASettings::getInstance().roundness() / 100.,
-			size * FASettings::FASettings::getInstance().roundness() / 100.);
-		p.setClipPath(roundedRect);
-		p.drawImage(x, y, image);
-		p.restore();
-	}
+	Ui::ValidateUserpicCache(
+		view,
+		shouldLoad ? cloud : nullptr,
+		shouldLoad ? nullptr : ensureEmptyUserpic().get(),
+		size * ratio,
+		context.shape);
+	p.drawImage(QRect(x, y, size, size), view.cached);
 	return;
 }
 

@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat_helpers.h"
 #include "styles/style_credits.h"
 #include "styles/style_info.h"
+#include "styles/style_settings.h"
 
 #include <QApplication>
 
@@ -351,6 +352,12 @@ void SubTabs::paintEvent(QPaintEvent *e) {
 			const auto radius = shiftedGeometry.height() / 2.;
 			p.drawRoundedRect(shiftedGeometry, radius, radius);
 			p.setPen(st::giftBoxTabFgActive);
+		} else if (button.tab.id == u"add"_q) {
+			p.setBrush(st::settingsThemeNotSupportedBg);
+			p.setPen(Qt::NoPen);
+			const auto radius = shiftedGeometry.height() / 2.;
+			p.drawRoundedRect(shiftedGeometry, radius, radius);
+			p.setPen(st::windowActiveTextFg);
 		} else {
 			p.setPen(st::giftBoxTabFg);
 		}

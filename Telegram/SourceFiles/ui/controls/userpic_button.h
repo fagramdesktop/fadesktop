@@ -175,6 +175,7 @@ private:
 	PeerUserpicShape _shape = PeerUserpicShape::Auto;
 	PeerUserpicView _userpicView;
 	QImage _monoforumMask;
+	QImage _materialMask;
 	std::shared_ptr<Data::PhotoMedia> _nonPersonalView;
 	Role _role = Role::ChangePhoto;
 	bool _notShownYet = true;

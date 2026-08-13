@@ -7,7 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "stdafx.h"
 
-#include "fa/ui/history/view/fa_context_menu_shortcuts.h"
+#include "fa/utils/fa_context_menu_shortcuts.h"
 
 #include "fa/settings/fa_settings.h"
 #include "main/main_session.h"

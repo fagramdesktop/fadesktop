@@ -475,7 +475,7 @@ const auto kFAAppearanceMeta = BuildHelper({
 	builder.add(nullptr, [] {
 		return SearchEntry{
 			.id = u"fa/appearance/material-icons"_q,
-			.title = fatr::fa_use_material_icon_pack(fatr::now),
+			.title = fatr::fa_icons(fatr::now),
 			.keywords = { u"icon"_q, u"pack"_q, u"material"_q, u"icons"_q },
 			.icon = { &st::menuIconPalette },
 		};

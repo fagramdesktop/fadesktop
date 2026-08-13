@@ -22,12 +22,7 @@ namespace {
 [[nodiscard]] not_null<Ui::SlideWrap<>*> CreatePlainSeparator(
 		not_null<Ui::VerticalLayout*> layout) {
 	auto inner = object_ptr<Ui::VerticalLayout>(layout);
-	Ui::AddSkip(inner.data(), st::infoProfileSkip);
-	inner->add(object_ptr<Ui::BoxContentDivider>(
-		inner.data(),
-		st::boxDividerHeight,
-		st::defaultDividerBar));
-	Ui::AddSkip(inner.data(), st::infoProfileSkip);
+	Ui::AddSkip(inner.data(), 4);
 	return layout->add(object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
 		layout,
 		std::move(inner)));

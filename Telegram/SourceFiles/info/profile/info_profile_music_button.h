@@ -28,6 +28,9 @@ public:
 private:
 	void paintEvent(QPaintEvent *e) override;
 	int resizeGetHeight(int newWidth) override;
+	QImage prepareRippleMask() const override;
+	QPoint prepareRippleStartPosition() const override;
+	[[nodiscard]] QRectF pillGeometry() const;
 
 	Ui::Text::String _performer;
 	Ui::Text::String _title;

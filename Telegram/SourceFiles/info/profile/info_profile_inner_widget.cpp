@@ -55,10 +55,12 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/painter.h"
 #include "ui/vertical_list.h"
 #include "ui/ui_utility.h"
+#include "fa/ui/components/fa_ui_components.h"
 #include "styles/style_info.h"
 
 namespace Info {
 namespace Profile {
+namespace FAUi = ::FA::Ui;
 
 namespace {
 

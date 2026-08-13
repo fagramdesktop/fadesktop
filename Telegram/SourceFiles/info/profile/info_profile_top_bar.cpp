@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/profile/info_profile_top_bar.h"
 
 #include "fa/settings/fa_settings.h"
+#include "fa/ui/components/fa_ui_components.h"
 
 #include "api/api_peer_colors.h"
 #include "api/api_peer_photo.h"
@@ -782,7 +783,7 @@ void TopBar::finalizeActions(
 			const auto buttonRect = button->geometry().translated(
 				extend.left(),
 				extend.top());
-			shadow->paint(p, buttonRect, st::boxRadius, opacity);
+			shadow->paint(p, buttonRect, buttonRect.height() / 2, opacity);
 		}
 	}, shadowRaw->lifetime());
 
@@ -2687,6 +2688,13 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 				Rect(image.size() / image.devicePixelRatio()),
 				_monoforumMask);
 			q.end();
+		} else if (_peer->isUser()) {
+			image = PeerData::GenerateUserpicImage(
+				_peer,
+				_userpicView,
+				scaled,
+				0);
+			image = FA::Ui::ApplyMaterialShape(std::move(image));
 		} else {
 			const auto radius = (_source == Source::Community)
 				? std::optional<int>(

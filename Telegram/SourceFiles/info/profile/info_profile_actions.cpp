@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "info/profile/info_profile_actions.h"
 
 #include "fa/settings/fa_settings.h"
+#include "fa/ui/components/fa_ui_components.h"
 #include "fa/utils/fa_profile_values.h"
 #include "fa/utils/telegram_helpers.h"
 #include "fa_lang_auto.h"
@@ -125,6 +126,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 namespace Info {
 namespace Profile {
+namespace FAUi = ::FA::Ui;
 namespace {
 
 constexpr auto kDay = Data::WorkingInterval::kDay;
@@ -1318,6 +1320,7 @@ private:
 	not_null<Ui::RpWidget*> _parent;
 	not_null<PeerData*> _peer;
 	object_ptr<Ui::VerticalLayout> _wrap = { nullptr };
+	Ui::VerticalLayout *_card = nullptr;
 
 };
 
@@ -1417,7 +1420,8 @@ Section DetailsFiller::makeInfo() {
 		parent,
 		object_ptr<Ui::VerticalLayout>(parent));
 	const auto raw = wrap.data();
-	const auto result = raw->entity();
+	const auto card = FAUi::CreateCardContainer(raw->entity(), 4, 4);
+	const auto result = card;
 	auto tracker = Ui::MultiSlideTracker();
 
 	// Fill context for a mention / hashtag / bot command link.
@@ -1930,7 +1934,8 @@ Section DetailsFiller::makePersonalChannel(not_null<UserData*> user) {
 	auto result = object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
 		parent,
 		object_ptr<Ui::VerticalLayout>(parent));
-	const auto container = result->entity();
+	const auto card = FAUi::CreateCardContainer(result->entity(), 4, 4);
+	const auto container = card;
 	const auto window = _controller->parentController();
 	const auto duration = st::slideWrapDuration;
 
@@ -2006,7 +2011,7 @@ Section DetailsFiller::makePersonalChannel(not_null<UserData*> user) {
 			return name.isEmpty() ? TextWithEntities() : tr::link(name);
 		});
 		auto line = CreateTextWithLabel(
-			result,
+			container,
 			channelLabelFactory(rpl::duplicate(channel)),
 			std::move(text),
 			st::infoLabel,
@@ -2073,8 +2078,7 @@ Section DetailsFiller::makePersonalChannel(not_null<UserData*> user) {
 				st::infoPersonalChannelUserpic);
 
 			userpic->moveToLeft(
-				-st::infoPersonalChannelUserpicSkip
-					+ (stLabeled.left() - stUserpic.photoSize) / 2,
+				16,
 				stLabeled.top());
 			userpic->setAttribute(Qt::WA_TransparentForMouseEvents);
 
@@ -2134,13 +2138,13 @@ Section DetailsFiller::makePersonalChannel(not_null<UserData*> user) {
 				}
 				state->view.paint(p, preview->rect(), {
 					.st = &st::defaultDialogRow,
-					.currentBg = st::boxBg->b,
+					.currentBg = st::settingsThemeNotSupportedBg->c,
 				});
 			}, preview->lifetime());
 
 			line->sizeValue() | rpl::filter_size(
 			) | rpl::on_next([=](const QSize &size) {
-				const auto left = stLabeled.left();
+				const auto left = 16 + stUserpic.photoSize + 12;
 				const auto right = st::infoPersonalChannelDateSkip;
 				const auto top = stLabeled.top();
 				date->moveToRight(right, top, size.width());
@@ -2374,8 +2378,9 @@ Section DetailsFiller::makeAddAsContact(not_null<UserData*> user) {
 		parent,
 		object_ptr<Ui::VerticalLayout>(parent));
 	const auto raw = wrap.data();
+	const auto card = FAUi::CreateCardContainer(raw->entity(), 4, 4);
 	AddMainButton(
-		raw->entity(),
+		card,
 		tr::lng_info_add_as_contact(),
 		CanAddContactValue(user),
 		[=, controller = _controller->parentController()] {
@@ -2616,7 +2621,8 @@ Section DetailsFiller::makeCommunityLink(not_null<PeerData*> peer) {
 		parent,
 		object_ptr<Ui::VerticalLayout>(parent));
 	const auto raw = wrap.data();
-	const auto container = raw->entity();
+	const auto card = FAUi::CreateCardContainer(raw->entity(), 4, 4);
+	const auto container = card;
 	const auto window = _controller->parentController();
 	const auto community = peer->owner().channel(
 		Data::PeerLinkedCommunityId(peer));
@@ -2843,10 +2849,10 @@ void ActionsFiller::addAffiliateProgram(not_null<UserData*> user) {
 		return;
 	}
 
-	const auto wrap = _wrap->add(
+	const auto wrap = _card->add(
 		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-			_wrap.data(),
-			object_ptr<Ui::VerticalLayout>(_wrap.data())));
+			_card,
+			object_ptr<Ui::VerticalLayout>(_card)));
 	const auto inner = wrap->entity();
 	auto program = user->session().changes().peerFlagsValue(
 		user,
@@ -2913,10 +2919,10 @@ void ActionsFiller::addAffiliateProgram(not_null<UserData*> user) {
 }
 
 void ActionsFiller::addBalanceActions(not_null<UserData*> user) {
-	const auto wrap = _wrap->add(
+	const auto wrap = _card->add(
 		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-			_wrap.data(),
-			object_ptr<Ui::VerticalLayout>(_wrap.data())));
+			_card,
+			object_ptr<Ui::VerticalLayout>(_card)));
 	const auto inner = wrap->entity();
 	Ui::AddSubsectionTitle(inner, tr::lng_manage_peer_bot_balance());
 	auto currencyBalance = AddCurrencyAction(user, inner, _controller);
@@ -2938,15 +2944,15 @@ void ActionsFiller::addInviteToGroupAction(not_null<UserData*> user) {
 	};
 	const auto controller = _controller->parentController();
 	AddActionButton(
-		_wrap,
+		_card,
 		InviteToChatButton(user) | rpl::filter(notEmpty),
 		InviteToChatButton(user) | rpl::map(notEmpty),
 		[=] { AddBotToGroupBoxController::Start(controller, user); },
 		&st::infoIconAddMember);
-	const auto about = _wrap->add(
+	const auto about = _card->add(
 		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-			_wrap.data(),
-			object_ptr<Ui::VerticalLayout>(_wrap.data())));
+			_card,
+			object_ptr<Ui::VerticalLayout>(_card)));
 	about->toggleOn(InviteToChatAbout(user) | rpl::map(notEmpty));
 	Ui::AddSkip(about->entity());
 	Ui::AddDividerText(
@@ -2959,7 +2965,7 @@ void ActionsFiller::addInviteToGroupAction(not_null<UserData*> user) {
 void ActionsFiller::addShareContactAction(not_null<UserData*> user) {
 	const auto controller = _controller->parentController();
 	AddActionButton(
-		_wrap,
+		_card,
 		tr::lng_info_share_contact(),
 		CanShareContactValue(user),
 		[=] { Window::PeerMenuShareContactBox(controller, user); },
@@ -2975,7 +2981,7 @@ void ActionsFiller::addEditContactAction(not_null<UserData*> user) {
 		controller->window().show(Box(EditContactBox, controller, user));
 	};
 	AddActionButton(
-		_wrap,
+		_card,
 		tr::lng_info_edit_contact(),
 		IsContactValue(user),
 		edit,
@@ -2985,7 +2991,7 @@ void ActionsFiller::addEditContactAction(not_null<UserData*> user) {
 void ActionsFiller::addDeleteContactAction(not_null<UserData*> user) {
 	const auto controller = _controller->parentController();
 	AddActionButton(
-		_wrap,
+		_card,
 		tr::lng_info_delete_contact(),
 		IsContactValue(user),
 		[=] { Window::PeerMenuDeleteContact(controller, user); },
@@ -2996,8 +3002,8 @@ void ActionsFiller::addFastButtonsMode(not_null<UserData*> user) {
 	Expects(user->isBot());
 
 	const auto bots = &user->session().fastButtonsBots();
-	const auto button = _wrap->add(object_ptr<Ui::SettingsButton>(
-		_wrap,
+	const auto button = _card->add(object_ptr<Ui::SettingsButton>(
+		_card,
 		rpl::single(u"Fast buttons mode"_q),
 		st::infoSharedMediaButton));
 	object_ptr<Info::Profile::FloatingIcon>(
@@ -3005,9 +3011,9 @@ void ActionsFiller::addFastButtonsMode(not_null<UserData*> user) {
 		st::infoIconMediaBot,
 		st::infoSharedMediaButtonIconPosition);
 
-	AddSkip(_wrap);
-	AddDivider(_wrap);
-	AddSkip(_wrap);
+	AddSkip(_card);
+	AddDivider(_card);
+	AddSkip(_card);
 
 	button->toggleOn(bots->enabledValue(user));
 	button->toggledValue(
@@ -3067,7 +3073,7 @@ void ActionsFiller::addBotCommandActions(not_null<UserData*> user) {
 			const QString &command,
 			const style::icon *icon = nullptr) {
 		AddActionButton(
-			_wrap,
+			_card,
 			std::move(text),
 			hasBotCommandValue(command),
 			[=] { sendBotCommand(command); },
@@ -3100,7 +3106,7 @@ void ActionsFiller::addBotCommandActions(not_null<UserData*> user) {
 		}
 	};
 	AddActionButton(
-		_wrap,
+		_card,
 		tr::lng_profile_bot_privacy(),
 		rpl::single(true),
 		openPrivacyPolicy,
@@ -3114,7 +3120,7 @@ void ActionsFiller::addReportAction() {
 		ShowReportMessageBox(controller->uiShow(), peer, {}, {});
 	};
 	AddActionButton(
-		_wrap,
+		_card,
 		tr::lng_profile_report(),
 		rpl::single(true),
 		report,
@@ -3142,7 +3148,7 @@ void ActionsFiller::addBlockAction(not_null<UserData*> user) {
 				: tr::lng_profile_block_user)();
 		}
 	}) | rpl::flatten_latest(
-	) | rpl::start_spawning(_wrap->lifetime());
+	) | rpl::start_spawning(_card->lifetime());
 
 	auto toggleOn = rpl::duplicate(
 		text
@@ -3168,7 +3174,7 @@ void ActionsFiller::addBlockAction(not_null<UserData*> user) {
 		}
 	};
 	AddActionButton(
-		_wrap,
+		_card,
 		rpl::duplicate(text),
 		std::move(toggleOn),
 		std::move(callback),
@@ -3180,7 +3186,7 @@ void ActionsFiller::addLeaveChannelAction(not_null<ChannelData*> channel) {
 	Expects(_controller->parentController());
 
 	AddActionButton(
-		_wrap,
+		_card,
 		tr::lng_profile_leave_channel(),
 		AmInChannelValue(channel),
 		Window::DeleteAndLeaveHandler(
@@ -3194,17 +3200,17 @@ void ActionsFiller::addJoinChannelAction(
 	using namespace rpl::mappers;
 	auto joinVisible = AmInChannelValue(channel)
 		| rpl::map(!_1)
-		| rpl::start_spawning(_wrap->lifetime());
+		| rpl::start_spawning(_card->lifetime());
 	AddActionButton(
-		_wrap,
+		_card,
 		tr::lng_profile_join_channel(),
 		rpl::duplicate(joinVisible),
 		[=] { channel->session().api().joinChannel(channel); },
 		&st::infoIconAddMember);
-	_wrap->add(object_ptr<Ui::SlideWrap<Ui::FixedHeightWidget>>(
-		_wrap,
+	_card->add(object_ptr<Ui::SlideWrap<Ui::FixedHeightWidget>>(
+		_card,
 		CreateSkipWidget(
-			_wrap,
+			_card,
 			st::infoBlockButtonSkip))
 	)->setDuration(
 		st::infoSlideDuration
@@ -3227,7 +3233,7 @@ void ActionsFiller::fillUserActions(not_null<UserData*> user) {
 	if (!user->isSelf() && !user->isSupport() && !user->isVerifyCodes()) {
 		if (user->isBot()) {
 			addBotCommandActions(user);
-			_wrap->add(CreateSkipWidget(_wrap, st::infoBlockButtonSkip));
+			_card->add(CreateSkipWidget(_card, st::infoBlockButtonSkip));
 			addReportAction();
 		}
 		addBlockAction(user);
@@ -3248,6 +3254,7 @@ void ActionsFiller::fillChannelActions(
 object_ptr<Ui::RpWidget> ActionsFiller::fill() {
 	auto wrapResult = [=](auto &&callback) {
 		_wrap = object_ptr<Ui::VerticalLayout>(_parent);
+		_card = FAUi::CreateCardContainer(_wrap.data(), 4, 4);
 		callback();
 		return std::move(_wrap);
 	};
@@ -3316,7 +3323,7 @@ object_ptr<Ui::RpWidget> SetupChannelMembersAndManage(
 	auto result = object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
 		parent,
 		object_ptr<Ui::VerticalLayout>(parent));
-	result->entity()->add(CreateSkipWidget(result));
+	const auto content = FAUi::CreateCardContainer(result->entity(), 4, 4);
 
 	auto membersShown = rpl::combine(
 		MembersCountValue(channel),
@@ -3333,10 +3340,10 @@ object_ptr<Ui::RpWidget> SetupChannelMembersAndManage(
 			Info::Section::Type::Members));
 	};
 
-	const auto membersWrap = result->entity()->add(
+	const auto membersWrap = content->add(
 		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-			result->entity(),
-			object_ptr<Ui::VerticalLayout>(result->entity())));
+			content,
+			object_ptr<Ui::VerticalLayout>(content)));
 	membersWrap->setDuration(
 		st::infoSlideDuration
 	)->toggleOn(rpl::duplicate(membersShown));
@@ -3376,10 +3383,10 @@ object_ptr<Ui::RpWidget> SetupChannelMembersAndManage(
 			ParticipantsBoxController::Role::Admins);
 	};
 
-	const auto adminsWrap = result->entity()->add(
+	const auto adminsWrap = content->add(
 		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-			result->entity(),
-			object_ptr<Ui::VerticalLayout>(result->entity())));
+			content,
+			object_ptr<Ui::VerticalLayout>(content)));
 	adminsWrap->setDuration(
 		st::infoSlideDuration
 	)->toggleOn(rpl::duplicate(adminsShown));
@@ -3402,10 +3409,10 @@ object_ptr<Ui::RpWidget> SetupChannelMembersAndManage(
 		|| (channel->flags() & ChannelDataFlag::CanViewCreditsRevenue)
 		|| (channel->loadedStatus() != ChannelData::LoadedStatus::Full);
 	if (canViewBalance) {
-		const auto balanceWrap = result->entity()->add(
+		const auto balanceWrap = content->add(
 			object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-				result->entity(),
-				object_ptr<Ui::VerticalLayout>(result->entity())));
+				content,
+				object_ptr<Ui::VerticalLayout>(content)));
 		auto refreshed = channel->session().credits().refreshedByPeerId(
 			channel->id);
 		auto creditsValue = rpl::single(

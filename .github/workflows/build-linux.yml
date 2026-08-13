@@ -25,6 +25,11 @@ on:
         type: boolean
         required: false
         default: false
+      dirty_build:
+        description: "Enable dirty build (cache out dir)"
+        type: boolean
+        required: false
+        default: false
   workflow_call:
     inputs:
       tagname:
@@ -48,6 +53,11 @@ on:
         default: false
       enable_debug:
         description: "Build with debug configuration"
+        type: boolean
+        required: false
+        default: false
+      dirty_build:
+        description: "Enable dirty build (cache out dir)"
         type: boolean
         required: false
         default: false
@@ -108,6 +118,15 @@ jobs:
           key: ${{ runner.OS }}-tdesktop-${{ github.run_id }}
           restore-keys: ${{ runner.OS }}-tdesktop-
 
+      - name: Restore FAgram out dir cache
+        id: cache-out
+        if: ${{ (inputs.dirty_build == true || inputs.dirty_build == 'true') && inputs.disable_cache != true && inputs.disable_cache != 'true' }}
+        uses: actions/cache/restore@v6
+        with:
+          path: out
+          key: ${{ runner.OS }}-tdesktop-out-${{ github.run_id }}
+          restore-keys: ${{ runner.OS }}-tdesktop-out-
+
       - name: Configure & Build FAgram with CMake
         run: |
           mkdir -p ${{ env.CCACHE_DIR }}
@@ -160,6 +179,17 @@ jobs:
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ steps.cache-tdesktop.outputs.cache-primary-key }}
+
+      - name: Save FAgram out dir cache
+        if: >
+          always() &&
+          (inputs.dirty_build == true || inputs.dirty_build == 'true') &&
+          inputs.disable_cache != true &&
+          inputs.disable_cache != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: out
+          key: ${{ runner.OS }}-tdesktop-out-${{ github.run_id }}
 
       - name: Read version info
         id: version

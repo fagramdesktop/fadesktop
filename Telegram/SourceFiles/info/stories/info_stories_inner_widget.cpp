@@ -253,7 +253,7 @@ void InnerWidget::preloadArchiveCount() {
 
 void InnerWidget::setupAlbums() {
 	Ui::AddSkip(_top);
-	_albumsWrap = _top->add(object_ptr<Ui::BoxContentDivider>(_top));
+	_albumsWrap = _top->add(object_ptr<Ui::RpWidget>(_top));
 
 	_peer->owner().stories().albumsListValue(
 		_peer->id

@@ -6,6 +6,7 @@ For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "fa/settings_menu/fa_settings_menu.h"
+#include "fa/ui/components/fa_ui_components.h"
 
 #include "fa_lang_auto.h"
 
@@ -69,6 +70,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/controls/userpic_button.h"
 #include "ui/layers/generic_box.h"
 #include "ui/new_badges.h"
+#include "ui/painter.h"
 #include "ui/power_saving.h"
 #include "ui/rect.h"
 #include "ui/text/format_values.h"
@@ -94,6 +96,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <QtGui/QWindow>
 
 namespace Settings {
+namespace FAUi = ::FA::Ui;
 namespace {
 
 using namespace Builder;
@@ -111,6 +114,9 @@ public:
 	[[nodiscard]] not_null<Ui::UserpicButton*> userpic() const {
 		return _userpic.data();
 	}
+
+protected:
+	void paintEvent(QPaintEvent *e) override;
 
 private:
 	void setupChildGeometry();
@@ -135,15 +141,21 @@ private:
 
 };
 
+const auto kCustomCoverUserpicStyle = [] {
+	auto st = st::infoProfileCover.photo;
+	st.size = QSize(96, 96);
+	st.photoSize = 96;
+	st.photoPosition = QPoint(-1, -1);
+	return st;
+}();
+
 Cover::Cover(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller,
 	not_null<UserData*> user)
 : FixedHeightWidget(
 	parent,
-	st::settingsPhotoTop
-		+ st::infoProfileCover.photo.size.height()
-		+ st::settingsPhotoBottom)
+	112)
 , _controller(controller)
 , _user(user)
 , _badge(
@@ -164,11 +176,13 @@ Cover::Cover(
 	_user,
 	Ui::UserpicButton::Role::OpenPhoto,
 	Ui::UserpicButton::Source::PeerPhoto,
-	st::infoProfileCover.photo)
+	kCustomCoverUserpicStyle,
+	Ui::PeerUserpicShape::Material)
 , _name(this, st::infoProfileCover.name)
 , _phone(this, st::defaultFlatLabel, st::popupMenuWithIcons)
 , _username(this, st::infoProfileMegagroupCover.status) {
 	_user->updateFull();
+	_userpic->overrideShape(Ui::PeerUserpicShape::Material);
 
 	_name->setSelectable(true);
 	_name->setContextCopyText(tr::lng_profile_copy_fullname(tr::now));
@@ -238,13 +252,45 @@ Cover::Cover(
 
 Cover::~Cover() = default;
 
+void Cover::paintEvent(QPaintEvent *e) {
+	Painter p(this);
+	PainterHighQualityEnabler hq(p);
+	const auto photoLeft = 16.0;
+	const auto cardLeft = photoLeft + _userpic->width() + 12.0;
+	const auto cardTop = 8.0;
+	const auto cardHeight = height() - 16.0;
+	const auto cardWidth = width() - 16.0 - cardLeft;
+	if (cardWidth <= 0) {
+		return;
+	}
+
+	const auto rLeft = 24.0;
+	const auto rRight = cardHeight / 2.0;
+
+	auto path = QPainterPath();
+	path.moveTo(cardLeft + rLeft, cardTop);
+	path.lineTo(cardLeft + cardWidth - rRight, cardTop);
+	path.arcTo(QRectF(cardLeft + cardWidth - 2 * rRight, cardTop, 2 * rRight, cardHeight), 90, -180);
+	path.lineTo(cardLeft + rLeft, cardTop + cardHeight);
+	path.arcTo(QRectF(cardLeft, cardTop + cardHeight - 2 * rLeft, 2 * rLeft, 2 * rLeft), 270, -90);
+	path.lineTo(cardLeft, cardTop + rLeft);
+	path.arcTo(QRectF(cardLeft, cardTop, 2 * rLeft, 2 * rLeft), 180, -90);
+	path.closeSubpath();
+
+	p.setPen(Qt::NoPen);
+	p.setBrush(st::settingsThemeNotSupportedBg);
+	p.drawPath(path);
+}
+
 void Cover::setupChildGeometry() {
 	using namespace rpl::mappers;
 	widthValue(
 	) | rpl::on_next([=](int newWidth) {
+		const auto photoLeft = 16;
+		const auto photoTop = (height() - _userpic->height()) / 2;
 		_userpic->moveToLeft(
-			st::settingsPhotoLeft,
-			st::settingsPhotoTop,
+			photoLeft,
+			photoTop,
 			newWidth);
 		refreshNameGeometry(newWidth);
 		refreshPhoneGeometry(newWidth);
@@ -302,21 +348,24 @@ void Cover::initViewers() {
 }
 
 void Cover::refreshNameGeometry(int newWidth) {
-	const auto nameLeft = st::settingsNameLeft;
-	const auto nameTop = st::settingsNameTop;
-	const auto qrButtonWidth = (_qrButton && !_qrButton->isHidden())
-		? (_qrButton->width() + st::infoProfileCover.rightSkip)
-		: 0;
-	auto nameWidth = newWidth
-		- nameLeft
-		- st::infoProfileCover.rightSkip
-		- qrButtonWidth;
+	const auto cardLeft = 16 + _userpic->width() + 12;
+	const auto cardPadding = 18;
+	const auto textLeft = cardLeft + cardPadding;
+	const auto cardTop = (height() - 96) / 2;
+	const auto nameTop = cardTop + 16;
+	const auto qrSpace = (_qrButton && !_qrButton->isHidden())
+		? (_qrButton->width() + 20 + 8)
+		: 20;
+	const auto cardWidth = newWidth - 16 - cardLeft;
+	auto nameWidth = cardWidth
+		- cardPadding
+		- qrSpace;
 	if (const auto width = _badge.widget() ? _badge.widget()->width() : 0) {
 		nameWidth -= st::infoVerifiedCheckPosition.x() + width;
 	}
 	_name->resizeToNaturalWidth(nameWidth);
-	_name->moveToLeft(nameLeft, nameTop, newWidth);
-	const auto badgeLeft = nameLeft + _name->width();
+	_name->moveToLeft(textLeft, nameTop, newWidth);
+	const auto badgeLeft = textLeft + _name->width();
 	const auto badgeTop = nameTop;
 	const auto badgeBottom = nameTop + _name->height();
 	_badge.move(badgeLeft, badgeTop, badgeBottom);
@@ -333,149 +382,283 @@ void Cover::updatePhoneText() {
 }
 
 void Cover::refreshPhoneGeometry(int newWidth) {
-	const auto phoneLeft = st::settingsPhoneLeft;
-	const auto phoneTop = st::settingsPhoneTop;
-	const auto phoneWidth = newWidth
-		- phoneLeft
-		- st::infoProfileCover.rightSkip;
+	const auto cardLeft = 16 + _userpic->width() + 12;
+	const auto cardPadding = 18;
+	const auto textLeft = cardLeft + cardPadding;
+	const auto cardTop = (height() - 96) / 2;
+	const auto phoneTop = cardTop + 40;
+	const auto qrSpace = (_qrButton && !_qrButton->isHidden())
+		? (_qrButton->width() + 20 + 8)
+		: 20;
+	const auto cardWidth = newWidth - 16 - cardLeft;
+	const auto phoneWidth = cardWidth
+		- cardPadding
+		- qrSpace;
 	_phone->resizeToWidth(phoneWidth);
-	_phone->moveToLeft(phoneLeft, phoneTop, newWidth);
+	_phone->moveToLeft(textLeft, phoneTop, newWidth);
 }
 
 void Cover::refreshUsernameGeometry(int newWidth) {
-	const auto usernameLeft = st::settingsUsernameLeft;
-	const auto usernameTop = st::settingsUsernameTop;
-	const auto usernameRight = st::infoProfileCover.rightSkip;
-	const auto usernameWidth = newWidth - usernameLeft - usernameRight;
+	const auto cardLeft = 16 + _userpic->width() + 12;
+	const auto cardPadding = 18;
+	const auto textLeft = cardLeft + cardPadding;
+	const auto cardTop = (height() - 96) / 2;
+	const auto usernameTop = cardTop + 62;
+	const auto qrSpace = (_qrButton && !_qrButton->isHidden())
+		? (_qrButton->width() + 20 + 8)
+		: 20;
+	const auto cardWidth = newWidth - 16 - cardLeft;
+	const auto usernameWidth = cardWidth
+		- cardPadding
+		- qrSpace;
 	_username->resizeToWidth(usernameWidth);
-	_username->moveToLeft(usernameLeft, usernameTop, newWidth);
+	_username->moveToLeft(textLeft, usernameTop, newWidth);
 }
 
 void Cover::refreshQrButtonGeometry(int newWidth) {
 	if (!_qrButton) {
 		return;
 	}
-	const auto buttonTop = (height() - _qrButton->height()) / 2;
-	const auto buttonRight = st::infoProfileCover.rightSkip;
-	const auto inset = st::infoProfileLabeledButtonQrInset;
-	_qrButton->moveToRight(buttonRight - inset, buttonTop, newWidth);
+	const auto cardTop = (height() - 96) / 2;
+	const auto cardHeight = 96;
+	const auto buttonTop = cardTop + (cardHeight - _qrButton->height()) / 2;
+	const auto buttonRight = 16 + 20;
+	_qrButton->moveToRight(buttonRight, buttonTop, newWidth);
 }
 
 void BuildSectionButtons(SectionBuilder &builder) {
 	const auto session = builder.session();
 	const auto controller = builder.controller();
 	const auto showOther = builder.showOther();
+	const auto container = builder.container();
 
-	builder.addSectionButton({
-		.title = fatr::fa_client_preferences(),
-		.targetSection = FA::Id(),
-		.icon = { &st::menuIconSettings },
-		.keywords = { u"fagram"_q, u"preferences"_q, u"fa"_q },
-	});
-
-	if (!session->supportMode()) {
+	if (!container) {
 		builder.addSectionButton({
-			.title = tr::lng_settings_my_account(),
-			.targetSection = InformationId(),
-			.icon = { &st::menuIconProfile },
-			.keywords = { u"profile"_q, u"edit"_q, u"information"_q },
+			.title = fatr::fa_client_preferences(),
+			.targetSection = FA::Id(),
+			.icon = { &st::menuIconSettings },
+			.keywords = { u"fagram"_q, u"preferences"_q, u"fa"_q },
 		});
-	}
 
-	builder.addSectionButton({
-		.title = tr::lng_settings_section_notify(),
-		.targetSection = NotificationsId(),
-		.icon = { &st::menuIconNotifications },
-		.keywords = { u"alerts"_q, u"sounds"_q, u"badge"_q },
-	});
-
-	builder.addSectionButton({
-		.title = tr::lng_settings_section_privacy(),
-		.targetSection = PrivacySecurityId(),
-		.icon = { &st::menuIconLock },
-		.keywords = { u"security"_q, u"passcode"_q, u"password"_q, u"2fa"_q },
-	});
-
-	builder.addSectionButton({
-		.title = tr::lng_settings_section_chat_settings(),
-		.targetSection = ChatId(),
-		.icon = { &st::menuIconChatBubble },
-		.keywords = { u"themes"_q, u"appearance"_q, u"stickers"_q },
-	});
-
-	{ // Folders
-		const auto preload = [=] {
-			session->data().chatsFilters().requestSuggested();
-		};
-		const auto hasFilters = session->data().chatsFilters().has()
-			|| session->settings().dialogsFiltersEnabled();
-
-		auto shownProducer = hasFilters
-			? rpl::single(true) | rpl::type_erased
-			: (rpl::single(rpl::empty) | rpl::then(
-				session->appConfig().refreshed()
-			) | rpl::map([=] {
-			const auto enabled = session->appConfig().get<bool>(
-				u"dialog_filters_enabled"_q,
-				false);
-			if (enabled) {
-				preload();
-			}
-			return enabled;
-		}));
-
-		if (hasFilters) {
-			preload();
+		if (!session->supportMode()) {
+			builder.addSectionButton({
+				.title = tr::lng_settings_my_account(),
+				.targetSection = InformationId(),
+				.icon = { &st::menuIconProfile },
+				.keywords = { u"profile"_q, u"edit"_q, u"information"_q },
+			});
 		}
+
+		builder.addSectionButton({
+			.title = tr::lng_settings_section_notify(),
+			.targetSection = NotificationsId(),
+			.icon = { &st::menuIconNotifications },
+			.keywords = { u"alerts"_q, u"sounds"_q, u"badge"_q },
+		});
+
+		builder.addSectionButton({
+			.title = tr::lng_settings_section_privacy(),
+			.targetSection = PrivacySecurityId(),
+			.icon = { &st::menuIconLock },
+			.keywords = { u"security"_q, u"passcode"_q, u"password"_q, u"2fa"_q },
+		});
+
+		builder.addSectionButton({
+			.title = tr::lng_settings_section_chat_settings(),
+			.targetSection = ChatId(),
+			.icon = { &st::menuIconChatBubble },
+			.keywords = { u"themes"_q, u"appearance"_q, u"stickers"_q },
+		});
 
 		builder.addButton({
 			.title = tr::lng_settings_section_filters(),
 			.icon = { &st::menuIconShowInFolder },
 			.onClick = [=] { showOther(FoldersId()); },
 			.keywords = { u"filters"_q, u"tabs"_q },
-			.shown = std::move(shownProducer),
 		});
+
+		builder.addSectionButton({
+			.title = tr::lng_settings_advanced(),
+			.targetSection = AdvancedId(),
+			.icon = { &st::menuIconManage },
+			.keywords = { u"performance"_q, u"proxy"_q, u"experimental"_q },
+		});
+
+		builder.addSectionButton({
+			.title = tr::lng_settings_section_devices(),
+			.targetSection = CallsId(),
+			.icon = { &st::menuIconUnmute },
+			.keywords = { u"sessions"_q, u"calls"_q },
+		});
+
+		builder.addButton({
+			.id = u"main/power"_q,
+			.title = tr::lng_settings_power_menu(),
+			.icon = { &st::menuIconPowerUsage },
+			.onClick = [=] {
+				controller->show(Box(PowerSavingBox, PowerSaving::Flags()));
+			},
+			.keywords = { u"battery"_q, u"animations"_q, u"power"_q, u"saving"_q },
+		});
+
+		builder.addButton({
+			.id = u"main/language"_q,
+			.title = tr::lng_settings_language(),
+			.icon = { &st::menuIconTranslate },
+			.label = rpl::single(
+				Lang::GetInstance().id()
+			) | rpl::then(
+				Lang::GetInstance().idChanges()
+			) | rpl::map([] { return Lang::GetInstance().nativeName(); }),
+			.onClick = [=] {
+				static auto Guard = base::binary_guard();
+				Guard = LanguageBox::Show(controller);
+			},
+			.keywords = { u"translate"_q, u"localization"_q, u"language"_q },
+		});
+		return;
 	}
 
-	builder.addSectionButton({
-		.title = tr::lng_settings_advanced(),
-		.targetSection = AdvancedId(),
-		.icon = { &st::menuIconManage },
-		.keywords = { u"performance"_q, u"proxy"_q, u"experimental"_q },
-	});
+	const auto card = FAUi::CreateCardContainer(container, 8, 8);
 
-	builder.addSectionButton({
-		.title = tr::lng_settings_section_devices(),
-		.targetSection = CallsId(),
-		.icon = { &st::menuIconUnmute },
-		.keywords = { u"sessions"_q, u"calls"_q },
-	});
+	FAUi::AddCardButton(
+		card,
+		fatr::fa_client_preferences(),
+		[=] { showOther(FA::Id()); },
+		&st::menuIconSettings,
+		nullptr,
+		true);
 
-	builder.addButton({
-		.id = u"main/power"_q,
-		.title = tr::lng_settings_power_menu(),
-		.icon = { &st::menuIconPowerUsage },
-		.onClick = [=] {
+	FAUi::AddCardDivider(card);
+
+	if (!session->supportMode()) {
+		FAUi::AddCardButton(
+			card,
+			tr::lng_settings_my_account(),
+			[=] { showOther(InformationId()); },
+			&st::menuIconProfile,
+			nullptr,
+			true);
+		FAUi::AddCardDivider(card);
+	}
+
+	FAUi::AddCardButton(
+		card,
+		tr::lng_settings_section_notify(),
+		[=] { showOther(NotificationsId()); },
+		&st::menuIconNotifications,
+		nullptr,
+		true);
+
+	FAUi::AddCardDivider(card);
+
+	FAUi::AddCardButton(
+		card,
+		tr::lng_settings_section_privacy(),
+		[=] { showOther(PrivacySecurityId()); },
+		&st::menuIconLock,
+		nullptr,
+		true);
+
+	FAUi::AddCardDivider(card);
+
+	FAUi::AddCardButton(
+		card,
+		tr::lng_settings_section_chat_settings(),
+		[=] { showOther(ChatId()); },
+		&st::menuIconChatBubble,
+		nullptr,
+		true);
+
+	FAUi::AddCardDivider(card);
+
+	{
+		const auto preload = [=] {
+			session->data().chatsFilters().requestSuggested();
+		};
+		const auto hasFilters = session->data().chatsFilters().has()
+			|| session->settings().dialogsFiltersEnabled();
+
+		if (hasFilters) {
+			preload();
+		}
+
+		const auto foldersWrap = card->add(
+			object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+				card,
+				object_ptr<Ui::VerticalLayout>(card)));
+		const auto foldersContent = foldersWrap->entity();
+
+		FAUi::AddCardButton(
+			foldersContent,
+			tr::lng_settings_section_filters(),
+			[=] { showOther(FoldersId()); },
+			&st::menuIconShowInFolder,
+			nullptr,
+			true);
+		FAUi::AddCardDivider(foldersContent);
+
+		if (!hasFilters) {
+			foldersWrap->hide(anim::type::instant);
+			session->appConfig().refreshed(
+			) | rpl::on_next([=] {
+				const auto enabled = session->appConfig().get<bool>(
+					u"dialog_filters_enabled"_q,
+					false);
+				if (enabled) {
+					preload();
+					foldersWrap->show(anim::type::normal);
+				}
+			}, foldersWrap->lifetime());
+		}
+	}
+
+	FAUi::AddCardButton(
+		card,
+		tr::lng_settings_advanced(),
+		[=] { showOther(AdvancedId()); },
+		&st::menuIconManage,
+		nullptr,
+		true);
+
+	FAUi::AddCardDivider(card);
+
+	FAUi::AddCardButton(
+		card,
+		tr::lng_settings_section_devices(),
+		[=] { showOther(CallsId()); },
+		&st::menuIconUnmute,
+		nullptr,
+		true);
+
+	FAUi::AddCardDivider(card);
+
+	FAUi::AddCardButton(
+		card,
+		tr::lng_settings_power_menu(),
+		[=] {
 			controller->show(Box(PowerSavingBox, PowerSaving::Flags()));
 		},
-		.keywords = { u"battery"_q, u"animations"_q, u"power"_q, u"saving"_q },
-	});
+		&st::menuIconPowerUsage,
+		nullptr,
+		true);
 
-	builder.addButton({
-		.id = u"main/language"_q,
-		.title = tr::lng_settings_language(),
-		.icon = { &st::menuIconTranslate },
-		.label = rpl::single(
+	FAUi::AddCardDivider(card);
+
+	FAUi::AddCardButton(
+		card,
+		tr::lng_settings_language(),
+		[=] {
+			static auto Guard = base::binary_guard();
+			Guard = LanguageBox::Show(controller);
+		},
+		&st::menuIconTranslate,
+		rpl::single(
 			Lang::GetInstance().id()
 		) | rpl::then(
 			Lang::GetInstance().idChanges()
 		) | rpl::map([] { return Lang::GetInstance().nativeName(); }),
-		.onClick = [=] {
-			static auto Guard = base::binary_guard();
-			Guard = LanguageBox::Show(controller);
-		},
-		.keywords = { u"translate"_q, u"localization"_q, u"language"_q },
-	});
+		true);
 }
 
 void BuildInterfaceScale(SectionBuilder &builder) {
@@ -483,23 +666,22 @@ void BuildInterfaceScale(SectionBuilder &builder) {
 		return;
 	}
 
-	builder.addDivider();
-	builder.addSkip();
+	const auto container = builder.container();
+	if (!container) {
+		builder.add([](const WidgetContext &ctx) {
+			return SectionBuilder::WidgetToAdd{};
+		}, [] {
+			return SearchEntry{
+				.id = u"main/scale"_q,
+				.title = tr::lng_settings_default_scale(tr::now),
+				.keywords = { u"zoom"_q, u"size"_q, u"interface"_q, u"ui"_q },
+			};
+		});
+		return;
+	}
 
-	builder.add([](const WidgetContext &ctx) {
-		const auto window = &ctx.controller->window();
-		auto wrap = object_ptr<Ui::VerticalLayout>(ctx.container);
-		SetupInterfaceScale(window, wrap.data());
-		return SectionBuilder::WidgetToAdd{ .widget = std::move(wrap) };
-	}, [] {
-		return SearchEntry{
-			.id = u"main/scale"_q,
-			.title = tr::lng_settings_default_scale(tr::now),
-			.keywords = { u"zoom"_q, u"size"_q, u"interface"_q, u"ui"_q },
-		};
-	});
-
-	builder.addSkip();
+	const auto window = &builder.controller()->window();
+	SetupInterfaceScale(window, container);
 }
 
 void BuildPremiumSection(SectionBuilder &builder) {
@@ -511,108 +693,214 @@ void BuildPremiumSection(SectionBuilder &builder) {
 		return;
 	}
 
-	builder.addDivider();
-	builder.addSkip();
+	const auto container = builder.container();
+	if (!container) {
+		builder.addPremiumButton({
+			.id = u"main/premium"_q,
+			.title = tr::lng_premium_summary_title(),
+			.onClick = [=] {
+				controller->setPremiumRef("settings");
+				showOther(PremiumId());
+			},
+			.keywords = { u"subscription"_q },
+		});
 
-	builder.addPremiumButton({
-		.id = u"main/premium"_q,
-		.title = tr::lng_premium_summary_title(),
-		.onClick = [=] {
+		session->credits().load();
+		builder.addPremiumButton({
+			.id = u"main/credits"_q,
+			.title = tr::lng_settings_credits(),
+			.label = session->credits().balanceValue(
+			) | rpl::map([](CreditsAmount c) {
+				return c
+					? Lang::FormatCreditsAmountToShort(c).string
+					: QString();
+			}),
+			.credits = true,
+			.onClick = [=] {
+				controller->setPremiumRef("settings");
+				showOther(CreditsId());
+			},
+			.keywords = { u"stars"_q, u"balance"_q },
+		});
+
+		session->credits().tonLoad();
+		builder.addButton({
+			.id = u"main/currency"_q,
+			.title = tr::lng_settings_currency(),
+			.icon = { &st::menuIconTon },
+			.label = session->credits().tonBalanceValue(
+			) | rpl::map([](CreditsAmount c) {
+				return c ? Lang::FormatCreditsAmountToShort(c).string : u""_q;
+			}),
+			.onClick = [=] {
+				controller->setPremiumRef("settings");
+				showOther(CurrencyId());
+			},
+			.keywords = { u"ton"_q, u"crypto"_q, u"wallet"_q },
+			.shown = session->credits().tonBalanceValue(
+			) | rpl::map([](CreditsAmount c) { return !c.empty(); }),
+		});
+
+		builder.addButton({
+			.id = u"main/business"_q,
+			.title = tr::lng_business_title(),
+			.icon = { .icon = &st::menuIconShop },
+			.onClick = [=] { showOther(BusinessId()); },
+			.keywords = { u"work"_q, u"company"_q },
+		});
+
+		if (session->premiumCanBuy()) {
+			builder.addButton({
+				.id = u"main/send-gift"_q,
+				.title = tr::lng_settings_gift_premium(),
+				.icon = { .icon = &st::menuIconGiftPremium, .newBadge = true },
+				.onClick = [=] { Ui::ChooseStarGiftRecipient(controller); },
+				.keywords = { u"present"_q, u"send"_q },
+			});
+		}
+		return;
+	}
+
+	const auto card = FAUi::CreateCardContainer(container, 0, 8);
+
+	FAUi::AddCardButton(
+		card,
+		tr::lng_premium_summary_title(),
+		[=] {
 			controller->setPremiumRef("settings");
 			showOther(PremiumId());
 		},
-		.keywords = { u"subscription"_q },
-	});
+		&st::menuIconPremium,
+		nullptr,
+		true);
+
+	FAUi::AddCardDivider(card);
 
 	session->credits().load();
-	builder.addPremiumButton({
-		.id = u"main/credits"_q,
-		.title = tr::lng_settings_credits(),
-		.label = session->credits().balanceValue(
+	FAUi::AddCardButton(
+		card,
+		tr::lng_settings_credits(),
+		[=] {
+			controller->setPremiumRef("settings");
+			showOther(CreditsId());
+		},
+		&st::menuIconStar,
+		session->credits().balanceValue(
 		) | rpl::map([](CreditsAmount c) {
 			return c
 				? Lang::FormatCreditsAmountToShort(c).string
 				: QString();
 		}),
-		.credits = true,
-		.onClick = [=] {
-			controller->setPremiumRef("settings");
-			showOther(CreditsId());
-		},
-		.keywords = { u"stars"_q, u"balance"_q },
-	});
+		true);
 
 	session->credits().tonLoad();
-	builder.addButton({
-		.id = u"main/currency"_q,
-		.title = tr::lng_settings_currency(),
-		.icon = { &st::menuIconTon },
-		.label = session->credits().tonBalanceValue(
-		) | rpl::map([](CreditsAmount c) {
-			return c ? Lang::FormatCreditsAmountToShort(c).string : u""_q;
-		}),
-		.onClick = [=] {
+	const auto currencyWrap = card->add(
+		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+			card,
+			object_ptr<Ui::VerticalLayout>(card)));
+	const auto currencyContent = currencyWrap->entity();
+	FAUi::AddCardDivider(currencyContent);
+	FAUi::AddCardButton(
+		currencyContent,
+		tr::lng_settings_currency(),
+		[=] {
 			controller->setPremiumRef("settings");
 			showOther(CurrencyId());
 		},
-		.keywords = { u"ton"_q, u"crypto"_q, u"wallet"_q },
-		.shown = session->credits().tonBalanceValue(
-		) | rpl::map([](CreditsAmount c) { return !c.empty(); }),
-	});
+		&st::menuIconTon,
+		session->credits().tonBalanceValue(
+		) | rpl::map([](CreditsAmount c) {
+			return c ? Lang::FormatCreditsAmountToShort(c).string : u""_q;
+		}),
+		true);
 
-	builder.addButton({
-		.id = u"main/business"_q,
-		.title = tr::lng_business_title(),
-		.icon = { .icon = &st::menuIconShop },
-		.onClick = [=] { showOther(BusinessId()); },
-		.keywords = { u"work"_q, u"company"_q },
-	});
+	currencyWrap->hide(anim::type::instant);
+	session->credits().tonBalanceValue(
+	) | rpl::on_next([=](CreditsAmount c) {
+		currencyWrap->toggle(!c.empty(), anim::type::instant);
+	}, currencyWrap->lifetime());
+
+	FAUi::AddCardDivider(card);
+
+	FAUi::AddCardButton(
+		card,
+		tr::lng_business_title(),
+		[=] { showOther(BusinessId()); },
+		&st::menuIconShop,
+		nullptr,
+		true);
 
 	if (session->premiumCanBuy()) {
-		builder.addButton({
-			.id = u"main/send-gift"_q,
-			.title = tr::lng_settings_gift_premium(),
-			.icon = { .icon = &st::menuIconGiftPremium, .newBadge = true },
-			.onClick = [=] { Ui::ChooseStarGiftRecipient(controller); },
-			.keywords = { u"present"_q, u"send"_q },
-		});
+		FAUi::AddCardDivider(card);
+		FAUi::AddCardButton(
+			card,
+			tr::lng_settings_gift_premium(),
+			[=] { Ui::ChooseStarGiftRecipient(controller); },
+			&st::menuIconGiftPremium,
+			nullptr,
+			true);
 	}
-
-	builder.addSkip();
 }
 
 void BuildHelpSection(SectionBuilder &builder) {
-	builder.addDivider();
-	builder.addSkip();
-
 	const auto controller = builder.controller();
-	builder.addButton({
-		.id = u"main/faq"_q,
-		.title = tr::lng_settings_faq(),
-		.icon = { &st::menuIconFaq },
-		.onClick = [=] { OpenFaq(controller); },
-		.keywords = { u"help"_q, u"support"_q, u"questions"_q },
-	});
+	const auto container = builder.container();
 
-	builder.addButton({
-		.id = u"main/features"_q,
-		.title = tr::lng_settings_features(),
-		.icon = { &st::menuIconEmojiObjects },
-		.onClick = [] {
+	if (!container) {
+		builder.addButton({
+			.id = u"main/faq"_q,
+			.title = tr::lng_settings_faq(),
+			.icon = { &st::menuIconFaq },
+			.keywords = { u"help"_q, u"support"_q, u"questions"_q },
+		});
+
+		builder.addButton({
+			.id = u"main/features"_q,
+			.title = tr::lng_settings_features(),
+			.icon = { &st::menuIconEmojiObjects },
+			.keywords = { u"tips"_q, u"tutorial"_q },
+		});
+
+		builder.addButton({
+			.id = u"main/ask-question"_q,
+			.title = tr::lng_settings_ask_question(),
+			.icon = { &st::menuIconDiscussion },
+			.keywords = { u"contact"_q, u"feedback"_q },
+		});
+		return;
+	}
+
+	const auto card = FAUi::CreateCardContainer(container, 0, 8);
+
+	FAUi::AddCardButton(
+		card,
+		tr::lng_settings_faq(),
+		[=] { OpenFaq(controller); },
+		&st::menuIconFaq,
+		nullptr,
+		true);
+
+	FAUi::AddCardDivider(card);
+
+	FAUi::AddCardButton(
+		card,
+		tr::lng_settings_features(),
+		[] {
 			UrlClickHandler::Open(tr::lng_telegram_features_url(tr::now));
 		},
-		.keywords = { u"tips"_q, u"tutorial"_q },
-	});
+		&st::menuIconEmojiObjects,
+		nullptr,
+		true);
 
-	builder.addButton({
-		.id = u"main/ask-question"_q,
-		.title = tr::lng_settings_ask_question(),
-		.icon = { &st::menuIconDiscussion },
-		.onClick = [=] { OpenAskQuestionConfirm(controller); },
-		.keywords = { u"contact"_q, u"feedback"_q },
-	});
+	FAUi::AddCardDivider(card);
 
-	builder.addSkip();
+	FAUi::AddCardButton(
+		card,
+		tr::lng_settings_ask_question(),
+		[=] { OpenAskQuestionConfirm(controller); },
+		&st::menuIconDiscussion,
+		nullptr,
+		true);
 }
 
 void BuildValidationSuggestions(SectionBuilder &builder) {
@@ -722,11 +1010,8 @@ void Main::setupContent() {
 			.isPaused = isPaused,
 			.highlights = highlights,
 		});
-		builder.addDivider();
-		builder.addSkip();
 		BuildValidationSuggestions(builder);
 		BuildSectionButtons(builder);
-		builder.addSkip();
 		BuildInterfaceScale(builder);
 		BuildPremiumSection(builder);
 		BuildHelpSection(builder);
@@ -1033,16 +1318,7 @@ void SetupInterfaceScale(
 		return;
 	}
 
-	const auto toggled = Ui::CreateChild<rpl::event_stream<bool>>(
-		container.get());
-
-	const auto switched = (cConfigScale() == style::kScaleAuto);
-	const auto button = AddButtonWithIcon(
-		container,
-		tr::lng_settings_default_scale(),
-		icon ? st::settingsButton : st::settingsButtonNoIcon,
-		{ icon ? &st::menuIconShowInChat : nullptr }
-	)->toggleOn(toggled->events_starting_with_copy(switched));
+	const auto card = FAUi::CreateCardContainer(container, 0, 8);
 
 	const auto ratio = style::DevicePixelRatio();
 	const auto scaleMin = style::kScaleMin;
@@ -1072,18 +1348,43 @@ void SetupInterfaceScale(
 		return ((result == valuesCount) ? (result - 1) : result)
 			/ float64(valuesCount - 1);
 	};
-	auto sliderWithLabel = MakeSliderWithLabel(
-		container,
-		st::settingsScale,
-		st::settingsScaleLabel,
-		st::normalFont->spacew * 2,
-		st::settingsScaleLabel.style.font->width("300%"),
-		true);
-	container->add(
-		std::move(sliderWithLabel.widget),
-		icon ? st::settingsScalePadding : st::settingsBigScalePadding);
-	const auto slider = sliderWithLabel.slider;
-	const auto label = sliderWithLabel.label;
+
+	const auto isAuto = (scaleConfig == style::kScaleAuto);
+	const auto autoScaleStream = card->lifetime().make_state<rpl::event_stream<bool>>();
+
+	const auto inSetScale = card->lifetime().make_state<bool>();
+	const auto setScaleHolder = card->lifetime().make_state<Fn<void(int)>>();
+
+	FAUi::AddCardToggle(
+		card,
+		tr::lng_settings_default_scale(),
+		nullptr,
+		rpl::single(isAuto) | rpl::then(autoScaleStream->events()),
+		[=](bool checked) {
+			const auto scale = checked ? style::kScaleAuto : cEvalScale(cConfigScale());
+			if (*setScaleHolder) {
+				(*setScaleHolder)(scale);
+			}
+		});
+
+	const auto sliderWrap = card->add(
+		object_ptr<Ui::RpWidget>(card),
+		style::margins(16, 4, 16, 14));
+	const auto slider = Ui::CreateChild<FAUi::MaterialSlider>(sliderWrap);
+	const auto label = Ui::CreateChild<Ui::FlatLabel>(sliderWrap, st::settingsScaleLabel);
+
+	sliderWrap->resize(sliderWrap->width(), 32);
+	rpl::combine(
+		sliderWrap->sizeValue(),
+		label->sizeValue()
+	) | rpl::on_next([=](QSize outer, QSize size) {
+		const auto minRight = std::max(size.width(), st::settingsScaleLabel.style.font->width(u"300%"_q)) + st::normalFont->spacew * 2;
+		label->moveToRight(0, (outer.height() - size.height()) / 2);
+		const auto width = std::max(40, outer.width() - minRight);
+		slider->resize(width, 32);
+		slider->moveToLeft(0, (outer.height() - slider->height()) / 2);
+	}, label->lifetime());
+
 	slider->setAccessibleName(tr::lng_settings_scale(tr::now));
 
 	const auto updateLabel = [=](int scale) {
@@ -1100,7 +1401,6 @@ void SetupInterfaceScale(
 	};
 	updateLabel(cConfigScale());
 
-	const auto inSetScale = container->lifetime().make_state<bool>();
 	const auto setScale = [=](int scale, const auto &repeatSetScale) -> void {
 		if (*inSetScale) {
 			return;
@@ -1109,21 +1409,21 @@ void SetupInterfaceScale(
 		const auto guard = gsl::finally([=] { *inSetScale = false; });
 
 		updateLabel(scale);
-		toggled->fire(scale == style::kScaleAuto);
+		autoScaleStream->fire(scale == style::kScaleAuto);
 		slider->setValue(valueFromScale(scale));
 		if (cEvalScale(scale) != cEvalScale(cConfigScale())) {
-			const auto confirmed = crl::guard(button, [=] {
+			const auto confirmed = Fn<void()>(crl::guard(card, [=] {
 				cSetConfigScale(scale);
 				Local::writeSettings();
 				Core::Restart();
-			});
-			const auto cancelled = crl::guard(button, [=](Fn<void()> close) {
+			}));
+			const auto cancelled = Fn<void(Fn<void()>)>(crl::guard(card, [=](Fn<void()> close) {
 				base::call_delayed(
 					st::defaultSettingsSlider.duration,
-					button,
+					card,
 					[=] { repeatSetScale(cConfigScale(), repeatSetScale); });
 				close();
-			});
+			}));
 			window->show(Ui::MakeConfirmBox({
 				.text = tr::lng_settings_need_restart(),
 				.confirmed = confirmed,
@@ -1135,8 +1435,11 @@ void SetupInterfaceScale(
 			Local::writeSettings();
 		}
 	};
+	*setScaleHolder = [=](int scale) {
+		setScale(scale, setScale);
+	};
 
-	const auto shown = container->lifetime().make_state<bool>();
+	const auto shown = card->lifetime().make_state<bool>();
 	const auto togglePreview = SetupScalePreview(window, slider);
 	const auto toggleForScale = [=](int scale) {
 		scale = cEvalScale(scale);
@@ -1162,20 +1465,10 @@ void SetupInterfaceScale(
 	slider->setPseudoDiscrete(
 		valuesCount,
 		[=](int index) { return values[index]; },
-		cConfigScale(),
+		cEvalScale(cConfigScale()),
 		[=](int scale) { updateLabel(scale); toggleForScale(scale); },
 		[=](int scale) { toggleHidePreview(); setScale(scale, setScale); });
-
-	button->toggledValue(
-	) | rpl::map([](bool checked) {
-		return checked ? style::kScaleAuto : cEvalScale(cConfigScale());
-	}) | rpl::on_next([=](int scale) {
-		setScale(scale, setScale);
-	}, button->lifetime());
-
-	if (!icon) {
-		Ui::AddSkip(container, st::settingsThumbSkip);
-	}
+	slider->setValue(valueFromScale(cConfigScale()));
 }
 
 Type MainId() {
