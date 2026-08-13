@@ -153,7 +153,7 @@ jobs:
           event-type: new-release
 
   update-scoop:
-    name: Update Scoop Manifest
+    name: Scoop Manifest
     needs: create-release
     uses: ./.github/workflows/scoop-manifest.yml
     with:
@@ -161,10 +161,18 @@ jobs:
     secrets: inherit
 
   update-homebrew:
-    name: Update Homebrew Cask
+    name: Homebrew Cask
     needs: create-release
     uses: ./.github/workflows/homebrew-cask.yml
     if: ${{ inputs.mac_run_id != '' }}
+    with:
+      release_tag: ${{ inputs.tagname }}
+    secrets: inherit
+
+  update-nix:
+    name: Nix Flake
+    needs: create-release
+    uses: ./.github/workflows/nix-flake.yml
     with:
       release_tag: ${{ inputs.tagname }}
     secrets: inherit
