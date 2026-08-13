@@ -15,7 +15,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 class IconPackCheck final : public Ui::AbstractCheckView {
 public:
-	IconPackCheck(const style::icon *icon, bool checked);
+	IconPackCheck(bool isMaterial, bool checked);
 
 	QSize getSize() const override;
 
@@ -25,19 +25,16 @@ public:
 	bool checkRippleStartPosition(QPoint position) const override;
 	
 private:
-	void checkedChangedHook(anim::type animated) override;
-	
-	const style::icon *_icon = nullptr;
-	Ui::RadioView _radio;
+	bool _isMaterial;
+
 };
 
-class RoundnessPreview : public Ui::RpWidget
-{
+class RoundnessPreview : public Ui::RpWidget {
 public:
-  RoundnessPreview(QWidget *parent);
+	RoundnessPreview(QWidget *parent);
 
 protected:
-  void paintEvent(QPaintEvent *e) override;
-};
+	int resizeGetHeight(int newWidth) override;
+	void paintEvent(QPaintEvent *e) override;
 
-// thx rabbitGram
+};

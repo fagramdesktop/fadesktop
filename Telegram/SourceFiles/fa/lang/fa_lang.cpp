@@ -61,12 +61,6 @@ void LoadTranslationsCache() {
     cacheLoaded = true;
 }
 
-void InvalidateCache() {
-    QMutexLocker locker(&cacheMutex);
-    translationsCache.clear();
-    cacheLoaded = false;
-}
-
 } // namespace
 
 rpl::producer<QString> RplTranslate(const QString &key) {
@@ -107,4 +101,4 @@ void Load(const QString &baseLangCode, const QString &lang_code) {
     }
 }
 
-}
+} // namespace FAlang

@@ -922,12 +922,14 @@ PRIVATE
     fa/url_handlers/fa_url_handlers.h
     fa/lang/fa_lang.cpp
     fa/lang/fa_lang.h
-    fa/ui/previews.cpp
-    fa/ui/previews.h
-    fa/ui/history/view/fa_context_menu_shortcuts.cpp
-    fa/ui/history/view/fa_context_menu_shortcuts.h
-    fa/ui/history/view/fa_reply_in_private.cpp
-    fa/ui/history/view/fa_reply_in_private.h
+    fa/ui/components/fa_ui_components.cpp
+    fa/ui/components/fa_ui_components.h
+    fa/ui/components/previews.cpp
+    fa/ui/components/previews.h
+    fa/utils/fa_context_menu_shortcuts.cpp
+    fa/utils/fa_context_menu_shortcuts.h
+    fa/utils/fa_reply_in_private.cpp
+    fa/utils/fa_reply_in_private.h
     fa/fa_version.h
     fa/ui/menu_item_subtext.cpp
     fa/ui/menu_item_subtext.h

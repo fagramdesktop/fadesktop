@@ -13,7 +13,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "fa/settings_menu/sections/fa_appearance.h"
 #include "fa/settings_menu/fa_deeplink_context_menu.h"
-#include "fa/ui/previews.h"
+#include "fa/ui/components/fa_ui_components.h"
+#include "fa/ui/components/previews.h"
 
 #include "fa_lang_auto.h"
 
@@ -54,10 +55,7 @@ namespace Settings {
     }
 
     void FAAppearance::SetupAppearance(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
-        Ui::AddSubsectionTitle(container, fatr::fa_appearance());
-
-		Ui::AddSkip(container);
-		Ui::AddSubsectionTitle(container, fatr::fa_use_material_icon_pack());
+		Ui::AddSubsectionTitle(container, fatr::fa_icons());
 
 		const auto block = container->add(object_ptr<Ui::FixedHeightWidget>(
 			container));
@@ -66,51 +64,60 @@ namespace Settings {
 			FASettings::FASettings::getInstance().useMaterialIconPack());
 		
 		std::vector<Ui::Radioenum<bool>*> buttons;
-		const auto makeButton = [&](bool value, const QString &text, const style::icon *icon) {
-			auto check = std::make_unique<IconPackCheck>(icon, false);
+		const auto makeButton = [&](bool value, rpl::producer<QString> &&textProducer, bool isMaterial) {
+			auto check = std::make_unique<IconPackCheck>(isMaterial, false);
 			const auto weak = check.get();
+			
+			static const auto customStyle = [] {
+				auto style = st::settingsTheme;
+				style.textPosition = QPoint(0, 76 + 8);
+				style.style = st::semiboldTextStyle;
+				return style;
+			}();
+			
 			const auto result = Ui::CreateChild<Ui::Radioenum<bool>>(
 				block,
 				group,
 				value,
-				text,
-				st::settingsTheme,
+				QString(),
+				customStyle,
 				std::move(check));
-			result->setCheckAlignment(style::al_top);
-			result->resizeToWidth(result->width());
+			rpl::duplicate(
+				textProducer
+			) | rpl::on_next([=](const QString &text) {
+				result->setText(text);
+			}, result->lifetime());
 			weak->setUpdateCallback([=] { result->update(); });
 			buttons.push_back(result);
 		};
+		makeButton(false, fatr::fa_default_icon(), false);
+		makeButton(true, fatr::fa_material_icon(), true);
 		
-		makeButton(false, u"Default"_q, &st::menuIconPhoto);
-		makeButton(true, fatr::fa_use_material_icon_pack(fatr::now), &st::menuIconProfile);
-		
+		for (const auto button : buttons) {
+			button->setCheckAlignment(style::al_top);
+			button->resizeToWidth(button->width());
+		}
 		block->resize(block->width(), buttons[0]->height());
 		block->widthValue(
-		) | rpl::on_next([buttons](int width) {
-			const auto padding = st::settingsButtonNoIcon.padding;
-			width -= padding.left() + padding.right();
-			const auto desired = st::settingsThemePreviewSize.width();
+		) | rpl::on_next([buttons = std::move(buttons), block](int width) {
+			Expects(!buttons.empty());
+
+			const auto padding = 16;
+			const auto gap = 16;
 			const auto count = int(buttons.size());
-			const auto skips = count - 1;
-			const auto minSkip = st::settingsThemeMinSkip;
-			const auto single = [&] {
-				if (width >= skips * minSkip + count * desired) {
-					return desired;
-				}
-				return (width - skips * minSkip) / count;
-			}();
+			const auto availableWidth = width - 2 * padding;
+			const auto single = (availableWidth - (count - 1) * gap) / count;
 			if (single <= 0) {
 				return;
 			}
-			const auto fullSkips = width - count * single;
-			const auto skip = fullSkips / float64(skips);
-			auto left = padding.left() + 0.;
+			auto left = padding;
+
 			for (const auto button : buttons) {
 				button->resizeToWidth(single);
-				button->moveToLeft(int(base::SafeRound(left)), 0);
-				left += button->width() + skip;
+				button->moveToLeft(left, 0);
+				left += single + gap;
 			}
+			block->resize(width, buttons[0]->height());
 		}, block->lifetime());
 
 		group->setChangedCallback([=](bool enabled) {
@@ -127,24 +134,24 @@ namespace Settings {
 				.cancelText = fatr::fa_icon_pack_restart_later(),
 			}));
 		});
-		
-		Ui::AddSkip(container);
-		Ui::AddDividerText(container, fatr::fa_use_material_icon_pack_desc());
 
-		const auto roundnessPreview = container->add(
-			object_ptr<RoundnessPreview>(container),
-			st::defaultSubsectionTitlePadding);
+		FA::Ui::AddModernSectionHeader(container, fatr::fa_avatar_roundness());
+		const auto roundnessCard = FA::Ui::CreateCardContainer(container);
+		const auto roundnessPreview = roundnessCard->add(
+			object_ptr<RoundnessPreview>(roundnessCard));
 
-    	const auto userpicRoundnessLabel = container->add(
+		FA::Ui::AddCardDivider(roundnessCard);
+
+    	const auto userpicRoundnessLabel = roundnessCard->add(
 			object_ptr<Ui::LabelSimple>(
-				container,
+				roundnessCard,
 				st::settingsAudioVolumeLabel),
-			st::settingsAudioVolumeLabelPadding);
-    	const auto userpicRoundnessSlider = container->add(
+			style::margins(16, 12, 16, 4));
+    	const auto userpicRoundnessSlider = roundnessCard->add(
 			object_ptr<Ui::MediaSlider>(
-				container,
+				roundnessCard,
 				st::settingsAudioVolumeSlider),
-			st::settingsAudioVolumeSliderPadding);
+			style::margins(16, 4, 16, 14));
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			userpicRoundnessSlider,
 			u"fa/appearance/roundness"_q,
@@ -208,20 +215,17 @@ namespace Settings {
 			updateUserpicRoundness,
 			[=](int value) { setRoundness(value, setRoundness); });
     	updateUserpicRoundnessLabel(FASettings::FASettings::getInstance().roundness());
-        Ui::AddDividerText(container, fatr::fa_rounding_desc());
-		{
-			auto &settings = FASettings::FASettings::getInstance();
-			const auto btn = container->add(object_ptr<Button>(
-				container,
-				fatr::fa_use_default_rounding(),
-				st::settingsButtonNoIcon
-			));
-			btn->toggleOn(
-				settings.useDefaultRoundingValue()
-			)->toggledValue(
-			) | rpl::filter([&settings](bool enabled) {
-				return (enabled != settings.useDefaultRounding());
-			}) | rpl::on_next([=, &settings](bool enabled) {
+
+		FA::Ui::AddModernSectionHeader(container, fatr::fa_appearance());
+		const auto optionsCard = FA::Ui::CreateCardContainer(container);
+		auto &settings = FASettings::FASettings::getInstance();
+
+		const auto defRoundRow = FA::Ui::AddCardToggle(
+			optionsCard,
+			fatr::fa_use_default_rounding(),
+			fatr::fa_use_default_rounding_desc(),
+			settings.useDefaultRoundingValue(),
+			[=, &settings](bool enabled) {
 				settings.setUseDefaultRounding(enabled);
 				controller->show(Ui::MakeConfirmBox({
 					.text = fatr::fa_setting_need_restart(),
@@ -230,62 +234,44 @@ namespace Settings {
 					},
 					.confirmText = fatr::fa_restart()
 				}));
-			}, container->lifetime());
-			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-				btn, u"fa/appearance/default-rounding"_q, controller);
-		}
-		Ui::AddDividerText(container, fatr::fa_use_default_rounding_desc());
-		{
-			auto &settings = FASettings::FASettings::getInstance();
-			const auto btn = container->add(object_ptr<Button>(
-				container,
-				fatr::fa_screenshot_mode(),
-				st::settingsButtonNoIcon
-			));
-			btn->toggleOn(
-				settings.screenshotModeValue()
-			)->toggledValue(
-			) | rpl::filter([&settings](bool enabled) {
-				return (enabled != settings.screenshotMode());
-			}) | rpl::on_next([&settings](bool enabled) {
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			defRoundRow, u"fa/appearance/default-rounding"_q, controller);
+
+		FA::Ui::AddCardDivider(optionsCard);
+
+		const auto ssModeRow = FA::Ui::AddCardToggle(
+			optionsCard,
+			fatr::fa_screenshot_mode(),
+			fatr::fa_screenshot_mode_desc(),
+			settings.screenshotModeValue(),
+			[&settings](bool enabled) {
 				settings.setScreenshotMode(enabled);
-			}, container->lifetime());
-			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-				btn, u"fa/appearance/screenshot-mode"_q, controller);
-		}
-		Ui::AddDividerText(container, fatr::fa_screenshot_mode_desc());
-		{
-			auto &settings = FASettings::FASettings::getInstance();
-			const auto btn = container->add(object_ptr<Button>(
-				container,
-				fatr::fa_force_snow(),
-				st::settingsButtonNoIcon
-			));
-			btn->toggleOn(
-				settings.forceSnowValue()
-			)->toggledValue(
-			) | rpl::filter([&settings](bool enabled) {
-				return (enabled != settings.forceSnow());
-			}) | rpl::on_next([&settings](bool enabled) {
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			ssModeRow, u"fa/appearance/screenshot-mode"_q, controller);
+
+		FA::Ui::AddCardDivider(optionsCard);
+
+		const auto snowRow = FA::Ui::AddCardToggle(
+			optionsCard,
+			fatr::fa_force_snow(),
+			fatr::fa_force_snow_desc(),
+			settings.forceSnowValue(),
+			[&settings](bool enabled) {
 				settings.setForceSnow(enabled);
-			}, container->lifetime());
-			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-				btn, u"fa/appearance/force-snow"_q, controller);
-		}
-		Ui::AddDividerText(container, fatr::fa_force_snow_desc());
-		{
-			auto &settings = FASettings::FASettings::getInstance();
-			const auto btn = container->add(object_ptr<Button>(
-				container,
-				fatr::fa_hide_stories(),
-				st::settingsButtonNoIcon
-			));
-			btn->toggleOn(
-				settings.hideStoriesValue()
-			)->toggledValue(
-			) | rpl::filter([&settings](bool enabled) {
-				return (enabled != settings.hideStories());
-			}) | rpl::on_next([=, &settings](bool enabled) {
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			snowRow, u"fa/appearance/force-snow"_q, controller);
+
+		FA::Ui::AddCardDivider(optionsCard);
+
+		const auto storiesRow = FA::Ui::AddCardToggle(
+			optionsCard,
+			fatr::fa_hide_stories(),
+			fatr::fa_hide_stories_desc(),
+			settings.hideStoriesValue(),
+			[=, &settings](bool enabled) {
 				settings.setHideStories(enabled);
 				controller->show(Ui::MakeConfirmBox({
 					.text = fatr::fa_setting_need_restart(),
@@ -294,30 +280,22 @@ namespace Settings {
 					},
 					.confirmText = fatr::fa_restart()
 				}));
-			}, container->lifetime());
-			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-				btn, u"fa/appearance/hide-stories"_q, controller);
-		}
-		Ui::AddDividerText(container, fatr::fa_hide_stories_desc());
-		{
-			auto &settings = FASettings::FASettings::getInstance();
-			const auto btn = container->add(object_ptr<Button>(
-				container,
-				fatr::fa_use_tdesktop_themes(),
-				st::settingsButtonNoIcon
-			));
-			btn->toggleOn(
-				settings.useTdesktopThemesValue()
-			)->toggledValue(
-			) | rpl::filter([&settings](bool enabled) {
-				return (enabled != settings.useTdesktopThemes());
-			}) | rpl::on_next([&settings](bool enabled) {
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			storiesRow, u"fa/appearance/hide-stories"_q, controller);
+
+		FA::Ui::AddCardDivider(optionsCard);
+
+		const auto themesRow = FA::Ui::AddCardToggle(
+			optionsCard,
+			fatr::fa_use_tdesktop_themes(),
+			fatr::fa_use_tdesktop_themes_desc(),
+			settings.useTdesktopThemesValue(),
+			[&settings](bool enabled) {
 				settings.setUseTdesktopThemes(enabled);
-			}, container->lifetime());
-			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-				btn, u"fa/appearance/use-tdesktop-themes"_q, controller);
-		}
-		Ui::AddDividerText(container, fatr::fa_use_tdesktop_themes_desc());
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			themesRow, u"fa/appearance/use-tdesktop-themes"_q, controller);
     }
 
     void FAAppearance::SetupFAAppearance(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
