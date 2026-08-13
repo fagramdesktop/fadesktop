@@ -38,12 +38,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_settings.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
-#include "apiwrap.h"
 #include "api/api_blocked_peers.h"
 #include "ui/widgets/continuous_sliders.h"
 
 namespace Settings {
-
     rpl::producer<QString> FAAppearance::title() {
         return fatr::fa_appearance();
     }
@@ -57,6 +55,81 @@ namespace Settings {
 
     void FAAppearance::SetupAppearance(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
         Ui::AddSubsectionTitle(container, fatr::fa_appearance());
+
+		Ui::AddSkip(container);
+		Ui::AddSubsectionTitle(container, fatr::fa_use_material_icon_pack());
+
+		const auto block = container->add(object_ptr<Ui::FixedHeightWidget>(
+			container));
+		
+		const auto group = std::make_shared<Ui::RadioenumGroup<bool>>(
+			FASettings::FASettings::getInstance().useMaterialIconPack());
+		
+		std::vector<Ui::Radioenum<bool>*> buttons;
+		const auto makeButton = [&](bool value, const QString &text, const style::icon *icon) {
+			auto check = std::make_unique<IconPackCheck>(icon, false);
+			const auto weak = check.get();
+			const auto result = Ui::CreateChild<Ui::Radioenum<bool>>(
+				block,
+				group,
+				value,
+				text,
+				st::settingsTheme,
+				std::move(check));
+			result->setCheckAlignment(style::al_top);
+			result->resizeToWidth(result->width());
+			weak->setUpdateCallback([=] { result->update(); });
+			buttons.push_back(result);
+		};
+		
+		makeButton(false, u"Default"_q, &st::menuIconPhoto);
+		makeButton(true, fatr::fa_use_material_icon_pack(fatr::now), &st::menuIconProfile);
+		
+		block->resize(block->width(), buttons[0]->height());
+		block->widthValue(
+		) | rpl::on_next([buttons](int width) {
+			const auto padding = st::settingsButtonNoIcon.padding;
+			width -= padding.left() + padding.right();
+			const auto desired = st::settingsThemePreviewSize.width();
+			const auto count = int(buttons.size());
+			const auto skips = count - 1;
+			const auto minSkip = st::settingsThemeMinSkip;
+			const auto single = [&] {
+				if (width >= skips * minSkip + count * desired) {
+					return desired;
+				}
+				return (width - skips * minSkip) / count;
+			}();
+			if (single <= 0) {
+				return;
+			}
+			const auto fullSkips = width - count * single;
+			const auto skip = fullSkips / float64(skips);
+			auto left = padding.left() + 0.;
+			for (const auto button : buttons) {
+				button->resizeToWidth(single);
+				button->moveToLeft(int(base::SafeRound(left)), 0);
+				left += button->width() + skip;
+			}
+		}, block->lifetime());
+
+		group->setChangedCallback([=](bool enabled) {
+			if (enabled == FASettings::FASettings::getInstance().useMaterialIconPack()) {
+				return;
+			}
+			FASettings::FASettings::getInstance().setUseMaterialIconPack(enabled);
+			controller->show(Ui::MakeConfirmBox({
+				.text = fatr::fa_icon_pack_restart_prompt(),
+				.confirmed = [=] {
+					::Core::Restart();
+				},
+				.confirmText = fatr::fa_icon_pack_restart_now(),
+				.cancelText = fatr::fa_icon_pack_restart_later(),
+			}));
+		});
+		
+		Ui::AddSkip(container);
+		Ui::AddDividerText(container, fatr::fa_use_material_icon_pack_desc());
 
 		const auto roundnessPreview = container->add(
 			object_ptr<RoundnessPreview>(container),
@@ -245,31 +318,6 @@ namespace Settings {
 				btn, u"fa/appearance/use-tdesktop-themes"_q, controller);
 		}
 		Ui::AddDividerText(container, fatr::fa_use_tdesktop_themes_desc());
-		const auto iconPackBtn = container->add(object_ptr<Button>(
-			container,
-			fatr::fa_use_material_icon_pack(),
-			st::settingsButtonNoIcon
-		));
-		iconPackBtn->toggleOn(
-			rpl::single(FASettings::FASettings::getInstance().useMaterialIconPack())
-		)->toggledValue(
-		) | rpl::filter([](bool enabled) {
-			return (enabled != FASettings::FASettings::getInstance().useMaterialIconPack());
-		}) | rpl::on_next([=](bool enabled) {
-			FASettings::FASettings::getInstance().setUseMaterialIconPack(enabled);
-			
-			controller->show(Ui::MakeConfirmBox({
-				.text = fatr::fa_icon_pack_restart_prompt(),
-				.confirmed = [=] {
-					::Core::Restart();
-				},
-				.confirmText = fatr::fa_icon_pack_restart_now(),
-				.cancelText = fatr::fa_icon_pack_restart_later(),
-			}));
-		}, container->lifetime());
-		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-			iconPackBtn, u"fa/appearance/material-icons"_q, controller);
-		Ui::AddDividerText(container, fatr::fa_use_material_icon_pack_desc());
     }
 
     void FAAppearance::SetupFAAppearance(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {
