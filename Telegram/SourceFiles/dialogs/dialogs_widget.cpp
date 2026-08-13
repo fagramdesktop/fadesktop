@@ -2780,7 +2780,6 @@ void Widget::updateStoriesVisibility() {
 		|| (widthAnimation && !suggestionsAnimation)
 		|| _childList
 		|| _stories->empty()
-		|| (FASettings::FASettings::getInstance().hideArchivedStories() ? (_openedFolder != nullptr) : false)
 		|| (pulledDown && hiddenAnimated);
 	const auto hidden = hiddenInstant || hiddenAnimated;
 	const auto changed = (_stories->toggledHidden() != hidden);

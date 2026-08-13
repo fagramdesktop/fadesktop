@@ -113,7 +113,6 @@ void FASettings::loadFromJson(const QJsonObject &obj) {
 	_disableCustomChatBackground = obj.contains("disable_custom_chat_background") ? obj["disable_custom_chat_background"].toBool() : _disableCustomChatBackground.current();
 	_hideAllChatsFolder = obj.contains("hide_all_chats_folder") ? obj["hide_all_chats_folder"].toBool() : _hideAllChatsFolder.current();
 	_hideStories = obj.contains("hide_stories") ? obj["hide_stories"].toBool() : _hideStories.current();
-	_hideArchivedStories = obj.contains("hide_archived_stories") ? obj["hide_archived_stories"].toBool() : _hideArchivedStories.current();
 	_hideOpenWebappButtonChatlist = obj.contains("hide_open_webapp_button_chatlist") ? obj["hide_open_webapp_button_chatlist"].toBool() : _hideOpenWebappButtonChatlist.current();
 	_localPremium = obj.contains("local_premium") ? obj["local_premium"].toBool() : _localPremium.current();
 	_unlimitedPinnedChats = obj.contains("unlimited_pinned_chats") ? obj["unlimited_pinned_chats"].toBool() : _unlimitedPinnedChats.current();
@@ -170,7 +169,6 @@ QJsonObject FASettings::saveToJson() const {
 	obj["disable_custom_chat_background"] = _disableCustomChatBackground.current();
 	obj["hide_all_chats_folder"] = _hideAllChatsFolder.current();
 	obj["hide_stories"] = _hideStories.current();
-	obj["hide_archived_stories"] = _hideArchivedStories.current();
 	obj["hide_open_webapp_button_chatlist"] = _hideOpenWebappButtonChatlist.current();
 	obj["local_premium"] = _localPremium.current();
 	obj["unlimited_pinned_chats"] = _unlimitedPinnedChats.current();
@@ -310,12 +308,6 @@ void FASettings::setHideAllChatsFolder(bool val) {
 void FASettings::setHideStories(bool val) {
 	if (_hideStories.current() == val) return;
 	_hideStories = val;
-	save();
-}
-
-void FASettings::setHideArchivedStories(bool val) {
-	if (_hideArchivedStories.current() == val) return;
-	_hideArchivedStories = val;
 	save();
 }
 

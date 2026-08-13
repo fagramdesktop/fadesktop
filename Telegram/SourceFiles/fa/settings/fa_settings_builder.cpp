@@ -465,15 +465,6 @@ const auto kFAAppearanceMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
-			.id = u"fa/appearance/hide-archived-stories"_q,
-			.title = fatr::fa_hide_archived_stories(fatr::now),
-			.keywords = { u"stories"_q, u"hide"_q, u"disable"_q, u"archived"_q },
-			.icon = { &st::menuIconPalette },
-		};
-	});
-
-	builder.add(nullptr, [] {
-		return SearchEntry{
 			.id = u"fa/appearance/use-tdesktop-themes"_q,
 			.title = fatr::fa_use_tdesktop_themes(fatr::now),
 			.keywords = { u"tdesktop"_q, u"themes"_q, u"theme"_q, u"default"_q },

@@ -230,32 +230,6 @@ namespace Settings {
 			auto &settings = FASettings::FASettings::getInstance();
 			const auto btn = container->add(object_ptr<Button>(
 				container,
-				fatr::fa_hide_archived_stories(),
-				st::settingsButtonNoIcon
-			));
-			btn->toggleOn(
-				settings.hideArchivedStoriesValue()
-			)->toggledValue(
-			) | rpl::filter([&settings](bool enabled) {
-				return (enabled != settings.hideArchivedStories());
-			}) | rpl::on_next([=, &settings](bool enabled) {
-				settings.setHideArchivedStories(enabled);
-				controller->show(Ui::MakeConfirmBox({
-					.text = fatr::fa_setting_need_restart(),
-					.confirmed = [=] {
-						::Core::Restart();
-					},
-					.confirmText = fatr::fa_restart()
-				}));
-			}, container->lifetime());
-			Settings::FADeepLinkMenu::AttachSettingsContextMenu(
-				btn, u"fa/appearance/hide-archived-stories"_q, controller);
-		}
-		Ui::AddDividerText(container, fatr::fa_hide_archived_stories_desc());
-		{
-			auto &settings = FASettings::FASettings::getInstance();
-			const auto btn = container->add(object_ptr<Button>(
-				container,
 				fatr::fa_use_tdesktop_themes(),
 				st::settingsButtonNoIcon
 			));
