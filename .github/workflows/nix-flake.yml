@@ -1,0 +1,84 @@
+name: Nix Flake Update
+
+on:
+  workflow_call:
+    inputs:
+      release_tag:
+        description: 'Release tag to update flake for'
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to update flake for'
+        type: string
+        required: true
+
+jobs:
+  update-flake:
+    name: Update Nix Flake
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.PAT }}
+          ref: dev
+          sparse-checkout: |
+            nix
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Prefetch source and compute hash
+        id: prefetch
+        run: |
+          OWNER="fagramdesktop"
+          REPO="fadesktop"
+          TAG="${{ inputs.release_tag }}"
+
+          REV=$(curl -sf "https://api.github.com/repos/${OWNER}/${REPO}/git/ref/tags/${TAG}" \
+            | jq -r '.object.sha')
+
+          if [ "$REV" = "null" ] || [ -z "$REV" ]; then
+            echo "::error::Could not resolve tag ${TAG} to a commit"
+            exit 1
+          fi
+          echo "Resolved tag ${TAG} to commit ${REV}"
+
+          PREFETCH_JSON=$(nix shell nixpkgs#nix-prefetch-git -c nix-prefetch-git \
+            --url "https://github.com/${OWNER}/${REPO}" \
+            --rev "$REV" \
+            --fetch-submodules \
+            --quiet)
+
+          HASH=$(echo "$PREFETCH_JSON" | jq -r '.hash')
+          echo "Hash: $HASH"
+          echo "Rev: $REV"
+
+          echo "rev=$REV" >> $GITHUB_OUTPUT
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+
+      - name: Update nix/unwrapped.nix
+        run: |
+          REV="${{ steps.prefetch.outputs.rev }}"
+          HASH="${{ steps.prefetch.outputs.hash }}"
+          VERSION="${{ inputs.release_tag }}"
+
+          sed -i "s|version = \".*\";|version = \"${VERSION}\";|" nix/unwrapped.nix
+          sed -i "s|rev = \".*\";|rev = \"${REV}\";|" nix/unwrapped.nix
+          sed -i "s|hash = \".*\";|hash = \"${HASH}\";|" nix/unwrapped.nix
+
+          echo "Updated nix/unwrapped.nix:"
+          cat nix/unwrapped.nix
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "Burhanverse"
+          git config user.email "burhanverse.eu.org"
+          git add nix/unwrapped.nix
+          git commit -m "nix: update flake to ${{ inputs.release_tag }}"
+          git push
