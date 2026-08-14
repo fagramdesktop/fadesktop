@@ -65,7 +65,9 @@ public:
 		}, lifetime());
 
 		std::move(value) | rpl::on_next([this](bool checked) {
-			setChecked(checked, anim::type::normal);
+			const auto animated = _hasValue ? anim::type::normal : anim::type::instant;
+			_hasValue = true;
+			setChecked(checked, animated);
 		}, lifetime());
 
 		addClickHandler([this] {
@@ -80,7 +82,7 @@ public:
 	}
 
 	void setChecked(bool checked, anim::type animated = anim::type::normal) {
-		if (_checked == checked) {
+		if (_checked == checked && _hasValue) {
 			return;
 		}
 		_checked = checked;
@@ -244,6 +246,7 @@ private:
 		update();
 	}
 
+	bool _hasValue = false;
 	bool _checked = false;
 	::Ui::Animations::Simple _animation;
 	Fn<void(bool)> _onToggle;
