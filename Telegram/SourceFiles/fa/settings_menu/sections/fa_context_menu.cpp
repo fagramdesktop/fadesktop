@@ -95,10 +95,8 @@ namespace Settings {
 				slidersCard,
 				st::settingsAudioVolumeLabel),
 			st::settingsAudioVolumeLabelPadding);
-		const auto buttonSizeSlider = slidersCard->add(
-			object_ptr<Ui::MediaSlider>(
-				slidersCard,
-				st::settingsAudioVolumeSlider),
+		const auto buttonSizeSlider = FA::Ui::AddCardSlider(
+			slidersCard,
 			st::settingsAudioVolumeSliderPadding);
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			buttonSizeSlider,
@@ -111,7 +109,6 @@ namespace Settings {
 			updateButtonSizeLabel(value);
 			FASettings::FASettings::getInstance().setContextMenuShortcutButtonSize(value);
 		};
-		buttonSizeSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 		buttonSizeSlider->setPseudoDiscrete(
 			41,
 			[](int val) { return val + 24; },
@@ -144,10 +141,8 @@ namespace Settings {
 				slidersCard,
 				st::settingsAudioVolumeLabel),
 			st::settingsAudioVolumeLabelPadding);
-		const auto iconSizeSlider = slidersCard->add(
-			object_ptr<Ui::MediaSlider>(
-				slidersCard,
-				st::settingsAudioVolumeSlider),
+		const auto iconSizeSlider = FA::Ui::AddCardSlider(
+			slidersCard,
 			st::settingsAudioVolumeSliderPadding);
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			iconSizeSlider,
@@ -160,7 +155,6 @@ namespace Settings {
 			updateIconSizeLabel(value);
 			FASettings::FASettings::getInstance().setContextMenuShortcutIconSize(value);
 		};
-		iconSizeSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 		iconSizeSlider->setPseudoDiscrete(
 			33,
 			[](int val) { return val + 16; },
@@ -193,10 +187,8 @@ namespace Settings {
 				slidersCard,
 				st::settingsAudioVolumeLabel),
 			st::settingsAudioVolumeLabelPadding);
-		const auto spacingSlider = slidersCard->add(
-			object_ptr<Ui::MediaSlider>(
-				slidersCard,
-				st::settingsAudioVolumeSlider),
+		const auto spacingSlider = FA::Ui::AddCardSlider(
+			slidersCard,
 			st::settingsAudioVolumeSliderPadding);
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			spacingSlider,
@@ -209,7 +201,6 @@ namespace Settings {
 			updateSpacingLabel(value);
 			FASettings::FASettings::getInstance().setContextMenuShortcutSpacing(value);
 		};
-		spacingSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 		spacingSlider->setPseudoDiscrete(
 			25,
 			[](int val) { return val; },
@@ -242,10 +233,8 @@ namespace Settings {
 				slidersCard,
 				st::settingsAudioVolumeLabel),
 			st::settingsAudioVolumeLabelPadding);
-		const auto hPaddingSlider = slidersCard->add(
-			object_ptr<Ui::MediaSlider>(
-				slidersCard,
-				st::settingsAudioVolumeSlider),
+		const auto hPaddingSlider = FA::Ui::AddCardSlider(
+			slidersCard,
 			st::settingsAudioVolumeSliderPadding);
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			hPaddingSlider,
@@ -258,7 +247,6 @@ namespace Settings {
 			updateHPaddingLabel(value);
 			FASettings::FASettings::getInstance().setContextMenuShortcutHorizontalPadding(value);
 		};
-		hPaddingSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 		hPaddingSlider->setPseudoDiscrete(
 			17,
 			[](int val) { return val; },
@@ -291,10 +279,8 @@ namespace Settings {
 				slidersCard,
 				st::settingsAudioVolumeLabel),
 			st::settingsAudioVolumeLabelPadding);
-		const auto vPaddingSlider = slidersCard->add(
-			object_ptr<Ui::MediaSlider>(
-				slidersCard,
-				st::settingsAudioVolumeSlider),
+		const auto vPaddingSlider = FA::Ui::AddCardSlider(
+			slidersCard,
 			st::settingsAudioVolumeSliderPadding);
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			vPaddingSlider,
@@ -307,7 +293,6 @@ namespace Settings {
 			updateVPaddingLabel(value);
 			FASettings::FASettings::getInstance().setContextMenuShortcutVerticalPadding(value);
 		};
-		vPaddingSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 		vPaddingSlider->setPseudoDiscrete(
 			17,
 			[](int val) { return val; },
@@ -340,10 +325,8 @@ namespace Settings {
 				slidersCard,
 				st::settingsAudioVolumeLabel),
 			st::settingsAudioVolumeLabelPadding);
-		const auto cornerRadiusSlider = slidersCard->add(
-			object_ptr<Ui::MediaSlider>(
-				slidersCard,
-				st::settingsAudioVolumeSlider),
+		const auto cornerRadiusSlider = FA::Ui::AddCardSlider(
+			slidersCard,
 			st::settingsAudioVolumeSliderPadding);
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			cornerRadiusSlider,
@@ -356,7 +339,6 @@ namespace Settings {
 			updateCornerRadiusLabel(value);
 			FASettings::FASettings::getInstance().setContextMenuShortcutCornerRadius(value);
 		};
-		cornerRadiusSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 		cornerRadiusSlider->setPseudoDiscrete(
 			21,
 			[](int val) { return val; },

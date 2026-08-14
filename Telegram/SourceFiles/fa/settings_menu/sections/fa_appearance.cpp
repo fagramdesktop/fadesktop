@@ -147,10 +147,8 @@ namespace Settings {
 				roundnessCard,
 				st::settingsAudioVolumeLabel),
 			style::margins(16, 12, 16, 4));
-    	const auto userpicRoundnessSlider = roundnessCard->add(
-			object_ptr<Ui::MediaSlider>(
-				roundnessCard,
-				st::settingsAudioVolumeSlider),
+    	const auto userpicRoundnessSlider = FA::Ui::AddCardSlider(
+			roundnessCard,
 			style::margins(16, 4, 16, 14));
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			userpicRoundnessSlider,
@@ -207,7 +205,6 @@ namespace Settings {
 			roundnessPreview->repaint();
 			FASettings::FASettings::getInstance().setRoundness(value);
 		};
-    	userpicRoundnessSlider->resize(st::settingsAudioVolumeSlider.seekSize);
     	userpicRoundnessSlider->setPseudoDiscrete(
 			51,
 			[](int val) { return val; },

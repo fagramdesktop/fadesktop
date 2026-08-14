@@ -18,6 +18,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/wrap/vertical_layout.h"
 #include "ui/wrap/padding_wrap.h"
 #include "styles/style_settings.h"
+#include "styles/style_widgets.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 
@@ -555,6 +556,227 @@ not_null<::Ui::RpWidget*> AddCardRadio(
 
 void AddCardDivider(not_null<::Ui::VerticalLayout*> card) {
 	card->add(object_ptr<CardDividerWidget>(card));
+}
+
+MaterialSlider::MaterialSlider(QWidget *parent)
+: ContinuousSlider(parent) {
+	resize(width(), 24);
+}
+
+int MaterialSlider::resizeGetHeight(int newWidth) {
+	return 24;
+}
+
+QSize MaterialSlider::getSeekDecreaseSize() const {
+	return QSize();
+}
+
+float64 MaterialSlider::getOverDuration() const {
+	return 150.0;
+}
+
+void MaterialSlider::addDivider(float64 atValue) {
+	_dividers.push_back(atValue);
+	update();
+}
+
+void MaterialSlider::clearDividers() {
+	_dividers.clear();
+	update();
+}
+
+void MaterialSlider::paintEvent(QPaintEvent *e) {
+	auto p = QPainter(this);
+	PainterHighQualityEnabler hq(p);
+
+	p.setPen(Qt::NoPen);
+	p.setOpacity(fadeOpacity());
+
+	const auto horizontal = isHorizontal();
+	const auto trackThickness = 16.0;
+	const auto radius = trackThickness / 2.0;
+	const auto disabled = isDisabled();
+
+	const auto value = horizontal
+		? getCurrentValue()
+		: (1. - getCurrentValue());
+
+	const auto from = 0.0;
+	const auto length = float64(horizontal ? width() : height());
+	const auto mid = from + value * length;
+
+	const auto activeFg = disabled
+		? st::windowSubTextFg->c
+		: st::windowActiveTextFg->c;
+	const auto inactiveFg = disabled
+		? st::windowBg->c
+		: st::sliderBgInactive->c;
+
+	const auto gap = 4.0;
+	const auto halfGap = gap / 2.0;
+
+	if (horizontal) {
+		const auto trackY = (height() - trackThickness) / 2.0;
+		const auto activeEnd = mid - halfGap;
+		const auto inactiveStart = mid + halfGap;
+
+		if (activeEnd > from) {
+			const auto x = from;
+			const auto y = trackY;
+			const auto w = activeEnd - from;
+			const auto h = trackThickness;
+			const auto rOuter = h / 2.0;
+			const auto rInner = 2.0;
+
+			p.setPen(Qt::NoPen);
+			p.setBrush(activeFg);
+			if (w <= rOuter) {
+				p.drawRoundedRect(QRectF(x, y, w, h), w / 2.0, w / 2.0);
+			} else {
+				auto path = QPainterPath();
+				path.moveTo(x + rOuter, y);
+				path.lineTo(x + w - rInner, y);
+				path.quadTo(x + w, y, x + w, y + rInner);
+				path.lineTo(x + w, y + h - rInner);
+				path.quadTo(x + w, y + h, x + w - rInner, y + h);
+				path.lineTo(x + rOuter, y + h);
+				path.quadTo(x, y + h, x, y + h - rOuter);
+				path.lineTo(x, y + rOuter);
+				path.quadTo(x, y, x + rOuter, y);
+				p.drawPath(path);
+			}
+		}
+
+		if (inactiveStart < length) {
+			const auto x = inactiveStart;
+			const auto y = trackY;
+			const auto w = length - inactiveStart;
+			const auto h = trackThickness;
+			const auto rOuter = h / 2.0;
+			const auto rInner = 2.0;
+
+			p.setPen(Qt::NoPen);
+			p.setBrush(inactiveFg);
+			if (w <= rOuter) {
+				p.drawRoundedRect(QRectF(x, y, w, h), w / 2.0, w / 2.0);
+			} else {
+				auto path = QPainterPath();
+				path.moveTo(x + rInner, y);
+				path.lineTo(x + w - rOuter, y);
+				path.quadTo(x + w, y, x + w, y + rOuter);
+				path.lineTo(x + w, y + h - rOuter);
+				path.quadTo(x + w, y + h, x + w - rOuter, y + h);
+				path.lineTo(x + rInner, y + h);
+				path.quadTo(x, y + h, x, y + h - rInner);
+				path.lineTo(x, y + rInner);
+				path.quadTo(x, y, x + rInner, y);
+				p.drawPath(path);
+			}
+		}
+
+		const auto dotCenterX = length - radius;
+		const auto dotCenterY = trackY + radius;
+		const auto dotRadius = 2.0;
+		if (inactiveStart + 4.0 < dotCenterX - dotRadius) {
+			p.setPen(Qt::NoPen);
+			p.setBrush(activeFg);
+			p.drawEllipse(QPointF(dotCenterX, dotCenterY), dotRadius, dotRadius);
+		}
+	} else {
+		const auto trackX = (width() - trackThickness) / 2.0;
+		const auto inactiveEnd = mid - halfGap;
+		const auto activeStart = mid + halfGap;
+
+		if (inactiveEnd > from) {
+			const auto x = trackX;
+			const auto y = from;
+			const auto w = trackThickness;
+			const auto h = inactiveEnd - from;
+			const auto rOuter = w / 2.0;
+			const auto rInner = 2.0;
+
+			p.setPen(Qt::NoPen);
+			p.setBrush(inactiveFg);
+			if (h <= rOuter) {
+				p.drawRoundedRect(QRectF(x, y, w, h), h / 2.0, h / 2.0);
+			} else {
+				auto path = QPainterPath();
+				path.moveTo(x + rOuter, y);
+				path.quadTo(x + w, y, x + w, y + rOuter);
+				path.lineTo(x + w, y + h - rInner);
+				path.quadTo(x + w, y + h, x + w - rInner, y + h);
+				path.lineTo(x + rInner, y + h);
+				path.quadTo(x, y + h, x, y + h - rInner);
+				path.lineTo(x, y + rOuter);
+				path.quadTo(x, y, x + rOuter, y);
+				p.drawPath(path);
+			}
+		}
+
+		if (activeStart < length) {
+			const auto x = trackX;
+			const auto y = activeStart;
+			const auto w = trackThickness;
+			const auto h = length - activeStart;
+			const auto rOuter = w / 2.0;
+			const auto rInner = 2.0;
+
+			p.setPen(Qt::NoPen);
+			p.setBrush(activeFg);
+			if (h <= rOuter) {
+				p.drawRoundedRect(QRectF(x, y, w, h), h / 2.0, h / 2.0);
+			} else {
+				auto path = QPainterPath();
+				path.moveTo(x + rInner, y);
+				path.lineTo(x + w - rInner, y);
+				path.quadTo(x + w, y, x + w, y + rInner);
+				path.lineTo(x + w, y + h - rOuter);
+				path.quadTo(x + w, y + h, x + w - rOuter, y + h);
+				path.lineTo(x + rOuter, y + h);
+				path.quadTo(x, y + h, x, y + h - rOuter);
+				path.lineTo(x, y + rInner);
+				path.quadTo(x, y, x + rInner, y);
+				p.drawPath(path);
+			}
+		}
+
+		const auto dotCenterX = trackX + radius;
+		const auto dotCenterY = from + radius;
+		const auto dotRadius = 2.0;
+		if (inactiveEnd - 4.0 > dotCenterY + dotRadius) {
+			p.setPen(Qt::NoPen);
+			p.setBrush(activeFg);
+			p.drawEllipse(QPointF(dotCenterX, dotCenterY), dotRadius, dotRadius);
+		}
+	}
+
+	if (!_dividers.empty()) {
+		for (const auto &divValue : _dividers) {
+			const auto dividerValue = horizontal
+				? divValue
+				: (1.0 - divValue);
+			const auto dividerMid = from + dividerValue * length;
+			const auto dist = std::abs(dividerMid - mid);
+			if (dist > halfGap + 2.0) {
+				const auto isPassed = (horizontal ? (dividerValue <= value) : (dividerValue >= value));
+				p.setBrush(isPassed ? inactiveFg : activeFg);
+				const auto dRadius = 2.0;
+				if (horizontal) {
+					p.drawEllipse(QPointF(dividerMid, (height() / 2.0)), dRadius, dRadius);
+				} else {
+					p.drawEllipse(QPointF((width() / 2.0), dividerMid), dRadius, dRadius);
+				}
+			}
+		}
+	}
+}
+
+not_null<MaterialSlider*> AddCardSlider(
+		not_null<::Ui::VerticalLayout*> card,
+		const style::margins &margin) {
+	return card->add(
+		object_ptr<MaterialSlider>(card),
+		margin);
 }
 
 } // namespace FA::Ui
