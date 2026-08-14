@@ -105,18 +105,18 @@ QImage IconPackCheck::prepareRippleMask() const { return QImage(); }
 bool IconPackCheck::checkRippleStartPosition(QPoint position) const { return false; }
 
 RoundnessPreview::RoundnessPreview(QWidget *parent) : RpWidget(parent) {
-	resize(width(), 56);
+	resize(width(), 60);
 }
 
 int RoundnessPreview::resizeGetHeight(int newWidth) {
-	return 56;
+	return 60;
 }
 
 void RoundnessPreview::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 	PainterHighQualityEnabler hq(p);
 
-	const auto avatarSize = 48;
+	const auto avatarSize = 40;
 	const auto roundness = FASettings::FASettings::getInstance().roundness();
 	const auto radius = avatarSize * (roundness / 100.);
 	const auto avatarX = 16;
@@ -131,14 +131,14 @@ void RoundnessPreview::paintEvent(QPaintEvent *e) {
 
 	p.setPen(Qt::NoPen);
 	p.setBrush(st::settingsThemeNotSupportedBg);
-	p.drawEllipse(QRectF(avatarX + 17, avatarY + 10, 14, 14));
+	p.drawEllipse(QRectF(avatarX + 14, avatarY + 8, 12, 12));
 	{
 		PainterHighQualityEnabler hqBody(p);
 		p.save();
 		auto clipPath = QPainterPath();
 		clipPath.addRoundedRect(QRectF(avatarX, avatarY, avatarSize, avatarSize), radius, radius);
 		p.setClipPath(clipPath);
-		p.drawEllipse(QRectF(avatarX + 7, avatarY + 27, 34, 28));
+		p.drawEllipse(QRectF(avatarX + 6, avatarY + 23, 28, 24));
 		p.restore();
 	}
 

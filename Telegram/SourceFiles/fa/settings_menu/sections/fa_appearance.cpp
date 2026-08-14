@@ -138,7 +138,8 @@ namespace Settings {
 		FA::Ui::AddModernSectionHeader(container, fatr::fa_avatar_roundness());
 		const auto roundnessCard = FA::Ui::CreateCardContainer(container);
 		const auto roundnessPreview = roundnessCard->add(
-			object_ptr<RoundnessPreview>(roundnessCard));
+			object_ptr<RoundnessPreview>(roundnessCard),
+			style::margins(0, 4, 0, 4));
 
 		FA::Ui::AddCardDivider(roundnessCard);
 
@@ -149,7 +150,7 @@ namespace Settings {
 			style::margins(16, 12, 16, 4));
     	const auto userpicRoundnessSlider = FA::Ui::AddCardSlider(
 			roundnessCard,
-			style::margins(16, 4, 16, 14));
+			style::margins(16, 4, 16, 16));
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			userpicRoundnessSlider,
 			u"fa/appearance/roundness"_q,
