@@ -560,15 +560,19 @@ void AddCardDivider(not_null<::Ui::VerticalLayout*> card) {
 
 MaterialSlider::MaterialSlider(QWidget *parent)
 : ContinuousSlider(parent) {
-	resize(width(), 24);
+	resize(width(), 32);
 }
 
 int MaterialSlider::resizeGetHeight(int newWidth) {
-	return 24;
+	return 32;
 }
 
 QSize MaterialSlider::getSeekDecreaseSize() const {
-	return QSize();
+	if (!_alwaysDisplayMarker) {
+		return QSize();
+	}
+	const auto handleThickness = 4;
+	return QSize(handleThickness, handleThickness);
 }
 
 float64 MaterialSlider::getOverDuration() const {
@@ -596,6 +600,7 @@ void MaterialSlider::paintEvent(QPaintEvent *e) {
 	const auto trackThickness = 16.0;
 	const auto radius = trackThickness / 2.0;
 	const auto disabled = isDisabled();
+	const auto over = getCurrentOverFactor();
 
 	const auto value = horizontal
 		? getCurrentValue()
@@ -603,7 +608,15 @@ void MaterialSlider::paintEvent(QPaintEvent *e) {
 
 	const auto from = 0.0;
 	const auto length = float64(horizontal ? width() : height());
-	const auto mid = from + value * length;
+
+	const auto handleThickness = 4.0;
+	const auto handleLength = 28.0;
+	const auto alwaysSeekSize = handleThickness;
+	const auto mid = _alwaysDisplayMarker
+		? (from
+			+ (alwaysSeekSize / 2.0)
+			+ value * (length - alwaysSeekSize))
+		: (from + value * length);
 
 	const auto activeFg = disabled
 		? st::windowSubTextFg->c
@@ -611,38 +624,44 @@ void MaterialSlider::paintEvent(QPaintEvent *e) {
 	const auto inactiveFg = disabled
 		? st::windowBg->c
 		: st::sliderBgInactive->c;
+	const auto seekFg = activeFg;
+
+	const auto markerSizeRatio = disabled
+		? 0.0
+		: (_alwaysDisplayMarker ? 1.0 : over);
 
 	const auto gap = 4.0;
-	const auto halfGap = gap / 2.0;
+	const auto effectiveGap = gap * markerSizeRatio;
+	const auto effectiveHandleThickness = handleThickness * markerSizeRatio;
 
 	if (horizontal) {
 		const auto trackY = (height() - trackThickness) / 2.0;
-		const auto activeEnd = mid - halfGap;
-		const auto inactiveStart = mid + halfGap;
+		const auto activeEnd = mid - (effectiveHandleThickness / 2.0) - effectiveGap;
+		const auto inactiveStart = mid + (effectiveHandleThickness / 2.0) + effectiveGap;
 
 		if (activeEnd > from) {
 			const auto x = from;
 			const auto y = trackY;
 			const auto w = activeEnd - from;
 			const auto h = trackThickness;
-			const auto rOuter = h / 2.0;
-			const auto rInner = 2.0;
+			const auto rLeft = h / 2.0;
+			const auto rRight = (inactiveStart >= length) ? (h / 2.0) : 2.0;
 
 			p.setPen(Qt::NoPen);
 			p.setBrush(activeFg);
-			if (w <= rOuter) {
+			if (w <= rLeft || (rLeft == rRight && w <= h)) {
 				p.drawRoundedRect(QRectF(x, y, w, h), w / 2.0, w / 2.0);
 			} else {
 				auto path = QPainterPath();
-				path.moveTo(x + rOuter, y);
-				path.lineTo(x + w - rInner, y);
-				path.quadTo(x + w, y, x + w, y + rInner);
-				path.lineTo(x + w, y + h - rInner);
-				path.quadTo(x + w, y + h, x + w - rInner, y + h);
-				path.lineTo(x + rOuter, y + h);
-				path.quadTo(x, y + h, x, y + h - rOuter);
-				path.lineTo(x, y + rOuter);
-				path.quadTo(x, y, x + rOuter, y);
+				path.moveTo(x + rLeft, y);
+				path.lineTo(x + w - rRight, y);
+				path.quadTo(x + w, y, x + w, y + rRight);
+				path.lineTo(x + w, y + h - rRight);
+				path.quadTo(x + w, y + h, x + w - rRight, y + h);
+				path.lineTo(x + rLeft, y + h);
+				path.quadTo(x, y + h, x, y + h - rLeft);
+				path.lineTo(x, y + rLeft);
+				path.quadTo(x, y, x + rLeft, y);
 				p.drawPath(path);
 			}
 		}
@@ -652,24 +671,24 @@ void MaterialSlider::paintEvent(QPaintEvent *e) {
 			const auto y = trackY;
 			const auto w = length - inactiveStart;
 			const auto h = trackThickness;
-			const auto rOuter = h / 2.0;
-			const auto rInner = 2.0;
+			const auto rLeft = (activeEnd <= from) ? (h / 2.0) : 2.0;
+			const auto rRight = h / 2.0;
 
 			p.setPen(Qt::NoPen);
 			p.setBrush(inactiveFg);
-			if (w <= rOuter) {
+			if (w <= rRight || (rLeft == rRight && w <= h)) {
 				p.drawRoundedRect(QRectF(x, y, w, h), w / 2.0, w / 2.0);
 			} else {
 				auto path = QPainterPath();
-				path.moveTo(x + rInner, y);
-				path.lineTo(x + w - rOuter, y);
-				path.quadTo(x + w, y, x + w, y + rOuter);
-				path.lineTo(x + w, y + h - rOuter);
-				path.quadTo(x + w, y + h, x + w - rOuter, y + h);
-				path.lineTo(x + rInner, y + h);
-				path.quadTo(x, y + h, x, y + h - rInner);
-				path.lineTo(x, y + rInner);
-				path.quadTo(x, y, x + rInner, y);
+				path.moveTo(x + rLeft, y);
+				path.lineTo(x + w - rRight, y);
+				path.quadTo(x + w, y, x + w, y + rRight);
+				path.lineTo(x + w, y + h - rRight);
+				path.quadTo(x + w, y + h, x + w - rRight, y + h);
+				path.lineTo(x + rLeft, y + h);
+				path.quadTo(x, y + h, x, y + h - rLeft);
+				path.lineTo(x, y + rLeft);
+				path.quadTo(x, y, x + rLeft, y);
 				p.drawPath(path);
 			}
 		}
@@ -682,33 +701,44 @@ void MaterialSlider::paintEvent(QPaintEvent *e) {
 			p.setBrush(activeFg);
 			p.drawEllipse(QPointF(dotCenterX, dotCenterY), dotRadius, dotRadius);
 		}
+
+		if (markerSizeRatio > 0.0) {
+			const auto hW = std::max(effectiveHandleThickness, 1.0);
+			const auto hH = handleLength * markerSizeRatio;
+			const auto hX = mid - hW / 2.0;
+			const auto hY = (height() - hH) / 2.0;
+			const auto hRadius = hW / 2.0;
+			p.setPen(Qt::NoPen);
+			p.setBrush(seekFg);
+			p.drawRoundedRect(QRectF(hX, hY, hW, hH), hRadius, hRadius);
+		}
 	} else {
 		const auto trackX = (width() - trackThickness) / 2.0;
-		const auto inactiveEnd = mid - halfGap;
-		const auto activeStart = mid + halfGap;
+		const auto inactiveEnd = mid - (effectiveHandleThickness / 2.0) - effectiveGap;
+		const auto activeStart = mid + (effectiveHandleThickness / 2.0) + effectiveGap;
 
 		if (inactiveEnd > from) {
 			const auto x = trackX;
 			const auto y = from;
 			const auto w = trackThickness;
 			const auto h = inactiveEnd - from;
-			const auto rOuter = w / 2.0;
-			const auto rInner = 2.0;
+			const auto rTop = w / 2.0;
+			const auto rBottom = (activeStart >= length) ? (w / 2.0) : 2.0;
 
 			p.setPen(Qt::NoPen);
 			p.setBrush(inactiveFg);
-			if (h <= rOuter) {
+			if (h <= rTop || (rTop == rBottom && h <= w)) {
 				p.drawRoundedRect(QRectF(x, y, w, h), h / 2.0, h / 2.0);
 			} else {
 				auto path = QPainterPath();
-				path.moveTo(x + rOuter, y);
-				path.quadTo(x + w, y, x + w, y + rOuter);
-				path.lineTo(x + w, y + h - rInner);
-				path.quadTo(x + w, y + h, x + w - rInner, y + h);
-				path.lineTo(x + rInner, y + h);
-				path.quadTo(x, y + h, x, y + h - rInner);
-				path.lineTo(x, y + rOuter);
-				path.quadTo(x, y, x + rOuter, y);
+				path.moveTo(x + rTop, y);
+				path.quadTo(x + w, y, x + w, y + rTop);
+				path.lineTo(x + w, y + h - rBottom);
+				path.quadTo(x + w, y + h, x + w - rBottom, y + h);
+				path.lineTo(x + rBottom, y + h);
+				path.quadTo(x, y + h, x, y + h - rBottom);
+				path.lineTo(x, y + rTop);
+				path.quadTo(x, y, x + rTop, y);
 				p.drawPath(path);
 			}
 		}
@@ -718,24 +748,24 @@ void MaterialSlider::paintEvent(QPaintEvent *e) {
 			const auto y = activeStart;
 			const auto w = trackThickness;
 			const auto h = length - activeStart;
-			const auto rOuter = w / 2.0;
-			const auto rInner = 2.0;
+			const auto rTop = (inactiveEnd <= from) ? (w / 2.0) : 2.0;
+			const auto rBottom = w / 2.0;
 
 			p.setPen(Qt::NoPen);
 			p.setBrush(activeFg);
-			if (h <= rOuter) {
+			if (h <= rBottom || (rTop == rBottom && h <= w)) {
 				p.drawRoundedRect(QRectF(x, y, w, h), h / 2.0, h / 2.0);
 			} else {
 				auto path = QPainterPath();
-				path.moveTo(x + rInner, y);
-				path.lineTo(x + w - rInner, y);
-				path.quadTo(x + w, y, x + w, y + rInner);
-				path.lineTo(x + w, y + h - rOuter);
-				path.quadTo(x + w, y + h, x + w - rOuter, y + h);
-				path.lineTo(x + rOuter, y + h);
-				path.quadTo(x, y + h, x, y + h - rOuter);
-				path.lineTo(x, y + rInner);
-				path.quadTo(x, y, x + rInner, y);
+				path.moveTo(x + rTop, y);
+				path.lineTo(x + w - rTop, y);
+				path.quadTo(x + w, y, x + w, y + rTop);
+				path.lineTo(x + w, y + h - rBottom);
+				path.quadTo(x + w, y + h, x + w - rBottom, y + h);
+				path.lineTo(x + rBottom, y + h);
+				path.quadTo(x, y + h, x, y + h - rBottom);
+				path.lineTo(x, y + rTop);
+				path.quadTo(x, y, x + rTop, y);
 				p.drawPath(path);
 			}
 		}
@@ -748,6 +778,17 @@ void MaterialSlider::paintEvent(QPaintEvent *e) {
 			p.setBrush(activeFg);
 			p.drawEllipse(QPointF(dotCenterX, dotCenterY), dotRadius, dotRadius);
 		}
+
+		if (markerSizeRatio > 0.0) {
+			const auto hW = handleLength * markerSizeRatio;
+			const auto hH = std::max(effectiveHandleThickness, 1.0);
+			const auto hX = (width() - hW) / 2.0;
+			const auto hY = mid - hH / 2.0;
+			const auto hRadius = hH / 2.0;
+			p.setPen(Qt::NoPen);
+			p.setBrush(seekFg);
+			p.drawRoundedRect(QRectF(hX, hY, hW, hH), hRadius, hRadius);
+		}
 	}
 
 	if (!_dividers.empty()) {
@@ -757,7 +798,7 @@ void MaterialSlider::paintEvent(QPaintEvent *e) {
 				: (1.0 - divValue);
 			const auto dividerMid = from + dividerValue * length;
 			const auto dist = std::abs(dividerMid - mid);
-			if (dist > halfGap + 2.0) {
+			if (dist > (effectiveHandleThickness / 2.0) + effectiveGap + 2.0) {
 				const auto isPassed = (horizontal ? (dividerValue <= value) : (dividerValue >= value));
 				p.setBrush(isPassed ? inactiveFg : activeFg);
 				const auto dRadius = 2.0;
