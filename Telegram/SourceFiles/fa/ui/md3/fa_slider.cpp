@@ -13,6 +13,61 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_widgets.h"
 
 namespace FA::Ui {
+namespace {
+
+[[nodiscard]] QPainterPath MakeHorizontalTrackPath(
+		float64 x,
+		float64 y,
+		float64 w,
+		float64 h,
+		float64 rLeft,
+		float64 rRight) {
+	if (w <= rLeft + rRight) {
+		auto path = QPainterPath();
+		path.addRoundedRect(QRectF(x, y, w, h), std::min(rLeft, w / 2.0), std::min(rLeft, h / 2.0));
+		return path;
+	}
+	auto path = QPainterPath();
+	path.moveTo(x + rLeft, y);
+	path.lineTo(x + w - rRight, y);
+	path.quadTo(x + w, y, x + w, y + rRight);
+	path.lineTo(x + w, y + h - rRight);
+	path.quadTo(x + w, y + h, x + w - rRight, y + h);
+	path.lineTo(x + rLeft, y + h);
+	path.quadTo(x, y + h, x, y + h - rLeft);
+	path.lineTo(x, y + rLeft);
+	path.quadTo(x, y, x + rLeft, y);
+	path.closeSubpath();
+	return path;
+}
+
+[[nodiscard]] QPainterPath MakeVerticalTrackPath(
+		float64 x,
+		float64 y,
+		float64 w,
+		float64 h,
+		float64 rTop,
+		float64 rBottom) {
+	if (h <= rTop + rBottom) {
+		auto path = QPainterPath();
+		path.addRoundedRect(QRectF(x, y, w, h), std::min(rTop, w / 2.0), std::min(rTop, h / 2.0));
+		return path;
+	}
+	auto path = QPainterPath();
+	path.moveTo(x + rTop, y);
+	path.lineTo(x + w - rTop, y);
+	path.quadTo(x + w, y, x + w, y + rTop);
+	path.lineTo(x + w, y + h - rBottom);
+	path.quadTo(x + w, y + h, x + w - rBottom, y + h);
+	path.lineTo(x + rBottom, y + h);
+	path.quadTo(x, y + h, x, y + h - rBottom);
+	path.lineTo(x, y + rTop);
+	path.quadTo(x, y, x + rTop, y);
+	path.closeSubpath();
+	return path;
+}
+
+} // namespace
 
 MaterialSlider::MaterialSlider(QWidget *parent)
 : ContinuousSlider(parent) {
@@ -110,21 +165,7 @@ void MaterialSlider::paintEvent(QPaintEvent *e) {
 
 				p.setPen(Qt::NoPen);
 				p.setBrush(activeFg);
-				if (w <= rLeft || (rLeft == rRight && w <= h)) {
-					p.drawRoundedRect(QRectF(x, y, w, h), w / 2.0, w / 2.0);
-				} else {
-					auto path = QPainterPath();
-					path.moveTo(x + rLeft, y);
-					path.lineTo(x + w - rRight, y);
-					path.quadTo(x + w, y, x + w, y + rRight);
-					path.lineTo(x + w, y + h - rRight);
-					path.quadTo(x + w, y + h, x + w - rRight, y + h);
-					path.lineTo(x + rLeft, y + h);
-					path.quadTo(x, y + h, x, y + h - rLeft);
-					path.lineTo(x + rLeft, y);
-					path.quadTo(x, y, x + rLeft, y);
-					p.drawPath(path);
-				}
+				p.drawPath(MakeHorizontalTrackPath(x, y, w, h, rLeft, rRight));
 			}
 
 			if (inactiveStart < length) {
@@ -137,21 +178,7 @@ void MaterialSlider::paintEvent(QPaintEvent *e) {
 
 				p.setPen(Qt::NoPen);
 				p.setBrush(inactiveFg);
-				if (w <= rRight || (rLeft == rRight && w <= h)) {
-					p.drawRoundedRect(QRectF(x, y, w, h), w / 2.0, w / 2.0);
-				} else {
-					auto path = QPainterPath();
-					path.moveTo(x + rLeft, y);
-					path.lineTo(x + w - rRight, y);
-					path.quadTo(x + w, y, x + w, y + rRight);
-					path.lineTo(x + w, y + h - rRight);
-					path.quadTo(x + w, y + h, x + w - rRight, y + h);
-					path.lineTo(x + rLeft, y + h);
-					path.quadTo(x, y + h, x, y + h - rLeft);
-					path.lineTo(x, y + rLeft);
-					path.quadTo(x, y, x + rLeft, y);
-					p.drawPath(path);
-				}
+				p.drawPath(MakeHorizontalTrackPath(x, y, w, h, rLeft, rRight));
 			}
 		}
 
@@ -204,20 +231,7 @@ void MaterialSlider::paintEvent(QPaintEvent *e) {
 
 				p.setPen(Qt::NoPen);
 				p.setBrush(inactiveFg);
-				if (h <= rTop || (rTop == rBottom && h <= w)) {
-					p.drawRoundedRect(QRectF(x, y, w, h), w / 2.0, w / 2.0);
-				} else {
-					auto path = QPainterPath();
-					path.moveTo(x + rTop, y);
-					path.quadTo(x + w, y, x + w, y + rTop);
-					path.lineTo(x + w, y + h - rBottom);
-					path.quadTo(x + w, y + h, x + w - rBottom, y + h);
-					path.lineTo(x + rBottom, y + h);
-					path.quadTo(x, y + h, x, y + h - rBottom);
-					path.lineTo(x, y + rTop);
-					path.quadTo(x, y, x + rTop, y);
-					p.drawPath(path);
-				}
+				p.drawPath(MakeVerticalTrackPath(x, y, w, h, rTop, rBottom));
 			}
 
 			if (activeStart < length) {
@@ -230,21 +244,7 @@ void MaterialSlider::paintEvent(QPaintEvent *e) {
 
 				p.setPen(Qt::NoPen);
 				p.setBrush(activeFg);
-				if (h <= rBottom || (rTop == rBottom && h <= w)) {
-					p.drawRoundedRect(QRectF(x, y, w, h), h / 2.0, h / 2.0);
-				} else {
-					auto path = QPainterPath();
-					path.moveTo(x + rTop, y);
-					path.lineTo(x + w - rTop, y);
-					path.quadTo(x + w, y, x + w, y + rTop);
-					path.lineTo(x + w, y + h - rBottom);
-					path.quadTo(x + w, y + h, x + w - rBottom, y + h);
-					path.lineTo(x + rBottom, y + h);
-					path.quadTo(x, y + h, x, y + h - rBottom);
-					path.lineTo(x, y + rTop);
-					path.quadTo(x, y, x + rTop, y);
-					p.drawPath(path);
-				}
+				p.drawPath(MakeVerticalTrackPath(x, y, w, h, rTop, rBottom));
 			}
 		}
 

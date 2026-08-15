@@ -99,7 +99,7 @@ void MusicButton::paintEvent(QPaintEvent *e) {
 	auto p = QPainter(this);
 	PainterHighQualityEnabler hq(p);
 
-	const auto baseBg = _overrideBg ? *_overrideBg : st::windowBg->c;
+	const auto baseBg = _overrideBg ? *_overrideBg : st::boxDividerBg->c;
 	p.fillRect(e->rect(), baseBg);
 
 	const auto pill = pillGeometry();
@@ -107,12 +107,12 @@ void MusicButton::paintEvent(QPaintEvent *e) {
 
 	const auto isDark = (baseBg.red() * 299 + baseBg.green() * 587 + baseBg.blue() * 114) < 128000;
 	auto pillBg = isDark
-		? Ui::BlendColors(baseBg, Qt::white, 0.14)
-		: Ui::BlendColors(baseBg, Qt::black, 0.08);
+		? Ui::BlendColors(baseBg, Qt::white, 0.16)
+		: QColor(255, 255, 255);
 	if (isOver()) {
 		pillBg = isDark
 			? Ui::BlendColors(pillBg, Qt::white, 0.08)
-			: Ui::BlendColors(pillBg, Qt::black, 0.05);
+			: Ui::BlendColors(pillBg, baseBg, 0.12);
 	}
 
 	p.setPen(Qt::NoPen);
@@ -150,11 +150,12 @@ void MusicButton::paintEvent(QPaintEvent *e) {
 	const auto contentStartX = pill.left() + pillPaddingH;
 	const auto textTop = pill.top() + (pill.height() - st::normalFont->height) / 2.0;
 
-	const auto primaryFg = isDark
-		? (_overrideBg ? st::groupCallMembersFg->c : st::windowBoldFg->c)
+	const auto pillIsDark = (pillBg.red() * 299 + pillBg.green() * 587 + pillBg.blue() * 114) < 128000;
+	const auto primaryFg = pillIsDark
+		? st::groupCallMembersFg->c
 		: st::windowBoldFg->c;
-	const auto secondaryFg = isDark
-		? (_overrideBg ? st::groupCallVideoSubTextFg->c : st::windowSubTextFg->c)
+	const auto secondaryFg = pillIsDark
+		? st::groupCallVideoSubTextFg->c
 		: st::windowSubTextFg->c;
 
 	p.setPen(primaryFg);

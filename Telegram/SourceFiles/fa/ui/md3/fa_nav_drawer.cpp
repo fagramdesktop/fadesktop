@@ -51,22 +51,34 @@ NavDrawerButton::NavDrawerButton(
 	initToggleAnimation();
 }
 
+NavDrawerButton *NavDrawerButton::toggleOn(
+		rpl::producer<bool> &&toggled,
+		bool ignoreClick) {
+	SettingsButton::toggleOn(std::move(toggled), ignoreClick);
+	initToggleAnimation();
+	return this;
+}
+
 void NavDrawerButton::initToggleAnimation() {
+	if (!toggledChanges()) {
+		return;
+	}
 	toggledChanges(
 	) | rpl::on_next([this](bool checked) {
-		const auto animated = _hasToggled ? anim::type::normal : anim::type::instant;
-		_hasToggled = true;
-		if (animated == anim::type::instant) {
-			_toggleAnimation.stop();
-			update();
-		} else {
-			_toggleAnimation.start(
-				[this] { update(); },
-				checked ? 0.0 : 1.0,
-				checked ? 1.0 : 0.0,
-				200,
-				anim::easeOutCubic);
+		if (!_hasToggled) {
+			_hasToggled = true;
+			return;
 		}
+		const auto from = _toggleAnimation.animating()
+			? _toggleAnimation.value(checked ? 0.0 : 1.0)
+			: (checked ? 0.0 : 1.0);
+		const auto to = checked ? 1.0 : 0.0;
+		_toggleAnimation.start(
+			[this] { update(); },
+			from,
+			to,
+			200,
+			anim::easeOutCubic);
 	}, lifetime());
 }
 

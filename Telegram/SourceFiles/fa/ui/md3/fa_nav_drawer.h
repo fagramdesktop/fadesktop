@@ -29,6 +29,10 @@ public:
 	void setIcon(const style::icon *icon);
 	void setDescriptor(Settings::IconDescriptor &&descriptor);
 
+	NavDrawerButton *toggleOn(
+		rpl::producer<bool> &&toggled,
+		bool ignoreClick = false);
+
 	int resizeGetHeight(int newWidth) override;
 
 protected:
