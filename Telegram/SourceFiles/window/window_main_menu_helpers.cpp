@@ -7,6 +7,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "window/window_main_menu_helpers.h"
 
+#include "fa/ui/md3/fa_nav_drawer.h"
+
 #include "apiwrap.h"
 #include "base/platform/base_platform_info.h"
 #include "data/data_channel.h"
@@ -309,7 +311,7 @@ void SetupMenuBots(
 				}
 				continue;
 			}
-			const auto button = wrap->add(object_ptr<Ui::SettingsButton>(
+			const auto button = wrap->add(object_ptr<FA::Ui::NavDrawerButton>(
 				wrap,
 				rpl::single(bot.name),
 				st::mainMenuButton));
@@ -322,7 +324,7 @@ void SetupMenuBots(
 			button->heightValue(
 			) | rpl::on_next([=](int height) {
 				icon->move(
-					st::mainMenuButton.iconLeft,
+					12 + 16,
 					(height - icon->height()) / 2);
 			}, button->lifetime());
 			const auto weak = base::make_weak(container);

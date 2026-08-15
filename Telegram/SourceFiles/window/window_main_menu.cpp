@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "window/window_main_menu.h"
 
 #include "fa/settings/fa_settings.h"
+#include "fa/ui/md3/fa_nav_drawer.h"
 
 #include "apiwrap.h"
 #include "base/event_filter.h"
@@ -369,10 +370,41 @@ MainMenu::MainMenu(
 		}
 	});
 
-	_footer->heightValue(
+	_footer->paintRequest(
 	) | rpl::on_next([=] {
-		_telegram->moveToLeft(st::mainMenuFooterLeft, _footer->height() - st::mainMenuTelegramBottom - _telegram->height());
-		_version->moveToLeft(st::mainMenuFooterLeft, _footer->height() - st::mainMenuVersionBottom - _version->height());
+		Painter p(_footer);
+		PainterHighQualityEnabler hq(p);
+		const auto cardMarginX = 12.0;
+		const auto cardMarginBottom = 12.0;
+		const auto cardPaddingY = 10.0;
+		const auto cardWidth = _footer->width() - 2.0 * cardMarginX;
+		const auto cardHeight = _telegram->height() + 3.0 + _version->height() + 2.0 * cardPaddingY;
+		const auto cardY = _footer->height() - cardMarginBottom - cardHeight;
+		const auto cardRect = QRectF(cardMarginX, cardY, cardWidth, cardHeight);
+
+		p.setPen(Qt::NoPen);
+		p.setBrush(st::settingsThemeNotSupportedBg);
+		p.drawRoundedRect(cardRect, 16.0, 16.0);
+	}, _footer->lifetime());
+
+	_footer->sizeValue(
+	) | rpl::on_next([=](const QSize &size) {
+		const auto cardMarginX = 12;
+		const auto cardMarginBottom = 12;
+		const auto cardPaddingX = 16;
+		const auto cardPaddingY = 10;
+		const auto cardHeight = _telegram->height() + 3 + _version->height() + 2 * cardPaddingY;
+		const auto cardY = size.height() - cardMarginBottom - cardHeight;
+
+		_telegram->moveToLeft(
+			cardMarginX + cardPaddingX,
+			cardY + cardPaddingY,
+			size.width());
+		_version->moveToLeft(
+			cardMarginX + cardPaddingX,
+			cardY + cardPaddingY + _telegram->height() + 3,
+			size.width());
+		_footer->update();
 	}, _footer->lifetime());
 
 	rpl::combine(
@@ -515,14 +547,12 @@ void MainMenu::setupArchive() {
 	const auto inner = wrap->entity();
 	wrap->toggle(checkArchive(), anim::type::instant);
 
-	const auto button = AddButtonWithIcon(
+	const auto button = FA::Ui::AddNavDrawerButton(
 		inner,
 		tr::lng_archived_name(),
 		st::mainMenuButton,
 		{ &st::menuIconArchiveOpen });
-	inner->add(
-		object_ptr<Ui::PlainShadow>(inner),
-		{ 0, st::mainMenuSkip, 0, st::mainMenuSkip });
+	FA::Ui::AddNavDrawerDivider(inner);
 	button->setAcceptBoth(true);
 	button->clicks(
 	) | rpl::on_next([=](Qt::MouseButton which) {
@@ -578,15 +608,17 @@ void MainMenu::setupArchive() {
 		const auto isArchiveVisible = checkArchive();
 		wrap->toggle(isArchiveVisible, anim::type::normal);
 		if (!isArchiveVisible) {
-			_contextMenu = nullptr;
+			wrap->finishAnimating();
 		}
 		update();
 	}, lifetime());
 }
 
 void MainMenu::setupUserpicButton() {
-	_userpicButton->setClickedCallback([=] { toggleAccounts(); });
-	_userpicButton->show();
+	_userpicButton->setClickedCallback([=] {
+		_controller->showSection(
+			Info::Stories::Make(_controller->session().user()));
+	});
 }
 
 void MainMenu::toggleAccounts() {
@@ -654,7 +686,7 @@ void MainMenu::setupMenu() {
 	const auto addAction = [&](
 			rpl::producer<QString> text,
 			IconDescriptor &&descriptor) {
-		return AddButtonWithIcon(
+		return FA::Ui::AddNavDrawerButton(
 			_menu,
 			std::move(text),
 			st::mainMenuButton,
@@ -662,7 +694,7 @@ void MainMenu::setupMenu() {
 	};
 	if (!_controller->session().supportMode()) {
 		_menu->add(
-			CreateButtonWithIcon(
+			FA::Ui::CreateNavDrawerButton(
 				_menu,
 				tr::lng_menu_my_profile(),
 				st::mainMenuButton,
@@ -674,9 +706,7 @@ void MainMenu::setupMenu() {
 
 		SetupMenuBots(_menu, controller);
 
-		_menu->add(
-			object_ptr<Ui::PlainShadow>(_menu),
-			{ 0, st::mainMenuSkip, 0, st::mainMenuSkip });
+		FA::Ui::AddNavDrawerDivider(_menu);
 
 		AddMyChannelsBox(addAction(
 			tr::lng_create_group_title(),

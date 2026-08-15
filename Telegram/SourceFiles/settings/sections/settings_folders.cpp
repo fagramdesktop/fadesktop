@@ -599,28 +599,7 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 	});
 
 	const auto prepareGoodIdsForNewFilters = [=] {
-		auto &realFilters = session->data().chatsFilters();
-		const auto &list = realFilters.list();
-
-		const auto limits = Data::PremiumLimits(session);
-		const auto serverLimit = session->user()->isPremium()
-			? limits.dialogFiltersPremium()
-			: limits.dialogFiltersDefault();
-
-		auto serverCount = 0;
-		for (const auto &f : list) {
-			if (f.id() && !realFilters.isLocalFilter(f.id())) {
-				++serverCount;
-			}
-		}
-		for (const auto &row : state->rows) {
-			if (row.removed
-				&& row.filter.id()
-				&& !realFilters.isLocalFilter(row.filter.id())) {
-				--serverCount;
-			}
-		}
-
+		const auto &list = session->data().chatsFilters().list();
 		auto localId = 1;
 		const auto chooseNextId = [&] {
 			++localId;
@@ -636,14 +615,7 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 				continue;
 			} else if (!id
 				|| !ranges::contains(list, id, &Data::ChatFilter::id)) {
-				if (serverCount < serverLimit) {
-					result.emplace(row.button, chooseNextId());
-					++serverCount;
-				} else {
-					result.emplace(
-						row.button,
-						realFilters.allocateLocalId());
-				}
+				result.emplace(row.button, chooseNextId());
 			}
 		}
 		return result;
@@ -662,8 +634,7 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 		auto removeRequests = std::vector<MTPmessages_UpdateDialogFilter>();
 		auto removeChatlistRequests = std::vector<MTPchatlists_LeaveChatlist>();
 
-		auto &realFilters = session->data().chatsFilters();
-		const auto &list = realFilters.list();
+		const auto &list = session->data().chatsFilters().list();
 		order.reserve(state->rows.size());
 		for (auto &row : state->rows) {
 			if (row.button.get() == single) {
@@ -685,15 +656,6 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 				if (row.button.get() == single) {
 					updated = row.filter;
 				}
-			}
-			if (realFilters.isLocalFilter(newId)) {
-				if (removed) {
-					realFilters.remove(newId);
-				} else {
-					realFilters.set(row.filter);
-					order.push_back(newId);
-				}
-				continue;
 			}
 			const auto tl = removed
 				? MTPDialogFilter()
@@ -800,7 +762,7 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 			sendRequests(removeRequests);
 			sendRequests(removeChatlistRequests);
 			sendRequests(addRequests);
-			if (!order.empty() && !addRequests.empty()) {
+			if (!order.empty()) {
 				filters->saveOrder(order, previousId);
 			}
 			checkFinished();

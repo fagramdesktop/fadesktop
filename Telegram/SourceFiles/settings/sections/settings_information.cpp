@@ -9,6 +9,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "fa_lang_auto.h"
 #include "fa/settings/fa_settings.h"
+#include "fa/ui/md3/fa_nav_drawer.h"
 
 #include "settings/sections/settings_main.h"
 #include "settings/settings_builder.h"
@@ -221,17 +222,17 @@ public:
 private:
 	void setup();
 
-	[[nodiscard]] not_null<Ui::SlideWrap<Ui::SettingsButton>*> setupAdd();
+	[[nodiscard]] not_null<Ui::SlideWrap<FA::Ui::NavDrawerButton>*> setupAdd();
 	void rebuild();
 
 	const not_null<Window::SessionController*> _controller;
 	const not_null<Ui::VerticalLayout*> _outer;
 	int _outerIndex = 0;
 
-	Ui::SlideWrap<Ui::SettingsButton> *_addAccount = nullptr;
+	Ui::SlideWrap<FA::Ui::NavDrawerButton> *_addAccount = nullptr;
 	base::flat_map<
 		not_null<::Main::Account*>,
-		base::unique_qptr<Ui::SettingsButton>> _watched;
+		base::unique_qptr<FA::Ui::NavDrawerButton>> _watched;
 
 	base::unique_qptr<Ui::PopupMenu> _contextMenu;
 	std::unique_ptr<Ui::VerticalLayoutReorder> _reorder;
@@ -822,7 +823,7 @@ void SetupAccountsWrap(
 	return (modifiers & Qt::ShiftModifier) && (modifiers & Qt::AltModifier);
 }
 
-[[nodiscard]] object_ptr<Ui::SettingsButton> MakeAccountButton(
+[[nodiscard]] object_ptr<FA::Ui::NavDrawerButton> MakeAccountButton(
 		QWidget *parent,
 		not_null<Window::SessionController*> window,
 		not_null<::Main::Account*> account,
@@ -839,7 +840,7 @@ void SetupAccountsWrap(
 	) | rpl::map([=] {
 		return user->name();
 	}));
-	auto result = object_ptr<Ui::SettingsButton>(
+	auto result = object_ptr<FA::Ui::NavDrawerButton>(
 		parent,
 		rpl::duplicate(text),
 		st::mainMenuAddAccountButton);
@@ -877,8 +878,7 @@ void SetupAccountsWrap(
 		+ userpicSkip * 2;
 	raw->heightValue(
 	) | rpl::on_next([=](int height) {
-		const auto left = st::mainMenuAddAccountButton.iconLeft
-			+ (st::settingsIconAdd.width() - userpicSize) / 2;
+		const auto left = 12 + 16 + (st::settingsIconAdd.width() - userpicSize) / 2;
 		const auto top = (height - userpicSize) / 2;
 		state->userpic.setGeometry(left, top, userpicSize, userpicSize);
 	}, state->userpic.lifetime());
@@ -1050,11 +1050,11 @@ void AccountsList::setup() {
 }
 
 
-not_null<Ui::SlideWrap<Ui::SettingsButton>*> AccountsList::setupAdd() {
+not_null<Ui::SlideWrap<FA::Ui::NavDrawerButton>*> AccountsList::setupAdd() {
 	const auto result = _outer->add(
-		object_ptr<Ui::SlideWrap<Ui::SettingsButton>>(
+		object_ptr<Ui::SlideWrap<FA::Ui::NavDrawerButton>>(
 			_outer.get(),
-			CreateButtonWithIcon(
+			FA::Ui::CreateNavDrawerButton(
 				_outer.get(),
 				tr::lng_menu_add_account(),
 				st::mainMenuAddAccountButton,

@@ -1336,7 +1336,6 @@ private:
 		std::vector<not_null<ViewElement*>>> _views;
 
 	rpl::event_stream<> _pinnedDialogsOrderUpdated;
-	bool _localPinnedRestoredForCurrentLoad = false;
 
 	base::flat_set<not_null<ViewElement*>> _heavyViewParts;
 
@@ -1392,13 +1391,13 @@ private:
 	mutable base::flat_map<PeerId, std::vector<FullMsgId>> _messagesWithPeer;
 
 	Groups _groups;
+	const std::unique_ptr<Histories> _histories;
 	const std::unique_ptr<AiComposeTones> _aiComposeTones;
 	const std::unique_ptr<ChatFilters> _chatsFilters;
 	const std::unique_ptr<CloudThemes> _cloudThemes;
 	const std::unique_ptr<SendActionManager> _sendActionManager;
 	const std::unique_ptr<Streaming> _streaming;
 	const std::unique_ptr<MediaRotation> _mediaRotation;
-	const std::unique_ptr<Histories> _histories;
 	const std::unique_ptr<Stickers> _stickers;
 	const std::unique_ptr<Reactions> _reactions;
 	const std::unique_ptr<EmojiStatuses> _emojiStatuses;

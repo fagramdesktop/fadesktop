@@ -6,8 +6,10 @@ For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 
-#include "fa/ui/components/previews.h"
-#include "fa/ui/components/fa_ui_components.h"
+#include "fa/ui/md3/previews.h"
+#include "fa/ui/md3/fa_avatar_shape.h"
+#include "fa/ui/md3/fa_cards.h"
+#include "fa/ui/md3/svg_assets.h"
 #include "fa/settings/fa_settings.h"
 #include "fa_lang_auto.h"
 #include "core/application.h"
@@ -19,7 +21,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "window/main_window.h"
 #include "styles/style_settings.h"
 #include "styles/style_window.h"
-#include "fa/ui/components/svg_assets.h"
 #include <QSvgRenderer>
 
 IconPackCheck::IconPackCheck(bool isMaterial, bool checked)

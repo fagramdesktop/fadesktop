@@ -16,7 +16,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings_menu/sections/fa_context_menu.h"
 #include "fa/settings_menu/sections/fa_appearance.h"
 #include "fa/settings_menu/sections/fa_logs.h"
-#include "fa/ui/components/fa_ui_components.h"
+#include "fa/ui/md3/fa_cards.h"
 
 #include "fa_lang_auto.h"
 #include "fa/settings/fa_settings.h"

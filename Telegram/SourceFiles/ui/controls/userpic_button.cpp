@@ -6,7 +6,7 @@ For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "ui/controls/userpic_button.h"
-#include "fa/ui/components/fa_ui_components.h"
+#include "fa/ui/md3/fa_avatar_shape.h"
 
 #include "apiwrap.h"
 #include "api/api_peer_photo.h"

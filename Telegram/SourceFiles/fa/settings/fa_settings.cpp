@@ -115,8 +115,6 @@ void FASettings::loadFromJson(const QJsonObject &obj) {
 	_hideStories = obj.contains("hide_stories") ? obj["hide_stories"].toBool() : _hideStories.current();
 	_hideOpenWebappButtonChatlist = obj.contains("hide_open_webapp_button_chatlist") ? obj["hide_open_webapp_button_chatlist"].toBool() : _hideOpenWebappButtonChatlist.current();
 	_localPremium = obj.contains("local_premium") ? obj["local_premium"].toBool() : _localPremium.current();
-	_unlimitedPinnedChats = obj.contains("unlimited_pinned_chats") ? obj["unlimited_pinned_chats"].toBool() : _unlimitedPinnedChats.current();
-	_unlimitedChatFolders = obj.contains("unlimited_chat_folders") ? obj["unlimited_chat_folders"].toBool() : _unlimitedChatFolders.current();
 	_deleteForEveryone = obj.contains("delete_for_everyone") ? obj["delete_for_everyone"].toBool() : _deleteForEveryone.current();
 	_lastSeenTimestamp = obj.contains("last_seen_timestamp") ? obj["last_seen_timestamp"].toBool() : _lastSeenTimestamp.current();
 	_showForwardedDateInTitle = obj.contains("show_forwarded_date_in_title") ? obj["show_forwarded_date_in_title"].toBool() : _showForwardedDateInTitle.current();
@@ -149,10 +147,6 @@ void FASettings::loadFromJson(const QJsonObject &obj) {
 	_contextMenuShortcutHorizontalPadding = obj.contains("context_menu_shortcut_horizontal_padding") ? obj["context_menu_shortcut_horizontal_padding"].toInt() : _contextMenuShortcutHorizontalPadding.current();
 	_contextMenuShortcutCornerRadius = obj.contains("context_menu_shortcut_corner_radius") ? obj["context_menu_shortcut_corner_radius"].toInt() : _contextMenuShortcutCornerRadius.current();
 	_translationProvider = obj.contains("translation_provider") ? obj["translation_provider"].toInt() : _translationProvider.current();
-
-	if (obj.contains("accounts")) {
-		_accountSettings = obj["accounts"].toObject();
-	}
 }
 
 QJsonObject FASettings::saveToJson() const {
@@ -173,8 +167,6 @@ QJsonObject FASettings::saveToJson() const {
 	obj["hide_stories"] = _hideStories.current();
 	obj["hide_open_webapp_button_chatlist"] = _hideOpenWebappButtonChatlist.current();
 	obj["local_premium"] = _localPremium.current();
-	obj["unlimited_pinned_chats"] = _unlimitedPinnedChats.current();
-	obj["unlimited_chat_folders"] = _unlimitedChatFolders.current();
 	obj["delete_for_everyone"] = _deleteForEveryone.current();
 	obj["last_seen_timestamp"] = _lastSeenTimestamp.current();
 	obj["show_forwarded_date_in_title"] = _showForwardedDateInTitle.current();
@@ -207,10 +199,6 @@ QJsonObject FASettings::saveToJson() const {
 	obj["context_menu_shortcut_horizontal_padding"] = _contextMenuShortcutHorizontalPadding.current();
 	obj["context_menu_shortcut_corner_radius"] = _contextMenuShortcutCornerRadius.current();
 	obj["translation_provider"] = _translationProvider.current();
-
-	if (!_accountSettings.isEmpty()) {
-		obj["accounts"] = _accountSettings;
-	}
 
 	return obj;
 }
@@ -324,18 +312,6 @@ void FASettings::setHideOpenWebappButtonChatlist(bool val) {
 void FASettings::setLocalPremium(bool val) {
 	if (_localPremium.current() == val) return;
 	_localPremium = val;
-	save();
-}
-
-void FASettings::setUnlimitedPinnedChats(bool val) {
-	if (_unlimitedPinnedChats.current() == val) return;
-	_unlimitedPinnedChats = val;
-	save();
-}
-
-void FASettings::setUnlimitedChatFolders(bool val) {
-	if (_unlimitedChatFolders.current() == val) return;
-	_unlimitedChatFolders = val;
 	save();
 }
 
@@ -528,67 +504,6 @@ void FASettings::setContextMenuShortcutCornerRadius(int val) {
 void FASettings::setTranslationProvider(int val) {
 	if (_translationProvider.current() == val) return;
 	_translationProvider = val;
-	save();
-}
-
-
-QJsonArray FASettings::pinnedChatOrder(uint64 accountId) const {
-	if (_accountSettings.contains(QString::number(accountId))) {
-		const auto accObj = _accountSettings[QString::number(accountId)].toObject();
-		if (accObj.contains("pinned_chat_order")) {
-			return accObj["pinned_chat_order"].toArray();
-		}
-	}
-	return QJsonArray();
-}
-
-void FASettings::setPinnedChatOrder(const QJsonArray &val, uint64 accountId) {
-	QJsonObject accObj;
-	if (_accountSettings.contains(QString::number(accountId))) {
-		accObj = _accountSettings[QString::number(accountId)].toObject();
-	}
-	accObj["pinned_chat_order"] = val;
-	_accountSettings[QString::number(accountId)] = accObj;
-	save();
-}
-
-QJsonArray FASettings::localChatFolders(uint64 accountId) const {
-	if (_accountSettings.contains(QString::number(accountId))) {
-		const auto accObj = _accountSettings[QString::number(accountId)].toObject();
-		if (accObj.contains("local_chat_folders")) {
-			return accObj["local_chat_folders"].toArray();
-		}
-	}
-	return QJsonArray();
-}
-
-void FASettings::setLocalChatFolders(const QJsonArray &val, uint64 accountId) {
-	QJsonObject accObj;
-	if (_accountSettings.contains(QString::number(accountId))) {
-		accObj = _accountSettings[QString::number(accountId)].toObject();
-	}
-	accObj["local_chat_folders"] = val;
-	_accountSettings[QString::number(accountId)] = accObj;
-	save();
-}
-
-QJsonArray FASettings::localChatFoldersOrder(uint64 accountId) const {
-	if (_accountSettings.contains(QString::number(accountId))) {
-		const auto accObj = _accountSettings[QString::number(accountId)].toObject();
-		if (accObj.contains("local_chat_folders_order")) {
-			return accObj["local_chat_folders_order"].toArray();
-		}
-	}
-	return QJsonArray();
-}
-
-void FASettings::setLocalChatFoldersOrder(const QJsonArray &val, uint64 accountId) {
-	QJsonObject accObj;
-	if (_accountSettings.contains(QString::number(accountId))) {
-		accObj = _accountSettings[QString::number(accountId)].toObject();
-	}
-	accObj["local_chat_folders_order"] = val;
-	_accountSettings[QString::number(accountId)] = accObj;
 	save();
 }
 

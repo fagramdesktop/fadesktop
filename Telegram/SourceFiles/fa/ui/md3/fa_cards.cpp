@@ -5,25 +5,15 @@ the unofficial desktop client based on Telegram Desktop.
 For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
-
-#include "fa/ui/components/fa_ui_components.h"
-#include "fa/ui/components/svg_assets.h"
-#include "fa/settings/fa_settings.h"
-#include "ui/image/image_prepare.h"
-
-#include <QtSvg/QSvgRenderer>
+#include "fa/ui/md3/fa_cards.h"
 
 #include "ui/painter.h"
 #include "ui/rect.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/effects/animation_value_f.h"
-#include "ui/widgets/labels.h"
-#include "ui/widgets/buttons.h"
-#include "ui/widgets/checkbox.h"
-#include "ui/wrap/vertical_layout.h"
-#include "ui/wrap/padding_wrap.h"
-#include "styles/style_settings.h"
+#include "styles/style_basic.h"
 #include "styles/style_widgets.h"
+#include "styles/style_settings.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 
@@ -191,8 +181,6 @@ protected:
 
 		const auto toggled = _animation.value(_checked ? 1.0 : 0.0);
 
-		// 1. Draw Track
-		// On-state active fill
 		if (toggled > 0.0) {
 			p.setOpacity(toggled);
 			p.setPen(Qt::NoPen);
@@ -203,7 +191,6 @@ protected:
 				switchHeight / 2.0);
 		}
 
-		// Off-state border track
 		if (toggled < 1.0) {
 			p.setOpacity(1.0 - toggled);
 			p.setPen(QPen(st::windowSubTextFg->c, 2.0));
@@ -215,7 +202,6 @@ protected:
 		}
 		p.setOpacity(1.0);
 
-		// 2. Draw Thumb (Material 3 size & position interpolation)
 		const auto thumbDiameter = anim::interpolateF(14.0, 20.0, toggled);
 		const auto thumbX = anim::interpolateF(toggleX + 5.0, toggleX + switchWidth - 3.0 - 20.0, toggled);
 		const auto thumbY = toggleY + (switchHeight - thumbDiameter) / 2.0;
@@ -225,7 +211,6 @@ protected:
 		p.setBrush(thumbColor);
 		p.drawEllipse(QRectF(thumbX, thumbY, thumbDiameter, thumbDiameter));
 
-		// 3. Draw Checkmark inside Thumb when active
 		if (toggled > 0.05) {
 			p.setOpacity(toggled);
 			p.setPen(QPen(st::windowActiveTextFg->c, 1.8, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
@@ -242,7 +227,6 @@ protected:
 			p.setOpacity(1.0);
 		}
 
-		// 4. Draw Title and Subtitle Text
 		const auto availableTextWidth = toggleX - paddingLeft - 12.0;
 		if (availableTextWidth <= 0) {
 			return;
@@ -633,498 +617,6 @@ not_null<::Ui::RpWidget*> AddCardRadio(
 
 void AddCardDivider(not_null<::Ui::VerticalLayout*> card) {
 	card->add(object_ptr<CardDividerWidget>(card));
-}
-
-MaterialSlider::MaterialSlider(QWidget *parent)
-: ContinuousSlider(parent) {
-	resize(width(), 32);
-}
-
-int MaterialSlider::resizeGetHeight(int newWidth) {
-	return 32;
-}
-
-QSize MaterialSlider::getSeekDecreaseSize() const {
-	if (!_alwaysDisplayMarker) {
-		return QSize();
-	}
-	const auto trackThickness = 16;
-	return QSize(trackThickness, trackThickness);
-}
-
-float64 MaterialSlider::getOverDuration() const {
-	return 150.0;
-}
-
-void MaterialSlider::addDivider(float64 atValue) {
-	_dividers.push_back(atValue);
-	update();
-}
-
-void MaterialSlider::clearDividers() {
-	_dividers.clear();
-	update();
-}
-
-void MaterialSlider::paintEvent(QPaintEvent *e) {
-	auto p = QPainter(this);
-	PainterHighQualityEnabler hq(p);
-
-	p.setPen(Qt::NoPen);
-	p.setOpacity(fadeOpacity());
-
-	const auto horizontal = isHorizontal();
-	const auto trackThickness = 16.0;
-	const auto radius = trackThickness / 2.0;
-	const auto disabled = isDisabled();
-	const auto over = getCurrentOverFactor();
-
-	const auto value = horizontal
-		? getCurrentValue()
-		: (1. - getCurrentValue());
-
-	const auto from = 0.0;
-	const auto length = float64(horizontal ? width() : height());
-
-	const auto handleThickness = 4.0;
-	const auto handleLength = 28.0;
-	const auto seekPadding = _alwaysDisplayMarker ? radius : (radius * over);
-	const auto mid = from + seekPadding + value * (length - 2.0 * seekPadding);
-
-	const auto activeFg = disabled
-		? st::windowSubTextFg->c
-		: st::windowActiveTextFg->c;
-	const auto inactiveFg = disabled
-		? st::windowBg->c
-		: st::sliderBgInactive->c;
-	const auto seekFg = activeFg;
-
-	const auto markerSizeRatio = disabled
-		? 0.0
-		: (_alwaysDisplayMarker ? 1.0 : over);
-
-	const auto gap = 4.0;
-	const auto effectiveGap = gap * markerSizeRatio;
-	const auto effectiveHandleThickness = handleThickness * markerSizeRatio;
-
-	if (horizontal) {
-		const auto trackY = (height() - trackThickness) / 2.0;
-		const auto activeEnd = mid - (effectiveHandleThickness / 2.0) - effectiveGap;
-		const auto inactiveStart = mid + (effectiveHandleThickness / 2.0) + effectiveGap;
-
-		if (value <= 0.0) {
-			p.setPen(Qt::NoPen);
-			p.setBrush(inactiveFg);
-			p.drawRoundedRect(QRectF(from, trackY, length, trackThickness), radius, radius);
-		} else if (value >= 1.0) {
-			p.setPen(Qt::NoPen);
-			p.setBrush(activeFg);
-			p.drawRoundedRect(QRectF(from, trackY, length, trackThickness), radius, radius);
-		} else {
-			if (activeEnd > from) {
-				const auto x = from;
-				const auto y = trackY;
-				const auto w = activeEnd - from;
-				const auto h = trackThickness;
-				const auto rLeft = h / 2.0;
-				const auto rRight = (inactiveStart >= length) ? (h / 2.0) : 2.0;
-
-				p.setPen(Qt::NoPen);
-				p.setBrush(activeFg);
-				if (w <= rLeft || (rLeft == rRight && w <= h)) {
-					p.drawRoundedRect(QRectF(x, y, w, h), w / 2.0, w / 2.0);
-				} else {
-					auto path = QPainterPath();
-					path.moveTo(x + rLeft, y);
-					path.lineTo(x + w - rRight, y);
-					path.quadTo(x + w, y, x + w, y + rRight);
-					path.lineTo(x + w, y + h - rRight);
-					path.quadTo(x + w, y + h, x + w - rRight, y + h);
-					path.lineTo(x + rLeft, y + h);
-					path.quadTo(x, y + h, x, y + h - rLeft);
-					path.lineTo(x, y + rLeft);
-					path.quadTo(x, y, x + rLeft, y);
-					p.drawPath(path);
-				}
-			}
-
-			if (inactiveStart < length) {
-				const auto x = inactiveStart;
-				const auto y = trackY;
-				const auto w = length - inactiveStart;
-				const auto h = trackThickness;
-				const auto rLeft = (activeEnd <= from) ? (h / 2.0) : 2.0;
-				const auto rRight = h / 2.0;
-
-				p.setPen(Qt::NoPen);
-				p.setBrush(inactiveFg);
-				if (w <= rRight || (rLeft == rRight && w <= h)) {
-					p.drawRoundedRect(QRectF(x, y, w, h), w / 2.0, w / 2.0);
-				} else {
-					auto path = QPainterPath();
-					path.moveTo(x + rLeft, y);
-					path.lineTo(x + w - rRight, y);
-					path.quadTo(x + w, y, x + w, y + rRight);
-					path.lineTo(x + w, y + h - rRight);
-					path.quadTo(x + w, y + h, x + w - rRight, y + h);
-					path.lineTo(x + rLeft, y + h);
-					path.quadTo(x, y + h, x, y + h - rLeft);
-					path.lineTo(x, y + rLeft);
-					path.quadTo(x, y, x + rLeft, y);
-					p.drawPath(path);
-				}
-			}
-		}
-
-		const auto dotCenterX = length - radius;
-		const auto dotCenterY = trackY + radius;
-		const auto dotRadius = 2.0;
-		if (value < 0.95 && inactiveStart + 4.0 < dotCenterX - dotRadius) {
-			p.setPen(Qt::NoPen);
-			p.setBrush(activeFg);
-			p.drawEllipse(QPointF(dotCenterX, dotCenterY), dotRadius, dotRadius);
-		}
-
-		if (value > 0.05 && from + radius + dotRadius < activeEnd - 4.0) {
-			p.setPen(Qt::NoPen);
-			p.setBrush(inactiveFg);
-			p.drawEllipse(QPointF(from + radius, dotCenterY), dotRadius, dotRadius);
-		}
-
-		if (markerSizeRatio > 0.0) {
-			const auto hW = std::max(effectiveHandleThickness, 1.0);
-			const auto hH = handleLength * markerSizeRatio;
-			const auto hX = mid - hW / 2.0;
-			const auto hY = (height() - hH) / 2.0;
-			const auto hRadius = hW / 2.0;
-			p.setPen(Qt::NoPen);
-			p.setBrush(seekFg);
-			p.drawRoundedRect(QRectF(hX, hY, hW, hH), hRadius, hRadius);
-		}
-	} else {
-		const auto trackX = (width() - trackThickness) / 2.0;
-		const auto inactiveEnd = mid - (effectiveHandleThickness / 2.0) - effectiveGap;
-		const auto activeStart = mid + (effectiveHandleThickness / 2.0) + effectiveGap;
-
-		if (value <= 0.0) {
-			p.setPen(Qt::NoPen);
-			p.setBrush(inactiveFg);
-			p.drawRoundedRect(QRectF(trackX, from, trackThickness, length), radius, radius);
-		} else if (value >= 1.0) {
-			p.setPen(Qt::NoPen);
-			p.setBrush(activeFg);
-			p.drawRoundedRect(QRectF(trackX, from, trackThickness, length), radius, radius);
-		} else {
-			if (inactiveEnd > from) {
-				const auto x = trackX;
-				const auto y = from;
-				const auto w = trackThickness;
-				const auto h = inactiveEnd - from;
-				const auto rTop = w / 2.0;
-				const auto rBottom = (activeStart >= length) ? (w / 2.0) : 2.0;
-
-				p.setPen(Qt::NoPen);
-				p.setBrush(inactiveFg);
-				if (h <= rTop || (rTop == rBottom && h <= w)) {
-					p.drawRoundedRect(QRectF(x, y, w, h), w / 2.0, w / 2.0);
-				} else {
-					auto path = QPainterPath();
-					path.moveTo(x + rTop, y);
-					path.quadTo(x + w, y, x + w, y + rTop);
-					path.lineTo(x + w, y + h - rBottom);
-					path.quadTo(x + w, y + h, x + w - rBottom, y + h);
-					path.lineTo(x + rBottom, y + h);
-					path.quadTo(x, y + h, x, y + h - rBottom);
-					path.lineTo(x, y + rTop);
-					path.quadTo(x, y, x + rTop, y);
-					p.drawPath(path);
-				}
-			}
-
-			if (activeStart < length) {
-				const auto x = trackX;
-				const auto y = activeStart;
-				const auto w = trackThickness;
-				const auto h = length - activeStart;
-				const auto rTop = (inactiveEnd <= from) ? (w / 2.0) : 2.0;
-				const auto rBottom = w / 2.0;
-
-				p.setPen(Qt::NoPen);
-				p.setBrush(activeFg);
-				if (h <= rBottom || (rTop == rBottom && h <= w)) {
-					p.drawRoundedRect(QRectF(x, y, w, h), h / 2.0, h / 2.0);
-				} else {
-					auto path = QPainterPath();
-					path.moveTo(x + rTop, y);
-					path.lineTo(x + w - rTop, y);
-					path.quadTo(x + w, y, x + w, y + rTop);
-					path.lineTo(x + w, y + h - rBottom);
-					path.quadTo(x + w, y + h, x + w - rBottom, y + h);
-					path.lineTo(x + rBottom, y + h);
-					path.quadTo(x, y + h, x, y + h - rBottom);
-					path.lineTo(x, y + rTop);
-					path.quadTo(x, y, x + rTop, y);
-					p.drawPath(path);
-				}
-			}
-		}
-
-		const auto dotCenterX = trackX + radius;
-		const auto dotCenterY = from + radius;
-		const auto dotRadius = 2.0;
-		if (value < 0.95 && inactiveEnd - 4.0 > dotCenterY + dotRadius) {
-			p.setPen(Qt::NoPen);
-			p.setBrush(activeFg);
-			p.drawEllipse(QPointF(dotCenterX, dotCenterY), dotRadius, dotRadius);
-		}
-
-		if (value > 0.05 && length - radius - dotRadius > activeStart + 4.0) {
-			p.setPen(Qt::NoPen);
-			p.setBrush(inactiveFg);
-			p.drawEllipse(QPointF(dotCenterX, length - radius), dotRadius, dotRadius);
-		}
-
-		if (markerSizeRatio > 0.0) {
-			const auto hW = handleLength * markerSizeRatio;
-			const auto hH = std::max(effectiveHandleThickness, 1.0);
-			const auto hX = (width() - hW) / 2.0;
-			const auto hY = mid - hH / 2.0;
-			const auto hRadius = hH / 2.0;
-			p.setPen(Qt::NoPen);
-			p.setBrush(seekFg);
-			p.drawRoundedRect(QRectF(hX, hY, hW, hH), hRadius, hRadius);
-		}
-	}
-
-	if (!_dividers.empty()) {
-		for (const auto &divValue : _dividers) {
-			const auto dividerValue = horizontal
-				? divValue
-				: (1.0 - divValue);
-			const auto dividerMid = from + dividerValue * length;
-			const auto dist = std::abs(dividerMid - mid);
-			if (dist > (effectiveHandleThickness / 2.0) + effectiveGap + 2.0) {
-				const auto isPassed = (horizontal ? (dividerValue <= value) : (dividerValue >= value));
-				p.setBrush(isPassed ? inactiveFg : activeFg);
-				const auto dRadius = 2.0;
-				if (horizontal) {
-					p.drawEllipse(QPointF(dividerMid, (height() / 2.0)), dRadius, dRadius);
-				} else {
-					p.drawEllipse(QPointF((width() / 2.0), dividerMid), dRadius, dRadius);
-				}
-			}
-		}
-	}
-}
-
-not_null<MaterialSlider*> AddCardSlider(
-		not_null<::Ui::VerticalLayout*> card,
-		const style::margins &margin) {
-	return card->add(
-		object_ptr<MaterialSlider>(card),
-		margin);
-}
-
-QImage MaterialShapeMask(QSize size, int shapeIndex) {
-	if (shapeIndex < 0) {
-		shapeIndex = FASettings::FASettings::getInstance().avatarShape();
-	}
-	if (shapeIndex <= 0 || shapeIndex > 7) {
-		return QImage();
-	}
-	auto result = QImage(size, QImage::Format_ARGB32_Premultiplied);
-	result.fill(Qt::transparent);
-
-	std::string_view svgData;
-	switch (shapeIndex) {
-	case 1: svgData = fa::svg::material_shape1; break;
-	case 2: svgData = fa::svg::material_shape2; break;
-	case 3: svgData = fa::svg::material_shape3; break;
-	case 4: svgData = fa::svg::material_shape4; break;
-	case 5: svgData = fa::svg::material_shape5; break;
-	case 6: svgData = fa::svg::material_shape6; break;
-	case 7: svgData = fa::svg::material_shape7; break;
-	default: svgData = fa::svg::material_shape1; break;
-	}
-
-	auto svg = QSvgRenderer(QByteArray::fromRawData(
-		svgData.data(),
-		svgData.size()));
-
-	const auto margin = float(size.width()) * 0.04f;
-	const auto targetRect = QRectF(
-		margin,
-		margin,
-		size.width() - 2 * margin,
-		size.height() - 2 * margin);
-
-	QPainter p(&result);
-	p.setRenderHint(QPainter::Antialiasing);
-	svg.render(&p, targetRect);
-	p.end();
-
-	return result;
-}
-
-QImage MaterialShapeOutline(
-		QSize size,
-		int shapeIndex,
-		QColor color,
-		float strokeWidth) {
-	if (size.isEmpty()) {
-		return QImage();
-	}
-	if (shapeIndex < 0) {
-		shapeIndex = FASettings::FASettings::getInstance().avatarShape();
-	}
-	if (!color.isValid()) {
-		color = st::activeButtonBgOver->c;
-	}
-	if (shapeIndex == 0) {
-		auto result = QImage(size, QImage::Format_ARGB32_Premultiplied);
-		result.fill(Qt::transparent);
-		const auto roundness = FASettings::FASettings::getInstance().roundness();
-		if (strokeWidth <= 0.0f) {
-			strokeWidth = std::max(2.0f, float(size.width()) * 0.03f);
-		}
-		const auto margin = strokeWidth;
-		const auto radius = (size.width() - 2 * margin) * roundness / 100.0;
-		const auto innerRect = QRectF(
-			margin,
-			margin,
-			size.width() - 2 * margin,
-			size.height() - 2 * margin);
-		const auto inset = strokeWidth / 2.0;
-		auto p = QPainter(&result);
-		p.setRenderHint(QPainter::Antialiasing);
-		auto pen = QPen(color);
-		pen.setWidthF(strokeWidth);
-		p.setPen(pen);
-		p.setBrush(Qt::NoBrush);
-		p.drawRoundedRect(
-			innerRect.adjusted(inset, inset, -inset, -inset),
-			std::max(0.0, radius - inset),
-			std::max(0.0, radius - inset));
-		p.end();
-		return result;
-	}
-	if (shapeIndex < 1 || shapeIndex > 7) {
-		return QImage();
-	}
-
-	std::string_view svgData;
-	switch (shapeIndex) {
-	case 1: svgData = fa::svg::material_shape1; break;
-	case 2: svgData = fa::svg::material_shape2; break;
-	case 3: svgData = fa::svg::material_shape3; break;
-	case 4: svgData = fa::svg::material_shape4; break;
-	case 5: svgData = fa::svg::material_shape5; break;
-	case 6: svgData = fa::svg::material_shape6; break;
-	case 7: svgData = fa::svg::material_shape7; break;
-	default: svgData = fa::svg::material_shape1; break;
-	}
-
-	if (strokeWidth <= 0.0f) {
-		strokeWidth = 10.0f;
-	}
-	const auto colorName = color.name(QColor::HexRgb).toUtf8();
-	QByteArray data = QByteArray::fromRawData(svgData.data(), svgData.size()).trimmed();
-	const auto strokeAttr = "fill=\"none\" stroke=\"" + colorName + "\" stroke-width=\"" + QByteArray::number(strokeWidth) + "\" stroke-linejoin=\"round\"";
-	data.replace("fill=\"#FFFFFF\"", strokeAttr);
-	data.replace("fill=\"#ffffff\"", strokeAttr);
-
-	auto svg = QSvgRenderer(data);
-	auto result = QImage(size, QImage::Format_ARGB32_Premultiplied);
-	result.fill(Qt::transparent);
-
-	const auto margin = float(size.width()) * 0.04f;
-	const auto targetRect = QRectF(
-		margin,
-		margin,
-		size.width() - 2 * margin,
-		size.height() - 2 * margin);
-
-	QPainter p(&result);
-	p.setRenderHint(QPainter::Antialiasing);
-	svg.render(&p, targetRect);
-	p.end();
-
-	return result;
-}
-
-QImage ApplyMaterialShape(QImage image, int shapeIndex) {
-	if (shapeIndex < 0) {
-		shapeIndex = FASettings::FASettings::getInstance().avatarShape();
-	}
-	const auto size = image.size();
-	const auto outlineColor = st::activeButtonBgOver->c;
-
-	if (shapeIndex == 0) {
-		const auto roundness = FASettings::FASettings::getInstance().roundness();
-		const auto strokeWidth = std::max(2.0, size.width() * 0.03);
-		const auto margin = strokeWidth;
-		const auto radius = (size.width() - 2 * margin) * roundness / 100.0;
-		const auto innerRect = QRectF(
-			margin,
-			margin,
-			size.width() - 2 * margin,
-			size.height() - 2 * margin);
-
-		auto mask = QImage(size, QImage::Format_ARGB32_Premultiplied);
-		mask.fill(Qt::transparent);
-		{
-			auto q = QPainter(&mask);
-			q.setRenderHint(QPainter::Antialiasing);
-			q.setPen(Qt::NoPen);
-			q.setBrush(Qt::white);
-			q.drawRoundedRect(innerRect, radius, radius);
-		}
-
-		constexpr auto format = QImage::Format_ARGB32_Premultiplied;
-		if (image.format() != format) {
-			image = std::move(image).convertToFormat(format);
-		}
-		auto p = QPainter(&image);
-		p.setCompositionMode(QPainter::CompositionMode_DestinationIn);
-		p.drawImage(QRect(QPoint(), image.size()), mask);
-
-		p.setCompositionMode(QPainter::CompositionMode_SourceOver);
-		p.setRenderHint(QPainter::Antialiasing);
-		auto pen = QPen(outlineColor);
-		pen.setWidthF(strokeWidth);
-		p.setPen(pen);
-		p.setBrush(Qt::NoBrush);
-		const auto inset = strokeWidth / 2.0;
-		p.drawRoundedRect(
-			innerRect.adjusted(inset, inset, -inset, -inset),
-			std::max(0.0, radius - inset),
-			std::max(0.0, radius - inset));
-		p.end();
-
-		return image;
-	}
-
-	auto mask = MaterialShapeMask(size, shapeIndex);
-	if (mask.isNull()) {
-		return image;
-	}
-
-	auto outline = MaterialShapeOutline(size, shapeIndex, outlineColor, 10.0f);
-
-	constexpr auto format = QImage::Format_ARGB32_Premultiplied;
-	if (image.format() != format) {
-		image = std::move(image).convertToFormat(format);
-	}
-	auto p = QPainter(&image);
-	p.setCompositionMode(QPainter::CompositionMode_DestinationIn);
-	p.drawImage(QRect(QPoint(), image.size()), mask);
-	if (!outline.isNull()) {
-		p.setCompositionMode(QPainter::CompositionMode_SourceOver);
-		p.drawImage(QRect(QPoint(), image.size()), outline);
-	}
-	p.end();
-
-	return image;
 }
 
 } // namespace FA::Ui

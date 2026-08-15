@@ -99,24 +99,24 @@ void MusicButton::paintEvent(QPaintEvent *e) {
 	auto p = QPainter(this);
 	PainterHighQualityEnabler hq(p);
 
-	if (_overrideBg) {
-		p.fillRect(e->rect(), *_overrideBg);
-	} else {
-		p.fillRect(e->rect(), st::boxDividerBg);
-	}
+	const auto baseBg = _overrideBg ? *_overrideBg : st::windowBg->c;
+	p.fillRect(e->rect(), baseBg);
 
 	const auto pill = pillGeometry();
 	const auto pillRadius = pill.height() / 2.0;
 
-	p.setPen(Qt::NoPen);
-	if (_overrideBg) {
-		p.setBrush(Ui::BlendColors(
-			*_overrideBg,
-			Qt::black,
-			st::infoProfileTopBarActionButtonBgOpacity));
-	} else {
-		p.setBrush(st::settingsThemeNotSupportedBg);
+	const auto isDark = (baseBg.red() * 299 + baseBg.green() * 587 + baseBg.blue() * 114) < 128000;
+	auto pillBg = isDark
+		? Ui::BlendColors(baseBg, Qt::white, 0.14)
+		: Ui::BlendColors(baseBg, Qt::black, 0.08);
+	if (isOver()) {
+		pillBg = isDark
+			? Ui::BlendColors(pillBg, Qt::white, 0.08)
+			: Ui::BlendColors(pillBg, Qt::black, 0.05);
 	}
+
+	p.setPen(Qt::NoPen);
+	p.setBrush(pillBg);
 	p.drawRoundedRect(pill, pillRadius, pillRadius);
 
 	paintRipple(p, pill.topLeft().toPoint());
@@ -150,7 +150,14 @@ void MusicButton::paintEvent(QPaintEvent *e) {
 	const auto contentStartX = pill.left() + pillPaddingH;
 	const auto textTop = pill.top() + (pill.height() - st::normalFont->height) / 2.0;
 
-	p.setPen(_overrideBg ? st::groupCallMembersFg : st::windowBoldFg);
+	const auto primaryFg = isDark
+		? (_overrideBg ? st::groupCallMembersFg->c : st::windowBoldFg->c)
+		: st::windowBoldFg->c;
+	const auto secondaryFg = isDark
+		? (_overrideBg ? st::groupCallVideoSubTextFg->c : st::windowSubTextFg->c)
+		: st::windowSubTextFg->c;
+
+	p.setPen(primaryFg);
 	p.setFont(st::normalFont);
 	p.drawText(
 		int(contentStartX),
@@ -165,7 +172,7 @@ void MusicButton::paintEvent(QPaintEvent *e) {
 		.elisionMiddle = true,
 	});
 
-	p.setPen(_overrideBg ? st::groupCallVideoSubTextFg : st::windowSubTextFg);
+	p.setPen(secondaryFg);
 	_title.draw(p, {
 		.position = QPoint(
 			int(contentStartX + _noteWidth + actualPerformerWidth + skip),
@@ -183,7 +190,7 @@ void MusicButton::paintEvent(QPaintEvent *e) {
 		+ actualTitleWidth
 		+ skip;
 	const auto iconTop = pill.top() + (pill.height() - iconHeight) / 2.0;
-	icon.paint(p, int(iconLeft), int(iconTop), iconWidth, p.pen().color());
+	icon.paint(p, int(iconLeft), int(iconTop), iconWidth, secondaryFg);
 }
 
 int MusicButton::resizeGetHeight(int newWidth) {

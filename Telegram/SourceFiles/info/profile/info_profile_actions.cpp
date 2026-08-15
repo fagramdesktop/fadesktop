@@ -8,7 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "info/profile/info_profile_actions.h"
 
 #include "fa/settings/fa_settings.h"
-#include "fa/ui/components/fa_ui_components.h"
+#include "fa/ui/md3/fa_cards.h"
 #include "fa/utils/fa_profile_values.h"
 #include "fa/utils/telegram_helpers.h"
 #include "fa_lang_auto.h"

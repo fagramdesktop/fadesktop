@@ -321,24 +321,6 @@ const auto kFAChatsMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
-			.id = u"fa/chats/unlimited-pinned-chats"_q,
-			.title = fatr::fa_unlimited_pinned_chats(fatr::now),
-			.keywords = { u"pinned"_q, u"pin"_q, u"chats"_q, u"limit"_q, u"unlimited"_q },
-			.icon = { &st::menuIconChatBubble },
-		};
-	});
-
-	builder.add(nullptr, [] {
-		return SearchEntry{
-			.id = u"fa/chats/unlimited-chat-folders"_q,
-			.title = fatr::fa_unlimited_chat_folders(fatr::now),
-			.keywords = { u"folders"_q, u"folder"_q, u"chats"_q, u"limit"_q, u"unlimited"_q },
-			.icon = { &st::menuIconChatBubble },
-		};
-	});
-
-	builder.add(nullptr, [] {
-		return SearchEntry{
 			.id = u"fa/chats/delete-for-everyone"_q,
 			.title = fatr::fa_delete_for_everyone(fatr::now),
 			.keywords = { u"delete"_q, u"everyone"_q, u"default"_q, u"revoke"_q, u"checkmark"_q, u"checkbox"_q },

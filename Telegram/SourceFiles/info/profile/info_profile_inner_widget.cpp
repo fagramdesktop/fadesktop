@@ -5,6 +5,7 @@ the unofficial desktop client based on Telegram Desktop.
 For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
+#include "fa/ui/md3/fa_cards.h"
 #include "info/profile/info_profile_inner_widget.h"
 
 #include "info/info_controller.h"
@@ -55,7 +56,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/painter.h"
 #include "ui/vertical_list.h"
 #include "ui/ui_utility.h"
-#include "fa/ui/components/fa_ui_components.h"
 #include "styles/style_info.h"
 
 namespace Info {

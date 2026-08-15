@@ -1006,15 +1006,8 @@ void EditFilterBox(
 		).withColorIndex(colorIndex);
 	};
 
-	const auto isLocalFilter = owner->chatsFilters().isLocalFilter(
-		filter.id());
-	const auto shareWrap = content->add(
-		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-			content,
-			object_ptr<Ui::VerticalLayout>(content)))
-		->setDuration(0);
-	shareWrap->toggle(!isLocalFilter, anim::type::instant);
-	const auto shareInner = shareWrap->entity();
+	const auto shareInner = content->add(
+		object_ptr<Ui::VerticalLayout>(content));
 
 	Ui::AddSubsectionTitle(
 		shareInner,
@@ -1162,13 +1155,8 @@ void EditExistingFilter(
 	const auto doneCallback = [=](const Data::ChatFilter &result) {
 		Expects(id == result.id());
 
-		auto &filters = session->data().chatsFilters();
-		if (filters.isLocalFilter(id)) {
-			filters.set(result);
-			return;
-		}
 		const auto tl = result.tl();
-		filters.apply(MTP_updateDialogFilter(
+		session->data().chatsFilters().apply(MTP_updateDialogFilter(
 			MTP_flags(MTPDupdateDialogFilter::Flag::f_filter),
 			MTP_int(id),
 			tl));

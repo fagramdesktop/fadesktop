@@ -5,6 +5,7 @@ the official desktop application for the Telegram messaging service.
 For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
+#include "fa/ui/md3/fa_cards.h"
 #include "info/profile/info_profile_shared_media_classic.h"
 
 #include "core/ui_integration.h"
@@ -27,7 +28,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/profile/info_profile_values.h"
 #include "info/stories/info_stories_widget.h"
 #include "main/main_session.h"
-#include "fa/ui/components/fa_ui_components.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/buttons.h"
 #include "ui/wrap/slide_wrap.h"

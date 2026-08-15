@@ -7,9 +7,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "apiwrap.h"
 
-#include "fa/settings/fa_settings.h"
-#include "fa/utils/telegram_helpers.h"
-
 #include "api/api_authorizations.h"
 #include "api/api_attached_stickers.h"
 #include "api/api_blocked_peers.h"

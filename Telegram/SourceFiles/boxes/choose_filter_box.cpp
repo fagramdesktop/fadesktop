@@ -363,26 +363,11 @@ void FillChooseFilterMenu(
 				return;
 			}
 			const auto session = &strong->session();
-			auto &filters = session->data().chatsFilters();
-			const auto &list = filters.list();
+			const auto &list = session->data().chatsFilters().list();
 			if ((list.size() - 1) >= limit()) {
 				return;
 			}
-			const auto limits = Data::PremiumLimits(session);
-			const auto serverLimit = session->user()->isPremium()
-				? limits.dialogFiltersPremium()
-				: limits.dialogFiltersDefault();
-			auto serverCount = 0;
-			for (const auto &f : list) {
-				if (f.id() && !filters.isLocalFilter(f.id())) {
-					++serverCount;
-				}
-			}
-			const auto needsLocal = (serverCount >= serverLimit);
 			const auto chooseNextId = [&] {
-				if (needsLocal) {
-					return filters.allocateLocalId();
-				}
 				auto id = 2;
 				while (ranges::contains(list, id, &Data::ChatFilter::id)) {
 					++id;
@@ -392,13 +377,6 @@ void FillChooseFilterMenu(
 			auto filter =
 				Data::ChatFilter({}, {}, {}, {}, {}, { history }, {}, {});
 			const auto send = [=](const Data::ChatFilter &filter) {
-				if (needsLocal) {
-					const auto newId = session->data().chatsFilters()
-						.allocateLocalId();
-					session->data().chatsFilters().set(
-						filter.withId(newId));
-					return;
-				}
 				session->api().request(MTPmessages_UpdateDialogFilter(
 					MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
 					MTP_int(chooseNextId()),

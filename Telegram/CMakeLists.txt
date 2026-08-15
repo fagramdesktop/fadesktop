@@ -922,10 +922,17 @@ PRIVATE
     fa/url_handlers/fa_url_handlers.h
     fa/lang/fa_lang.cpp
     fa/lang/fa_lang.h
-    fa/ui/components/fa_ui_components.cpp
-    fa/ui/components/fa_ui_components.h
-    fa/ui/components/previews.cpp
-    fa/ui/components/previews.h
+    fa/ui/md3/fa_cards.cpp
+    fa/ui/md3/fa_cards.h
+    fa/ui/md3/fa_slider.cpp
+    fa/ui/md3/fa_slider.h
+    fa/ui/md3/fa_avatar_shape.cpp
+    fa/ui/md3/fa_avatar_shape.h
+    fa/ui/md3/fa_nav_drawer.cpp
+    fa/ui/md3/fa_nav_drawer.h
+    fa/ui/md3/previews.cpp
+    fa/ui/md3/previews.h
+    fa/ui/md3/svg_assets.h
     fa/utils/fa_context_menu_shortcuts.cpp
     fa/utils/fa_context_menu_shortcuts.h
     fa/utils/fa_reply_in_private.cpp

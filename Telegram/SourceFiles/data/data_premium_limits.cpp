@@ -7,8 +7,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "data/data_premium_limits.h"
 
-#include "fa/settings/fa_settings.h"
-
 #include "main/main_app_config.h"
 #include "main/main_session.h"
 
@@ -73,9 +71,6 @@ int PremiumLimits::dialogFiltersPremium() const {
 	return appConfigLimit("dialog_filters_limit_premium", 30);
 }
 int PremiumLimits::dialogFiltersCurrent() const {
-	if (FASettings::FASettings::getInstance().unlimitedChatFolders()) {
-		return 100;
-	}
 	return isPremium()
 		? dialogFiltersPremium()
 		: dialogFiltersDefault();
@@ -124,9 +119,6 @@ int PremiumLimits::dialogsPinnedPremium() const {
 	return appConfigLimit("dialogs_pinned_limit_premium", 10);
 }
 int PremiumLimits::dialogsPinnedCurrent() const {
-	if (FASettings::FASettings::getInstance().unlimitedPinnedChats()) {
-		return 100;
-	}
 	return isPremium()
 		? dialogsPinnedPremium()
 		: dialogsPinnedDefault();
@@ -139,9 +131,6 @@ int PremiumLimits::dialogsFolderPinnedPremium() const {
 	return appConfigLimit("dialogs_folder_pinned_limit_premium", 200);
 }
 int PremiumLimits::dialogsFolderPinnedCurrent() const {
-	if (FASettings::FASettings::getInstance().unlimitedPinnedChats()) {
-		return 100;
-	}
 	return isPremium()
 		? dialogsFolderPinnedPremium()
 		: dialogsFolderPinnedDefault();

@@ -8,7 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/profile/info_profile_top_bar.h"
 
 #include "fa/settings/fa_settings.h"
-#include "fa/ui/components/fa_ui_components.h"
+#include "fa/ui/md3/fa_avatar_shape.h"
 
 #include "api/api_peer_colors.h"
 #include "api/api_peer_photo.h"
