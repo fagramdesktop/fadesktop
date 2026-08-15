@@ -23,6 +23,7 @@ namespace {
 class CardContainerWidget final : public ::Ui::RpWidget {
 public:
 	explicit CardContainerWidget(QWidget *parent) : RpWidget(parent) {
+		setProperty("is_fa_card", true);
 	}
 
 	void setInnerLayout(
@@ -617,6 +618,44 @@ not_null<::Ui::RpWidget*> AddCardRadio(
 
 void AddCardDivider(not_null<::Ui::VerticalLayout*> card) {
 	card->add(object_ptr<CardDividerWidget>(card));
+}
+
+not_null<::Ui::RippleButton*> CreateCardRippleButton(
+		not_null<QWidget*> parent,
+		int radius) {
+	class CardRippleButton final : public ::Ui::RippleButton {
+	public:
+		CardRippleButton(QWidget *parent, int radius)
+		: RippleButton(parent, st::defaultSettingsButton.ripple)
+		, _radius(radius) {
+		}
+
+	protected:
+		void paintEvent(QPaintEvent *e) override {
+			auto p = QPainter(this);
+			const auto paintOver = (isOver() || isDown()) && !isDisabled();
+			if (paintOver) {
+				PainterHighQualityEnabler hq(p);
+				p.setPen(Qt::NoPen);
+				p.setBrush(st::windowBgOver);
+				p.drawRoundedRect(QRectF(rect()), _radius, _radius);
+			}
+			paintRipple(p, 0, 0);
+		}
+
+		QImage prepareRippleMask() const override {
+			return ::Ui::RippleAnimation::RoundRectMask(size(), _radius);
+		}
+
+		QPoint prepareRippleStartPosition() const override {
+			return mapFromGlobal(QCursor::pos());
+		}
+
+	private:
+		int _radius = 14;
+	};
+
+	return ::Ui::CreateChild<CardRippleButton>(parent.get(), radius);
 }
 
 } // namespace FA::Ui

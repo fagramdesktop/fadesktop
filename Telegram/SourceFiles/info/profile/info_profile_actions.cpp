@@ -2178,9 +2178,9 @@ Section DetailsFiller::makePersonalChannel(not_null<UserData*> user) {
 						st::infoProfilePersonalChannelPadding.bottom()));
 			}
 			{
-				const auto button = Ui::CreateSimpleRectButton(
+				const auto button = FA::Ui::CreateCardRippleButton(
 					messageChannelWrap->entity(),
-					st::defaultRippleAnimation);
+					14);
 				inner->geometryValue(
 				) | rpl::on_next([=](const QRect &rect) {
 					button->setGeometry(rect);

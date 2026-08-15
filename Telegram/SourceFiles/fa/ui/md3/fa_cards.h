@@ -50,4 +50,8 @@ not_null<::Ui::RpWidget*> AddCardRadio(
 
 void AddCardDivider(not_null<::Ui::VerticalLayout*> card);
 
+[[nodiscard]] not_null<::Ui::RippleButton*> CreateCardRippleButton(
+	not_null<QWidget*> parent,
+	int radius = 14);
+
 } // namespace FA::Ui
