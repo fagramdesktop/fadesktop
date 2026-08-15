@@ -5,6 +5,7 @@ the official desktop application for the Telegram messaging service.
 For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
+#include "fa/settings/fa_settings.h"
 #include "ui/widgets/chat_filters_tabs_strip.h"
 
 #include "api/api_chat_filters_remove_manager.h"
@@ -514,9 +515,17 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 		session->data().chatsFilters().changed(),
 		Data::AmPremiumValue(session) | rpl::to_empty
 	) | rpl::on_next(rebuild, wrap->lifetime());
-	Core::App().settings().chatFiltersTabsModeValue(
-	) | rpl::on_next([=](ChatsFiltersTabsMode mode) {
-		slider->setTabsMode(HorizontalChatsFiltersTabsMode(mode));
+	rpl::combine(
+		Core::App().settings().chatFiltersTabsModeValue(),
+		FASettings::FASettings::getInstance().shareMenuFolderIconsValue()
+	) | rpl::on_next([=](ChatsFiltersTabsMode mode, bool shareIcons) {
+		if (!trackActiveFilterAndUnreadAndReorder) {
+			slider->setTabsMode(shareIcons
+				? ChatsFiltersTabsMode::IconsOnly
+				: ChatsFiltersTabsMode::TextOnly);
+		} else {
+			slider->setTabsMode(HorizontalChatsFiltersTabsMode(mode));
+		}
 		scrollToIndex(slider->activeSection(), anim::type::instant);
 	}, wrap->lifetime());
 	rebuild();

@@ -376,6 +376,21 @@ namespace Settings {
 			});
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			themesRow, u"fa/appearance/use-tdesktop-themes"_q, controller);
+
+		FA::Ui::AddCardDivider(optionsCard);
+
+		const auto shareMenuFolderIconsRow = FA::Ui::AddCardToggle(
+			optionsCard,
+			fatr::fa_share_menu_folder_icons(),
+			fatr::fa_share_menu_folder_icons_desc(),
+			settings.shareMenuFolderIconsValue(),
+			[&settings](bool enabled) {
+				settings.setShareMenuFolderIcons(enabled);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			shareMenuFolderIconsRow,
+			u"fa/appearance/share-menu-folder-icons"_q,
+			controller);
     }
 
     void FAAppearance::SetupFAAppearance(not_null<Ui::VerticalLayout *> container, not_null<Window::SessionController *> controller) {

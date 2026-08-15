@@ -480,6 +480,15 @@ const auto kFAAppearanceMeta = BuildHelper({
 			.icon = { &st::menuIconPalette },
 		};
 	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
+			.id = u"fa/appearance/share-menu-folder-icons"_q,
+			.title = fatr::fa_share_menu_folder_icons(fatr::now),
+			.keywords = { u"share"_q, u"folder"_q, u"icons"_q, u"labels"_q, u"tabs"_q },
+			.icon = { &st::menuIconPalette },
+		};
+	});
 });
 // FA Context Menu
 const auto kFAContextMenuMeta = BuildHelper({

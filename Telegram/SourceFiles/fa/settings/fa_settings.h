@@ -74,6 +74,7 @@ public:
 	[[nodiscard]] bool contextMenuForwardSubmenu() const { return _contextMenuForwardSubmenu.current(); }
 	[[nodiscard]] bool useTdesktopThemes() const { return _useTdesktopThemes.current(); }
 	[[nodiscard]] bool useMaterialIconPack() const { return _useMaterialIconPack.current(); }
+	[[nodiscard]] bool shareMenuFolderIcons() const { return _shareMenuFolderIcons.current(); }
 	[[nodiscard]] int avatarShape() const { return _avatarShape.current(); }
 	[[nodiscard]] bool disablePremiumAnimation() const { return _disablePremiumAnimation.current(); }
 	[[nodiscard]] bool screenshotMode() const { return _screenshotMode.current(); }
@@ -125,6 +126,7 @@ public:
 	void setContextMenuForwardSubmenu(bool val);
 	void setUseTdesktopThemes(bool val);
 	void setUseMaterialIconPack(bool val);
+	void setShareMenuFolderIcons(bool val);
 	void setAvatarShape(int val);
 	void setDisablePremiumAnimation(bool val);
 	void setScreenshotMode(bool val);
@@ -176,6 +178,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> contextMenuForwardSubmenuValue() const { return _contextMenuForwardSubmenu.value(); }
 	[[nodiscard]] rpl::producer<bool> useTdesktopThemesValue() const { return _useTdesktopThemes.value(); }
 	[[nodiscard]] rpl::producer<bool> useMaterialIconPackValue() const { return _useMaterialIconPack.value(); }
+	[[nodiscard]] rpl::producer<bool> shareMenuFolderIconsValue() const { return _shareMenuFolderIcons.value(); }
 	[[nodiscard]] rpl::producer<int> avatarShapeValue() const { return _avatarShape.value(); }
 	[[nodiscard]] rpl::producer<bool> disablePremiumAnimationValue() const { return _disablePremiumAnimation.value(); }
 	[[nodiscard]] rpl::producer<bool> screenshotModeValue() const { return _screenshotMode.value(); }
@@ -226,6 +229,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> contextMenuForwardSubmenuChanges() const { return _contextMenuForwardSubmenu.changes(); }
 	[[nodiscard]] rpl::producer<bool> useTdesktopThemesChanges() const { return _useTdesktopThemes.changes(); }
 	[[nodiscard]] rpl::producer<bool> useMaterialIconPackChanges() const { return _useMaterialIconPack.changes(); }
+	[[nodiscard]] rpl::producer<bool> shareMenuFolderIconsChanges() const { return _shareMenuFolderIcons.changes(); }
 	[[nodiscard]] rpl::producer<int> avatarShapeChanges() const { return _avatarShape.changes(); }
 	[[nodiscard]] rpl::producer<bool> disablePremiumAnimationChanges() const { return _disablePremiumAnimation.changes(); }
 	[[nodiscard]] rpl::producer<bool> screenshotModeChanges() const { return _screenshotMode.changes(); }
@@ -292,6 +296,7 @@ private:
 	rpl::variable<bool> _contextMenuForwardSubmenu = false;
 	rpl::variable<bool> _useTdesktopThemes = false;
 	rpl::variable<bool> _useMaterialIconPack = false;
+	rpl::variable<bool> _shareMenuFolderIcons = false;
 	rpl::variable<int> _avatarShape = 0;
 	rpl::variable<bool> _disablePremiumAnimation = false;
 	rpl::variable<bool> _screenshotMode = false;
