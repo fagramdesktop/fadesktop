@@ -9,6 +9,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "ui/painter.h"
 #include "ui/rect.h"
+#include "ui/round_rect.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/effects/animation_value_f.h"
 #include "styles/style_basic.h"
@@ -37,6 +38,7 @@ public:
 
 	int resizeGetHeight(int newWidth) override {
 		if (_layout) {
+			_layout->move(0, 0);
 			_layout->resizeToWidth(newWidth);
 			return _layout->height();
 		}
@@ -89,6 +91,7 @@ private:
 		_inRelayout = true;
 		const auto w = width();
 		if (w > 0) {
+			_layout->move(0, 0);
 			_layout->resizeToWidth(w);
 			const auto h = _layout->height();
 			if (height() != h) {
@@ -170,6 +173,14 @@ protected:
 	void paintEvent(QPaintEvent *e) override {
 		Painter p(this);
 		PainterHighQualityEnabler hq(p);
+
+		const auto paintOver = (isOver() || isDown()) && !isDisabled();
+		if (paintOver) {
+			p.setPen(Qt::NoPen);
+			p.setBrush(st::windowBgOver);
+			const auto r = QRectF(0.5, 0.5, width() - 1.0, height() - 1.0);
+			p.drawRoundedRect(r, 14.0, 14.0);
+		}
 
 		paintRipple(p, 0, 0);
 
@@ -352,6 +363,14 @@ protected:
 		Painter p(this);
 		PainterHighQualityEnabler hq(p);
 
+		const auto paintOver = (isOver() || isDown()) && !isDisabled();
+		if (paintOver) {
+			p.setPen(Qt::NoPen);
+			p.setBrush(st::windowBgOver);
+			const auto r = QRectF(0.5, 0.5, width() - 1.0, height() - 1.0);
+			p.drawRoundedRect(r, 14.0, 14.0);
+		}
+
 		paintRipple(p, 0, 0);
 
 		const auto padding = 16;
@@ -459,6 +478,14 @@ protected:
 		Painter p(this);
 		PainterHighQualityEnabler hq(p);
 
+		const auto paintOver = (isOver() || isDown()) && !isDisabled();
+		if (paintOver) {
+			p.setPen(Qt::NoPen);
+			p.setBrush(st::windowBgOver);
+			const auto r = QRectF(0.5, 0.5, width() - 1.0, height() - 1.0);
+			p.drawRoundedRect(r, 14.0, 14.0);
+		}
+
 		paintRipple(p, 0, 0);
 
 		const auto padding = 16;
@@ -549,6 +576,28 @@ void AddModernSectionHeader(
 	label->setTextColorOverride(st::windowActiveTextFg->c);
 }
 
+void AddCardDescription(
+		not_null<::Ui::VerticalLayout*> container,
+		rpl::producer<QString> text) {
+	AddCardDescription(
+		container,
+		std::move(text) | rpl::map([](const QString &s) {
+			return TextWithEntities{ s };
+		}));
+}
+
+void AddCardDescription(
+		not_null<::Ui::VerticalLayout*> container,
+		rpl::producer<TextWithEntities> text) {
+	const auto label = container->add(
+		object_ptr<::Ui::FlatLabel>(
+			container,
+			std::move(text),
+			st::boxDividerLabel),
+		style::margins(22, 4, 22, 8));
+	label->setTextColorOverride(st::windowSubTextFg->c);
+}
+
 not_null<::Ui::VerticalLayout*> CreateCardContainer(
 		not_null<::Ui::VerticalLayout*> container,
 		int topMargin,
@@ -560,9 +609,9 @@ not_null<::Ui::VerticalLayout*> CreateCardContainer(
 	const auto layout = ::Ui::CreateChild<::Ui::VerticalLayout>(cardSurface);
 	cardSurface->setInnerLayout(layout, container);
 	
-	cardSurface->widthValue(
-	) | rpl::on_next([layout](int width) {
-		layout->resizeToWidth(width);
+	cardSurface->sizeValue(
+	) | rpl::on_next([layout](const QSize &s) {
+		layout->setGeometry(0, 0, s.width(), s.height());
 	}, layout->lifetime());
 
 	layout->heightValue(
@@ -632,13 +681,14 @@ not_null<::Ui::RippleButton*> CreateCardRippleButton(
 
 	protected:
 		void paintEvent(QPaintEvent *e) override {
-			auto p = QPainter(this);
+			Painter p(this);
 			const auto paintOver = (isOver() || isDown()) && !isDisabled();
 			if (paintOver) {
 				PainterHighQualityEnabler hq(p);
 				p.setPen(Qt::NoPen);
 				p.setBrush(st::windowBgOver);
-				p.drawRoundedRect(QRectF(rect()), _radius, _radius);
+				const auto r = QRectF(0.5, 0.5, width() - 1.0, height() - 1.0);
+				p.drawRoundedRect(r, _radius, _radius);
 			}
 			paintRipple(p, 0, 0);
 		}

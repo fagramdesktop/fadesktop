@@ -22,6 +22,14 @@ void AddModernSectionHeader(
 	not_null<::Ui::VerticalLayout*> container,
 	rpl::producer<QString> title);
 
+void AddCardDescription(
+	not_null<::Ui::VerticalLayout*> container,
+	rpl::producer<QString> text);
+
+void AddCardDescription(
+	not_null<::Ui::VerticalLayout*> container,
+	rpl::producer<TextWithEntities> text);
+
 not_null<::Ui::VerticalLayout*> CreateCardContainer(
 	not_null<::Ui::VerticalLayout*> container,
 	int topMargin = 0,

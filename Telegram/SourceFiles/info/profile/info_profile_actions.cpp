@@ -2178,12 +2178,14 @@ Section DetailsFiller::makePersonalChannel(not_null<UserData*> user) {
 						st::infoProfilePersonalChannelPadding.bottom()));
 			}
 			{
+				inner->setAttribute(Qt::WA_TransparentForMouseEvents);
 				const auto button = FA::Ui::CreateCardRippleButton(
 					messageChannelWrap->entity(),
 					14);
-				inner->geometryValue(
-				) | rpl::on_next([=](const QRect &rect) {
-					button->setGeometry(rect);
+				button->lower();
+				messageChannelWrap->entity()->sizeValue(
+				) | rpl::on_next([=](const QSize &size) {
+					button->setGeometry(QRect(0, 0, size.width(), size.height()));
 				}, button->lifetime());
 				const auto channelPeer = item->history()->peer;
 				const auto msg = item->fullId().msg;
