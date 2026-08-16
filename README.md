@@ -19,6 +19,24 @@
 
 ![[Preview of FAgram Desktop]][preview_image]
 
+<details>
+<summary><b>Click to expand preview images</b></summary>
+
+<table>
+  <tr>
+    <td align="center" valign="top"><img alt="Preview of FAgram Desktop" src="docs/assets/feat1.png"></td>
+    <td align="center" valign="top"><img alt="Preview of FAgram Desktop" src="docs/assets/feat2.png"></td>
+    <td align="center" valign="top"><img alt="Preview of FAgram Desktop" src="docs/assets/feat3.png"></td>
+  </tr>
+  <tr>
+    <td align="center" valign="top"><img alt="Preview of FAgram Desktop" src="docs/assets/feat4.png"></td>
+    <td align="center" valign="top"><img alt="Preview of FAgram Desktop" src="docs/assets/feat5.png"></td>
+    <td align="center" valign="top"><img alt="Preview of FAgram Desktop" src="docs/assets/feat6.png"></td>
+  </tr>
+</table>
+
+</details>
+
 </div>
 
 ## Features
