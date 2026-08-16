@@ -60,6 +60,7 @@ void AddCardDivider(not_null<::Ui::VerticalLayout*> card);
 
 [[nodiscard]] not_null<::Ui::RippleButton*> CreateCardRippleButton(
 	not_null<QWidget*> parent,
-	int radius = 14);
+	int radius = 14,
+	bool paintHover = false);
 
 } // namespace FA::Ui

@@ -671,19 +671,21 @@ void AddCardDivider(not_null<::Ui::VerticalLayout*> card) {
 
 not_null<::Ui::RippleButton*> CreateCardRippleButton(
 		not_null<QWidget*> parent,
-		int radius) {
+		int radius,
+		bool paintHover) {
 	class CardRippleButton final : public ::Ui::RippleButton {
 	public:
-		CardRippleButton(QWidget *parent, int radius)
+		CardRippleButton(QWidget *parent, int radius, bool paintHover)
 		: RippleButton(parent, st::defaultSettingsButton.ripple)
-		, _radius(radius) {
+		, _radius(radius)
+		, _paintHover(paintHover) {
 		}
 
 	protected:
 		void paintEvent(QPaintEvent *e) override {
 			Painter p(this);
 			const auto paintOver = (isOver() || isDown()) && !isDisabled();
-			if (paintOver) {
+			if (_paintHover && paintOver) {
 				PainterHighQualityEnabler hq(p);
 				p.setPen(Qt::NoPen);
 				p.setBrush(st::windowBgOver);
@@ -703,9 +705,10 @@ not_null<::Ui::RippleButton*> CreateCardRippleButton(
 
 	private:
 		int _radius = 14;
+		bool _paintHover = false;
 	};
 
-	return ::Ui::CreateChild<CardRippleButton>(parent.get(), radius);
+	return ::Ui::CreateChild<CardRippleButton>(parent.get(), radius, paintHover);
 }
 
 } // namespace FA::Ui
