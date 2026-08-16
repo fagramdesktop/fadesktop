@@ -1,3 +1,10 @@
+2.4.0 (16.08.26)
+
+- Material Design 3 UI
+- GoogleSansFlex as default font
+- Toggle switch for share menu folder icons
+- Some UI enhancements
+
 2.3.6 (12.08.26)
 
 - Refactored FAsettings implementation

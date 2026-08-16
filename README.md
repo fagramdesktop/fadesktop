@@ -106,6 +106,9 @@
 - Display full timestamps in last seen status
 - Show forwarded message date in title
 - Disable greeting stickers in chat intros
+- Material Design 3 UI
+- GoogleSansFlex as default font
+- Toggle switch for share menu folder icons
 
 </details>
 
