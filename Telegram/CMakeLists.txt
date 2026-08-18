@@ -924,8 +924,12 @@ PRIVATE
     fa/lang/fa_lang.h
     fa/ui/md3/fa_cards.cpp
     fa/ui/md3/fa_cards.h
+    fa/ui/md3/fa_profile_cards.cpp
+    fa/ui/md3/fa_profile_cards.h
     fa/ui/md3/fa_slider.cpp
     fa/ui/md3/fa_slider.h
+    fa/ui/md3/fa_top_bar.cpp
+    fa/ui/md3/fa_top_bar.h
     fa/ui/md3/fa_avatar_shape.cpp
     fa/ui/md3/fa_avatar_shape.h
     fa/ui/md3/fa_nav_drawer.cpp

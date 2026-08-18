@@ -14,6 +14,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "settings/sections/settings_main.h"
 #include "settings/settings_builder.h"
+#include "settings/settings_common.h"
 #include "settings/settings_common_session.h"
 #include "settings/business/settings_chatbots.h"
 #include "ui/wrap/vertical_layout.h"
@@ -224,17 +225,18 @@ public:
 private:
 	void setup();
 
-	[[nodiscard]] not_null<Ui::SlideWrap<FA::Ui::NavDrawerButton>*> setupAdd();
+	[[nodiscard]] not_null<Ui::SlideWrap<Ui::SettingsButton>*> setupAdd(
+		not_null<Ui::VerticalLayout*> container);
 	void rebuild();
 
 	const not_null<Window::SessionController*> _controller;
 	const not_null<Ui::VerticalLayout*> _outer;
-	int _outerIndex = 0;
 
-	Ui::SlideWrap<FA::Ui::NavDrawerButton> *_addAccount = nullptr;
+	Ui::VerticalLayout *_inner = nullptr;
+	Ui::SlideWrap<Ui::SettingsButton> *_addAccount = nullptr;
 	base::flat_map<
 		not_null<::Main::Account*>,
-		base::unique_qptr<FA::Ui::NavDrawerButton>> _watched;
+		base::unique_qptr<Ui::SettingsButton>> _watched;
 
 	base::unique_qptr<Ui::PopupMenu> _contextMenu;
 	std::unique_ptr<Ui::VerticalLayoutReorder> _reorder;
@@ -419,13 +421,12 @@ not_null<Ui::SettingsButton*> AddRow(
 }
 
 void SetupBirthday(
+		not_null<Ui::VerticalLayout*> card,
 		not_null<Ui::VerticalLayout*> container,
 		not_null<Window::SessionController*> controller,
 		not_null<UserData*> self,
 		InformationHighlightTargets *targets) {
 	const auto session = &self->session();
-
-	const auto card = FAUi::CreateCardContainer(container, 4, 4);
 
 	auto value = rpl::combine(
 		Info::Profile::BirthdayValue(self),
@@ -545,7 +546,7 @@ void SetupPersonalChannel(
 		not_null<Window::SessionController*> controller,
 		not_null<UserData*> self,
 		InformationHighlightTargets *targets) {
-	const auto card = FAUi::CreateCardContainer(container, 4, 4);
+	const auto card = FAUi::CreateCardContainer(container, 6, 6);
 
 	auto value = rpl::combine(
 		Info::Profile::PersonalChannelValue(self),
@@ -575,6 +576,9 @@ void SetupPersonalChannel(
 		controller->uiShow(),
 		self,
 		st::settingsColorButton);
+
+	SetupBirthday(card, container, controller, self, targets);
+
 	if (targets) {
 		targets->channelButton = channelButton;
 		targets->colorButton = colorButton;
@@ -588,7 +592,7 @@ void SetupRows(
 		InformationHighlightTargets *targets) {
 	const auto session = &self->session();
 
-	const auto card = FAUi::CreateCardContainer(container, 4, 4);
+	const auto card = FAUi::CreateCardContainer(container, 6, 6);
 
 	const auto showEditName = [=] {
 		if (controller->showFrozenError()) {
@@ -681,6 +685,67 @@ void SetupRows(
 	FAUi::AddCardDescription(container, tr::lng_settings_username_about());
 }
 
+namespace {
+
+class BioInputContainer final : public Ui::RpWidget {
+public:
+	explicit BioInputContainer(QWidget *parent) : RpWidget(parent) {
+	}
+
+	void setField(not_null<Ui::InputField*> field, not_null<Ui::FlatLabel*> countdown, const style::InputField &st) {
+		_field = field;
+		_countdown = countdown;
+		_style = &st;
+		_field->installEventFilter(this);
+
+		_field->heightValue(
+		) | rpl::on_next([this](int h) {
+			updateSize();
+		}, lifetime());
+	}
+
+protected:
+	int resizeGetHeight(int newWidth) override {
+		if (_field) {
+			const auto fieldW = newWidth - 28;
+			_field->resizeToWidth(fieldW);
+			return _field->height() + 16;
+		}
+		return height();
+	}
+
+	void resizeEvent(QResizeEvent *e) override {
+		if (_field) {
+			const auto left = 14;
+			const auto top = 8;
+			const auto fieldW = width() - 28;
+			_field->setGeometry(left, top, fieldW, _field->height());
+		}
+	}
+
+	void paintEvent(QPaintEvent *e) override {
+		Painter p(this);
+		PainterHighQualityEnabler hq(p);
+
+		const auto r = QRectF(0.5, 0.5, width() - 1.0, height() - 1.0);
+		p.setPen(Qt::NoPen);
+		p.setBrush(st::windowBgOver);
+		p.drawRoundedRect(r, 14.0, 14.0);
+	}
+
+private:
+	void updateSize() {
+		if (_field) {
+			resize(width(), _field->height() + 16);
+		}
+	}
+
+	Ui::InputField *_field = nullptr;
+	Ui::FlatLabel *_countdown = nullptr;
+	const style::InputField *_style = nullptr;
+};
+
+} // namespace
 void SetupBio(
 		not_null<Ui::VerticalLayout*> container,
 		not_null<UserData*> self,
@@ -699,24 +764,28 @@ void SetupBio(
 	const auto changed = Ui::CreateChild<rpl::event_stream<bool>>(
 		container.get());
 
-	const auto card = FAUi::CreateCardContainer(container, 8, 4);
+	const auto card = FAUi::CreateCardContainer(container, 12, 6);
 
-	const auto bio = card->add(
-		object_ptr<Ui::InputField>(
-			card,
-			*style,
-			Ui::InputField::Mode::MultiLine,
-			tr::lng_bio_placeholder(),
-			*current),
-		style::margins(16, 6, 16, 6));
+	const auto bioContainer = card->add(
+		object_ptr<BioInputContainer>(card),
+		style::margins(12, 8, 12, 4));
+
+	const auto bio = Ui::CreateChild<Ui::InputField>(
+		bioContainer,
+		*style,
+		Ui::InputField::Mode::MultiLine,
+		tr::lng_bio_placeholder(),
+		*current);
 	if (targets) {
 		targets->bio = bio;
 	}
 
 	const auto countdown = Ui::CreateChild<Ui::FlatLabel>(
-		card.get(),
+		bioContainer,
 		QString(),
 		st::settingsBioCountdown);
+
+	bioContainer->setField(bio, countdown, *style);
 
 	rpl::combine(
 		bio->geometryValue(),
@@ -811,7 +880,7 @@ void SetupAccountsWrap(
 		not_null<Ui::VerticalLayout*> container,
 		not_null<Window::SessionController*> controller,
 		InformationHighlightTargets *targets) {
-	const auto card = FAUi::CreateCardContainer(container, 4, 8);
+	const auto card = FAUi::CreateCardContainer(container, 6, 12);
 
 	auto events = SetupAccounts(card, controller);
 	if (targets) {
@@ -823,7 +892,7 @@ void SetupAccountsWrap(
 	return (modifiers & Qt::ShiftModifier) && (modifiers & Qt::AltModifier);
 }
 
-[[nodiscard]] object_ptr<FA::Ui::NavDrawerButton> MakeAccountButton(
+[[nodiscard]] object_ptr<Ui::SettingsButton> MakeAccountButton(
 		QWidget *parent,
 		not_null<Window::SessionController*> window,
 		not_null<::Main::Account*> account,
@@ -840,10 +909,10 @@ void SetupAccountsWrap(
 	) | rpl::map([=] {
 		return user->name();
 	}));
-	auto result = object_ptr<FA::Ui::NavDrawerButton>(
+	auto result = object_ptr<Ui::SettingsButton>(
 		parent,
 		rpl::duplicate(text),
-		st::mainMenuAddAccountButton);
+		st::settingsAddAccountButton);
 	const auto raw = result.data();
 
 	{
@@ -878,7 +947,7 @@ void SetupAccountsWrap(
 		+ userpicSkip * 2;
 	raw->heightValue(
 	) | rpl::on_next([=](int height) {
-		const auto left = 12 + 16 + (st::settingsIconAdd.width() - userpicSize) / 2;
+		const auto left = st::settingsAddAccountButton.iconLeft + (st::settingsIconAdd.width() - userpicSize) / 2;
 		const auto top = (height - userpicSize) / 2;
 		state->userpic.setGeometry(left, top, userpicSize, userpicSize);
 	}, state->userpic.lifetime());
@@ -994,8 +1063,7 @@ AccountsList::AccountsList(
 	not_null<Ui::VerticalLayout*> container,
 	not_null<Window::SessionController*> controller)
 : _controller(controller)
-, _outer(container)
-, _outerIndex(container->count()) {
+, _outer(container) {
 	setup();
 }
 
@@ -1008,8 +1076,6 @@ Ui::RpWidget *AccountsList::addAccountButton() const {
 }
 
 void AccountsList::setup() {
-	_addAccount = setupAdd();
-
 	rpl::single(rpl::empty) | rpl::then(
 		Core::App().domain().accountsChanges()
 	) | rpl::on_next([=] {
@@ -1050,14 +1116,15 @@ void AccountsList::setup() {
 }
 
 
-not_null<Ui::SlideWrap<FA::Ui::NavDrawerButton>*> AccountsList::setupAdd() {
-	const auto result = _outer->add(
-		object_ptr<Ui::SlideWrap<FA::Ui::NavDrawerButton>>(
-			_outer.get(),
-			FA::Ui::CreateNavDrawerButton(
-				_outer.get(),
+not_null<Ui::SlideWrap<Ui::SettingsButton>*> AccountsList::setupAdd(
+		not_null<Ui::VerticalLayout*> container) {
+	const auto result = container->add(
+		object_ptr<Ui::SlideWrap<Ui::SettingsButton>>(
+			container.get(),
+			CreateButtonWithIcon(
+				container.get(),
 				tr::lng_menu_add_account(),
-				st::mainMenuAddAccountButton,
+				st::settingsAddAccountButton,
 				{
 					&st::settingsIconAdd,
 					IconType::Round,
@@ -1123,26 +1190,32 @@ not_null<Ui::SlideWrap<FA::Ui::NavDrawerButton>*> AccountsList::setupAdd() {
 }
 
 void AccountsList::rebuild() {
-	const auto inner = _outer->insert(
-		_outerIndex,
-		object_ptr<Ui::VerticalLayout>(_outer.get()));
+	if (_inner) {
+		delete _inner;
+		_inner = nullptr;
+		_addAccount = nullptr;
+		for (auto &[account, button] : _watched) {
+			button.release();
+		}
+	}
+	_inner = _outer->add(object_ptr<Ui::VerticalLayout>(_outer.get()));
 
-	_reorder = std::make_unique<Ui::VerticalLayoutReorder>(inner);
+	_reorder = std::make_unique<Ui::VerticalLayoutReorder>(_inner);
 	_reorder->updates(
 	) | rpl::on_next([=](Ui::VerticalLayoutReorder::Single data) {
 		using State = Ui::VerticalLayoutReorder::State;
 		if (data.state == State::Started) {
 			++_reordering;
 		} else {
-			Ui::PostponeCall(inner, [=] {
+			Ui::PostponeCall(_inner, [=] {
 				--_reordering;
 			});
 			if (data.state == State::Applied) {
 				std::vector<uint64> order;
-				order.reserve(inner->count());
-				for (auto i = 0; i < inner->count(); i++) {
+				order.reserve(_inner->count());
+				for (auto i = 0; i < _inner->count(); i++) {
 					for (const auto &[account, button] : _watched) {
-						if (button.get() == inner->widgetAt(i)) {
+						if (button.get() == _inner->widgetAt(i)) {
 							order.push_back(account->session().uniqueId());
 						}
 					}
@@ -1151,7 +1224,7 @@ void AccountsList::rebuild() {
 				Core::App().saveSettings();
 			}
 		}
-	}, inner->lifetime());
+	}, _inner->lifetime());
 
 	const auto premiumLimit = _controller->session().domain().maxAccounts();
 	const auto list = _controller->session().domain().orderedAccounts();
@@ -1163,7 +1236,7 @@ void AccountsList::rebuild() {
 		if (!account->sessionExists() || list.size() == 1) {
 			button = nullptr;
 		} else if (!button) {
-			const auto nextIsLocked = (inner->count() >= premiumLimit);
+			const auto nextIsLocked = (_inner->count() >= premiumLimit);
 			auto callback = [=](Qt::KeyboardModifiers modifiers) {
 				if (_reordering) {
 					return;
@@ -1194,15 +1267,18 @@ void AccountsList::rebuild() {
 						std::move(activate));
 				}
 			};
-			button.reset(inner->add(MakeAccountButton(
-				inner,
+			button.reset(_inner->add(MakeAccountButton(
+				_inner,
 				_controller,
 				account,
 				std::move(callback),
 				nextIsLocked)));
 		}
 	}
-	inner->resizeToWidth(_outer->width());
+
+	_addAccount = setupAdd(_inner);
+
+	_inner->resizeToWidth(_outer->width());
 
 	const auto count = int(list.size());
 
@@ -1371,7 +1447,6 @@ void Information::setupContent() {
 		SetupBio(container, self, &targets);
 		SetupRows(container, controller, self, &targets);
 		SetupPersonalChannel(container, controller, self, &targets);
-		SetupBirthday(container, controller, self, &targets);
 		SetupAccountsWrap(container, controller, &targets);
 
 		*photo = targets.photo;
