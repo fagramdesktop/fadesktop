@@ -367,8 +367,8 @@ void BottomInfo::paint(
 		_forwards.drawLeft(p, right, position.y(), forwardsWidth, outerWidth);
 
 		const auto &icon = inverted
-			? st->historyRepliesInvertedIcon()
-			: stm->historyRepliesIcon;
+			? st->historyForwardsInvertedIcon()
+			: stm->historyForwardsIcon;
 		right -= st::historyViewsWidth;
 		icon.paint(
 			p,
