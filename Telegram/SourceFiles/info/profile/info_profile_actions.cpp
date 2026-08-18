@@ -91,6 +91,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/painter.h"
 #include "ui/rect.h"
 #include "ui/ui_utility.h"
+#include "ui/userpic_view.h"
 #include "ui/text/format_values.h"
 #include "ui/text/text_custom_emoji.h"
 #include "ui/text/text_utilities.h"
@@ -2553,6 +2554,7 @@ Section DetailsFiller::makeViewChannel(not_null<ChannelData*> channel) {
 		parent,
 		object_ptr<Ui::VerticalLayout>(parent));
 	const auto raw = wrap.data();
+	const auto card = FAUi::CreateCardContainer(raw->entity(), 4, 4);
 
 	const auto window = _controller->parentController();
 	auto activePeerValue = window->activeChatValue(
@@ -2587,7 +2589,7 @@ Section DetailsFiller::makeViewChannel(not_null<ChannelData*> channel) {
 	};
 	raw->toggleOn(rpl::duplicate(viewChannelVisible));
 	const auto button = AddMainButton(
-		raw->entity(),
+		card,
 		tr::lng_profile_view_channel(),
 		std::move(viewChannelVisible),
 		std::move(viewChannel),
@@ -2629,94 +2631,125 @@ Section DetailsFiller::makeCommunityLink(not_null<PeerData*> peer) {
 	const auto community = peer->owner().channel(
 		Data::PeerLinkedCommunityId(peer));
 
-	class Controller final : public PeerListController {
-	public:
-		Controller(
-			not_null<Window::SessionController*> window,
-			not_null<ChannelData*> community,
-			Fn<void()> open)
-		: _window(window)
-		, _community(community)
-		, _open(std::move(open)) {
-			setStyleOverrides(&st::peerListSingleRow);
-		}
+	const auto line = container->add(
+		object_ptr<Ui::FixedHeightWidget>(
+			container,
+			56));
 
-		Main::Session &session() const override {
-			return _community->session();
-		}
-		void prepare() override {
-			auto row = std::make_unique<PeerListRow>(_community);
-			const auto rawRow = row.get();
-			const auto updateStatus = [=] {
-				const auto info = _community->communityInfo();
-				const auto count = info
-					? int(info->linkedPeers().size())
-					: 0;
-				rawRow->setCustomStatus(count
-					? tr::lng_community_profile_status(
-						tr::now,
-						lt_count,
-						count)
-					: tr::lng_community_title(tr::now));
-			};
-			updateStatus();
-			delegate()->peerListAppendRow(std::move(row));
-			delegate()->peerListRefreshRows();
-			_community->session().changes().peerUpdates(
-				_community,
-				Data::PeerUpdate::Flag::FullInfo
-			) | rpl::on_next([=] {
-				updateStatus();
-				delegate()->peerListUpdateRow(rawRow);
-			}, lifetime());
-		}
-		void rowClicked(not_null<PeerListRow*> row) override {
-			_open();
-		}
-		base::unique_qptr<Ui::PopupMenu> rowContextMenu(
-				QWidget *parent,
-				not_null<PeerListRow*> row) override {
-			const auto history = _community->owner().history(_community);
+	const auto userpic = Ui::CreateChild<Ui::RpWidget>(line);
+	userpic->setGeometry(16, 8, 40, 40);
+	userpic->setAttribute(Qt::WA_TransparentForMouseEvents);
+	struct UserpicState {
+		Ui::CommunityUserpicEffect effect;
+		Ui::PeerUserpicView view;
+	};
+	const auto userpicState = userpic->lifetime().make_state<UserpicState>();
+	userpic->paintRequest(
+	) | rpl::on_next([=] {
+		Painter p(userpic);
+		PainterHighQualityEnabler hq(p);
+		Ui::PaintCommunityUserpicEffect(
+			p,
+			userpicState->effect,
+			0,
+			0,
+			40,
+			st::windowBgOver->c);
+		community->paintUserpicLeft(
+			p,
+			userpicState->view,
+			0,
+			0,
+			40,
+			40);
+	}, userpic->lifetime());
+
+	const auto name = Ui::CreateChild<Ui::FlatLabel>(
+		line,
+		NameValue(community),
+		st::infoPersonalChannelNameLabel);
+	name->setAttribute(Qt::WA_TransparentForMouseEvents);
+
+	const auto statusText = [=] {
+		const auto info = community->communityInfo();
+		const auto count = info
+			? int(info->linkedPeers().size())
+			: 0;
+		return count
+			? tr::lng_community_profile_status(
+				tr::now,
+				lt_count,
+				count)
+			: tr::lng_community_title(tr::now);
+	};
+	const auto status = Ui::CreateChild<Ui::FlatLabel>(
+		line,
+		statusText(),
+		st::defaultFlatLabel);
+	status->setTextColorOverride(st::windowSubTextFg->c);
+	status->setAttribute(Qt::WA_TransparentForMouseEvents);
+
+	community->session().changes().peerUpdates(
+		community,
+		Data::PeerUpdate::Flag::FullInfo | Data::PeerUpdate::Flag::Name
+	) | rpl::on_next([=] {
+		status->setText(statusText());
+		userpic->update();
+	}, line->lifetime());
+
+	line->sizeValue(
+	) | rpl::filter_size(
+	) | rpl::on_next([=](const QSize &size) {
+		const auto left = 68;
+		const auto right = 16;
+		const auto availableWidth = size.width() - left - right;
+		name->resizeToWidth(availableWidth);
+		name->moveToLeft(left, 9);
+		status->resizeToWidth(availableWidth);
+		status->moveToLeft(left, 29);
+	}, line->lifetime());
+
+	const auto button = FA::Ui::CreateCardRippleButton(
+		line,
+		14);
+	button->lower();
+	line->sizeValue(
+	) | rpl::on_next([=](const QSize &size) {
+		button->setGeometry(QRect(0, 0, size.width(), size.height()));
+	}, button->lifetime());
+
+	button->setAcceptBoth();
+	struct State {
+		base::unique_qptr<Ui::PopupMenu> menu;
+	};
+	const auto state = button->lifetime().make_state<State>();
+	const auto open = [=] { window->showPeerInfo(community); };
+	button->addClickHandler([=](Qt::MouseButton mouse) {
+		if (mouse == Qt::RightButton) {
+			const auto history = community->owner().history(community);
 			if (!history->owner().chatsFilters().has()
 				|| !history->inChatList()
-				|| (_community->isCommunity()
-					&& !_community->collapsedInDialogs())) {
-				return nullptr;
+				|| (community->isCommunity()
+					&& !community->collapsedInDialogs())) {
+				return;
 			}
-			auto result = base::make_unique_q<Ui::PopupMenu>(
-				parent,
+			state->menu = base::make_unique_q<Ui::PopupMenu>(
+				button,
 				st::popupMenuWithIcons);
-			Ui::Menu::CreateAddActionCallback(result.get())({
+			Ui::Menu::CreateAddActionCallback(state->menu.get())({
 				.text = tr::lng_filters_menu_add(tr::now),
 				.handler = nullptr,
 				.icon = &st::menuIconAddToFolder,
 				.fillSubmenu = [&](not_null<Ui::PopupMenu*> submenu) {
-					FillChooseFilterMenu(_window, submenu, history);
+					FillChooseFilterMenu(window, submenu, history);
 				},
 				.submenuSt = &st::foldersMenu,
 			});
-			return result;
+			state->menu->popup(QCursor::pos());
+			return;
 		}
-
-	private:
-		const not_null<Window::SessionController*> _window;
-		const not_null<ChannelData*> _community;
-		Fn<void()> _open;
-
-	};
-
-	const auto delegate = container->lifetime().make_state<
-		PeerListContentDelegateSimple
-	>();
-	const auto controller = container->lifetime().make_state<Controller>(
-		window,
-		community,
-		[=] { window->showPeerInfo(community); });
-	const auto content = container->add(object_ptr<PeerListContent>(
-		container,
-		controller));
-	delegate->setContent(content);
-	controller->setDelegate(delegate);
+		open();
+	});
 
 	if (!community->wasFullUpdated()) {
 		community->session().api().requestFullPeer(community);
@@ -2760,6 +2793,7 @@ Section DetailsFiller::makeTopicsList(not_null<Data::Forum*> forum) {
 		parent,
 		object_ptr<Ui::VerticalLayout>(parent));
 	const auto raw = wrap.data();
+	const auto card = FAUi::CreateCardContainer(raw->entity(), 4, 4);
 	const auto window = _controller->parentController();
 	const auto peer = forum->peer();
 	auto showTopicsVisible = rpl::combine(
@@ -2777,7 +2811,7 @@ Section DetailsFiller::makeTopicsList(not_null<Data::Forum*> forum) {
 	};
 	raw->toggleOn(rpl::duplicate(showTopicsVisible));
 	AddMainButton(
-		raw->entity(),
+		card,
 		(forum->peer()->isBot()
 			? tr::lng_bot_show_threads_list()
 			: tr::lng_forum_show_topics_list()),
