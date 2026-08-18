@@ -118,6 +118,7 @@ void FASettings::loadFromJson(const QJsonObject &obj) {
 	_deleteForEveryone = obj.contains("delete_for_everyone") ? obj["delete_for_everyone"].toBool() : _deleteForEveryone.current();
 	_lastSeenTimestamp = obj.contains("last_seen_timestamp") ? obj["last_seen_timestamp"].toBool() : _lastSeenTimestamp.current();
 	_showForwardedDateInTitle = obj.contains("show_forwarded_date_in_title") ? obj["show_forwarded_date_in_title"].toBool() : _showForwardedDateInTitle.current();
+	_showForwardsCount = obj.contains("show_forwards_count") ? obj["show_forwards_count"].toBool() : _showForwardsCount.current();
 	_disableGreetingSticker = obj.contains("disable_greeting_sticker") ? obj["disable_greeting_sticker"].toBool() : _disableGreetingSticker.current();
 	_useDefaultRounding = obj.contains("use_default_rounding") ? obj["use_default_rounding"].toBool() : _useDefaultRounding.current();
 	_showDiscussButton = obj.contains("show_discuss_button") ? obj["show_discuss_button"].toBool() : _showDiscussButton.current();
@@ -170,6 +171,7 @@ QJsonObject FASettings::saveToJson() const {
 	obj["delete_for_everyone"] = _deleteForEveryone.current();
 	obj["last_seen_timestamp"] = _lastSeenTimestamp.current();
 	obj["show_forwarded_date_in_title"] = _showForwardedDateInTitle.current();
+	obj["show_forwards_count"] = _showForwardsCount.current();
 	obj["disable_greeting_sticker"] = _disableGreetingSticker.current();
 	obj["use_default_rounding"] = _useDefaultRounding.current();
 	obj["show_discuss_button"] = _showDiscussButton.current();
@@ -330,6 +332,12 @@ void FASettings::setLastSeenTimestamp(bool val) {
 void FASettings::setShowForwardedDateInTitle(bool val) {
 	if (_showForwardedDateInTitle.current() == val) return;
 	_showForwardedDateInTitle = val;
+	save();
+}
+
+void FASettings::setShowForwardsCount(bool val) {
+	if (_showForwardsCount.current() == val) return;
+	_showForwardsCount = val;
 	save();
 }
 
