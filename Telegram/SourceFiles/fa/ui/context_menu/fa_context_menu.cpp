@@ -42,6 +42,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "base/unixtime.h"
 #include "styles/style_chat.h"
 #include "styles/style_menu_icons.h"
+#include "styles/style_fa_styles.h"
 
 #include <QAction>
 #include <QMenu>
@@ -745,7 +746,7 @@ bool AddReplyInPrivate(
 		return false;
 	}
 
-	const auto replyToItem = quote.item ? quote.item.get() : item.get();
+	const auto replyToItem = quote.item ? quote.item : item.get();
 	const auto user = GetReplyableUser(replyToItem);
 	if (!user || !replyToItem->allowsForward()) {
 		return false;
@@ -786,7 +787,7 @@ bool AddForwardSubmenu(
 			text,
 			[=] {
 				auto idsCopy = ids;
-				Window::ShowForwardMessagesBox(navigation, std::move(idsCopy), callback);
+				Window::ShowForwardMessagesBox(navigation, std::move(idsCopy), Fn<void()>(callback));
 			},
 			&st::menuIconForward);
 		return true;
@@ -796,7 +797,7 @@ bool AddForwardSubmenu(
 		text,
 		[=] {
 			auto idsCopy = ids;
-			Window::ShowForwardMessagesBox(navigation, std::move(idsCopy), callback);
+			Window::ShowForwardMessagesBox(navigation, std::move(idsCopy), Fn<void()>(callback));
 		},
 		&st::menuIconForward);
 
@@ -807,7 +808,7 @@ bool AddForwardSubmenu(
 		fatr::fa_forward_with_author(fatr::now),
 		[=] {
 			auto idsCopy = ids;
-			Window::ShowForwardMessagesBox(navigation, std::move(idsCopy), callback);
+			Window::ShowForwardMessagesBox(navigation, std::move(idsCopy), Fn<void()>(callback));
 		},
 		&st::menuIconForward);
 
@@ -818,7 +819,7 @@ bool AddForwardSubmenu(
 				.ids = ids,
 				.options = Data::ForwardOptions::NoSenderNames,
 			};
-			Window::ShowForwardMessagesBox(navigation, std::move(draft), callback);
+			Window::ShowForwardMessagesBox(navigation, std::move(draft), Fn<void()>(callback));
 		},
 		&st::menuIconCopy);
 
@@ -830,7 +831,7 @@ bool AddForwardSubmenu(
 					.ids = ids,
 					.options = Data::ForwardOptions::NoNamesAndCaptions,
 				};
-				Window::ShowForwardMessagesBox(navigation, std::move(draft), callback);
+				Window::ShowForwardMessagesBox(navigation, std::move(draft), Fn<void()>(callback));
 			},
 			&st::menuIconFile);
 	}
@@ -895,7 +896,7 @@ bool AddForwardSubmenu(
 		menu->addAction(
 			tr::lng_context_forward_msg(tr::now),
 			[=] {
-				Window::ShowForwardMessagesBox(navigation, getMessageIds(), callback);
+				Window::ShowForwardMessagesBox(navigation, getMessageIds(), Fn<void()>(callback));
 			},
 			&st::menuIconForward);
 		return true;
@@ -904,7 +905,7 @@ bool AddForwardSubmenu(
 	const auto forwardAction = menu->addAction(
 		tr::lng_context_forward_msg(tr::now),
 		[=] {
-			Window::ShowForwardMessagesBox(navigation, getMessageIds(), callback);
+			Window::ShowForwardMessagesBox(navigation, getMessageIds(), Fn<void()>(callback));
 		},
 		&st::menuIconForward);
 
@@ -914,7 +915,7 @@ bool AddForwardSubmenu(
 	submenu->addAction(
 		fatr::fa_forward_with_author(fatr::now),
 		[=] {
-			Window::ShowForwardMessagesBox(navigation, getMessageIds(), callback);
+			Window::ShowForwardMessagesBox(navigation, getMessageIds(), Fn<void()>(callback));
 		},
 		&st::menuIconForward);
 
@@ -927,7 +928,7 @@ bool AddForwardSubmenu(
 					.ids = ids,
 					.options = Data::ForwardOptions::NoSenderNames,
 				};
-				Window::ShowForwardMessagesBox(navigation, std::move(draft), callback);
+				Window::ShowForwardMessagesBox(navigation, std::move(draft), Fn<void()>(callback));
 			}
 		},
 		&st::menuIconCopy);
@@ -942,7 +943,7 @@ bool AddForwardSubmenu(
 						.ids = ids,
 						.options = Data::ForwardOptions::NoNamesAndCaptions,
 					};
-					Window::ShowForwardMessagesBox(navigation, std::move(draft), callback);
+					Window::ShowForwardMessagesBox(navigation, std::move(draft), Fn<void()>(callback));
 				}
 			},
 			&st::menuIconFile);

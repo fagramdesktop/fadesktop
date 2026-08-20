@@ -10,6 +10,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "base/unique_qptr.h"
 #include "data/data_msg_id.h"
 #include "history/view/history_view_element.h"
+#include "main/session/session_show.h"
 
 #include <set>
 
