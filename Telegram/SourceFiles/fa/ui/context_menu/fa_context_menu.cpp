@@ -51,15 +51,13 @@ namespace FA::ContextMenu {
 namespace {
 
 [[nodiscard]] int ShortcutButtonSize() {
-	return FASettings::FASettings::getInstance().contextMenuShortcutButtonSize();
-}
-
-[[nodiscard]] int ShortcutButtonIconSize() {
-	return FASettings::FASettings::getInstance().contextMenuShortcutIconSize();
+	return style::ConvertScale(
+		FASettings::FASettings::getInstance().contextMenuShortcutButtonSize());
 }
 
 [[nodiscard]] int ShortcutCornerRadius() {
-	return FASettings::FASettings::getInstance().contextMenuShortcutCornerRadius();
+	return style::ConvertScale(
+		FASettings::FASettings::getInstance().contextMenuShortcutCornerRadius());
 }
 
 class ShortcutButton final : public Ui::RippleButton {
@@ -90,9 +88,8 @@ protected:
 
 		paintRipple(p, 0, 0);
 
-		const auto iconSize = ShortcutButtonIconSize();
-		const auto iconX = (width() - iconSize) / 2;
-		const auto iconY = (height() - iconSize) / 2;
+		const auto iconX = (width() - _icon.width()) / 2;
+		const auto iconY = (height() - _icon.height()) / 2;
 
 		const auto color = (over || down) ? _st.itemFgOver->c : _st.itemFg->c;
 		_icon.paint(p, iconX, iconY, width(), color);
@@ -375,12 +372,12 @@ void ContextMenuShortcuts::createButtons() {
 	}
 
 	const auto buttonSize = ShortcutButtonSize();
-	const auto autoVPadding = std::max(3, int(buttonSize * 0.1));
+	const auto autoVPadding = style::ConvertScale(4);
 	_height = buttonSize + autoVPadding * 2;
 
 	const auto numButtons = int(_buttons.size());
-	const auto minSpacing = 4;
-	const auto minMargin = 8;
+	const auto minSpacing = style::ConvertScale(6);
+	const auto minMargin = style::ConvertScale(10);
 	const auto contentMinWidth = (buttonSize * numButtons)
 		+ (minSpacing * (numButtons - 1))
 		+ (minMargin * 2);
@@ -418,23 +415,25 @@ void ContextMenuShortcuts::updateButtonsLayout() {
 	}
 
 	// Dynamic spacing and padding calculation
-	const auto minMargin = std::max(6, int(buttonSize * 0.15));
-	const auto availableForGaps = width() - totalButtonsWidth - (minMargin * 2);
+	const auto sideMargin = std::max(
+		style::ConvertScale(10),
+		_st.itemIconPosition.x());
+	const auto availableForGaps = width() - totalButtonsWidth - (sideMargin * 2);
 
 	int spacing = 0;
 	int startX = 0;
 
 	if (availableForGaps > 0) {
 		const auto rawSpacing = availableForGaps / (numButtons - 1);
-		// Cap maximum spacing proportionally so buttons don't spread too far apart in extra wide menus
-		const auto maxSpacing = std::max(12, int(buttonSize * 0.45));
+		const auto maxSpacing = style::ConvertScale(20);
 		spacing = std::min(rawSpacing, maxSpacing);
 
 		const auto contentWidth = totalButtonsWidth + (spacing * (numButtons - 1));
 		startX = (width() - contentWidth) / 2;
 	} else {
-		// Tight menu fallback
-		spacing = std::max(2, (width() - totalButtonsWidth) / std::max(1, numButtons - 1));
+		spacing = std::max(
+			style::ConvertScale(2),
+			(width() - totalButtonsWidth) / (numButtons - 1));
 		const auto contentWidth = totalButtonsWidth + (spacing * (numButtons - 1));
 		startX = std::max(0, (width() - contentWidth) / 2);
 	}
