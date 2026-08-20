@@ -527,33 +527,6 @@ const auto kFAContextMenuMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
-			.id = u"fa/context-menu/spacing"_q,
-			.title = fatr::fa_shortcut_spacing(fatr::now),
-			.keywords = { u"shortcut"_q, u"spacing"_q, u"gap"_q, u"customize"_q },
-			.icon = { &st::menuIconSigned },
-		};
-	});
-
-	builder.add(nullptr, [] {
-		return SearchEntry{
-			.id = u"fa/context-menu/h-padding"_q,
-			.title = fatr::fa_shortcut_horizontal_padding(fatr::now),
-			.keywords = { u"shortcut"_q, u"padding"_q, u"horizontal"_q, u"customize"_q },
-			.icon = { &st::menuIconSigned },
-		};
-	});
-
-	builder.add(nullptr, [] {
-		return SearchEntry{
-			.id = u"fa/context-menu/v-padding"_q,
-			.title = fatr::fa_shortcut_vertical_padding(fatr::now),
-			.keywords = { u"shortcut"_q, u"padding"_q, u"vertical"_q, u"customize"_q },
-			.icon = { &st::menuIconSigned },
-		};
-	});
-
-	builder.add(nullptr, [] {
-		return SearchEntry{
 			.id = u"fa/context-menu/corner-radius"_q,
 			.title = fatr::fa_shortcut_corner_radius(fatr::now),
 			.keywords = { u"shortcut"_q, u"corner"_q, u"radius"_q, u"rounded"_q, u"customize"_q },

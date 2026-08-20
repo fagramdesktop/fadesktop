@@ -6,6 +6,8 @@ For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "fa/ui/md3/fa_nav_drawer.h"
+#include "fa/ui/md3/fa_cards.h"
+#include "fa/ui/md3/fa_switch.h"
 
 #include "ui/painter.h"
 #include "ui/effects/ripple_animation.h"
@@ -139,62 +141,14 @@ void NavDrawerButton::paintEvent(QPaintEvent *e) {
 	paintText(p, paintOver, outerw);
 
 	if (maybeToggleRect().width() > 0) {
-		PainterHighQualityEnabler hq(p);
 		const auto isChecked = toggled();
 		const auto toggledProgress = _toggleAnimation.value(isChecked ? 1.0 : 0.0);
-		const auto switchWidth = 44.0;
-		const auto switchHeight = 24.0;
+		const auto switchWidth = 46.0;
+		const auto switchHeight = 26.0;
 		const auto toggleX = pillRect.right() - 14.0 - switchWidth;
 		const auto toggleY = (outerh - switchHeight) / 2.0;
 
-		// 1. Draw Track
-		if (toggledProgress > 0.0) {
-			p.setOpacity(toggledProgress);
-			p.setPen(Qt::NoPen);
-			p.setBrush(st::windowActiveTextFg);
-			p.drawRoundedRect(
-				QRectF(toggleX, toggleY, switchWidth, switchHeight),
-				switchHeight / 2.0,
-				switchHeight / 2.0);
-		}
-
-		if (toggledProgress < 1.0) {
-			p.setOpacity(1.0 - toggledProgress);
-			p.setPen(QPen(st::windowSubTextFg->c, 2.0));
-			p.setBrush(Qt::NoBrush);
-			p.drawRoundedRect(
-				QRectF(toggleX + 1.0, toggleY + 1.0, switchWidth - 2.0, switchHeight - 2.0),
-				(switchHeight - 2.0) / 2.0,
-				(switchHeight - 2.0) / 2.0);
-		}
-		p.setOpacity(1.0);
-
-		// 2. Draw Thumb
-		const auto thumbDiameter = anim::interpolateF(12.0, 18.0, toggledProgress);
-		const auto thumbX = anim::interpolateF(toggleX + 4.0, toggleX + switchWidth - 3.0 - 18.0, toggledProgress);
-		const auto thumbY = toggleY + (switchHeight - thumbDiameter) / 2.0;
-		const auto thumbColor = anim::color(st::windowSubTextFg->c, st::windowBg->c, toggledProgress);
-
-		p.setPen(Qt::NoPen);
-		p.setBrush(thumbColor);
-		p.drawEllipse(QRectF(thumbX, thumbY, thumbDiameter, thumbDiameter));
-
-		// 3. Draw Checkmark inside Thumb when active
-		if (toggledProgress > 0.05) {
-			p.setOpacity(toggledProgress);
-			p.setPen(QPen(st::windowActiveTextFg->c, 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-			p.setBrush(Qt::NoBrush);
-
-			const auto cx = thumbX + thumbDiameter / 2.0;
-			const auto cy = thumbY + thumbDiameter / 2.0;
-
-			auto check = QPainterPath();
-			check.moveTo(cx - 3.0, cy - 0.2);
-			check.lineTo(cx - 0.8, cy + 2.2);
-			check.lineTo(cx + 3.5, cy - 2.2);
-			p.drawPath(check);
-			p.setOpacity(1.0);
-		}
+		PaintMd3Switch(p, toggleX, toggleY, toggledProgress, switchWidth, switchHeight);
 	} else {
 		paintToggle(p, outerw);
 	}

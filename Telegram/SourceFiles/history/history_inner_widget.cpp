@@ -9,8 +9,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "fa/settings/fa_settings.h"
 #include "fa/utils/telegram_helpers.h"
-#include "fa/utils/fa_context_menu_shortcuts.h"
-#include "fa/utils/fa_reply_in_private.h"
+#include "fa/ui/context_menu/fa_context_menu.h"
 #include "fa_lang_auto.h"
 
 
@@ -2986,18 +2985,18 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 
 	// Pre-calculate which shortcuts will be shown to avoid duplicates
 	const auto availableShortcuts = leaderOrSelf
-		? FaHistoryView::GetAvailableShortcuts(leaderOrSelf, [this](HistoryItem *item) {
+		? FA::ContextMenu::GetAvailableShortcuts(leaderOrSelf, [this](HistoryItem *item) {
 			return hasCopyRestriction(item);
 		})
-		: std::set<FaHistoryView::ShortcutType>{};
-	const auto hasShortcutReply = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::Reply);
-	const auto hasShortcutCopy = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::Copy);
-	const auto hasShortcutEdit = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::Edit);
-	const auto hasShortcutPin = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::Pin)
-		|| FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::Unpin);
-	const auto hasShortcutCopyLink = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::CopyLink);
-	const auto hasShortcutTranslate = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::Translate);
-	const auto hasShortcutSaveFile = FaHistoryView::HasShortcut(availableShortcuts, FaHistoryView::ShortcutType::SaveFile);
+		: std::set<FA::ContextMenu::ShortcutType>{};
+	const auto hasShortcutReply = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::Reply);
+	const auto hasShortcutCopy = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::Copy);
+	const auto hasShortcutEdit = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::Edit);
+	const auto hasShortcutPin = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::Pin)
+		|| FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::Unpin);
+	const auto hasShortcutCopyLink = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::CopyLink);
+	const auto hasShortcutTranslate = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::Translate);
+	const auto hasShortcutSaveFile = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::SaveFile);
 
 	if (linkUserpicPeerId) {
 		_widget->fillSenderUserpicMenu(
@@ -3434,69 +3433,13 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 	};
 
 	const auto addReplyInPrivateAction = [&](HistoryItem *item) {
-		// Check if the feature is enabled in settings
-		if (!FASettings::FASettings::getInstance().contextMenuReplyInPrivate()) {
-			return;
+		if (item) {
+			FA::ContextMenu::AddReplyInPrivate(
+				_menu.get(),
+				item,
+				_controller,
+				selectedQuote(item));
 		}
-		if (!item || !item->isRegular()) {
-			return;
-		}
-		if (!item->allowsForward()) {
-			return;
-		}
-		// Get the display sender
-		const auto displayFrom = item->displayFrom();
-		const auto from = displayFrom ? displayFrom : item->from().get();
-		// Must be a user (not a channel or group)
-		if (!from->isUser()) {
-			return;
-		}
-		const auto user = from->asUser();
-		// Skip if it's the current chat
-		if (from == item->history()->peer) {
-			return;
-		}
-		// Skip if it's ourselves or deleted
-		if (user->isSelf() || user->isInaccessible()) {
-			return;
-		}
-		const auto selected = selectedQuote(item);
-		const auto replyToItem = selected.item ? selected.item : item;
-		const auto itemId = replyToItem->fullId();
-		const auto quote = selected.highlight.quote;
-		const auto quoteOffset = selected.highlight.quoteOffset;
-		_menu->addAction(
-			fatr::fa_reply_in_private_chat(fatr::now),
-			[=, controller = _controller] {
-				const auto history = user->owner().history(user);
-				auto reply = FullReplyTo{
-					.messageId = itemId,
-					.quote = quote,
-					.quoteOffset = quoteOffset,
-				};
-				const auto existingDraft = history->localDraft(MsgId(0), PeerId(0));
-				const auto textWithTags = existingDraft
-					? existingDraft->textWithTags
-					: TextWithTags();
-				const auto cursor = existingDraft
-					? existingDraft->cursor
-					: MessageCursor();
-				history->setLocalDraft(std::make_unique<Data::Draft>(
-					textWithTags,
-					reply,
-					SuggestOptions(),
-					cursor,
-					Data::WebPageDraft()));
-				history->clearLocalEditDraft(MsgId(0), PeerId(0));
-				history->session().changes().entryUpdated(
-					history,
-					Data::EntryUpdate::Flag::LocalDraftSet);
-				controller->showPeerHistory(
-					user,
-					Window::SectionShow::Way::Forward,
-					ShowAtUnreadMsgId);
-			},
-			&st::menuIconReply);
 	};
 
 	const auto addTodoListAction = [&](HistoryItem *item) {
@@ -3569,89 +3512,25 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		}
 		if (isUponSelected > 1) {
 			if (selectedState.count > 0 && selectedState.canForwardCount == selectedState.count) {
-				if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
-					const auto ids = getSelectedItems();
-					const auto weak = base::make_weak(_widget);
-					const auto callback = [=] {
-						if (const auto strong = weak.get()) {
-							strong->clearSelected();
-						}
-					};
-
-					const auto forwardAction = _menu->addAction(
-						tr::lng_context_forward_selected(tr::now),
-						[=] {
-							auto idsCopy = ids;
-							Window::ShowForwardMessagesBox(controller, std::move(idsCopy), callback);
-						},
-						&st::menuIconForward);
-
-					forwardAction->setMenu(Ui::CreateChild<QMenu>(_menu->menu().get()));
-					const auto submenu = _menu->ensureSubmenu(forwardAction, st::faContextMenu);
-
-					submenu->addAction(
-						fatr::fa_forward_with_author(fatr::now),
-						[=] {
-							auto idsCopy = ids;
-							Window::ShowForwardMessagesBox(controller, std::move(idsCopy), callback);
-						},
-						&st::menuIconForward);
-
-					submenu->addAction(
-						fatr::fa_forward_as_copy(fatr::now),
-						[=] {
-							auto draft = Data::ForwardDraft{
-								.ids = ids,
-								.options = Data::ForwardOptions::NoSenderNames,
-							};
-							Window::ShowForwardMessagesBox(controller, std::move(draft), callback);
-						},
-						&st::menuIconCopy);
-
-					const auto hasMediaWithCaption = ranges::any_of(
-						_selected,
-						[](const auto &item) {
-							return item->media() && item->media()->allowsEditCaption();
-						});
-
-					if (hasMediaWithCaption) {
-						submenu->addAction(
-							fatr::fa_forward_without_caption(fatr::now),
-							[=] {
-								auto draft = Data::ForwardDraft{
-									.ids = ids,
-									.options = Data::ForwardOptions::NoNamesAndCaptions,
-								};
-								Window::ShowForwardMessagesBox(controller, std::move(draft), callback);
-							},
-							&st::menuIconFile);
+				const auto ids = getSelectedItems();
+				const auto weak = base::make_weak(_widget);
+				const auto callback = [=] {
+					if (const auto strong = weak.get()) {
+						strong->clearSelected();
 					}
-
-					submenu->addAction(
-						fatr::fa_forward_to_saved(fatr::now),
-						[=] {
-							auto draft = Data::ForwardDraft{ .ids = ids };
-							Window::ForwardToSelf(controller->uiShow(), draft);
-							callback();
-						},
-						&st::menuIconSavedMessages);
-
-					submenu->addAction(
-						fatr::fa_forward_to_saved_as_copy(fatr::now),
-						[=] {
-							auto draft = Data::ForwardDraft{
-								.ids = ids,
-								.options = Data::ForwardOptions::NoSenderNames,
-							};
-							Window::ForwardToSelf(controller->uiShow(), draft);
-							callback();
-						},
-						&st::menuIconSavedMessages);
-				} else {
-					_menu->addAction(tr::lng_context_forward_selected(tr::now), [=] {
-						_widget->forwardSelected();
-					}, &st::menuIconForward);
-				}
+				};
+				const auto hasMediaWithCaption = ranges::any_of(
+					_selected,
+					[](const auto &item) {
+						return item->media() && item->media()->allowsEditCaption();
+					});
+				FA::ContextMenu::AddForwardSubmenu(
+					_menu.get(),
+					tr::lng_context_forward_selected(tr::now),
+					ids,
+					controller,
+					callback,
+					hasMediaWithCaption);
 			}
 			if (selectedState.count > 0 && selectedState.canDeleteCount == selectedState.count) {
 				_menu->addAction(tr::lng_context_delete_selected(tr::now), [=] {
@@ -3678,71 +3557,11 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			const auto blockSender = item->history()->peer->isRepliesChat();
 			if (isUponSelected != -2) {
 				if (item->allowsForward()) {
-					if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
-						const auto forwardAction = _menu->addAction(
-							tr::lng_context_forward_msg(tr::now),
-							[=] {
-								forwardItem(itemId);
-							},
-							&st::menuIconForward);
-
-						forwardAction->setMenu(Ui::CreateChild<QMenu>(_menu->menu().get()));
-						const auto submenu = _menu->ensureSubmenu(forwardAction, st::faContextMenu);
-
-						submenu->addAction(
-							fatr::fa_forward_with_author(fatr::now),
-							[=] {
-								forwardItem(itemId);
-							},
-							&st::menuIconForward);
-
-						submenu->addAction(
-							fatr::fa_forward_as_copy(fatr::now),
-							[=] {
-								auto draft = Data::ForwardDraft{
-									.ids = MessageIdsList{ 1, itemId },
-									.options = Data::ForwardOptions::NoSenderNames,
-								};
-								Window::ShowForwardMessagesBox(controller, std::move(draft));
-							},
-							&st::menuIconCopy);
-
-						if (item->media() && item->media()->allowsEditCaption()) {
-							submenu->addAction(
-								fatr::fa_forward_without_caption(fatr::now),
-								[=] {
-									auto draft = Data::ForwardDraft{
-										.ids = MessageIdsList{ 1, itemId },
-										.options = Data::ForwardOptions::NoNamesAndCaptions,
-									};
-									Window::ShowForwardMessagesBox(controller, std::move(draft));
-								},
-								&st::menuIconFile);
-						}
-
-						submenu->addAction(
-							fatr::fa_forward_to_saved(fatr::now),
-							[=] {
-								auto draft = Data::ForwardDraft{ .ids = MessageIdsList{ 1, itemId } };
-								Window::ForwardToSelf(controller->uiShow(), draft);
-							},
-							&st::menuIconSavedMessages);
-
-						submenu->addAction(
-							fatr::fa_forward_to_saved_as_copy(fatr::now),
-							[=] {
-								auto draft = Data::ForwardDraft{
-									.ids = MessageIdsList{ 1, itemId },
-									.options = Data::ForwardOptions::NoSenderNames,
-								};
-								Window::ForwardToSelf(controller->uiShow(), draft);
-							},
-							&st::menuIconSavedMessages);
-					} else {
-						_menu->addAction(tr::lng_context_forward_msg(tr::now), [=] {
-							forwardItem(itemId);
-						}, &st::menuIconForward);
-					}
+					FA::ContextMenu::AddForwardSubmenu(
+						_menu.get(),
+						item,
+						controller,
+						false);
 				}
 				if (HistoryView::CanAddOfferToMessage(item)) {
 					_menu->addAction(tr::lng_context_add_offer(tr::now), [=] {
@@ -4026,89 +3845,25 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		}
 		if (isUponSelected > 1) {
 			if (selectedState.count > 0 && selectedState.count == selectedState.canForwardCount) {
-				if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
-					const auto ids = getSelectedItems();
-					const auto weak = base::make_weak(_widget);
-					const auto callback = [=] {
-						if (const auto strong = weak.get()) {
-							strong->clearSelected();
-						}
-					};
-
-					const auto forwardAction = _menu->addAction(
-						tr::lng_context_forward_selected(tr::now),
-						[=] {
-							auto idsCopy = ids;
-							Window::ShowForwardMessagesBox(controller, std::move(idsCopy), callback);
-						},
-						&st::menuIconForward);
-
-					forwardAction->setMenu(Ui::CreateChild<QMenu>(_menu->menu().get()));
-					const auto submenu = _menu->ensureSubmenu(forwardAction, st::faContextMenu);
-
-					submenu->addAction(
-						fatr::fa_forward_with_author(fatr::now),
-						[=] {
-							auto idsCopy = ids;
-							Window::ShowForwardMessagesBox(controller, std::move(idsCopy), callback);
-						},
-						&st::menuIconForward);
-
-					submenu->addAction(
-						fatr::fa_forward_as_copy(fatr::now),
-						[=] {
-							auto draft = Data::ForwardDraft{
-								.ids = ids,
-								.options = Data::ForwardOptions::NoSenderNames,
-							};
-							Window::ShowForwardMessagesBox(controller, std::move(draft), callback);
-						},
-						&st::menuIconCopy);
-
-					const auto hasMediaWithCaption = ranges::any_of(
-						_selected,
-						[](const auto &item) {
-							return item->media() && item->media()->allowsEditCaption();
-						});
-
-					if (hasMediaWithCaption) {
-						submenu->addAction(
-							fatr::fa_forward_without_caption(fatr::now),
-							[=] {
-								auto draft = Data::ForwardDraft{
-									.ids = ids,
-									.options = Data::ForwardOptions::NoNamesAndCaptions,
-								};
-								Window::ShowForwardMessagesBox(controller, std::move(draft), callback);
-							},
-							&st::menuIconFile);
+				const auto ids = getSelectedItems();
+				const auto weak = base::make_weak(_widget);
+				const auto callback = [=] {
+					if (const auto strong = weak.get()) {
+						strong->clearSelected();
 					}
-
-					submenu->addAction(
-						fatr::fa_forward_to_saved(fatr::now),
-						[=] {
-							auto draft = Data::ForwardDraft{ .ids = ids };
-							Window::ForwardToSelf(controller->uiShow(), draft);
-							callback();
-						},
-						&st::menuIconSavedMessages);
-
-					submenu->addAction(
-						fatr::fa_forward_to_saved_as_copy(fatr::now),
-						[=] {
-							auto draft = Data::ForwardDraft{
-								.ids = ids,
-								.options = Data::ForwardOptions::NoSenderNames,
-							};
-							Window::ForwardToSelf(controller->uiShow(), draft);
-							callback();
-						},
-						&st::menuIconSavedMessages);
-				} else {
-					_menu->addAction(tr::lng_context_forward_selected(tr::now), [=] {
-						_widget->forwardSelected();
-					}, &st::menuIconForward);
-				}
+				};
+				const auto hasMediaWithCaption = ranges::any_of(
+					_selected,
+					[](const auto &item) {
+						return item->media() && item->media()->allowsEditCaption();
+					});
+				FA::ContextMenu::AddForwardSubmenu(
+					_menu.get(),
+					tr::lng_context_forward_selected(tr::now),
+					ids,
+					controller,
+					callback,
+					hasMediaWithCaption);
 			}
 			if (selectedState.count > 0 && selectedState.count == selectedState.canDeleteCount) {
 				_menu->addAction(tr::lng_context_delete_selected(tr::now), [=] {
@@ -4136,90 +3891,11 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				|| item->isEphemeral())) {
 			if (isUponSelected != -2) {
 				if (canForward) {
-					if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
-						const auto getGroupIds = [=]() -> MessageIdsList {
-							if (const auto item = session->data().message(itemId)) {
-								return session->data().itemOrItsGroup(item);
-							}
-							return {};
-						};
-
-						const auto forwardAction = _menu->addAction(
-							tr::lng_context_forward_msg(tr::now),
-							[=] {
-								forwardAsGroup(itemId);
-							},
-							&st::menuIconForward);
-
-						forwardAction->setMenu(Ui::CreateChild<QMenu>(_menu->menu().get()));
-						const auto submenu = _menu->ensureSubmenu(forwardAction, st::faContextMenu);
-
-						submenu->addAction(
-							fatr::fa_forward_with_author(fatr::now),
-							[=] {
-								forwardAsGroup(itemId);
-							},
-							&st::menuIconForward);
-
-						submenu->addAction(
-							fatr::fa_forward_as_copy(fatr::now),
-							[=] {
-								const auto ids = getGroupIds();
-								if (!ids.empty()) {
-									auto draft = Data::ForwardDraft{
-										.ids = ids,
-										.options = Data::ForwardOptions::NoSenderNames,
-									};
-									Window::ShowForwardMessagesBox(controller, std::move(draft));
-								}
-							},
-							&st::menuIconCopy);
-
-						if (item->media() && item->media()->allowsEditCaption()) {
-							submenu->addAction(
-								fatr::fa_forward_without_caption(fatr::now),
-								[=] {
-									const auto ids = getGroupIds();
-									if (!ids.empty()) {
-										auto draft = Data::ForwardDraft{
-											.ids = ids,
-											.options = Data::ForwardOptions::NoNamesAndCaptions,
-										};
-										Window::ShowForwardMessagesBox(controller, std::move(draft));
-									}
-								},
-								&st::menuIconFile);
-						}
-
-						submenu->addAction(
-							fatr::fa_forward_to_saved(fatr::now),
-							[=] {
-								const auto ids = getGroupIds();
-								if (!ids.empty()) {
-									auto draft = Data::ForwardDraft{ .ids = ids };
-									Window::ForwardToSelf(controller->uiShow(), draft);
-								}
-							},
-							&st::menuIconSavedMessages);
-
-						submenu->addAction(
-							fatr::fa_forward_to_saved_as_copy(fatr::now),
-							[=] {
-								const auto ids = getGroupIds();
-								if (!ids.empty()) {
-									auto draft = Data::ForwardDraft{
-										.ids = ids,
-										.options = Data::ForwardOptions::NoSenderNames,
-									};
-									Window::ForwardToSelf(controller->uiShow(), draft);
-								}
-							},
-							&st::menuIconSavedMessages);
-					} else {
-						_menu->addAction(tr::lng_context_forward_msg(tr::now), [=] {
-							forwardAsGroup(itemId);
-						}, &st::menuIconForward);
-					}
+					FA::ContextMenu::AddForwardSubmenu(
+						_menu.get(),
+						item,
+						controller,
+						true);
 				}
 				if (HistoryView::CanAddOfferToMessage(item)) {
 					_menu->addAction(tr::lng_context_add_offer(tr::now), [=] {
@@ -4339,11 +4015,10 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 	}
 
 	if (leaderOrSelf) {
-		const auto shortcutsAtBottom = FASettings::FASettings::getInstance().contextMenuShortcutsAtBottom();
 		const auto inner = this;
 		const auto widget = _widget;
 		const auto controller = _controller;
-		FaHistoryView::ShortcutCallbacks callbacks;
+		FA::ContextMenu::ShortcutCallbacks callbacks;
 		callbacks.hasCopyRestriction = [inner](HistoryItem *item) {
 			return inner->hasCopyRestriction(item);
 		};
@@ -4399,20 +4074,12 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			}
 		};
 
-		const auto quote = selectedQuote(leaderOrSelf);
-		auto shortcutsResult = FaHistoryView::AddContextMenuShortcuts(
-				_menu->menu(),
-				leaderOrSelf,
-				controller,
-				std::move(callbacks),
-				quote);
-		if (shortcutsResult.widget) {
-			if (shortcutsAtBottom) {
-				_menu->addAction(std::move(shortcutsResult.widget));
-			} else {
-				_menu->insertAction(0, std::move(shortcutsResult.widget));
-			}
-		}
+		FA::ContextMenu::SetupShortcuts(
+			_menu.get(),
+			leaderOrSelf,
+			controller,
+			std::move(callbacks),
+			selectedQuote(leaderOrSelf));
 	}
 	if (_menu->empty()) {
 		_menu = nullptr;

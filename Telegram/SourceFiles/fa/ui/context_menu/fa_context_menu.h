@@ -8,10 +8,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #pragma once
 
 #include "base/unique_qptr.h"
-#include "base/object_ptr.h"
-#include "ui/widgets/menu/menu_action.h"
-#include "history/view/history_view_element.h"
 #include "data/data_msg_id.h"
+#include "history/view/history_view_element.h"
 #include "main/session/session_show.h"
 
 #include <set>
@@ -20,6 +18,7 @@ namespace Ui {
 class PopupMenu;
 namespace Menu {
 class Menu;
+class ItemBase;
 } // namespace Menu
 } // namespace Ui
 
@@ -30,14 +29,14 @@ class ListWidget;
 
 namespace Window {
 class SessionController;
+class SessionNavigation;
 } // namespace Window
 
 class HistoryItem;
 class PhotoData;
 class DocumentData;
-class Painter;
 
-namespace FaHistoryView {
+namespace FA::ContextMenu {
 
 enum class ShortcutType {
 	Reply,
@@ -46,7 +45,6 @@ enum class ShortcutType {
 	Edit,
 	Pin,
 	Unpin,
-	OpenMedia,
 	SaveFile,
 	Translate,
 	Forward,
@@ -67,73 +65,62 @@ struct ShortcutCallbacks {
 	Fn<void()> clearSelection = nullptr;
 };
 
-class ContextMenuShortcuts final : public Ui::Menu::ItemBase {
-public:
-	ContextMenuShortcuts(
-		not_null<Ui::Menu::Menu*> parent,
-		const style::Menu &st,
-		not_null<HistoryItem*> item,
-		not_null<Window::SessionController*> controller,
-		ShortcutCallbacks callbacks,
-		HistoryView::SelectedQuote quote = {});
-
-	bool isEnabled() const override;
-	not_null<QAction*> action() const override;
-
-	[[nodiscard]] rpl::producer<bool> forceShown() const;
-	[[nodiscard]] const std::set<ShortcutType>& addedShortcuts() const {
-		return _addedShortcuts;
-	}
-
-protected:
-	int contentHeight() const override;
-
-private:
-	void prepare();
-	void paint(Painter &p, const QRect &clip);
-	void createButtons();
-	void updateButtonsLayout();
-
-	const not_null<QAction*> _dummyAction;
-	const style::Menu &_st;
-	const not_null<HistoryItem*> _item;
-	const not_null<Window::SessionController*> _controller;
-	ShortcutCallbacks _callbacks;
-	HistoryView::SelectedQuote _quote;
-	
-	std::vector<object_ptr<Ui::AbstractButton>> _buttons;
-	std::set<ShortcutType> _addedShortcuts;
-	
-	int _height = 0;
-
-	rpl::event_stream<bool> _forceShown;
-};
-
-struct AddContextMenuShortcutsResult {
+struct ShortcutsResult {
 	base::unique_qptr<Ui::Menu::ItemBase> widget;
 	std::set<ShortcutType> addedShortcuts;
 };
+
+[[nodiscard]] bool HasShortcut(
+	const std::set<ShortcutType> &shortcuts,
+	ShortcutType type);
 
 [[nodiscard]] std::set<ShortcutType> GetAvailableShortcuts(
 	not_null<HistoryItem*> item,
 	Fn<bool(HistoryItem*)> hasCopyRestriction = nullptr);
 
-[[nodiscard]] AddContextMenuShortcutsResult AddContextMenuShortcuts(
-	not_null<Ui::Menu::Menu*> menu,
-	const HistoryView::ContextMenuRequest &request,
-	not_null<HistoryView::ListWidget*> list);
-
-[[nodiscard]] AddContextMenuShortcutsResult AddContextMenuShortcuts(
+[[nodiscard]] ShortcutsResult CreateShortcutsWidget(
 	not_null<Ui::Menu::Menu*> menu,
 	not_null<HistoryItem*> item,
 	not_null<Window::SessionController*> controller,
 	ShortcutCallbacks callbacks,
 	HistoryView::SelectedQuote quote = {});
 
-[[nodiscard]] inline bool HasShortcut(
-	const std::set<ShortcutType>& shortcuts,
-	ShortcutType type) {
-	return shortcuts.find(type) != shortcuts.end();
-}
+ShortcutsResult SetupShortcuts(
+	not_null<Ui::PopupMenu*> menu,
+	const HistoryView::ContextMenuRequest &request,
+	not_null<HistoryView::ListWidget*> list);
 
-} // namespace FaHistoryView
+ShortcutsResult SetupShortcuts(
+	not_null<Ui::PopupMenu*> menu,
+	not_null<HistoryItem*> item,
+	not_null<Window::SessionController*> controller,
+	ShortcutCallbacks callbacks,
+	HistoryView::SelectedQuote quote = {});
+
+bool AddReplyInPrivate(
+	not_null<Ui::PopupMenu*> menu,
+	const HistoryView::ContextMenuRequest &request,
+	not_null<HistoryView::ListWidget*> list);
+
+bool AddReplyInPrivate(
+	not_null<Ui::PopupMenu*> menu,
+	not_null<HistoryItem*> item,
+	not_null<Window::SessionController*> controller,
+	HistoryView::SelectedQuote quote = {});
+
+bool AddForwardSubmenu(
+	not_null<Ui::PopupMenu*> menu,
+	const QString &text,
+	MessageIdsList ids,
+	not_null<Window::SessionNavigation*> navigation,
+	Fn<void()> callback = nullptr,
+	bool hasMediaWithCaption = false);
+
+bool AddForwardSubmenu(
+	not_null<Ui::PopupMenu*> menu,
+	not_null<HistoryItem*> item,
+	not_null<Window::SessionNavigation*> navigation,
+	bool asGroup = true,
+	Fn<void()> callback = nullptr);
+
+} // namespace FA::ContextMenu

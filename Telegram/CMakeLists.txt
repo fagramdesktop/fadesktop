@@ -924,6 +924,8 @@ PRIVATE
     fa/lang/fa_lang.h
     fa/ui/md3/fa_cards.cpp
     fa/ui/md3/fa_cards.h
+    fa/ui/md3/fa_switch.cpp
+    fa/ui/md3/fa_switch.h
     fa/ui/md3/fa_profile_cards.cpp
     fa/ui/md3/fa_profile_cards.h
     fa/ui/md3/fa_slider.cpp
@@ -937,10 +939,8 @@ PRIVATE
     fa/ui/md3/previews.cpp
     fa/ui/md3/previews.h
     fa/ui/md3/svg_assets.h
-    fa/utils/fa_context_menu_shortcuts.cpp
-    fa/utils/fa_context_menu_shortcuts.h
-    fa/utils/fa_reply_in_private.cpp
-    fa/utils/fa_reply_in_private.h
+    fa/ui/context_menu/fa_context_menu.cpp
+    fa/ui/context_menu/fa_context_menu.h
     fa/fa_version.h
     fa/ui/menu_item_subtext.cpp
     fa/ui/menu_item_subtext.h

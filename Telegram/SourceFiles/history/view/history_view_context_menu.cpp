@@ -9,8 +9,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "fa/utils/telegram_helpers.h"
 #include "fa/settings/fa_settings.h"
-#include "fa/utils/fa_context_menu_shortcuts.h"
-#include "fa/utils/fa_reply_in_private.h"
+#include "fa/ui/context_menu/fa_context_menu.h"
 #include "fa_lang_auto.h"
 
 #include "api/api_attached_stickers.h"
@@ -423,93 +422,24 @@ bool AddForwardSelectedAction(
 			strong->cancelSelection();
 		}
 	};
+	const auto ids = ExtractIdsList(selectedItems);
+	const auto session = &navigation->session();
+	const auto hasMediaWithCaption = ranges::any_of(
+		selectedItems,
+		[&](const SelectedItem &selected) {
+			if (const auto item = session->data().message(selected.msgId)) {
+				return item->media() && item->media()->allowsEditCaption();
+			}
+			return false;
+		});
 
-	if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
-		const auto ids = ExtractIdsList(selectedItems);
-		const auto session = &navigation->session();
-		const auto hasMediaWithCaption = ranges::any_of(
-			selectedItems,
-			[&](const SelectedItem &selected) {
-				if (const auto item = session->data().message(selected.msgId)) {
-					return item->media() && item->media()->allowsEditCaption();
-				}
-				return false;
-			});
-
-		const auto forwardAction = menu->addAction(
-			tr::lng_context_forward_selected(tr::now),
-			[=] {
-				auto idsCopy = ids;
-				Window::ShowForwardMessagesBox(navigation, std::move(idsCopy), callback);
-			},
-			&st::menuIconForward);
-
-		forwardAction->setMenu(Ui::CreateChild<QMenu>(menu->menu().get()));
-		const auto submenu = menu->ensureSubmenu(forwardAction, st::faContextMenu);
-
-		submenu->addAction(
-			fatr::fa_forward_with_author(fatr::now),
-			[=] {
-				auto idsCopy = ids;
-				Window::ShowForwardMessagesBox(navigation, std::move(idsCopy), callback);
-			},
-			&st::menuIconForward);
-
-		submenu->addAction(
-			fatr::fa_forward_as_copy(fatr::now),
-			[=] {
-				auto draft = Data::ForwardDraft{
-					.ids = ids,
-					.options = Data::ForwardOptions::NoSenderNames,
-				};
-				Window::ShowForwardMessagesBox(navigation, std::move(draft), callback);
-			},
-			&st::menuIconCopy);
-
-		if (hasMediaWithCaption) {
-			submenu->addAction(
-				fatr::fa_forward_without_caption(fatr::now),
-				[=] {
-					auto draft = Data::ForwardDraft{
-						.ids = ids,
-						.options = Data::ForwardOptions::NoNamesAndCaptions,
-					};
-					Window::ShowForwardMessagesBox(navigation, std::move(draft), callback);
-				},
-				&st::menuIconFile);
-		}
-
-		submenu->addAction(
-			fatr::fa_forward_to_saved(fatr::now),
-			[=] {
-				auto draft = Data::ForwardDraft{ .ids = ids };
-				Window::ForwardToSelf(navigation->uiShow(), draft);
-				callback();
-			},
-			&st::menuIconSavedMessages);
-
-		submenu->addAction(
-			fatr::fa_forward_to_saved_as_copy(fatr::now),
-			[=] {
-				auto draft = Data::ForwardDraft{
-					.ids = ids,
-					.options = Data::ForwardOptions::NoSenderNames,
-				};
-				Window::ForwardToSelf(navigation->uiShow(), draft);
-				callback();
-			},
-			&st::menuIconSavedMessages);
-
-		return true;
-	}
-
-	menu->addAction(tr::lng_context_forward_selected(tr::now), [=] {
-		Window::ShowForwardMessagesBox(
-			navigation,
-			ExtractIdsList(selectedItems),
-			callback);
-	}, &st::menuIconForward);
-	return true;
+	return FA::ContextMenu::AddForwardSubmenu(
+		menu,
+		tr::lng_context_forward_selected(tr::now),
+		ids,
+		navigation,
+		callback,
+		hasMediaWithCaption);
 }
 
 bool AddForwardMessageAction(
@@ -535,108 +465,11 @@ bool AddForwardMessageAction(
 			}
 		}
 	}
-	const auto itemId = item->fullId();
-	const auto navigation = request.navigation;
-
-	if (FASettings::FASettings::getInstance().contextMenuForwardSubmenu()) {
-		const auto getMessageIds = [=]() -> MessageIdsList {
-			if (const auto item = owner->message(itemId)) {
-				return asGroup
-					? owner->itemOrItsGroup(item)
-					: MessageIdsList{ 1, itemId };
-			}
-			return {};
-		};
-
-		const auto forwardAction = menu->addAction(
-			tr::lng_context_forward_msg(tr::now),
-			[=] {
-				Window::ShowForwardMessagesBox(navigation, getMessageIds());
-			},
-			&st::menuIconForward);
-
-		forwardAction->setMenu(Ui::CreateChild<QMenu>(menu->menu().get()));
-		const auto submenu = menu->ensureSubmenu(forwardAction, st::faContextMenu);
-
-		submenu->addAction(
-			fatr::fa_forward_with_author(fatr::now),
-			[=] {
-				Window::ShowForwardMessagesBox(navigation, getMessageIds());
-			},
-			&st::menuIconForward);
-
-		submenu->addAction(
-			fatr::fa_forward_as_copy(fatr::now),
-			[=] {
-				const auto ids = getMessageIds();
-				if (!ids.empty()) {
-					auto draft = Data::ForwardDraft{
-						.ids = ids,
-						.options = Data::ForwardOptions::NoSenderNames,
-					};
-					Window::ShowForwardMessagesBox(navigation, std::move(draft));
-				}
-			},
-			&st::menuIconCopy);
-
-		if (item->media() && item->media()->allowsEditCaption()) {
-			submenu->addAction(
-				fatr::fa_forward_without_caption(fatr::now),
-				[=] {
-					const auto ids = getMessageIds();
-					if (!ids.empty()) {
-						auto draft = Data::ForwardDraft{
-							.ids = ids,
-							.options = Data::ForwardOptions::NoNamesAndCaptions,
-						};
-						Window::ShowForwardMessagesBox(navigation, std::move(draft));
-					}
-				},
-				&st::menuIconFile);
-		}
-
-		submenu->addAction(
-			fatr::fa_forward_to_saved(fatr::now),
-			[=] {
-				const auto ids = getMessageIds();
-				if (!ids.empty()) {
-					auto draft = Data::ForwardDraft{ .ids = ids };
-					Window::ForwardToSelf(
-						navigation->uiShow(),
-						draft);
-				}
-			},
-			&st::menuIconSavedMessages);
-
-		submenu->addAction(
-			fatr::fa_forward_to_saved_as_copy(fatr::now),
-			[=] {
-				const auto ids = getMessageIds();
-				if (!ids.empty()) {
-					auto draft = Data::ForwardDraft{
-						.ids = ids,
-						.options = Data::ForwardOptions::NoSenderNames,
-					};
-					Window::ForwardToSelf(
-						navigation->uiShow(),
-						draft);
-				}
-			},
-			&st::menuIconSavedMessages);
-
-		return true;
-	}
-
-	menu->addAction(tr::lng_context_forward_msg(tr::now), [=] {
-		if (const auto item = owner->message(itemId)) {
-			Window::ShowForwardMessagesBox(
-				navigation,
-				(asGroup
-					? owner->itemOrItsGroup(item)
-					: MessageIdsList{ 1, itemId }));
-		}
-	}, &st::menuIconForward);
-	return true;
+	return FA::ContextMenu::AddForwardSubmenu(
+		menu,
+		item,
+		request.navigation,
+		asGroup);
 }
 
 void AddForwardAction(
@@ -1703,30 +1536,25 @@ void FillContextMenuItems(
 	const auto hasWhoReactedItem = item
 		&& Api::WhoReactedExists(item, Api::WhoReactedList::All);
 
-	const auto shortcutsAtBottom = FASettings::FASettings::getInstance().contextMenuShortcutsAtBottom();
-	auto shortcutsResult = FaHistoryView::AddContextMenuShortcuts(
-		result->menu(),
+	auto shortcutsResult = FA::ContextMenu::SetupShortcuts(
+		result.get(),
 		request,
 		list);
 	const auto &addedShortcuts = shortcutsResult.addedShortcuts;
-	const auto hasShortcutReply = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Reply);
-	const auto hasShortcutCopy = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Copy);
-	const auto hasShortcutEdit = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Edit);
-	const auto hasShortcutPin = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Pin)
-		|| FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Unpin);
-	const auto hasShortcutCopyLink = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::CopyLink);
-	const auto hasShortcutTranslate = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Translate);
-	const auto hasShortcutForward = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::Forward);
-	const auto hasShortcutSaveFile = FaHistoryView::HasShortcut(addedShortcuts, FaHistoryView::ShortcutType::SaveFile);
-	
-	if (!shortcutsAtBottom && shortcutsResult.widget) {
-		result->insertAction(0, std::move(shortcutsResult.widget));
-	}
+	const auto hasShortcutReply = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Reply);
+	const auto hasShortcutCopy = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Copy);
+	const auto hasShortcutEdit = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Edit);
+	const auto hasShortcutPin = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Pin)
+		|| FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Unpin);
+	const auto hasShortcutCopyLink = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::CopyLink);
+	const auto hasShortcutTranslate = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Translate);
+	const auto hasShortcutForward = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Forward);
+	const auto hasShortcutSaveFile = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::SaveFile);
 
 	if (!hasShortcutReply) {
 		AddReplyToMessageAction(result, request, list);
 	}
-	FA::AddReplyInPrivateChatAction(result, request, list);
+	FA::ContextMenu::AddReplyInPrivate(result.get(), request, list);
 	if (item) {
 		const auto media = item->media();
 		const auto document = media ? media->document() : nullptr;
@@ -1885,7 +1713,7 @@ void FillContextMenuItems(
 		}
 	}
 
-	if (shortcutsAtBottom && shortcutsResult.widget) {
+	if (shortcutsResult.widget) {
 		result->addAction(std::move(shortcutsResult.widget));
 	}
 }
