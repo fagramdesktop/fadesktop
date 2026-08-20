@@ -1743,7 +1743,6 @@ void ActionsFiller::fillUserActions(not_null<UserData*> user) {
 	if (!user->isSelf() && !user->isSupport() && !user->isVerifyCodes()) {
 		if (user->isBot()) {
 			addBotCommandActions(user);
-			_card->add(CreateSkipWidget(_card, st::infoBlockButtonSkip));
 			addReportAction();
 		}
 		addBlockAction(user);

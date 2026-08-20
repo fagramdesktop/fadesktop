@@ -93,6 +93,9 @@ bool IsRowVisible(const QWidget *w) {
 		|| w->metaObject()->className() == QStringView(u"FA::Ui::(anonymous namespace)::CardDividerWidget")) {
 		return false;
 	}
+	if (w->height() < 20 && w->children().isEmpty()) {
+		return false;
+	}
 	return true;
 }
 
