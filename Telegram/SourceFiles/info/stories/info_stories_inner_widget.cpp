@@ -5,6 +5,7 @@ the unofficial desktop client based on Telegram Desktop.
 For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
+#include "fa/ui/md3/fa_cards.h"
 #include "info/stories/info_stories_inner_widget.h"
 
 #include "apiwrap.h"
@@ -317,19 +318,19 @@ void InnerWidget::createProfileTop() {
 		{ v::null });
 
 	auto tracker = Ui::MultiSlideTracker();
-	const auto dividerWrap = _top->add(
+	const auto wrap = _top->add(
 		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
 			_top,
 			object_ptr<Ui::VerticalLayout>(_top)));
-	const auto divider = dividerWrap->entity();
-	Ui::AddDivider(divider);
-	Ui::AddSkip(divider);
+	const auto card = FA::Ui::CreateCardContainer(wrap->entity(), 6, 6);
 
-	addGiftsButton(tracker);
-	addArchiveButton(tracker);
-	addRecentButton(tracker);
+	addGiftsButton(card, tracker);
+	addArchiveButton(card, tracker);
+	addRecentButton(card, tracker);
 
-	dividerWrap->toggleOn(tracker.atLeastOneShownValue());
+	wrap->setDuration(
+		st::infoSlideDuration
+	)->toggleOn(tracker.atLeastOneShownValue());
 
 	finalizeTop();
 }
@@ -337,12 +338,22 @@ void InnerWidget::createProfileTop() {
 void InnerWidget::createButtons() {
 	startTop();
 	auto tracker = Ui::MultiSlideTracker();
-	addArchiveButton(tracker);
-	addRecentButton(tracker);
+	const auto wrap = _top->add(
+		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+			_top,
+			object_ptr<Ui::VerticalLayout>(_top)));
+	const auto card = FA::Ui::CreateCardContainer(wrap->entity(), 6, 6);
+	addArchiveButton(card, tracker);
+	addRecentButton(card, tracker);
+	wrap->setDuration(
+		st::infoSlideDuration
+	)->toggleOn(tracker.atLeastOneShownValue());
 	finalizeTop();
 }
 
-void InnerWidget::addArchiveButton(Ui::MultiSlideTracker &tracker) {
+void InnerWidget::addArchiveButton(
+		not_null<Ui::VerticalLayout*> container,
+		Ui::MultiSlideTracker &tracker) {
 	Expects(_top != nullptr);
 
 	const auto stories = &_peer->owner().stories();
@@ -363,11 +374,11 @@ void InnerWidget::addArchiveButton(Ui::MultiSlideTracker &tracker) {
 		return stories->albumIdsCount(_peer->id, kArchive);
 	}) | rpl::start_spawning(_top->lifetime());
 
-	const auto archiveWrap = _top->add(
+	const auto archiveWrap = container->add(
 		object_ptr<Ui::SlideWrap<Ui::SettingsButton>>(
-			_top,
+			container,
 			object_ptr<Ui::SettingsButton>(
-				_top,
+				container,
 				tr::lng_stories_archive_button(),
 				st::infoSharedMediaButton))
 	)->setDuration(
@@ -397,14 +408,16 @@ void InnerWidget::addArchiveButton(Ui::MultiSlideTracker &tracker) {
 	tracker.track(archiveWrap);
 }
 
-void InnerWidget::addRecentButton(Ui::MultiSlideTracker &tracker) {
+void InnerWidget::addRecentButton(
+		not_null<Ui::VerticalLayout*> container,
+		Ui::MultiSlideTracker &tracker) {
 	Expects(_top != nullptr);
 
-	const auto recentWrap = _top->add(
+	const auto recentWrap = container->add(
 		object_ptr<Ui::SlideWrap<Ui::SettingsButton>>(
-			_top,
+			container,
 			object_ptr<Ui::SettingsButton>(
-				_top,
+				container,
 				tr::lng_stories_recent_button(),
 				st::infoSharedMediaButton)));
 
@@ -457,7 +470,9 @@ void InnerWidget::addRecentButton(Ui::MultiSlideTracker &tracker) {
 	tracker.track(recentWrap);
 }
 
-void InnerWidget::addGiftsButton(Ui::MultiSlideTracker &tracker) {
+void InnerWidget::addGiftsButton(
+		not_null<Ui::VerticalLayout*> container,
+		Ui::MultiSlideTracker &tracker) {
 	Expects(_top != nullptr);
 
 	const auto user = _peer->asUser();
@@ -467,11 +482,11 @@ void InnerWidget::addGiftsButton(Ui::MultiSlideTracker &tracker) {
 		user
 	) | rpl::start_spawning(_top->lifetime());
 
-	const auto giftsWrap = _top->add(
+	const auto giftsWrap = container->add(
 		object_ptr<Ui::SlideWrap<Ui::SettingsButton>>(
-			_top,
+			container,
 			object_ptr<Ui::SettingsButton>(
-				_top,
+				container,
 				tr::lng_peer_gifts_title(),
 				st::infoSharedMediaButton))
 	)->setDuration(

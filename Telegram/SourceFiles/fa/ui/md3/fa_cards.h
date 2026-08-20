@@ -14,7 +14,32 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/labels.h"
 #include "styles/style_settings.h"
 
+#include <QtGui/QPainterPath>
+
 namespace FA::Ui {
+
+class MaterialSlider;
+
+enum class CardSegmentPosition {
+	Single,
+	Top,
+	Middle,
+	Bottom,
+};
+
+[[nodiscard]] CardSegmentPosition FindSegmentPosition(const QWidget *widget);
+
+[[nodiscard]] QPainterPath MakeSegmentPath(
+	const QRectF &rect,
+	CardSegmentPosition pos,
+	float64 largeRadius = 24.0,
+	float64 smallRadius = 4.0);
+
+[[nodiscard]] QImage MakeSegmentMask(
+	const QSize &size,
+	CardSegmentPosition pos,
+	int largeRadius = 24,
+	int smallRadius = 4);
 
 [[nodiscard]] QFont DescriptionFont();
 
@@ -33,7 +58,15 @@ void AddCardDescription(
 not_null<::Ui::VerticalLayout*> CreateCardContainer(
 	not_null<::Ui::VerticalLayout*> container,
 	int topMargin = 0,
-	int bottomMargin = 8);
+	int bottomMargin = 8,
+	int sideMargin = 16);
+
+not_null<::Ui::RpWidget*> CreateCardToggle(
+	not_null<QWidget*> parent,
+	rpl::producer<QString> title,
+	rpl::producer<QString> subtitle,
+	rpl::producer<bool> value,
+	Fn<void(bool)> onToggle);
 
 not_null<::Ui::RpWidget*> AddCardToggle(
 	not_null<::Ui::VerticalLayout*> card,
@@ -56,11 +89,22 @@ not_null<::Ui::RpWidget*> AddCardRadio(
 	int value,
 	rpl::producer<QString> title);
 
+struct CardSliderRowControls {
+	not_null<::Ui::LabelSimple*> label;
+	not_null<MaterialSlider*> slider;
+	not_null<::Ui::IconButton*> reset;
+	not_null<::Ui::RpWidget*> row;
+};
+
+[[nodiscard]] CardSliderRowControls AddCardSliderRow(
+	not_null<::Ui::VerticalLayout*> card,
+	const style::margins &margin = style::margins(0, 0, 0, 0));
+
 void AddCardDivider(not_null<::Ui::VerticalLayout*> card);
 
 [[nodiscard]] not_null<::Ui::RippleButton*> CreateCardRippleButton(
 	not_null<QWidget*> parent,
-	int radius = 14,
+	int radius = 24,
 	bool paintHover = false);
 
 } // namespace FA::Ui

@@ -73,6 +73,7 @@ struct MessageStyle {
 	style::icon tailLeft = { Qt::Uninitialized };
 	style::icon tailRight = { Qt::Uninitialized };
 	style::icon historyRepliesIcon = { Qt::Uninitialized };
+	style::icon historyForwardsIcon = { Qt::Uninitialized };
 	style::icon historyViewsIcon = { Qt::Uninitialized };
 	style::icon historyPinIcon = { Qt::Uninitialized };
 	style::icon historySilentIcon = { Qt::Uninitialized };
@@ -436,6 +437,9 @@ public:
 	[[nodiscard]] const style::icon &historyRepliesInvertedIcon() const {
 		return _historyRepliesInvertedIcon;
 	}
+	[[nodiscard]] const style::icon &historyForwardsInvertedIcon() const {
+		return _historyForwardsInvertedIcon;
+	}
 	[[nodiscard]] const style::icon &historyViewsInvertedIcon() const {
 		return _historyViewsInvertedIcon;
 	}
@@ -674,6 +678,7 @@ private:
 	style::TextPalette _serviceTextPalette;
 	style::TextPalette _priceTagTextPalette;
 	style::icon _historyRepliesInvertedIcon = { Qt::Uninitialized };
+	style::icon _historyForwardsInvertedIcon = { Qt::Uninitialized };
 	style::icon _historyViewsInvertedIcon = { Qt::Uninitialized };
 	style::icon _historyViewsSendingIcon = { Qt::Uninitialized };
 	style::icon _historyViewsSendingInvertedIcon = { Qt::Uninitialized };

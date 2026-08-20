@@ -101,6 +101,19 @@ namespace Settings {
 
 		FA::Ui::AddCardDivider(msgCard);
 
+		const auto fwdCountRow = FA::Ui::AddCardToggle(
+			msgCard,
+			fatr::fa_show_forwards_count(),
+			fatr::fa_show_forwards_count_desc(),
+			settings.showForwardsCountValue(),
+			[&settings](bool enabled) {
+				settings.setShowForwardsCount(enabled);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			fwdCountRow, u"fa/chats/show-forwards-count"_q, controller);
+
+		FA::Ui::AddCardDivider(msgCard);
+
 		const auto commaRow = FA::Ui::AddCardToggle(
 			msgCard,
 			fatr::fa_add_comma_after_mention(),

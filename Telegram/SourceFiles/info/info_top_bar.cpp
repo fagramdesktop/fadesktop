@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "info/info_top_bar.h"
 
 #include "fa/settings/fa_settings.h"
+#include "fa/ui/md3/fa_top_bar.h"
 
 #include "dialogs/ui/dialogs_stories_list.h"
 #include "lang/lang_keys.h"
@@ -371,14 +372,11 @@ void TopBar::updateControlsGeometry(int newWidth) {
 }
 
 void TopBar::updateDefaultControlsGeometry(int newWidth) {
-	auto right = 0;
-	for (auto &button : _buttons) {
-		if (!button) {
-			continue;
-		}
-		button->moveToRight(right, 0, newWidth);
-		right += button->width();
-	}
+	const auto right = FA::Ui::LayoutTopBarPillButtons(
+		newWidth,
+		_st.height,
+		_buttons);
+
 	if (_back) {
 		_back->setGeometryToLeft(
 			0,
@@ -452,14 +450,6 @@ void TopBar::updateStoriesGeometry(int newWidth) {
 		return;
 	}
 
-	auto right = 0;
-	for (auto &button : _buttons) {
-		if (!button) {
-			continue;
-		}
-		button->moveToRight(right, 0, newWidth);
-		right += button->width();
-	}
 	const auto &small = st::dialogsStories;
 	const auto wrapLeft = (_back ? _st.back.width : 0);
 	const auto left = _back
@@ -496,6 +486,14 @@ void TopBar::paintEvent(QPaintEvent *e) {
 			rect(),
 			RectPart::TopLeft | RectPart::TopRight);
 	}
+
+	FA::Ui::PaintTopBarPill(
+		p,
+		width(),
+		_st.height,
+		_buttons,
+		_searchModeEnabled,
+		selectionMode());
 }
 
 void TopBar::highlight() {

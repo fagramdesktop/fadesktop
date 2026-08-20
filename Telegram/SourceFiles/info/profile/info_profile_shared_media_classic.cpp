@@ -26,6 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/peer_gifts/info_peer_gifts_widget.h"
 #include "info/profile/info_profile_icon.h"
 #include "info/profile/info_profile_values.h"
+#include "info/profile/info_profile_actions.h"
 #include "info/stories/info_stories_widget.h"
 #include "main/main_session.h"
 #include "ui/text/text_utilities.h"
@@ -258,7 +259,7 @@ object_ptr<Ui::SlideWrap<Ui::RpWidget>> SetupSharedMediaClassic(
 	auto result = object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
 		parent,
 		object_ptr<Ui::VerticalLayout>(parent));
-	const auto content = FAUi::CreateCardContainer(result->entity(), 4, 4);
+	const auto content = FAUi::CreateCardContainer(result->entity(), 6, 6);
 	const auto addMediaButton = [&](
 			MediaType type,
 			const style::icon &icon) {
@@ -365,6 +366,10 @@ object_ptr<Ui::SlideWrap<Ui::RpWidget>> SetupSharedMediaClassic(
 		addSimilarPeersButton(channel, st::infoIconMediaChannel);
 	} else if (const auto user = peer->asUser()) {
 		addCommonGroupsButton(user, st::infoIconMediaGroup);
+	}
+
+	if (const auto user = peer->asUser()) {
+		SetupUserActions(content, controller, user, tracker);
 	}
 
 	result->setDuration(

@@ -10,9 +10,13 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "base/object_ptr.h"
 #include "info/profile/info_profile_section_stack.h"
 
+class PeerData;
+class UserData;
+
 namespace Ui {
 class RpWidget;
 class VerticalLayout;
+class MultiSlideTracker;
 } // namespace Ui
 
 namespace Data {
@@ -40,6 +44,12 @@ object_ptr<Ui::RpWidget> SetupChannelMembersAndManage(
 	not_null<Controller*> controller,
 	not_null<Ui::RpWidget*> parent,
 	not_null<PeerData*> peer);
+
+void SetupUserActions(
+	not_null<Ui::VerticalLayout*> container,
+	not_null<Controller*> controller,
+	not_null<UserData*> user,
+	Ui::MultiSlideTracker &tracker);
 
 void AddDetails(
 	not_null<Ui::VerticalLayout*> container,

@@ -118,9 +118,15 @@ private:
 	void createAboutArchive();
 
 	void startTop();
-	void addArchiveButton(Ui::MultiSlideTracker &tracker);
-	void addRecentButton(Ui::MultiSlideTracker &tracker);
-	void addGiftsButton(Ui::MultiSlideTracker &tracker);
+	void addArchiveButton(
+		not_null<Ui::VerticalLayout*> container,
+		Ui::MultiSlideTracker &tracker);
+	void addRecentButton(
+		not_null<Ui::VerticalLayout*> container,
+		Ui::MultiSlideTracker &tracker);
+	void addGiftsButton(
+		not_null<Ui::VerticalLayout*> container,
+		Ui::MultiSlideTracker &tracker);
 	void finalizeTop();
 
 	void refreshAlbumsTabs();

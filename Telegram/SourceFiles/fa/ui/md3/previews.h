@@ -13,7 +13,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "ui/style/style_core_types.h"
 
-class IconPackCheck final : public Ui::AbstractCheckView {
+class IconPackCheck final : public ::Ui::AbstractCheckView {
 public:
 	IconPackCheck(bool isMaterial, bool checked);
 
@@ -29,7 +29,7 @@ private:
 
 };
 
-class AvatarShapeCheck final : public Ui::AbstractCheckView {
+class AvatarShapeCheck final : public ::Ui::AbstractCheckView {
 public:
 	AvatarShapeCheck(int shapeIndex, bool checked);
 
@@ -45,7 +45,7 @@ private:
 
 };
 
-class RoundnessPreview : public Ui::RpWidget {
+class RoundnessPreview : public ::Ui::RpWidget {
 public:
 	RoundnessPreview(QWidget *parent);
 

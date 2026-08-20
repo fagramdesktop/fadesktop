@@ -348,6 +348,15 @@ const auto kFAChatsMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
+			.id = u"fa/chats/show-forwards-count"_q,
+			.title = fatr::fa_show_forwards_count(fatr::now),
+			.keywords = { u"forward"_q, u"forwards"_q, u"count"_q, u"shares"_q, u"views"_q, u"channel"_q, u"post"_q },
+			.icon = { &st::menuIconChatBubble },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
 			.id = u"fa/chats/disable-greeting-sticker"_q,
 			.title = fatr::fa_disable_greeting_sticker(fatr::now),
 			.keywords = { u"greeting"_q, u"sticker"_q, u"intro"_q, u"welcome"_q, u"disable"_q, u"hide"_q },

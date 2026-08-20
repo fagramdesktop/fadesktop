@@ -7,9 +7,9 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 using "info/info.style";
 
-infoProfileLabeledPadding: margins(16px, 9px, 16px, 7px);
-infoProfileLabeledUsernamePadding: margins(16px, 9px, 16px, 7px);
-infoProfilePersonalChannelPadding: margins(64px, 9px, 16px, 7px);
+infoProfileLabeledPadding: margins(16px, 14px, 16px, 12px);
+infoProfileLabeledUsernamePadding: margins(16px, 14px, 16px, 12px);
+infoProfilePersonalChannelPadding: margins(64px, 14px, 16px, 12px);
 infoProfileLabeledButtonQrRightSkip: 0px;
 infoIconInformation: icon {{ "info/info_information", infoIconFg }};
 infoIconAddMember: icon {{ "info/info_add_member", infoIconFg }};
@@ -20,10 +20,10 @@ infoIconDelete: icon {{ "info/info_delete", infoIconFg }};
 infoIconLeave: icon {{ "info/info_leave", infoIconFg }};
 infoIconPrivacyPolicy: icon {{ "menu/2sv_off", infoIconFg, point(4px, 4px) }};
 infoIconSettings: icon {{ "menu/manage", infoIconFg, point(4px, 4px) }};
-infoChannelMembersIconPosition: point(20px, 4px);
+infoChannelMembersIconPosition: point(20px, 7px);
 infoChannelAdminsIconPosition: point(24px, 7px);
 infoEarnCreditsIconPosition: point(24px, 7px);
-infoEarnCurrencyIconPosition: point(20px, 3px);
+infoEarnCurrencyIconPosition: point(20px, 5px);
 infoOpenAppMargin: margins(16px, 12px, 16px, 12px);
 infoPersonalChannelIconPosition: point(16px, 12px);
 infoPersonalChannelNameLabel: FlatLabel(infoProfileStatus) {
@@ -47,9 +47,9 @@ infoMainButtonAttention: SettingsButton(infoMainButton) {
 infoBlockButtonSkip: 8px;
 infoSharedMediaCountButton: SettingsCountButton(managePeerButton) {
 	button: infoSharedMediaButton;
-	iconPosition: point(20px, 4px);
+	iconPosition: point(20px, 7px);
 	label: defaultSettingsRightLabel;
-	labelPosition: point(24px, 10px);
+	labelPosition: point(24px, 12px);
 }
 infoHoursState: FlatLabel(infoLabeled) {
 	minWidth: 0px;

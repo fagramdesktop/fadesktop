@@ -56,6 +56,7 @@ public:
 	[[nodiscard]] bool deleteForEveryone() const { return _deleteForEveryone.current(); }
 	[[nodiscard]] bool lastSeenTimestamp() const { return _lastSeenTimestamp.current(); }
 	[[nodiscard]] bool showForwardedDateInTitle() const { return _showForwardedDateInTitle.current(); }
+	[[nodiscard]] bool showForwardsCount() const { return _showForwardsCount.current(); }
 	[[nodiscard]] bool disableGreetingSticker() const { return _disableGreetingSticker.current(); }
 	[[nodiscard]] bool useDefaultRounding() const { return _useDefaultRounding.current(); }
 	[[nodiscard]] bool showDiscussButton() const { return _showDiscussButton.current(); }
@@ -106,6 +107,7 @@ public:
 	void setDeleteForEveryone(bool val);
 	void setLastSeenTimestamp(bool val);
 	void setShowForwardedDateInTitle(bool val);
+	void setShowForwardsCount(bool val);
 	void setDisableGreetingSticker(bool val);
 	void setUseDefaultRounding(bool val);
 	void setShowDiscussButton(bool val);
@@ -156,6 +158,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> deleteForEveryoneValue() const { return _deleteForEveryone.value(); }
 	[[nodiscard]] rpl::producer<bool> lastSeenTimestampValue() const { return _lastSeenTimestamp.value(); }
 	[[nodiscard]] rpl::producer<bool> showForwardedDateInTitleValue() const { return _showForwardedDateInTitle.value(); }
+	[[nodiscard]] rpl::producer<bool> showForwardsCountValue() const { return _showForwardsCount.value(); }
 	[[nodiscard]] rpl::producer<bool> disableGreetingStickerValue() const { return _disableGreetingSticker.value(); }
 	[[nodiscard]] rpl::producer<bool> useDefaultRoundingValue() const { return _useDefaultRounding.value(); }
 	[[nodiscard]] rpl::producer<bool> showDiscussButtonValue() const { return _showDiscussButton.value(); }
@@ -205,6 +208,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> deleteForEveryoneChanges() const { return _deleteForEveryone.changes(); }
 	[[nodiscard]] rpl::producer<bool> lastSeenTimestampChanges() const { return _lastSeenTimestamp.changes(); }
 	[[nodiscard]] rpl::producer<bool> showForwardedDateInTitleChanges() const { return _showForwardedDateInTitle.changes(); }
+	[[nodiscard]] rpl::producer<bool> showForwardsCountChanges() const { return _showForwardsCount.changes(); }
 	[[nodiscard]] rpl::producer<bool> disableGreetingStickerChanges() const { return _disableGreetingSticker.changes(); }
 	[[nodiscard]] rpl::producer<bool> useDefaultRoundingChanges() const { return _useDefaultRounding.changes(); }
 	[[nodiscard]] rpl::producer<bool> showDiscussButtonChanges() const { return _showDiscussButton.changes(); }
@@ -260,6 +264,7 @@ private:
 	rpl::variable<bool> _deleteForEveryone = true;
 	rpl::variable<bool> _lastSeenTimestamp = true;
 	rpl::variable<bool> _showForwardedDateInTitle = false;
+	rpl::variable<bool> _showForwardsCount = true;
 	rpl::variable<bool> _disableGreetingSticker = false;
 	rpl::variable<bool> _useDefaultRounding = true;
 	rpl::variable<bool> _showDiscussButton = true;

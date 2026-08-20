@@ -12,8 +12,11 @@ using "boxes/boxes.style";
 
 settingsButton: SettingsButton(infoProfileButton) {
 	style: boxTextStyle;
-	padding: margins(60px, 10px, 22px, 10px);
+	padding: margins(60px, 12px, 22px, 12px);
 	iconLeft: 20px;
+}
+settingsAddAccountButton: SettingsButton(settingsButton) {
+	iconLeft: 22px;
 }
 settingsButtonRightLabelSpoiler: SettingsButton(settingsButton) {
 	rightLabel: FlatLabel(defaultSettingsRightLabel) {

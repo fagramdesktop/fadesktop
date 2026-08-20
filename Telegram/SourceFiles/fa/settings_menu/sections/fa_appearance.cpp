@@ -215,14 +215,10 @@ namespace Settings {
 
 		FA::Ui::AddCardDivider(roundnessCard);
 
-		const auto userpicRoundnessLabel = roundnessCard->add(
-			object_ptr<Ui::LabelSimple>(
-				roundnessCard,
-				st::settingsAudioVolumeLabel),
-			style::margins(16, 12, 16, 4));
-		const auto userpicRoundnessSlider = FA::Ui::AddCardSlider(
-			roundnessCard,
-			style::margins(16, 4, 16, 16));
+		const auto userpicRoundness = FA::Ui::AddCardSliderRow(roundnessCard);
+		userpicRoundness.reset->hide();
+		const auto userpicRoundnessLabel = userpicRoundness.label;
+		const auto userpicRoundnessSlider = userpicRoundness.slider;
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			userpicRoundnessSlider,
 			u"fa/appearance/roundness"_q,

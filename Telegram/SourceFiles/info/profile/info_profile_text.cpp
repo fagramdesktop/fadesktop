@@ -38,13 +38,13 @@ TextWithLabel CreateTextWithLabel(
 	) | rpl::before_next([slide = result.data()](
 			const TextWithEntities &value) {
 		if (value.text.isEmpty()) {
-			slide->hide(anim::type::normal);
+			slide->hide(anim::type::instant);
 		}
 	}) | rpl::filter([](const TextWithEntities &value) {
 		return !value.text.isEmpty();
 	}) | rpl::after_next([slide = result.data()](
 			const TextWithEntities &value) {
-		slide->show(anim::type::normal);
+		slide->show(anim::type::instant);
 	});
 	const auto labeled = layout->add(object_ptr<Ui::FlatLabel>(
 		layout,
@@ -52,7 +52,7 @@ TextWithLabel CreateTextWithLabel(
 		textSt,
 		stMenu));
 	std::move(text) | rpl::on_next([=] {
-		labeled->resizeToWidth(layout->width());
+		layout->resizeToWidth(layout->widthNoMargins());
 	}, labeled->lifetime());
 	labeled->setSelectable(true);
 	layout->add(Ui::CreateSkipWidget(layout, st::infoLabelSkip));

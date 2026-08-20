@@ -6,10 +6,13 @@ For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "fa/ui/md3/fa_cards.h"
+#include "fa/ui/md3/fa_slider.h"
 
 #include "ui/painter.h"
 #include "ui/rect.h"
 #include "ui/round_rect.h"
+#include "ui/widgets/labels.h"
+#include "ui/wrap/slide_wrap.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/effects/animation_value_f.h"
 #include "styles/style_basic.h"
@@ -17,8 +20,148 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_settings.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
+#include "styles/style_fa_styles.h"
+
+#include <QtGui/QPainterPath>
 
 namespace FA::Ui {
+
+QPainterPath MakeSegmentPath(
+		const QRectF &r,
+		CardSegmentPosition pos,
+		float64 largeRadius,
+		float64 smallRadius) {
+	const auto rtl = (pos == CardSegmentPosition::Top || pos == CardSegmentPosition::Single)
+		? largeRadius
+		: smallRadius;
+	const auto rtr = (pos == CardSegmentPosition::Top || pos == CardSegmentPosition::Single)
+		? largeRadius
+		: smallRadius;
+	const auto rbr = (pos == CardSegmentPosition::Bottom || pos == CardSegmentPosition::Single)
+		? largeRadius
+		: smallRadius;
+	const auto rbl = (pos == CardSegmentPosition::Bottom || pos == CardSegmentPosition::Single)
+		? largeRadius
+		: smallRadius;
+
+	auto path = QPainterPath();
+	path.moveTo(r.left() + rtl, r.top());
+	path.lineTo(r.right() - rtr, r.top());
+	if (rtr > 0.) {
+		path.arcTo(QRectF(r.right() - 2 * rtr, r.top(), 2 * rtr, 2 * rtr), 90, -90);
+	}
+	path.lineTo(r.right(), r.bottom() - rbr);
+	if (rbr > 0.) {
+		path.arcTo(QRectF(r.right() - 2 * rbr, r.bottom() - 2 * rbr, 2 * rbr, 2 * rbr), 0, -90);
+	}
+	path.lineTo(r.left() + rbl, r.bottom());
+	if (rbl > 0.) {
+		path.arcTo(QRectF(r.left(), r.bottom() - 2 * rbl, 2 * rbl, 2 * rbl), 270, -90);
+	}
+	path.lineTo(r.left(), r.top() + rtl);
+	if (rtl > 0.) {
+		path.arcTo(QRectF(r.left(), r.top(), 2 * rtl, 2 * rtl), 180, -90);
+	}
+	path.closeSubpath();
+	return path;
+}
+
+QImage MakeSegmentMask(
+		const QSize &size,
+		CardSegmentPosition pos,
+		int largeRadius,
+		int smallRadius) {
+	return ::Ui::RippleAnimation::MaskByDrawer(size, false, [&](QPainter &p) {
+		PainterHighQualityEnabler hq(p);
+		p.setPen(Qt::NoPen);
+		p.setBrush(Qt::white);
+		const auto r = QRectF(0, 0, size.width(), size.height());
+		p.drawPath(MakeSegmentPath(r, pos, largeRadius, smallRadius));
+	});
+}
+
+bool IsRowVisible(const QWidget *w) {
+	if (!w || w->isHidden() || w->height() <= 0) {
+		return false;
+	}
+	if (const auto slide = dynamic_cast<const ::Ui::SlideWrap<::Ui::RpWidget>*>(w)) {
+		if (!slide->toggled() && !slide->animating()) {
+			return false;
+		}
+	}
+	if (w->inherits("CardDividerWidget")
+		|| w->metaObject()->className() == QStringView(u"FA::Ui::(anonymous namespace)::CardDividerWidget")) {
+		return false;
+	}
+	return true;
+}
+
+CardSegmentPosition FindSegmentPosition(const QWidget *widget) {
+	if (!widget) {
+		return CardSegmentPosition::Single;
+	}
+	const QWidget *card = nullptr;
+	for (auto w = widget->parentWidget(); w != nullptr; w = w->parentWidget()) {
+		if (w->property("is_fa_card").toBool()) {
+			card = w;
+			break;
+		}
+	}
+	if (!card) {
+		return CardSegmentPosition::Single;
+	}
+
+	std::vector<const QWidget*> rows;
+	for (const auto child : card->children()) {
+		if (const auto layout = dynamic_cast<const ::Ui::VerticalLayout*>(child)) {
+			for (const auto rowChild : layout->children()) {
+				if (const auto w = qobject_cast<const QWidget*>(rowChild)) {
+					if (IsRowVisible(w)) {
+						rows.push_back(w);
+					}
+				}
+			}
+			break;
+		}
+	}
+
+	if (rows.size() <= 1) {
+		return CardSegmentPosition::Single;
+	}
+
+	std::sort(rows.begin(), rows.end(), [](const auto a, const auto b) {
+		return a->y() < b->y();
+	});
+
+	int targetIndex = -1;
+	for (size_t i = 0; i < rows.size(); ++i) {
+		const auto r = rows[i];
+		if (r == widget) {
+			targetIndex = int(i);
+			break;
+		}
+		for (auto w = widget->parentWidget(); w != nullptr && w != card; w = w->parentWidget()) {
+			if (w == r) {
+				targetIndex = int(i);
+				break;
+			}
+		}
+		if (targetIndex != -1) {
+			break;
+		}
+	}
+
+	if (targetIndex == -1) {
+		return CardSegmentPosition::Single;
+	}
+	if (targetIndex == 0) {
+		return CardSegmentPosition::Top;
+	} else if (targetIndex == int(rows.size()) - 1) {
+		return CardSegmentPosition::Bottom;
+	}
+	return CardSegmentPosition::Middle;
+}
+
 namespace {
 
 class CardContainerWidget final : public ::Ui::RpWidget {
@@ -45,45 +188,6 @@ public:
 		return height();
 	}
 
-protected:
-	bool eventFilter(QObject *watched, QEvent *event) override {
-		const auto type = event->type();
-		if ((type == QEvent::Resize || type == QEvent::Show || type == QEvent::Hide) && !_inRelayout) {
-			updateGeometryFromInner();
-		} else if (type == QEvent::ChildAdded) {
-			const auto childAdded = static_cast<QChildEvent*>(event);
-			if (const auto widget = qobject_cast<QWidget*>(childAdded->child())) {
-				widget->installEventFilter(this);
-				watchChildren(widget);
-			}
-		}
-		return RpWidget::eventFilter(watched, event);
-	}
-
-	void paintEvent(QPaintEvent *e) override {
-		if (height() <= 0) {
-			return;
-		}
-		Painter p(this);
-		PainterHighQualityEnabler hq(p);
-		constexpr auto kRadius = 14.0;
-		const auto r = QRectF(0.5, 0.5, width() - 1.0, height() - 1.0);
-
-		p.setPen(Qt::NoPen);
-		p.setBrush(st::settingsThemeNotSupportedBg);
-		p.drawRoundedRect(r, kRadius, kRadius);
-	}
-
-private:
-	void watchChildren(QObject *parent) {
-		for (const auto child : parent->children()) {
-			if (const auto widget = qobject_cast<QWidget*>(child)) {
-				widget->installEventFilter(this);
-				watchChildren(widget);
-			}
-		}
-	}
-
 	void updateGeometryFromInner() {
 		if (!_layout || _inRelayout) {
 			return;
@@ -102,6 +206,88 @@ private:
 			}
 		}
 		_inRelayout = false;
+	}
+
+protected:
+	bool eventFilter(QObject *watched, QEvent *event) override {
+		const auto type = event->type();
+		if ((type == QEvent::Resize || type == QEvent::Show || type == QEvent::Hide) && !_inRelayout) {
+			updateGeometryFromInner();
+		} else if (type == QEvent::ChildAdded) {
+			const auto childAdded = static_cast<QChildEvent*>(event);
+			if (const auto widget = qobject_cast<QWidget*>(childAdded->child())) {
+				widget->installEventFilter(this);
+				watchChildren(widget);
+			}
+		}
+		return RpWidget::eventFilter(watched, event);
+	}
+
+	void paintEvent(QPaintEvent *e) override {
+		if (height() <= 0 || !_layout) {
+			return;
+		}
+		struct VisibleItem {
+			const QWidget *widget = nullptr;
+			int y = 0;
+			int height = 0;
+		};
+		std::vector<VisibleItem> visibleItems;
+		for (const auto child : _layout->children()) {
+			if (const auto w = qobject_cast<const QWidget*>(child)) {
+				if (IsRowVisible(w)) {
+					visibleItems.push_back({
+						w,
+						w->y(),
+						w->height(),
+					});
+				}
+			}
+		}
+		if (visibleItems.empty()) {
+			return;
+		}
+
+		std::sort(visibleItems.begin(), visibleItems.end(), [](const auto &a, const auto &b) {
+			return a.y < b.y;
+		});
+
+		Painter p(this);
+		PainterHighQualityEnabler hq(p);
+		p.setPen(Qt::NoPen);
+		p.setBrush(st::settingsThemeNotSupportedBg);
+
+		const auto N = visibleItems.size();
+		for (size_t i = 0; i < N; ++i) {
+			const auto pos = (N == 1)
+				? CardSegmentPosition::Single
+				: (i == 0)
+				? CardSegmentPosition::Top
+				: (i == N - 1)
+				? CardSegmentPosition::Bottom
+				: CardSegmentPosition::Middle;
+
+			const auto &item = visibleItems[i];
+			const auto topGap = (i == 0) ? 0.0 : 1.0;
+			const auto bottomGap = (i == N - 1) ? 0.0 : 1.0;
+			const auto r = QRectF(
+				0.5,
+				item.y + topGap + 0.5,
+				width() - 1.0,
+				item.height - topGap - bottomGap - 1.0);
+
+			p.drawPath(MakeSegmentPath(r, pos, 24.0, 4.0));
+		}
+	}
+
+private:
+	void watchChildren(QObject *parent) {
+		for (const auto child : parent->children()) {
+			if (const auto widget = qobject_cast<QWidget*>(child)) {
+				widget->installEventFilter(this);
+				watchChildren(widget);
+			}
+		}
 	}
 
 	::Ui::VerticalLayout *_layout = nullptr;
@@ -174,14 +360,6 @@ protected:
 		Painter p(this);
 		PainterHighQualityEnabler hq(p);
 
-		const auto paintOver = (isOver() || isDown()) && !isDisabled();
-		if (paintOver) {
-			p.setPen(Qt::NoPen);
-			p.setBrush(st::windowBgOver);
-			const auto r = QRectF(0.5, 0.5, width() - 1.0, height() - 1.0);
-			p.drawRoundedRect(r, 14.0, 14.0);
-		}
-
 		paintRipple(p, 0, 0);
 
 		const auto paddingLeft = 16;
@@ -252,30 +430,34 @@ protected:
 				Qt::AlignLeft | Qt::AlignVCenter | Qt::TextSingleLine,
 				_titleText);
 		} else {
-			const auto titleFontMetrics = QFontMetrics(st::semiboldFont->f);
-			const auto titleH = titleFontMetrics.height();
-			const auto topPad = 12;
+			const auto titleFont = st::semiboldFont;
+			const auto subtitleFont = DescriptionFont();
 
-			p.setFont(st::semiboldFont);
+			const auto titleH = titleFont->height;
+			const auto subH = QFontMetrics(subtitleFont).height();
+			const auto spacing = 3;
+			const auto totalH = titleH + spacing + subH;
+			const auto startY = (height() - totalH) / 2;
+
+			p.setFont(titleFont);
 			p.setPen(st::windowFg);
 			p.drawText(
-				QRect(paddingLeft, topPad, availableTextWidth, titleH),
+				QRect(paddingLeft, startY, availableTextWidth, titleH),
 				Qt::AlignLeft | Qt::AlignTop | Qt::TextSingleLine,
 				_titleText);
 
-			const auto descFont = DescriptionFont();
-			p.setFont(descFont);
+			p.setFont(subtitleFont);
 			p.setPen(st::windowSubTextFg);
-			const auto subtitleY = topPad + titleH + 3;
 			p.drawText(
-				QRect(paddingLeft, subtitleY, availableTextWidth, height() - subtitleY - 8),
-				Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap,
+				QRect(paddingLeft, startY + titleH + spacing, availableTextWidth, subH),
+				Qt::AlignLeft | Qt::AlignTop | Qt::TextSingleLine,
 				_subtitleText);
 		}
 	}
 
 	QImage prepareRippleMask() const override {
-		return ::Ui::RippleAnimation::RoundRectMask(size(), 14);
+		const auto pos = FindSegmentPosition(this);
+		return MakeSegmentMask(size(), pos, 24, 4);
 	}
 
 	QPoint prepareRippleStartPosition() const override {
@@ -284,29 +466,10 @@ protected:
 
 private:
 	int computeHeight(int w) const {
-		if (w <= 0) {
-			w = 340;
-		}
 		if (_subtitleText.trimmed().isEmpty()) {
-			return 48;
+			return 56;
 		}
-		const auto switchWidth = 46.0;
-		const auto availableTextWidth = w - 16 - switchWidth - 12 - 16;
-		if (availableTextWidth <= 0) {
-			return 58;
-		}
-		const auto titleMetrics = QFontMetrics(st::semiboldFont->f);
-		const auto titleH = titleMetrics.height();
-		const auto descFont = DescriptionFont();
-		const auto subMetrics = QFontMetrics(descFont);
-		const auto subRect = subMetrics.boundingRect(
-			QRect(0, 0, availableTextWidth, 10000),
-			Qt::TextWordWrap,
-			_subtitleText);
-		const auto topPad = 12;
-		const auto spacing = 3;
-		const auto botPad = 12;
-		return std::max(56, topPad + titleH + spacing + subRect.height() + botPad);
+		return 68;
 	}
 
 	void updateHeight() {
@@ -314,12 +477,12 @@ private:
 		update();
 	}
 
-	bool _hasValue = false;
-	bool _checked = false;
-	::Ui::Animations::Simple _animation;
 	Fn<void(bool)> _onToggle;
 	QString _titleText;
 	QString _subtitleText;
+	bool _checked = false;
+	bool _hasValue = false;
+	::Ui::Animations::Simple _animation;
 };
 
 class CardButtonRow final : public ::Ui::RippleButton {
@@ -351,56 +514,51 @@ public:
 			addClickHandler(std::move(onClick));
 		}
 
-		resize(width(), 48);
+		resize(width(), 56);
 	}
 
 protected:
 	int resizeGetHeight(int newWidth) override {
-		return 48;
+		return 56;
 	}
 
 	void paintEvent(QPaintEvent *e) override {
 		Painter p(this);
 		PainterHighQualityEnabler hq(p);
 
-		const auto paintOver = (isOver() || isDown()) && !isDisabled();
-		if (paintOver) {
-			p.setPen(Qt::NoPen);
-			p.setBrush(st::windowBgOver);
-			const auto r = QRectF(0.5, 0.5, width() - 1.0, height() - 1.0);
-			p.drawRoundedRect(r, 14.0, 14.0);
-		}
-
 		paintRipple(p, 0, 0);
 
-		const auto padding = 16;
-		auto textLeft = padding;
-
+		auto textLeft = 16;
 		if (_icon) {
 			const auto iconY = (height() - _icon->height()) / 2;
-			_icon->paint(p, padding, iconY, width(), st::windowFg->c);
-			textLeft += _icon->width() + 14;
+			_icon->paint(p, 16, iconY, width());
+			textLeft = 16 + _icon->width() + 14;
 		}
 
-		auto textRight = width() - padding;
+		auto textRight = width() - 16;
 
 		if (_showChevron) {
 			const auto chevronW = 6;
 			const auto chevronH = 10;
-			const auto chevronX = width() - padding - chevronW;
-			const auto chevronY = (height() - chevronH) / 2;
+			const auto cx = width() - 16 - chevronW;
+			const auto cy = (height() - chevronH) / 2;
 
-			p.setPen(QPen(st::windowSubTextFg, 1.8, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-			p.drawLine(chevronX, chevronY, chevronX + chevronW, chevronY + chevronH / 2);
-			p.drawLine(chevronX + chevronW, chevronY + chevronH / 2, chevronX, chevronY + chevronH);
+			QPainterPath chevron;
+			chevron.moveTo(cx, cy);
+			chevron.lineTo(cx + chevronW, cy + chevronH / 2.0);
+			chevron.lineTo(cx, cy + chevronH);
 
-			textRight = chevronX - 10;
+			p.setPen(QPen(st::windowSubTextFg->c, 1.8, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+			p.setBrush(Qt::NoBrush);
+			p.drawPath(chevron);
+
+			textRight = cx - 10;
 		}
 
 		if (!_rightLabelText.isEmpty()) {
-			p.setFont(st::boxTextFont);
-			p.setPen(st::windowActiveTextFg);
-			const auto rightLabelW = QFontMetrics(st::boxTextFont->f).horizontalAdvance(_rightLabelText);
+			p.setFont(DescriptionFont());
+			p.setPen(st::windowSubTextFg);
+			const auto rightLabelW = QFontMetrics(DescriptionFont()).horizontalAdvance(_rightLabelText);
 			p.drawText(
 				QRect(textRight - rightLabelW, 0, rightLabelW, height()),
 				Qt::AlignRight | Qt::AlignVCenter | Qt::TextSingleLine,
@@ -418,7 +576,8 @@ protected:
 	}
 
 	QImage prepareRippleMask() const override {
-		return ::Ui::RippleAnimation::RoundRectMask(size(), 14);
+		const auto pos = FindSegmentPosition(this);
+		return MakeSegmentMask(size(), pos, 24, 4);
 	}
 
 	QPoint prepareRippleStartPosition() const override {
@@ -466,25 +625,17 @@ public:
 			}
 		});
 
-		resize(width(), 48);
+		resize(width(), 52);
 	}
 
 protected:
 	int resizeGetHeight(int newWidth) override {
-		return 48;
+		return 52;
 	}
 
 	void paintEvent(QPaintEvent *e) override {
 		Painter p(this);
 		PainterHighQualityEnabler hq(p);
-
-		const auto paintOver = (isOver() || isDown()) && !isDisabled();
-		if (paintOver) {
-			p.setPen(Qt::NoPen);
-			p.setBrush(st::windowBgOver);
-			const auto r = QRectF(0.5, 0.5, width() - 1.0, height() - 1.0);
-			p.drawRoundedRect(r, 14.0, 14.0);
-		}
 
 		paintRipple(p, 0, 0);
 
@@ -519,7 +670,8 @@ protected:
 	}
 
 	QImage prepareRippleMask() const override {
-		return ::Ui::RippleAnimation::RoundRectMask(size(), 14);
+		const auto pos = FindSegmentPosition(this);
+		return MakeSegmentMask(size(), pos, 24, 4);
 	}
 
 	QPoint prepareRippleStartPosition() const override {
@@ -533,20 +685,56 @@ private:
 	QString _titleText;
 };
 
+class CardSliderRowWidget final : public ::Ui::RpWidget {
+public:
+	CardSliderRowWidget(QWidget *parent)
+	: RpWidget(parent)
+	, _label(::Ui::CreateChild<::Ui::LabelSimple>(this, st::settingsAudioVolumeLabel))
+	, _slider(::Ui::CreateChild<MaterialSlider>(this))
+	, _reset(::Ui::CreateChild<::Ui::IconButton>(this, st::settingsSliderRestore)) {
+		_label->setAttribute(Qt::WA_TransparentForMouseEvents);
+		resize(width(), 74);
+	}
+
+	[[nodiscard]] not_null<::Ui::LabelSimple*> label() const { return _label; }
+	[[nodiscard]] not_null<MaterialSlider*> slider() const { return _slider; }
+	[[nodiscard]] not_null<::Ui::IconButton*> reset() const { return _reset; }
+
+protected:
+	int resizeGetHeight(int newWidth) override {
+		return 74;
+	}
+
+	void resizeEvent(QResizeEvent *e) override {
+		const auto left = 16;
+		const auto right = 16;
+		const auto top = 8;
+		const auto labelH = _label->height();
+		_label->moveToLeft(left, top);
+		_reset->moveToRight(right, top - (_reset->height() - labelH) / 2, width());
+		const auto sliderTop = top + labelH + 4;
+		const auto sliderW = width() - left - right;
+		_slider->setGeometry(left, sliderTop, sliderW, 32);
+	}
+
+private:
+	not_null<::Ui::LabelSimple*> _label;
+	not_null<MaterialSlider*> _slider;
+	not_null<::Ui::IconButton*> _reset;
+};
+
 class CardDividerWidget final : public ::Ui::RpWidget {
 public:
 	explicit CardDividerWidget(QWidget *parent) : RpWidget(parent) {
-		resize(width(), 1);
+		resize(width(), 0);
 	}
 
 protected:
 	int resizeGetHeight(int newWidth) override {
-		return 1;
+		return 0;
 	}
 
 	void paintEvent(QPaintEvent *e) override {
-		Painter p(this);
-		p.fillRect(QRect(16, 0, width() - 32, 1), st::shadowFg);
 	}
 };
 
@@ -601,26 +789,45 @@ void AddCardDescription(
 not_null<::Ui::VerticalLayout*> CreateCardContainer(
 		not_null<::Ui::VerticalLayout*> container,
 		int topMargin,
-		int bottomMargin) {
+		int bottomMargin,
+		int sideMargin) {
 	const auto cardSurface = container->add(
 		object_ptr<CardContainerWidget>(container),
-		style::margins(16, topMargin, 16, bottomMargin));
+		style::margins(sideMargin, topMargin, sideMargin, bottomMargin));
 	
 	const auto layout = ::Ui::CreateChild<::Ui::VerticalLayout>(cardSurface);
 	cardSurface->setInnerLayout(layout, container);
 	
-	cardSurface->sizeValue(
-	) | rpl::on_next([layout](const QSize &s) {
-		layout->setGeometry(0, 0, s.width(), s.height());
+	cardSurface->widthValue(
+	) | rpl::on_next([layout](int w) {
+		if (w > 0) {
+			layout->move(0, 0);
+			layout->resizeToWidth(w);
+		}
 	}, layout->lifetime());
 
 	layout->heightValue(
-	) | rpl::on_next([cardSurface, container](int height) {
-		cardSurface->resize(cardSurface->width(), height);
-		container->resizeToWidth(container->width());
+	) | rpl::on_next([cardSurface](int height) {
+		if (height > 0) {
+			cardSurface->updateGeometryFromInner();
+		}
 	}, layout->lifetime());
 
 	return layout;
+}
+
+not_null<::Ui::RpWidget*> CreateCardToggle(
+		not_null<QWidget*> parent,
+		rpl::producer<QString> title,
+		rpl::producer<QString> subtitle,
+		rpl::producer<bool> value,
+		Fn<void(bool)> onToggle) {
+	return ::Ui::CreateChild<CardToggleRow>(
+		parent.get(),
+		std::move(title),
+		std::move(subtitle),
+		std::move(value),
+		std::move(onToggle));
 }
 
 not_null<::Ui::RpWidget*> AddCardToggle(
@@ -665,6 +872,20 @@ not_null<::Ui::RpWidget*> AddCardRadio(
 		std::move(title)));
 }
 
+CardSliderRowControls AddCardSliderRow(
+		not_null<::Ui::VerticalLayout*> card,
+		const style::margins &margin) {
+	const auto row = card->add(
+		object_ptr<CardSliderRowWidget>(card),
+		margin);
+	return {
+		.label = row->label(),
+		.slider = row->slider(),
+		.reset = row->reset(),
+		.row = row,
+	};
+}
+
 void AddCardDivider(not_null<::Ui::VerticalLayout*> card) {
 	card->add(object_ptr<CardDividerWidget>(card));
 }
@@ -689,14 +910,16 @@ not_null<::Ui::RippleButton*> CreateCardRippleButton(
 				PainterHighQualityEnabler hq(p);
 				p.setPen(Qt::NoPen);
 				p.setBrush(st::windowBgOver);
+				const auto pos = FindSegmentPosition(this);
 				const auto r = QRectF(0.5, 0.5, width() - 1.0, height() - 1.0);
-				p.drawRoundedRect(r, _radius, _radius);
+				p.drawPath(MakeSegmentPath(r, pos, 24.0, 4.0));
 			}
 			paintRipple(p, 0, 0);
 		}
 
 		QImage prepareRippleMask() const override {
-			return ::Ui::RippleAnimation::RoundRectMask(size(), _radius);
+			const auto pos = FindSegmentPosition(this);
+			return MakeSegmentMask(size(), pos, 24, 4);
 		}
 
 		QPoint prepareRippleStartPosition() const override {
@@ -704,7 +927,7 @@ not_null<::Ui::RippleButton*> CreateCardRippleButton(
 		}
 
 	private:
-		int _radius = 14;
+		int _radius = 24;
 		bool _paintHover = false;
 	};
 
