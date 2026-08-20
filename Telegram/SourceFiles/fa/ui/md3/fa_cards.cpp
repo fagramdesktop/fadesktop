@@ -361,64 +361,18 @@ protected:
 
 	void paintEvent(QPaintEvent *e) override {
 		Painter p(this);
-		PainterHighQualityEnabler hq(p);
-
 		paintRipple(p, 0, 0);
 
 		const auto paddingLeft = 16;
 		const auto paddingRight = 16;
-		const auto switchWidth = 46.0;
-		const auto switchHeight = 26.0;
+		const auto switchWidth = 48.0;
+		const auto switchHeight = 28.0;
 		const auto toggleX = width() - paddingRight - switchWidth;
 		const auto toggleY = (height() - switchHeight) / 2.0;
 
 		const auto toggled = _animation.value(_checked ? 1.0 : 0.0);
 
-		if (toggled > 0.0) {
-			p.setOpacity(toggled);
-			p.setPen(Qt::NoPen);
-			p.setBrush(st::windowActiveTextFg);
-			p.drawRoundedRect(
-				QRectF(toggleX, toggleY, switchWidth, switchHeight),
-				switchHeight / 2.0,
-				switchHeight / 2.0);
-		}
-
-		if (toggled < 1.0) {
-			p.setOpacity(1.0 - toggled);
-			p.setPen(QPen(st::windowSubTextFg->c, 2.0));
-			p.setBrush(Qt::NoBrush);
-			p.drawRoundedRect(
-				QRectF(toggleX + 1.0, toggleY + 1.0, switchWidth - 2.0, switchHeight - 2.0),
-				(switchHeight - 2.0) / 2.0,
-				(switchHeight - 2.0) / 2.0);
-		}
-		p.setOpacity(1.0);
-
-		const auto thumbDiameter = anim::interpolateF(14.0, 20.0, toggled);
-		const auto thumbX = anim::interpolateF(toggleX + 5.0, toggleX + switchWidth - 3.0 - 20.0, toggled);
-		const auto thumbY = toggleY + (switchHeight - thumbDiameter) / 2.0;
-		const auto thumbColor = anim::color(st::windowSubTextFg->c, st::windowBg->c, toggled);
-
-		p.setPen(Qt::NoPen);
-		p.setBrush(thumbColor);
-		p.drawEllipse(QRectF(thumbX, thumbY, thumbDiameter, thumbDiameter));
-
-		if (toggled > 0.05) {
-			p.setOpacity(toggled);
-			p.setPen(QPen(st::windowActiveTextFg->c, 1.8, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-			p.setBrush(Qt::NoBrush);
-
-			const auto cx = thumbX + thumbDiameter / 2.0;
-			const auto cy = thumbY + thumbDiameter / 2.0;
-
-			auto check = QPainterPath();
-			check.moveTo(cx - 3.5, cy - 0.2);
-			check.lineTo(cx - 1.0, cy + 2.5);
-			check.lineTo(cx + 4.0, cy - 2.5);
-			p.drawPath(check);
-			p.setOpacity(1.0);
-		}
+		PaintMd3Switch(p, toggleX, toggleY, toggled, switchWidth, switchHeight);
 
 		const auto availableTextWidth = toggleX - paddingLeft - 12.0;
 		if (availableTextWidth <= 0) {

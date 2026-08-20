@@ -924,6 +924,8 @@ PRIVATE
     fa/lang/fa_lang.h
     fa/ui/md3/fa_cards.cpp
     fa/ui/md3/fa_cards.h
+    fa/ui/md3/fa_switch.cpp
+    fa/ui/md3/fa_switch.h
     fa/ui/md3/fa_profile_cards.cpp
     fa/ui/md3/fa_profile_cards.h
     fa/ui/md3/fa_slider.cpp

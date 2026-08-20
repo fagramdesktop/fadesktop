@@ -7,6 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #pragma once
 
+#include "fa/ui/md3/fa_switch.h"
 #include "ui/rp_widget.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/widgets/buttons.h"
