@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/ui/md3/fa_switch.h"
 
 #include "ui/painter.h"
+#include "ui/effects/animation_value_f.h"
 #include "styles/style_basic.h"
 #include "styles/style_window.h"
 
