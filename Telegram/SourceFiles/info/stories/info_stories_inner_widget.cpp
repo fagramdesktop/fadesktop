@@ -243,11 +243,9 @@ void InnerWidget::preloadArchiveCount() {
 	}
 	const auto key = Data::StoryAlbumIdsKey{ _peer->id, kArchive };
 	stories->albumIdsLoadMore(_peer->id, kArchive);
-	stories->albumIdsChanged() | rpl::filter(
-		rpl::mappers::_1 == key
-	) | rpl::take_while([=] {
-		return !stories->albumIdsCountKnown(_peer->id, kArchive);
-	}) | rpl::on_next([=] {
+	stories->albumIdsChanged() | rpl::filter([=](const Data::StoryAlbumIdsKey &k) {
+		return (k == key) && stories->albumIdsCountKnown(_peer->id, kArchive);
+	}) | rpl::take(1) | rpl::on_next([=] {
 		refreshAlbumsTabs();
 	}, lifetime());
 }
