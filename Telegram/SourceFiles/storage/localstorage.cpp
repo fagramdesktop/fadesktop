@@ -1308,7 +1308,7 @@ std::vector<Lang::Language> readRecentLanguages() {
 Window::Theme::Object ReadThemeContent() {
 	using namespace Window::Theme;
 
-	auto &themeKey = IsNightMode() ? _themeKeyNight : _themeKeyDay;
+	const auto &themeKey = IsNightMode() ? _themeKeyNight : _themeKeyDay;
 	if (!themeKey) {
 		return Object();
 	}

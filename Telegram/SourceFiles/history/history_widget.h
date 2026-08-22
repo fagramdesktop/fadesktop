@@ -517,6 +517,7 @@ private:
 	void clearOverStates();
 	void chooseAttach(std::optional<bool> overrideSendImagesAsPhotos = {});
 	void sendButtonClicked();
+	void stopStreamedDraft();
 	void newItemAdded(not_null<HistoryItem*> item);
 	void maybeMarkReactionsRead(not_null<HistoryItem*> item);
 
@@ -548,7 +549,8 @@ private:
 	bool showSendRichDraftError(
 		bool ignoreSlowmodeCountdown,
 		Fn<void(int starsApproved)> withPaymentApproved = nullptr,
-		Api::SendOptions options = {});
+		Api::SendOptions options = {},
+		bool ephemeral = false);
 
 	void sendingFilesConfirmed(
 		std::shared_ptr<Ui::PreparedBundle> bundle,
@@ -581,6 +583,8 @@ private:
 	void initExpandButton();
 	void updateExpandButtonVisibility();
 	void updateExpandButtonGeometry();
+	[[nodiscard]] bool canShowRichEditor() const;
+	void showRichEditor();
 	void initDiscardRichDraftButton();
 	void updateDiscardRichDraftVisibility();
 	void updateDiscardRichDraftGeometry();
@@ -725,6 +729,10 @@ private:
 	[[nodiscard]] bool shouldShowRichDraftPreview() const;
 	void clearRichDraft();
 	void migrateFieldToRichEditor();
+	void migrateSupportFieldToRichEditor();
+	void offerRichPaste(not_null<const QMimeData*> data);
+	void showRichEditorWithPaste(std::shared_ptr<QMimeData> data);
+
 	void setHistory(History *history);
 	void setEditMsgId(MsgId msgId);
 
@@ -760,6 +768,7 @@ private:
 	bool updateCmdStartShown();
 	void updateSendButtonType();
 	[[nodiscard]] bool showRecordButton() const;
+	[[nodiscard]] bool showStopButton() const;
 	[[nodiscard]] bool showInlineBotCancel() const;
 	void refreshSilentToggle();
 	void setupFastButtonMode();
@@ -780,6 +789,7 @@ private:
 	void injectSponsoredMessages() const;
 
 	bool kbWasHidden() const;
+	[[nodiscard]] bool forceReplyPending() const;
 
 	void switchToSearch(QString query);
 
@@ -795,6 +805,7 @@ private:
 	FullReplyTo _processingReplyTo;
 	HistoryItem *_processingReplyItem = nullptr;
 
+	std::shared_ptr<QMimeData> _pendingRichPaste;
 	MsgId _editMsgId = 0;
 	std::shared_ptr<Data::PhotoMedia> _photoEditMedia;
 	bool _canReplaceMedia = false;

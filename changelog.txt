@@ -1,3 +1,11 @@
+2.5.0 (23.08.26)
+
+- Updated tdesktop to v7.1.1
+- Redesigned MD3 UI
+- Rewritten context menu shortcuts feature
+- Show forward counts on channel posts
+- Fixed GoogleSansFlex font issues
+
 2.4.0 (16.08.26)
 
 - Material Design 3 UI
