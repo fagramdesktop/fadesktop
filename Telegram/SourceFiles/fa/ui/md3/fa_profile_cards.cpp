@@ -11,6 +11,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/ui/md3/fa_cards.h"
 #include "fa/utils/fa_profile_values.h"
 #include "fa/utils/telegram_helpers.h"
+#include "fa/lastfm/fa_lastfm_card.h"
+#include "fa/lastfm/fa_lastfm_client.h"
+#include "fa/lastfm/fa_lastfm_bio_helper.h"
+#include "fa/lastfm/fa_lastfm_config.h"
 #include "fa_lang_auto.h"
 
 #include "apiwrap.h"
@@ -46,6 +50,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "info/profile/info_profile_values.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
+#include "main/main_session_settings.h"
 #include "support/support_helper.h"
 #include "ui/boxes/peer_qr_box.h"
 #include "ui/effects/toggle_arrow.h"
@@ -191,6 +196,10 @@ base::options::toggle ShowChannelJoinedBelowAbout({
 	return Info::Profile::AboutValue(
 		peer
 	) | rpl::map([=](TextWithEntities &&value) {
+		const auto cleanText = Fa::LastFm::StripBioTag(value.text);
+		if (cleanText != value.text) {
+			value = Info::Profile::AboutWithEntities(peer, cleanText);
+		}
 		if (ShowPeerIdBelowAbout.value()) {
 			using namespace ::Ui::Text;
 			if (!value.empty()) {
@@ -1049,6 +1058,94 @@ void DeleteContactNote(
 
 namespace FA::Ui {
 
+::Info::Profile::Section MakeLastFmCard(
+		not_null<::Info::Controller*> controller,
+		not_null<UserData*> user,
+		not_null<::Ui::VerticalLayout*> parent) {
+	using namespace ::Ui;
+	using namespace ::Info::Profile;
+
+	const auto parentCtrl = controller->parentController();
+
+	auto wrap = object_ptr<SlideWrap<VerticalLayout>>(
+		parent,
+		object_ptr<VerticalLayout>(parent));
+	const auto raw = wrap.data();
+	raw->hide(anim::type::instant);
+
+	const auto lastFmCard = raw->entity()->add(
+		object_ptr<Fa::LastFm::NowPlayingCard>(raw->entity(), parentCtrl),
+		style::margins(16, 6, 16, 6));
+
+	struct LastFmState {
+		QString currentUsername;
+		base::Timer pollTimer;
+	};
+	const auto state = lastFmCard->lifetime().make_state<LastFmState>();
+
+	const auto poll = [=] {
+		if (state->currentUsername.isEmpty()) {
+			return;
+		}
+		const auto &settings = user->session().settings();
+		const auto customKey = (user->isSelf() && settings.lastFmUseCustomApiKey())
+			? settings.lastFmCustomApiKey()
+			: QString();
+		Fa::LastFm::Client::Instance().fetchNowPlaying(
+			state->currentUsername,
+			[=](std::optional<Fa::LastFm::LastFmTrack> track) {
+				lastFmCard->setTrack(track);
+				raw->toggle(track.has_value(), anim::type::normal);
+			},
+			customKey);
+	};
+	state->pollTimer.setCallback(poll);
+
+	const auto resolveUsername = [=] {
+		auto username = Fa::LastFm::ExtractLastFmUsername(user->about()).value_or(QString());
+		if (username.isEmpty() && user->isSelf()) {
+			const auto &settings = user->session().settings();
+			if (settings.lastFmShowOnProfile() && !settings.lastFmUsername().isEmpty()) {
+				username = settings.lastFmUsername().trimmed();
+			}
+		}
+		return username;
+	};
+
+	const auto updateUsername = [=] {
+		const auto username = resolveUsername();
+		if (state->currentUsername != username) {
+			state->currentUsername = username;
+			lastFmCard->setUsername(username);
+			if (!username.isEmpty()) {
+				poll();
+				state->pollTimer.callEach(Fa::LastFm::kPollInterval);
+			} else {
+				state->pollTimer.cancel();
+				lastFmCard->setTrack(std::nullopt);
+				raw->toggle(false, anim::type::instant);
+			}
+		}
+	};
+
+	user->session().changes().peerFlagsValue(
+		user,
+		Data::PeerUpdate::Flag::About
+	) | rpl::on_next(updateUsername, lastFmCard->lifetime());
+
+	if (user->isSelf()) {
+		rpl::combine(
+			user->session().settings().lastFmUsernameChanges(),
+			user->session().settings().lastFmShowOnProfileChanges()
+		) | rpl::on_next(updateUsername, lastFmCard->lifetime());
+	}
+
+	return {
+		.widget = std::move(wrap),
+		.shown = raw->toggledValue(),
+	};
+}
+
 ::Info::Profile::Section MakeProfileInfo(
 		not_null<::Info::Controller*> controller,
 		not_null<PeerData*> peer,
@@ -1417,6 +1514,7 @@ namespace FA::Ui {
 				std::move(locationText),
 				QString()
 			).text->setLinksTrusted();
+
 		}
 
 		bool show_peer_id = FASettings::FASettings::getInstance().showPeerId();

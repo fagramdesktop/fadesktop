@@ -198,6 +198,58 @@ public:
 	[[nodiscard]] auto extraFavoriteReactions() const
 	-> const std::vector<Data::ReactionId> &;
 
+	void setLastFmUsername(const QString &username) {
+		_lastFmUsername = username;
+	}
+	[[nodiscard]] QString lastFmUsername() const {
+		return _lastFmUsername.current();
+	}
+	[[nodiscard]] rpl::producer<QString> lastFmUsernameValue() const {
+		return _lastFmUsername.value();
+	}
+	[[nodiscard]] rpl::producer<QString> lastFmUsernameChanges() const {
+		return _lastFmUsername.changes();
+	}
+
+	void setLastFmUseCustomApiKey(bool use) {
+		_lastFmUseCustomApiKey = use;
+	}
+	[[nodiscard]] bool lastFmUseCustomApiKey() const {
+		return _lastFmUseCustomApiKey.current();
+	}
+	[[nodiscard]] rpl::producer<bool> lastFmUseCustomApiKeyValue() const {
+		return _lastFmUseCustomApiKey.value();
+	}
+	[[nodiscard]] rpl::producer<bool> lastFmUseCustomApiKeyChanges() const {
+		return _lastFmUseCustomApiKey.changes();
+	}
+
+	void setLastFmCustomApiKey(const QString &key) {
+		_lastFmCustomApiKey = key;
+	}
+	[[nodiscard]] QString lastFmCustomApiKey() const {
+		return _lastFmCustomApiKey.current();
+	}
+	[[nodiscard]] rpl::producer<QString> lastFmCustomApiKeyValue() const {
+		return _lastFmCustomApiKey.value();
+	}
+	[[nodiscard]] rpl::producer<QString> lastFmCustomApiKeyChanges() const {
+		return _lastFmCustomApiKey.changes();
+	}
+
+	void setLastFmShowOnProfile(bool show) {
+		_lastFmShowOnProfile = show;
+	}
+	[[nodiscard]] bool lastFmShowOnProfile() const {
+		return _lastFmShowOnProfile.current();
+	}
+	[[nodiscard]] rpl::producer<bool> lastFmShowOnProfileValue() const {
+		return _lastFmShowOnProfile.value();
+	}
+	[[nodiscard]] rpl::producer<bool> lastFmShowOnProfileChanges() const {
+		return _lastFmShowOnProfile.changes();
+	}
+
 private:
 	static constexpr auto kDefaultSupportChatsLimitSlice = 7 * 24 * 60 * 60;
 	static constexpr auto kPhotoEditorHintMaxShowsCount = 5;
@@ -250,6 +302,11 @@ private:
 	rpl::variable<bool> _phoneNumberHidden = true;
 
 	std::vector<Data::ReactionId> _extraFavoriteReactions;
+
+	rpl::variable<QString> _lastFmUsername;
+	rpl::variable<bool> _lastFmUseCustomApiKey = false;
+	rpl::variable<QString> _lastFmCustomApiKey;
+	rpl::variable<bool> _lastFmShowOnProfile = true;
 
 };
 

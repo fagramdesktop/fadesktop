@@ -168,6 +168,7 @@ jobs:
             -D CMAKE_CONFIGURATION_TYPES=MinSizeRel \
             -D TDESKTOP_API_ID=${{ secrets.API_ID_CONFIG }} \
             -D TDESKTOP_API_HASH=${{ secrets.API_HASH_CONFIG }} \
+            -D TDESKTOP_LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }} \
             -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
             -D DESKTOP_APP_BUILD_PACKER=ON
 

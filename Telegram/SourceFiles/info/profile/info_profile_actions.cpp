@@ -1316,6 +1316,7 @@ void DetailsFiller::buildSections() {
 	Expects(!_topic || !_topic->creating());
 
 	if (const auto user = _sublist ? nullptr : _peer->asUser()) {
+		_stack->add(FAUi::MakeLastFmCard(_controller, user, _stack->layout()));
 		_stack->add(makePersonalChannel(user));
 		_stack->addPlainSeparator();
 	}
