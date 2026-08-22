@@ -1504,6 +1504,8 @@ void History::applyServiceChanges(
 		}
 	}, [&](const MTPDmessageActionChatJoinedByRequest &data) {
 		processJoinedPeer(item->from());
+	}, [&](const MTPDmessageActionChatJoinedViaCommunity &data) {
+		processJoinedPeer(item->from());
 	}, [&](const MTPDmessageActionTopicCreate &data) {
 		if (const auto forum = peer->forum()) {
 			forum->applyTopicAdded(

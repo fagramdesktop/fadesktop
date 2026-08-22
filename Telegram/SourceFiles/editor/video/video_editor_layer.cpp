@@ -9,10 +9,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "chat_helpers/compose/compose_show.h"
 #include "core/file_utilities.h"
+#include "data/data_session.h"
 #include "editor/editor_layer_widget.h"
 #include "editor/photo_editor_layer_widget.h"
 #include "editor/video/video_editor.h"
 #include "lang/lang_keys.h"
+#include "main/main_session.h"
 #include "media/media_video_frames.h"
 #include "storage/storage_media_prepare.h"
 #include "ui/boxes/confirm_box.h"
@@ -68,25 +70,39 @@ void PrepareProfileVideo(
 
 	auto applyModifications = [=, done = std::move(doneCallback)](
 			VideoModifications mods) mutable {
-		auto preview = ExtractCoverImage(
-			path,
-			mods,
-			info.dimensions,
-			kProfileVideoSide);
-		if (preview.isNull()) {
-			controller->show(Ui::MakeInformBox(tr::lng_bad_video()));
-			return;
-		}
-		const auto side = kProfileVideoSide;
-		preview = preview.scaled(
-			side,
-			side,
-			Qt::KeepAspectRatio,
-			Qt::SmoothTransformation);
-		done({
-			.image = std::move(preview),
-			.video = std::make_shared<Media::Encode::VideoSource>(
-				ComposeVideoSource(path, mods, editorData, true)),
+		crl::async([
+			=,
+			ready = crl::guard(parent, [=](QImage &&preview) mutable {
+				if (preview.isNull()) {
+					controller->show(Ui::MakeInformBox(tr::lng_bad_video()));
+					return;
+				}
+				done({
+					.image = std::move(preview),
+					.video = std::make_shared<Media::Encode::VideoSource>(
+						ComposeVideoSource(path, mods, editorData, true)),
+				});
+			})
+		]() mutable {
+			auto preview = ExtractCoverImage(
+				path,
+				mods,
+				info.dimensions,
+				kProfileVideoSide);
+			if (!preview.isNull()) {
+				const auto side = kProfileVideoSide;
+				preview = preview.scaled(
+					side,
+					side,
+					Qt::KeepAspectRatio,
+					Qt::SmoothTransformation);
+			}
+			crl::on_main([
+				ready = std::move(ready),
+				preview = std::move(preview)
+			]() mutable {
+				ready(std::move(preview));
+			});
 		});
 	};
 
@@ -161,16 +177,36 @@ void PrepareProfileMediaFromFile(
 void OpenWithPreparedVideoFile(
 		not_null<QWidget*> parent,
 		std::shared_ptr<ChatHelpers::Show> show,
-		not_null<Ui::PreparedFile*> file,
+		not_null<Ui::PreparedList*> list,
+		int index,
 		int previewWidth,
 		Fn<void(bool ok)> &&doneCallback,
 		int sideLimit) {
 	using VideoInfo = Ui::PreparedFileInformation::Video;
+	if (index < 0 || index >= int(list->files.size())) {
+		doneCallback(false);
+		return;
+	}
+	// List may change while frame is extracted, so entry is found by id.
+	auto &entry = list->files[index];
+	if (!entry.id) {
+		entry.id = show->session().data().nextLocalMessageId().bare;
+	}
+	const auto fileId = entry.id;
+	const auto lookupFile = [=]() -> Ui::PreparedFile* {
+		const auto i = ranges::find(
+			list->files,
+			fileId,
+			&Ui::PreparedFile::id);
+		return (i != end(list->files)) ? &*i : nullptr;
+	};
 	const auto lookup = [=]() -> VideoInfo* {
-		return file->information
+		const auto file = lookupFile();
+		return (file && file->information)
 			? std::get_if<VideoInfo>(&file->information->media)
 			: nullptr;
 	};
+	const auto file = &list->files[index];
 	const auto video = lookup();
 	if (!file->canEditVideo() || !video || video->thumbnail.isNull()) {
 		doneCallback(false);
@@ -191,6 +227,7 @@ void OpenWithPreparedVideoFile(
 			doneCallback(false);
 			return;
 		}
+		const auto file = lookupFile();
 		const auto coverChanged = (video->modifications.cover != mods.cover);
 		video->modifications = mods;
 		if (!coverChanged) {
@@ -207,6 +244,7 @@ void OpenWithPreparedVideoFile(
 				doneCallback(false);
 				return;
 			}
+			const auto file = lookupFile();
 			if (!frame.isNull()) {
 				video->thumbnail = std::move(frame);
 			}

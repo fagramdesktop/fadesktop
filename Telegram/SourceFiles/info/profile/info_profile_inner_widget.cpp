@@ -179,6 +179,7 @@ InnerWidget::InnerWidget(
 , _migrated(_controller->migrated())
 , _topic(_controller->key().topic())
 , _sublist(_controller->key().sublist())
+, _savedMessages(_controller->section().savedMessages())
 , _content(setupContent(this, origin)) {
 	_content->heightValue(
 	) | rpl::on_next([this](int height) {
@@ -213,8 +214,7 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 
 	auto result = object_ptr<Ui::VerticalLayout>(parent);
 
-	const auto savedMessages = _peer->isSelf() && !_topic && !_sublist;
-	if (!savedMessages) {
+	if (!_savedMessages) {
 		const auto musicPeer = _sublist
 			? _sublist->sublistPeer().get()
 			: _peer.get();
@@ -234,7 +234,7 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 		return result;
 	}
 
-	if (!savedMessages) {
+	if (!_savedMessages) {
 		BuildProfileDetailsSections(
 			stack,
 			_controller,
@@ -310,10 +310,10 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 			addSplit(Type::Photo);
 			addSplit(Type::Video);
 		};
-		if (savedMessages) {
+		if (_savedMessages) {
 			tabs.push_back(MakeChatsTabDescriptor());
 		}
-		if (!_topic && !savedMessages) {
+		if (!_topic && !_savedMessages) {
 			tabs.push_back(MakeStoriesTabDescriptor(tabsPeer));
 			if (!_sublist) {
 				tabs.push_back(MakeGiftsTabDescriptor(_peer));
@@ -328,7 +328,7 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 				MembersInTabValue(_peer)));
 		}
 		addMediaTabs();
-		if (!_topic && !savedMessages) {
+		if (!_topic && !_savedMessages) {
 			tabs.push_back(MakeSavedTabDescriptor(tabsPeer));
 		}
 		addTab(Storage::SharedMediaType::File);
@@ -342,7 +342,7 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 			Storage::SharedMediaType::Poll) | rpl::map(_1 > 0)));
 		addTab(Storage::SharedMediaType::RoundVoiceFile);
 		addTab(Storage::SharedMediaType::GIF);
-		if (!_topic && !_sublist && !savedMessages) {
+		if (!_topic && !_sublist && !_savedMessages) {
 			if (const auto user = _peer->asUser()) {
 				tabs.push_back(MakeCommonGroupsTabDescriptor(user));
 			}
@@ -381,10 +381,10 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 			.shown = raw->heightValue() | rpl::map(_1 > 0),
 		});
 	};
-	if (_topic || _sublist || savedMessages) {
+	if (_topic || _sublist || _savedMessages) {
 		if (tabs) {
 			addTabsHost();
-			if (savedMessages) {
+			if (_savedMessages) {
 				// The bar is pinned at its minimum height there, so the
 				// tabs behave as docked from the very start.
 				_tabsDocked = true;
@@ -499,7 +499,7 @@ void InnerWidget::visibleTopBottomUpdated(
 			}
 		}
 		_tabsHost->setVisibleRegion(visibleTop - top, visibleBottom - top);
-		_tabsDocked = (_peer->isSelf() && !_topic && !_sublist)
+		_tabsDocked = _savedMessages
 			|| ((top > 0) && (visibleTop >= top));
 	}
 }
@@ -578,7 +578,6 @@ bool InnerWidget::hasFlexibleTopBar() const {
 
 base::weak_qptr<Ui::RpWidget> InnerWidget::createPinnedToTop(
 		not_null<Ui::RpWidget*> parent) {
-	const auto savedMessages = _peer->isSelf() && !_topic && !_sublist;
 	const auto content = Ui::CreateChild<TopBar>(
 		parent,
 		TopBar::Descriptor{
@@ -588,9 +587,10 @@ base::weak_qptr<Ui::RpWidget> InnerWidget::createPinnedToTop(
 			.peer = _sublist ? _sublist->sublistPeer().get() : nullptr,
 			.backToggles = _backToggles.value(),
 			.showFinished = _showFinished.events(),
-			.customStatus = (savedMessages
+			.customStatus = (_savedMessages
 				? SavedChatsCountStatus(&_peer->session())
 				: rpl::producer<TextWithEntities>()),
+			.savedMessages = _savedMessages,
 		});
 	content->backRequest(
 	) | rpl::start_to_stream(_backClicks, content->lifetime());

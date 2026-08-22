@@ -30,11 +30,16 @@ constexpr auto kVideoTimeBase = AVRational{ 1, 1'000'000 };
 constexpr auto kMinBitrate = 600'000;
 constexpr auto kMaxBitrate = 6'800'000;
 constexpr auto kMaxSourceSize = 1000 * int64(1024) * 1024;
+constexpr auto kMaxTranscodeArea = 4096 * int64(4096);
 constexpr auto kAudioFrequency = 48'000;
 constexpr auto kAudioBitratePerChannel = 64'000;
 constexpr auto kStaleTempTimeout = 24 * 60 * 60;
 
 constexpr auto kMp3InMp4MinFrequency = 16'000;
+
+// Broken source timestamps would grow silent track without bound.
+constexpr auto kMaxSilentAudioFill = crl::time(4 * 60 * 60 * 1000);
+constexpr auto kSilentAudioFillMargin = crl::time(1000);
 
 [[nodiscard]] QString TempDirectory() {
 	return QDir::tempPath() + u"/tdtranscode"_q;
@@ -50,10 +55,13 @@ constexpr auto kMp3InMp4MinFrequency = 16'000;
 	return value & ~1;
 }
 
+[[nodiscard]] float64 SanitizedFps(float64 fps) {
+	return (fps > 1. && fps < 121.) ? fps : 30.;
+}
+
 [[nodiscard]] int TargetBitrate(QSize size, float64 fps) {
 	const auto pixels = int64(size.width()) * size.height();
-	const auto useFps = (fps > 1. && fps < 121.) ? fps : 30.;
-	const auto bits = float64(pixels) * useFps * 0.07;
+	const auto bits = float64(pixels) * SanitizedFps(fps) * 0.07;
 	return int(std::clamp(bits, float64(kMinBitrate), float64(kMaxBitrate)));
 }
 
@@ -596,7 +604,9 @@ bool AudioTranscoder::finish(not_null<AVFormatContext*> output) {
 
 class SilentAudioWriter final {
 public:
-	[[nodiscard]] bool init(not_null<AVFormatContext*> output);
+	[[nodiscard]] bool init(
+		not_null<AVFormatContext*> output,
+		crl::time limit);
 	[[nodiscard]] bool writeUntil(
 		not_null<AVFormatContext*> output,
 		crl::time position);
@@ -606,11 +616,15 @@ private:
 	CodecPointer _encoder;
 	FramePointer _frame;
 	AVStream *_stream = nullptr;
+	crl::time _limit = 0;
 	int64 _pts = 0;
 
 };
 
-bool SilentAudioWriter::init(not_null<AVFormatContext*> output) {
+bool SilentAudioWriter::init(
+		not_null<AVFormatContext*> output,
+		crl::time limit) {
+	_limit = limit;
 	const auto codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
 	if (!codec) {
 		LogError(u"avcodec_find_encoder"_q, u"AAC"_q);
@@ -668,7 +682,7 @@ bool SilentAudioWriter::writeUntil(
 		not_null<AVFormatContext*> output,
 		crl::time position) {
 	const auto samples = av_rescale_q(
-		std::max(position, crl::time(0)),
+		std::clamp(position, crl::time(0), _limit),
 		AVRational{ 1, 1000 },
 		_encoder->time_base);
 	const auto size = _encoder->frame_size;
@@ -1254,7 +1268,10 @@ TranscodeResult TranscodeVideo(
 
 	auto decoder = CodecPointer();
 	if (!copyVideo) {
-		decoder = MakeCodecPointer({ .stream = inVideoStream });
+		decoder = MakeCodecPointer({
+			.stream = inVideoStream,
+			.videoMaxArea = kMaxTranscodeArea,
+		});
 		if (!decoder) {
 			return {};
 		}
@@ -1320,7 +1337,7 @@ TranscodeResult TranscodeVideo(
 			output.get(),
 			target,
 			bitrate,
-			int(base::SafeRound((fps > 1. && fps < 121.) ? fps : 30.)),
+			int(base::SafeRound(SanitizedFps(fps))),
 			ReadColorDescription(inVideoStream->codecpar, plan.bake));
 		if (!video.codec) {
 			return {};
@@ -1370,10 +1387,13 @@ TranscodeResult TranscodeVideo(
 		}
 	}
 
+	const auto silentLimit = (span > 0)
+		? std::min(span + kSilentAudioFillMargin, kMaxSilentAudioFill)
+		: kMaxSilentAudioFill;
 	auto silentAudio = std::optional<SilentAudioWriter>();
 	if (!inAudioStream && source.silentAudio) {
 		silentAudio.emplace();
-		if (!silentAudio->init(output.get())) {
+		if (!silentAudio->init(output.get(), silentLimit)) {
 			return {};
 		}
 	}
@@ -1593,9 +1613,11 @@ TranscodeResult TranscodeVideo(
 				failed = true;
 				return false;
 			}
-			if (progress && span > 0) {
+			if (progress) {
 				const auto done = PtsToTime(pts, encoder->time_base);
-				const auto value = std::clamp(done / float64(span), 0., 1.);
+				const auto value = (span > 0)
+					? std::clamp(done / float64(span), 0., 1.)
+					: 0.;
 				if (!progress(value)) {
 					failed = true;
 					return false;
@@ -1644,11 +1666,10 @@ TranscodeResult TranscodeVideo(
 					&& !silentAudio->writeUntil(output.get(), done)) {
 					return {};
 				}
-				if (progress && span > 0) {
-					const auto value = std::clamp(
-						done / float64(span),
-						0.,
-						1.);
+				if (progress) {
+					const auto value = (span > 0)
+						? std::clamp(done / float64(span), 0., 1.)
+						: 0.;
 					if (!progress(value)) {
 						return {};
 					}
@@ -1725,9 +1746,7 @@ TranscodeResult TranscodeVideo(
 	if (audioTranscoder && !audioTranscoder->finish(output.get())) {
 		return {};
 	}
-	const auto step = (fps > 0.)
-		? crl::time(base::SafeRound(1000. / fps))
-		: crl::time(0);
+	const auto step = crl::time(base::SafeRound(1000. / SanitizedFps(fps)));
 	if (silentAudio) {
 		const auto until = PtsToTime(lastVideoPts, videoTimeBase()) + step;
 		if (!silentAudio->writeUntil(output.get(), until)
