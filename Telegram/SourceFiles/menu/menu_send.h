@@ -45,6 +45,8 @@ enum class ActionType : uchar {
 	CaptionDown,
 	PhotoQualityOn,
 	PhotoQualityOff,
+	EditCover,
+	RemoveCover,
 	ChangePrice,
 	Translate,
 };

@@ -157,6 +157,7 @@ struct HistoryMessageRichPageSource
 : RuntimeComponent<HistoryMessageRichPageSource, HistoryItem> {
 	std::shared_ptr<const Iv::RichPage> page;
 	std::shared_ptr<const Iv::RichPage> fullPage;
+	base::flat_map<QByteArray, HistoryMessageMarkupButton> buttonRecords;
 	std::optional<Data::FileOriginCloudDraft> draftOrigin;
 	uint64 fullPageVersion = 0;
 	bool canEdit = false;
@@ -887,8 +888,8 @@ struct HistoryServiceSelfDestruct
 	using Type = HistorySelfDestructType;
 
 	Type type = Type::Photo;
-	std::variant<crl::time, TimeToLiveSingleView> timeToLive = crl::time();
-	std::variant<crl::time, TimeToLiveSingleView> destructAt = crl::time();
+	std::variant<TimeId, TimeToLiveSingleView> timeToLive = TimeId();
+	std::variant<TimeId, TimeToLiveSingleView> destructAt = TimeId();
 };
 
 struct HistoryServiceOngoingCall

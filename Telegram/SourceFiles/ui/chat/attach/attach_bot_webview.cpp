@@ -285,6 +285,9 @@ void LogNativeMessageRejected(
 			LogNativeMessageRejected(reason, byteCount, command);
 			return std::optional<NativeMessage>();
 		};
+		if (!IsExternalShellOrigin(OriginFromUrl(sourceUrl))) {
+			return reject(u"bad external sender"_q);
+		}
 		if (object.value(u"type"_q).toString()
 			!= QString::fromLatin1(kExternalMessageType)) {
 			return reject(u"bad external type"_q);
@@ -310,6 +313,9 @@ void LogNativeMessageRejected(
 				|| !IsExternalShellOrigin(origin.toString())) {
 				return reject(u"bad shell origin"_q);
 			}
+		} else if (!origin.isString()
+			|| OriginFromUrl(origin.toString()).isEmpty()) {
+			return reject(u"bad webapp origin"_q);
 		}
 		if (!object.value(u"eventType"_q).isString() || command.isEmpty()) {
 			return reject(u"bad command"_q);
@@ -330,7 +336,7 @@ void LogNativeMessageRejected(
 		return NativeMessage{
 			.source = source,
 			.origin = (source == NativeMessageSource::ExternalWebApp)
-				? origin.toString()
+				? OriginFromUrl(origin.toString())
 				: QString(),
 			.command = command,
 			.arguments = arguments,
@@ -406,6 +412,7 @@ enum class SharedPanelMenuAction {
 	ShareGame,
 	Terms,
 	Privacy,
+	Report,
 	RemoveFromMenu,
 	RemoveFromMainMenu,
 	DownloadOpen,
@@ -455,6 +462,8 @@ struct SharedPanelMenuDispatchArgs {
 		return u"terms"_q;
 	case SharedPanelMenuAction::Privacy:
 		return u"privacy"_q;
+	case SharedPanelMenuAction::Report:
+		return u"report"_q;
 	case SharedPanelMenuAction::RemoveFromMenu:
 		return u"remove_from_menu"_q;
 	case SharedPanelMenuAction::RemoveFromMainMenu:
@@ -517,6 +526,8 @@ struct ParsedSharedPanelMenuAction {
 		return { SharedPanelMenuAction::Terms };
 	} else if (id == u"privacy"_q) {
 		return { SharedPanelMenuAction::Privacy };
+	} else if (id == u"report"_q) {
+		return { SharedPanelMenuAction::Report };
 	} else if (id == u"remove_from_menu"_q) {
 		return { SharedPanelMenuAction::RemoveFromMenu };
 	} else if (id == u"remove_from_main_menu"_q) {
@@ -569,6 +580,11 @@ void DispatchSharedPanelMenuAction(
 	case SharedPanelMenuAction::Privacy:
 		if (dispatch.privacy) {
 			dispatch.privacy();
+		}
+		break;
+	case SharedPanelMenuAction::Report:
+		if (dispatch.menuButton) {
+			dispatch.menuButton(MenuButton::Report);
 		}
 		break;
 	case SharedPanelMenuAction::RemoveFromMenu:
@@ -694,6 +710,14 @@ void DispatchSharedPanelMenuAction(
 			.iconKey = u"privacy"_q,
 			.icon = &st::menuIconAntispam,
 		});
+		if (args.buttons & MenuButton::Report) {
+			result.push_back({
+				.id = SharedPanelMenuActionId(SharedPanelMenuAction::Report),
+				.text = tr::lng_profile_report(tr::now),
+				.iconKey = u"report"_q,
+				.icon = &st::menuIconReport,
+			});
+		}
 	}
 	if (args.buttons & MenuButton::RemoveFromMainMenu) {
 		result.push_back({
@@ -2817,7 +2841,7 @@ void Panel::openExternalLink(const QJsonObject &args) {
 	const auto iv = args["try_instant_view"].toBool();
 	const auto url = args["url"].toString();
 	if (!_delegate->botValidateExternalLink(url)) {
-		LOG(("BotWebView Error: Bad url in openExternalLink: %1").arg(url));
+		LOG(("BotWebView Error: Bad url in openExternalLink."));
 		requestClose();
 		return;
 	} else if (!allowOpenLink()) {

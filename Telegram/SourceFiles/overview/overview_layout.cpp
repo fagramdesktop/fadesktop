@@ -230,6 +230,10 @@ void ItemBase::invalidateCache() {
 	}
 }
 
+bool ItemBase::selectionConsumesClick(QPoint) const {
+	return true;
+}
+
 void ItemBase::paintCheckbox(
 		Painter &p,
 		QPoint position,
@@ -1076,7 +1080,7 @@ void Voice::paint(Painter &p, const QRect &clip, TextSelection selection, const 
 
 		if (radial) {
 			QRect rinner(inner.marginsRemoved(QMargins(st::msgFileRadialLine, st::msgFileRadialLine, st::msgFileRadialLine, st::msgFileRadialLine)));
-			auto &bg = selected ? st::historyFileInRadialFgSelected : st::historyFileInRadialFg;
+			const auto &bg = selected ? st::historyFileInRadialFgSelected : st::historyFileInRadialFg;
 			_radial->draw(p, rinner, st::msgFileRadialLine, bg);
 		}
 
@@ -1391,7 +1395,7 @@ Document::Document(
 
 bool Document::downloadInCorner() const {
 	return _data->isAudioFile()
-		&& parent()->allowsForward()
+		&& parent()->allowsMediaDownloadControls()
 		&& _data->canBeStreamed()
 		&& !_data->inappPlaybackFailed();
 }
@@ -1500,7 +1504,7 @@ void Document::paint(Painter &p, const QRect &clip, TextSelection selection, con
 
 			if (radial && !cornerDownload) {
 				auto rinner = inner.marginsRemoved(QMargins(st::msgFileRadialLine, st::msgFileRadialLine, st::msgFileRadialLine, st::msgFileRadialLine));
-				auto &bg = selected ? st::historyFileInRadialFgSelected : st::historyFileInRadialFg;
+				const auto &bg = selected ? st::historyFileInRadialFgSelected : st::historyFileInRadialFg;
 				_radial->draw(p, rinner, st::msgFileRadialLine, bg);
 			}
 
@@ -1696,6 +1700,8 @@ QImage Document::dragPreviewImage() {
 void Document::drawCornerDownload(QPainter &p, bool selected, const PaintContext *context) const {
 	if (dataLoaded()
 		|| _data->loadedInMediaCache()
+		|| selected
+		|| context->selecting
 		|| !downloadInCorner()) {
 		return;
 	}
@@ -1851,6 +1857,23 @@ TextState Document::getState(
 	return {};
 }
 
+bool Document::selectionConsumesClick(QPoint point) const {
+	if (!songLayout()) {
+		return true;
+	}
+	if (const auto state = cornerDownloadTextState(point, StateRequest());
+		state.link) {
+		return false;
+	}
+	const auto inner = style::rtlrect(
+		_st.songPadding.left(),
+		_st.songPadding.top(),
+		_st.songThumbSize,
+		_st.songThumbSize,
+		_width);
+	return !inner.contains(point);
+}
+
 const style::RoundCheckbox &Document::checkboxStyle() const {
 	return st::overviewSmallCheck;
 }
@@ -2004,7 +2027,7 @@ Link::Link(
 	}
 	while (lnk > 0 && till > from) {
 		--lnk;
-		auto &entity = entities.at(lnk);
+		const auto &entity = entities.at(lnk);
 		auto type = entity.type();
 		if (type != EntityType::Url && type != EntityType::CustomUrl && type != EntityType::Email) {
 			++lnk;
@@ -2715,7 +2738,7 @@ void Gif::paint(
 			const auto margin = st::msgFileRadialLine;
 			const auto rinner = inner
 				- QMargins(margin, margin, margin, margin);
-			auto &bg = selected
+			const auto &bg = selected
 				? st::historyFileInRadialFgSelected
 				: st::historyFileInRadialFg;
 			_radial->draw(p, rinner, st::msgFileRadialLine, bg);

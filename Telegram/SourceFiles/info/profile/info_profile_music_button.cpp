@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/profile/info_profile_music_button.h"
 
+#include "ui/color_contrast.h"
 #include "ui/effects/animation_value.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/text/text_utilities.h"
@@ -105,7 +106,7 @@ void MusicButton::paintEvent(QPaintEvent *e) {
 	const auto pill = pillGeometry();
 	const auto pillRadius = pill.height() / 2.0;
 
-	const auto isDark = (baseBg.red() * 299 + baseBg.green() * 587 + baseBg.blue() * 114) < 128000;
+	const auto isDark = !Ui::IsLightBackground(baseBg);
 	auto pillBg = isDark
 		? Ui::BlendColors(baseBg, Qt::white, 0.16)
 		: QColor(255, 255, 255);
@@ -119,7 +120,15 @@ void MusicButton::paintEvent(QPaintEvent *e) {
 	p.setBrush(pillBg);
 	p.drawRoundedRect(pill, pillRadius, pillRadius);
 
-	paintRipple(p, pill.topLeft().toPoint());
+	const auto pillIsDark = !Ui::IsLightBackground(pillBg);
+	const auto rippleColor = _overrideBg
+		? std::make_optional(anim::with_alpha(
+			(pillIsDark
+				? st::groupCallMembersFg->c
+				: QColor(Qt::black)),
+			st::infoProfileTopBarBackdropRippleOpacity))
+		: std::nullopt;
+	paintRipple(p, pill.topLeft().toPoint(), rippleColor ? &*rippleColor : nullptr);
 
 	const auto &icon = st::topicButtonArrow;
 	const auto iconWidth = icon.width();
@@ -150,13 +159,18 @@ void MusicButton::paintEvent(QPaintEvent *e) {
 	const auto contentStartX = pill.left() + pillPaddingH;
 	const auto textTop = pill.top() + (pill.height() - st::normalFont->height) / 2.0;
 
-	const auto pillIsDark = (pillBg.red() * 299 + pillBg.green() * 587 + pillBg.blue() * 114) < 128000;
 	const auto primaryFg = pillIsDark
 		? st::groupCallMembersFg->c
-		: st::windowBoldFg->c;
+		: (!_overrideBg
+			? st::windowBoldFg->c
+			: QColor(Qt::black));
 	const auto secondaryFg = pillIsDark
 		? st::groupCallVideoSubTextFg->c
-		: st::windowSubTextFg->c;
+		: (!_overrideBg
+			? st::windowSubTextFg->c
+			: anim::with_alpha(
+				QColor(Qt::black),
+				st::groupCallVideoSubTextFg->c.alphaF()));
 
 	p.setPen(primaryFg);
 	p.setFont(st::normalFont);
