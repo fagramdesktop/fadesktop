@@ -266,6 +266,19 @@ namespace Settings {
 
 		FA::Ui::AddCardDivider(mediaCard);
 
+		const auto statusDotOnlineRow = FA::Ui::AddCardToggle(
+			mediaCard,
+			fatr::fa_status_dot_online_only(),
+			nullptr,
+			rpl::single(settings.statusDotOnlineOnly()),
+			[&settings](bool enabled) {
+				settings.setStatusDotOnlineOnly(enabled);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			statusDotOnlineRow, u"fa/chats/status-dot-online"_q, controller);
+
+		FA::Ui::AddCardDivider(mediaCard);
+
 		const auto blockedMsgRow = FA::Ui::AddCardToggle(
 			mediaCard,
 			fatr::fa_hide_blocked_user_messages(),
