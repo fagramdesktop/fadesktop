@@ -2,6 +2,7 @@
 
 - Last.FM Now Playing integration
 - Status dot online only option
+- Wrap Last.fm network callbacks in crl::guard
 - Updated translations
 
 2.5.0 (23.08.26)

@@ -24,6 +24,8 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include <QtGui/QPainterPath>
 
+#include <string_view>
+
 namespace FA::Ui {
 
 QPainterPath MakeSegmentPath(
@@ -90,7 +92,7 @@ bool IsRowVisible(const QWidget *w) {
 		}
 	}
 	if (w->inherits("CardDividerWidget")
-		|| w->metaObject()->className() == QStringView(u"FA::Ui::(anonymous namespace)::CardDividerWidget")) {
+		|| std::string_view(w->metaObject()->className()) == "FA::Ui::(anonymous namespace)::CardDividerWidget") {
 		return false;
 	}
 	if (w->height() < 20 && w->children().isEmpty()) {
