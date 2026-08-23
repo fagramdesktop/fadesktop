@@ -84,11 +84,8 @@ jobs:
         run: pwsh -File "$env:TBUILD/$env:REPO_NAME/.github/scripts/free_disk_space_win.ps1"
 
       - name: Set up pagefile
-        uses: al-cheb/configure-pagefile-action@v1.5
-        with:
-          minimum-size: 16GB
-          maximum-size: 16GB
-          disk-root: "C:"
+        shell: pwsh
+        run: pwsh -File "$env:TBUILD/$env:REPO_NAME/.github/scripts/set_pagefile_win.ps1" -Size 16gb -Drive "C:"
 
       - name: Set up environment paths
         shell: bash
@@ -244,11 +241,8 @@ jobs:
         run: pwsh -File "$env:TBUILD/$env:REPO_NAME/.github/scripts/free_disk_space_win.ps1"
 
       - name: Set up pagefile
-        uses: al-cheb/configure-pagefile-action@v1.5
-        with:
-          minimum-size: 16GB
-          maximum-size: 16GB
-          disk-root: "C:"
+        shell: pwsh
+        run: pwsh -File "$env:TBUILD/$env:REPO_NAME/.github/scripts/set_pagefile_win.ps1" -Size 16gb -Drive "C:"
 
       - name: Clone DesktopPrivate
         run: |
