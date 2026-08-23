@@ -32,14 +32,14 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "fagram-desktop-unwrapped";
-  version = "2.4.0";
+  version = "2.5.1";
 
   src = fetchFromGitHub {
     owner = "fagramdesktop";
     repo = "fadesktop";
-    rev = "699ab3dcfdcb438d5ba8c626c40795a949614442";
+    rev = "575b651088f4e8dc678b842611f208dabed55d2b";
     fetchSubmodules = true;
-    hash = "sha256-seEDPlQcEGxxZIK7KbX3Csn3v/Zf94HleF8VfHigep4=";
+    hash = "sha256-LRbdQl1RbUGRsjgneXv80g6r/N8X1bqqNBl/gV561J0=";
   };
 
   nativeBuildInputs = [
