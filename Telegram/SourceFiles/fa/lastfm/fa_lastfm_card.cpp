@@ -7,6 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "fa/lastfm/fa_lastfm_card.h"
 #include "fa/lastfm/fa_lastfm_client.h"
+#include "fa/ui/md3/fa_cards.h"
 #include "fa/ui/md3/svg_assets.h"
 #include "fa/settings/fa_settings.h"
 #include "fa_lang_auto.h"
@@ -327,21 +328,32 @@ void NowPlayingCard::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 	p.setRenderHint(QPainter::Antialiasing);
 
-	const auto cardRect = QRectF(0, 0, width(), height());
 	const auto roundness = FASettings::FASettings::getInstance().roundness();
-	const auto radius = 24.0 * (roundness / 50.0);
+	const auto largeRadius = 24.0 * (roundness / 50.0);
+	const auto smallRadius = 4.0 * (roundness / 50.0);
 
-	auto bgGrad = QLinearGradient(cardRect.topLeft(), cardRect.bottomRight());
+	const auto r = QRectF(
+		0.5,
+		0.5,
+		width() - 1.0,
+		height() - 1.0);
+	const auto path = FA::Ui::MakeSegmentPath(
+		r,
+		FA::Ui::CardSegmentPosition::Single,
+		largeRadius,
+		smallRadius);
+
+	auto bgGrad = QLinearGradient(r.topLeft(), r.bottomRight());
 	bgGrad.setColorAt(0.0, _palette.color1);
 	bgGrad.setColorAt(1.0, _palette.color2);
 
 	p.setPen(Qt::NoPen);
 	p.setBrush(bgGrad);
-	p.drawRoundedRect(cardRect, radius, radius);
+	p.drawPath(path);
 
 	if (_cardHovered) {
 		p.setBrush(QColor(255, 255, 255, 18));
-		p.drawRoundedRect(cardRect, radius, radius);
+		p.drawPath(path);
 	}
 
 	const auto artR = coverArtRect();
