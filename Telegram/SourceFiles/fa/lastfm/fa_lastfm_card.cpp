@@ -238,13 +238,13 @@ void NowPlayingCard::updateCoverArt() {
 	_lastLoadedArtUrl = _track->imageUrl;
 	Client::Instance().fetchCoverArt(
 		_track->imageUrl,
-		[=, expectedUrl = _track->imageUrl](QImage image) {
+		crl::guard(this, [=, expectedUrl = _track->imageUrl](QImage image) {
 			if (_track && _track->imageUrl == expectedUrl) {
 				_coverArt = image;
 				_palette = ExtractPaletteFromImage(image);
 				update();
 			}
-		});
+		}));
 }
 
 int NowPlayingCard::resizeGetHeight(int newWidth) {

@@ -1093,10 +1093,10 @@ namespace FA::Ui {
 			: QString();
 		Fa::LastFm::Client::Instance().fetchNowPlaying(
 			state->currentUsername,
-			[=](std::optional<Fa::LastFm::LastFmTrack> track) {
+			crl::guard(lastFmCard, [=](std::optional<Fa::LastFm::LastFmTrack> track) {
 				lastFmCard->setTrack(track);
 				raw->toggle(track.has_value(), anim::type::normal);
-			},
+			}),
 			customKey);
 	};
 	state->pollTimer.setCallback(poll);
