@@ -121,7 +121,7 @@ NowPlayingCard::Palette ExtractPaletteFromImage(const QImage &image) {
 	int rSum2 = 0, gSum2 = 0, bSum2 = 0, count2 = 0;
 
 	QColor maxSatColor;
-	float maxSat = -1.0f;
+	qreal maxSat = -1.0;
 
 	const auto width = thumb.width();
 	const auto height = thumb.height();
@@ -138,7 +138,7 @@ NowPlayingCard::Palette ExtractPaletteFromImage(const QImage &image) {
 			const auto hsvS = c.hsvSaturationF();
 			const auto hsvV = c.valueF();
 
-			if (hsvS > maxSat && hsvV > 0.25f && hsvV < 0.95f) {
+			if (hsvS > maxSat && hsvV > 0.25 && hsvV < 0.95) {
 				maxSat = hsvS;
 				maxSatColor = c;
 			}
@@ -161,36 +161,33 @@ NowPlayingCard::Palette ExtractPaletteFromImage(const QImage &image) {
 
 	if (count1 > 0) {
 		auto c1 = QColor(rSum1 / count1, gSum1 / count1, bSum1 / count1);
-		float h = 0.f, s = 0.f, v = 0.f, a = 0.f;
-		c1.getHsvF(&h, &s, &v, &a);
-		s = std::clamp(s * 1.25f, 0.45f, 0.95f);
-		v = std::clamp(v * 0.65f, 0.22f, 0.50f);
-		c1.setHsvF(h >= 0.f ? h : 0.6f, s, v);
+		const auto h = c1.hsvHueF();
+		const auto s = std::clamp(c1.hsvSaturationF() * 1.25, 0.45, 0.95);
+		const auto v = std::clamp(c1.valueF() * 0.65, 0.22, 0.50);
+		c1.setHsvF(h >= 0. ? h : 0.6, s, v);
 		palette.color1 = c1;
 	}
 
 	if (count2 > 0) {
 		auto c2 = QColor(rSum2 / count2, gSum2 / count2, bSum2 / count2);
-		float h = 0.f, s = 0.f, v = 0.f, a = 0.f;
-		c2.getHsvF(&h, &s, &v, &a);
-		s = std::clamp(s * 1.35f, 0.50f, 1.0f);
-		v = std::clamp(v * 0.45f, 0.14f, 0.38f);
-		c2.setHsvF(h >= 0.f ? h : 0.7f, s, v);
+		const auto h = c2.hsvHueF();
+		const auto s = std::clamp(c2.hsvSaturationF() * 1.35, 0.50, 1.0);
+		const auto v = std::clamp(c2.valueF() * 0.45, 0.14, 0.38);
+		c2.setHsvF(h >= 0. ? h : 0.7, s, v);
 		palette.color2 = c2;
 	}
 
-	if (maxSatColor.isValid() && maxSat > 0.15f) {
-		float h = 0.f, s = 0.f, v = 0.f, a = 0.f;
-		maxSatColor.getHsvF(&h, &s, &v, &a);
-		s = std::clamp(s * 1.3f, 0.65f, 1.0f);
-		v = std::clamp(v * 1.2f, 0.75f, 0.95f);
-		maxSatColor.setHsvF(h >= 0.f ? h : 0.0f, s, v);
+	if (maxSatColor.isValid() && maxSat > 0.15) {
+		const auto h = maxSatColor.hsvHueF();
+		const auto s = std::clamp(maxSatColor.hsvSaturationF() * 1.3, 0.65, 1.0);
+		const auto v = std::clamp(maxSatColor.valueF() * 1.2, 0.75, 0.95);
+		maxSatColor.setHsvF(h >= 0. ? h : 0.0, s, v);
 		palette.accent = maxSatColor;
 	} else {
 		auto acc = palette.color1;
-		float h = 0.f, s = 0.f, v = 0.f, a = 0.f;
-		acc.getHsvF(&h, &s, &v, &a);
-		acc.setHsvF(h >= 0.f ? h : 0.0f, std::max(0.7f, s), 0.85f);
+		const auto h = acc.hsvHueF();
+		const auto s = acc.hsvSaturationF();
+		acc.setHsvF(h >= 0. ? h : 0.0, std::max(0.7, double(s)), 0.85);
 		palette.accent = acc;
 	}
 
