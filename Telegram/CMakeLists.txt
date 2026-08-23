@@ -940,6 +940,15 @@ PRIVATE
     fa/settings_menu/sections/fa_appearance.h
     fa/settings_menu/sections/fa_logs.cpp
     fa/settings_menu/sections/fa_logs.h
+    fa/settings_menu/sections/fa_lastfm.cpp
+    fa/settings_menu/sections/fa_lastfm.h
+    fa/lastfm/fa_lastfm_config.h
+    fa/lastfm/fa_lastfm_bio_helper.cpp
+    fa/lastfm/fa_lastfm_bio_helper.h
+    fa/lastfm/fa_lastfm_client.cpp
+    fa/lastfm/fa_lastfm_client.h
+    fa/lastfm/fa_lastfm_card.cpp
+    fa/lastfm/fa_lastfm_card.h
     fa/url_handlers/fa_url_handlers.cpp
     fa/url_handlers/fa_url_handlers.h
     fa/lang/fa_lang.cpp
@@ -2457,6 +2466,7 @@ target_compile_definitions(Telegram
 PRIVATE
     TDESKTOP_API_ID=${TDESKTOP_API_ID}
     TDESKTOP_API_HASH=${TDESKTOP_API_HASH}
+    TDESKTOP_LASTFM_API_KEY=${TDESKTOP_LASTFM_API_KEY}
     G_LOG_DOMAIN="Telegram"
 )
 

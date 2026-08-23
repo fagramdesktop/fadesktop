@@ -95,6 +95,10 @@ QByteArray SessionSettings::serialize() const {
 	for (const auto &id : _extraFavoriteReactions) {
 		size += sizeof(quint64) + Serialize::stringSize(id.emoji());
 	}
+	size += Serialize::stringSize(_lastFmUsername.current())
+		+ sizeof(qint32) // _lastFmUseCustomApiKey
+		+ Serialize::stringSize(_lastFmCustomApiKey.current())
+		+ sizeof(qint32); // _lastFmShowOnProfile
 
 	auto result = QByteArray();
 	result.reserve(size);
@@ -187,6 +191,10 @@ QByteArray SessionSettings::serialize() const {
 		for (const auto &id : _extraFavoriteReactions) {
 			stream << quint64(id.custom()) << id.emoji();
 		}
+		stream << _lastFmUsername.current()
+			<< qint32(_lastFmUseCustomApiKey.current() ? 1 : 0)
+			<< _lastFmCustomApiKey.current()
+			<< qint32(_lastFmShowOnProfile.current() ? 1 : 0);
 	}
 
 	Ensures(result.size() == size);
@@ -745,6 +753,22 @@ void SessionSettings::addFromSerialized(const QByteArray &serialized) {
 			}
 		}
 	}
+	QString lastFmUsername;
+	qint32 lastFmUseCustomApiKey = 0;
+	QString lastFmCustomApiKey;
+	qint32 lastFmShowOnProfile = 1;
+	if (!stream.atEnd()) {
+		stream >> lastFmUsername;
+	}
+	if (!stream.atEnd()) {
+		stream >> lastFmUseCustomApiKey;
+	}
+	if (!stream.atEnd()) {
+		stream >> lastFmCustomApiKey;
+	}
+	if (!stream.atEnd()) {
+		stream >> lastFmShowOnProfile;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for SessionSettings::addFromSerialized()"));
@@ -811,6 +835,10 @@ void SessionSettings::addFromSerialized(const QByteArray &serialized) {
 	_disableSharingBoxShowsCount = disableSharingBoxShowsCount;
 	_phoneNumberHidden = (phoneNumberHidden == 1);
 	_extraFavoriteReactions = std::move(extraFavoriteReactions);
+	_lastFmUsername = lastFmUsername;
+	_lastFmUseCustomApiKey = (lastFmUseCustomApiKey == 1);
+	_lastFmCustomApiKey = lastFmCustomApiKey;
+	_lastFmShowOnProfile = (lastFmShowOnProfile == 1);
 
 	if (version < 2) {
 		app.setLastSeenWarningSeen(appLastSeenWarningSeen == 1);

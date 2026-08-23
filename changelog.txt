@@ -1,3 +1,8 @@
+2.5.1 (23.08.26)
+
+- Last.FM Now Playing integration
+- Updated translations
+
 2.5.0 (23.08.26)
 
 - Updated tdesktop to v7.1.1

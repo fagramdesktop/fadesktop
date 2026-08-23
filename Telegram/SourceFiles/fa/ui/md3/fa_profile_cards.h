@@ -10,6 +10,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "info/profile/info_profile_section_stack.h"
 
 class PeerData;
+class UserData;
 
 namespace Data {
 class ForumTopic;
@@ -24,6 +25,11 @@ class VerticalLayout;
 } // namespace Ui
 
 namespace FA::Ui {
+
+[[nodiscard]] ::Info::Profile::Section MakeLastFmCard(
+	not_null<::Info::Controller*> controller,
+	not_null<UserData*> user,
+	not_null<::Ui::VerticalLayout*> parent);
 
 [[nodiscard]] ::Info::Profile::Section MakeProfileInfo(
 	not_null<::Info::Controller*> controller,

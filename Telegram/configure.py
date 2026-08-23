@@ -59,10 +59,13 @@ if officialTarget != '':
         for line in f:
             apiIdMatch = re.search(r'ApiId\s+=\s+(\d+)', line)
             apiHashMatch = re.search(r'ApiHash\s+=\s+"([a-fA-F\d]+)"', line)
+            lastFmMatch = re.search(r'(?:LastFmApiKey|LastfmApiKey)\s+=\s+"([^"]+)"', line)
             if apiIdMatch:
                 arguments.append('-DTDESKTOP_API_ID=' + apiIdMatch.group(1))
             elif apiHashMatch:
                 arguments.append('-DTDESKTOP_API_HASH=' + apiHashMatch.group(1))
+            elif lastFmMatch:
+                arguments.append('-DTDESKTOP_LASTFM_API_KEY=' + lastFmMatch.group(1))
     if arch != '':
         arguments.append(arch)
 
