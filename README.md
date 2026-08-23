@@ -128,6 +128,7 @@
 - GoogleSansFlex as default font
 - Toggle switch for share menu folder icons
 - Show forward counts on channel posts
+- Last.FM Now Playing integration
 
 </details>
 
