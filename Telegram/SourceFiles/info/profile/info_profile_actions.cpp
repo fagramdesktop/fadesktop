@@ -430,7 +430,6 @@ private:
 	not_null<Ui::RpWidget*> _parent;
 	not_null<PeerData*> _peer;
 	Ui::MultiSlideTracker *_tracker = nullptr;
-	object_ptr<Ui::VerticalLayout> _wrap = { nullptr };
 	Ui::VerticalLayout *_card = nullptr;
 
 };
@@ -1743,7 +1742,6 @@ void ActionsFiller::fillUserActions(not_null<UserData*> user) {
 	}
 	if (CanReportBot(user)) {
 		addBotCommandActions(user);
-		_wrap->add(CreateSkipWidget(_wrap, st::infoBlockButtonSkip));
 		addReportAction();
 	}
 	if (!user->isSelf() && !user->isSupport() && !user->isVerifyCodes()) {
