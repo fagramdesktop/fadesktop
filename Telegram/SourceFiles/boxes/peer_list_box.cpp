@@ -2422,8 +2422,6 @@ void PeerListContent::searchQueryChanged(QString query) {
 	if (_normalizedSearchQuery != normalizedQuery) {
 		setSearchQuery(query, normalizedQuery);
 		if (_controller->searchInLocal() && !searchWordsList.isEmpty()) {
-			Assert(_hiddenRows.empty() || _ignoreHiddenRowsOnSearch);
-
 			auto minimalList = (const std::vector<not_null<PeerListRow*>>*)nullptr;
 			for (const auto &searchWord : searchWordsList) {
 				auto searchWordStart = searchWord[0].toLower();
@@ -2459,7 +2457,7 @@ void PeerListContent::searchQueryChanged(QString query) {
 
 				_filterResults.reserve(minimalList->size());
 				for (const auto &row : *minimalList) {
-					if (allSearchWordsInNames(row)) {
+					if (!row->hidden() && allSearchWordsInNames(row)) {
 						_filterResults.push_back(row);
 					}
 				}
@@ -2473,8 +2471,6 @@ void PeerListContent::searchQueryChanged(QString query) {
 }
 
 std::unique_ptr<PeerListState> PeerListContent::saveState() const {
-	Expects(_hiddenRows.empty());
-
 	auto result = std::make_unique<PeerListState>();
 	result->controllerState
 		= std::make_unique<PeerListController::SavedStateBase>();
