@@ -12,6 +12,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "base/timer.h"
 #include "base/weak_ptr.h"
 #include "info/profile/info_profile_members_controllers.h"
+#include "fa/filters/fa_members_filter.h"
 
 class PeerListStories;
 struct ChatAdminRightsInfo;
@@ -236,6 +237,9 @@ public:
 
 	void setStoriesShown(bool shown);
 
+	void setMembersFilter(Fa::MembersFilter::Type filter);
+	[[nodiscard]] Fa::MembersFilter::Type membersFilter() const;
+
 protected:
 	using Row = Info::Profile::MemberListRow;
 	using Type = Row::Type;
@@ -344,6 +348,7 @@ private:
 	base::weak_qptr<Ui::BoxContent> _editParticipantBox;
 
 	std::unique_ptr<PeerListStories> _stories;
+	Fa::MembersFilter::Type _membersFilter = Fa::MembersFilter::Type::All;
 
 };
 

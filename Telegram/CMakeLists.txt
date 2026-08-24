@@ -949,6 +949,8 @@ PRIVATE
     fa/lastfm/fa_lastfm_client.h
     fa/lastfm/fa_lastfm_card.cpp
     fa/lastfm/fa_lastfm_card.h
+    fa/filters/fa_members_filter.cpp
+    fa/filters/fa_members_filter.h
     fa/url_handlers/fa_url_handlers.cpp
     fa/url_handlers/fa_url_handlers.h
     fa/lang/fa_lang.cpp
