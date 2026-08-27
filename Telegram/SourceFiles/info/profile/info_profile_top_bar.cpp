@@ -2821,6 +2821,7 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 				_userpicView,
 				scaled,
 				0);
+			image = FA::Features::AvatarShape::Apply(std::move(image));
 		} else {
 			const auto radius = (_source == Source::Community)
 				? std::optional<int>(
@@ -2831,6 +2832,9 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 				_userpicView,
 				scaled,
 				radius);
+			if (!radius) {
+				image = FA::Features::AvatarShape::Apply(std::move(image));
+			}
 		}
 		_cachedUserpic = std::move(image);
 		_cachedUserpic.setDevicePixelRatio(style::DevicePixelRatio());

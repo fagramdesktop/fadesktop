@@ -72,6 +72,34 @@ QImage MaterialShapeOutline(
 	if (!color.isValid()) {
 		color = st::activeButtonBgOver->c;
 	}
+	if (shapeIndex == 0) {
+		auto result = QImage(size, QImage::Format_ARGB32_Premultiplied);
+		result.fill(Qt::transparent);
+		const auto roundness = FASettings::FASettings::getInstance().roundness();
+		if (strokeWidth <= 0.0f) {
+			strokeWidth = std::max(2.0f, float(size.width()) * 0.03f);
+		}
+		const auto margin = strokeWidth;
+		const auto radius = (size.width() - 2 * margin) * roundness / 100.0;
+		const auto innerRect = QRectF(
+			margin,
+			margin,
+			size.width() - 2 * margin,
+			size.height() - 2 * margin);
+		const auto inset = strokeWidth / 2.0;
+		auto p = QPainter(&result);
+		p.setRenderHint(QPainter::Antialiasing);
+		auto pen = QPen(color);
+		pen.setWidthF(strokeWidth);
+		p.setPen(pen);
+		p.setBrush(Qt::NoBrush);
+		p.drawRoundedRect(
+			innerRect.adjusted(inset, inset, -inset, -inset),
+			std::max(0.0, radius - inset),
+			std::max(0.0, radius - inset));
+		p.end();
+		return result;
+	}
 	if (shapeIndex < 1 || shapeIndex > 7) {
 		return QImage();
 	}
@@ -119,6 +147,51 @@ QImage MaterialShapeOutline(
 QImage ApplyMaterialShape(QImage image, int shapeIndex) {
 	const auto size = image.size();
 	const auto outlineColor = st::activeButtonBgOver->c;
+
+	if (shapeIndex == 0) {
+		const auto roundness = FASettings::FASettings::getInstance().roundness();
+		const auto strokeWidth = std::max(2.0, size.width() * 0.03);
+		const auto margin = strokeWidth;
+		const auto radius = (size.width() - 2 * margin) * roundness / 100.0;
+		const auto innerRect = QRectF(
+			margin,
+			margin,
+			size.width() - 2 * margin,
+			size.height() - 2 * margin);
+
+		auto mask = QImage(size, QImage::Format_ARGB32_Premultiplied);
+		mask.fill(Qt::transparent);
+		{
+			auto q = QPainter(&mask);
+			q.setRenderHint(QPainter::Antialiasing);
+			q.setPen(Qt::NoPen);
+			q.setBrush(Qt::white);
+			q.drawRoundedRect(innerRect, radius, radius);
+		}
+
+		constexpr auto format = QImage::Format_ARGB32_Premultiplied;
+		if (image.format() != format) {
+			image = std::move(image).convertToFormat(format);
+		}
+		auto p = QPainter(&image);
+		p.setCompositionMode(QPainter::CompositionMode_DestinationIn);
+		p.drawImage(QRect(QPoint(), image.size()), mask);
+
+		p.setCompositionMode(QPainter::CompositionMode_SourceOver);
+		p.setRenderHint(QPainter::Antialiasing);
+		auto pen = QPen(outlineColor);
+		pen.setWidthF(strokeWidth);
+		p.setPen(pen);
+		p.setBrush(Qt::NoBrush);
+		const auto inset = strokeWidth / 2.0;
+		p.drawRoundedRect(
+			innerRect.adjusted(inset, inset, -inset, -inset),
+			std::max(0.0, radius - inset),
+			std::max(0.0, radius - inset));
+		p.end();
+
+		return image;
+	}
 
 	auto mask = MaterialShapeMask(size, shapeIndex);
 	if (mask.isNull()) {
@@ -169,7 +242,7 @@ constexpr auto kMaxMaskCache = 64;
 
 bool IsMaterial() {
 	const auto value = FASettings::FASettings::getInstance().avatarShape();
-	return (value >= 1) && (value <= 7);
+	return (value >= 0) && (value <= 7);
 }
 
 int Roundness() {
@@ -184,6 +257,18 @@ int CornerRadius(int size, int dpr) {
 
 QImage Mask(QSize size) {
 	const auto index = FASettings::FASettings::getInstance().avatarShape();
+	if (index <= 0) {
+		auto result = QImage(size, QImage::Format_ARGB32_Premultiplied);
+		result.fill(Qt::transparent);
+		QPainter p(&result);
+		p.setRenderHint(QPainter::Antialiasing);
+		p.setPen(Qt::NoPen);
+		p.setBrush(Qt::white);
+		const auto radius = size.width() * Roundness() / 100.0;
+		p.drawRoundedRect(QRect(QPoint(), size), radius, radius);
+		p.end();
+		return result;
+	}
 	auto &cache = MaskCache();
 	const auto key = MaskKey{ size, index };
 	const auto it = cache.find(key);
