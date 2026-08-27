@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "dialogs/dialogs_inner_widget.h"
 
 #include "fa/settings/fa_settings.h"
+#include "fa/features/hide_archive_chats/hide_archive_chats.h"
 
 #include "dialogs/dialogs_three_state_icon.h"
 #include "dialogs/ui/chat_search_empty.h"
@@ -678,7 +679,10 @@ void InnerWidget::refreshWithCollapsedRows(bool toTop) {
 		? _shownList->begin()->get()->folder()
 		: nullptr;
 	const auto inMainMenu = session().settings().archiveInMainMenu();
-	if (archive && (session().settings().archiveCollapsed() || inMainMenu)) {
+	const auto hideArchive = FA::Features::HideArchiveChats::ShouldHide();
+	if (archive
+		&& !hideArchive
+		&& (session().settings().archiveCollapsed() || inMainMenu)) {
 		if (_selected && _selected->folder() == archive) {
 			_selected = nullptr;
 		}
@@ -691,7 +695,7 @@ void InnerWidget::refreshWithCollapsedRows(bool toTop) {
 				std::make_unique<CollapsedRow>(archive));
 		}
 	} else {
-		_skipTopDialog = false;
+		_skipTopDialog = hideArchive;
 	}
 
 	Assert(!needCollapsedRowsRefresh());

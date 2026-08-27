@@ -930,6 +930,8 @@ PRIVATE
     fa/settings_menu/fa_deeplink_context_menu.h
     fa/settings/fa_settings.cpp
     fa/settings/fa_settings.h
+    fa/features/hide_archive_chats/hide_archive_chats.cpp
+    fa/features/hide_archive_chats/hide_archive_chats.h
     fa/settings_menu/sections/fa_general.cpp
     fa/settings_menu/sections/fa_general.h
     fa/settings_menu/sections/fa_chats.cpp

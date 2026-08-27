@@ -112,6 +112,7 @@ void FASettings::loadFromJson(const QJsonObject &obj) {
 	_showRegistrationDate = obj.contains("show_registration_date") ? obj["show_registration_date"].toBool() : _showRegistrationDate.current();
 	_disableCustomChatBackground = obj.contains("disable_custom_chat_background") ? obj["disable_custom_chat_background"].toBool() : _disableCustomChatBackground.current();
 	_hideAllChatsFolder = obj.contains("hide_all_chats_folder") ? obj["hide_all_chats_folder"].toBool() : _hideAllChatsFolder.current();
+	_hideArchiveChats = obj.contains("hide_archive_chats") ? obj["hide_archive_chats"].toBool() : _hideArchiveChats.current();
 	_hideStories = obj.contains("hide_stories") ? obj["hide_stories"].toBool() : _hideStories.current();
 	_hideOpenWebappButtonChatlist = obj.contains("hide_open_webapp_button_chatlist") ? obj["hide_open_webapp_button_chatlist"].toBool() : _hideOpenWebappButtonChatlist.current();
 	_localPremium = obj.contains("local_premium") ? obj["local_premium"].toBool() : _localPremium.current();
@@ -166,6 +167,7 @@ QJsonObject FASettings::saveToJson() const {
 	obj["show_registration_date"] = _showRegistrationDate.current();
 	obj["disable_custom_chat_background"] = _disableCustomChatBackground.current();
 	obj["hide_all_chats_folder"] = _hideAllChatsFolder.current();
+	obj["hide_archive_chats"] = _hideArchiveChats.current();
 	obj["hide_stories"] = _hideStories.current();
 	obj["hide_open_webapp_button_chatlist"] = _hideOpenWebappButtonChatlist.current();
 	obj["local_premium"] = _localPremium.current();
@@ -298,6 +300,12 @@ void FASettings::setDisableCustomChatBackground(bool val) {
 void FASettings::setHideAllChatsFolder(bool val) {
 	if (_hideAllChatsFolder.current() == val) return;
 	_hideAllChatsFolder = val;
+	save();
+}
+
+void FASettings::setHideArchiveChats(bool val) {
+	if (_hideArchiveChats.current() == val) return;
+	_hideArchiveChats = val;
 	save();
 }
 

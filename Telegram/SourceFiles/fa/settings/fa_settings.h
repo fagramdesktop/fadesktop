@@ -50,6 +50,7 @@ public:
 	[[nodiscard]] bool showRegistrationDate() const { return _showRegistrationDate.current(); }
 	[[nodiscard]] bool disableCustomChatBackground() const { return _disableCustomChatBackground.current(); }
 	[[nodiscard]] bool hideAllChatsFolder() const { return _hideAllChatsFolder.current(); }
+	[[nodiscard]] bool hideArchiveChats() const { return _hideArchiveChats.current(); }
 	[[nodiscard]] bool hideStories() const { return _hideStories.current(); }
 	[[nodiscard]] bool hideOpenWebappButtonChatlist() const { return _hideOpenWebappButtonChatlist.current(); }
 	[[nodiscard]] bool localPremium() const { return _localPremium.current(); }
@@ -102,6 +103,7 @@ public:
 	void setShowRegistrationDate(bool val);
 	void setDisableCustomChatBackground(bool val);
 	void setHideAllChatsFolder(bool val);
+	void setHideArchiveChats(bool val);
 	void setHideStories(bool val);
 	void setHideOpenWebappButtonChatlist(bool val);
 	void setLocalPremium(bool val);
@@ -154,6 +156,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> showRegistrationDateValue() const { return _showRegistrationDate.value(); }
 	[[nodiscard]] rpl::producer<bool> disableCustomChatBackgroundValue() const { return _disableCustomChatBackground.value(); }
 	[[nodiscard]] rpl::producer<bool> hideAllChatsFolderValue() const { return _hideAllChatsFolder.value(); }
+	[[nodiscard]] rpl::producer<bool> hideArchiveChatsValue() const { return _hideArchiveChats.value(); }
 	[[nodiscard]] rpl::producer<bool> hideStoriesValue() const { return _hideStories.value(); }
 	[[nodiscard]] rpl::producer<bool> hideOpenWebappButtonChatlistValue() const { return _hideOpenWebappButtonChatlist.value(); }
 	[[nodiscard]] rpl::producer<bool> localPremiumValue() const { return _localPremium.value(); }
@@ -205,6 +208,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> showRegistrationDateChanges() const { return _showRegistrationDate.changes(); }
 	[[nodiscard]] rpl::producer<bool> disableCustomChatBackgroundChanges() const { return _disableCustomChatBackground.changes(); }
 	[[nodiscard]] rpl::producer<bool> hideAllChatsFolderChanges() const { return _hideAllChatsFolder.changes(); }
+	[[nodiscard]] rpl::producer<bool> hideArchiveChatsChanges() const { return _hideArchiveChats.changes(); }
 	[[nodiscard]] rpl::producer<bool> hideStoriesChanges() const { return _hideStories.changes(); }
 	[[nodiscard]] rpl::producer<bool> hideOpenWebappButtonChatlistChanges() const { return _hideOpenWebappButtonChatlist.changes(); }
 	[[nodiscard]] rpl::producer<bool> localPremiumChanges() const { return _localPremium.changes(); }
@@ -262,6 +266,7 @@ private:
 	rpl::variable<bool> _showRegistrationDate = true;
 	rpl::variable<bool> _disableCustomChatBackground = false;
 	rpl::variable<bool> _hideAllChatsFolder = false;
+	rpl::variable<bool> _hideArchiveChats = false;
 	rpl::variable<bool> _hideStories = false;
 	rpl::variable<bool> _hideOpenWebappButtonChatlist = true;
 	rpl::variable<bool> _localPremium = false;

@@ -11,6 +11,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "fa/settings_menu/sections/fa_chats.h"
 #include "fa/settings_menu/fa_deeplink_context_menu.h"
+#include "fa/features/hide_archive_chats/hide_archive_chats.h"
 #include "fa/ui/md3/fa_cards.h"
 
 #include "fa_lang_auto.h"
@@ -184,6 +185,11 @@ namespace Settings {
 			});
 		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
 			hideAllFolderRow, u"fa/chats/hide-all-chats-folder"_q, controller);
+
+		const auto hideArchiveRow = FA::Features::HideArchiveChats::AddToggle(
+			chatListCard, controller);
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			hideArchiveRow, u"fa/chats/hide-archive-chats"_q, controller);
 
 		FA::Ui::AddCardDivider(chatListCard);
 
