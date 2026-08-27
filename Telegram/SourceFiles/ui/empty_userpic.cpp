@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/empty_userpic.h"
 
 #include "fa/settings/fa_settings.h"
+#include "fa/features/avatar_shape/avatar_shape.h"
 
 #include "info/channel_statistics/earn/earn_icons.h"
 #include "ui/chat/chat_style.h"
@@ -344,7 +345,7 @@ void EmptyUserpic::paintCircle(
 	bool use_default_rounding = FASettings::FASettings::getInstance().useDefaultRounding();
 	paint(p, x, y, outerWidth, size, [&] {
 		if (!use_default_rounding) {
-			double customRadius = (double) size * ((double) FASettings::FASettings::getInstance().roundness() / 100);
+			double customRadius = (double) size * ((double) FA::Features::AvatarShape::Roundness() / 100);
 			p.drawRoundedRect(x, y, size, size, 
 				customRadius, customRadius);
 		}
@@ -364,7 +365,7 @@ void EmptyUserpic::paintRounded(
 	bool use_default_rounding = FASettings::FASettings::getInstance().useDefaultRounding();
 	paint(p, x, y, outerWidth, size, [&] {
 		if (!use_default_rounding) {
-			double customRadius = (double) size * ((double) FASettings::FASettings::getInstance().roundness() / 100);
+			double customRadius = (double) size * ((double) FA::Features::AvatarShape::Roundness() / 100);
 			p.drawRoundedRect(x, y, size, size, 
 				customRadius, customRadius);
 		}
@@ -383,7 +384,7 @@ void EmptyUserpic::paintSquare(
 	bool use_default_rounding = FASettings::FASettings::getInstance().useDefaultRounding();
 	paint(p, x, y, outerWidth, size, [&] {
 		if (!use_default_rounding) {
-			double customRadius = (double) size * ((double) FASettings::FASettings::getInstance().roundness() / 100);
+			double customRadius = (double) size * ((double) FA::Features::AvatarShape::Roundness() / 100);
 			p.drawRoundedRect(x, y, size, size, 
 				customRadius, customRadius);
 		}
@@ -435,7 +436,7 @@ void EmptyUserpic::PaintSavedMessages(
 	p.setBrush(std::move(bg));
 	p.setPen(Qt::NoPen);
 	if (!use_default_rounding) {
-		double customRadius = (double) size * ((double) FASettings::FASettings::getInstance().roundness() / 100);
+		double customRadius = (double) size * ((double) FA::Features::AvatarShape::Roundness() / 100);
 		p.drawRoundedRect(x, y, size, size, 
 			customRadius, customRadius);
 	}
@@ -483,7 +484,7 @@ void EmptyUserpic::PaintRepliesMessages(
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
 	if (!use_default_rounding) {
-		double customRadius = (double) size * ((double) FASettings::FASettings::getInstance().roundness() / 100);
+		double customRadius = (double) size * ((double) FA::Features::AvatarShape::Roundness() / 100);
 		p.drawRoundedRect(x, y, size, size, 
 			customRadius, customRadius);
 	}

@@ -5,21 +5,25 @@ the unofficial desktop client based on Telegram Desktop.
 For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
-#include "fa/ui/md3/fa_avatar_shape.h"
+#include "fa/features/avatar_shape/avatar_shape.h"
+
 #include "fa/ui/md3/svg_assets.h"
 #include "fa/settings/fa_settings.h"
 #include "ui/image/image_prepare.h"
 #include "ui/painter.h"
+#include "ui/userpic_view.h"
 #include "styles/style_basic.h"
 
 #include <QtSvg/QSvgRenderer>
 
-namespace FA::Ui {
+#include <algorithm>
+#include <map>
+
+namespace FA::Features::AvatarShape {
+
+namespace {
 
 QImage MaterialShapeMask(QSize size, int shapeIndex) {
-	if (shapeIndex < 0) {
-		shapeIndex = FASettings::FASettings::getInstance().avatarShape();
-	}
 	if (shapeIndex <= 0 || shapeIndex > 7) {
 		return QImage();
 	}
@@ -65,39 +69,8 @@ QImage MaterialShapeOutline(
 	if (size.isEmpty()) {
 		return QImage();
 	}
-	if (shapeIndex < 0) {
-		shapeIndex = FASettings::FASettings::getInstance().avatarShape();
-	}
 	if (!color.isValid()) {
 		color = st::activeButtonBgOver->c;
-	}
-	if (shapeIndex == 0) {
-		auto result = QImage(size, QImage::Format_ARGB32_Premultiplied);
-		result.fill(Qt::transparent);
-		const auto roundness = FASettings::FASettings::getInstance().roundness();
-		if (strokeWidth <= 0.0f) {
-			strokeWidth = std::max(2.0f, float(size.width()) * 0.03f);
-		}
-		const auto margin = strokeWidth;
-		const auto radius = (size.width() - 2 * margin) * roundness / 100.0;
-		const auto innerRect = QRectF(
-			margin,
-			margin,
-			size.width() - 2 * margin,
-			size.height() - 2 * margin);
-		const auto inset = strokeWidth / 2.0;
-		auto p = QPainter(&result);
-		p.setRenderHint(QPainter::Antialiasing);
-		auto pen = QPen(color);
-		pen.setWidthF(strokeWidth);
-		p.setPen(pen);
-		p.setBrush(Qt::NoBrush);
-		p.drawRoundedRect(
-			innerRect.adjusted(inset, inset, -inset, -inset),
-			std::max(0.0, radius - inset),
-			std::max(0.0, radius - inset));
-		p.end();
-		return result;
 	}
 	if (shapeIndex < 1 || shapeIndex > 7) {
 		return QImage();
@@ -144,56 +117,8 @@ QImage MaterialShapeOutline(
 }
 
 QImage ApplyMaterialShape(QImage image, int shapeIndex) {
-	if (shapeIndex < 0) {
-		shapeIndex = FASettings::FASettings::getInstance().avatarShape();
-	}
 	const auto size = image.size();
 	const auto outlineColor = st::activeButtonBgOver->c;
-
-	if (shapeIndex == 0) {
-		const auto roundness = FASettings::FASettings::getInstance().roundness();
-		const auto strokeWidth = std::max(2.0, size.width() * 0.03);
-		const auto margin = strokeWidth;
-		const auto radius = (size.width() - 2 * margin) * roundness / 100.0;
-		const auto innerRect = QRectF(
-			margin,
-			margin,
-			size.width() - 2 * margin,
-			size.height() - 2 * margin);
-
-		auto mask = QImage(size, QImage::Format_ARGB32_Premultiplied);
-		mask.fill(Qt::transparent);
-		{
-			auto q = QPainter(&mask);
-			q.setRenderHint(QPainter::Antialiasing);
-			q.setPen(Qt::NoPen);
-			q.setBrush(Qt::white);
-			q.drawRoundedRect(innerRect, radius, radius);
-		}
-
-		constexpr auto format = QImage::Format_ARGB32_Premultiplied;
-		if (image.format() != format) {
-			image = std::move(image).convertToFormat(format);
-		}
-		auto p = QPainter(&image);
-		p.setCompositionMode(QPainter::CompositionMode_DestinationIn);
-		p.drawImage(QRect(QPoint(), image.size()), mask);
-
-		p.setCompositionMode(QPainter::CompositionMode_SourceOver);
-		p.setRenderHint(QPainter::Antialiasing);
-		auto pen = QPen(outlineColor);
-		pen.setWidthF(strokeWidth);
-		p.setPen(pen);
-		p.setBrush(Qt::NoBrush);
-		const auto inset = strokeWidth / 2.0;
-		p.drawRoundedRect(
-			innerRect.adjusted(inset, inset, -inset, -inset),
-			std::max(0.0, radius - inset),
-			std::max(0.0, radius - inset));
-		p.end();
-
-		return image;
-	}
 
 	auto mask = MaterialShapeMask(size, shapeIndex);
 	if (mask.isNull()) {
@@ -218,4 +143,58 @@ QImage ApplyMaterialShape(QImage image, int shapeIndex) {
 	return image;
 }
 
-} // namespace FA::Ui
+using MaskKey = std::pair<QSize, int>;
+
+std::map<MaskKey, QImage> &MaskCache() {
+	static std::map<MaskKey, QImage> cache;
+	return cache;
+}
+
+constexpr auto kMaxMaskCache = 64;
+
+} // namespace
+
+bool IsMaterial() {
+	const auto value = FASettings::FASettings::getInstance().avatarShape();
+	return (value >= 1) && (value <= 7);
+}
+
+int Roundness() {
+	return FASettings::FASettings::getInstance().roundness();
+}
+
+int CornerRadius(int size, int dpr) {
+	const auto roundness = FASettings::FASettings::getInstance().roundness();
+	const auto result = (size * roundness) / 100.0 / std::max(1, dpr);
+	return std::max(0, int(result));
+}
+
+QImage Mask(QSize size) {
+	const auto index = FASettings::FASettings::getInstance().avatarShape();
+	auto &cache = MaskCache();
+	const auto key = MaskKey(size, index);
+	const auto it = cache.find(key);
+	if (it != cache.end()) {
+		return it->second;
+	}
+	auto result = MaterialShapeMask(size, index);
+	if (cache.size() >= kMaxMaskCache) {
+		cache.clear();
+	}
+	cache.emplace(key, result);
+	return result;
+}
+
+QImage Apply(QImage image) {
+	if (!IsMaterial()) {
+		return image;
+	}
+	const auto shapeIndex = FASettings::FASettings::getInstance().avatarShape();
+	return ApplyMaterialShape(std::move(image), shapeIndex);
+}
+
+Ui::PeerUserpicShape Resolve(Ui::PeerUserpicShape base) {
+	return IsMaterial() ? Ui::PeerUserpicShape::Material : base;
+}
+
+} // namespace FA::Features::AvatarShape

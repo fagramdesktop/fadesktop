@@ -967,8 +967,6 @@ PRIVATE
     fa/ui/md3/fa_slider.h
     fa/ui/md3/fa_top_bar.cpp
     fa/ui/md3/fa_top_bar.h
-    fa/ui/md3/fa_avatar_shape.cpp
-    fa/ui/md3/fa_avatar_shape.h
     fa/ui/md3/fa_nav_drawer.cpp
     fa/ui/md3/fa_nav_drawer.h
     fa/ui/md3/previews.cpp
@@ -976,6 +974,8 @@ PRIVATE
     fa/ui/md3/svg_assets.h
     fa/features/context_menu/fa_context_menu.cpp
     fa/features/context_menu/fa_context_menu.h
+    fa/features/avatar_shape/avatar_shape.cpp
+    fa/features/avatar_shape/avatar_shape.h
     fa/fa_version.h
     fa/ui/menu_item_subtext.cpp
     fa/ui/menu_item_subtext.h

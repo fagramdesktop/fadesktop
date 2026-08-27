@@ -7,7 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 
 #include "fa/settings/fa_settings.h"
-#include "fa/ui/md3/fa_avatar_shape.h"
+#include "fa/features/avatar_shape/avatar_shape.h"
 
 #include "ui/userpic_view.h"
 
@@ -143,11 +143,17 @@ void ValidateUserpicCache(
 		PeerUserpicShape shape) {
 	Expects(cloud != nullptr || empty != nullptr);
 
+	shape = FA::Features::AvatarShape::Resolve(shape);
+
 	const auto full = QSize(size, size);
 	const auto version = style::PaletteVersion();
 	const auto shapeValue = static_cast<uint32>(shape);
+	const auto materialIndex = FA::Features::AvatarShape::IsMaterial()
+		? uint32(FASettings::FASettings::getInstance().avatarShape())
+		: uint32(0);
 	const auto regenerate = (view.cached.size() != QSize(size, size))
 		|| (view.shape != shapeValue)
+		|| (view.materialIndex != materialIndex)
 		|| (cloud && !view.empty.null())
 		|| (empty && empty != view.empty.get())
 		|| (empty && view.paletteVersion != version);
@@ -157,10 +163,11 @@ void ValidateUserpicCache(
 	}
 	view.empty = empty;
 	view.shape = shapeValue;
+	view.materialIndex = materialIndex;
 	view.paletteVersion = version;
 
 	const auto forum = (shape == PeerUserpicShape::Forum);
-	const auto radius = size * FASettings::FASettings::getInstance().roundness() / 100 / style::DevicePixelRatio();
+	const auto radius = FA::Features::AvatarShape::CornerRadius(size, style::DevicePixelRatio());
 
 	if (cloud) {
 		view.cached = cloud->scaled(
@@ -168,7 +175,7 @@ void ValidateUserpicCache(
 			Qt::IgnoreAspectRatio,
 			Qt::SmoothTransformation);
 		if (shape == PeerUserpicShape::Material) {
-			view.cached = FA::Ui::ApplyMaterialShape(std::move(view.cached));
+			view.cached = FA::Features::AvatarShape::Apply(std::move(view.cached));
 		} else if (shape == PeerUserpicShape::Monoforum) {
 			view.cached = Ui::ApplyMonoforumShape(std::move(view.cached));
 		} else if (forum) {
@@ -202,7 +209,7 @@ void ValidateUserpicCache(
 		if (shape == PeerUserpicShape::Material) {
 			empty->paintSquare(p, 0, 0, size, size);
 			p.end();
-			view.cached = FA::Ui::ApplyMaterialShape(std::move(view.cached));
+			view.cached = FA::Features::AvatarShape::Apply(std::move(view.cached));
 		} else if (shape == PeerUserpicShape::Monoforum) {
 			empty->paintMonoforum(p, 0, 0, size, size);
 		} else if (forum) {

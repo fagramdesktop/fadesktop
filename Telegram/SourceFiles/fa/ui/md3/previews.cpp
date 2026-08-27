@@ -7,7 +7,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 
 #include "fa/ui/md3/previews.h"
-#include "fa/ui/md3/fa_avatar_shape.h"
 #include "fa/ui/md3/fa_cards.h"
 #include "fa/ui/md3/svg_assets.h"
 #include "fa/settings/fa_settings.h"

@@ -8,7 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/profile/info_profile_top_bar.h"
 
 #include "fa/settings/fa_settings.h"
-#include "fa/ui/md3/fa_avatar_shape.h"
+#include "fa/features/avatar_shape/avatar_shape.h"
 
 #include "api/api_peer_colors.h"
 #include "api/api_peer_photo.h"
@@ -2821,7 +2821,6 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 				_userpicView,
 				scaled,
 				0);
-			image = FA::Ui::ApplyMaterialShape(std::move(image));
 		} else {
 			const auto radius = (_source == Source::Community)
 				? std::optional<int>(
