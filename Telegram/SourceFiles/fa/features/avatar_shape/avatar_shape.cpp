@@ -143,7 +143,20 @@ QImage ApplyMaterialShape(QImage image, int shapeIndex) {
 	return image;
 }
 
-using MaskKey = std::pair<QSize, int>;
+struct MaskKey {
+	QSize size;
+	int index = 0;
+
+	friend inline bool operator<(const MaskKey &a, const MaskKey &b) {
+		if (a.size.width() != b.size.width()) {
+			return a.size.width() < b.size.width();
+		}
+		if (a.size.height() != b.size.height()) {
+			return a.size.height() < b.size.height();
+		}
+		return a.index < b.index;
+	}
+};
 
 std::map<MaskKey, QImage> &MaskCache() {
 	static std::map<MaskKey, QImage> cache;
@@ -172,7 +185,7 @@ int CornerRadius(int size, int dpr) {
 QImage Mask(QSize size) {
 	const auto index = FASettings::FASettings::getInstance().avatarShape();
 	auto &cache = MaskCache();
-	const auto key = MaskKey(size, index);
+	const auto key = MaskKey{ size, index };
 	const auto it = cache.find(key);
 	if (it != cache.end()) {
 		return it->second;
