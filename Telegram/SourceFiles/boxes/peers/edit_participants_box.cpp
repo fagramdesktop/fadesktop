@@ -1772,7 +1772,8 @@ void ParticipantsBoxController::loadMoreRows() {
 	}
 
 	const auto channel = _peer->asChannel();
-	if (feedMegagroupLastParticipants()) {
+	if (_membersFilter == Fa::MembersFilter::Type::All
+		&& feedMegagroupLastParticipants()) {
 		return;
 	}
 
