@@ -141,6 +141,7 @@ void FASettings::loadFromJson(const QJsonObject &obj) {
 	_screenshotMode = obj.contains("screenshot_mode") ? obj["screenshot_mode"].toBool() : _screenshotMode.current();
 	_autoFormatMarkdown = obj.contains("auto_format_markdown") ? obj["auto_format_markdown"].toBool() : _autoFormatMarkdown.current();
 	_addCommaAfterMention = obj.contains("add_comma_after_mention") ? obj["add_comma_after_mention"].toBool() : _addCommaAfterMention.current();
+	_disableLinkPreview = obj.contains("disable_link_preview") ? obj["disable_link_preview"].toBool() : _disableLinkPreview.current();
 	_contextMenuShortcutButtonSize = obj.contains("context_menu_shortcut_button_size") ? obj["context_menu_shortcut_button_size"].toInt() : _contextMenuShortcutButtonSize.current();
 	_contextMenuShortcutIconSize = obj.contains("context_menu_shortcut_icon_size") ? obj["context_menu_shortcut_icon_size"].toInt() : _contextMenuShortcutIconSize.current();
 	_contextMenuShortcutSpacing = obj.contains("context_menu_shortcut_spacing") ? obj["context_menu_shortcut_spacing"].toInt() : _contextMenuShortcutSpacing.current();
@@ -194,6 +195,7 @@ QJsonObject FASettings::saveToJson() const {
 	obj["screenshot_mode"] = _screenshotMode.current();
 	obj["auto_format_markdown"] = _autoFormatMarkdown.current();
 	obj["add_comma_after_mention"] = _addCommaAfterMention.current();
+	obj["disable_link_preview"] = _disableLinkPreview.current();
 	obj["context_menu_shortcut_button_size"] = _contextMenuShortcutButtonSize.current();
 	obj["context_menu_shortcut_icon_size"] = _contextMenuShortcutIconSize.current();
 	obj["context_menu_shortcut_spacing"] = _contextMenuShortcutSpacing.current();
@@ -470,6 +472,12 @@ void FASettings::setAutoFormatMarkdown(bool val) {
 void FASettings::setAddCommaAfterMention(bool val) {
 	if (_addCommaAfterMention.current() == val) return;
 	_addCommaAfterMention = val;
+	save();
+}
+
+void FASettings::setDisableLinkPreview(bool val) {
+	if (_disableLinkPreview.current() == val) return;
+	_disableLinkPreview = val;
 	save();
 }
 

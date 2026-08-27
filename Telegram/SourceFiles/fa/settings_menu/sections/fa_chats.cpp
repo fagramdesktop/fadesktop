@@ -127,6 +127,19 @@ namespace Settings {
 
 		FA::Ui::AddCardDivider(msgCard);
 
+		const auto linkPreviewRow = FA::Ui::AddCardToggle(
+			msgCard,
+			fatr::fa_disable_link_preview(),
+			fatr::fa_disable_link_preview_desc(),
+			settings.disableLinkPreviewValue(),
+			[&settings](bool enabled) {
+				settings.setDisableLinkPreview(enabled);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			linkPreviewRow, u"fa/chats/disable-link-preview"_q, controller);
+
+		FA::Ui::AddCardDivider(msgCard);
+
 		const auto delEveryoneRow = FA::Ui::AddCardToggle(
 			msgCard,
 			fatr::fa_delete_for_everyone(),

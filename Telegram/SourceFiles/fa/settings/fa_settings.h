@@ -77,6 +77,7 @@ public:
 	[[nodiscard]] bool screenshotMode() const { return _screenshotMode.current(); }
 	[[nodiscard]] bool autoFormatMarkdown() const { return _autoFormatMarkdown.current(); }
 	[[nodiscard]] bool addCommaAfterMention() const { return _addCommaAfterMention.current(); }
+	[[nodiscard]] bool disableLinkPreview() const { return _disableLinkPreview.current(); }
 	[[nodiscard]] int contextMenuShortcutButtonSize() const { return _contextMenuShortcutButtonSize.current(); }
 	[[nodiscard]] int contextMenuShortcutIconSize() const { return _contextMenuShortcutIconSize.current(); }
 	[[nodiscard]] int contextMenuShortcutSpacing() const { return _contextMenuShortcutSpacing.current(); }
@@ -130,6 +131,7 @@ public:
 	void setScreenshotMode(bool val);
 	void setAutoFormatMarkdown(bool val);
 	void setAddCommaAfterMention(bool val);
+	void setDisableLinkPreview(bool val);
 	void setContextMenuShortcutButtonSize(int val);
 	void setContextMenuShortcutIconSize(int val);
 	void setContextMenuShortcutSpacing(int val);
@@ -179,6 +181,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> screenshotModeValue() const { return _screenshotMode.value(); }
 	[[nodiscard]] rpl::producer<bool> autoFormatMarkdownValue() const { return _autoFormatMarkdown.value(); }
 	[[nodiscard]] rpl::producer<bool> addCommaAfterMentionValue() const { return _addCommaAfterMention.value(); }
+	[[nodiscard]] rpl::producer<bool> disableLinkPreviewValue() const { return _disableLinkPreview.value(); }
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutButtonSizeValue() const { return _contextMenuShortcutButtonSize.value(); }
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutIconSizeValue() const { return _contextMenuShortcutIconSize.value(); }
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutSpacingValue() const { return _contextMenuShortcutSpacing.value(); }
@@ -229,6 +232,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> screenshotModeChanges() const { return _screenshotMode.changes(); }
 	[[nodiscard]] rpl::producer<bool> autoFormatMarkdownChanges() const { return _autoFormatMarkdown.changes(); }
 	[[nodiscard]] rpl::producer<bool> addCommaAfterMentionChanges() const { return _addCommaAfterMention.changes(); }
+	[[nodiscard]] rpl::producer<bool> disableLinkPreviewChanges() const { return _disableLinkPreview.changes(); }
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutButtonSizeChanges() const { return _contextMenuShortcutButtonSize.changes(); }
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutIconSizeChanges() const { return _contextMenuShortcutIconSize.changes(); }
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutSpacingChanges() const { return _contextMenuShortcutSpacing.changes(); }
@@ -285,6 +289,7 @@ private:
 	rpl::variable<bool> _screenshotMode = false;
 	rpl::variable<bool> _autoFormatMarkdown = false;
 	rpl::variable<bool> _addCommaAfterMention = true;
+	rpl::variable<bool> _disableLinkPreview = false;
 	rpl::variable<int> _contextMenuShortcutButtonSize = 40;
 	rpl::variable<int> _contextMenuShortcutIconSize = 24;
 	rpl::variable<int> _contextMenuShortcutSpacing = 10;
