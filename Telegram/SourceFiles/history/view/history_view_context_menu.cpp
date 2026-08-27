@@ -9,7 +9,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "fa/utils/telegram_helpers.h"
 #include "fa/settings/fa_settings.h"
-#include "fa/ui/context_menu/fa_context_menu.h"
+#include "fa/features/context_menu/fa_context_menu.h"
 #include "fa_lang_auto.h"
 
 #include "api/api_attached_stickers.h"
@@ -610,7 +610,7 @@ bool AddForwardSelectedAction(
 			return false;
 		});
 
-	return FA::ContextMenu::AddForwardSubmenu(
+	return FA::Features::ContextMenu::AddForwardSubmenu(
 		menu,
 		tr::lng_context_forward_selected(tr::now),
 		ids,
@@ -644,7 +644,7 @@ bool AddForwardMessageAction(
 			}
 		}
 	}
-	return FA::ContextMenu::AddForwardSubmenu(
+	return FA::Features::ContextMenu::AddForwardSubmenu(
 		menu,
 		item,
 		request.navigation,
@@ -1996,25 +1996,24 @@ void FillContextMenuItems(
 	const auto hasWhoReactedItem = item
 		&& Api::WhoReactedExists(item, Api::WhoReactedList::All);
 
-	auto shortcutsResult = FA::ContextMenu::SetupShortcuts(
+	auto shortcutsResult = FA::Features::ContextMenu::SetupShortcuts(
 		result.get(),
 		request,
 		list);
-	const auto &addedShortcuts = shortcutsResult.addedShortcuts;
-	const auto hasShortcutReply = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Reply);
-	const auto hasShortcutCopy = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Copy);
-	const auto hasShortcutEdit = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Edit);
-	const auto hasShortcutPin = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Pin)
-		|| FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Unpin);
-	const auto hasShortcutCopyLink = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::CopyLink);
-	const auto hasShortcutTranslate = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Translate);
-	const auto hasShortcutForward = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::Forward);
-	const auto hasShortcutSaveFile = FA::ContextMenu::HasShortcut(addedShortcuts, FA::ContextMenu::ShortcutType::SaveFile);
+	const auto availableFlags = FA::Features::ContextMenu::GetAvailableShortcutsFlags(shortcutsResult.addedShortcuts);
+	const auto hasShortcutReply = availableFlags.reply;
+	const auto hasShortcutCopy = availableFlags.copy;
+	const auto hasShortcutEdit = availableFlags.edit;
+	const auto hasShortcutPin = availableFlags.pin;
+	const auto hasShortcutCopyLink = availableFlags.copyLink;
+	const auto hasShortcutTranslate = availableFlags.translate;
+	const auto hasShortcutForward = availableFlags.forward;
+	const auto hasShortcutSaveFile = availableFlags.saveFile;
 
 	if (!hasShortcutReply) {
 		AddReplyToMessageAction(result, request, list);
 	}
-	FA::ContextMenu::AddReplyInPrivate(result.get(), request, list);
+	FA::Features::ContextMenu::AddReplyInPrivate(result.get(), request, list);
 	if (item) {
 		const auto media = item->media();
 		const auto document = media ? media->document() : nullptr;

@@ -247,7 +247,7 @@ void AddDownloadFilesAction(
 		const auto item = window->session().data().message(id);
 
 		if (!Added(item, docs, photos)) {
-			return;
+			continue;
 		}
 	}
 	const auto done = [weak = base::make_weak(list)] {

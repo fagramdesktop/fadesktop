@@ -974,8 +974,8 @@ PRIVATE
     fa/ui/md3/previews.cpp
     fa/ui/md3/previews.h
     fa/ui/md3/svg_assets.h
-    fa/ui/context_menu/fa_context_menu.cpp
-    fa/ui/context_menu/fa_context_menu.h
+    fa/features/context_menu/fa_context_menu.cpp
+    fa/features/context_menu/fa_context_menu.h
     fa/fa_version.h
     fa/ui/menu_item_subtext.cpp
     fa/ui/menu_item_subtext.h
