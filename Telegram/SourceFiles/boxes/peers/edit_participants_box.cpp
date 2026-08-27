@@ -1111,8 +1111,14 @@ ParticipantsBoxController::SavedState::SavedState(
 ParticipantsBoxController::ParticipantsBoxController(
 	not_null<Window::SessionNavigation*> navigation,
 	not_null<PeerData*> peer,
-	Role role)
-: ParticipantsBoxController(CreateTag(), navigation, peer, role) {
+	Role role,
+	bool showMembersFilter)
+: ParticipantsBoxController(
+		CreateTag(),
+		navigation,
+		peer,
+		role,
+		showMembersFilter) {
 }
 
 ParticipantsBoxController::~ParticipantsBoxController() = default;
@@ -1121,7 +1127,8 @@ ParticipantsBoxController::ParticipantsBoxController(
 	CreateTag,
 	Window::SessionNavigation *navigation,
 	not_null<PeerData*> peer,
-	Role role)
+	Role role,
+	bool showMembersFilter)
 : PeerListController(CreateSearchController(peer, role, &_additional))
 , _chatStyle(
 	std::make_unique<Ui::ChatStyle>(peer->session().colorIndicesValue()))
@@ -1131,6 +1138,7 @@ ParticipantsBoxController::ParticipantsBoxController(
 , _role(role)
 , _additional(peer, _role) {
 	subscribeToMigration();
+	_showMembersFilter = showMembersFilter || (_role == Role::Members);
 	if (_role == Role::Profile) {
 		setupListChangeViewers();
 	}
@@ -1497,7 +1505,7 @@ void ParticipantsBoxController::prepare() {
 			delegate()->peerListSetAboveWidget(validator.createButton());
 		}
 	}
-	if ((_role == Role::Profile || _role == Role::Members)
+	if (_showMembersFilter
 		&& (_peer->isChat() || _peer->isMegagroup())) {
 		Fa::MembersFilter::Setup(this, delegate(), _peer, _additional);
 	}

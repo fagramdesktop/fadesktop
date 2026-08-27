@@ -133,7 +133,8 @@ private:
 
 std::unique_ptr<ParticipantsBoxController> CreateMembersController(
 	not_null<Window::SessionNavigation*> navigation,
-	not_null<PeerData*> peer);
+	not_null<PeerData*> peer,
+	bool fullMemberList = false);
 
 } // namespace Profile
 } // namespace Info

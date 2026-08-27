@@ -201,7 +201,8 @@ public:
 	ParticipantsBoxController(
 		not_null<Window::SessionNavigation*> navigation,
 		not_null<PeerData*> peer,
-		Role role);
+		Role role,
+		bool showMembersFilter = false);
 	~ParticipantsBoxController();
 
 	Main::Session &session() const override;
@@ -251,7 +252,8 @@ protected:
 		CreateTag,
 		Window::SessionNavigation *navigation,
 		not_null<PeerData*> peer,
-		Role role);
+		Role role,
+		bool showMembersFilter = false);
 
 	virtual std::unique_ptr<PeerListRow> createRow(
 		not_null<PeerData*> participant) const;
@@ -349,6 +351,7 @@ private:
 
 	std::unique_ptr<PeerListStories> _stories;
 	Fa::MembersFilter::Type _membersFilter = Fa::MembersFilter::Type::All;
+	bool _showMembersFilter = false;
 
 };
 

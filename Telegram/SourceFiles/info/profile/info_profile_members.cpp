@@ -50,7 +50,10 @@ Members::Members(
 , _controller(controller)
 , _skipHeader(skipHeader)
 , _peer(_controller->key().peer())
-, _listController(CreateMembersController(controller, _peer)) {
+, _listController(CreateMembersController(
+		controller,
+		_peer,
+		(_controller->section().type() == Section::Type::Members))) {
 	_listController->setStoriesShown(true);
 	setupHeader();
 	setupList();
