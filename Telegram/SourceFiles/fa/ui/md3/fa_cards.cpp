@@ -213,11 +213,22 @@ public:
 		_inRelayout = false;
 	}
 
+	void scheduleRelayout() {
+		if (_relayoutScheduled) {
+			return;
+		}
+		_relayoutScheduled = true;
+		QMetaObject::invokeMethod(this, [this] {
+			_relayoutScheduled = false;
+			updateGeometryFromInner();
+		}, Qt::QueuedConnection);
+	}
+
 protected:
 	bool eventFilter(QObject *watched, QEvent *event) override {
 		const auto type = event->type();
 		if ((type == QEvent::Resize || type == QEvent::Show || type == QEvent::Hide) && !_inRelayout) {
-			updateGeometryFromInner();
+			scheduleRelayout();
 		} else if (type == QEvent::ChildAdded) {
 			const auto childAdded = static_cast<QChildEvent*>(event);
 			if (const auto widget = qobject_cast<QWidget*>(childAdded->child())) {
@@ -298,6 +309,7 @@ private:
 	::Ui::VerticalLayout *_layout = nullptr;
 	::Ui::VerticalLayout *_container = nullptr;
 	bool _inRelayout = false;
+	bool _relayoutScheduled = false;
 };
 
 class CardToggleRow final : public ::Ui::RippleButton {
