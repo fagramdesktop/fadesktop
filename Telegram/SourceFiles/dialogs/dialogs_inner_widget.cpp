@@ -695,7 +695,7 @@ void InnerWidget::refreshWithCollapsedRows(bool toTop) {
 				std::make_unique<CollapsedRow>(archive));
 		}
 	} else {
-		_skipTopDialog = hideArchive;
+		_skipTopDialog = hideArchive && (archive != nullptr);
 	}
 
 	Assert(!needCollapsedRowsRefresh());
@@ -4797,7 +4797,8 @@ bool InnerWidget::needCollapsedRowsRefresh() const {
 		&& session().settings().archiveCollapsed();
 	const auto archiveIsInMainMenu = (archive != nullptr)
 		&& session().settings().archiveInMainMenu();
-	return archiveIsInMainMenu
+	const auto hideArchive = FA::Features::HideArchiveChats::ShouldHide();
+	return (archiveIsInMainMenu || (archive && hideArchive))
 		? (collapsedHasArchive || !_skipTopDialog)
 		: archiveIsCollapsed
 			? (!collapsedHasArchive || !_skipTopDialog)
