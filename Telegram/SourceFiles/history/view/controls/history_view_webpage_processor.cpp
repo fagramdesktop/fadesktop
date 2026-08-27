@@ -12,6 +12,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "data/data_file_origin.h"
 #include "data/data_session.h"
 #include "data/data_web_page.h"
+#include "fa/settings/fa_settings.h"
 #include "history/history.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
@@ -220,9 +221,13 @@ WebpageProcessor::WebpageProcessor(
 		checkPreview();
 	}, _lifetime);
 
+	FASettings::FASettings::getInstance().disableLinkPreviewChanges(
+	) | rpl::on_next([=] {
+		checkNow(false);
+	}, _lifetime);
+
 	_resolver->resolved() | rpl::on_next([=](QString link) {
 		if (_link != link
-			|| _draft.removed
 			|| (_draft.manual && _draft.url != link)) {
 			return;
 		}
@@ -230,6 +235,7 @@ WebpageProcessor::WebpageProcessor(
 		if (_data) {
 			_draft.id = _data->id;
 			_draft.url = _data->url;
+			applyDefaultRemoved();
 			updateFromData();
 		} else {
 			_links = QStringList();
@@ -261,6 +267,7 @@ QString WebpageProcessor::link() const {
 void WebpageProcessor::apply(Data::WebPageDraft draft, bool reparse) {
 	const auto was = _link;
 	if (draft.removed) {
+		_userEnabledPreview = false;
 		_draft = draft;
 		_parsedLinks = _parser.list().current();
 		if (_parsedLinks.empty()) {
@@ -272,6 +279,7 @@ void WebpageProcessor::apply(Data::WebPageDraft draft, bool reparse) {
 		_parsed = WebpageParsed();
 		updateFromData();
 	} else if (draft.manual && !draft.url.isEmpty()) {
+		_userEnabledPreview = true;
 		_draft = draft;
 		_parsedLinks = QStringList();
 		_links = QStringList();
@@ -290,6 +298,9 @@ void WebpageProcessor::apply(Data::WebPageDraft draft, bool reparse) {
 			return;
 		}
 	} else if (!draft.manual && !_draft.manual) {
+		if (reparse) {
+			_userEnabledPreview = true;
+		}
 		_draft = draft;
 		checkNow(reparse);
 	}
@@ -350,12 +361,28 @@ void WebpageProcessor::checkNow(bool force) {
 	checkPreview();
 }
 
+void WebpageProcessor::applyDefaultRemoved() {
+	if (_draft.manual) {
+		return;
+	}
+	const auto disableByDefault = FASettings::FASettings::getInstance(
+		).disableLinkPreview();
+	if (disableByDefault && !_userEnabledPreview) {
+		_draft.removed = true;
+	} else if (!disableByDefault) {
+		_draft.removed = false;
+	}
+}
+
 void WebpageProcessor::checkPreview() {
 	const auto previewRestricted = _history->peer
 		&& _history->peer->amRestricted(ChatRestriction::EmbedLinks);
 	if (_parsedLinks.empty()) {
 		_draft.removed = false;
+		_userEnabledPreview = false;
+		return;
 	}
+	applyDefaultRemoved();
 	if (_draft.removed) {
 		return;
 	} else if (previewRestricted) {
@@ -397,6 +424,7 @@ void WebpageProcessor::checkPreview() {
 		_data = nullptr;
 		_draft = {};
 	}
+	applyDefaultRemoved();
 	updateFromData();
 }
 
