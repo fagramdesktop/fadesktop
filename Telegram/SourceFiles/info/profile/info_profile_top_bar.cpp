@@ -560,6 +560,13 @@ TopBar::TopBar(
 			updateVideoUserpic();
 			update();
 		}, lifetime());
+		rpl::merge(
+			FASettings::FASettings::getInstance().avatarShapeChanges(),
+			FASettings::FASettings::getInstance().roundnessChanges()
+		) | rpl::on_next([=] {
+			_userpicUniqueKey = InMemoryKey();
+			update();
+		}, lifetime());
 	}
 
 	rpl::merge(
@@ -2815,7 +2822,14 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 				Rect(image.size() / image.devicePixelRatio()),
 				_monoforumMask);
 			q.end();
-		} else if (_peer->isUser()) {
+		} else if (_source == Source::Community) {
+			const auto radius = int(scaled * Ui::ForumUserpicRadiusMultiplier());
+			image = PeerData::GenerateUserpicImage(
+				_peer,
+				_userpicView,
+				scaled,
+				radius);
+		} else if (FA::Features::AvatarShape::IsMaterial()) {
 			image = PeerData::GenerateUserpicImage(
 				_peer,
 				_userpicView,
@@ -2823,18 +2837,11 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 				0);
 			image = FA::Features::AvatarShape::Apply(std::move(image));
 		} else {
-			const auto radius = (_source == Source::Community)
-				? std::optional<int>(
-					int(scaled * Ui::ForumUserpicRadiusMultiplier()))
-				: std::nullopt;
 			image = PeerData::GenerateUserpicImage(
 				_peer,
 				_userpicView,
 				scaled,
-				radius);
-			if (!radius) {
-				image = FA::Features::AvatarShape::Apply(std::move(image));
-			}
+				std::nullopt);
 		}
 		_cachedUserpic = std::move(image);
 		_cachedUserpic.setDevicePixelRatio(style::DevicePixelRatio());
