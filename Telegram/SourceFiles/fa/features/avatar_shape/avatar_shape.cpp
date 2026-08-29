@@ -5,21 +5,25 @@ the unofficial desktop client based on Telegram Desktop.
 For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
-#include "fa/ui/md3/fa_avatar_shape.h"
+#include "fa/features/avatar_shape/avatar_shape.h"
+
 #include "fa/ui/md3/svg_assets.h"
 #include "fa/settings/fa_settings.h"
 #include "ui/image/image_prepare.h"
 #include "ui/painter.h"
+#include "ui/userpic_view.h"
 #include "styles/style_basic.h"
 
 #include <QtSvg/QSvgRenderer>
 
-namespace FA::Ui {
+#include <algorithm>
+#include <map>
+
+namespace FA::Features::AvatarShape {
+
+namespace {
 
 QImage MaterialShapeMask(QSize size, int shapeIndex) {
-	if (shapeIndex < 0) {
-		shapeIndex = FASettings::FASettings::getInstance().avatarShape();
-	}
 	if (shapeIndex <= 0 || shapeIndex > 7) {
 		return QImage();
 	}
@@ -64,9 +68,6 @@ QImage MaterialShapeOutline(
 		float strokeWidth) {
 	if (size.isEmpty()) {
 		return QImage();
-	}
-	if (shapeIndex < 0) {
-		shapeIndex = FASettings::FASettings::getInstance().avatarShape();
 	}
 	if (!color.isValid()) {
 		color = st::activeButtonBgOver->c;
@@ -144,9 +145,6 @@ QImage MaterialShapeOutline(
 }
 
 QImage ApplyMaterialShape(QImage image, int shapeIndex) {
-	if (shapeIndex < 0) {
-		shapeIndex = FASettings::FASettings::getInstance().avatarShape();
-	}
 	const auto size = image.size();
 	const auto outlineColor = st::activeButtonBgOver->c;
 
@@ -218,4 +216,83 @@ QImage ApplyMaterialShape(QImage image, int shapeIndex) {
 	return image;
 }
 
-} // namespace FA::Ui
+struct MaskKey {
+	QSize size;
+	int index = 0;
+
+	friend inline bool operator<(const MaskKey &a, const MaskKey &b) {
+		if (a.size.width() != b.size.width()) {
+			return a.size.width() < b.size.width();
+		}
+		if (a.size.height() != b.size.height()) {
+			return a.size.height() < b.size.height();
+		}
+		return a.index < b.index;
+	}
+};
+
+std::map<MaskKey, QImage> &MaskCache() {
+	static std::map<MaskKey, QImage> cache;
+	return cache;
+}
+
+constexpr auto kMaxMaskCache = 64;
+
+} // namespace
+
+bool IsMaterial() {
+	const auto value = FASettings::FASettings::getInstance().avatarShape();
+	return (value >= 0) && (value <= 7);
+}
+
+int Roundness() {
+	return FASettings::FASettings::getInstance().roundness();
+}
+
+int CornerRadius(int size, int dpr) {
+	const auto roundness = FASettings::FASettings::getInstance().roundness();
+	const auto result = (size * roundness) / 100.0 / std::max(1, dpr);
+	return std::max(0, int(result));
+}
+
+QImage Mask(QSize size) {
+	const auto index = FASettings::FASettings::getInstance().avatarShape();
+	if (index <= 0) {
+		auto result = QImage(size, QImage::Format_ARGB32_Premultiplied);
+		result.fill(Qt::transparent);
+		QPainter p(&result);
+		p.setRenderHint(QPainter::Antialiasing);
+		p.setPen(Qt::NoPen);
+		p.setBrush(Qt::white);
+		const auto radius = size.width() * Roundness() / 100.0;
+		p.drawRoundedRect(QRect(QPoint(), size), radius, radius);
+		p.end();
+		return result;
+	}
+	auto &cache = MaskCache();
+	const auto key = MaskKey{ size, index };
+	const auto it = cache.find(key);
+	if (it != cache.end()) {
+		return it->second;
+	}
+	auto result = MaterialShapeMask(size, index);
+	if (cache.size() >= kMaxMaskCache) {
+		cache.clear();
+	}
+	cache.emplace(key, result);
+	return result;
+}
+
+QImage Apply(QImage image) {
+	if (!IsMaterial()) {
+		return image;
+	}
+	const auto shapeIndex = FASettings::FASettings::getInstance().avatarShape();
+	return ApplyMaterialShape(std::move(image), shapeIndex);
+}
+
+Ui::PeerUserpicShape Resolve(Ui::PeerUserpicShape base) {
+	return IsMaterial() ? Ui::PeerUserpicShape::Material : base;
+}
+
+} // namespace FA::Features::AvatarShape

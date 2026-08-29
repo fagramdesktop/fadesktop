@@ -50,6 +50,7 @@ public:
 	[[nodiscard]] bool showRegistrationDate() const { return _showRegistrationDate.current(); }
 	[[nodiscard]] bool disableCustomChatBackground() const { return _disableCustomChatBackground.current(); }
 	[[nodiscard]] bool hideAllChatsFolder() const { return _hideAllChatsFolder.current(); }
+	[[nodiscard]] bool hideArchiveChats() const { return _hideArchiveChats.current(); }
 	[[nodiscard]] bool hideStories() const { return _hideStories.current(); }
 	[[nodiscard]] bool hideOpenWebappButtonChatlist() const { return _hideOpenWebappButtonChatlist.current(); }
 	[[nodiscard]] bool localPremium() const { return _localPremium.current(); }
@@ -77,6 +78,7 @@ public:
 	[[nodiscard]] bool screenshotMode() const { return _screenshotMode.current(); }
 	[[nodiscard]] bool autoFormatMarkdown() const { return _autoFormatMarkdown.current(); }
 	[[nodiscard]] bool addCommaAfterMention() const { return _addCommaAfterMention.current(); }
+	[[nodiscard]] bool disableLinkPreview() const { return _disableLinkPreview.current(); }
 	[[nodiscard]] int contextMenuShortcutButtonSize() const { return _contextMenuShortcutButtonSize.current(); }
 	[[nodiscard]] int contextMenuShortcutIconSize() const { return _contextMenuShortcutIconSize.current(); }
 	[[nodiscard]] int contextMenuShortcutSpacing() const { return _contextMenuShortcutSpacing.current(); }
@@ -101,6 +103,7 @@ public:
 	void setShowRegistrationDate(bool val);
 	void setDisableCustomChatBackground(bool val);
 	void setHideAllChatsFolder(bool val);
+	void setHideArchiveChats(bool val);
 	void setHideStories(bool val);
 	void setHideOpenWebappButtonChatlist(bool val);
 	void setLocalPremium(bool val);
@@ -130,6 +133,7 @@ public:
 	void setScreenshotMode(bool val);
 	void setAutoFormatMarkdown(bool val);
 	void setAddCommaAfterMention(bool val);
+	void setDisableLinkPreview(bool val);
 	void setContextMenuShortcutButtonSize(int val);
 	void setContextMenuShortcutIconSize(int val);
 	void setContextMenuShortcutSpacing(int val);
@@ -152,6 +156,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> showRegistrationDateValue() const { return _showRegistrationDate.value(); }
 	[[nodiscard]] rpl::producer<bool> disableCustomChatBackgroundValue() const { return _disableCustomChatBackground.value(); }
 	[[nodiscard]] rpl::producer<bool> hideAllChatsFolderValue() const { return _hideAllChatsFolder.value(); }
+	[[nodiscard]] rpl::producer<bool> hideArchiveChatsValue() const { return _hideArchiveChats.value(); }
 	[[nodiscard]] rpl::producer<bool> hideStoriesValue() const { return _hideStories.value(); }
 	[[nodiscard]] rpl::producer<bool> hideOpenWebappButtonChatlistValue() const { return _hideOpenWebappButtonChatlist.value(); }
 	[[nodiscard]] rpl::producer<bool> localPremiumValue() const { return _localPremium.value(); }
@@ -179,6 +184,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> screenshotModeValue() const { return _screenshotMode.value(); }
 	[[nodiscard]] rpl::producer<bool> autoFormatMarkdownValue() const { return _autoFormatMarkdown.value(); }
 	[[nodiscard]] rpl::producer<bool> addCommaAfterMentionValue() const { return _addCommaAfterMention.value(); }
+	[[nodiscard]] rpl::producer<bool> disableLinkPreviewValue() const { return _disableLinkPreview.value(); }
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutButtonSizeValue() const { return _contextMenuShortcutButtonSize.value(); }
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutIconSizeValue() const { return _contextMenuShortcutIconSize.value(); }
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutSpacingValue() const { return _contextMenuShortcutSpacing.value(); }
@@ -202,6 +208,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> showRegistrationDateChanges() const { return _showRegistrationDate.changes(); }
 	[[nodiscard]] rpl::producer<bool> disableCustomChatBackgroundChanges() const { return _disableCustomChatBackground.changes(); }
 	[[nodiscard]] rpl::producer<bool> hideAllChatsFolderChanges() const { return _hideAllChatsFolder.changes(); }
+	[[nodiscard]] rpl::producer<bool> hideArchiveChatsChanges() const { return _hideArchiveChats.changes(); }
 	[[nodiscard]] rpl::producer<bool> hideStoriesChanges() const { return _hideStories.changes(); }
 	[[nodiscard]] rpl::producer<bool> hideOpenWebappButtonChatlistChanges() const { return _hideOpenWebappButtonChatlist.changes(); }
 	[[nodiscard]] rpl::producer<bool> localPremiumChanges() const { return _localPremium.changes(); }
@@ -229,6 +236,7 @@ public:
 	[[nodiscard]] rpl::producer<bool> screenshotModeChanges() const { return _screenshotMode.changes(); }
 	[[nodiscard]] rpl::producer<bool> autoFormatMarkdownChanges() const { return _autoFormatMarkdown.changes(); }
 	[[nodiscard]] rpl::producer<bool> addCommaAfterMentionChanges() const { return _addCommaAfterMention.changes(); }
+	[[nodiscard]] rpl::producer<bool> disableLinkPreviewChanges() const { return _disableLinkPreview.changes(); }
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutButtonSizeChanges() const { return _contextMenuShortcutButtonSize.changes(); }
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutIconSizeChanges() const { return _contextMenuShortcutIconSize.changes(); }
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutSpacingChanges() const { return _contextMenuShortcutSpacing.changes(); }
@@ -258,6 +266,7 @@ private:
 	rpl::variable<bool> _showRegistrationDate = true;
 	rpl::variable<bool> _disableCustomChatBackground = false;
 	rpl::variable<bool> _hideAllChatsFolder = false;
+	rpl::variable<bool> _hideArchiveChats = false;
 	rpl::variable<bool> _hideStories = false;
 	rpl::variable<bool> _hideOpenWebappButtonChatlist = true;
 	rpl::variable<bool> _localPremium = false;
@@ -285,6 +294,7 @@ private:
 	rpl::variable<bool> _screenshotMode = false;
 	rpl::variable<bool> _autoFormatMarkdown = false;
 	rpl::variable<bool> _addCommaAfterMention = true;
+	rpl::variable<bool> _disableLinkPreview = false;
 	rpl::variable<int> _contextMenuShortcutButtonSize = 40;
 	rpl::variable<int> _contextMenuShortcutIconSize = 24;
 	rpl::variable<int> _contextMenuShortcutSpacing = 10;

@@ -930,6 +930,8 @@ PRIVATE
     fa/settings_menu/fa_deeplink_context_menu.h
     fa/settings/fa_settings.cpp
     fa/settings/fa_settings.h
+    fa/features/hide_archive_chats/hide_archive_chats.cpp
+    fa/features/hide_archive_chats/hide_archive_chats.h
     fa/settings_menu/sections/fa_general.cpp
     fa/settings_menu/sections/fa_general.h
     fa/settings_menu/sections/fa_chats.cpp
@@ -949,6 +951,8 @@ PRIVATE
     fa/lastfm/fa_lastfm_client.h
     fa/lastfm/fa_lastfm_card.cpp
     fa/lastfm/fa_lastfm_card.h
+    fa/filters/fa_members_filter.cpp
+    fa/filters/fa_members_filter.h
     fa/url_handlers/fa_url_handlers.cpp
     fa/url_handlers/fa_url_handlers.h
     fa/lang/fa_lang.cpp
@@ -963,15 +967,15 @@ PRIVATE
     fa/ui/md3/fa_slider.h
     fa/ui/md3/fa_top_bar.cpp
     fa/ui/md3/fa_top_bar.h
-    fa/ui/md3/fa_avatar_shape.cpp
-    fa/ui/md3/fa_avatar_shape.h
     fa/ui/md3/fa_nav_drawer.cpp
     fa/ui/md3/fa_nav_drawer.h
     fa/ui/md3/previews.cpp
     fa/ui/md3/previews.h
     fa/ui/md3/svg_assets.h
-    fa/ui/context_menu/fa_context_menu.cpp
-    fa/ui/context_menu/fa_context_menu.h
+    fa/features/context_menu/fa_context_menu.cpp
+    fa/features/context_menu/fa_context_menu.h
+    fa/features/avatar_shape/avatar_shape.cpp
+    fa/features/avatar_shape/avatar_shape.h
     fa/fa_version.h
     fa/ui/menu_item_subtext.cpp
     fa/ui/menu_item_subtext.h

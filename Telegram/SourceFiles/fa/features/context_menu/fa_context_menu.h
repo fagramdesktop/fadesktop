@@ -13,6 +13,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "main/session/session_show.h"
 
 #include <set>
+#include <vector>
 
 namespace Ui {
 class PopupMenu;
@@ -36,7 +37,7 @@ class HistoryItem;
 class PhotoData;
 class DocumentData;
 
-namespace FA::ContextMenu {
+namespace FA::Features::ContextMenu {
 
 enum class ShortcutType {
 	Reply,
@@ -70,32 +71,59 @@ struct ShortcutsResult {
 	std::set<ShortcutType> addedShortcuts;
 };
 
+struct AvailableShortcuts {
+	bool reply = false;
+	bool copy = false;
+	bool edit = false;
+	bool pin = false;
+	bool copyLink = false;
+	bool translate = false;
+	bool forward = false;
+	bool saveFile = false;
+};
+
+[[nodiscard]] AvailableShortcuts GetAvailableShortcutsFlags(
+	const std::set<ShortcutType> &shortcuts);
+
+template <typename Container>
+[[nodiscard]] std::vector<not_null<HistoryItem*>> CollectItems(const Container &items) {
+	std::vector<not_null<HistoryItem*>> result;
+	result.reserve(items.size());
+	for (const auto &item : items) {
+		result.push_back(item);
+	}
+	return result;
+}
+
 [[nodiscard]] bool HasShortcut(
 	const std::set<ShortcutType> &shortcuts,
 	ShortcutType type);
 
 [[nodiscard]] std::set<ShortcutType> GetAvailableShortcuts(
 	not_null<HistoryItem*> item,
-	Fn<bool(HistoryItem*)> hasCopyRestriction = nullptr);
+	Fn<bool(HistoryItem*)> hasCopyRestriction = nullptr,
+	std::vector<not_null<HistoryItem*>> items = {});
 
 [[nodiscard]] ShortcutsResult CreateShortcutsWidget(
-	not_null<Ui::Menu::Menu*> menu,
-	not_null<HistoryItem*> item,
-	not_null<Window::SessionController*> controller,
-	ShortcutCallbacks callbacks,
-	HistoryView::SelectedQuote quote = {});
+		not_null<Ui::Menu::Menu*> menu,
+		not_null<HistoryItem*> item,
+		not_null<Window::SessionController*> controller,
+		ShortcutCallbacks callbacks,
+		HistoryView::SelectedQuote quote = {},
+		std::vector<not_null<HistoryItem*>> saveItems = {});
 
 ShortcutsResult SetupShortcuts(
-	not_null<Ui::PopupMenu*> menu,
-	const HistoryView::ContextMenuRequest &request,
-	not_null<HistoryView::ListWidget*> list);
+		not_null<Ui::PopupMenu*> menu,
+		const HistoryView::ContextMenuRequest &request,
+		not_null<HistoryView::ListWidget*> list);
 
 ShortcutsResult SetupShortcuts(
-	not_null<Ui::PopupMenu*> menu,
-	not_null<HistoryItem*> item,
-	not_null<Window::SessionController*> controller,
-	ShortcutCallbacks callbacks,
-	HistoryView::SelectedQuote quote = {});
+		not_null<Ui::PopupMenu*> menu,
+		not_null<HistoryItem*> item,
+		not_null<Window::SessionController*> controller,
+		ShortcutCallbacks callbacks,
+		HistoryView::SelectedQuote quote = {},
+		std::vector<not_null<HistoryItem*>> saveItems = {});
 
 bool AddReplyInPrivate(
 	not_null<Ui::PopupMenu*> menu,
@@ -123,4 +151,4 @@ bool AddForwardSubmenu(
 	bool asGroup = true,
 	Fn<void()> callback = nullptr);
 
-} // namespace FA::ContextMenu
+} // namespace FA::Features::ContextMenu

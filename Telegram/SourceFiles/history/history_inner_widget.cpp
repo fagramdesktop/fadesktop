@@ -9,7 +9,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "fa/settings/fa_settings.h"
 #include "fa/utils/telegram_helpers.h"
-#include "fa/ui/context_menu/fa_context_menu.h"
+#include "fa/features/context_menu/fa_context_menu.h"
 #include "fa_lang_auto.h"
 
 
@@ -2966,20 +2966,22 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 	}
 	_menu = base::make_unique_q<Ui::PopupMenu>(this, st::faContextMenu);
 
-	// Pre-calculate which shortcuts will be shown to avoid duplicates
 	const auto availableShortcuts = leaderOrSelf
-		? FA::ContextMenu::GetAvailableShortcuts(leaderOrSelf, [this](HistoryItem *item) {
-			return hasCopyRestriction(item);
-		})
-		: std::set<FA::ContextMenu::ShortcutType>{};
-	const auto hasShortcutReply = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::Reply);
-	const auto hasShortcutCopy = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::Copy);
-	const auto hasShortcutEdit = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::Edit);
-	const auto hasShortcutPin = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::Pin)
-		|| FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::Unpin);
-	const auto hasShortcutCopyLink = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::CopyLink);
-	const auto hasShortcutTranslate = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::Translate);
-	const auto hasShortcutSaveFile = FA::ContextMenu::HasShortcut(availableShortcuts, FA::ContextMenu::ShortcutType::SaveFile);
+		? FA::Features::ContextMenu::GetAvailableShortcuts(
+			leaderOrSelf,
+			[this](HistoryItem *item) {
+				return hasCopyRestriction(item);
+			},
+			FA::Features::ContextMenu::CollectItems(_selected))
+		: std::set<FA::Features::ContextMenu::ShortcutType>{};
+	const auto availableFlags = FA::Features::ContextMenu::GetAvailableShortcutsFlags(availableShortcuts);
+	const auto hasShortcutReply = availableFlags.reply;
+	const auto hasShortcutCopy = availableFlags.copy;
+	const auto hasShortcutEdit = availableFlags.edit;
+	const auto hasShortcutPin = availableFlags.pin;
+	const auto hasShortcutCopyLink = availableFlags.copyLink;
+	const auto hasShortcutTranslate = availableFlags.translate;
+	const auto hasShortcutSaveFile = availableFlags.saveFile;
 
 	if (linkUserpicPeerId) {
 		_widget->fillSenderUserpicMenu(
@@ -4354,7 +4356,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		const auto inner = this;
 		const auto widget = _widget;
 		const auto controller = _controller;
-		FA::ContextMenu::ShortcutCallbacks callbacks;
+		FA::Features::ContextMenu::ShortcutCallbacks callbacks;
 		callbacks.hasCopyRestriction = [inner](HistoryItem *item) {
 			return inner->hasCopyRestriction(item);
 		};
@@ -4410,12 +4412,21 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			}
 		};
 
-		FA::ContextMenu::SetupShortcuts(
+		std::vector<not_null<HistoryItem*>> saveItems;
+		if (!_selected.empty()) {
+			saveItems.reserve(_selected.size());
+			for (const auto &selected : _selected) {
+				saveItems.push_back(selected);
+			}
+		}
+
+		FA::Features::ContextMenu::SetupShortcuts(
 			_menu.get(),
 			leaderOrSelf,
 			controller,
 			std::move(callbacks),
-			selectedQuote(leaderOrSelf));
+			selectedQuote(leaderOrSelf),
+			std::move(saveItems));
 	}
 	if (_menu->empty()) {
 		_menu = nullptr;

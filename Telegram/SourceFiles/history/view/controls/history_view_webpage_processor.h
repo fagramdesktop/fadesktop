@@ -106,6 +106,7 @@ public:
 private:
 	void updateFromData();
 	void checkPreview();
+	void applyDefaultRemoved();
 
 	const not_null<History*> _history;
 	const std::shared_ptr<WebpageResolver> _resolver;
@@ -116,6 +117,7 @@ private:
 	QString _link;
 	WebPageData *_data = nullptr;
 	Data::WebPageDraft _draft;
+	bool _userEnabledPreview = false;
 
 	rpl::event_stream<> _repaintRequests;
 	rpl::variable<WebpageParsed> _parsed;

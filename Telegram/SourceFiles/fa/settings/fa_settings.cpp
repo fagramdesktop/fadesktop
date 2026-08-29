@@ -112,6 +112,7 @@ void FASettings::loadFromJson(const QJsonObject &obj) {
 	_showRegistrationDate = obj.contains("show_registration_date") ? obj["show_registration_date"].toBool() : _showRegistrationDate.current();
 	_disableCustomChatBackground = obj.contains("disable_custom_chat_background") ? obj["disable_custom_chat_background"].toBool() : _disableCustomChatBackground.current();
 	_hideAllChatsFolder = obj.contains("hide_all_chats_folder") ? obj["hide_all_chats_folder"].toBool() : _hideAllChatsFolder.current();
+	_hideArchiveChats = obj.contains("hide_archive_chats") ? obj["hide_archive_chats"].toBool() : _hideArchiveChats.current();
 	_hideStories = obj.contains("hide_stories") ? obj["hide_stories"].toBool() : _hideStories.current();
 	_hideOpenWebappButtonChatlist = obj.contains("hide_open_webapp_button_chatlist") ? obj["hide_open_webapp_button_chatlist"].toBool() : _hideOpenWebappButtonChatlist.current();
 	_localPremium = obj.contains("local_premium") ? obj["local_premium"].toBool() : _localPremium.current();
@@ -141,6 +142,7 @@ void FASettings::loadFromJson(const QJsonObject &obj) {
 	_screenshotMode = obj.contains("screenshot_mode") ? obj["screenshot_mode"].toBool() : _screenshotMode.current();
 	_autoFormatMarkdown = obj.contains("auto_format_markdown") ? obj["auto_format_markdown"].toBool() : _autoFormatMarkdown.current();
 	_addCommaAfterMention = obj.contains("add_comma_after_mention") ? obj["add_comma_after_mention"].toBool() : _addCommaAfterMention.current();
+	_disableLinkPreview = obj.contains("disable_link_preview") ? obj["disable_link_preview"].toBool() : _disableLinkPreview.current();
 	_contextMenuShortcutButtonSize = obj.contains("context_menu_shortcut_button_size") ? obj["context_menu_shortcut_button_size"].toInt() : _contextMenuShortcutButtonSize.current();
 	_contextMenuShortcutIconSize = obj.contains("context_menu_shortcut_icon_size") ? obj["context_menu_shortcut_icon_size"].toInt() : _contextMenuShortcutIconSize.current();
 	_contextMenuShortcutSpacing = obj.contains("context_menu_shortcut_spacing") ? obj["context_menu_shortcut_spacing"].toInt() : _contextMenuShortcutSpacing.current();
@@ -165,6 +167,7 @@ QJsonObject FASettings::saveToJson() const {
 	obj["show_registration_date"] = _showRegistrationDate.current();
 	obj["disable_custom_chat_background"] = _disableCustomChatBackground.current();
 	obj["hide_all_chats_folder"] = _hideAllChatsFolder.current();
+	obj["hide_archive_chats"] = _hideArchiveChats.current();
 	obj["hide_stories"] = _hideStories.current();
 	obj["hide_open_webapp_button_chatlist"] = _hideOpenWebappButtonChatlist.current();
 	obj["local_premium"] = _localPremium.current();
@@ -194,6 +197,7 @@ QJsonObject FASettings::saveToJson() const {
 	obj["screenshot_mode"] = _screenshotMode.current();
 	obj["auto_format_markdown"] = _autoFormatMarkdown.current();
 	obj["add_comma_after_mention"] = _addCommaAfterMention.current();
+	obj["disable_link_preview"] = _disableLinkPreview.current();
 	obj["context_menu_shortcut_button_size"] = _contextMenuShortcutButtonSize.current();
 	obj["context_menu_shortcut_icon_size"] = _contextMenuShortcutIconSize.current();
 	obj["context_menu_shortcut_spacing"] = _contextMenuShortcutSpacing.current();
@@ -296,6 +300,12 @@ void FASettings::setDisableCustomChatBackground(bool val) {
 void FASettings::setHideAllChatsFolder(bool val) {
 	if (_hideAllChatsFolder.current() == val) return;
 	_hideAllChatsFolder = val;
+	save();
+}
+
+void FASettings::setHideArchiveChats(bool val) {
+	if (_hideArchiveChats.current() == val) return;
+	_hideArchiveChats = val;
 	save();
 }
 
@@ -470,6 +480,12 @@ void FASettings::setAutoFormatMarkdown(bool val) {
 void FASettings::setAddCommaAfterMention(bool val) {
 	if (_addCommaAfterMention.current() == val) return;
 	_addCommaAfterMention = val;
+	save();
+}
+
+void FASettings::setDisableLinkPreview(bool val) {
+	if (_disableLinkPreview.current() == val) return;
+	_disableLinkPreview = val;
 	save();
 }
 

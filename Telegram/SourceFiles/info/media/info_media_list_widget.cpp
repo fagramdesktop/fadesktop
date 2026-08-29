@@ -8,7 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "info/media/info_media_list_widget.h"
 
 #include "fa/settings/fa_settings.h"
-#include "fa/ui/context_menu/fa_context_menu.h"
+#include "fa/features/context_menu/fa_context_menu.h"
 #include "fa_lang_auto.h"
 
 #include "info/global_media/info_global_media_provider.h"
@@ -1563,7 +1563,7 @@ void ListWidget::showContextMenu(
 					const auto item = pair.first;
 					return item->media() && item->media()->allowsEditCaption();
 				});
-			FA::ContextMenu::AddForwardSubmenu(
+			FA::Features::ContextMenu::AddForwardSubmenu(
 				_contextMenu.get(),
 				tr::lng_context_forward_selected(tr::now),
 				ids,
@@ -1619,7 +1619,7 @@ void ListWidget::showContextMenu(
 				}
 			}
 			if (selectionData.canForward) {
-				FA::ContextMenu::AddForwardSubmenu(
+				FA::Features::ContextMenu::AddForwardSubmenu(
 					_contextMenu.get(),
 					item,
 					_controller,

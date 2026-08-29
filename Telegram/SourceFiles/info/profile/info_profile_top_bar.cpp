@@ -8,7 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/profile/info_profile_top_bar.h"
 
 #include "fa/settings/fa_settings.h"
-#include "fa/ui/md3/fa_avatar_shape.h"
+#include "fa/features/avatar_shape/avatar_shape.h"
 
 #include "api/api_peer_colors.h"
 #include "api/api_peer_photo.h"
@@ -558,6 +558,13 @@ TopBar::TopBar(
 			FASettings::FASettings::getInstance().disablePremiumAnimationChanges()
 		) | rpl::on_next([=] {
 			updateVideoUserpic();
+			update();
+		}, lifetime());
+		rpl::merge(
+			FASettings::FASettings::getInstance().avatarShapeChanges(),
+			FASettings::FASettings::getInstance().roundnessChanges()
+		) | rpl::on_next([=] {
+			_userpicUniqueKey = InMemoryKey();
 			update();
 		}, lifetime());
 	}
@@ -2815,23 +2822,26 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 				Rect(image.size() / image.devicePixelRatio()),
 				_monoforumMask);
 			q.end();
-		} else if (_peer->isUser()) {
-			image = PeerData::GenerateUserpicImage(
-				_peer,
-				_userpicView,
-				scaled,
-				0);
-			image = FA::Ui::ApplyMaterialShape(std::move(image));
-		} else {
-			const auto radius = (_source == Source::Community)
-				? std::optional<int>(
-					int(scaled * Ui::ForumUserpicRadiusMultiplier()))
-				: std::nullopt;
+		} else if (_source == Source::Community) {
+			const auto radius = int(scaled * Ui::ForumUserpicRadiusMultiplier());
 			image = PeerData::GenerateUserpicImage(
 				_peer,
 				_userpicView,
 				scaled,
 				radius);
+		} else if (FA::Features::AvatarShape::IsMaterial()) {
+			image = PeerData::GenerateUserpicImage(
+				_peer,
+				_userpicView,
+				scaled,
+				0);
+			image = FA::Features::AvatarShape::Apply(std::move(image));
+		} else {
+			image = PeerData::GenerateUserpicImage(
+				_peer,
+				_userpicView,
+				scaled,
+				std::nullopt);
 		}
 		_cachedUserpic = std::move(image);
 		_cachedUserpic.setDevicePixelRatio(style::DevicePixelRatio());

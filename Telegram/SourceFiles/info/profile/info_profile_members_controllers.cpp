@@ -521,11 +521,13 @@ bool MemberListRow::elementsAnimating() const {
 
 std::unique_ptr<ParticipantsBoxController> CreateMembersController(
 		not_null<Window::SessionNavigation*> navigation,
-		not_null<PeerData*> peer) {
+		not_null<PeerData*> peer,
+		bool fullMemberList) {
 	return std::make_unique<ParticipantsBoxController>(
 		navigation,
 		peer,
-		ParticipantsBoxController::Role::Profile);
+		ParticipantsBoxController::Role::Profile,
+		fullMemberList);
 }
 
 } // namespace Profile

@@ -7,7 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "stdafx.h"
 
-#include "fa/ui/context_menu/fa_context_menu.h"
+#include "fa/features/context_menu/fa_context_menu.h"
 
 #include "fa/settings/fa_settings.h"
 #include "fa_lang_auto.h"
@@ -47,7 +47,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include <QAction>
 #include <QMenu>
 
-namespace FA::ContextMenu {
+namespace FA::Features::ContextMenu {
 namespace {
 
 [[nodiscard]] int ShortcutButtonSize() {
@@ -108,7 +108,8 @@ public:
 		not_null<HistoryItem*> item,
 		not_null<Window::SessionController*> controller,
 		ShortcutCallbacks callbacks,
-		HistoryView::SelectedQuote quote = {});
+		HistoryView::SelectedQuote quote = {},
+		std::vector<not_null<HistoryItem*>> saveItems = {});
 
 	bool isEnabled() const override {
 		return true;
@@ -141,6 +142,7 @@ private:
 	const not_null<Window::SessionController*> _controller;
 	ShortcutCallbacks _callbacks;
 	HistoryView::SelectedQuote _quote;
+	std::vector<not_null<HistoryItem*>> _saveItems;
 
 	std::vector<object_ptr<Ui::AbstractButton>> _buttons;
 	std::set<ShortcutType> _addedShortcuts;
@@ -155,7 +157,8 @@ ContextMenuShortcuts::ContextMenuShortcuts(
 	not_null<HistoryItem*> item,
 	not_null<Window::SessionController*> controller,
 	ShortcutCallbacks callbacks,
-	HistoryView::SelectedQuote quote)
+	HistoryView::SelectedQuote quote,
+	std::vector<not_null<HistoryItem*>> saveItems)
 : ItemBase(parent, st)
 , _dummyAction(Ui::CreateChild<QAction>(this))
 , _st(st)
@@ -163,6 +166,7 @@ ContextMenuShortcuts::ContextMenuShortcuts(
 , _controller(controller)
 , _callbacks(std::move(callbacks))
 , _quote(std::move(quote))
+, _saveItems(saveItems.empty() ? std::vector<not_null<HistoryItem*>>{ item } : std::move(saveItems))
 , _height(0) {
 	setAcceptBoth(true);
 	fitToMenuWidth();
@@ -201,13 +205,6 @@ void ContextMenuShortcuts::createButtons() {
 		: false;
 	const auto canCopy = !item->clipboardText().empty() && !hasCopyRestriction;
 	const auto canLink = item->hasDirectLink();
-	const auto media = item->media();
-	const auto photo = media ? media->photo() : nullptr;
-	const auto document = media ? media->document() : nullptr;
-	const auto canGallery = photo
-		|| (document && (document->isVideoFile() || document->isGifv()));
-
-	const auto hasDocumentOnly = document && !canGallery;
 	const auto hasText = !item->originalText().text.isEmpty();
 	const auto canEdit = item->allowsEdit(base::unixtime::now());
 	const auto canPin = item->canPin();
@@ -312,32 +309,49 @@ void ContextMenuShortcuts::createButtons() {
 
 	// 4. Media Save or Translate or Pin
 	bool addedFourthButton = false;
-	if (canGallery && !hasCopyRestriction) {
-		addButton(
-			st::menuIconDownload,
-			[=] {
-				if (photo && _callbacks.savePhoto) {
-					_callbacks.savePhoto(photo);
+
+	auto hasSaveable = [&] {
+		for (const auto &saveItem : _saveItems) {
+			const auto restricted = _callbacks.hasCopyRestriction
+				? _callbacks.hasCopyRestriction(saveItem)
+				: false;
+			if (restricted) {
+				continue;
+			}
+			const auto media = saveItem->media();
+			if (media && (media->photo() || media->document())) {
+				return true;
+			}
+		}
+		return false;
+	};
+	if (hasSaveable()) {
+		auto saveAll = [=] {
+			for (const auto &saveItem : _saveItems) {
+				const auto restricted = _callbacks.hasCopyRestriction
+					? _callbacks.hasCopyRestriction(saveItem)
+					: false;
+				if (restricted) {
+					continue;
+				}
+				const auto media = saveItem->media();
+				const auto photo = media ? media->photo() : nullptr;
+				const auto document = media ? media->document() : nullptr;
+				if (photo) {
+					if (_callbacks.savePhoto) {
+						_callbacks.savePhoto(photo);
+					}
 				} else if (document) {
 					DocumentSaveClickHandler::SaveAndTrack(
-						item->fullId(),
+						saveItem->fullId(),
 						document,
 						DocumentSaveClickHandler::Mode::ToNewFile);
 				}
-			},
-			ShortcutType::SaveFile);
-		addedFourthButton = true;
-	} else if (hasDocumentOnly && !hasCopyRestriction) {
+			}
+		};
 		addButton(
 			st::menuIconDownload,
-			[=] {
-				if (document) {
-					DocumentSaveClickHandler::SaveAndTrack(
-						item->fullId(),
-						document,
-						DocumentSaveClickHandler::Mode::ToNewFile);
-				}
-			},
+			std::move(saveAll),
 			ShortcutType::SaveFile);
 		addedFourthButton = true;
 	} else if (hasText && !Ui::SkipTranslate(item->originalText())) {
@@ -517,60 +531,81 @@ bool HasShortcut(
 	return shortcuts.find(type) != shortcuts.end();
 }
 
+AvailableShortcuts GetAvailableShortcutsFlags(
+		const std::set<ShortcutType> &shortcuts) {
+	auto result = AvailableShortcuts();
+	result.reply = HasShortcut(shortcuts, ShortcutType::Reply);
+	result.copy = HasShortcut(shortcuts, ShortcutType::Copy);
+	result.edit = HasShortcut(shortcuts, ShortcutType::Edit);
+	result.pin = HasShortcut(shortcuts, ShortcutType::Pin)
+		|| HasShortcut(shortcuts, ShortcutType::Unpin);
+	result.copyLink = HasShortcut(shortcuts, ShortcutType::CopyLink);
+	result.translate = HasShortcut(shortcuts, ShortcutType::Translate);
+	result.forward = HasShortcut(shortcuts, ShortcutType::Forward);
+	result.saveFile = HasShortcut(shortcuts, ShortcutType::SaveFile);
+	return result;
+}
+
 std::set<ShortcutType> GetAvailableShortcuts(
 		not_null<HistoryItem*> item,
-		Fn<bool(HistoryItem*)> hasCopyRestriction) {
+		Fn<bool(HistoryItem*)> hasCopyRestriction,
+		std::vector<not_null<HistoryItem*>> items) {
 	if (!FASettings::FASettings::getInstance().contextMenuUseShortcuts()) {
 		return {};
 	}
+	if (items.empty()) {
+		items.push_back(item);
+	}
 
 	std::set<ShortcutType> result;
-	const auto canReply = item->isRegular();
-	const auto copyRestriction = hasCopyRestriction
-		? hasCopyRestriction(item)
-		: false;
-	const auto canCopy = !item->clipboardText().empty() && !copyRestriction;
-	const auto canLink = item->hasDirectLink();
-	const auto media = item->media();
-	const auto photo = media ? media->photo() : nullptr;
-	const auto document = media ? media->document() : nullptr;
-	const auto canGallery = photo
-		|| (document && (document->isVideoFile() || document->isGifv()));
+	for (const auto &it : items) {
+		const auto canReply = it->isRegular();
+		const auto copyRestriction = hasCopyRestriction
+			? hasCopyRestriction(it)
+			: false;
+		const auto canCopy = !it->clipboardText().empty() && !copyRestriction;
+		const auto canLink = it->hasDirectLink();
+		const auto media = it->media();
+		const auto photo = media ? media->photo() : nullptr;
+		const auto document = media ? media->document() : nullptr;
+		const auto canGallery = photo
+			|| (document && (document->isVideoFile() || document->isGifv()));
 
-	const auto hasDocumentOnly = document && !canGallery;
-	const auto hasText = !item->originalText().text.isEmpty();
-	const auto canEdit = item->allowsEdit(base::unixtime::now());
-	const auto canPin = item->canPin();
-	const auto isPinned = item->isPinned();
+		const auto hasDocumentOnly = document && !canGallery;
+		const auto hasText = !it->originalText().text.isEmpty();
+		const auto canEdit = it->allowsEdit(base::unixtime::now());
+		const auto canPin = it->canPin();
+		const auto isPinned = it->isPinned();
 
-	if (canReply) {
-		result.insert(ShortcutType::Reply);
-	}
-	if (canCopy) {
-		result.insert(ShortcutType::Copy);
-	} else if (canEdit) {
-		result.insert(ShortcutType::Edit);
-	}
-	if (canLink) {
-		result.insert(ShortcutType::CopyLink);
-	} else if (canPin) {
-		result.insert(isPinned ? ShortcutType::Unpin : ShortcutType::Pin);
-	}
+		if (canReply) {
+			result.insert(ShortcutType::Reply);
+		}
+		if (canCopy) {
+			result.insert(ShortcutType::Copy);
+		} else if (canEdit) {
+			result.insert(ShortcutType::Edit);
+		}
+		if (canLink) {
+			result.insert(ShortcutType::CopyLink);
+		} else if (canPin) {
+			result.insert(isPinned ? ShortcutType::Unpin : ShortcutType::Pin);
+		}
 
-	bool addedFourthButton = false;
-	if (canGallery && !copyRestriction) {
-		result.insert(ShortcutType::SaveFile);
-		addedFourthButton = true;
-	} else if (hasDocumentOnly && !copyRestriction) {
-		result.insert(ShortcutType::SaveFile);
-		addedFourthButton = true;
-	} else if (hasText && !Ui::SkipTranslate(item->originalText())) {
-		result.insert(ShortcutType::Translate);
-		addedFourthButton = true;
-	}
+		bool addedFourthButton = false;
+		if (canGallery && !copyRestriction) {
+			result.insert(ShortcutType::SaveFile);
+			addedFourthButton = true;
+		} else if (hasDocumentOnly && !copyRestriction) {
+			result.insert(ShortcutType::SaveFile);
+			addedFourthButton = true;
+		} else if (hasText && !Ui::SkipTranslate(it->originalText())) {
+			result.insert(ShortcutType::Translate);
+			addedFourthButton = true;
+		}
 
-	if (!addedFourthButton && canPin && canLink) {
-		result.insert(isPinned ? ShortcutType::Unpin : ShortcutType::Pin);
+		if (!addedFourthButton && canPin && canLink) {
+			result.insert(isPinned ? ShortcutType::Unpin : ShortcutType::Pin);
+		}
 	}
 
 	return result;
@@ -581,7 +616,8 @@ ShortcutsResult CreateShortcutsWidget(
 		not_null<HistoryItem*> item,
 		not_null<Window::SessionController*> controller,
 		ShortcutCallbacks callbacks,
-		HistoryView::SelectedQuote quote) {
+		HistoryView::SelectedQuote quote,
+		std::vector<not_null<HistoryItem*>> saveItems) {
 	if (!FASettings::FASettings::getInstance().contextMenuUseShortcuts()) {
 		return { nullptr, {} };
 	}
@@ -592,7 +628,8 @@ ShortcutsResult CreateShortcutsWidget(
 		item,
 		controller,
 		std::move(callbacks),
-		std::move(quote));
+		std::move(quote),
+		std::move(saveItems));
 
 	auto addedShortcuts = widget ? widget->addedShortcuts() : std::set<ShortcutType>{};
 	return { std::move(widget), std::move(addedShortcuts) };
@@ -658,12 +695,23 @@ ShortcutsResult SetupShortcuts(
 			}));
 	};
 
+	std::vector<not_null<HistoryItem*>> saveItems;
+	if (request.overSelection && !request.selectedItems.empty()) {
+		saveItems.reserve(request.selectedItems.size());
+		for (const auto &selected : request.selectedItems) {
+			if (const auto item = list->session().data().message(selected.msgId)) {
+				saveItems.push_back(item);
+			}
+		}
+	}
+
 	auto result = CreateShortcutsWidget(
 		menu->menu(),
 		request.item,
 		list->controller(),
 		std::move(callbacks),
-		request.quote);
+		request.quote,
+		std::move(saveItems));
 
 	if (result.widget) {
 		if (!FASettings::FASettings::getInstance().contextMenuShortcutsAtBottom()) {
@@ -678,7 +726,8 @@ ShortcutsResult SetupShortcuts(
 		not_null<HistoryItem*> item,
 		not_null<Window::SessionController*> controller,
 		ShortcutCallbacks callbacks,
-		HistoryView::SelectedQuote quote) {
+		HistoryView::SelectedQuote quote,
+		std::vector<not_null<HistoryItem*>> saveItems) {
 	if (!FASettings::FASettings::getInstance().contextMenuUseShortcuts()) {
 		return { nullptr, {} };
 	}
@@ -688,7 +737,8 @@ ShortcutsResult SetupShortcuts(
 		item,
 		controller,
 		std::move(callbacks),
-		std::move(quote));
+		std::move(quote),
+		std::move(saveItems));
 
 	if (result.widget) {
 		if (FASettings::FASettings::getInstance().contextMenuShortcutsAtBottom()) {
@@ -986,4 +1036,4 @@ bool AddForwardSubmenu(
 	return true;
 }
 
-} // namespace FA::ContextMenu
+} // namespace FA::Features::ContextMenu

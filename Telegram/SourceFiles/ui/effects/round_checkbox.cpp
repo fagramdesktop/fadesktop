@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/effects/round_checkbox.h"
 
 #include "fa/settings/fa_settings.h"
+#include "fa/features/avatar_shape/avatar_shape.h"
 
 #include "lang/lang_keys.h"
 #include "ui/rp_widget.h"
@@ -465,8 +466,8 @@ void RoundImageCheckbox::paintFrame(
 				if (!use_default_rounding) {
 					p.drawRoundedRect(
 						outline,
-				 		outline.height() * FASettings::FASettings::getInstance().roundness() / 100, 
-						outline.width() * FASettings::FASettings::getInstance().roundness() / 100);
+				 		outline.height() * FA::Features::AvatarShape::Roundness() / 100, 
+						outline.width() * FA::Features::AvatarShape::Roundness() / 100);
 				}
 				else {
 					p.drawEllipse(outline);

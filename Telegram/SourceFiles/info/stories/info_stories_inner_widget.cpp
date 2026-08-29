@@ -246,7 +246,9 @@ void InnerWidget::preloadArchiveCount() {
 	stories->albumIdsChanged() | rpl::filter([=](const Data::StoryAlbumIdsKey &k) {
 		return (k == key) && stories->albumIdsCountKnown(_peer->id, kArchive);
 	}) | rpl::take(1) | rpl::on_next([=] {
-		refreshAlbumsTabs();
+		if (!_addingToAlbumId) {
+			refreshAlbumsTabs();
+		}
 	}, lifetime());
 }
 

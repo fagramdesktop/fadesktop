@@ -7,6 +7,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 #include "window/window_main_menu.h"
 
+#include "fa/features/hide_archive_chats/hide_archive_chats.h"
 #include "fa/settings/fa_settings.h"
 #include "fa/ui/md3/fa_nav_drawer.h"
 
@@ -537,7 +538,8 @@ void MainMenu::setupArchive() {
 		const auto f = folder();
 		return f
 			&& (!f->chatsList()->empty() || f->storiesCount() > 0)
-			&& controller->session().settings().archiveInMainMenu();
+			&& (controller->session().settings().archiveInMainMenu()
+				|| FA::Features::HideArchiveChats::ShouldHide());
 	};
 
 	const auto wrap = _menu->add(
@@ -603,7 +605,9 @@ void MainMenu::setupArchive() {
 		}) | rpl::to_empty,
 		controller->session().data().stories().sourcesChanged(
 			Data::StorySourcesList::Hidden
-		)
+		),
+		FASettings::FASettings::getInstance().hideArchiveChatsChanges(
+		) | rpl::to_empty
 	) | rpl::on_next([=] {
 		const auto isArchiveVisible = checkArchive();
 		wrap->toggle(isArchiveVisible, anim::type::normal);
