@@ -13,6 +13,10 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 namespace Platform {
 
+inline bool CheckAppTranslocation() {
+	return true;
+}
+
 inline void IgnoreApplicationActivationRightNow() {
 }
 

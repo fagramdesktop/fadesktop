@@ -18,6 +18,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include <QImage>
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 #include <new>
 
@@ -93,8 +94,8 @@ struct AlignedFrameStorageLayout {
 };
 
 void AlignedImageBufferCleanupHandler(void *data) {
-	const auto buffer = static_cast<uchar*>(data);
-	delete[] buffer;
+	// Paired with the ::malloc() in CreateFrameStorage().
+	::free(data);
 }
 
 [[nodiscard]] bool ComputeAlignedFrameStorageLayout(
@@ -355,7 +356,8 @@ FormatPointer MakeFormatPointer(
 #else
 		int(*write)(void *opaque, uint8_t *buffer, int bufferSize),
 #endif
-		int64_t(*seek)(void *opaque, int64_t offset, int whence)) {
+		int64_t(*seek)(void *opaque, int64_t offset, int whence),
+		FormatSettings settings) {
 	auto io = MakeIOPointer(opaque, read, write, seek);
 	if (!io) {
 		return {};
@@ -373,6 +375,9 @@ FormatPointer MakeFormatPointer(
 	auto options = (AVDictionary*)nullptr;
 	const auto guard = gsl::finally([&] { av_dict_free(&options); });
 	av_dict_set(&options, "usetoc", "1", 0);
+	if (settings.ignoreEditList) {
+		av_dict_set(&options, "ignore_editlist", "1", 0);
+	}
 
 	const auto error = AvErrorWrap(avformat_open_input(
 		&result,
@@ -797,7 +802,11 @@ QImage CreateFrameStorage(QSize size) {
 	if (!ComputeAlignedFrameStorageLayout(size, &layout)) {
 		return {};
 	}
-	const auto buffer = new (std::nothrow) uchar[layout.totalBytes];
+	// Not `new (std::nothrow)`: the operator new handler installed by
+	// CrashReports fires from inside operator new before the nothrow
+	// wrapper can return nullptr, so a recoverable out-of-memory here
+	// aborted the process instead of taking the null path below.
+	const auto buffer = static_cast<uchar*>(::malloc(layout.totalBytes));
 	if (!buffer) {
 		return {};
 	}

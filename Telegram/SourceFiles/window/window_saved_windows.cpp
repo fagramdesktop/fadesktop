@@ -26,6 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_chat_section.h"
 #include "history/view/history_view_pinned_section.h"
 #include "history/view/history_view_scheduled_section.h"
+#include "info/media/info_media_widget.h"
 #include "lang/lang_keys.h"
 #include "main/main_account.h"
 #include "main/main_domain.h"
@@ -39,6 +40,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/ui_utility.h"
 #include "ui/wrap/fade_wrap.h"
 #include "window/window_controller.h"
+#include "window/window_restore_shell.h"
 #include "window/window_session_controller.h"
 #include "styles/style_basic.h"
 #include "styles/style_dialogs.h"
@@ -47,12 +49,11 @@ namespace Window {
 namespace {
 
 constexpr auto kSaveDelay = crl::time(1000);
-constexpr auto kResolveTimeout = 20 * crl::time(1000);
 constexpr auto kBatchResolveFallback = 10 * crl::time(1000);
 constexpr auto kMaxSavedWindows = 64;
 constexpr auto kMaxSavedChats = 64;
 constexpr auto kMaxClosedWindows = 16;
-constexpr auto kVersion = 3;
+constexpr auto kVersion = 4;
 constexpr auto kPrefKey = std::string_view("windows_state");
 constexpr auto kRestoreKey = std::string_view("windows_state.restore");
 constexpr auto kAskedKey = std::string_view("windows_state.asked");
@@ -122,6 +123,7 @@ constexpr auto kAskedKey = std::string_view("windows_state.asked");
 				<< qint32(window.position.moncrc)
 				<< qint32(window.position.maximized)
 				<< qint32(window.position.scale)
+				<< window.title
 				<< qint32(window.chats.size());
 			for (const auto &chat : window.chats) {
 				stream << quint64(chat.peer.value)
@@ -173,6 +175,7 @@ constexpr auto kAskedKey = std::string_view("windows_state.asked");
 		auto moncrc = qint32();
 		auto maximized = qint32();
 		auto scale = qint32();
+		auto title = QString();
 		auto chatsCount = qint32();
 		stream >> accountIndex
 			>> userPeer
@@ -192,8 +195,11 @@ constexpr auto kAskedKey = std::string_view("windows_state.asked");
 			>> h
 			>> moncrc
 			>> maximized
-			>> scale
-			>> chatsCount;
+			>> scale;
+		if (version > 3) {
+			stream >> title;
+		}
+		stream >> chatsCount;
 		if (stream.status() != QDataStream::Ok
 			|| !ValidType(type)
 			|| chatsCount < 0
@@ -221,6 +227,7 @@ constexpr auto kAskedKey = std::string_view("windows_state.asked");
 			.w = w,
 			.h = h,
 		};
+		window.title = title;
 		window.chats.reserve(chatsCount);
 		for (auto j = 0; j != chatsCount; ++j) {
 			auto peer = quint64();
@@ -307,10 +314,14 @@ struct SavedWindows::Step {
 	SavedWindow data;
 	Main::Session *session = nullptr;
 	std::vector<Data::Thread*> slots;
+	std::unique_ptr<RestoreShell> shell;
+	SeparateId createdId = SeparateId(nullptr);
+	int id = 0;
 	int pending = 0;
+	bool created = false;
 	bool dispatching = false;
 	bool dead = false;
-	base::Timer timeout;
+	bool shellClosed = false;
 	rpl::lifetime lifetime;
 };
 
@@ -318,6 +329,7 @@ struct SavedWindows::BatchResolve {
 	bool sent = false;
 	bool done = false;
 	bool sliceSeen = false;
+	base::flat_set<PeerId> requested;
 	QVector<MTPInputUser> users;
 	QVector<MTPInputChannel> channels;
 	QVector<MTPlong> chats;
@@ -402,11 +414,19 @@ void SavedWindows::save() {
 QByteArray SavedWindows::collect() const {
 	auto list = std::vector<SavedWindow>();
 	auto used = std::vector<not_null<Controller*>>();
+	const auto pendingStep = [&](not_null<Controller*> window) {
+		return ranges::any_of(_steps, [&](const auto &step) {
+			return step->created && (step->createdId == window->id());
+		});
+	};
 	const auto push = [&](not_null<Controller*> window) {
 		if (ranges::contains(used, window)) {
 			return;
 		}
 		used.push_back(window);
+		if (pendingStep(window)) {
+			return;
+		}
 		if (auto serialized = serializeWindow(window)) {
 			list.push_back(std::move(*serialized));
 		}
@@ -435,8 +455,16 @@ QByteArray SavedWindows::collect() const {
 			list.push_back(window);
 		}
 	};
-	if (_step) {
-		appendPending(_step->data);
+	for (const auto &step : _steps) {
+		auto copy = step->data;
+		if (step->shell) {
+			copy.position = step->shell->countPositionForSave();
+		} else if (step->created) {
+			if (const auto window = _app->windowFor(step->createdId)) {
+				copy.position = window->widget()->countPositionForSave();
+			}
+		}
+		appendPending(copy);
 	}
 	for (const auto &window : _toRestore) {
 		appendPending(window);
@@ -476,6 +504,13 @@ std::optional<SavedWindow> SavedWindows::serializeWindow(
 	result.sharedMediaType = static_cast<int>(id.sharedMediaType);
 	if (id.thread) {
 		result.thread = SavedChatFromThread(id.thread);
+		const auto topic = id.thread->asTopic();
+		const auto peer = id.thread->peer();
+		result.title = topic
+			? topic->title()
+			: peer->isSelf()
+			? tr::lng_saved_messages(tr::now)
+			: peer->name();
 	}
 	result.position = window->widget()->countPositionForSave();
 	if (ReplayableType(id.type)) {
@@ -555,31 +590,26 @@ void RaiseAboveSiblings(not_null<QWidget*> card) {
 		wrap->deleteLater();
 		notify(OfferChoice::Detached);
 	}));
+	controller->activeChatValue(
+	) | rpl::on_next([=](Dialogs::Key key) {
+		if (key && !*notified) {
+			close();
+			notify(OfferChoice::Dismiss);
+		}
+	}, wrap->lifetime());
 	const auto desired = std::make_shared<bool>(false);
-	auto loaded = rpl::single(
-		controller->session().data().chatsListLoaded()
-	) | rpl::then(controller->session().data().chatsListLoadedEvents(
-	) | rpl::map([](Data::Folder *folder) {
-		return !folder;
-	}) | rpl::filter([](bool mainList) {
-		return mainList;
-	}));
-	rpl::combine(
-		controller->activeChatValue(),
-		rpl::single(
-			controller->mainSectionShown()
-		) | rpl::then(controller->mainSectionShownChanges()),
-		std::move(loaded)
-	) | rpl::map([](Dialogs::Key key, bool section, bool loaded) {
-		return loaded && !key && !section;
-	}) | rpl::distinct_until_changed(
-	) | rpl::on_next([=](bool show) {
-		*desired = show;
-		if (!show) {
+	rpl::single(
+		controller->mainSectionShown()
+	) | rpl::then(
+		controller->mainSectionShownChanges()
+	) | rpl::distinct_until_changed(
+	) | rpl::on_next([=](bool section) {
+		*desired = !section;
+		if (section) {
 			wrap->hide(anim::type::normal);
 		} else {
 			base::call_delayed(st::slideDuration, wrap, [=] {
-				if (*desired) {
+				if (*desired && !*notified) {
 					wrap->show(anim::type::normal);
 				}
 			});
@@ -642,6 +672,22 @@ void SavedWindows::windowClosed(not_null<Controller*> window) {
 	}
 }
 
+bool SavedWindows::closeActiveShell() {
+	for (const auto &step : _steps) {
+		if (step->shell && step->shell->isActiveWindow()) {
+			step->shell->close();
+			return true;
+		}
+	}
+	for (const auto &shell : _deadShells) {
+		if (shell->isActiveWindow()) {
+			shell->close();
+			return true;
+		}
+	}
+	return false;
+}
+
 bool SavedWindows::reopenLastClosed() {
 	if (_closed.empty() || Core::Quitting()) {
 		return false;
@@ -649,12 +695,11 @@ bool SavedWindows::reopenLastClosed() {
 	if (!_restoring) {
 		stashUndecided();
 	}
-	_toRestore.push_back(std::move(_closed.back()));
+	auto data = std::move(_closed.back());
 	_closed.pop_back();
-	if (!_restoring) {
-		_restoring = true;
-		processNext();
-	}
+	_restoring = true;
+	startStep(std::move(data));
+	checkRestoreFinished();
 	return true;
 }
 
@@ -739,13 +784,21 @@ void SavedWindows::beginRestore() {
 			std::make_move_iterator(end(_undecided)));
 		_undecided.clear();
 	}
-	processNext();
+	auto list = _toRestore;
+	for (auto &data : list) {
+		startStep(std::move(data));
+	}
+	_toRestore.clear();
+	checkRestoreFinished();
 }
 
 void SavedWindows::discardRestore() {
 	hideOffer();
 	_toRestore.clear();
 	_undecided.clear();
+	_steps.clear();
+	_deadShells.clear();
+	_restoring = false;
 	_restoreFinished = true;
 }
 
@@ -758,19 +811,6 @@ void SavedWindows::stashUndecided() {
 		std::make_move_iterator(begin(_toRestore)),
 		std::make_move_iterator(end(_toRestore)));
 	_toRestore.clear();
-}
-
-void SavedWindows::processNext() {
-	Expects(_step == nullptr);
-
-	while (!_toRestore.empty()) {
-		auto data = std::move(_toRestore.front());
-		_toRestore.erase(begin(_toRestore));
-		if (startStep(std::move(data))) {
-			return;
-		}
-	}
-	finishRestore();
 }
 
 Main::Session *SavedWindows::sessionFor(const SavedWindow &data) const {
@@ -790,72 +830,206 @@ Main::Session *SavedWindows::sessionFor(const SavedWindow &data) const {
 	return session;
 }
 
-bool SavedWindows::startStep(SavedWindow &&data) {
+void SavedWindows::startStep(SavedWindow &&data) {
 	const auto session = sessionFor(data);
 	if (!session) {
-		return false;
+		return;
 	}
-	_step = std::make_unique<Step>();
-	const auto step = _step.get();
+	auto owned = std::make_unique<Step>();
+	const auto step = owned.get();
+	_steps.push_back(std::move(owned));
+	step->id = ++_stepIdCounter;
 	step->data = std::move(data);
 	step->session = session;
 	step->slots.resize(1 + step->data.chats.size(), nullptr);
-	// step->timeout.setCallback([=] { queueFinishStep(); });
-	// step->timeout.callOnce(kResolveTimeout);
+	const auto stepId = step->id;
 	session->account().sessionChanges(
 	) | rpl::on_next([=](Main::Session *) {
-		step->dead = true;
-		queueFinishStep();
+		if (const auto step = stepById(stepId)) {
+			step->dead = true;
+			queueFinishStep(stepId);
+		}
 	}, step->lifetime);
 
-	const auto generation = _generation;
+	if (!NeedsThread(step->data.type)) {
+		const auto id = (step->data.type == SeparateType::Primary)
+			? SeparateId(not_null(&session->account()))
+			: SeparateId(SeparateType::Archive, session);
+		ensureStepWindow(step, id, step->data.position);
+	}
+
 	step->dispatching = true;
 	step->pending = (step->data.thread.valid() ? 1 : 0)
 		+ int(step->data.chats.size());
 	if (!step->pending) {
 		step->dispatching = false;
-		queueFinishStep();
-		return true;
+		queueFinishStep(stepId);
+		return;
 	}
 	if (step->data.thread.valid()) {
-		resolveSlot(0);
+		resolveSlot(step, 0);
 	}
 	const auto count = int(step->data.chats.size());
 	for (auto i = 0; i != count; ++i) {
-		if (!_step || _generation != generation) {
-			return true;
+		if (!stepById(stepId)) {
+			return;
 		}
-		resolveSlot(1 + i);
+		resolveSlot(step, 1 + i);
 	}
-	if (_step && _generation == generation) {
-		_step->dispatching = false;
-		if (!_step->pending) {
-			queueFinishStep();
+	if (const auto alive = stepById(stepId)) {
+		alive->dispatching = false;
+		if (!alive->pending) {
+			queueFinishStep(stepId);
+		} else if (NeedsThread(alive->data.type)) {
+			createShell(alive);
 		}
 	}
-	return true;
 }
 
-void SavedWindows::queueFinishStep() {
-	const auto generation = _generation;
-	crl::on_main(crl::guard(this, [=] {
-		if (_generation == generation && _step) {
-			finishStep();
+SavedWindows::Step *SavedWindows::stepById(int stepId) const {
+	for (const auto &step : _steps) {
+		if (step->id == stepId) {
+			return step.get();
 		}
-	}));
+	}
+	return nullptr;
 }
 
-void SavedWindows::finishStep() {
-	Expects(_step != nullptr);
-
-	++_generation;
-	const auto step = std::move(_step);
-	step->timeout.cancel();
-	step->lifetime.destroy();
-	if (!step->dead) {
-		createWindow(*step);
+QString SavedWindows::shellTitle(
+		const SavedWindow &data,
+		not_null<Main::Session*> session) const {
+	const auto settings = _app->settings().windowTitleContent();
+	const auto name = settings.hideChatName
+		? QString()
+		: st::wrap_rtl(data.title);
+	if (data.type == SeparateType::SharedMedia
+		&& data.sharedMediaType >= 0
+		&& data.sharedMediaType < Storage::kSharedMediaTypeCount) {
+		const auto media = Info::Media::SharedMediaTitle(
+			Storage::SharedMediaType(data.sharedMediaType))(tr::now);
+		return name.isEmpty() ? media : (name + u" @ "_q + media);
 	}
-	processNext();
+	const auto user = (!settings.hideAccountName
+		&& _app->domain().accountsAuthedCount() > 1)
+		? st::wrap_rtl(session->user()->name())
+		: QString();
+	return name.isEmpty()
+		? (user.isEmpty() ? u"Telegram"_q : user)
+		: user.isEmpty()
+		? name
+		: (name + u" @ "_q + user);
+}
+
+void SavedWindows::createShell(not_null<Step*> step) {
+	Expects(step->shell == nullptr);
+
+	step->shell = std::make_unique<RestoreShell>(
+		shellTitle(step->data, step->session),
+		step->data.position);
+	const auto stepId = step->id;
+	step->shell->closeRequests(
+	) | rpl::on_next([=] {
+		if (const auto step = stepById(stepId)) {
+			step->shellClosed = true;
+		}
+		crl::on_main(this, [=] {
+			if (Core::Quitting()) {
+				return;
+			}
+			if (const auto step = stepById(stepId)) {
+				abortStep(step, true);
+			}
+		});
+	}, step->lifetime);
+}
+
+void SavedWindows::queueFinishStep(int stepId) {
+	crl::on_main(this, [=] {
+		if (const auto step = stepById(stepId)) {
+			finishStep(step);
+		}
+	});
+}
+
+void SavedWindows::finishStep(not_null<Step*> step) {
+	const auto i = ranges::find(
+		_steps,
+		step.get(),
+		&std::unique_ptr<Step>::get);
+	Assert(i != end(_steps));
+	auto owned = std::move(*i);
+	_steps.erase(i);
+	owned->lifetime.destroy();
+	if (!owned->dead && !Core::Quitting()) {
+		if (owned->shellClosed) {
+			pushClosed(std::move(owned->data), owned->shell.get());
+		} else if (NeedsThread(owned->data.type) && !owned->slots[0]) {
+			markUnavailable(std::move(owned));
+		} else {
+			createWindow(*owned);
+		}
+	}
+	checkRestoreFinished();
+}
+
+void SavedWindows::abortStep(not_null<Step*> step, bool intoClosed) {
+	if (intoClosed) {
+		pushClosed(std::move(step->data), step->shell.get());
+	}
+	const auto i = ranges::find(
+		_steps,
+		step.get(),
+		&std::unique_ptr<Step>::get);
+	if (i != end(_steps)) {
+		_steps.erase(i);
+	}
+	checkRestoreFinished();
+}
+
+void SavedWindows::pushClosed(SavedWindow &&data, RestoreShell *shell) {
+	if (Core::Quitting()) {
+		return;
+	}
+	if (shell) {
+		data.position = shell->countPositionForSave();
+	}
+	while (_closed.size() >= kMaxClosedWindows) {
+		_closed.erase(begin(_closed));
+	}
+	_closed.push_back(std::move(data));
+}
+
+void SavedWindows::markUnavailable(std::unique_ptr<Step> step) {
+	if (Core::Quitting()) {
+		return;
+	}
+	auto shell = step->shell
+		? std::move(step->shell)
+		: std::make_unique<RestoreShell>(
+			shellTitle(step->data, step->session),
+			step->data.position);
+	pushClosed(std::move(step->data), shell.get());
+	const auto raw = shell.get();
+	raw->showUnavailable();
+	raw->closeRequests(
+	) | rpl::on_next([=] {
+		crl::on_main(this, [=] {
+			const auto i = ranges::find(
+				_deadShells,
+				raw,
+				&std::unique_ptr<RestoreShell>::get);
+			if (i != end(_deadShells)) {
+				_deadShells.erase(i);
+			}
+		});
+	}, raw->lifetime());
+	_deadShells.push_back(std::move(shell));
+}
+
+void SavedWindows::checkRestoreFinished() {
+	if (_restoring && _steps.empty() && _toRestore.empty()) {
+		finishRestore();
+	}
 }
 
 void SavedWindows::finishRestore() {
@@ -871,25 +1045,23 @@ void SavedWindows::finishRestore() {
 	}
 }
 
-void SavedWindows::resolveSlot(int index) {
-	Expects(_step != nullptr);
-
-	const auto step = _step.get();
-	const auto generation = _generation;
+void SavedWindows::resolveSlot(not_null<Step*> step, int index) {
+	const auto stepId = step->id;
 	const auto key = index
 		? step->data.chats[index - 1]
 		: step->data.thread;
 	const auto session = step->session;
 	const auto apply = crl::guard(this, [=](Data::Thread *thread) {
-		if (_generation != generation || !_step) {
+		const auto step = stepById(stepId);
+		if (!step) {
 			return;
 		}
-		_step->slots[index] = thread;
-		if (!--_step->pending && !_step->dispatching) {
-			queueFinishStep();
+		step->slots[index] = thread;
+		if (!--step->pending && !step->dispatching) {
+			queueFinishStep(stepId);
 		}
 	});
-	waitPeer(key.peer, [=](PeerData *peer) {
+	waitPeer(step, key.peer, [=](PeerData *peer) {
 		if (!peer) {
 			apply(nullptr);
 			return;
@@ -903,7 +1075,7 @@ void SavedWindows::resolveSlot(int index) {
 				apply(topic);
 			} else {
 				forum->requestTopic(key.topicRootId, crl::guard(this, [=] {
-					if (_generation != generation || !_step) {
+					if (!stepById(stepId)) {
 						return;
 					}
 					const auto forum = peer->forum();
@@ -911,7 +1083,11 @@ void SavedWindows::resolveSlot(int index) {
 				}));
 			}
 		} else if (key.monoforumPeer) {
-			waitPeer(key.monoforumPeer, [=](PeerData *sublistPeer) {
+			const auto step = stepById(stepId);
+			if (!step) {
+				return;
+			}
+			waitPeer(step, key.monoforumPeer, [=](PeerData *sublistPeer) {
 				if (!sublistPeer) {
 					apply(nullptr);
 				} else if (peer->isSelf()) {
@@ -931,10 +1107,11 @@ void SavedWindows::resolveSlot(int index) {
 	});
 }
 
-void SavedWindows::waitPeer(PeerId peerId, Fn<void(PeerData*)> done) {
-	Expects(_step != nullptr);
-
-	const auto session = _step->session;
+void SavedWindows::waitPeer(
+		not_null<Step*> step,
+		PeerId peerId,
+		Fn<void(PeerData*)> done) {
+	const auto session = step->session;
 	const auto owner = &session->data();
 	if (const auto peer = owner->peerLoaded(peerId)) {
 		done(peer);
@@ -946,34 +1123,44 @@ void SavedWindows::waitPeer(PeerId peerId, Fn<void(PeerData*)> done) {
 		return;
 	}
 	const auto batch = ensureBatchResolve(session);
+	const auto maybeRearm = [=] {
+		if (batchResolveDone(session)
+			&& owner->chatsListLoaded(nullptr)
+			&& !batchResolveCovered(session, peerId)) {
+			rearmBatchResolve(session);
+		}
+	};
 	const auto check = [=]() -> std::optional<PeerData*> {
 		if (const auto peer = owner->peerLoaded(peerId)) {
 			return peer;
 		} else if (batchResolveDone(session)
-			&& owner->chatsListLoaded(nullptr)) {
+			&& owner->chatsListLoaded(nullptr)
+			&& batchResolveCovered(session, peerId)) {
 			return static_cast<PeerData*>(nullptr);
 		}
 		return std::nullopt;
 	};
+	maybeRearm();
 	if (const auto result = check()) {
 		done(*result);
 		return;
 	}
-	const auto generation = _generation;
+	const auto stepId = step->id;
 	const auto finished = std::make_shared<bool>(false);
 	rpl::merge(
 		owner->chatsListChanges() | rpl::to_empty,
 		owner->chatsListLoadedEvents() | rpl::to_empty,
 		batch->doneEvents.events()
 	) | rpl::on_next(crl::guard(this, [=] {
-		if (*finished || _generation != generation || !_step) {
+		if (*finished || !stepById(stepId)) {
 			return;
 		}
+		maybeRearm();
 		if (const auto result = check()) {
 			*finished = true;
 			done(*result);
 		}
-	}), _step->lifetime);
+	}), step->lifetime);
 }
 
 not_null<SavedWindows::BatchResolve*> SavedWindows::ensureBatchResolve(
@@ -1027,6 +1214,25 @@ bool SavedWindows::batchResolveDone(
 	return (i == end(_batches)) || i->second->done;
 }
 
+bool SavedWindows::batchResolveCovered(
+		not_null<Main::Session*> session,
+		PeerId peerId) const {
+	const auto i = _batches.find(session.get());
+	return (i != end(_batches)) && i->second->requested.contains(peerId);
+}
+
+void SavedWindows::rearmBatchResolve(not_null<Main::Session*> session) {
+	const auto i = _batches.find(session.get());
+	if (i == end(_batches) || !i->second->done) {
+		return;
+	}
+	const auto batch = i->second.get();
+	batch->sent = false;
+	batch->done = false;
+	batch->requested.clear();
+	sendBatchResolve(session);
+}
+
 void SavedWindows::sendBatchResolve(not_null<Main::Session*> session) {
 	const auto i = _batches.find(session.get());
 	if (i == end(_batches) || i->second->sent) {
@@ -1059,13 +1265,14 @@ void SavedWindows::sendBatchResolve(not_null<Main::Session*> session) {
 			add(chat);
 		}
 	};
-	if (_step) {
-		addWindow(_step->data);
+	for (const auto &step : _steps) {
+		addWindow(step->data);
 	}
 	for (const auto &window : _toRestore) {
 		addWindow(window);
 	}
 	for (const auto &[id, hash] : hashes) {
+		batch->requested.emplace(id);
 		if (peerIsUser(id)) {
 			if (hash != 0) {
 				batch->users.push_back(MTP_inputUser(
@@ -1176,31 +1383,107 @@ void SavedWindows::createWindow(const Step &step) {
 	if (!id) {
 		return;
 	}
+	const auto replay = [&](not_null<Controller*> window) {
+		if (!ReplayableType(data.type)) {
+			return;
+		}
+		const auto controller = window->sessionController();
+		if (!controller) {
+			return;
+		} else if (step.created && controller->activeChatCurrent()) {
+			return;
+		}
+		replayChats(window, controller, step, windowThread);
+	};
+	if (step.created) {
+		if (const auto window = _app->windowFor(step.createdId)) {
+			replay(window);
+		}
+		return;
+	}
 	const auto existed = (_app->separateWindowFor(id) != nullptr);
 	auto showAtMsgId = MsgId(0);
 	if (!data.chats.empty() && SameChat(data.chats.back(), data.thread)) {
 		showAtMsgId = data.chats.back().msgId;
 	}
-	const auto validPosition = (data.position.w > 0)
-		&& (data.position.h > 0);
+	const auto position = step.shell
+		? step.shell->countPositionForSave()
+		: data.position;
+	const auto validPosition = (position.w > 0) && (position.h > 0);
+	const auto wasActive = _app->activeWindow();
+	const auto activeShell = [&]() -> RestoreShell* {
+		for (const auto &other : _steps) {
+			if (other->shell && other->shell->isActiveWindow()) {
+				return other->shell.get();
+			}
+		}
+		for (const auto &shell : _deadShells) {
+			if (shell->isActiveWindow()) {
+				return shell.get();
+			}
+		}
+		return nullptr;
+	}();
+	const auto keepActive = step.shell && !step.shell->isActiveWindow();
 	if (!existed && validPosition) {
-		_restorePosition = data.position;
+		_restorePosition = position;
 	}
 	const auto window = _app->ensureSeparateWindowFor(id, showAtMsgId);
 	_restorePosition = std::nullopt;
 	if (!window) {
 		return;
 	}
-	if (existed && validPosition) {
-		window->widget()->applySavedPosition(data.position);
-	} else if (!existed && data.position.maximized) {
+	if (step.shell) {
+		const auto widget = window->widget().get();
+		const auto swap = step.shell->countPositionForSave();
+		InvokeQueued(widget, [=] {
+			widget->applySavedPosition(swap);
+		});
+	} else if (existed && validPosition) {
+		window->widget()->applySavedPosition(position);
+	} else if (!existed && position.maximized) {
 		window->widget()->setWindowState(Qt::WindowMaximized);
 	}
-	if (ReplayableType(data.type)) {
-		if (const auto controller = window->sessionController()) {
-			replayChats(window, controller, step, windowThread);
+	if (keepActive) {
+		if (activeShell) {
+			activeShell->activate();
+		} else if (wasActive && wasActive != window) {
+			wasActive->activate();
 		}
 	}
+	replay(window);
+}
+
+void SavedWindows::ensureStepWindow(
+		not_null<Step*> step,
+		SeparateId id,
+		Core::WindowPosition position) {
+	const auto existed = (_app->separateWindowFor(id) != nullptr);
+	const auto validPosition = (position.w > 0) && (position.h > 0);
+	if (!existed && validPosition) {
+		_restorePosition = position;
+	}
+	const auto window = _app->ensureSeparateWindowFor(id);
+	_restorePosition = std::nullopt;
+	if (!window) {
+		return;
+	}
+	if (existed && validPosition) {
+		window->widget()->applySavedPosition(position);
+	} else if (!existed && position.maximized) {
+		window->widget()->setWindowState(Qt::WindowMaximized);
+	}
+	step->created = true;
+	step->createdId = id;
+	const auto stepId = step->id;
+	window->lifetime().add(crl::guard(this, [=] {
+		if (Core::Quitting()) {
+			return;
+		}
+		if (const auto step = stepById(stepId)) {
+			abortStep(step, false);
+		}
+	}));
 }
 
 void SavedWindows::replayChats(
@@ -1342,27 +1625,41 @@ auto SavedWindows::restorePositionFor(SeparateId id)
 	const auto thread = id.thread
 		? SavedChatFromThread(id.thread)
 		: SavedChat();
-	const auto find = [&](const std::vector<SavedWindow> &list)
+	const auto matches = [&](const SavedWindow &window) {
+		return window.accountIndex == accountIndex
+			&& (!window.userPeer
+				|| !userPeer
+				|| window.userPeer == userPeer)
+			&& window.type == id.type
+			&& window.sharedMediaType == int(id.sharedMediaType)
+			&& SameChat(window.thread, thread);
+	};
+	const auto take = [](const SavedWindow &window)
 	-> std::optional<Core::WindowPosition> {
+		return (window.position.w > 0 && window.position.h > 0)
+			? std::make_optional(window.position)
+			: std::nullopt;
+	};
+	const auto find = [&](const std::vector<SavedWindow> &list)
+	-> std::optional<std::optional<Core::WindowPosition>> {
 		for (const auto &window : list) {
-			if (window.accountIndex == accountIndex
-				&& (!window.userPeer
-					|| !userPeer
-					|| window.userPeer == userPeer)
-				&& window.type == id.type
-				&& window.sharedMediaType == int(id.sharedMediaType)
-				&& SameChat(window.thread, thread)) {
-				return (window.position.w > 0 && window.position.h > 0)
-					? std::make_optional(window.position)
-					: std::nullopt;
+			if (matches(window)) {
+				return take(window);
 			}
 		}
 		return std::nullopt;
 	};
-	if (auto position = find(_toRestore)) {
-		return position;
+	for (const auto &step : _steps) {
+		if (!step->created && matches(step->data)) {
+			return take(step->data);
+		}
 	}
-	return find(_undecided);
+	if (auto position = find(_toRestore)) {
+		return *position;
+	} else if (auto position = find(_undecided)) {
+		return *position;
+	}
+	return std::nullopt;
 }
 
 } // namespace Window

@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #pragma once
 
 #include "base/timer.h"
+#include "base/weak_ptr.h"
 
 class PeerData;
 
@@ -66,7 +67,7 @@ enum class GroupCallOrigin : uchar {
 	VideoStream,
 };
 
-class GroupCall final {
+class GroupCall final : public base::has_weak_ptr {
 public:
 	GroupCall(
 		not_null<PeerData*> peer,

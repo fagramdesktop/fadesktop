@@ -35,19 +35,27 @@ DisableDirPage=no
 DisableProgramGroupPage=no
 WizardStyle=modern
 
+#ifndef MyOutputBaseFilename
+  #if MyBuildTarget == "winarm"
+    #define MyOutputBaseFilename "tsetup-arm64." + MyAppVersionFull
+  #elif MyBuildTarget == "win64"
+    #define MyOutputBaseFilename "tsetup-x64." + MyAppVersionFull
+  #else
+    #define MyOutputBaseFilename "tsetup." + MyAppVersionFull
+  #endif
+#endif
+OutputBaseFilename={#MyOutputBaseFilename}
+
 #if MyBuildTarget == "winarm"
   ArchitecturesAllowed="arm64"
-  OutputBaseFilename=fagram-setup_Win-arm64.{#MyAppVersionFull}
   #define ArchModulesFolder "arm64"
   AppVerName={#MyAppName} {#MyAppVersion} arm64
 #elif MyBuildTarget == "win64"
   ArchitecturesAllowed="x64compatible"
   ArchitecturesInstallIn64BitMode="x64compatible"
-  OutputBaseFilename=fagram-setup_Win-x64.{#MyAppVersionFull}
   #define ArchModulesFolder "x64"
   AppVerName={#MyAppName} {#MyAppVersion} 64bit
 #else
-  OutputBaseFilename=fagram-setup_Win-x86.{#MyAppVersionFull}
   #define ArchModulesFolder "x86"
   AppVerName={#MyAppName} {#MyAppVersion} 32bit
 #endif

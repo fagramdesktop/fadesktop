@@ -9,7 +9,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "base/call_delayed.h"
 #include "ui/widgets/menu/menu_action.h"
-#include "ui/widgets/dropdown_menu.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/chat/group_call_userpics.h"
@@ -25,6 +24,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_menu_icons.h"
+#include "styles/style_widgets.h"
 
 #include <QtCore/QLocale>
 
@@ -1010,9 +1010,9 @@ void WhoReactedEntryAction::refreshCloseGeometry() {
 		return;
 	}
 	_closeRect = QRect(
-		width() - st::whoReadClose.width,
+		width() - _scrollBarSkip - st::whoReadClose.width,
 		0,
-		st::whoReadClose.width,
+		_scrollBarSkip + st::whoReadClose.width,
 		st::whoReadClose.height);
 }
 
@@ -1065,13 +1065,24 @@ void WhoReactedEntryAction::setData(Data &&data) {
 			{ .repaint = [=] { update(); } })
 		: nullptr;
 	const auto ratio = style::DevicePixelRatio();
+	_customSize = Text::AdjustCustomEmojiSize(Emoji::GetSizeNormal() / ratio);
+	refreshDimensions();
+	refreshCloseGeometry();
+	refreshCloseMouseTracking();
+	invalidateCloseCache();
+	updateCloseHovered(QCursor::pos());
+	update();
+}
+
+void WhoReactedEntryAction::refreshDimensions() {
+	const auto ratio = style::DevicePixelRatio();
 	const auto size = Emoji::GetSizeNormal() / ratio;
-	_customSize = Text::AdjustCustomEmojiSize(size);
 	const auto textWidth = std::max(
 		_text.maxWidth(),
 		st::whoReadDateSkip + _date.maxWidth());
 	const auto &padding = _st.itemPadding;
 	const auto rightSkip = padding.right()
+		+ _scrollBarSkip
 		+ (_custom ? (size + padding.right()) : 0);
 	const auto goodWidth = st::defaultWhoRead.nameLeft
 		+ textWidth
@@ -1079,10 +1090,16 @@ void WhoReactedEntryAction::setData(Data &&data) {
 	const auto w = std::clamp(goodWidth, _st.widthMin, _st.widthMax);
 	_textWidth = w - (goodWidth - textWidth);
 	setMinWidth(w);
+}
+
+void WhoReactedEntryAction::setScrollBarSkip(int skip) {
+	if (_scrollBarSkip == skip) {
+		return;
+	}
+	_scrollBarSkip = skip;
+	refreshDimensions();
 	refreshCloseGeometry();
-	refreshCloseMouseTracking();
 	invalidateCloseCache();
-	updateCloseHovered(QCursor::pos());
 	update();
 }
 
@@ -1163,25 +1180,7 @@ void WhoReactedEntryAction::paint(Painter &&p) {
 			_textWidth,
 			width());
 	}
-	if (preloader) {
-		if (withDate) {
-			auto hq = PainterHighQualityEnabler(p);
-			p.setPen(Qt::NoPen);
-			p.setBrush(preloaderBrush);
-			const auto &font = st::whoReadDateStyle.font;
-			const auto height = font->height / 2;
-			const auto width = std::min(
-				st::whoReadDateSkip + _date.maxWidth(),
-				_textWidth);
-			p.drawRoundedRect(
-				st::defaultWhoRead.nameLeft,
-				st::whoReadDateTop + (font->height - height) / 2,
-				width,
-				height,
-				height / 2.,
-				height / 2.);
-		}
-	} else if (_type == WhoReactedType::RefRecipient
+	if (_type == WhoReactedType::RefRecipient
 		|| _type == WhoReactedType::RefRecipientNow) {
 		p.setPen(selected ? _st.itemFgShortcutOver : _st.itemFgShortcut);
 		_date.drawLeftElided(
@@ -1233,7 +1232,11 @@ void WhoReactedEntryAction::paint(Painter &&p) {
 			.textColor = (selected ? _st.itemFgOver : _st.itemFg)->c,
 			.now = crl::now(),
 			.position = QPoint(
-				width() - _st.itemPadding.right() - size + skip,
+				(width()
+					- _scrollBarSkip
+					- _st.itemPadding.right()
+					- size
+					+ skip),
 				(height() - _customSize) / 2),
 			.paused = inactive || On(PowerSaving::kEmojiChat),
 		});
@@ -1259,7 +1262,11 @@ void WhoReactedEntryAction::paint(Painter &&p) {
 			: st::whoReadClose.icon;
 		icon.paint(
 			p,
-			WhoReactedCloseIconPosition(_closeRect, icon),
+			WhoReactedCloseIconPosition(
+				QRect(
+					_closeRect.topLeft(),
+					QSize(st::whoReadClose.width, _closeRect.height())),
+				icon),
 			width());
 	}
 }
@@ -1317,59 +1324,28 @@ WhoReactedListMenu::WhoReactedListMenu(
 
 void WhoReactedListMenu::clear() {
 	_actions.clear();
+}
+
+void WhoReactedListMenu::applyScrollBarSkip(not_null<PopupMenu*> menu) {
+	const auto skip = [&] {
+		if (!_moderateReactionChosen) {
+			return 0;
+		}
+		const auto &menuSt = menu->st();
+		const auto content = menu->menu()->height()
+			+ menuSt.scrollPadding.top()
+			+ menuSt.scrollPadding.bottom();
+		// style::PopupMenu has no scroll field, PopupMenu hardcodes it.
+		return (content > menu->inner().height())
+			? st::defaultMultiSelect.scroll.width
+			: 0;
+	}();
 	_minimalWidth = 0;
-}
-
-void WhoReactedListMenu::populate(
-		not_null<PopupMenu*> menu,
-		const WhoReadContent &content,
-		Fn<void()> refillTopActions,
-		int addedToBottom,
-		Fn<void()> appendBottomActions) {
-	populateTo(
-		menu,
-		content,
-		std::move(refillTopActions),
-		addedToBottom,
-		std::move(appendBottomActions));
-}
-
-void WhoReactedListMenu::populate(
-		not_null<DropdownMenu*> menu,
-		const WhoReadContent &content,
-		Fn<void()> refillTopActions,
-		int addedToBottom,
-		Fn<void()> appendBottomActions) {
-	populateTo(
-		menu,
-		content,
-		std::move(refillTopActions),
-		addedToBottom,
-		std::move(appendBottomActions));
-}
-
-void WhoReactedListMenu::populatePreloader(
-		not_null<DropdownMenu*> menu,
-		std::vector<WhoReactedEntryData> entries,
-		Fn<void()> appendBottomActions) {
-	for (auto &entry : entries) {
-		entry.type = WhoReactedType::Preloader;
-		entry.userpic = QImage();
-		entry.callback = nullptr;
-		entry.closeCallback = nullptr;
-		auto item = base::make_unique_q<WhoReactedEntryAction>(
-			menu->menu(),
-			_customEmojiFactory,
-			menu->menu()->st(),
-			std::move(entry));
-		accumulate_max(_minimalWidth, item->minWidth());
-		_actions.push_back(item.get());
-		menu->addAction(std::move(item));
+	for (const auto &action : _actions) {
+		action->setScrollBarSkip(skip);
+		accumulate_max(_minimalWidth, action->minWidth());
 	}
 	applyMinimalWidth();
-	if (appendBottomActions) {
-		appendBottomActions();
-	}
 }
 
 void WhoReactedListMenu::applyMinimalWidth() {
@@ -1383,23 +1359,19 @@ void WhoReactedListMenu::applyMinimalWidth() {
 	}
 }
 
-template <typename Menu>
-void WhoReactedListMenu::populateTo(
-		not_null<Menu*> menu,
+void WhoReactedListMenu::populate(
+		not_null<PopupMenu*> menu,
 		const WhoReadContent &content,
 		Fn<void()> refillTopActions,
 		int addedToBottom,
 		Fn<void()> appendBottomActions) {
-	constexpr auto kRebuildOnAnyChange = !std::is_same_v<Menu, PopupMenu>;
 	const auto reactions = ranges::count_if(
 		content.participants,
 		[](const auto &p) { return !p.customEntityData.isEmpty(); });
 	const auto addShowAll = (content.fullReactionsCount > reactions);
 	const auto actionsCount = int(content.participants.size())
 		+ (addShowAll ? 1 : 0);
-	if (kRebuildOnAnyChange
-		? (_actions.size() != actionsCount)
-		: (_actions.size() > actionsCount)) {
+	if (_actions.size() > actionsCount) {
 		_actions.clear();
 		menu->clearActions();
 		if (refillTopActions) {
@@ -1418,17 +1390,11 @@ void WhoReactedListMenu::populateTo(
 				menu->menu()->st(),
 				std::move(data));
 			_actions.push_back(item.get());
-			if constexpr (kRebuildOnAnyChange) {
-				menu->addAction(std::move(item));
+			const auto count = int(menu->actions().size());
+			if (addedToBottom > 0 && addedToBottom <= count) {
+				menu->insertAction(count - addedToBottom, std::move(item));
 			} else {
-				const auto count = int(menu->actions().size());
-				if (addedToBottom > 0 && addedToBottom <= count) {
-					menu->insertAction(
-						count - addedToBottom,
-						std::move(item));
-				} else {
-					menu->addAction(std::move(item));
-				}
+				menu->addAction(std::move(item));
 			}
 		}
 		++index;
@@ -1462,10 +1428,10 @@ void WhoReactedListMenu::populateTo(
 			.callback = _showAllChosen,
 		});
 	}
-	applyMinimalWidth();
 	if (!addedToBottom && appendBottomActions) {
 		appendBottomActions();
 	}
+	applyScrollBarSkip(menu);
 }
 
 } // namespace Ui

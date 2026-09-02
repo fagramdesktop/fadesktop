@@ -16,6 +16,7 @@ the unofficial desktop application for the Telegram messaging service.
 #include "base/platform/base_platform_info.h"
 #include "core/application.h"
 #include "core/file_utilities.h"
+#include "core/update_channel.h"
 #include "core/update_checker.h"
 #include "core/version.h"
 #include "lang/lang_keys.h"
@@ -155,11 +156,15 @@ QString telegramFaqLink() {
 	return result;
 }
 
-QString currentVersionText() {
+namespace {
+
+[[nodiscard]] QString CurrentVersionText(bool withCommit) {
 	auto result = QString::fromLatin1(AppFAVersionStr);
 	result += u" (TGD "_q + QString::fromLatin1(AppTGDVersion) + u")"_q;
 
-	if (cAlphaVersion()) {
+	if (Core::BuildIsCanary) {
+		result += Core::CanaryVersionSuffix();
+	} else if (cAlphaVersion()) {
 		result += u" alpha %1"_q.arg(cAlphaVersion() % 1000);
 	} else if (AppBetaVersion) {
 		result += " beta";
@@ -172,7 +177,22 @@ QString currentVersionText() {
 #ifdef _DEBUG
 	result += " DEBUG";
 #endif
+	if (withCommit
+		&& Core::BuildIsCanary
+		&& Core::CanaryCommitHash[0] != '\0') {
+		result += u" \u00B7 "_q + QLatin1String(Core::CanaryCommitHash);
+	}
 	return result;
+}
+
+} // namespace
+
+QString currentVersionText() {
+	return CurrentVersionText(true);
+}
+
+QString currentVersionShortText() {
+	return CurrentVersionText(false);
 }
 
 void ArchiveHintBox(

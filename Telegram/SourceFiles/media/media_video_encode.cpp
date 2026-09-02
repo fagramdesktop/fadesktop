@@ -130,7 +130,7 @@ struct ColorDescription {
 		not_null<AVFormatContext*> output,
 		QSize size,
 		int64 bitrate,
-		int gopSize,
+		float64 fps,
 		ColorDescription color) {
 	auto encoderCodec = avcodec_find_encoder_by_name("libopenh264");
 	if (!encoderCodec) {
@@ -154,11 +154,13 @@ struct ColorDescription {
 	encoder->codec_type = AVMEDIA_TYPE_VIDEO;
 	encoder->width = size.width();
 	encoder->height = size.height();
+	const auto rate = SanitizedFps(fps);
 	encoder->time_base = kVideoTimeBase;
-	encoder->framerate = AVRational{ 0, 1 };
+	// Without this libopenh264 reads time base and caps at 60 fps.
+	encoder->framerate = av_d2q(rate, 1000000);
 	encoder->pix_fmt = AV_PIX_FMT_YUV420P;
 	encoder->bit_rate = bitrate;
-	encoder->gop_size = gopSize;
+	encoder->gop_size = int(base::SafeRound(rate));
 	encoder->color_range = color.range;
 	encoder->color_primaries = color.primaries;
 	encoder->color_trc = color.transfer;
@@ -797,7 +799,7 @@ private:
 		output.get(),
 		target,
 		bitrate ? int64(bitrate) : int64(TargetBitrate(target, fps)),
-		int(base::SafeRound(fps)),
+		fps,
 		ColorDescription());
 	if (!video.codec) {
 		return {};
@@ -1154,9 +1156,33 @@ QSize DownscaledSize(QSize original, int targetShorterSide) {
 		std::max(EvenDown(int(base::SafeRound(height * scale))), 2));
 }
 
-TranscodeResult TranscodeVideo(
-		const VideoSource &source,
-		Fn<bool(float64)> progress) {
+namespace {
+
+struct ReadPlan {
+	VideoSource source;
+	bool ignoreEditList = false;
+};
+
+struct TranscodeAttempt {
+	TranscodeResult result;
+	// Demuxer restarts timeline for each edit list entry.
+	bool timelineRestarted = false;
+};
+
+// Range was measured in the edit list timeline, so it is dropped with it.
+[[nodiscard]] ReadPlan SampleTablePlan(VideoSource source) {
+	source.from = 0;
+	source.till = 0;
+	return {
+		.source = std::move(source),
+		.ignoreEditList = true,
+	};
+}
+
+[[nodiscard]] TranscodeAttempt TranscodeVideoAttempt(
+		const ReadPlan &readPlan,
+		const Fn<bool(float64)> &progress) {
+	const auto &source = readPlan.source;
 	const auto sourceSize = !source.bytes.isEmpty()
 		? int64(source.bytes.size())
 		: QFileInfo(source.path).size();
@@ -1175,7 +1201,8 @@ TranscodeResult TranscodeVideo(
 			&inBytesWrap,
 			&ReadBytesWrap::Read,
 			nullptr,
-			&ReadBytesWrap::Seek);
+			&ReadBytesWrap::Seek,
+			{ .ignoreEditList = readPlan.ignoreEditList });
 	} else {
 		inFileWrap.file.setFileName(source.path);
 		if (!inFileWrap.file.open(QIODevice::ReadOnly)) {
@@ -1185,7 +1212,8 @@ TranscodeResult TranscodeVideo(
 			&inFileWrap,
 			&ReadFileWrap::Read,
 			nullptr,
-			&ReadFileWrap::Seek);
+			&ReadFileWrap::Seek,
+			{ .ignoreEditList = readPlan.ignoreEditList });
 	}
 	if (!input) {
 		return {};
@@ -1248,10 +1276,15 @@ TranscodeResult TranscodeVideo(
 		? PtsToTime(input->duration, kUniversalTimeBase)
 		: crl::time(0);
 
+	// Container duration counts audio tail, editor timeline does not.
+	const auto shownDuration = (inVideoStream->duration != AV_NOPTS_VALUE)
+		? PtsToTime(inVideoStream->duration, inVideoStream->time_base)
+		: totalDuration;
+
 	const auto from = std::max(source.from, crl::time(0));
 	const auto till = (source.till > from) ? source.till : crl::time(0);
 	const auto trimmed = (from > 0)
-		|| (till > 0 && (!totalDuration || till < totalDuration));
+		|| (till > 0 && (!shownDuration || till < shownDuration));
 	const auto span = till
 		? (till - from)
 		: ((totalDuration > from) ? (totalDuration - from) : crl::time(0));
@@ -1337,7 +1370,7 @@ TranscodeResult TranscodeVideo(
 			output.get(),
 			target,
 			bitrate,
-			int(base::SafeRound(SanitizedFps(fps))),
+			fps,
 			ReadColorDescription(inVideoStream->codecpar, plan.bake));
 		if (!video.codec) {
 			return {};
@@ -1441,6 +1474,7 @@ TranscodeResult TranscodeVideo(
 		: int64(0);
 
 	auto lastVideoPts = int64(-1);
+	auto lastMuxedDts = int64(AV_NOPTS_VALUE);
 	auto lastEmittedOut = crl::time(-1);
 	auto emitted = 0;
 	auto failed = false;
@@ -1646,6 +1680,13 @@ TranscodeResult TranscodeVideo(
 					outVideoStream->time_base);
 				packet->stream_index = outVideoStream->index;
 				packet->pos = -1;
+				if (packet->dts != AV_NOPTS_VALUE) {
+					if (lastMuxedDts != AV_NOPTS_VALUE
+						&& packet->dts <= lastMuxedDts) {
+						return { .timelineRestarted = true };
+					}
+					lastMuxedDts = packet->dts;
+				}
 				if (packet->pts != AV_NOPTS_VALUE) {
 					lastVideoPts = std::max(
 						lastVideoPts,
@@ -1787,7 +1828,19 @@ TranscodeResult TranscodeVideo(
 	result.coverOffset = coverOffset;
 	temp.setAutoRemove(false);
 	succeeded = true;
-	return result;
+	return { .result = std::move(result) };
+}
+
+} // namespace
+
+TranscodeResult TranscodeVideo(
+		const VideoSource &source,
+		Fn<bool(float64)> progress) {
+	auto attempt = TranscodeVideoAttempt({ .source = source }, progress);
+	if (attempt.timelineRestarted) {
+		attempt = TranscodeVideoAttempt(SampleTablePlan(source), progress);
+	}
+	return attempt.result;
 }
 
 QSize TranscodedSize(const VideoSource &source, QSize displaySize) {

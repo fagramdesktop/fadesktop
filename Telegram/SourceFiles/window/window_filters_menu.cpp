@@ -9,6 +9,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "fa/settings/fa_settings.h"
 
+#include "menu/menu_mark_as_read.h"
 #include "mainwindow.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
@@ -770,7 +771,7 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 		auto filteredChats = [=] {
 			return _session->session().data().chatsFilters().chatsList(id);
 		};
-		Window::MenuAddMarkAsReadChatListAction(
+		MarkAsReadMenu::AddChatListAction(
 			_session,
 			std::move(filteredChats),
 			addAction);
@@ -790,7 +791,7 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 				session,
 				session->data().chatsList()->unreadState());
 		};
-		Window::MenuAddMarkAsReadChatListAction(
+		MarkAsReadMenu::AddChatListAction(
 			_session,
 			[=] { return _session->session().data().chatsList(); },
 			addAction,

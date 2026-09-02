@@ -14,7 +14,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 namespace Ui {
 
-class DropdownMenu;
 class PopupMenu;
 
 struct WhoReadParticipant {
@@ -106,6 +105,8 @@ public:
 
 	void setData(Data &&data);
 
+	void setScrollBarSkip(int skip);
+
 	not_null<QAction*> action() const override;
 	bool isEnabled() const override;
 
@@ -119,6 +120,7 @@ private:
 	QImage prepareRippleMask() const override;
 
 	void paint(Painter &&p);
+	void refreshDimensions();
 	[[nodiscard]] bool closeAffordanceActive() const;
 	void refreshCloseMouseTracking();
 	void refreshCloseGeometry();
@@ -137,6 +139,7 @@ private:
 	QImage _userpic;
 	int _textWidth = 0;
 	int _customSize = 0;
+	int _scrollBarSkip = 0;
 	WhoReactedType _type = WhoReactedType::Viewed;
 	Fn<void()> _closeCallback;
 	QRect _closeRect;
@@ -163,26 +166,9 @@ public:
 		Fn<void()> refillTopActions = nullptr,
 		int addedToBottom = 0,
 		Fn<void()> appendBottomActions = nullptr);
-	void populate(
-		not_null<DropdownMenu*> menu,
-		const WhoReadContent &content,
-		Fn<void()> refillTopActions = nullptr,
-		int addedToBottom = 0,
-		Fn<void()> appendBottomActions = nullptr);
-
-	void populatePreloader(
-		not_null<DropdownMenu*> menu,
-		std::vector<WhoReactedEntryData> entries,
-		Fn<void()> appendBottomActions = nullptr);
 
 private:
-	template <typename Menu>
-	void populateTo(
-		not_null<Menu*> menu,
-		const WhoReadContent &content,
-		Fn<void()> refillTopActions,
-		int addedToBottom,
-		Fn<void()> appendBottomActions);
+	void applyScrollBarSkip(not_null<PopupMenu*> menu);
 	void applyMinimalWidth();
 
 	const Text::CustomEmojiFactory _customEmojiFactory;

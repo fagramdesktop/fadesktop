@@ -52,7 +52,7 @@ TextWithLabel CreateTextWithLabel(
 		textSt,
 		stMenu));
 	std::move(text) | rpl::on_next([=] {
-		layout->resizeToWidth(layout->widthNoMargins());
+		labeled->resizeToWidth(layout->widthNoMargins());
 	}, labeled->lifetime());
 	labeled->setSelectable(true);
 	layout->add(Ui::CreateSkipWidget(layout, st::infoLabelSkip));

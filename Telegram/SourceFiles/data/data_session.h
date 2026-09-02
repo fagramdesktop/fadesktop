@@ -953,6 +953,9 @@ public:
 	void refreshChatListEntry(Dialogs::Key key);
 	void removeChatListEntry(Dialogs::Key key);
 	void refreshChatListUnreadOnTop();
+	[[nodiscard]] bool dialogsUnreadOnTop() const {
+		return _dialogsUnreadOnTop;
+	}
 	[[nodiscard]] auto chatListEntryRefreshes() const
 		-> rpl::producer<ChatListEntryRefresh>;
 
@@ -1260,6 +1263,7 @@ private:
 	Dialogs::MainList _chatsList;
 	Dialogs::IndexedList _contactsList;
 	Dialogs::IndexedList _contactsNoChatsList;
+	bool _dialogsUnreadOnTop = false;
 
 	MsgId _localMessageIdCounter = StartClientMsgId;
 	std::unordered_map<PeerId, Messages> _messages;
