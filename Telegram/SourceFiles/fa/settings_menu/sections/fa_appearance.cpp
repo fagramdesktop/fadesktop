@@ -223,8 +223,31 @@ namespace Settings {
 			u"fa/appearance/roundness"_q,
 			controller);
 
+		const auto materialShapeCardWrap = container->add(
+			object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+				container,
+				object_ptr<Ui::VerticalLayout>(container)));
+		const auto materialShapeInner = materialShapeCardWrap->entity();
+		const auto materialShapeCard = FA::Ui::CreateCardContainer(materialShapeInner, 12, 4);
+
+		const auto materialOutlineToggle = FA::Ui::AddCardToggle(
+			materialShapeCard,
+			fatr::fa_avatar_shape_outline(),
+			fatr::fa_avatar_shape_outline_desc(),
+			FASettings::FASettings::getInstance().avatarShapeOutlineValue(),
+			[=](bool checked) {
+				FASettings::FASettings::getInstance().setAvatarShapeOutline(checked);
+			});
+		Settings::FADeepLinkMenu::AttachSettingsContextMenu(
+			materialOutlineToggle,
+			u"fa/appearance/avatar-shape-outline"_q,
+			controller);
+
 		roundnessCardWrap->toggle(
 			FASettings::FASettings::getInstance().avatarShape() == 0,
+			anim::type::instant);
+		materialShapeCardWrap->toggle(
+			FASettings::FASettings::getInstance().avatarShape() > 0,
 			anim::type::instant);
 
 		shapeGroup->setChangedCallback([=](int shape) {
@@ -233,6 +256,7 @@ namespace Settings {
 			}
 			FASettings::FASettings::getInstance().setAvatarShape(shape);
 			roundnessCardWrap->toggle(shape == 0, anim::type::normal);
+			materialShapeCardWrap->toggle(shape > 0, anim::type::normal);
 		});
 
 		const auto savedRoundness = container->lifetime().make_state<int>(

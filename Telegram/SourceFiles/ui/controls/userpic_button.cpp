@@ -752,7 +752,7 @@ void UserpicButton::paintUserpicFrame(Painter &p, QPoint photoPosition) {
 		}
 		auto frame = _streamed->frame(request);
 
-		if (FA::Features::AvatarShape::IsMaterial()) {
+		if (_shape == PeerUserpicShape::Material || FA::Features::AvatarShape::IsMaterial()) {
 			_materialMask = FA::Features::AvatarShape::Mask(request.resize);
 			constexpr auto format = QImage::Format_ARGB32_Premultiplied;
 			if (frame.format() != format) {
@@ -800,7 +800,7 @@ QPoint UserpicButton::countPhotoPosition() const {
 
 QImage UserpicButton::prepareRippleMask() const {
 	const auto size = QSize(_st.photoSize, _st.photoSize);
-	if (FA::Features::AvatarShape::IsMaterial()) {
+	if (_shape == PeerUserpicShape::Material || FA::Features::AvatarShape::IsMaterial()) {
 		return FA::Features::AvatarShape::Mask(size * style::DevicePixelRatio());
 	}
 	return useForumShape()
@@ -1245,7 +1245,7 @@ void UserpicButton::fillShape(QPainter &p, QBrush brush) const {
 	p.setPen(Qt::NoPen);
 	p.setBrush(brush);
 	const auto size = _st.photoSize;
-	if (FA::Features::AvatarShape::IsMaterial()) {
+	if (_shape == PeerUserpicShape::Material || FA::Features::AvatarShape::IsMaterial()) {
 		auto mask = FA::Features::AvatarShape::Mask(QSize(size, size) * style::DevicePixelRatio());
 		mask.setDevicePixelRatio(style::DevicePixelRatio());
 		auto q = QPainter(&mask);
@@ -1289,7 +1289,7 @@ void UserpicButton::prepareUserpicPixmap() {
 						QSize(size, size) * ratio,
 						Qt::IgnoreAspectRatio,
 						Qt::SmoothTransformation);
-					image = (FA::Features::AvatarShape::IsMaterial())
+					image = (_shape == PeerUserpicShape::Material || FA::Features::AvatarShape::IsMaterial())
 						? FA::Features::AvatarShape::Apply(std::move(image))
 						: useForumShape()
 						? Images::Round(
@@ -1307,7 +1307,7 @@ void UserpicButton::prepareUserpicPixmap() {
 					((user && user->isInaccessible())
 						? Ui::EmptyUserpic::InaccessibleName()
 						: _peer->name()));
-				if (FA::Features::AvatarShape::IsMaterial()) {
+				if (_shape == PeerUserpicShape::Material || FA::Features::AvatarShape::IsMaterial()) {
 					auto image = QImage(QSize(size, size) * style::DevicePixelRatio(), QImage::Format_ARGB32_Premultiplied);
 					image.fill(Qt::transparent);
 					auto q = QPainter(&image);

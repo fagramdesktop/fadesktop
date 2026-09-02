@@ -420,6 +420,15 @@ const auto kFAAppearanceMeta = BuildHelper({
 
 	builder.add(nullptr, [] {
 		return SearchEntry{
+			.id = u"fa/appearance/avatar-shape-outline"_q,
+			.title = fatr::fa_avatar_shape_outline(fatr::now),
+			.keywords = { u"avatar"_q, u"shape"_q, u"outline"_q, u"stroke"_q, u"material"_q },
+			.icon = { &st::menuIconPalette },
+		};
+	});
+
+	builder.add(nullptr, [] {
+		return SearchEntry{
 			.id = u"fa/appearance/default-rounding"_q,
 			.title = fatr::fa_use_default_rounding(fatr::now),
 			.keywords = { u"default"_q, u"rounding"_q, u"corners"_q, u"radius"_q },

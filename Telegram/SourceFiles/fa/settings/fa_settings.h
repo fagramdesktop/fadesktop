@@ -87,6 +87,7 @@ public:
 	[[nodiscard]] int contextMenuShortcutCornerRadius() const { return _contextMenuShortcutCornerRadius.current(); }
 	[[nodiscard]] int roundness() const { return _roundness.current(); }
 	[[nodiscard]] int avatarShape() const { return _avatarShape.current(); }
+	[[nodiscard]] bool avatarShapeOutline() const { return _avatarShapeOutline.current(); }
 	[[nodiscard]] int translationProvider() const { return _translationProvider.current(); }
 
 	// Type-safe setters
@@ -129,6 +130,7 @@ public:
 	void setUseMaterialIconPack(bool val);
 	void setShareMenuFolderIcons(bool val);
 	void setAvatarShape(int val);
+	void setAvatarShapeOutline(bool val);
 	void setDisablePremiumAnimation(bool val);
 	void setScreenshotMode(bool val);
 	void setAutoFormatMarkdown(bool val);
@@ -193,6 +195,7 @@ public:
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutCornerRadiusValue() const { return _contextMenuShortcutCornerRadius.value(); }
 	[[nodiscard]] rpl::producer<int> roundnessValue() const { return _roundness.value(); }
 	[[nodiscard]] rpl::producer<int> avatarShapeValue() const { return _avatarShape.value(); }
+	[[nodiscard]] rpl::producer<bool> avatarShapeOutlineValue() const { return _avatarShapeOutline.value(); }
 	[[nodiscard]] rpl::producer<int> translationProviderValue() const { return _translationProvider.value(); }
 
 	[[nodiscard]] rpl::producer<bool> debugLogsChanges() const { return _debugLogs.changes(); }
@@ -245,6 +248,7 @@ public:
 	[[nodiscard]] rpl::producer<int> contextMenuShortcutCornerRadiusChanges() const { return _contextMenuShortcutCornerRadius.changes(); }
 	[[nodiscard]] rpl::producer<int> roundnessChanges() const { return _roundness.changes(); }
 	[[nodiscard]] rpl::producer<int> avatarShapeChanges() const { return _avatarShape.changes(); }
+	[[nodiscard]] rpl::producer<bool> avatarShapeOutlineChanges() const { return _avatarShapeOutline.changes(); }
 	[[nodiscard]] rpl::producer<int> translationProviderChanges() const { return _translationProvider.changes(); }
 
 private:
@@ -303,6 +307,7 @@ private:
 	rpl::variable<int> _contextMenuShortcutCornerRadius = 20;
 	rpl::variable<int> _roundness = 50;
 	rpl::variable<int> _avatarShape = 0;
+	rpl::variable<bool> _avatarShapeOutline = true;
 	rpl::variable<int> _translationProvider = static_cast<int>(TranslationProvider::Telegram);
 };
 

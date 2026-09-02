@@ -198,7 +198,10 @@ QImage ApplyMaterialShape(QImage image, int shapeIndex) {
 		return image;
 	}
 
-	auto outline = MaterialShapeOutline(size, shapeIndex, outlineColor, 10.0f);
+	const auto drawOutline = FASettings::FASettings::getInstance().avatarShapeOutline();
+	auto outline = drawOutline
+		? MaterialShapeOutline(size, shapeIndex, outlineColor, 10.0f)
+		: QImage();
 
 	constexpr auto format = QImage::Format_ARGB32_Premultiplied;
 	if (image.format() != format) {
@@ -242,7 +245,7 @@ constexpr auto kMaxMaskCache = 64;
 
 bool IsMaterial() {
 	const auto value = FASettings::FASettings::getInstance().avatarShape();
-	return (value >= 0) && (value <= 7);
+	return (value >= 1) && (value <= 7);
 }
 
 int Roundness() {
@@ -284,10 +287,10 @@ QImage Mask(QSize size) {
 }
 
 QImage Apply(QImage image) {
-	if (!IsMaterial()) {
+	const auto shapeIndex = FASettings::FASettings::getInstance().avatarShape();
+	if (shapeIndex < 0 || shapeIndex > 7) {
 		return image;
 	}
-	const auto shapeIndex = FASettings::FASettings::getInstance().avatarShape();
 	return ApplyMaterialShape(std::move(image), shapeIndex);
 }
 

@@ -138,6 +138,7 @@ void FASettings::loadFromJson(const QJsonObject &obj) {
 	_useMaterialIconPack = obj.contains("use_material_icon_pack") ? obj["use_material_icon_pack"].toBool() : _useMaterialIconPack.current();
 	_shareMenuFolderIcons = obj.contains("share_menu_folder_icons") ? obj["share_menu_folder_icons"].toBool() : _shareMenuFolderIcons.current();
 	_avatarShape = obj.contains("avatar_shape") ? obj["avatar_shape"].toInt() : _avatarShape.current();
+	_avatarShapeOutline = obj.contains("avatar_shape_outline") ? obj["avatar_shape_outline"].toBool() : _avatarShapeOutline.current();
 	_disablePremiumAnimation = obj.contains("disable_premium_animation") ? obj["disable_premium_animation"].toBool() : _disablePremiumAnimation.current();
 	_screenshotMode = obj.contains("screenshot_mode") ? obj["screenshot_mode"].toBool() : _screenshotMode.current();
 	_autoFormatMarkdown = obj.contains("auto_format_markdown") ? obj["auto_format_markdown"].toBool() : _autoFormatMarkdown.current();
@@ -193,6 +194,7 @@ QJsonObject FASettings::saveToJson() const {
 	obj["use_material_icon_pack"] = _useMaterialIconPack.current();
 	obj["share_menu_folder_icons"] = _shareMenuFolderIcons.current();
 	obj["avatar_shape"] = _avatarShape.current();
+	obj["avatar_shape_outline"] = _avatarShapeOutline.current();
 	obj["disable_premium_animation"] = _disablePremiumAnimation.current();
 	obj["screenshot_mode"] = _screenshotMode.current();
 	obj["auto_format_markdown"] = _autoFormatMarkdown.current();
@@ -456,6 +458,12 @@ void FASettings::setShareMenuFolderIcons(bool val) {
 void FASettings::setAvatarShape(int val) {
 	if (_avatarShape.current() == val) return;
 	_avatarShape = val;
+	save();
+}
+
+void FASettings::setAvatarShapeOutline(bool val) {
+	if (_avatarShapeOutline.current() == val) return;
+	_avatarShapeOutline = val;
 	save();
 }
 
