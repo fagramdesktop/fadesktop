@@ -703,6 +703,8 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			.nameWidth = _title.maxWidth(),
 			.outerWidth = width(),
 			.verified = &st::dialogsVerifiedIcon,
+			.fagramOfficial = &st::dialogsFAgramOfficialIcon.icon,
+			.fagramSupporter = &st::dialogsFAgramSupporterIcon.icon,
 			.premium = &st::dialogsPremiumIcon.icon,
 			.scam = &st::attentionButtonFg,
 			.direct = &st::windowSubTextFg,

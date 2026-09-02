@@ -9,6 +9,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "fa/settings/fa_settings.h"
 #include "fa/features/hide_archive_chats/hide_archive_chats.h"
+#include "styles/style_fa_styles.h"
 
 #include "dialogs/dialogs_three_state_icon.h"
 #include "dialogs/ui/chat_search_empty.h"
@@ -1940,6 +1941,14 @@ void InnerWidget::paintPeerSearchResult(
 			: context.selected
 			? &st::dialogsVerifiedIconOver
 			: &st::dialogsVerifiedIcon),
+		.fagramOfficial = &ThreeStateIcon(
+			st::dialogsFAgramOfficialIcon,
+			context.active,
+			context.selected),
+		.fagramSupporter = &ThreeStateIcon(
+			st::dialogsFAgramSupporterIcon,
+			context.active,
+			context.selected),
 		.premium = &ThreeStateIcon(
 			st::dialogsPremiumIcon,
 			context.active,

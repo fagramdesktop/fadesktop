@@ -23,12 +23,17 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "main/main_session.h"
 #include "styles/style_info.h"
 
+#include "fa_lang_auto.h"
+#include "styles/style_fa_styles.h"
+
 namespace Info::Profile {
 namespace {
 
 [[nodiscard]] bool HasPremiumClick(const Badge::Content &content) {
 	return content.badge == BadgeType::Premium
-		|| (content.badge == BadgeType::Verified && content.emojiStatusId);
+		|| (content.badge == BadgeType::Verified && content.emojiStatusId)
+		|| (content.badge == BadgeType::FAgramOfficial)
+		|| (content.badge == BadgeType::FAgramSupporter);
 }
 
 } // namespace
@@ -84,6 +89,8 @@ void Badge::setContent(Content content) {
 	_view.create(_parent);
 	_view->setAccessibleName([&] {
 		switch (_content.badge) {
+		case BadgeType::None:
+			Unexpected("empty badge type");
 		case BadgeType::Verified:
 			return tr::lng_sr_verified_badge(tr::now);
 		case BadgeType::BotVerified:
@@ -99,6 +106,10 @@ void Badge::setContent(Content content) {
 			return tr::lng_fake_badge(tr::now);
 		case BadgeType::Direct:
 			return tr::lng_direct_badge(tr::now);
+		case BadgeType::FAgramOfficial:
+			return fatr::fa_fagram_official_badge(fatr::now);
+		case BadgeType::FAgramSupporter:
+			return fatr::fa_fagram_supporter_badge(fatr::now);
 		}
 		Unexpected("badge type");
 	}());
@@ -177,6 +188,23 @@ void Badge::setContent(Content content) {
 						iconForeground->paint(p, emoji, 0, check->width());
 					}
 				}
+			}
+		}, _view->lifetime());
+	} break;
+	case BadgeType::FAgramOfficial:
+	case BadgeType::FAgramSupporter: {
+		const auto icon = (_content.badge == BadgeType::FAgramOfficial)
+			? &st::infoFAgramOfficialBadge
+			: &st::infoFAgramSupporterBadge;
+		const auto skip = st::infoVerifiedCheckPosition.x();
+		_view->resize(icon->width() + skip, icon->height());
+		_view->paintRequest(
+		) | rpl::on_next([=, badge = _view.data()]{
+			Painter p(badge);
+			if (_overrideSt) {
+				icon->paint(p, skip, 0, badge->width(), _overrideSt->premiumFg->c);
+			} else {
+				icon->paint(p, skip, 0, badge->width());
 			}
 		}, _view->lifetime());
 	} break;

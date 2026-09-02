@@ -2,6 +2,7 @@ using "ui/basic.style";
 using "ui/colors.palette";
 using "ui/widgets/widgets.style";
 using "ui/menu_icons.style";
+using "dialogs/dialogs.style";
 using "info/info.style";
 
 iconPreviewStroke: activeButtonBg;
@@ -73,3 +74,29 @@ settingsSliderRestore: IconButton(defaultIconButton) {
 		color: windowBgOver;
 	}
 }
+
+faBadgeToast: Toast(defaultToast) {
+	minWidth: 200px;
+	maxWidth: 360px;
+	padding: margins(18px, 14px, 18px, 14px);
+}
+faBadgeToastBadge: InfoPeerBadge(infoPeerBadge) {
+	premiumFg: toastFg;
+}
+
+infoFAgramOfficialBadge: icon {{ "fa/fagram_official", profileVerifiedCheckBg }};
+infoFAgramSupporterBadge: icon {{ "fa/fagram_badge", profileVerifiedCheckBg }};
+
+dialogsFAgramOfficialIcon: ThreeStateIcon {
+	icon: icon {{ "fa/dialogs_fagram_official", dialogsVerifiedIconBg }};
+	over: icon {{ "fa/dialogs_fagram_official", dialogsVerifiedIconBgOver }};
+	active: icon {{ "fa/dialogs_fagram_official", dialogsVerifiedIconBgActive }};
+}
+dialogsFAgramSupporterIcon: ThreeStateIcon {
+	icon: icon {{ "fa/dialogs_fagram_supporter", dialogsVerifiedIconBg }};
+	over: icon {{ "fa/dialogs_fagram_supporter", dialogsVerifiedIconBgOver }};
+	active: icon {{ "fa/dialogs_fagram_supporter", dialogsVerifiedIconBgActive }};
+}
+
+
+

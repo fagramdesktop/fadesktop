@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "fa/settings/fa_settings.h"
 #include "fa/features/avatar_shape/avatar_shape.h"
+#include "fa/features/badges/badge_helpers.h"
 
 #include "api/api_peer_colors.h"
 #include "api/api_peer_photo.h"
@@ -379,6 +380,13 @@ TopBar::TopBar(
 	VerifiedContentForPeer(_peer),
 	nullptr,
 	_gifPausedChecker))
+, _faBadge(std::make_unique<Badge>(
+	this,
+	st::infoPeerBadge,
+	&_peer->session(),
+	::FA::Badges::BadgeContentForPeer(_peer),
+	nullptr,
+	_gifPausedChecker))
 , _hasActions(!_savedMessages
 	&& descriptor.source != Source::Stories
 	&& descriptor.source != Source::Preview
@@ -504,6 +512,13 @@ TopBar::TopBar(
 		badgeUpdates = rpl::merge(
 			std::move(badgeUpdates),
 			_verified->updated());
+	}
+	if (_faBadge) {
+		_faBadge->setPremiumClickCallback(
+			::FA::Badges::badgeClickHandler(_peer));
+		badgeUpdates = rpl::merge(
+			std::move(badgeUpdates),
+			_faBadge->updated());
 	}
 	if (_botVerify) {
 		badgeUpdates = rpl::merge(
@@ -740,6 +755,11 @@ void TopBar::adjustColors(const std::optional<QColor> &edgeColor) {
 	_verified->setOverrideStyle(shouldOverrideBadges
 		? _verifiedSt
 		? _verifiedSt.get()
+		: &st::infoColoredPeerBadge
+		: nullptr);
+	_faBadge->setOverrideStyle(shouldOverrideBadges
+		? _badgeSt
+		? _badgeSt.get()
 		: &st::infoColoredPeerBadge
 		: nullptr);
 
@@ -1973,6 +1993,7 @@ void TopBar::updateTitlePosition(float64 progressCurrent) {
 	const auto verifiedWidget = _verified ? _verified->widget() : nullptr;
 	const auto badgeWidget = _badge ? _badge->widget() : nullptr;
 	const auto botVerifyWidget = _botVerify ? _botVerify->widget() : nullptr;
+	const auto faWidget = _faBadge ? _faBadge->widget() : nullptr;
 	auto badgesWidth = 0;
 	if (verifiedWidget) {
 		badgesWidth += verifiedWidget->width();
@@ -1985,6 +2006,9 @@ void TopBar::updateTitlePosition(float64 progressCurrent) {
 	}
 	if (verifiedWidget || badgeWidget) {
 		badgesWidth += st::infoVerifiedCheckPosition.x();
+	}
+	if (faWidget) {
+		badgesWidth += faWidget->width();
 	}
 	const auto titleWidth = width()
 		- interpolatedPadding
@@ -2017,6 +2041,9 @@ void TopBar::updateTitlePosition(float64 progressCurrent) {
 	if (verifiedWidget || badgeWidget) {
 		totalElementsWidth += st::infoVerifiedCheckPosition.x();
 	}
+	if (faWidget) {
+		totalElementsWidth += faWidget->width();
+	}
 	totalElementsWidth += botVerifySkip;
 
 	auto titleLeft = anim::interpolate(
@@ -2042,6 +2069,13 @@ void TopBar::updateTitlePosition(float64 progressCurrent) {
 			badgeLeft + (badgeWidget ? badgeWidget->width() : 0),
 			badgeTop,
 			badgeBottom);
+	}
+	if (_faBadge) {
+		const auto faBadgeLeft = badgeLeft
+			+ (badgeWidget ? badgeWidget->width() : 0)
+			+ (badgeWidget || verifiedWidget ? st::infoVerifiedCheckPosition.x() : 0)
+			+ (verifiedWidget ? verifiedWidget->width() : 0);
+		_faBadge->move(faBadgeLeft, badgeTop, badgeBottom);
 	}
 }
 

@@ -10,6 +10,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/features/hide_archive_chats/hide_archive_chats.h"
 #include "fa/settings/fa_settings.h"
 #include "fa/ui/md3/fa_nav_drawer.h"
+#include "fa/features/badges/badge_helpers.h"
 
 #include "apiwrap.h"
 #include "base/event_filter.h"
@@ -73,6 +74,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
 #include "styles/style_chat.h" // popupMenuExpandedSeparator
+#include "styles/style_info.h"
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h"
 #include "styles/style_window.h"
@@ -328,6 +330,15 @@ MainMenu::MainMenu(
 	[=] { return controller->isGifPausedAtLeastFor(GifPauseReason::Layer); },
 	kPlayStatusLimit,
 	Info::Profile::BadgeType::Premium))
+, _faBadge(std::make_unique<Info::Profile::Badge>(
+	this,
+	st::infoPeerBadge,
+	&controller->session(),
+	::FA::Badges::BadgeContentForPeer(controller->session().user()),
+	nullptr,
+	[=] { return controller->isGifPausedAtLeastFor(GifPauseReason::Layer); },
+	0,
+	::FA::Badges::BadgeTypes()))
 , _scroll(this, st::defaultSolidScroll)
 , _inner(_scroll->setOwnedWidget(
 	object_ptr<Ui::VerticalLayout>(_scroll.data())))
@@ -447,13 +458,17 @@ MainMenu::MainMenu(
 
 	rpl::combine(
 		_toggleAccounts->rightSkipValue(),
-		rpl::single(rpl::empty) | rpl::then(_badge->updated())
+		rpl::single(rpl::empty) | rpl::then(_badge->updated()),
+		rpl::single(rpl::empty) | rpl::then(_faBadge->updated())
 	) | rpl::on_next([=] {
 		moveBadge();
 	}, lifetime());
 	_badge->setPremiumClickCallback([=] {
 		chooseEmojiStatus();
 	});
+	const auto user = controller->session().user();
+	_faBadge->setPremiumClickCallback(
+		::FA::Badges::badgeClickHandler(user));
 
 	_controller->session().downloaderTaskFinished(
 	) | rpl::on_next([=] {
@@ -504,19 +519,41 @@ MainMenu::MainMenu(
 MainMenu::~MainMenu() = default;
 
 void MainMenu::moveBadge() {
-	if (!_badge->widget()) {
+	const auto badgeWidth = _badge->widget()
+		? _badge->widget()->width()
+		: 0;
+	const auto faBadgeWidth = _faBadge->widget()
+		? _faBadge->widget()->width()
+		: 0;
+	if (!badgeWidth && !faBadgeWidth) {
 		return;
 	}
+	const auto nameGap = badgeWidth ? st::semiboldFont->spacew : 0;
+	const auto faGap = faBadgeWidth
+		? st::infoVerifiedCheckPosition.x()
+		: 0;
+	const auto reserved = nameGap
+		+ badgeWidth
+		+ faGap
+		+ faBadgeWidth;
 	const auto available = width()
 		- st::mainMenuCoverNameLeft
 		- _toggleAccounts->rightSkip()
-		- _badge->widget()->width();
-	const auto left = st::mainMenuCoverNameLeft
-		+ std::min(_name.maxWidth() + st::semiboldFont->spacew, available);
-	_badge->move(
-		left,
-		st::mainMenuCoverNameTop,
-		st::mainMenuCoverNameTop + st::semiboldFont->height);
+		- reserved;
+	const auto nameEnd = st::mainMenuCoverNameLeft
+		+ std::min(_name.maxWidth(), available);
+	if (_badge->widget()) {
+		_badge->move(
+			nameEnd + nameGap,
+			st::mainMenuCoverNameTop,
+			st::mainMenuCoverNameTop + st::semiboldFont->height);
+	}
+	if (_faBadge->widget()) {
+		_faBadge->move(
+			nameEnd + nameGap + badgeWidth,
+			st::mainMenuCoverNameTop,
+			st::mainMenuCoverNameTop + st::semiboldFont->height);
+	}
 }
 
 void MainMenu::setupArchive() {
@@ -934,14 +971,25 @@ void MainMenu::drawName(Painter &p) {
 	}
 	p.setFont(st::semiboldFont);
 	p.setPen(st::windowBoldFg);
+	const auto badgeWidth = _badge->widget()
+		? _badge->widget()->width()
+		: 0;
+	const auto faBadgeWidth = _faBadge->widget()
+		? _faBadge->widget()->width()
+		: 0;
+	const auto nameGap = badgeWidth ? st::semiboldFont->spacew : 0;
+	const auto faGap = faBadgeWidth
+		? st::infoVerifiedCheckPosition.x()
+		: 0;
+	const auto reserved = nameGap
+		+ badgeWidth
+		+ faGap
+		+ faBadgeWidth;
 	_name.drawLeftElided(
 		p,
 		st::mainMenuCoverNameLeft,
 		st::mainMenuCoverNameTop,
-		(widthText
-			- (_badge->widget()
-				? (st::semiboldFont->spacew + _badge->widget()->width())
-				: 0)),
+		widthText - reserved,
 		width());
 }
 

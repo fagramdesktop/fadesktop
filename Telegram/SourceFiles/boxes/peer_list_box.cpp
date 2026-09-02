@@ -40,6 +40,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_boxes.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_widgets.h"
+#include "styles/style_fa_styles.h"
 
 #include <xxhash.h> // XXH64.
 #include <QtWidgets/QApplication>
@@ -936,6 +937,12 @@ int PeerListRow::paintNameIconGetWidth(
 		.verified = &(selected
 			? st::dialogsVerifiedIconOver
 			: st::dialogsVerifiedIcon),
+		.fagramOfficial = &(selected
+			? st::dialogsFAgramOfficialIcon.over
+			: st::dialogsFAgramOfficialIcon.icon),
+		.fagramSupporter = &(selected
+			? st::dialogsFAgramSupporterIcon.over
+			: st::dialogsFAgramSupporterIcon.icon),
 		.premium = &(selected
 			? st::dialogsPremiumIcon.over
 			: st::dialogsPremiumIcon.icon),

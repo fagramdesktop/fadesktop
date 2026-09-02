@@ -6,8 +6,6 @@ For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 
-// thx ayugram
-
 #pragma once
 
 #include "window/window_session_controller.h"

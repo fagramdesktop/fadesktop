@@ -27,8 +27,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "ui/widgets/menu/menu_action.h"
 #include "window/window_session_controller.h"
 
-// thanks ayugram
-
 namespace Ui {
 namespace {
 

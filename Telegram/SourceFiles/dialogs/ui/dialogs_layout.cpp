@@ -8,6 +8,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "dialogs/ui/dialogs_layout.h"
 
 #include "fa/settings/fa_settings.h"
+#include "styles/style_fa_styles.h"
 
 #include "base/options.h"
 #include "base/unixtime.h"
@@ -881,6 +882,14 @@ void PaintRow(
 				: context.selected
 				? &st::dialogsVerifiedIconOver
 				: &st::dialogsVerifiedIcon),
+			.fagramOfficial = &ThreeStateIcon(
+				st::dialogsFAgramOfficialIcon,
+				context.active,
+				context.selected),
+			.fagramSupporter = &ThreeStateIcon(
+				st::dialogsFAgramSupporterIcon,
+				context.active,
+				context.selected),
 			.premium = &ThreeStateIcon(
 				st::dialogsPremiumIcon,
 				context.active,

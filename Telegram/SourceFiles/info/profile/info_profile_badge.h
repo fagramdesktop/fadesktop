@@ -42,7 +42,9 @@ enum class BadgeType : uchar {
 	Premium = 0x04,
 	Scam = 0x08,
 	Fake = 0x10,
-	Direct = 0x40,
+	Direct = 0x20,
+	FAgramOfficial = 0x40,
+	FAgramSupporter = 0x80,
 };
 inline constexpr bool is_flag_type(BadgeType) { return true; }
 

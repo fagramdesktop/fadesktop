@@ -11,6 +11,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/settings/fa_settings.h"
 #include "fa/ui/md3/fa_nav_drawer.h"
 #include "fa/ui/md3/fa_cards.h"
+#include "fa/features/badges/badge_helpers.h"
 
 #include "settings/sections/settings_main.h"
 #include "settings/settings_builder.h"
@@ -74,6 +75,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "styles/style_chat.h" // popupMenuExpandedSeparator
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"
+#include "styles/style_info.h"
 #include "styles/style_menu_icons.h"
 #include "styles/style_window.h"
 
@@ -117,9 +119,11 @@ private:
 	rpl::variable<QString> _text;
 	rpl::event_stream<int> _unreadWidth;
 	rpl::event_stream<int> _premiumWidth;
+	rpl::event_stream<int> _faWidth;
 
 	QPointer<Ui::RpWidget> _unread;
 	Info::Profile::Badge _badge;
+	Info::Profile::Badge _faBadge;
 
 };
 
@@ -140,7 +144,16 @@ ComposedBadge::ComposedBadge(
 		nullptr,
 		std::move(animationPaused),
 		kPlayStatusLimit,
-		Info::Profile::BadgeType::Premium) {
+		Info::Profile::BadgeType::Premium)
+, _faBadge(
+		this,
+		st::infoPeerBadge,
+		session,
+		::FA::Badges::BadgeContentForPeer(session->user()),
+		nullptr,
+		std::move(animationPaused),
+		0,
+		::FA::Badges::BadgeTypes()) {
 	if (hasUnread) {
 		_unread = Badge::CreateUnread(this, rpl::single(
 			rpl::empty
@@ -171,6 +184,16 @@ ComposedBadge::ComposedBadge(
 		}
 	}, lifetime());
 
+	_faBadge.updated(
+	) | rpl::on_next([=] {
+		if (const auto widget = _faBadge.widget()) {
+			widget->widthValue(
+			) | rpl::start_to_stream(_faWidth, widget->lifetime());
+		} else {
+			_faWidth.fire(0);
+		}
+	}, lifetime());
+
 	auto textWidth = _text.value() | rpl::map([=] {
 		return button->fullTextWidth();
 	});
@@ -179,11 +202,15 @@ ComposedBadge::ComposedBadge(
 		_premiumWidth.events_starting_with(_badge.widget()
 			? _badge.widget()->width()
 			: 0),
+		_faWidth.events_starting_with(_faBadge.widget()
+			? _faBadge.widget()->width()
+			: 0),
 		std::move(textWidth),
 		button->sizeValue()
 	) | rpl::on_next([=](
 			int unreadWidth,
 			int premiumWidth,
+			int faWidth,
 			int textWidth,
 			const QSize &buttonSize) {
 		const auto &st = button->st();
@@ -191,7 +218,14 @@ ComposedBadge::ComposedBadge(
 		const auto textRightPosition = st.padding.left()
 			+ textWidth
 			+ skip;
-		const auto minWidth = unreadWidth + premiumWidth + skip;
+		const auto faGap = faWidth
+			? st::infoVerifiedCheckPosition.x()
+			: 0;
+		const auto minWidth = unreadWidth
+			+ premiumWidth
+			+ faGap
+			+ faWidth
+			+ skip;
 		const auto maxTextWidth = buttonSize.width()
 			- minWidth
 			- st.padding.right();
@@ -204,6 +238,10 @@ ComposedBadge::ComposedBadge(
 
 		_badge.move(
 			0,
+			st.padding.top(),
+			buttonSize.height() - st.padding.top());
+		_faBadge.move(
+			premiumWidth,
 			st.padding.top(),
 			buttonSize.height() - st.padding.top());
 		if (_unread) {

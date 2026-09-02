@@ -6,8 +6,6 @@ For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 
-// thanks ayugram
-
 #pragma once
 
 #include <string>

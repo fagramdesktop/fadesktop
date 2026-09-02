@@ -10,6 +10,7 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 #include "fa/ui/md3/fa_slider.h"
 
 #include "fa_lang_auto.h"
+#include "fa/features/badges/badge_helpers.h"
 
 #include "settings/sections/settings_main.h"
 #include "settings/settings_common_session.h"
@@ -132,6 +133,7 @@ private:
 	const not_null<UserData*> _user;
 	Info::Profile::EmojiStatusPanel _emojiStatusPanel;
 	Info::Profile::Badge _badge;
+	Info::Profile::Badge _faBadge;
 
 	object_ptr<Ui::UserpicButton> _userpic;
 	object_ptr<Ui::FlatLabel> _name = { nullptr };
@@ -171,6 +173,18 @@ Cover::Cover(
 	},
 	0, // customStatusLoopsLimit
 	Info::Profile::BadgeType::Premium)
+, _faBadge(
+	this,
+	st::infoPeerBadge,
+	&user->session(),
+	::FA::Badges::BadgeContentForPeer(user),
+	&_emojiStatusPanel,
+	[=] {
+		return controller->isGifPausedAtLeastFor(
+			Window::GifPauseReason::Layer);
+	},
+	0, // customStatusLoopsLimit
+	::FA::Badges::BadgeTypes())
 , _userpic(
 	this,
 	controller,
@@ -235,7 +249,12 @@ Cover::Cover(
 			_badge.widget(),
 			_badge.sizeTag());
 	});
-	_badge.updated() | rpl::on_next([=] {
+	_faBadge.setPremiumClickCallback(
+		::FA::Badges::badgeClickHandler(_user));
+	rpl::merge(
+		_badge.updated(),
+		_faBadge.updated()
+	) | rpl::on_next([=] {
 		refreshNameGeometry(width());
 	}, _name->lifetime());
 
@@ -366,12 +385,20 @@ void Cover::refreshNameGeometry(int newWidth) {
 	if (const auto width = _badge.widget() ? _badge.widget()->width() : 0) {
 		nameWidth -= st::infoVerifiedCheckPosition.x() + width;
 	}
+	if (const auto width = _faBadge.widget() ? _faBadge.widget()->width() : 0) {
+		nameWidth -= st::infoVerifiedCheckPosition.x() + width;
+	}
 	_name->resizeToNaturalWidth(nameWidth);
 	_name->moveToLeft(textLeft, nameTop, newWidth);
 	const auto badgeLeft = textLeft + _name->width();
 	const auto badgeTop = nameTop;
 	const auto badgeBottom = nameTop + _name->height();
 	_badge.move(badgeLeft, badgeTop, badgeBottom);
+	const auto faBadgeLeft = badgeLeft
+		+ (_badge.widget()
+			? (_badge.widget()->width() + st::infoVerifiedCheckPosition.x())
+			: 0);
+	_faBadge.move(faBadgeLeft, badgeTop, badgeBottom);
 }
 
 void Cover::updatePhoneText() {

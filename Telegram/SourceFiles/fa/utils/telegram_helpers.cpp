@@ -84,7 +84,6 @@ void markAsOnline(not_null<Main::Session*> session) {
 	onlineStateCache.put(session->userId().bare, true);
 }
 
-// stole from ayugram
 int getMediaSizeBytes(not_null<HistoryItem*> message) {
 	if (!message->media()) {
 		return -1;
@@ -122,7 +121,6 @@ int getMediaSizeBytes(not_null<HistoryItem*> message) {
 	return size;
 }
 
-// stole from Ayugram
 void readMentions(base::weak_ptr<Data::Thread> weakThread) {
 	const auto thread = weakThread.get();
 	if (!thread) {
@@ -149,7 +147,6 @@ void readMentions(base::weak_ptr<Data::Thread> weakThread) {
 	}).send();
 }
 
-// stole from Ayugram
 void readReactions(base::weak_ptr<Data::Thread> weakThread) {
 	const auto thread = weakThread.get();
 	if (!thread) {
@@ -463,7 +460,6 @@ QString getMediaDC(not_null<HistoryItem*> message) {
 	return {};
 }
 
-// thanks ayugram
 void MessageDetails(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
     bool show_message_details = FASettings::FASettings::getInstance().showMessageDetails();
     if (!show_message_details) {
@@ -688,7 +684,6 @@ FaID getUserIdFromPackId(uint64 id) {
 	return ownerId;
 }
 
-// stole form ayugram
 QString formatDateTime(const QDateTime &date) {
 	const auto locale = QLocale::system();
 	const auto datePart = locale.toString(date.date(), QLocale::ShortFormat);
@@ -707,7 +702,6 @@ QString getLocalizedAt() {
 	return val;
 }
 
-// thx ayugram
 void resolveUser(FaID userId, const QString &username, Main::Session *session, const Callback &callback) {
 	auto normalized = username.trimmed().toLower();
 	if (normalized.isEmpty()) {
@@ -748,7 +742,6 @@ void resolveUser(FaID userId, const QString &username, Main::Session *session, c
 	}).send();
 }
 
-// thx ayugram
 void searchUser(long long userId, Main::Session *session, bool searchUserFlag, const Callback &callback) {
 	if (!session) {
 		callback(QString(), nullptr);
@@ -889,7 +882,6 @@ void searchUser(long long userId, Main::Session *session, bool searchUserFlag, c
 	}).handleAllErrors().send();
 }
 
-// thx ayugram
 void searchById(FaID userId, Main::Session *session, const Callback &callback) {
 	if (userId == 0 || !session) {
 		callback(QString(), nullptr);

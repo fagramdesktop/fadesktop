@@ -13,8 +13,6 @@ https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 
 #include "base/unique_qptr.h"
 
-// thanks ayugram
-
 namespace Ui {
 namespace Menu {
 class Menu;

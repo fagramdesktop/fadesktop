@@ -6,8 +6,6 @@ For license and copyright information please follow this link:
 https://github.com/fagramdesktop/fadesktop/blob/dev/LEGAL
 */
 
-// thx ayugram
-
 #include "fa/url_handlers/fa_url_handlers.h"
 
 #include "window/window_controller.h"
@@ -141,7 +139,6 @@ bool HandleQuit(
 	return true;
 }
 
-// thx ayugram
 bool ResolveUser(
 	Window::SessionController *controller,
 	const Match &match,
