@@ -1,3 +1,14 @@
+2.5.2 (03.09.26)
+
+- Updated tdesktop to v7.1.4
+- Reimplemented FAgram Badge
+- Avatar shapes outline stroke can be disabled now
+- Extended Avatar shapes support to almost everywhere
+- Option to disable link previews
+- Option to hide archived chats from all chat List
+- Chat members filter in groups
+- Fixed crashes
+
 2.5.1 (23.08.26)
 
 - Last.FM Now Playing integration
