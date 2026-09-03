@@ -263,7 +263,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           sparse-checkout: |
-            scripts/tgupload.py
+            .github/scripts/tgupload.py
             Telegram/SourceFiles/fa/fa_version.h
 
       - name: Extract TGD version
@@ -292,10 +292,9 @@ jobs:
           API_HASH: ${{ secrets.API_HASH_CONFIG }}
         run: |
           MAC_FILE=$(find artifacts/mac -name "fagram-mac-*.dmg" | head -1)
-          python3 scripts/tgupload.py "$MAC_FILE" --chat-id ${{ secrets.CHAT_ID }} --caption "$(cat <<EOF
-          <b>FAgram macOS ${{ inputs.tagname }}</b>
-          TGD Base: <code>${{ env.TGD_VERSION }}</code>
-          Build Type: <code>${{ inputs.build_type }}</code>
-          Branch: <code>${{ github.ref_name }}</code>
-          EOF
-          )"
+          python3 .github/scripts/tgupload.py "$MAC_FILE" \
+            --chat-id ${{ secrets.CHAT_ID }} \
+            --title "FAgram macOS ${{ inputs.tagname }}" \
+            --tgd-version "${{ env.TGD_VERSION }}" \
+            --build-type "${{ inputs.build_type }}" \
+            --branch "${{ github.ref_name }}"
