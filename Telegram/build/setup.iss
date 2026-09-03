@@ -37,11 +37,11 @@ WizardStyle=modern
 
 #ifndef MyOutputBaseFilename
   #if MyBuildTarget == "winarm"
-    #define MyOutputBaseFilename "tsetup-arm64." + MyAppVersionFull
+    #define MyOutputBaseFilename "fagram-setup_Win-arm64." + MyAppVersionFull
   #elif MyBuildTarget == "win64"
-    #define MyOutputBaseFilename "tsetup-x64." + MyAppVersionFull
+    #define MyOutputBaseFilename "fagram-setup_Win-x64." + MyAppVersionFull
   #else
-    #define MyOutputBaseFilename "tsetup." + MyAppVersionFull
+    #define MyOutputBaseFilename "fagram-setup." + MyAppVersionFull
   #endif
 #endif
 OutputBaseFilename={#MyOutputBaseFilename}

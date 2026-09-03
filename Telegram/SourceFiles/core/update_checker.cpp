@@ -410,18 +410,20 @@ QString ExtractFilename(const QString &url) {
 
 #ifndef TDESKTOP_DISABLE_AUTOUPDATE
 
-// The data must point to the exact v1 post-signature layout, which is also
-// the v2 payload layout: [lzma props on Windows,] original size, compressed
-// bytes. Callers only pass authenticated bytes here.
+// The data must point to the exact post-signature layout: [lzma props on
+// Windows,] original size, compressed bytes. Callers only pass
+// authenticated bytes here. v1 uses a 4-byte int32 size; v2 uses an
+// 8-byte int64 size.
 [[nodiscard]] std::optional<QByteArray> DecompressUpdatePayload(
 		const char *data,
-		int32 size) {
+		int32 size,
+		bool useV2Header) {
 #if defined Q_OS_WIN && !defined TDESKTOP_USE_PACKAGED // use Lzma SDK for win
 	const int32 hPropsLen = LZMA_PROPS_SIZE;
 #else // Q_OS_WIN && !TDESKTOP_USE_PACKAGED
 	const int32 hPropsLen = 0;
 #endif // Q_OS_WIN && !TDESKTOP_USE_PACKAGED
-	const int32 hOriginalSizeLen = sizeof(int64);
+	const int32 hOriginalSizeLen = useV2Header ? sizeof(int64) : sizeof(int32);
 	const int32 hSize = hPropsLen + hOriginalSizeLen;
 	const int32 compressedLen = size - hSize;
 	if (compressedLen <= 0) {
@@ -432,7 +434,13 @@ QString ExtractFilename(const QString &url) {
 	QByteArray uncompressed;
 
 	int64 uncompressedLen = 0;
-	memcpy(&uncompressedLen, data + hPropsLen, hOriginalSizeLen);
+	if (useV2Header) {
+		memcpy(&uncompressedLen, data + hPropsLen, sizeof(int64));
+	} else {
+		int32 len32 = 0;
+		memcpy(&len32, data + hPropsLen, sizeof(int32));
+		uncompressedLen = len32;
+	}
 	if (uncompressedLen <= 0 || uncompressedLen > 1024 * 1024 * 1024) {
 		LOG(("Update Error: bad uncompressed size: %1").arg(uncompressedLen));
 		return std::nullopt;
@@ -643,7 +651,8 @@ QString ExtractFilename(const QString &url) {
 	const auto &payload = verified->envelope.payload;
 	const auto uncompressed = DecompressUpdatePayload(
 		payload.constData(),
-		payload.size());
+		payload.size(),
+		true);
 	if (!uncompressed) {
 		return false;
 	}
@@ -798,7 +807,8 @@ bool UnpackUpdate(const QString &filepath) {
 
 	const auto uncompressed = DecompressUpdatePayload(
 		compressed.constData() + hSigLen + hShaLen,
-		compressed.size() - hSigLen - hShaLen);
+		compressed.size() - hSigLen - hShaLen,
+		false);
 	if (!uncompressed) {
 		return false;
 	}
@@ -913,7 +923,10 @@ bool ParseCommonMap(
 		}
 		const auto map = (*it).toObject();
 		const auto key = testing ? "testing" : "released";
-		const auto version = map.constFind(key);
+		auto version = map.constFind(key);
+		if (version == map.constEnd() && testing) {
+			version = map.constFind("released");
+		}
 		if (version == map.constEnd()) {
 			continue;
 		}

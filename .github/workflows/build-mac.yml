@@ -15,6 +15,11 @@ on:
         options:
           - ci
           - rel
+      dirty_build:
+        description: "Enable dirty build (cache out dir)"
+        type: boolean
+        required: false
+        default: false
       disable_cache:
         description: "Skip restore cache (rebuild from source)"
         type: boolean
@@ -33,6 +38,11 @@ on:
         default: "ci"
       skip_upload:
         description: "Skip Telegram upload"
+        type: boolean
+        required: false
+        default: false
+      dirty_build:
+        description: "Enable dirty build (cache out dir)"
         type: boolean
         required: false
         default: false
@@ -160,6 +170,15 @@ jobs:
           key: ${{ runner.os }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
           restore-keys: ${{ runner.os }}-libs-
 
+      - name: Restore FAgram out dir cache
+        id: cache-out
+        if: ${{ (inputs.dirty_build == true || inputs.dirty_build == 'true') && inputs.disable_cache != true && inputs.disable_cache != 'true' }}
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.REPO_NAME }}/out
+          key: ${{ runner.os }}-tdesktop-out-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-tdesktop-out-
+
       - name: Configure with CMake
         run: |
           cd ${{ env.REPO_NAME }}/Telegram
@@ -177,6 +196,17 @@ jobs:
           MAKE_THREADS_CNT: -j3
           CMAKE_BUILD_PARALLEL_LEVEL: 3
         run: cmake --build ${{ env.REPO_NAME }}/out --config MinSizeRel --target Telegram
+
+      - name: Save FAgram out dir cache
+        if: >
+          always() &&
+          (inputs.dirty_build == true || inputs.dirty_build == 'true') &&
+          inputs.disable_cache != true &&
+          inputs.disable_cache != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.REPO_NAME }}/out
+          key: ${{ runner.os }}-tdesktop-out-${{ github.run_id }}
 
       - name: Read version info
         run: |

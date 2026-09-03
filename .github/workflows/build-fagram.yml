@@ -15,6 +15,11 @@ on:
         options:
           - ci
           - rel
+      dirty_build:
+        description: "Enable dirty build (cache out dir)"
+        type: boolean
+        required: false
+        default: false
       disable_cache:
         description: "Skip restore cache (rebuild from source)"
         type: boolean
@@ -38,6 +43,7 @@ jobs:
       build_type: ${{ inputs.build_type }}
       skip_upload: true
       disable_cache: ${{ inputs.disable_cache }}
+      dirty_build: ${{ inputs.dirty_build }}
     secrets: inherit
 
   build-windows:
@@ -48,6 +54,7 @@ jobs:
       build_type: ${{ inputs.build_type }}
       skip_upload: true
       disable_cache: ${{ inputs.disable_cache }}
+      dirty_build: ${{ inputs.dirty_build }}
     secrets: inherit
 
   build-mac:
@@ -58,6 +65,7 @@ jobs:
       build_type: ${{ inputs.build_type }}
       skip_upload: true
       disable_cache: ${{ inputs.disable_cache }}
+      dirty_build: ${{ inputs.dirty_build }}
     secrets: inherit
 
   upload-telegram:

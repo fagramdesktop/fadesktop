@@ -65,7 +65,7 @@ jobs:
           name: ota-win64
           path: ota-artifacts/win64
           run-id: ${{ inputs.windows_run_id || inputs.run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
 
       - name: Download Linux OTA artifact
         uses: actions/download-artifact@v8
@@ -73,7 +73,7 @@ jobs:
           name: ota-linux
           path: ota-artifacts/linux
           run-id: ${{ inputs.linux_run_id || inputs.run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
 
       - name: Download macOS OTA artifact
         if: ${{ inputs.mac_run_id != '' || inputs.run_id != '' }}
@@ -82,7 +82,7 @@ jobs:
           name: ota-macos
           path: ota-artifacts/macos
           run-id: ${{ inputs.mac_run_id || inputs.run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
       - name: Clone OTA repo

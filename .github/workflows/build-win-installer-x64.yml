@@ -78,7 +78,7 @@ jobs:
         with:
           name: ${{ inputs.artifact_name }}
           path: artifact
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
           run-id: ${{ inputs.run_id || github.run_id }}
 
       - name: Download d3dcompiler_47.dll
@@ -119,7 +119,7 @@ jobs:
       - name: Build installer
         run: |
           cd Telegram\build
-          iscc /dMyAppVersion=${{ steps.version.outputs.app_version_str_small }} /dMyAppVersionZero=${{ steps.version.outputs.app_version_str }} /dMyAppVersionFull=${{ steps.version.outputs.app_version_str_full }} "/dReleasePath=%GITHUB_WORKSPACE%\artifact" "/dMyBuildTarget=win64" setup.iss
+          iscc /dMyAppVersion=${{ steps.version.outputs.app_version_str_small }} /dMyAppVersionZero=${{ steps.version.outputs.app_version_str }} /dMyAppVersionFull=${{ steps.version.outputs.app_version_str_full }} "/dReleasePath=%GITHUB_WORKSPACE%\artifact" "/dMyBuildTarget=win64" "/dMyOutputBaseFilename=fagram-setup_Win-x64.${{ steps.version.outputs.app_version_str_full }}" setup.iss
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v7

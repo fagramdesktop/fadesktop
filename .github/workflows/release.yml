@@ -59,7 +59,7 @@ jobs:
         with:
           name: fagram-${{ inputs.tagname }}
           path: artifacts/linux
-          github-token: ${{ secrets.PAT }}
+          github-token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
           run-id: ${{ inputs.linux_run_id }}
 
       - name: Download Windows portable artifact
@@ -67,7 +67,7 @@ jobs:
         with:
           name: FAgram_Win-x64
           path: artifacts/windows
-          github-token: ${{ secrets.PAT }}
+          github-token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
           run-id: ${{ inputs.windows_run_id }}
 
       - name: Download Windows installer artifact
@@ -75,7 +75,7 @@ jobs:
         with:
           name: FAgram_Win-x64_installer
           path: artifacts/windows-installer
-          github-token: ${{ secrets.PAT }}
+          github-token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
           run-id: ${{ inputs.windows_run_id }}
 
       - name: Download macOS artifact
@@ -84,7 +84,7 @@ jobs:
         with:
           name: fagram-mac-${{ inputs.tagname }}
           path: artifacts/mac
-          github-token: ${{ secrets.PAT }}
+          github-token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
           run-id: ${{ inputs.mac_run_id }}
 
       - name: List downloaded artifacts
