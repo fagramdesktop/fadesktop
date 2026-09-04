@@ -322,7 +322,8 @@ public:
 		Fn<void(bool)> onToggle)
 	: RippleButton(parent, st::defaultSettingsButton.ripple)
 	, _onToggle(std::move(onToggle)) {
-		
+		setIsListItem(true);
+
 		std::move(title) | rpl::on_next([this](const QString &text) {
 			_titleText = text;
 			updateHeight();
@@ -468,6 +469,7 @@ public:
 	: RippleButton(parent, st::defaultSettingsButton.ripple)
 	, _icon(icon)
 	, _showChevron(showChevron) {
+		setIsListItem(true);
 
 		std::move(title) | rpl::on_next([this](const QString &text) {
 			_titleText = text;
@@ -573,6 +575,7 @@ public:
 	, _group(group)
 	, _value(value)
 	, _checked(group ? (group->current() == value) : false) {
+		setIsListItem(true);
 
 		std::move(title) | rpl::on_next([this](const QString &text) {
 			_titleText = text;
