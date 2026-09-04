@@ -406,6 +406,11 @@ MainMenu::MainMenu(
 		const auto cardMarginBottom = 12;
 		const auto cardPaddingX = 16;
 		const auto cardPaddingY = 10;
+		const auto availableWidth = std::max(
+			size.width() - 2 * cardMarginX - 2 * cardPaddingX,
+			0);
+		_telegram->resizeToWidth(availableWidth);
+		_version->resizeToWidth(availableWidth);
 		const auto cardHeight = _telegram->height() + 3 + _version->height() + 2 * cardPaddingY;
 		const auto cardY = size.height() - cardMarginBottom - cardHeight;
 
