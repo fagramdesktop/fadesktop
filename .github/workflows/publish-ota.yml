@@ -165,7 +165,10 @@ jobs:
           import os
           from pathlib import Path
 
-          manifest_path = 'current4'
+          # The merged build now requests "current6" (lib_base AutoUpdateVersion
+          # bumped 4 -> 6). Keep "current4" updated as well so older clients
+          # still on the v4 feed keep getting updates until they migrate.
+          manifest_paths = ['current6', 'current4']
           version = os.environ['APP_VERSION']
           channel = os.environ['CHANNEL']
           release_tag = os.environ['RELEASE_TAG']
@@ -174,8 +177,33 @@ jobs:
           mac_name = os.environ.get('MAC_NAME', '')
 
           base = f"https://github.com/fagramdesktop/ota/releases/download/{release_tag}"
-          manifest = {}
+          entries = {
+            'win64': {
+              channel: {
+                'released': version,
+                'link': f'{base}/{win_name}',
+              },
+            },
+            'linux': {
+              channel: {
+                'released': version,
+                'link': f'{base}/{linux_name}',
+              },
+            },
+          }
+          if mac_name:
+            mac_entry = {
+              'released': version,
+              'link': f'{base}/{mac_name}',
+            }
+            entries['mac'] = {channel: mac_entry}
+            entries['armac'] = {channel: dict(mac_entry)}
 
+          # Read the existing current4 (the source of truth with the full
+          # per-platform history) so the freshly written current6 carries
+          # the same channels for every other platform and the two files
+          # stay byte-identical.
+          manifest = {}
           existing = Path('current4')
           if existing.exists():
             try:
@@ -185,33 +213,20 @@ jobs:
             except Exception:
               manifest = {}
 
-          manifest.setdefault('win64', {})[channel] = {
-            'released': version,
-            'link': f'{base}/{win_name}',
-          }
-          manifest.setdefault('linux', {})[channel] = {
-            'released': version,
-            'link': f'{base}/{linux_name}',
-          }
+          for platform, channels in entries.items():
+            manifest.setdefault(platform, {}).update(channels)
 
-          if mac_name:
-            mac_entry = {
-              'released': version,
-              'link': f'{base}/{mac_name}',
-            }
-            manifest.setdefault('mac', {})[channel] = mac_entry
-            manifest.setdefault('armac', {})[channel] = dict(mac_entry)
-
-          with open(manifest_path, 'w') as f:
-            json.dump(manifest, f, indent=2, sort_keys=True)
-            f.write('\n')
+          for manifest_path in manifest_paths:
+            with open(manifest_path, 'w') as f:
+              json.dump(manifest, f, indent=2, sort_keys=True)
+              f.write('\n')
           PY
 
-          git add current4
+          git add current6 current4
           if git diff --cached --quiet; then
             echo "No manifest changes to commit."
           else
-            git commit -m "Update OTA manifest for ${APP_VERSION} (${CHANNEL})"
+            git commit -m "Update OTA manifests for ${APP_VERSION} (${CHANNEL})"
             git push origin "$OTA_BRANCH"
           fi
 

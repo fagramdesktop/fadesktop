@@ -5,10 +5,12 @@ publish_update.py — Publish OTA update to fagramdesktop/ota repo.
 Usage:
     python publish_update.py --version 6005002 --platform win64 --file path/to/tx64upd6005002
     python publish_update.py --version 6005002 --platform win64 --file path/to/tx64upd6005002 --beta
+    python publish_update.py --version 6005002 --platform armac --file path/to/tarmacupd6005002
 
 This script:
   1. Copies the update binary (created by Packer) to the local ota repo.
-  2. Updates the current4 manifest JSON.
+  2. Updates BOTH the current6 manifest (the feed merged clients request) and
+     the current4 manifest (kept in sync so older clients have time to migrate).
   3. Commits and pushes to GitHub.
 
 Prerequisites:
@@ -26,13 +28,15 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, '..', '..'))
 UPDATES_REPO = os.path.normpath(os.path.join(REPO_ROOT, '..', 'ota'))
-MANIFEST_NAME = 'current4'
+MANIFEST_NAMES = ['current6', 'current4']
 
-PLATFORMS = ['win64', 'linux']
+PLATFORMS = ['win64', 'linux', 'mac', 'armac']
 
 UPDATE_FILE_PREFIX = {
     'win64': 'tx64upd',
     'linux': 'tlinuxupd',
+    'mac': 'tmacupd',
+    'armac': 'tarmacupd',
 }
 
 
@@ -102,11 +106,17 @@ def main():
     shutil.copy2(args.file, dest_file)
     print(f'Copied update file to: {dest_file}')
 
-    manifest_path = os.path.join(updates_repo, MANIFEST_NAME)
-    manifest = read_manifest(manifest_path)
-
     channel = 'beta' if args.beta else 'stable'
     link = f'/{expected_name}'
+
+    # The merged build now requests the "current6" feed (lib_base
+    # AutoUpdateVersion bumped 4 -> 6). Keep "current4" updated as well so
+    # older clients on the v4 feed keep getting updates until they migrate.
+    # Both manifests must stay byte-identical: we read the existing
+    # current4 (the source of truth with the full per-platform history) and
+    # write the same in-memory state to both files.
+    manifest_path = os.path.join(updates_repo, MANIFEST_NAMES[1])
+    manifest = read_manifest(manifest_path)
 
     if args.platform not in manifest:
         manifest[args.platform] = {}
@@ -116,10 +126,12 @@ def main():
         'link': link,
     }
 
-    write_manifest(manifest_path, manifest)
-    print(f'Updated manifest: {args.platform}/{channel} -> v{args.version}')
+    for manifest_name in MANIFEST_NAMES:
+        manifest_path = os.path.join(updates_repo, manifest_name)
+        write_manifest(manifest_path, manifest)
+        print(f'Updated manifest: {manifest_name}: {args.platform}/{channel} -> v{args.version}')
 
-    git_run(updates_repo, 'add', expected_name, MANIFEST_NAME)
+    git_run(updates_repo, 'add', expected_name, *MANIFEST_NAMES)
 
     version_str = format_version(args.version)
     channel_suffix = ' beta' if args.beta else ''

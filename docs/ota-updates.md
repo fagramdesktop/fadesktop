@@ -2,13 +2,15 @@
 
 Self-update system for Fagram Desktop via a GitHub repository.
 
-The client periodically checks a JSON manifest `current4` at the configured URL. If a newer version is available, it downloads a signed update package and installs it.
+The client periodically checks a JSON manifest at the configured URL. If a newer version is available, it downloads a signed update package and installs it.
+
+The merged build requests the **`current6`** feed (lib_base `AutoUpdateVersion()` returned `4` in 2.5.x and was bumped to `6` by the v7.2.5 merge). The **`current4`** feed is still published alongside for older clients that have not yet migrated; both files have the same shape and are kept in sync.
 
 ---
 
 ## How it works
 
-1. The client requests `{UPDATE_URL}/current4` — a JSON file with per-platform versions.
+1. The client requests `{UPDATE_URL}/current6` — a JSON file with per-platform versions. Older clients on the v4 feed request `{UPDATE_URL}/current4`; the OTA repo carries both.
 2. If a newer version exists, it downloads the update file (e.g. `tx64upd6005002`) from `{UPDATE_URL}/{link}`.
 3. The file is RSA-signed (1024-bit); the client verifies the signature before installing.
 4. After verification the update is decompressed (LZMA) and applied via `Updater` (Updater.exe on Windows).
@@ -77,7 +79,7 @@ The path to `DesktopPrivate` is hardcoded via `#include` (4 levels up from `_oth
 
 ---
 
-## current4 format
+## Manifest format (`current6` and `current4`)
 
 ```json
 {
@@ -179,12 +181,12 @@ python Telegram/build/publish_update.py \
 # To commit without pushing add --no-push
 ```
 
-The script copies the file to the updates repo, updates `current4`, commits and pushes.
+The script copies the file to the updates repo, updates both `current6` and `current4`, commits and pushes.
 
 #### Manually
 
 1. Copy the update file to the ota repo.
-2. Create/update `current4` (format above).
+2. Create/update `current6` and `current4` (format above) with matching contents.
 3. `git add`, `git commit`, `git push`.
 
 ### 5. Verify
@@ -209,10 +211,13 @@ By default `raw.githubusercontent.com` is used — files are stored directly in 
 
 ```
 ota/
-├── current4              # JSON manifest (required)
+├── current6              # JSON manifest, the v6 feed (current merged clients)
+├── current4              # JSON manifest, the v4 feed (legacy clients)
 ├── tx64upd6005002        # Windows x64
 ├── tlinuxupd6005002      # Linux
 └── README.md
 ```
+
+Both manifests are kept byte-for-byte identical so a single release publish covers every client.
 
 Old update files can be deleted — they're only needed while clients on the previous version still exist.
