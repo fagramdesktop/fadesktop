@@ -1,5 +1,4 @@
 2.5.2 (03.09.26)
-
 - Updated tdesktop to v7.1.4
 - Reimplemented FAgram Badge
 - Avatar shapes outline stroke can be disabled now

@@ -1,3 +1,31 @@
+7.2.5 (03.09.26)
+
+- Switch to new autoupdate manifest source.
+
+7.2.4 (01.09.26)
+
+- First update with revoked signing key.
+
+7.2.3 (01.09.26)
+
+- First update with rotated signing key.
+
+7.2.2 (01.09.26)
+
+- First update of v2 update system.
+
+7.2.1 beta (28.08.26)
+
+- First beta version of v2 update system.
+
+7.2 (28.08.26)
+
+- First version of v2 update system.
+
+7.1.5 (02.09.26)
+
+- Fix crash on Linux.
+
 7.1.4 (01.09.26)
 
 - Widen rich message bubbles to fit wide content.
