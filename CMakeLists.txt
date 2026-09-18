@@ -59,6 +59,20 @@ include(cmake/target_prepare_qrc.cmake)
 include(cmake/options.cmake)
 include(cmake/external/qt/package.cmake)
 
+# A prebuilt tlottie archive under extlibs/ is used by unpackaged builds on the
+# platforms it can serve. These are the variables cmake/external/tlottie looks
+# up, and a variable that is already set makes its find_library skip the search.
+set(extlibs_loc "${CMAKE_CURRENT_SOURCE_DIR}/extlibs")
+if (NOT DESKTOP_APP_USE_PACKAGED
+    AND NOT WIN32
+    AND NOT APPLE
+    AND EXISTS "${extlibs_loc}/tlottie/libtlottie.a"
+    AND EXISTS "${extlibs_loc}/tlottie/include/tlottie.h"
+    AND NOT DEFINED DESKTOP_APP_TLOTTIE_LIBRARY)
+    set(DESKTOP_APP_TLOTTIE_LIBRARY "${extlibs_loc}/tlottie/libtlottie.a")
+    set(DESKTOP_APP_TLOTTIE_INCLUDE_DIR "${extlibs_loc}/tlottie/include")
+endif()
+
 set(desktop_app_skip_libs
     glibmm
     variant

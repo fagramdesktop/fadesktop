@@ -28,6 +28,8 @@
   ada,
   tdlib,
   tg_owt,
+  pango,
+  tlottie
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -53,6 +55,7 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   buildInputs = [
+    pango
     qtbase
     qtsvg
     lz4
@@ -72,6 +75,7 @@ stdenv.mkDerivation (finalAttrs: {
     qtwayland
     kcoreaddons
     hunspell
+    tlottie
   ];
 
   dontWrapQtApps = true;
