@@ -181,7 +181,15 @@ const auto kFAGeneralMeta = BuildHelper({
 		return SearchEntry{
 			.id = u"fa/general/disable-auto-download"_q,
 			.title = fatr::fa_disable_auto_download(fatr::now),
-			.keywords = { u"auto"_q, u"download"_q, u"media"_q, u"files"_q, u"documents"_q, u"stickers"_q, u"gifs"_q, u"emoji"_q, u"disable"_q },
+			.keywords = {
+				u"auto"_q,
+				u"download"_q,
+				u"kill switch"_q,
+				u"killswitch"_q,
+				u"kill"_q,
+				u"saver"_q,
+				u"disable"_q,
+			},
 			.icon = { &st::menuIconShowAll },
 		};
 	});
