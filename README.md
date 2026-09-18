@@ -152,7 +152,7 @@ The latest version is available for
         ```nix
         {
         inputs = {
-          fagram.url = "github:fagramdesktop/fadesktop";
+          fagram.url = "github:fagramdesktop/nix";
           # ...
         };
   

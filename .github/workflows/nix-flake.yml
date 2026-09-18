@@ -20,21 +20,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Clone nix repository
         uses: actions/checkout@v7
         with:
+          repository: fagramdesktop/nix
           token: ${{ secrets.PAT }}
-          ref: dev
-          sparse-checkout: |
-            nix
+          path: nix
 
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
+      - name: Prefetch prebuilt binary asset
+        id: prefetch_binary
+        run: |
+          TAG="${{ inputs.release_tag }}"
+          ASSET_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/fagram-${TAG}.tar.zst"
+          echo "Downloading binary from: $ASSET_URL"
+          curl -L -o fagram.tar.zst "$ASSET_URL"
+
+          HEX_HASH=$(sha256sum fagram.tar.zst | awk '{print $1}')
+          SRI_HASH=$(python3 -c "import base64; print('sha256-' + base64.b64encode(bytes.fromhex('$HEX_HASH')).decode())")
+          echo "Binary Hash: $SRI_HASH"
+          echo "binary_hash=$SRI_HASH" >> $GITHUB_OUTPUT
+
       - name: Prefetch source and compute hash
-        id: prefetch
+        id: prefetch_source
         run: |
           OWNER="fagramdesktop"
           REPO="fadesktop"
@@ -56,29 +68,41 @@ jobs:
             --quiet)
 
           HASH=$(echo "$PREFETCH_JSON" | jq -r '.hash')
-          echo "Hash: $HASH"
-          echo "Rev: $REV"
+          echo "Source Hash: $HASH"
+          echo "Source Rev: $REV"
 
           echo "rev=$REV" >> $GITHUB_OUTPUT
           echo "hash=$HASH" >> $GITHUB_OUTPUT
 
-      - name: Update nix/unwrapped.nix
+      - name: Update derivations in nix repo
         run: |
-          REV="${{ steps.prefetch.outputs.rev }}"
-          HASH="${{ steps.prefetch.outputs.hash }}"
           VERSION="${{ inputs.release_tag }}"
+          BINARY_HASH="${{ steps.prefetch_binary.outputs.binary_hash }}"
+          REV="${{ steps.prefetch_source.outputs.rev }}"
+          SOURCE_HASH="${{ steps.prefetch_source.outputs.hash }}"
 
-          sed -i "s|version = \".*\";|version = \"${VERSION}\";|" nix/unwrapped.nix
-          sed -i "s|rev = \".*\";|rev = \"${REV}\";|" nix/unwrapped.nix
-          sed -i "s|hash = \".*\";|hash = \"${HASH}\";|" nix/unwrapped.nix
+          cd nix
 
-          echo "Updated nix/unwrapped.nix:"
-          cat nix/unwrapped.nix
+          # Update prebuilt binary derivation
+          sed -i "s|version = \".*\";|version = \"${VERSION}\";|" pkgs/binary.nix
+          sed -i "s|hash = \".*\";|hash = \"${BINARY_HASH}\";|" pkgs/binary.nix
+
+          # Update source build derivation
+          sed -i "s|version = \".*\";|version = \"${VERSION}\";|" pkgs/unwrapped.nix
+          sed -i "s|rev = \".*\";|rev = \"${REV}\";|" pkgs/unwrapped.nix
+          sed -i "s|hash = \".*\";|hash = \"${SOURCE_HASH}\";|" pkgs/unwrapped.nix
+
+          echo "Updated pkgs/binary.nix:"
+          cat pkgs/binary.nix
+
+          echo "Updated pkgs/unwrapped.nix:"
+          cat pkgs/unwrapped.nix
 
       - name: Commit and push changes
         run: |
-          git config user.name "Burhanverse"
-          git config user.email "contact@burhanverse.eu.org"
-          git add nix/unwrapped.nix
-          git commit -m "nix: update flake to ${{ inputs.release_tag }}"
+          cd nix
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pkgs/binary.nix pkgs/unwrapped.nix
+          git commit -m "nix: update to ${{ inputs.release_tag }}"
           git push
